@@ -1,0 +1,19 @@
+name: velorki_cycle_map
+description: >-
+  The cycle map drawn from the routing tiles on the phone - which ways have
+  bike infrastructure, cycle routes, contraflow, surface and barriers, read
+  from BRouter's rd5 files. Pure Dart, no Flutter dependency.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.3
+
+dependencies:
+  brouter_dart:
+    path: ../brouter_dart
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0

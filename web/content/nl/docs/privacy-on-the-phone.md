@@ -24,7 +24,7 @@ Op Android is Velorki bewust uitgesloten van de cloudback-up van Google en van o
 
 ### Terwijl je naar de kaart kijkt
 
-Kaarttegels worden opgehaald bij OpenFreeMap, en bij CyclOSM als je **Fietskaart** aanzet onder **Kaartlagen**. Een tegel opvragen vertelt de tegelserver naar welk vierkant van de wereld je kijkt, en daarbij hoort je IP-adres, zoals bij elk verzoek. Een gebied dat je hebt gedownload, komt van de telefoon en vraagt nergens om.
+Kaarttegels worden opgehaald bij OpenFreeMap, en bij CyclOSM als je **Online fietskaart** aanzet onder **Kaartlagen**. De **Fietskaart** wordt op de telefoon getekend en vraagt bij geen enkele server iets op. Een tegel opvragen vertelt de tegelserver naar welk vierkant van de wereld je kijkt, en daarbij hoort je IP-adres, zoals bij elk verzoek. Een gebied dat je hebt gedownload, komt van de telefoon en vraagt nergens om.
 
 ### Terwijl je plant
 

@@ -90,7 +90,7 @@ and hides the Plus features — see [SELF_HOSTING.md](SELF_HOSTING.md).
 | Codegen | freezed, json_serializable, drift_dev, riverpod_generator, gen-l10n; generated files are not committed, `app/tool/gen.sh` runs them | |
 | HTTP | dio | interceptors for token refresh, the rate-limit bucket, multipart, cancellation |
 | Map | maplibre_gl behind a `MapController` interface so widget tests can fake it; style URL from config | BSD-licensed, vector tiles, offline regions. Mapbox is proprietary and metered per monthly active user |
-| Map tiles | OpenFreeMap vector tiles by default, CyclOSM raster as an optional overlay | no key, no limits; swappable to self-hosted PMTiles |
+| Map tiles | OpenFreeMap vector tiles by default; an offline cycle map drawn from the rd5 tiles, or CyclOSM raster as an online overlay | no key, no limits; swappable to self-hosted PMTiles |
 
 Versions live in `app/pubspec.yaml`. Deliberately not used: `strava_client` (it
 expects the client secret inside the app) and `latlong2`.
@@ -142,6 +142,7 @@ None depend on Flutter, so they run and are tested on the desktop Dart VM.
 | `velorki_fit` | FIT activities and courses |
 | `velorki_brouter` | the `RoutingBackend` interface, the HTTP, local and composite backends, and the GeoJSON/`messages` parser producing `RouteResult` |
 | `velorki_loops` | the loop candidate strategies and the scorer |
+| `velorki_cycle_map` | the offline cycle map: ways classified from the rd5 tiles, cached per cell, written as GeoJSON in an isolate |
 | `velorki_api` | the client for the relay |
 | `brouter_dart` | the Dart port of the BRouter routing runtime |
 

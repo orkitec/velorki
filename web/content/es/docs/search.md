@@ -38,15 +38,14 @@ Velorki decide por el **centro del mapa**, no por tu conexión. Cada tesela de r
 - si la tesela bajo el centro del mapa tiene su índice en el teléfono, la consulta se responde en el teléfono;
 - si no, la consulta va en línea a Photon.
 
-Al pie de la ficha de resultados hay exactamente una fila, y cuál es te dice de dónde vienen los resultados:
+Sobre una zona descargada, hay una fila al pie de la ficha de resultados, y cuál es te dice de dónde vienen los resultados:
 
 | Fila | Significa | Al tocarla |
 |---|---|---|
 | **Buscar «…» en línea** | estás viendo resultados sin conexión | lanza el mismo texto en línea |
 | **Mostrar resultados sin conexión** | estás viendo resultados en línea | vuelve a lanzar el mismo texto en el teléfono |
-| **Descarga esta zona para buscar sin conexión** | esta zona no tiene índice en el teléfono | abre la pantalla sin conexión para la zona visible |
 
-Esa fila sigue visible mientras desplazas la lista, y también aparece bajo un mensaje de error, que es donde más importa.
+Cuando la zona no tiene índice en el teléfono y los resultados vinieron en línea, un aviso abre la lista en su lugar: **Esta zona no está descargada**, una línea con el motivo y un botón **Descargar** que abre la pantalla sin conexión para la zona visible. Debajo, el rótulo **Resultados en línea** introduce las filas en línea. El aviso sigue visible mientras desplazas la lista y, si la búsqueda falló, queda sobre el mensaje de error, que es donde más importa.
 
 ## Qué encuentra
 
@@ -89,7 +88,7 @@ No hay botón de guardar; los cambios se aplican con la siguiente tecla que puls
 
 ## Cuando la búsqueda no funciona
 
-- **«No se encontró nada.»** El texto no coincidió con nada, ni sin conexión ni en línea. Prueba la fila del final para cambiar de fuente, o menos palabras.
+- **«No se encontró nada.»** El texto no coincidió con nada, ni sin conexión ni en línea. Prueba la fila del final para cambiar de fuente (sobre una zona sin descargar, **Descargar** en el aviso de arriba), o menos palabras.
 - **«Falló la búsqueda.»** con un motivo significa que no se pudo contactar con el geocodificador en línea. La búsqueda sin conexión sigue funcionando donde has descargado una zona.
 - **«No hay servidor de búsqueda configurado; añade uno en Ajustes → Avanzado.»** significa que esta versión no tiene ni dirección de geocodificador ni ningún índice descargado. El campo está desactivado hasta que exista uno.
 

@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
+import 'package:velorki/features/map/domain/cycle_map.dart';
 import 'package:velorki/features/map/domain/stops_along_route.dart';
 import 'package:velorki/features/map/presentation/layers_sheet.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
@@ -216,7 +217,7 @@ void main() {
       expect(find.byType(SegmentedButton<bool>), findsNothing);
     });
 
-    testWidgets('the cycle map switch is the app-wide overlay setting', (
+    testWidgets('the online cycle map switch is the app-wide overlay', (
       tester,
     ) async {
       await _screen(tester, const Size(411, 914));
@@ -226,14 +227,64 @@ void main() {
         tester.element(find.byType(LayersSheet)),
       );
 
-      await tester.tap(_switch(l10n.mapLayersCycleMap));
+      await tester.tap(_switch(l10n.mapLayersOnlineCycleMap));
       await tester.pumpAndSettle();
       expect(container.read(cyclosmOverlayProvider), isTrue);
       expect(prefs.getBool('map.cyclosm_overlay'), isTrue);
 
-      await tester.tap(_switch(l10n.mapLayersCycleMap));
+      await tester.tap(_switch(l10n.mapLayersOnlineCycleMap));
       await tester.pumpAndSettle();
       expect(container.read(cyclosmOverlayProvider), isFalse);
+    });
+
+    testWidgets('the cycle map switch unfolds its parts, remembered', (
+      tester,
+    ) async {
+      await _screen(tester, const Size(411, 914));
+      final prefs = await _pump(tester);
+      await _openSheet(tester);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(LayersSheet)),
+      );
+      final surface = find.widgetWithText(FilterChip, l10n.mapCyclePartSurface);
+      expect(surface, findsNothing);
+
+      await tester.tap(_switch(l10n.mapLayersCycleMap));
+      await tester.pumpAndSettle();
+      expect(container.read(cycleMapPreferencesProvider).shown, isTrue);
+      expect(prefs.getBool('map.cycle_map.shown'), isTrue);
+      expect(find.byType(CycleMapPartSample), findsNWidgets(8));
+
+      await tester.ensureVisible(surface);
+      await tester.tap(surface);
+      await tester.pumpAndSettle();
+      expect(
+        container.read(cycleMapPreferencesProvider).parts,
+        contains(CycleMapPart.surface),
+      );
+      expect(prefs.getStringList('map.cycle_map.parts'), contains('surface'));
+    });
+
+    testWidgets('the two cycle maps take turns', (tester) async {
+      await _screen(tester, const Size(411, 914));
+      await _pump(tester);
+      await _openSheet(tester);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(LayersSheet)),
+      );
+
+      await tester.tap(_switch(l10n.mapLayersOnlineCycleMap));
+      await tester.pumpAndSettle();
+      await tester.tap(_switch(l10n.mapLayersCycleMap));
+      await tester.pumpAndSettle();
+      expect(container.read(cycleMapPreferencesProvider).shown, isTrue);
+      expect(container.read(cyclosmOverlayProvider), isFalse);
+
+      await tester.ensureVisible(_switch(l10n.mapLayersOnlineCycleMap));
+      await tester.tap(_switch(l10n.mapLayersOnlineCycleMap));
+      await tester.pumpAndSettle();
+      expect(container.read(cyclosmOverlayProvider), isTrue);
+      expect(container.read(cycleMapPreferencesProvider).shown, isFalse);
     });
 
     testWidgets('the stops switch, the kinds and the where are remembered', (

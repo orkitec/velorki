@@ -14,6 +14,7 @@ import '../../assistant/application/route_advice_controller.dart';
 import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
+import '../../map/application/cycle_map_binding.dart';
 import '../../map/application/locate_on_open.dart';
 import '../../map/application/map_stops_controller.dart';
 import '../../map/domain/visible_map.dart';
@@ -22,6 +23,7 @@ import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../map/presentation/map_chrome.dart';
+import '../../map/presentation/map_controls.dart' show mapControlButtonSize;
 import '../../map/presentation/visible_map_padding.dart';
 import '../../map/presentation/shared_map_host.dart';
 import '../../offline/presentation/offline_screen.dart';
@@ -303,6 +305,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     _map = ref.read(sharedMapControllerProvider);
     _stops = MapStopsController(
       find: ref.read(mapStopsFinderProvider),
+      coverage: ref.read(mapStopsCoverageProvider),
       // What the sheet leaves of the map now, pulled up or down, not at
       // its resting height.
       visibleShare: () => mounted
@@ -1141,19 +1144,40 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           : null,
     );
 
+    final cycleMapNeedsDownload = ref.watch(
+      sharedCycleMapNeedsDownloadProvider,
+    );
     // What the chrome shows under its first rows, now and then.
     final below = <Widget>[
-      // Stops on, but the map too far out to show them.
+      // Stops on, but none to show: the area is not downloaded, or the map
+      // is too far out. The download first, since zooming in would show
+      // nothing either.
+      // The cycle map on over an area with no tiles says so too, after
+      // the stops: one chip, the same download.
       ListenableBuilder(
         listenable: _stops,
-        builder: (context, _) => _stops.needsZoom
+        builder: (context, _) =>
+            _stops.needsDownload || cycleMapNeedsDownload || _stops.needsZoom
             ? Padding(
-                padding: const EdgeInsets.only(top: 10),
+                // Clear of the map's control column at the side: a long
+                // message wraps rather than run over its top button.
+                padding: const EdgeInsetsDirectional.only(
+                  top: 10,
+                  end: mapControlButtonSize + 14,
+                ),
                 child: Align(
                   alignment: AlignmentDirectional.centerStart,
-                  child: StopsZoomChip(
-                    onZoomIn: () => unawaited(_stops.zoomIn()),
-                  ),
+                  child: _stops.needsDownload
+                      ? StopsDownloadChip(onDownload: _openOfflineData)
+                      : cycleMapNeedsDownload
+                      ? StopsDownloadChip(
+                          onDownload: _openOfflineData,
+                          message: AppLocalizations.of(context)
+                              .mapCycleMapNotDownloaded,
+                        )
+                      : StopsZoomChip(
+                          onZoomIn: () => unawaited(_stops.zoomIn()),
+                        ),
                 ),
               )
             : const SizedBox.shrink(),

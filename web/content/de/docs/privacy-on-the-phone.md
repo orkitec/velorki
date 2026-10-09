@@ -24,7 +24,7 @@ Unter Android ist Velorki bewusst aus Googles Cloud-Sicherung und aus der Übert
 
 ### Während du auf die Karte schaust
 
-Kartenkacheln werden von OpenFreeMap geholt, und von CyclOSM, wenn du unter **Ebenen** die **Radkarte** einschaltest. Eine Kachel anzufragen verrät dem Kachelserver, welches Quadrat der Welt du gerade ansiehst, und umfasst deine IP-Adresse, wie jede Anfrage. Ein heruntergeladenes Gebiet kommt vom Handy und fragt nach nichts.
+Kartenkacheln werden von OpenFreeMap geholt, und von CyclOSM, wenn du unter **Ebenen** die **Online-Radkarte** einschaltest. Die **Radkarte** wird auf dem Handy gezeichnet und fragt bei keinem Server etwas an. Eine Kachel anzufragen verrät dem Kachelserver, welches Quadrat der Welt du gerade ansiehst, und umfasst deine IP-Adresse, wie jede Anfrage. Ein heruntergeladenes Gebiet kommt vom Handy und fragt nach nichts.
 
 ### Während du planst
 

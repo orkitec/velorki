@@ -38,15 +38,14 @@ Velorki decides by the **map centre**, not by your connection. Each downloaded r
 - if the tile under the centre of the map has its index on the phone, the query is answered on the phone;
 - if it does not, the query goes online to Photon.
 
-At the bottom of the result card sits exactly one row, and which one it is tells you where the results came from:
+Over a downloaded area, one row sits at the bottom of the result card, and which one it is tells you where the results came from:
 
 | Row | Means | Tapping it |
 |---|---|---|
 | **Search online for "…"** | you are looking at offline results | runs the same text online |
 | **Show offline results** | you are looking at online results | runs the same text on the phone again |
-| **Download this area to search offline** | this area has no index on the phone | opens the offline screen for the visible area |
 
-That row stays visible while you scroll the list, and it is shown under an error message too, which is where it matters most.
+Where the area has no index on the phone and the results came online, a notice opens the list instead: **This area isn't downloaded**, a line saying why, and a **Download** button that opens the offline screen for the visible area. Under it the caption **Online results** introduces the online rows. The notice stays visible while you scroll the list, and when the search failed it sits above the error message, which is where it matters most.
 
 ## What it finds
 
@@ -90,7 +89,7 @@ There is no save button; changes take effect on your next keystroke. A group tha
 
 ## When search does not work
 
-- **"Nothing found."** The text matched nothing, offline or online. Try the trailing row to switch source, or fewer words.
+- **"Nothing found."** The text matched nothing, offline or online. Try the trailing row to switch source (over an area that is not downloaded, **Download** in the notice at the top), or fewer words.
 - **"Search failed."** with a reason means the online geocoder could not be reached. Offline search keeps working where you have downloaded an area.
 - **"No search server configured, set one in Settings → Advanced."** means this build has neither a geocoder address nor any downloaded index. The field is disabled until one exists.
 

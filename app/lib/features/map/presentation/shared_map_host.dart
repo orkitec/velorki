@@ -10,6 +10,7 @@ import '../../planner/presentation/planner_map_host.dart';
 import '../../shared/application/active_tab.dart';
 import '../../shared/application/nav_bar_docking.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
+import '../application/cycle_map_binding.dart';
 import '../application/locate_on_open.dart';
 import '../data/map_preferences.dart';
 import '../domain/map_controller.dart';
@@ -68,10 +69,18 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
 
   late final SharedMapController _shared;
 
+  /// The offline cycle map on this map; its hint is the shell's.
+  late final CycleMapBinding _cycleMap;
+
   @override
   void initState() {
     super.initState();
     _shared = ref.read(sharedMapControllerProvider.notifier);
+    _cycleMap = CycleMapBinding(ref);
+    final hint = ref.read(sharedCycleMapNeedsDownloadProvider.notifier);
+    _cycleMap.driver.needsDownload.addListener(
+      () => hint.set(_cycleMap.driver.needsDownload.value),
+    );
     _locate = ref.read(locateOnOpenProvider);
     WidgetsBinding.instance.addObserver(this);
     // A cold start: the remembered view is on screen from the first frame,
@@ -104,6 +113,7 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
   void _handleMapReady(MapController controller) {
     _map = controller;
     unawaited(controller.setCyclosmOverlay(ref.read(cyclosmOverlayProvider)));
+    _cycleMap.attach(controller);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && identical(_map, controller)) _shared.set(controller);
     });
@@ -112,6 +122,7 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _cycleMap.dispose();
     // Deferred: the tree is locked while a widget goes.
     final shared = _shared;
     scheduleMicrotask(() => shared.set(null));
@@ -123,6 +134,7 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
     ref.listen<bool>(cyclosmOverlayProvider, (_, next) {
       unawaited(_map?.setCyclosmOverlay(next));
     });
+    _cycleMap.listen();
     final builder = ref.watch(mapViewBuilderProvider);
     if (!identical(builder, _builder)) {
       _builder = builder;

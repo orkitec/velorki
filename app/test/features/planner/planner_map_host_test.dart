@@ -180,7 +180,7 @@ Future<void> _toggleOverlay(WidgetTester tester, Finder layers) async {
           of: find.byType(LayersSheet),
           matching: find.byType(SwitchListTile),
         )
-        .first,
+        .at(1),
   );
   await tester.pumpAndSettle();
   Navigator.of(tester.element(find.byType(LayersSheet))).pop();

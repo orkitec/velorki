@@ -236,14 +236,14 @@ void main() {
       final element = tester.element(find.byType(MapControls));
       final container = ProviderScope.containerOf(element);
 
-      // The Layers button opens the sheet; its cycle map switch is the
-      // overlay.
+      // The Layers button opens the sheet; its online cycle map switch is
+      // the overlay.
       await tester.tap(find.widgetWithIcon(IconButton, Icons.layers_outlined));
       await tester.pumpAndSettle();
       expect(find.byType(LayersSheet), findsOneWidget);
       final cycleMap = find.widgetWithText(
         SwitchListTile,
-        l10n.mapLayersCycleMap,
+        l10n.mapLayersOnlineCycleMap,
       );
       await tester.tap(cycleMap);
       await tester.pumpAndSettle();

@@ -21,6 +21,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
+import 'package:velorki/features/map/domain/cycle_map.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -550,4 +551,11 @@ class RecordingMapController implements MapController {
   @override
   Future<void> setCyclosmOverlay(bool visible) =>
       inner.setCyclosmOverlay(visible);
+
+  @override
+  Future<void> setCycleMap(String? path) => inner.setCycleMap(path);
+
+  @override
+  Future<void> setCycleMapParts(Set<CycleMapPart> parts) =>
+      inner.setCycleMapParts(parts);
 }

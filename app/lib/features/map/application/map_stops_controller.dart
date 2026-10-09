@@ -111,6 +111,54 @@ StopsFinder mapStopsFinder(Ref ref) => (box, kinds, limit, {near}) async {
   return store.inBox(box, poiKinds: kinds, limit: limit, near: near);
 };
 
+/// Where the device has stops to show: the areas its gazetteers cover.
+///
+/// Listeners are told when that may have changed (a download finished, a
+/// tile was deleted).
+abstract interface class StopsCoverage implements Listenable {
+  /// Whether [point] lies in an area with a gazetteer on the device; `true`
+  /// while that is not known yet, so nothing is claimed missing at start-up.
+  bool covers(LatLng point);
+}
+
+/// The [StopsCoverage] of the app's gazetteer store, following the store
+/// as it is opened, re-scanned and replaced.
+class GazetteerStopsCoverage extends ChangeNotifier implements StopsCoverage {
+  GazetteerStore? _store;
+
+  /// Follows [store] from now on; `null` while it is not open.
+  void follow(GazetteerStore? store) {
+    if (identical(store, _store)) return;
+    _store?.revision.removeListener(notifyListeners);
+    _store = store;
+    store?.revision.addListener(notifyListeners);
+    notifyListeners();
+  }
+
+  @override
+  bool covers(LatLng point) => _store?.covers(point) ?? true;
+
+  @override
+  void dispose() {
+    _store?.revision.removeListener(notifyListeners);
+    _store = null;
+    super.dispose();
+  }
+}
+
+/// The areas the gazetteers on the device cover, for the stops on the map.
+@Riverpod(keepAlive: true)
+StopsCoverage mapStopsCoverage(Ref ref) {
+  final coverage = GazetteerStopsCoverage();
+  ref.onDispose(coverage.dispose);
+  ref.listen(
+    gazetteerStoreProvider,
+    (_, next) => coverage.follow(next.value),
+    fireImmediately: true,
+  );
+  return coverage;
+}
+
 /// How a stop is coloured on the map, by its gazetteer kind.
 MapPoiKind mapPoiKindOfStop(String? kind) => switch (kind) {
   'drinking_water' => MapPoiKind.water,
@@ -161,10 +209,16 @@ class MapStopsController extends ChangeNotifier {
     required this.find,
     this.debounce = stopsDebounce,
     this.visibleShare,
-  });
+    this.coverage,
+  }) {
+    coverage?.addListener(_handleCoverageChanged);
+  }
 
   /// Where the stops come from.
   final StopsFinder find;
+
+  /// Which areas have stops to show at all; every area when `null`.
+  final StopsCoverage? coverage;
 
   /// The part of the map the rider can see, as shares of its width and
   /// height (the sheet, the search and the control column cover the rest);
@@ -220,6 +274,67 @@ class MapStopsController extends ChangeNotifier {
   /// out too far to show them: the rider is told to zoom in.
   bool get needsZoom => mode == MapStopsMode.area && _zoomedOut;
   bool _zoomedOut = false;
+
+  /// Whether stops are wanted but there are none to show, because no
+  /// gazetteer on the device covers the middle of the visible map (in the
+  /// area on screen) or any of the route ahead (along a route): the rider is
+  /// offered the download. Wins over [needsZoom], since zooming in would
+  /// show nothing either.
+  bool get needsDownload => mode != MapStopsMode.off && _uncovered;
+  bool _uncovered = false;
+
+  /// Notes whether the stops wanted lie outside every downloaded area,
+  /// telling the listeners when that changes.
+  void _checkCoverage() {
+    final uncovered = switch (mode) {
+      MapStopsMode.off => false,
+      MapStopsMode.area => _areaUncovered(),
+      MapStopsMode.alongRoute => _routeUncovered(),
+    };
+    if (uncovered == _uncovered) return;
+    _uncovered = uncovered;
+    _changed();
+  }
+
+  bool _areaUncovered() {
+    final check = coverage;
+    final map = _map;
+    if (check == null || map == null) return false;
+    final bounds = map.visibleBounds;
+    final middle = bounds == null
+        ? map.center
+        : visiblePart(bounds, visibleShare?.call()).center;
+    return middle != null && !check.covers(middle);
+  }
+
+  bool _routeUncovered() {
+    final check = coverage;
+    if (check == null || _map == null || _line.length < 2) return false;
+    // Every point of the line from the stretch the rider is on to the end
+    // of the stretch the stops are listed for.
+    for (var i = 0; i < _line.length; i++) {
+      if (_cumulative[i] > _alongM + stopsAheadMaxM) break;
+      if (i + 1 < _line.length && _cumulative[i + 1] < _alongM) continue;
+      if (check.covers(_line[i])) return false;
+    }
+    return true;
+  }
+
+  /// A gazetteer came or went: whether the stops are missing is judged
+  /// again, and what can now be found is asked for.
+  void _handleCoverageChanged() {
+    if (_disposed || _map == null) return;
+    _checkCoverage();
+    switch (mode) {
+      case MapStopsMode.off:
+        break;
+      case MapStopsMode.area:
+        _scheduleArea();
+      case MapStopsMode.alongRoute:
+        _askedRoute = null;
+        unawaited(_fetchAlongRoute());
+    }
+  }
 
   /// Zooms the map in to where the stops show, on the same middle.
   Future<void> zoomIn() async {
@@ -330,6 +445,7 @@ class MapStopsController extends ChangeNotifier {
         // The stops ridden past leave at once, not with the next answer.
         _drawAhead();
     }
+    if (modeBefore != now || routeChanged) _checkCoverage();
   }
 
   /// Draws on [map] from now on, until [detach].
@@ -338,6 +454,7 @@ class MapStopsController extends ChangeNotifier {
     if (_map != null) detach();
     _map = map;
     _noteZoom(map);
+    _checkCoverage();
     map.addCameraIdleListener(_handleCameraIdle);
     map.onStopTapped = _handleStopTapped;
     switch (mode) {
@@ -364,6 +481,7 @@ class MapStopsController extends ChangeNotifier {
     }
     _map = null;
     _zoomedOut = false;
+    _uncovered = false;
     _forget();
     _changed();
   }
@@ -372,7 +490,10 @@ class MapStopsController extends ChangeNotifier {
   /// (the sheet was pulled up or down): the stops in the area are asked for
   /// again once it rests, as after a pan.
   void visibleAreaChanged() {
-    if (_map != null && mode == MapStopsMode.area) _scheduleArea();
+    if (_map != null && mode == MapStopsMode.area) {
+      _checkCoverage();
+      _scheduleArea();
+    }
   }
 
   /// Marks [stop] as the one the rider picked; `null` picks none.
@@ -384,6 +505,7 @@ class MapStopsController extends ChangeNotifier {
 
   @override
   void dispose() {
+    coverage?.removeListener(_handleCoverageChanged);
     _disposed = true;
     detach();
     _timer?.cancel();
@@ -430,7 +552,10 @@ class MapStopsController extends ChangeNotifier {
   void _handleCameraIdle() {
     final map = _map;
     if (map != null) _noteZoom(map);
-    if (mode == MapStopsMode.area) _scheduleArea();
+    if (mode == MapStopsMode.area) {
+      _checkCoverage();
+      _scheduleArea();
+    }
   }
 
   void _handleStopTapped(int index) {
@@ -507,6 +632,8 @@ class MapStopsController extends ChangeNotifier {
     final cumulative = _cumulative;
     final kinds = _kinds.toList()..sort();
     final from = _alongM;
+    // The stretch ahead moved on, perhaps into or out of a downloaded area.
+    _checkCoverage();
     _askedRoute = key;
     _askedKinds = _kinds;
     _askedAtM = from;

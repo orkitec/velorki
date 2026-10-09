@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../map/application/cycle_map_binding.dart';
 import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/map_chrome.dart';
@@ -67,12 +68,20 @@ class PlannerMapHost extends ConsumerStatefulWidget {
 
 class _PlannerMapHostState extends ConsumerState<PlannerMapHost> {
   MapController? _map;
+  late final CycleMapBinding _cycleMap = CycleMapBinding(ref);
+
+  @override
+  void dispose() {
+    _cycleMap.dispose();
+    super.dispose();
+  }
 
   /// Takes the map the builder just handed over, puts the app-wide map
   /// settings on it and passes it to the screen.
   void _handleMapReady(MapController controller) {
     _map = controller;
     unawaited(controller.setCyclosmOverlay(ref.read(cyclosmOverlayProvider)));
+    _cycleMap.attach(controller);
     widget.onMapReady(controller);
   }
 
@@ -84,6 +93,7 @@ class _PlannerMapHostState extends ConsumerState<PlannerMapHost> {
     ref.listen<bool>(cyclosmOverlayProvider, (_, next) {
       unawaited(_map?.setCyclosmOverlay(next));
     });
+    _cycleMap.listen();
     final map = PuckOwnership(
       owned: widget.ownsPosition,
       child: ref.watch(mapViewBuilderProvider)(_handleMapReady),

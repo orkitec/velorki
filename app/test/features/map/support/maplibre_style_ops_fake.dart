@@ -289,6 +289,7 @@ class RecordingStyleOps implements MapLibreStyleOps {
     String? belowLayerId,
     bool enableInteraction = true,
     Object? filter,
+    double? minzoom,
   }) async {
     layerIds.add(layerId);
     calls.add(
@@ -377,6 +378,15 @@ class RecordingStyleOps implements MapLibreStyleOps {
   }
 
   // --------------------------------------------------------------- queries
+
+  /// The base style's layers, under everything [addLayer] adds.
+  List<String> styleLayerIds = <String>[];
+
+  @override
+  Future<List<String>> getLayerIds() async => <String>[
+    ...styleLayerIds,
+    ...layerIds,
+  ];
 
   @override
   Future<List<String>> getSourceIds() async {

@@ -12,7 +12,9 @@ import '../../search/presentation/search_settings_screen.dart'
     show searchGroupLabel;
 import '../../shared/application/covering_sheets.dart';
 import '../../shared/presentation/stat_tile.dart';
+import '../data/cycle_map_layers.dart';
 import '../data/map_preferences.dart';
+import '../domain/cycle_map.dart';
 import 'map_chrome.dart';
 
 /// The groups whose kinds the sheet offers as stops, in this order.
@@ -64,6 +66,8 @@ class LayersSheet extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final cyclosm = ref.watch(cyclosmOverlayProvider);
+    final cycleMap = ref.watch(cycleMapPreferencesProvider);
+    final cycleMapPrefs = ref.read(cycleMapPreferencesProvider.notifier);
     final stops = ref.watch(mapStopsPreferencesProvider);
     final preferences = ref.read(mapStopsPreferencesProvider.notifier);
     final guided =
@@ -85,6 +89,42 @@ class LayersSheet extends ConsumerWidget {
             secondary: const Icon(Icons.directions_bike),
             title: Text(l10n.mapLayersCycleMap),
             subtitle: Text(l10n.mapLayersCycleMapSubtitle),
+            value: cycleMap.shown,
+            onChanged: (value) => unawaited(cycleMapPrefs.setShown(value)),
+          ),
+          // What the cycle map draws folds away with it, as the stops'
+          // kinds do; each chip shows its line, so the chips are the legend.
+          AnimatedSize(
+            duration: const Duration(milliseconds: 350),
+            reverseDuration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubic,
+            alignment: Alignment.topCenter,
+            child: !cycleMap.shown
+                ? const SizedBox(width: double.infinity)
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final part in CycleMapPart.values)
+                          FilterChip(
+                            avatar: CycleMapPartSample(part: part),
+                            label: Text(cycleMapPartLabel(l10n, part)),
+                            showCheckmark: false,
+                            selected: cycleMap.parts.contains(part),
+                            onSelected: (value) => unawaited(
+                              cycleMapPrefs.setPart(part, shown: value),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.public),
+            title: Text(l10n.mapLayersOnlineCycleMap),
+            subtitle: Text(l10n.mapLayersOnlineCycleMapSubtitle),
             value: cyclosm,
             onChanged: (value) =>
                 unawaited(ref.read(cyclosmOverlayProvider.notifier).set(value)),
@@ -204,4 +244,125 @@ class LayersSheet extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// What [part] is called in the Layers sheet.
+String cycleMapPartLabel(AppLocalizations l10n, CycleMapPart part) =>
+    switch (part) {
+      CycleMapPart.infrastructure => l10n.mapCyclePartInfrastructure,
+      CycleMapPart.paths => l10n.mapCyclePartPaths,
+      CycleMapPart.contraflow => l10n.mapCyclePartContraflow,
+      CycleMapPart.routesNational => l10n.mapCyclePartRoutesNational,
+      CycleMapPart.routesRegional => l10n.mapCyclePartRoutesRegional,
+      CycleMapPart.routesLocal => l10n.mapCyclePartRoutesLocal,
+      CycleMapPart.surface => l10n.mapCyclePartSurface,
+      CycleMapPart.barriers => l10n.mapCyclePartBarriers,
+    };
+
+/// A short stroke of how the cycle map draws [part], in the colours of the
+/// map under the sheet: the chip's legend.
+class CycleMapPartSample extends StatelessWidget {
+  /// Creates the sample.
+  const CycleMapPartSample({required this.part, super.key});
+
+  /// The part drawn.
+  final CycleMapPart part;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).brightness == Brightness.dark
+        ? CycleMapColors.dark
+        : CycleMapColors.light;
+    return SizedBox.square(
+      dimension: 18,
+      child: CustomPaint(painter: _SamplePainter(part, colors)),
+    );
+  }
+}
+
+class _SamplePainter extends CustomPainter {
+  _SamplePainter(this.part, this.colors);
+
+  final CycleMapPart part;
+  final CycleMapColors colors;
+
+  static Color _hex(String hex) =>
+      Color(int.parse('FF${hex.substring(1, 7)}', radix: 16));
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final y = size.height / 2;
+    final line = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    void stroke(String color, double width, {double dash = 0, double gap = 0}) {
+      line
+        ..color = _hex(color)
+        ..strokeWidth = width;
+      if (dash == 0) {
+        canvas.drawLine(Offset(1, y), Offset(size.width - 1, y), line);
+        return;
+      }
+      for (var x = 1.0; x < size.width - 1; x += dash + gap) {
+        canvas.drawLine(
+          Offset(x, y),
+          Offset((x + dash).clamp(0, size.width - 1), y),
+          line,
+        );
+      }
+    }
+
+    switch (part) {
+      case CycleMapPart.infrastructure:
+        stroke(colors.infrastructure, 3);
+      case CycleMapPart.paths:
+        stroke(colors.shared, 2.5, dash: 4, gap: 3);
+      case CycleMapPart.contraflow:
+        stroke(colors.infrastructure, 2);
+        final arrow = Paint()
+          ..color = _hex(colors.infrastructure)
+          ..style = PaintingStyle.fill;
+        canvas
+          ..drawPath(
+            Path()
+              ..moveTo(1, y)
+              ..lineTo(6, y - 4)
+              ..lineTo(6, y + 4)
+              ..close(),
+            arrow,
+          )
+          ..drawPath(
+            Path()
+              ..moveTo(size.width - 1, y)
+              ..lineTo(size.width - 6, y - 4)
+              ..lineTo(size.width - 6, y + 4)
+              ..close(),
+            arrow,
+          );
+      case CycleMapPart.routesNational:
+        stroke(colors.routeNational, 7);
+      case CycleMapPart.routesRegional:
+        stroke(colors.routeRegional, 6);
+      case CycleMapPart.routesLocal:
+        stroke(colors.routeLocal, 5);
+      case CycleMapPart.surface:
+        stroke(colors.unpaved, 2.5, dash: 3, gap: 3);
+      case CycleMapPart.barriers:
+        canvas
+          ..drawCircle(
+            Offset(size.width / 2, y),
+            5,
+            Paint()..color = _hex(colors.outline),
+          )
+          ..drawCircle(
+            Offset(size.width / 2, y),
+            4,
+            Paint()..color = _hex(colors.barrier),
+          );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SamplePainter old) =>
+      old.part != part || old.colors != colors;
 }

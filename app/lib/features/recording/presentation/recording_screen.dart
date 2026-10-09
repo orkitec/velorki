@@ -36,6 +36,7 @@ import '../../navigation/presentation/navigation_toggles.dart';
 import '../../navigation/presentation/turn_banner.dart';
 import '../../map/domain/visible_map.dart';
 import '../../navigation/presentation/turn_phrases.dart';
+import '../../offline/presentation/offline_screen.dart';
 import '../../library/application/library_card.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
@@ -227,6 +228,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _map = ref.read(sharedMapControllerProvider);
     _stops = MapStopsController(
       find: ref.read(mapStopsFinderProvider),
+      coverage: ref.read(mapStopsCoverageProvider),
       visibleShare: () => mounted
           ? visibleShareOf(
               visibleMapPadding(
@@ -262,6 +264,20 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// The stops from the Layers sheet: along the followed route ahead, or in
   /// the area on screen.
   late final MapStopsController _stops;
+
+  /// Opens the offline data screen for the area on screen, as the map's
+  /// download button does: where the stops are wanted but not downloaded.
+  void _openOfflineData() {
+    final map = _map;
+    if (map == null) return;
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => OfflineScreen(mapController: map),
+        ),
+      ),
+    );
+  }
 
   /// A stop tapped on the map is picked out, and its card says what and
   /// where it is for as long as it is open.
@@ -1956,9 +1972,15 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                             alignment: Alignment.topLeft,
                             child: ListenableBuilder(
                               listenable: _stops,
-                              // In the area on screen, zoomed out too far:
-                              // told to zoom in where the line would be.
-                              builder: (context, _) => _stops.needsZoom
+                              // Where nothing is downloaded: offered the
+                              // download. In the area on screen, zoomed out
+                              // too far: told to zoom in. Both where the
+                              // line would be.
+                              builder: (context, _) => _stops.needsDownload
+                                  ? StopsDownloadChip(
+                                      onDownload: _openOfflineData,
+                                    )
+                                  : _stops.needsZoom
                                   ? StopsZoomChip(
                                       onZoomIn: () =>
                                           unawaited(_stops.zoomIn()),

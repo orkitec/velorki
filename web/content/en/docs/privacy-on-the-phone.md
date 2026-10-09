@@ -24,7 +24,7 @@ On Android, Velorki is deliberately left out of Google's cloud backup and out of
 
 ### While you look at the map
 
-Map tiles are fetched from OpenFreeMap, and from CyclOSM if you turn on **Cycle map** under **Layers**. Asking for a tile tells the tile server which square of the world you are looking at, and involves your IP address, as any request does. An area you have downloaded is served from the phone and asks for nothing.
+Map tiles are fetched from OpenFreeMap, and from CyclOSM if you turn on **Online cycle map** under **Layers**. The **Cycle map** is drawn on the phone and asks nothing of any server. Asking for a tile tells the tile server which square of the world you are looking at, and involves your IP address, as any request does. An area you have downloaded is served from the phone and asks for nothing.
 
 ### While you plan
 

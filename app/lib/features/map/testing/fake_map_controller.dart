@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../domain/cycle_map.dart';
 import '../domain/map_controller.dart';
 
 /// One recorded [MapController.moveTo] call.
@@ -211,6 +212,15 @@ class FakeMapController implements MapController {
 
   /// Every [setCyclosmOverlay] call, in order.
   final List<bool> cyclosmOverlayCalls = <bool>[];
+
+  /// The cycle map file drawn, if any.
+  String? cycleMap;
+
+  /// Every [setCycleMap] call, in order.
+  final List<String?> cycleMapCalls = <String?>[];
+
+  /// The cycle map parts drawn.
+  Set<CycleMapPart> cycleMapParts = const <CycleMapPart>{};
 
   @override
   LatLng? center;
@@ -457,5 +467,16 @@ class FakeMapController implements MapController {
   Future<void> setCyclosmOverlay(bool visible) async {
     cyclosmOverlay = visible;
     cyclosmOverlayCalls.add(visible);
+  }
+
+  @override
+  Future<void> setCycleMap(String? path) async {
+    cycleMap = path;
+    cycleMapCalls.add(path);
+  }
+
+  @override
+  Future<void> setCycleMapParts(Set<CycleMapPart> parts) async {
+    cycleMapParts = parts;
   }
 }

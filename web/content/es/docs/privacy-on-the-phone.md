@@ -24,7 +24,7 @@ En Android, Velorki queda excluida a propósito de la copia de seguridad en la n
 
 ### Mientras miras el mapa
 
-Las teselas del mapa se piden a OpenFreeMap, y a CyclOSM si activas **Mapa ciclista** en **Capas**. Pedir una tesela le dice al servidor qué cuadrado del mundo estás mirando e incluye tu dirección IP, como cualquier petición. Una zona que has descargado se sirve desde el teléfono y no pide nada.
+Las teselas del mapa se piden a OpenFreeMap, y a CyclOSM si activas **Mapa ciclista en línea** en **Capas**. El **Mapa ciclista** se dibuja en el teléfono y no le pide nada a ningún servidor. Pedir una tesela le dice al servidor qué cuadrado del mundo estás mirando e incluye tu dirección IP, como cualquier petición. Una zona que has descargado se sirve desde el teléfono y no pide nada.
 
 ### Mientras planificas
 

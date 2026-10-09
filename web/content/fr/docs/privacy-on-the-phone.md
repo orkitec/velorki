@@ -24,7 +24,7 @@ Sur Android, Velorki est volontairement exclu de la sauvegarde cloud de Google e
 
 ### Quand vous regardez la carte
 
-Les tuiles de carte sont récupérées auprès d’OpenFreeMap, et de CyclOSM si vous activez **Carte vélo** sous **Calques**. Demander une tuile indique au serveur de tuiles quel carré du monde vous regardez, et fait intervenir votre adresse IP, comme toute requête. Une zone que vous avez téléchargée est servie depuis le téléphone et ne demande rien.
+Les tuiles de carte sont récupérées auprès d’OpenFreeMap, et de CyclOSM si vous activez **Carte vélo en ligne** sous **Calques**. La **Carte vélo** est dessinée sur le téléphone et ne demande rien à aucun serveur. Demander une tuile indique au serveur de tuiles quel carré du monde vous regardez, et fait intervenir votre adresse IP, comme toute requête. Une zone que vous avez téléchargée est servie depuis le téléphone et ne demande rien.
 
 ### Quand vous planifiez
 

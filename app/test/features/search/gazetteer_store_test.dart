@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/domain/search_group.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
@@ -33,6 +34,30 @@ void main() {
     await store.refresh();
     return store;
   }
+
+  test('a download that adds a tile is told to the stops on the map', () async {
+    final store = await openStore();
+    final coverage = GazetteerStopsCoverage();
+    addTearDown(coverage.dispose);
+    expect(
+      coverage.covers(const LatLng(47.14, 9.52)),
+      isTrue,
+      reason: 'nothing is claimed missing before the store is open',
+    );
+    coverage.follow(store);
+    expect(coverage.covers(const LatLng(47.14, 9.52)), isFalse);
+    var told = 0;
+    coverage.addListener(() => told++);
+
+    await store.refresh();
+    expect(told, 0, reason: 'nothing came or went');
+
+    buildGazetteer(dir, 'E5_N45');
+    await store.refresh();
+    expect(told, 1);
+    expect(coverage.covers(const LatLng(47.14, 9.52)), isTrue);
+    expect(coverage.covers(const LatLng(48.14, 11.58)), isFalse);
+  });
 
   Future<GazetteerStore> storeWithFixture() async {
     buildGazetteer(

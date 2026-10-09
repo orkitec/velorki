@@ -6,6 +6,7 @@ import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/presentation/stops_ahead_line.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
+import 'package:velorki/features/offline/presentation/offline_screen.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
@@ -240,5 +241,106 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PlaceCard), findsNothing);
     expect(h.map.stops[0].selected, isFalse);
+  });
+
+  testWidgets('Plan: over an area not downloaded a chip says so, ahead of '
+      'the zoom chip, opens the download, and goes once the area is '
+      'covered', (tester) async {
+    final harness = PlannerHarness();
+    harness.stopsCoverage.covered = (_) => false;
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      // A small phone's width, where the chip has to fit in every language.
+      surfaceSize: const Size(360, 780),
+      extraOverrides: [
+        mapStopsFinderProvider.overrideWithValue(
+          (box, kinds, limit, {near}) async => const <SearchResult>[],
+        ),
+      ],
+    );
+    h.map
+      // Zoomed out too far as well: the download is what helps.
+      ..zoom = stopsMinZoom - 1
+      ..center = const LatLng(48.05, 11.05)
+      ..visibleBounds = const BoundingBox(
+        south: 47.9,
+        west: 10.9,
+        north: 48.2,
+        east: 11.2,
+      );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    for (final listener in [...h.map.cameraIdleListeners]) {
+      listener();
+    }
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
+
+    await container.read(mapStopsPreferencesProvider.notifier).setShown(true);
+    for (final listener in [...h.map.cameraIdleListeners]) {
+      listener();
+    }
+    await tester.pump(stopsDebounce * 2);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapStopsNotDownloaded), findsOneWidget);
+    expect(find.text(l10n.mapStopsZoomIn), findsNothing);
+    expectNoClippedText(tester);
+
+    await tester.tap(find.text(l10n.mapStopsDownload));
+    await tester.pumpAndSettle();
+    expect(find.byType(OfflineScreen), findsOneWidget);
+    await tapBack(tester);
+
+    // The download finished: the store re-scanned and covers the area.
+    harness.stopsCoverage.changed((_) => true);
+    await tester.pump(stopsDebounce * 2);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
+    expect(find.text(l10n.mapStopsZoomIn), findsOneWidget);
+  });
+
+  testWidgets('Record: along a route with nothing ahead downloaded, the chip '
+      'stands where the stops ahead would, and opens the download', (
+    tester,
+  ) async {
+    const mPerLon = 111195 * 0.66913;
+    final line = <LatLng>[
+      for (var m = 0.0; m <= 20000; m += 500) LatLng(48, 11 + m / mPerLon),
+    ];
+    final harness = RecordingHarness();
+    harness.planner.stopsCoverage.covered = (_) => false;
+    await pumpRecordingScreen(
+      tester,
+      const RecordingScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+      preferences: const <String, Object>{'map.stops.shown': true},
+      extraOverrides: [
+        activeGuidedRouteProvider.overrideWithValue(
+          GuidedRoute(key: 'r1', line: line, turns: const []),
+        ),
+        mapStopsFinderProvider.overrideWithValue(
+          (box, kinds, limit, {near}) async => const <SearchResult>[],
+        ),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mapStopsNotDownloaded), findsOneWidget);
+    expect(find.byType(StopsAheadLine), findsNothing);
+    expectNoClippedText(tester);
+
+    await tester.tap(find.text(l10n.mapStopsDownload));
+    await tester.pumpAndSettle();
+    expect(find.byType(OfflineScreen), findsOneWidget);
+    await tapBack(tester);
+
+    harness.planner.stopsCoverage.changed((_) => true);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
+    expect(find.byType(StopsAheadLine), findsOneWidget);
   });
 }

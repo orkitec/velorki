@@ -80,11 +80,12 @@ class SearchField extends ConsumerStatefulWidget {
   /// The current map centre, read when a request goes out.
   final LatLng? Function()? bias;
 
-  /// Called when the rider taps "Download this area to search offline", which
-  /// the list offers while the area under the map centre has no gazetteer.
+  /// Called when the rider taps Download in the notice at the top of the
+  /// list, which says the area under the map centre has no gazetteer and the
+  /// results came from the online search.
   ///
   /// The screen decides what that opens — the field knows nothing about
-  /// navigation — and leaving it `null` leaves the row out.
+  /// navigation — and leaving it `null` leaves the notice out.
   final VoidCallback? onDownloadArea;
 
   @override
@@ -256,10 +257,11 @@ class SearchFieldState extends ConsumerState<SearchField> {
     final store = ref.watch(gazetteerStoreProvider).value;
     final canSearch =
         ref.watch(photonClientProvider) != null || (store?.hasTiles ?? false);
-    // Whether this list can offer the download: there is a map centre, it is
-    // not in a downloaded tile, and the screen knows where to send the rider.
-    // Read here rather than out of the state, because an errored search
-    // (no network) carries no state and is exactly when the row matters.
+    // Whether this list says the area is not downloaded and offers it: there
+    // is a map centre, it is not in a downloaded tile, and the screen knows
+    // where to send the rider. Read here rather than out of the state,
+    // because an errored search (no network) carries no state and is exactly
+    // when the notice matters.
     final centre = widget.bias?.call();
     final canDownloadHere =
         widget.onDownloadArea != null &&
@@ -481,9 +483,9 @@ class _ResultsCardState extends State<_ResultsCard> {
               child: LinearProgressIndicator(),
             ),
             // A search that failed with no gazetteer under the map centre is
-            // the moment the download matters most, so the row stays under
-            // the error as well.
-            error: (error, _) => _withFooter(
+            // the moment the download matters most, so the notice comes
+            // first, above the error.
+            error: (error, _) => _withNotice(
               context,
               ListTile(
                 leading: const Icon(Icons.error_outline),
@@ -536,22 +538,43 @@ class _ResultsCardState extends State<_ResultsCard> {
   static const double _keyboardGap = 8;
 
   /// The rows: the results, and under them the one row that leads out of what
-  /// is on screen — "Search online for …" below local results, "Show offline
-  /// results" below online ones where the area is downloaded, and "Download
-  /// this area to search offline" where it is not.
+  /// is on screen — "Search online for …" below local results and "Show
+  /// offline results" below online ones where the area is downloaded.
   ///
   /// That row is a footer pinned below the scrolling list, not its last item:
   /// it has to be visible whatever the list holds, because it is the way out
   /// when what answered does not know the place.
+  ///
+  /// Where the area is not downloaded, the online results come under a
+  /// notice that says so and offers the download, and a caption that says
+  /// where they came from; both scroll with them, so a card the keyboard
+  /// leaves little room still fits.
   Widget _list(BuildContext context, PlaceSearchState state) {
     final l10n = AppLocalizations.of(context);
     final online = state.source == SearchSource.local && state.canSearchOnline;
     final offline =
         state.source == SearchSource.online && state.offlineAvailableHere;
+    final notice = state.source == SearchSource.online
+        ? _notice(context)
+        : null;
+    final header = <Widget>[
+      if (notice != null) ...[
+        notice,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
+          child: SectionCaption(l10n.searchOnlineResults),
+        ),
+      ],
+    ];
     final items = state.results;
     final corrected = state.correctedQuery;
     final Widget list = items.isEmpty
-        ? ListTile(title: Text(l10n.searchNoResults))
+        ? (header.isEmpty
+              ? ListTile(title: Text(l10n.searchNoResults))
+              : _scrolling(<Widget>[
+                  ...header,
+                  ListTile(title: Text(l10n.searchNoResults)),
+                ]))
         : Scrollbar(
             controller: _scroll,
             thumbVisibility: true,
@@ -559,9 +582,10 @@ class _ResultsCardState extends State<_ResultsCard> {
               controller: _scroll,
               shrinkWrap: true,
               padding: EdgeInsets.zero,
-              itemCount: items.length,
-              itemBuilder: (context, i) {
-                final r = items[i];
+              itemCount: header.length + items.length,
+              itemBuilder: (context, index) {
+                if (index < header.length) return header[index];
+                final r = items[index - header.length];
                 final subtitle = r.source == SearchSource.local
                     ? localResultSubtitle(l10n, r, units: widget.units)
                     : r.subtitle;
@@ -595,7 +619,7 @@ class _ResultsCardState extends State<_ResultsCard> {
             title: Text(l10n.searchShowOffline),
             onTap: widget.onSearchOffline,
           )
-        : _downloadRow(context);
+        : null;
     if (footer == null && corrected == null && !state.searching) return list;
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -618,30 +642,104 @@ class _ResultsCardState extends State<_ResultsCard> {
     );
   }
 
-  /// [child] with the download row pinned under it, where there is one.
-  Widget _withFooter(BuildContext context, Widget child) {
-    final row = _downloadRow(context);
-    if (row == null) return child;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Flexible(child: child),
-        const Divider(height: 1),
-        row,
-      ],
-    );
+  /// [child] under the not-downloaded notice, where there is one.
+  Widget _withNotice(BuildContext context, Widget child) {
+    final notice = _notice(context);
+    if (notice == null) return child;
+    return _scrolling(<Widget>[notice, child]);
   }
 
-  /// "Download this area to search offline", or `null` when the area under
-  /// the map centre is downloaded already (or there is no centre to judge).
-  Widget? _downloadRow(BuildContext context) {
+  /// [children] in a list that scrolls when the card is too short for them.
+  Widget _scrolling(List<Widget> children) => Scrollbar(
+    controller: _scroll,
+    thumbVisibility: true,
+    child: ListView(
+      controller: _scroll,
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
+      children: children,
+    ),
+  );
+
+  /// "This area isn't downloaded", with the button that downloads it, or
+  /// `null` when the area under the map centre is downloaded already (or
+  /// there is no centre to judge).
+  Widget? _notice(BuildContext context) {
     final onDownload = widget.onDownloadArea;
     if (!widget.canDownloadHere || onDownload == null) return null;
-    return ListTile(
-      dense: true,
-      leading: const Icon(Icons.download_outlined),
-      title: Text(AppLocalizations.of(context).searchDownloadAreaOffline),
-      onTap: onDownload,
+    return _AreaNotDownloadedNotice(onDownload: onDownload);
+  }
+}
+
+/// The card at the top of the result list while the area under the map
+/// centre has no gazetteer: the results come from the online search, and
+/// the area can be downloaded to search it on the device.
+class _AreaNotDownloadedNotice extends StatelessWidget {
+  const _AreaNotDownloadedNotice({required this.onDownload});
+
+  final VoidCallback onDownload;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.cloud_download_outlined,
+                      size: 20,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.searchAreaNotDownloaded,
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          l10n.searchAreaNotDownloadedHint,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: FilledButton.tonalIcon(
+                  onPressed: onDownload,
+                  icon: const Icon(Icons.download_outlined, size: 18),
+                  label: Text(l10n.searchAreaDownload),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

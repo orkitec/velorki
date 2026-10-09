@@ -563,4 +563,158 @@ void main() {
       });
     });
   });
+
+  group('where nothing is downloaded', () {
+    bool east(LatLng p) => p.lon >= 11.9;
+
+    test('in the area, an uncovered middle asks for the download and a '
+        'download that covers it takes the ask away and fetches', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final coverage = FakeStopsCoverage(covered: east);
+        final map = FakeMapController()
+          ..zoom = stopsMinZoom
+          ..center = const LatLng(48.01, 11.015)
+          ..visibleBounds = _view;
+        final stops = MapStopsController(find: store.find, coverage: coverage)
+          ..update(shown: true, kinds: const {'cafe'})
+          ..attach(map);
+        var told = 0;
+        stops.addListener(() => told++);
+        async.elapse(stopsDebounce * 2);
+        expect(stops.needsDownload, isTrue);
+        expect(stops.needsZoom, isFalse);
+        final asked = store.asks.length;
+
+        // The download finished and the store re-scanned.
+        coverage.changed((_) => true);
+        async.flushMicrotasks();
+        expect(stops.needsDownload, isFalse);
+        expect(told, greaterThan(0));
+        async.elapse(stopsDebounce * 2);
+        expect(store.asks.length, asked + 1);
+        stops.dispose();
+      });
+    });
+
+    test(
+      'in the area, a covered middle needs nothing; panning off it does',
+      () {
+        fakeAsync((async) {
+          final store = _FakeStore();
+          final map = FakeMapController()
+            ..zoom = 14
+            ..center = const LatLng(48.01, 11.015)
+            ..visibleBounds = _view;
+          final stops =
+              MapStopsController(
+                  find: store.find,
+                  coverage: FakeStopsCoverage(covered: (p) => p.lon < 11.5),
+                )
+                ..update(shown: true, kinds: const {'cafe'})
+                ..attach(map);
+          async.elapse(stopsDebounce * 2);
+          expect(stops.needsDownload, isFalse);
+
+          map
+            ..center = const LatLng(48.01, 12.015)
+            ..visibleBounds = const BoundingBox(
+              south: 48,
+              west: 12,
+              north: 48.02,
+              east: 12.03,
+            );
+          map.emitCameraIdle();
+          async.flushMicrotasks();
+          expect(stops.needsDownload, isTrue);
+          stops.dispose();
+        });
+      },
+    );
+
+    test('zoomed out over an uncovered area, the download wins over the '
+        'zoom', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = stopsMinZoom - 2
+          ..center = const LatLng(48.01, 11.015)
+          ..visibleBounds = _view;
+        final stops =
+            MapStopsController(
+                find: store.find,
+                coverage: FakeStopsCoverage(covered: (_) => false),
+              )
+              ..update(shown: true, kinds: const {'cafe'})
+              ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        expect(stops.needsZoom, isTrue);
+        expect(stops.needsDownload, isTrue);
+        stops.dispose();
+      });
+    });
+
+    test('with stops off nothing is missing', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = 14
+          ..center = const LatLng(48.01, 11.015)
+          ..visibleBounds = _view;
+        final stops =
+            MapStopsController(
+                find: store.find,
+                coverage: FakeStopsCoverage(covered: (_) => false),
+              )
+              ..update(shown: false, kinds: const {'cafe'})
+              ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        expect(stops.needsDownload, isFalse);
+        stops.update(shown: true, kinds: const {'cafe'});
+        async.flushMicrotasks();
+        expect(stops.needsDownload, isTrue);
+        stops.update(shown: false, kinds: const {'cafe'});
+        expect(stops.needsDownload, isFalse);
+        stops.dispose();
+      });
+    });
+
+    test('along a route, only a stretch ahead with no downloaded part asks '
+        'for the download', () {
+      fakeAsync((async) {
+        const mPerLon = 111195 * 0.66913;
+        final line = <LatLng>[
+          for (var m = 0.0; m <= 80000; m += 500) LatLng(48, 11 + m / mPerLon),
+        ];
+        final store = _FakeStore();
+        final stops =
+            MapStopsController(
+                find: store.find,
+                coverage: FakeStopsCoverage(covered: east),
+              )
+              ..update(
+                shown: true,
+                kinds: const {'cafe'},
+                routeKey: 'r1',
+                routeLine: line,
+              )
+              ..attach(FakeMapController()..zoom = 9);
+        async.flushMicrotasks();
+        expect(stops.mode, MapStopsMode.alongRoute);
+        expect(stops.needsDownload, isTrue);
+
+        // Ridden on until the downloaded part is within the stretch ahead.
+        stops.update(
+          shown: true,
+          kinds: const {'cafe'},
+          routeKey: 'r1',
+          routeLine: line,
+          alongM: 40000,
+        );
+        async.flushMicrotasks();
+        expect(stops.needsDownload, isFalse);
+        stops.dispose();
+      });
+    });
+  });
 }

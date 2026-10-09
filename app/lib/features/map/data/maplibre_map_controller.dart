@@ -3,7 +3,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart'
-    show Brightness, Color, IconData, ThemeData;
+    show Brightness, Color, IconData, Icons, ThemeData;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show EdgeInsets, Offset, Rect, Size;
 import 'package:flutter/services.dart'
@@ -12,8 +12,10 @@ import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/theme.dart';
+import '../domain/cycle_map.dart';
 import '../domain/map_controller.dart';
 import '../domain/visible_map.dart';
+import 'cycle_map_layers.dart';
 import 'cyclosm_tone.dart';
 import 'marker_glyph.dart';
 import 'marker_layers.dart';
@@ -99,7 +101,11 @@ class MapPalette {
     this.routeOriginal = '#607D8B',
     this.stopCluster = '#1565C0',
     this.stopClusterLabel = '#FFFFFF',
+    this.cycle = CycleMapColors.light,
   });
+
+  /// The offline cycle map's colours.
+  final CycleMapColors cycle;
 
   /// A bubble standing for several stops close together, in the accent,
   /// and the count written on it.
@@ -141,7 +147,8 @@ class MapPalette {
       poiGeneric = '#78909C',
       routeOriginal = '#607D8B',
       stopCluster = '#1565C0',
-      stopClusterLabel = '#FFFFFF';
+      stopClusterLabel = '#FFFFFF',
+      cycle = CycleMapColors.light;
 
   /// The palette of [theme]'s [VelorkiColors].
   factory MapPalette.fromTheme(ThemeData theme) {
@@ -179,6 +186,7 @@ class MapPalette {
       routeOriginal: VelorkiColors.hex(theme.colorScheme.onSurfaceVariant),
       stopCluster: VelorkiColors.hex(colors.accent),
       stopClusterLabel: VelorkiColors.hex(theme.colorScheme.onPrimary),
+      cycle: dark ? CycleMapColors.dark : CycleMapColors.light,
     );
   }
 
@@ -233,7 +241,8 @@ class MapPalette {
       other.positionAccuracy == positionAccuracy &&
       other.routeOriginal == routeOriginal &&
       other.stopCluster == stopCluster &&
-      other.stopClusterLabel == stopClusterLabel;
+      other.stopClusterLabel == stopClusterLabel &&
+      other.cycle == cycle;
 
   @override
   int get hashCode => Object.hash(
@@ -256,7 +265,7 @@ class MapPalette {
     positionDot,
     positionAccuracy,
     routeOriginal,
-    Object.hash(stopCluster, stopClusterLabel),
+    Object.hash(stopCluster, stopClusterLabel, cycle),
   );
 }
 
@@ -347,7 +356,7 @@ abstract class MapLibreStyleOps {
   /// [belowLayerId] is what keeps the route lines under the puck, and
   /// [enableInteraction] decides whether a layer's features can be dragged —
   /// only the waypoint circles want that. [filter] limits the layer to the
-  /// features it matches.
+  /// features it matches, [minzoom] to the zooms from it on.
   Future<void> addLayer(
     String sourceId,
     String layerId,
@@ -355,7 +364,11 @@ abstract class MapLibreStyleOps {
     String? belowLayerId,
     bool enableInteraction = true,
     Object? filter,
+    double? minzoom,
   });
+
+  /// Every layer id of the style, bottom to top: the base map's and ours.
+  Future<List<String>> getLayerIds();
 
   /// Removes the layer [layerId]; a source can only go once nothing draws it.
   Future<void> removeLayer(String layerId);
@@ -488,6 +501,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
     String? belowLayerId,
     bool enableInteraction = true,
     Object? filter,
+    double? minzoom,
   }) => tolerateMapGone(
     () => map.addLayer(
       sourceId,
@@ -496,8 +510,14 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       belowLayerId: belowLayerId,
       enableInteraction: enableInteraction,
       filter: filter,
+      minzoom: minzoom,
     ),
   );
+
+  @override
+  Future<List<String>> getLayerIds() async => <String>[
+    for (final id in await map.getLayerIds()) id as String,
+  ];
 
   @override
   Future<void> removeLayer(String layerId) =>
@@ -601,8 +621,14 @@ class MaplibreMapControllerAdapter implements MapController {
     this.devicePixelRatio = 1.0,
     MapPalette palette = const MapPalette.classic(),
     RasterTone cyclosmTone = lightCyclosmTone,
+    this.cycleMapSwapDelay = const Duration(milliseconds: 400),
   }) : _palette = palette, // ignore: prefer_initializing_formals
        _cyclosmTone = cyclosmTone; // ignore: prefer_initializing_formals
+
+  /// How long an old cycle map stays under a new one: the map loads the new
+  /// file on a thread of its own, and taking the old away at once would
+  /// leave the ways bare for a frame or two.
+  final Duration cycleMapSwapDelay;
 
   final MapLibreStyleOps _ops;
   MapPalette _palette;
@@ -673,6 +699,18 @@ class MaplibreMapControllerAdapter implements MapController {
   Timer? _puckWalk;
   BoundingBox? _visibleBounds;
   bool _cyclosmVisible = false;
+  // The cycle map: the file on the map, the parts shown, and the
+  // generations of its source the style holds, newest last. A new file is
+  // a new source under new layer ids, the old one going once the new one
+  // has drawn; see [setCycleMap].
+  String? _cycleMapPath;
+  Set<CycleMapPart> _cycleMapParts = defaultCycleMapParts;
+  final List<int> _cycleGenerations = <int>[];
+  int _nextCycleGeneration = 0;
+  Future<void> _cycleMapTurn = Future<void>.value();
+  String? _cycleAnchor;
+  bool _cycleAnchorKnown = false;
+  bool _contraflowImageAdded = false;
   bool _attached = false;
   bool _disposed = false;
 
@@ -726,6 +764,10 @@ class MaplibreMapControllerAdapter implements MapController {
     _attached = false;
     _coneRegistered = false;
     _routeLines.clear();
+    // A fresh style holds no cycle map; the replay adds the last one.
+    _cycleGenerations.clear();
+    _cycleAnchorKnown = false;
+    _contraflowImageAdded = false;
     // A fresh style holds none of our bitmaps; the replay registers the
     // ones the markers still need.
     _glyphImages.clear();
@@ -878,6 +920,7 @@ class MaplibreMapControllerAdapter implements MapController {
   /// Re-applies the cached waypoints, track and route lines after a style
   /// load dropped every source.
   Future<void> _replay() async {
+    if (_cycleMapPath != null) await setCycleMap(_cycleMapPath);
     if (_waypoints.isNotEmpty) await setWaypoints(_waypoints);
     if (_pois.isNotEmpty) await setPois(_pois);
     if (_turns.isNotEmpty) await setTurnMarkers(_turns);
@@ -1514,6 +1557,7 @@ class MaplibreMapControllerAdapter implements MapController {
     await _addHeadingConeImage();
     await _redrawMarkerGlyphs();
     await _redrawStopImages();
+    await _recolourCycleMap();
     for (final entry in _routeLines.entries) {
       await _ops.setLayerProperties(
         MapLayerIds.routeCasingLayer(entry.key),
@@ -1955,6 +1999,127 @@ class MaplibreMapControllerAdapter implements MapController {
     _cyclosmVisible = visible;
     if (expandTileTemplate(cyclosmTileUrl).isEmpty || !_attached) return;
     await _ops.setLayerVisibility(MapLayerIds.cyclosmLayer, visible);
+  }
+
+  /// Puts a new cycle map on the map: a new source loading [path] under
+  /// layers of its own, added under the base map's labels; the ones before
+  /// go [cycleMapSwapDelay] later. One change at a time, the newest file
+  /// winning: a call that finds a newer one waiting does nothing.
+  @override
+  Future<void> setCycleMap(String? path) {
+    _cycleMapPath = path;
+    if (!_attached || _disposed) return Future<void>.value();
+    return _cycleMapTurn = _cycleMapTurn.then((_) async {
+      if (!_attached || _disposed || path != _cycleMapPath) return;
+      try {
+        await _drawCycleMap(path);
+      } on PlatformException catch (error) {
+        // The style is going; the next attach puts the map back.
+        debugPrint('velorki: cycle map not drawn: $error');
+      }
+    });
+  }
+
+  Future<void> _drawCycleMap(String? path) async {
+    if (path == null) {
+      await _removeCycleGenerations(List<int>.of(_cycleGenerations));
+      return;
+    }
+    if (!_cycleAnchorKnown) {
+      final ids = await _ops.getLayerIds();
+      _cycleAnchor = CycleMapLayers.anchors.firstWhere(
+        ids.contains,
+        // A style of unknown layers: under everything Velorki draws.
+        orElse: () => MapLayerIds.trackLayer,
+      );
+      _cycleAnchorKnown = true;
+    }
+    if (!_contraflowImageAdded) await _addContraflowImage();
+    final generation = _nextCycleGeneration++;
+    final source = CycleMapLayers.sourceId(generation);
+    await _ops.addSource(
+      source,
+      ml.GeojsonSourceProperties(data: Uri.file(path).toString()),
+    );
+    for (final layer in CycleMapLayers(palette.cycle).layers) {
+      final id = CycleMapLayers.layerId(generation, layer);
+      await _ops.addLayer(
+        source,
+        id,
+        layer.properties,
+        belowLayerId: _cycleAnchor,
+        enableInteraction: false,
+        filter: layer.filter,
+        minzoom: layer.minZoom,
+      );
+      if (!_cycleMapParts.contains(layer.part)) {
+        await _ops.setLayerVisibility(id, false);
+      }
+    }
+    final old = List<int>.of(_cycleGenerations);
+    _cycleGenerations.add(generation);
+    if (old.isEmpty) return;
+    await Future<void>.delayed(cycleMapSwapDelay);
+    if (!_attached || _disposed) return;
+    await _removeCycleGenerations(old);
+  }
+
+  Future<void> _removeCycleGenerations(List<int> generations) async {
+    final layers = CycleMapLayers(palette.cycle).layers;
+    for (final generation in generations) {
+      if (!_cycleGenerations.remove(generation)) continue;
+      for (final layer in layers.reversed) {
+        await _ops.removeLayer(CycleMapLayers.layerId(generation, layer));
+      }
+      await _ops.removeSource(CycleMapLayers.sourceId(generation));
+    }
+  }
+
+  @override
+  Future<void> setCycleMapParts(Set<CycleMapPart> parts) async {
+    _cycleMapParts = Set<CycleMapPart>.unmodifiable(parts);
+    if (!_attached || _disposed) return;
+    for (final generation in List<int>.of(_cycleGenerations)) {
+      for (final layer in CycleMapLayers(palette.cycle).layers) {
+        await _ops.setLayerVisibility(
+          CycleMapLayers.layerId(generation, layer),
+          parts.contains(layer.part),
+        );
+      }
+    }
+  }
+
+  /// The arrows of a one-way open to bikes both ways, in the cycle map's
+  /// colour on its outline.
+  Future<void> _addContraflowImage() async {
+    try {
+      final bytes = await buildMarkerGlyphImage(
+        icon: Icons.swap_horiz_rounded,
+        color: colorFromMapHex(palette.cycle.infrastructure),
+        haloColor: colorFromMapHex(palette.cycle.outline),
+        devicePixelRatio: devicePixelRatio,
+        sizePx: 20,
+      );
+      await _ops.addImage(CycleMapLayers.contraflowImage, bytes);
+      _contraflowImageAdded = true;
+    } on Object catch (error) {
+      // The arrows are missing until the next cycle map tries again.
+      debugPrint('velorki: contraflow arrows not registered: $error');
+    }
+  }
+
+  Future<void> _recolourCycleMap() async {
+    if (_cycleGenerations.isEmpty) return;
+    await _addContraflowImage();
+    for (final generation in List<int>.of(_cycleGenerations)) {
+      for (final layer in CycleMapLayers(palette.cycle).layers) {
+        final id = CycleMapLayers.layerId(generation, layer);
+        await _ops.setLayerProperties(id, layer.properties);
+        // iOS sets what a call leaves out back to the default, the
+        // visibility among it.
+        await _ops.setLayerVisibility(id, _cycleMapParts.contains(layer.part));
+      }
+    }
   }
 
   @override

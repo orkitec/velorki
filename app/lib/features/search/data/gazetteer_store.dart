@@ -165,6 +165,11 @@ class GazetteerStore {
   /// Whether at least one readable gazetteer is open.
   bool get hasTiles => _open.isNotEmpty;
 
+  /// Counts up whenever a gazetteer was opened or closed, so what [covers]
+  /// answers may have changed: a download finished, a tile was deleted.
+  ValueListenable<int> get revision => _revision;
+  final ValueNotifier<int> _revision = ValueNotifier<int>(0);
+
   /// The tiles that can be searched offline, sorted, for tests and logs.
   List<String> get tiles => _open.keys.toList()..sort();
 
@@ -294,9 +299,13 @@ class GazetteerStore {
   /// already open is left alone.
   Future<void> refresh() async {
     if (_closed) return;
+    final before = _open.keys.toSet();
     await _refreshHere();
     final worker = _worker == null ? null : await _worker;
     await worker?.ask(_Ask.refresh, null);
+    // Told once the worker has the same files open, so whoever asks again
+    // on hearing it is answered from them.
+    if (!_closed && !setEquals(before, _open.keys.toSet())) _revision.value++;
   }
 
   Future<void> _refreshHere() async {
@@ -1037,6 +1046,7 @@ class GazetteerStore {
     for (final file in _open.values) {
       file.close();
     }
+    if (_open.isNotEmpty) _revision.value++;
     _open.clear();
   }
 

@@ -38,15 +38,14 @@ Velorki beslist op basis van het **midden van de kaart**, niet van je verbinding
 - als de index van de tegel onder het midden van de kaart op de telefoon staat, wordt de zoekopdracht op de telefoon beantwoord;
 - als dat niet zo is, gaat de zoekopdracht online naar Photon.
 
-Onderaan de resultatenkaart staat precies één regel, en welke het is, zegt je waar de resultaten vandaan komen:
+Boven een gedownload gebied staat onderaan de resultatenkaart één regel, en welke het is, zegt je waar de resultaten vandaan komen:
 
 | Regel | Betekent | Erop tikken |
 |---|---|---|
 | **Online zoeken naar "…"** | je kijkt naar offline resultaten | zoekt dezelfde tekst online |
 | **Offline resultaten tonen** | je kijkt naar online resultaten | zoekt dezelfde tekst weer op de telefoon |
-| **Download dit gebied om offline te zoeken** | dit gebied heeft geen index op de telefoon | opent het offlinescherm voor het zichtbare gebied |
 
-Die regel blijft zichtbaar terwijl je door de lijst scrolt, en staat ook onder een foutmelding, waar hij het meest nodig is.
+Als het gebied geen index op de telefoon heeft en de resultaten online kwamen, opent een melding de lijst in plaats daarvan: **Dit gebied is niet gedownload**, een regel met de reden en een knop **Downloaden** die het offlinescherm voor het zichtbare gebied opent. Eronder leidt het kopje **Online resultaten** de online regels in. De melding blijft zichtbaar terwijl je door de lijst scrolt en staat, als het zoeken mislukte, boven de foutmelding, waar hij het meest nodig is.
 
 ## Wat het vindt
 
@@ -89,7 +88,7 @@ Er is geen opslaanknop; wijzigingen gelden bij je volgende toetsaanslag. Een gro
 
 ## Als zoeken niet werkt
 
-- **"Niets gevonden."** De tekst leverde niets op, offline noch online. Probeer de regel onderaan om van bron te wisselen, of minder woorden.
+- **"Niets gevonden."** De tekst leverde niets op, offline noch online. Probeer de regel onderaan om van bron te wisselen (boven een gebied dat niet is gedownload **Downloaden** in de melding bovenaan), of minder woorden.
 - **"Zoeken mislukt."** met een reden betekent dat de online geocoder niet bereikbaar was. Offline zoeken blijft werken waar je een gebied hebt gedownload.
 - **"Geen zoekserver ingesteld, stel er een in onder Instellingen → Geavanceerd."** betekent dat deze build geen geocoderadres en geen gedownloade index heeft. Het veld is uitgeschakeld tot er een is.
 

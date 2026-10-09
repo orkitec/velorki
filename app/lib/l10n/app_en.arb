@@ -313,12 +313,22 @@
   "placeCardFromYou": "{distance} from you",
   "@placeCardFromYou": {
     "description": "On the card of a picked place: the straight-line distance from the rider's position",
-    "placeholders": {"distance": {"type": "String", "example": "1.2 km"}}
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "1.2 km"
+      }
+    }
   },
   "placeCardOffRoute": "{distance} off your route",
   "@placeCardOffRoute": {
     "description": "On the card of a picked place: how far it is from the nearest point of the planned route",
-    "placeholders": {"distance": {"type": "String", "example": "150 m"}}
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "150 m"
+      }
+    }
   },
   "placeCardDetails": "Details",
   "@placeCardDetails": {
@@ -367,7 +377,12 @@
   "placeDetailsOpenCloses": "Open now · closes {time}",
   "@placeDetailsOpenCloses": {
     "description": "Opening status of a place that is open, with when it closes",
-    "placeholders": {"time": {"type": "String", "example": "18:00"}}
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "18:00"
+      }
+    }
   },
   "placeDetailsClosed": "Closed",
   "@placeDetailsClosed": {
@@ -376,12 +391,22 @@
   "placeDetailsClosedOpens": "Closed · opens {time}",
   "@placeDetailsClosedOpens": {
     "description": "Opening status of a place that is closed, with when it opens; the time may carry a weekday",
-    "placeholders": {"time": {"type": "String", "example": "Mon 08:00"}}
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "Mon 08:00"
+      }
+    }
   },
   "placeDetailsCuisine": "Cuisine: {cuisines}",
   "@placeDetailsCuisine": {
     "description": "On the card of a picked place: the kinds of food served, as OpenStreetMap names them (English)",
-    "placeholders": {"cuisines": {"type": "String", "example": "vietnamese, ice cream"}}
+    "placeholders": {
+      "cuisines": {
+        "type": "String",
+        "example": "vietnamese, ice cream"
+      }
+    }
   },
   "placeDetailsWheelchairYes": "Wheelchair accessible",
   "@placeDetailsWheelchairYes": {
@@ -402,7 +427,12 @@
   "placeDetailsWikipedia": "{title} on Wikipedia",
   "@placeDetailsWikipedia": {
     "description": "On the card of a picked place: a link to its Wikipedia article",
-    "placeholders": {"title": {"type": "String", "example": "Cologne Cathedral"}}
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Cologne Cathedral"
+      }
+    }
   },
   "placeLinkNeedsBrowser": "This map link only opens in a browser. Open it there, then share the place from the map page.",
   "@placeLinkNeedsBrowser": {
@@ -630,7 +660,7 @@
   "@searchUnavailable": {
     "description": "Shown when the Photon URL is empty so no search is possible"
   },
-  "searchOnlineFor": "Search online for \u201c{query}\u201d",
+  "searchOnlineFor": "Search online for “{query}”",
   "@searchOnlineFor": {
     "description": "Last row of the offline result list; sends the typed text to the online geocoder",
     "placeholders": {
@@ -644,9 +674,21 @@
   "@searchShowOffline": {
     "description": "Last row of an online result list when the area under the map centre has a downloaded gazetteer; searches the device again"
   },
-  "searchDownloadAreaOffline": "Download this area to search offline",
-  "@searchDownloadAreaOffline": {
-    "description": "Last row of the result list when the area under the map centre has no gazetteer; opens the offline data screen"
+  "searchAreaNotDownloaded": "This area isn't downloaded",
+  "@searchAreaNotDownloaded": {
+    "description": "Title of the notice at the top of the search results when the area under the map centre has no offline data, so the results came from the online search"
+  },
+  "searchAreaNotDownloadedHint": "Results come from the online search. Download it for fast offline search, stops and routing.",
+  "@searchAreaNotDownloadedHint": {
+    "description": "Line under the title of the not-downloaded notice in the search results"
+  },
+  "searchAreaDownload": "Download",
+  "@searchAreaDownload": {
+    "description": "Button in the not-downloaded notice in the search results; opens the download for the area on screen"
+  },
+  "searchOnlineResults": "Online results",
+  "@searchOnlineResults": {
+    "description": "Caption above search results that came from the online search, shown under the not-downloaded notice (rendered upper-case)"
   },
   "searchKindCity": "City",
   "@searchKindCity": {
@@ -684,7 +726,7 @@
   "@searchKindStreet": {
     "description": "Second line of an offline search result that is a street"
   },
-  "searchApproximateNumber": "\u2248 {number}",
+  "searchApproximateNumber": "≈ {number}",
   "@searchApproximateNumber": {
     "description": "House number on the second line of an offline search result when the position is only approximate, interpolated between the numbers the gazetteer knows",
     "placeholders": {
@@ -1081,12 +1123,20 @@
   "importSavedRides": "{count, plural, =1{One ride added to your rides} other{{count} rides added to your rides}}",
   "@importSavedRides": {
     "description": "Snack bar after several tracks of one file were saved as rides",
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "importSavedRoutes": "{count, plural, =1{One route added to the library} other{{count} routes added to the library}}",
   "@importSavedRoutes": {
     "description": "Snack bar after several tracks of one file were saved as routes",
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "importTracks": "Tracks in this file",
   "@importTracks": {
@@ -1095,7 +1145,11 @@
   "importTrackNumber": "Track {number}",
   "@importTrackNumber": {
     "description": "Name of an unnamed track in a file with several",
-    "placeholders": {"number": {"type": "int"}}
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
   },
   "importFailedUnknown": "That is not a GPX, FIT or TCX file.",
   "@importFailedUnknown": {
@@ -1241,14 +1295,25 @@
   "@recordingProfileClimb": {
     "description": "Second line of the record sheet's elevation page while the rider is on a climb",
     "placeholders": {
-      "grade": {"type": "String", "example": "6"},
-      "ascent": {"type": "String", "example": "120 m"}
+      "grade": {
+        "type": "String",
+        "example": "6"
+      },
+      "ascent": {
+        "type": "String",
+        "example": "120 m"
+      }
     }
   },
   "recordingEta": "ETA {time}",
   "@recordingEta": {
     "description": "Estimated time of arrival at the end of the route, on the elevation page",
-    "placeholders": {"time": {"type": "String", "example": "14:32"}}
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "14:32"
+      }
+    }
   },
   "cueSheetStart": "Start",
   "@cueSheetStart": {
@@ -1261,7 +1326,11 @@
   "cueSheetShowAll": "Show all {count}",
   "@cueSheetShowAll": {
     "description": "Button under a collapsed cue sheet",
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "cueSheetShowFewer": "Show fewer",
   "@cueSheetShowFewer": {
@@ -1278,14 +1347,24 @@
   "recordingCuesMore": "{count, plural, =1{1 more} other{{count} more}}",
   "@recordingCuesMore": {
     "description": "Under the cue sheet page when more turns follow than fit",
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "recordingProfileLeft": "{distance} left, {ascent} to climb",
   "@recordingProfileLeft": {
     "description": "Header of the record sheet's elevation page: what remains of the followed route",
     "placeholders": {
-      "distance": {"type": "String", "example": "12.4 km"},
-      "ascent": {"type": "String", "example": "320 m"}
+      "distance": {
+        "type": "String",
+        "example": "12.4 km"
+      },
+      "ascent": {
+        "type": "String",
+        "example": "320 m"
+      }
     }
   },
   "recordingKeepScreenOn": "Keep screen on",
@@ -1551,7 +1630,11 @@
   "rideHeartRateCoverage": "Heart rate · {percent} % of the ride",
   "@rideHeartRateCoverage": {
     "description": "Caption of the ride page's heart-rate chart when the sensor reported for only part of the ride",
-    "placeholders": {"percent": {"type": "int"}}
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
   },
   "rideHeartRate": "Heart rate",
   "@rideHeartRate": {
@@ -3405,7 +3488,12 @@
   "navCautionLabel": "Caution: {name}",
   "@navCautionLabel": {
     "description": "Banner text and spoken phrase for a hazard point of interest on the route",
-    "placeholders": {"name": {"type": "String", "example": "Start dismount zone"}}
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Start dismount zone"
+      }
+    }
   },
   "navContinue": "Continue",
   "@navContinue": {
@@ -3659,7 +3747,7 @@
   "@settingsVoiceSystemDefaultHint": {
     "description": "Explanation under the system default voice"
   },
-  "settingsVoiceSystemDefaultNow": "System default \u00b7 {voice}",
+  "settingsVoiceSystemDefaultNow": "System default · {voice}",
   "@settingsVoiceSystemDefaultNow": {
     "description": "The system default voice row when it is known which voice the phone picks",
     "placeholders": {
@@ -4111,7 +4199,7 @@
   "@voiceBetterTitle": {
     "description": "Heading of the card that explains how to install a better iOS voice"
   },
-  "voiceBetterBody": "Your iPhone only has the compact voice for {language}, which is the robotic one. Apple\u2019s Enhanced and Premium voices are free downloads; here is where to get one:",
+  "voiceBetterBody": "Your iPhone only has the compact voice for {language}, which is the robotic one. Apple’s Enhanced and Premium voices are free downloads; here is where to get one:",
   "@voiceBetterBody": {
     "description": "Body of the card that explains how to install a better iOS voice, above the numbered steps",
     "placeholders": {
@@ -4145,7 +4233,7 @@
   "@voiceBetterStep5": {
     "description": "Fifth step of the card that explains how to install a better iOS voice"
   },
-  "voiceBetterAfter": "Velorki then says the turns in the best voice on the phone by itself \u2014 there is nothing to choose here afterwards.",
+  "voiceBetterAfter": "Velorki then says the turns in the best voice on the phone by itself — there is nothing to choose here afterwards.",
   "@voiceBetterAfter": {
     "description": "Line under the steps of the card that explains how to install a better iOS voice"
   },
@@ -4153,7 +4241,7 @@
   "@voiceBetterOpenSettings": {
     "description": "Button on the card that explains how to install a better iOS voice"
   },
-  "voiceBetterOpenSettingsHint": "It opens on Velorki\u2019s own page; Accessibility is further down the main Settings list.",
+  "voiceBetterOpenSettingsHint": "It opens on Velorki’s own page; Accessibility is further down the main Settings list.",
   "@voiceBetterOpenSettingsHint": {
     "description": "Caption under the button of the card that explains how to install a better iOS voice"
   },
@@ -4315,9 +4403,53 @@
   "@mapLayersCycleMap": {
     "description": "Switch in the layers sheet that puts the cycling map overlay over the map"
   },
-  "mapLayersCycleMapSubtitle": "Cycle routes, bike lanes and bike shops, drawn by CyclOSM · needs a connection",
+  "mapLayersCycleMapSubtitle": "Bike lanes, paths and cycle routes from your downloaded areas · works offline · shown when zoomed in",
   "@mapLayersCycleMapSubtitle": {
-    "description": "Line under the cycle map switch in the layers sheet"
+    "description": "Under the Cycle map switch in the Layers sheet: the offline cycle map drawn from the downloaded routing data."
+  },
+  "mapLayersOnlineCycleMap": "Online cycle map",
+  "@mapLayersOnlineCycleMap": {
+    "description": "Layers sheet: switch for the online CyclOSM raster overlay."
+  },
+  "mapLayersOnlineCycleMapSubtitle": "CyclOSM's map with bike shops and parking · needs a connection",
+  "@mapLayersOnlineCycleMapSubtitle": {
+    "description": "Under the online cycle map switch. CyclOSM is the name of the map's maker; keep it."
+  },
+  "mapCyclePartInfrastructure": "Bike lanes & tracks",
+  "@mapCyclePartInfrastructure": {
+    "description": "Chip in the Layers sheet under Cycle map: cycleways, cycle streets, and bike lanes and tracks beside roads."
+  },
+  "mapCyclePartPaths": "Shared paths",
+  "@mapCyclePartPaths": {
+    "description": "Chip: paths shared with walkers and footways bikes may use."
+  },
+  "mapCyclePartContraflow": "Two-way for bikes",
+  "@mapCyclePartContraflow": {
+    "description": "Chip: one-way streets bikes may ride both ways."
+  },
+  "mapCyclePartRoutesNational": "National routes",
+  "@mapCyclePartRoutesNational": {
+    "description": "Chip: international and national signed cycle routes."
+  },
+  "mapCyclePartRoutesRegional": "Regional routes",
+  "@mapCyclePartRoutesRegional": {
+    "description": "Chip: regional signed cycle routes."
+  },
+  "mapCyclePartRoutesLocal": "Local routes",
+  "@mapCyclePartRoutesLocal": {
+    "description": "Chip: local signed cycle routes."
+  },
+  "mapCyclePartSurface": "Unpaved & bumpy",
+  "@mapCyclePartSurface": {
+    "description": "Chip: ways that are not paved, or are bumpy (cobbles, bad smoothness)."
+  },
+  "mapCyclePartBarriers": "Barriers",
+  "@mapCyclePartBarriers": {
+    "description": "Chip: gates, bollards, stiles on the way."
+  },
+  "mapCycleMapNotDownloaded": "No cycle map here — area not downloaded",
+  "@mapCycleMapNotDownloaded": {
+    "description": "Chip over the map when the offline cycle map is on but the area has no downloaded routing tile; a Download label follows it."
   },
   "mapLayersStops": "Stops",
   "@mapLayersStops": {
@@ -4326,6 +4458,14 @@
   "mapStopsZoomIn": "Zoom in to see stops",
   "@mapStopsZoomIn": {
     "description": "Chip over the map while stops are switched on but the map is zoomed out too far to show them; tapping it zooms in"
+  },
+  "mapStopsNotDownloaded": "No stops here — area not downloaded",
+  "@mapStopsNotDownloaded": {
+    "description": "Chip over the map while stops are switched on but the area on screen (or the route ahead) has no downloaded offline data, so no stops can be shown"
+  },
+  "mapStopsDownload": "Download",
+  "@mapStopsDownload": {
+    "description": "Action at the end of the no-stops-here chip; opens the download for the area on screen"
   },
   "mapLayersStopsPlanHint": "Shown when zoomed in · tap one to plan to it",
   "@mapLayersStopsPlanHint": {
@@ -4350,7 +4490,16 @@
   "mapStopAhead": "{kind} · {distance}",
   "@mapStopAhead": {
     "description": "One entry of the stops-ahead line over the ride map: the kind of stop and how far ahead on the route it is",
-    "placeholders": {"kind": {"type": "String", "example": "Drinking water"}, "distance": {"type": "String", "example": "1.2 km"}}
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Drinking water"
+      },
+      "distance": {
+        "type": "String",
+        "example": "1.2 km"
+      }
+    }
   },
   "mapZoomIn": "Zoom in",
   "@mapZoomIn": {
@@ -4526,7 +4675,7 @@
   "@bleScan": {
     "description": "Button that starts a 15 second search for nearby Bluetooth sensors"
   },
-  "bleScanning": "Scanning\u2026",
+  "bleScanning": "Scanning…",
   "@bleScanning": {
     "description": "Label of the Scan button while a search is running"
   },
@@ -4567,7 +4716,7 @@
   "@bleConnected": {
     "description": "State of a paired sensor that is connected and reporting"
   },
-  "bleConnecting": "Connecting\u2026",
+  "bleConnecting": "Connecting…",
   "@bleConnecting": {
     "description": "State of a paired sensor Velorki is connecting to or coming back for"
   },
@@ -4612,7 +4761,11 @@
   "unitCelsius": "{value} °C",
   "@unitCelsius": {
     "description": "A temperature in degrees Celsius",
-    "placeholders": {"value": {"type": "String"}}
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
   "statMaxCadence": "Max cadence",
   "@statMaxCadence": {
@@ -4970,202 +5123,522 @@
   },
   "poiKindFood": "Food",
   "@poiKindFood": {
-    "description": "A point of interest kind: a caf\u00e9 or shop"
+    "description": "A point of interest kind: a café or shop"
   },
   "poiKindGeneric": "Other",
   "@poiKindGeneric": {
     "description": "A point of interest kind: anything else"
   },
   "poiKindSummit": "Summit",
-  "@poiKindSummit": {"description": "Point kind: the top of a climb"},
+  "@poiKindSummit": {
+    "description": "Point kind: the top of a climb"
+  },
   "poiKindViewpoint": "Viewpoint",
-  "@poiKindViewpoint": {"description": "Point kind: a view worth stopping for"},
+  "@poiKindViewpoint": {
+    "description": "Point kind: a view worth stopping for"
+  },
   "poiKindShelter": "Shelter",
-  "@poiKindShelter": {"description": "Point kind: a hut or roof against the weather"},
+  "@poiKindShelter": {
+    "description": "Point kind: a hut or roof against the weather"
+  },
   "poiKindShop": "Shop",
-  "@poiKindShop": {"description": "Point kind: a shop"},
+  "@poiKindShop": {
+    "description": "Point kind: a shop"
+  },
   "poiKindRepair": "Bike repair",
-  "@poiKindRepair": {"description": "Point kind: a bike shop or repair stand"},
+  "@poiKindRepair": {
+    "description": "Point kind: a bike shop or repair stand"
+  },
   "poiKindFirstAid": "First aid",
-  "@poiKindFirstAid": {"description": "Point kind: a first-aid post, a pharmacy or a hospital"},
+  "@poiKindFirstAid": {
+    "description": "Point kind: a first-aid post, a pharmacy or a hospital"
+  },
   "poiKindToilet": "Toilet",
-  "@poiKindToilet": {"description": "Point kind: a toilet"},
+  "@poiKindToilet": {
+    "description": "Point kind: a toilet"
+  },
   "poiKindCampsite": "Campsite",
-  "@poiKindCampsite": {"description": "Point kind: a place to sleep outside"},
+  "@poiKindCampsite": {
+    "description": "Point kind: a place to sleep outside"
+  },
   "poiKindAccommodation": "Lodging",
-  "@poiKindAccommodation": {"description": "Point kind: a hotel, hostel or guesthouse, a bed rather than a pitch"},
+  "@poiKindAccommodation": {
+    "description": "Point kind: a hotel, hostel or guesthouse, a bed rather than a pitch"
+  },
   "poiKindParking": "Parking",
-  "@poiKindParking": {"description": "Point kind: somewhere to leave a car or lock a bike"},
+  "@poiKindParking": {
+    "description": "Point kind: somewhere to leave a car or lock a bike"
+  },
   "poiKindTransport": "Transport",
-  "@poiKindTransport": {"description": "Point kind: public transport, a station, a stop or a ferry"},
+  "@poiKindTransport": {
+    "description": "Point kind: public transport, a station, a stop or a ferry"
+  },
   "poiKindTurn": "Turn",
-  "@poiKindTurn": {"description": "Point kind: a turn of the cue sheet"},
+  "@poiKindTurn": {
+    "description": "Point kind: a turn of the cue sheet"
+  },
   "plannerTurnDirection": "Direction",
-  "@plannerTurnDirection": {"description": "Caption over the manoeuvre chips of a turn point in the waypoint sheet"},
+  "@plannerTurnDirection": {
+    "description": "Caption over the manoeuvre chips of a turn point in the waypoint sheet"
+  },
   "plannerPointOnRoute": "On the route",
-  "@plannerPointOnRoute": {"description": "Switch in the point sheet: the route is routed through this point"},
+  "@plannerPointOnRoute": {
+    "description": "Switch in the point sheet: the route is routed through this point"
+  },
   "plannerPointBeside": "Beside the route",
-  "@plannerPointBeside": {"description": "Switch in the point sheet: the point is a place near the route, not one the route goes through"},
+  "@plannerPointBeside": {
+    "description": "Switch in the point sheet: the point is a place near the route, not one the route goes through"
+  },
   "routeDetailDescription": "Description",
-  "@routeDetailDescription": {"description": "Label of the route card's description row and its edit dialog"},
+  "@routeDetailDescription": {
+    "description": "Label of the route card's description row and its edit dialog"
+  },
   "routeDetailAddDescription": "Add a description",
-  "@routeDetailAddDescription": {"description": "Shown in the description row of a route without one"},
+  "@routeDetailAddDescription": {
+    "description": "Shown in the description row of a route without one"
+  },
   "routeDetailLink": "Link",
-  "@routeDetailLink": {"description": "Label of the route card's link row and its edit dialog"},
+  "@routeDetailLink": {
+    "description": "Label of the route card's link row and its edit dialog"
+  },
   "routeDetailAddLink": "Add a link",
-  "@routeDetailAddLink": {"description": "Shown in the link row of a route without one"},
+  "@routeDetailAddLink": {
+    "description": "Shown in the link row of a route without one"
+  },
   "routeDetailPois": "Points of interest",
-  "@routeDetailPois": {"description": "Caption over the route card's list of points of interest off the track"},
+  "@routeDetailPois": {
+    "description": "Caption over the route card's list of points of interest off the track"
+  },
   "cardImportedFrom": "Imported from {source}",
   "@cardImportedFrom": {
     "description": "Line under a route's or ride's name saying which file format it came from",
-    "placeholders": {"source": {"type": "String"}}
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
   },
   "cardImportedFromBy": "Imported from {source} · {creator}",
   "@cardImportedFromBy": {
     "description": "Line under a route's or ride's name saying the file format and who wrote the file",
-    "placeholders": {"source": {"type": "String"}, "creator": {"type": "String"}}
+    "placeholders": {
+      "source": {
+        "type": "String"
+      },
+      "creator": {
+        "type": "String"
+      }
+    }
   },
   "importFormatTcx": "TCX",
-  "@importFormatTcx": {"description": "The TCX file format, in the import summary and the source line"},
+  "@importFormatTcx": {
+    "description": "The TCX file format, in the import summary and the source line"
+  },
   "exportTcxCourse": "TCX course",
-  "@exportTcxCourse": {"description": "Route export menu entry: a TCX course file"},
+  "@exportTcxCourse": {
+    "description": "Route export menu entry: a TCX course file"
+  },
   "rideDetailExportTcx": "Export TCX activity",
-  "@rideDetailExportTcx": {"description": "Ride menu entry: export the ride as a TCX activity"},
+  "@rideDetailExportTcx": {
+    "description": "Ride menu entry: export the ride as a TCX activity"
+  },
   "errorUnexpected": "Something went wrong.",
-  "@errorUnexpected": {"description": "Shown in place of an error the app has no words for (a database or file error)"},
+  "@errorUnexpected": {
+    "description": "Shown in place of an error the app has no words for (a database or file error)"
+  },
   "relayUnreachable": "Velorki's server could not be reached. Check the connection and try again.",
-  "@relayUnreachable": {"description": "Error: the Velorki relay server did not answer"},
+  "@relayUnreachable": {
+    "description": "Error: the Velorki relay server did not answer"
+  },
   "relayBusy": "Velorki's server cannot do this right now. Try again later.",
-  "@relayBusy": {"description": "Error: the Velorki relay server is up but unavailable for this"},
+  "@relayBusy": {
+    "description": "Error: the Velorki relay server is up but unavailable for this"
+  },
   "relayRejected": "Velorki's server did not accept the request.",
-  "@relayRejected": {"description": "Error: the Velorki relay server refused a request as invalid"},
+  "@relayRejected": {
+    "description": "Error: the Velorki relay server refused a request as invalid"
+  },
   "relayPlusNeeded": "Velorki Plus is needed for this.",
-  "@relayPlusNeeded": {"description": "Error: the Velorki relay server refused because the rider has no Velorki Plus"},
+  "@relayPlusNeeded": {
+    "description": "Error: the Velorki relay server refused because the rider has no Velorki Plus"
+  },
   "relayConsentNeeded": "Allow the AI features in Settings first.",
-  "@relayConsentNeeded": {"description": "Error: the Velorki relay server needs the rider's consent to the AI features"},
+  "@relayConsentNeeded": {
+    "description": "Error: the Velorki relay server needs the rider's consent to the AI features"
+  },
   "relayNotFound": "Velorki's server no longer has this.",
-  "@relayNotFound": {"description": "Error: the Velorki relay server does not know the requested thing (an expired link)"},
+  "@relayNotFound": {
+    "description": "Error: the Velorki relay server does not know the requested thing (an expired link)"
+  },
   "relayTooManyRequests": "Too many requests. Try again in a few minutes.",
-  "@relayTooManyRequests": {"description": "Error: the Velorki relay server rate limited the rider"},
+  "@relayTooManyRequests": {
+    "description": "Error: the Velorki relay server rate limited the rider"
+  },
   "relayUpstreamFailed": "A service Velorki's server relies on did not answer. Try again later.",
-  "@relayUpstreamFailed": {"description": "Error: the Velorki relay server could not reach the service behind it"},
+  "@relayUpstreamFailed": {
+    "description": "Error: the Velorki relay server could not reach the service behind it"
+  },
   "relayNotConfigured": "This build of Velorki has no server configured.",
-  "@relayNotConfigured": {"description": "Error: the app was built without a relay server address"},
+  "@relayNotConfigured": {
+    "description": "Error: the app was built without a relay server address"
+  },
   "integrationNoRelay": "This build has no Velorki server configured, so no service can be connected.",
-  "@integrationNoRelay": {"description": "Error: Strava or Ride with GPS cannot be used because the app was built without a relay server"},
+  "@integrationNoRelay": {
+    "description": "Error: Strava or Ride with GPS cannot be used because the app was built without a relay server"
+  },
   "integrationPlusNeeded": "Velorki Plus is needed to use this connection.",
-  "@integrationPlusNeeded": {"description": "Error: connecting Strava or Ride with GPS needs Velorki Plus"},
+  "@integrationPlusNeeded": {
+    "description": "Error: connecting Strava or Ride with GPS needs Velorki Plus"
+  },
   "integrationConnectionInvalid": "The {service} connection is no longer valid. Connect again in Settings → Connections.",
-  "@integrationConnectionInvalid": {"description": "Error: the stored login for a partner service was rejected", "placeholders": {"service": {"type": "String"}}},
+  "@integrationConnectionInvalid": {
+    "description": "Error: the stored login for a partner service was rejected",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
   "integrationNotConnected": "No {service} account is connected.",
-  "@integrationNotConnected": {"description": "Error: a partner service was used without a connected account", "placeholders": {"service": {"type": "String"}}},
+  "@integrationNotConnected": {
+    "description": "Error: a partner service was used without a connected account",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
   "integrationRateLimited": "{service} is rate limiting Velorki. Try again in a few minutes.",
-  "@integrationRateLimited": {"description": "Error: a partner service refused because of too many requests", "placeholders": {"service": {"type": "String"}}},
+  "@integrationRateLimited": {
+    "description": "Error: a partner service refused because of too many requests",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
   "integrationTooManyRequests": "Too many {service} requests: {service} allows {capacity} reads every {window} minutes. Try again in {wait, plural, =1{a minute} other{{wait} minutes}}.",
-  "@integrationTooManyRequests": {"description": "Error: the app's own limit on requests to a partner service is used up", "placeholders": {"service": {"type": "String"}, "capacity": {"type": "int"}, "window": {"type": "int"}, "wait": {"type": "int"}}},
+  "@integrationTooManyRequests": {
+    "description": "Error: the app's own limit on requests to a partner service is used up",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "capacity": {
+        "type": "int"
+      },
+      "window": {
+        "type": "int"
+      },
+      "wait": {
+        "type": "int"
+      }
+    }
+  },
   "integrationServiceStatus": "{service} answered with an error ({status}).",
-  "@integrationServiceStatus": {"description": "Error: a partner service answered with an HTTP error code", "placeholders": {"service": {"type": "String"}, "status": {"type": "int"}}},
+  "@integrationServiceStatus": {
+    "description": "Error: a partner service answered with an HTTP error code",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "status": {
+        "type": "int"
+      }
+    }
+  },
   "integrationServiceSaid": "{service}: {detail}",
-  "@integrationServiceSaid": {"description": "Error: a partner service's own error text, which is in the service's language", "placeholders": {"service": {"type": "String"}, "detail": {"type": "String"}}},
+  "@integrationServiceSaid": {
+    "description": "Error: a partner service's own error text, which is in the service's language",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "integrationServiceUnreachable": "{service} could not be reached. Check the connection and try again.",
-  "@integrationServiceUnreachable": {"description": "Error: a partner service did not answer", "placeholders": {"service": {"type": "String"}}},
+  "@integrationServiceUnreachable": {
+    "description": "Error: a partner service did not answer",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
   "integrationUploadRejected": "{service} rejected the upload: {detail}",
-  "@integrationUploadRejected": {"description": "Error: a partner service refused an uploaded file; detail is the service's own text", "placeholders": {"service": {"type": "String"}, "detail": {"type": "String"}}},
+  "@integrationUploadRejected": {
+    "description": "Error: a partner service refused an uploaded file; detail is the service's own text",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "integrationStillProcessing": "{service} is still processing the upload. It will appear there on its own.",
-  "@integrationStillProcessing": {"description": "Error: an upload to a partner service had not finished when the app stopped waiting", "placeholders": {"service": {"type": "String"}}},
+  "@integrationStillProcessing": {
+    "description": "Error: an upload to a partner service had not finished when the app stopped waiting",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
   "integrationEmptyGpx": "{service} returned an empty GPX file for this route.",
-  "@integrationEmptyGpx": {"description": "Error: a partner service sent an empty route file", "placeholders": {"service": {"type": "String"}}},
+  "@integrationEmptyGpx": {
+    "description": "Error: a partner service sent an empty route file",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
   "integrationUnreadableAnswer": "{service} sent an answer Velorki could not read.",
-  "@integrationUnreadableAnswer": {"description": "Error: a partner service answered in an unexpected format", "placeholders": {"service": {"type": "String"}}},
+  "@integrationUnreadableAnswer": {
+    "description": "Error: a partner service answered in an unexpected format",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
   "integrationUnreadableGpx": "The GPX file from {service} could not be read.",
-  "@integrationUnreadableGpx": {"description": "Error: a route file from a partner service is damaged", "placeholders": {"service": {"type": "String"}}},
+  "@integrationUnreadableGpx": {
+    "description": "Error: a route file from a partner service is damaged",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
   "integrationAuthPageFailed": "The authorisation page could not be opened.",
-  "@integrationAuthPageFailed": {"description": "Error: the login page of a partner service did not open"},
+  "@integrationAuthPageFailed": {
+    "description": "Error: the login page of a partner service did not open"
+  },
   "integrationAuthCancelled": "The authorisation was cancelled.",
-  "@integrationAuthCancelled": {"description": "Error: the rider closed the login page of a partner service"},
+  "@integrationAuthCancelled": {
+    "description": "Error: the rider closed the login page of a partner service"
+  },
   "integrationAuthIncomplete": "The authorisation was not completed.",
-  "@integrationAuthIncomplete": {"description": "Error: the login in a partner service's app did not come back"},
+  "@integrationAuthIncomplete": {
+    "description": "Error: the login in a partner service's app did not come back"
+  },
   "integrationAccessDenied": "Access was not granted, so nothing was connected.",
-  "@integrationAccessDenied": {"description": "Error: the rider denied access on a partner service's login page"},
+  "@integrationAccessDenied": {
+    "description": "Error: the rider denied access on a partner service's login page"
+  },
   "integrationAuthRefused": "The service refused the authorisation: {detail}",
-  "@integrationAuthRefused": {"description": "Error: a partner service refused the login; detail is its error code", "placeholders": {"detail": {"type": "String"}}},
+  "@integrationAuthRefused": {
+    "description": "Error: a partner service refused the login; detail is its error code",
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "integrationAuthNoCode": "The service sent no authorisation code back.",
-  "@integrationAuthNoCode": {"description": "Error: a partner service's login came back without a code"},
+  "@integrationAuthNoCode": {
+    "description": "Error: a partner service's login came back without a code"
+  },
   "integrationRouteEmpty": "There is nothing to send: this route has no geometry.",
-  "@integrationRouteEmpty": {"description": "Error: sending a route without points to a partner service"},
+  "@integrationRouteEmpty": {
+    "description": "Error: sending a route without points to a partner service"
+  },
   "integrationCreatedNothing": "{service} created nothing from the upload.",
-  "@integrationCreatedNothing": {"description": "Error: a partner service accepted an upload but made nothing of it", "placeholders": {"service": {"type": "String"}}},
+  "@integrationCreatedNothing": {
+    "description": "Error: a partner service accepted an upload but made nothing of it",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
   "integrationImportFailed": "{service} could not import the file: {detail}",
-  "@integrationImportFailed": {"description": "Error: a partner service could not import an uploaded file; detail is the service's own text", "placeholders": {"service": {"type": "String"}, "detail": {"type": "String"}}},
+  "@integrationImportFailed": {
+    "description": "Error: a partner service could not import an uploaded file; detail is the service's own text",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "integrationRideNeedsTimes": "{service} needs timestamps to store a ride as a trip, and this track has none. Send it as a route instead, or export the GPX.",
-  "@integrationRideNeedsTimes": {"description": "Error: a ride without times cannot be uploaded to Ride with GPS as a trip", "placeholders": {"service": {"type": "String"}}},
+  "@integrationRideNeedsTimes": {
+    "description": "Error: a ride without times cannot be uploaded to Ride with GPS as a trip",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
   "integrationAlreadyUploaded": "This ride is already on {service}.",
-  "@integrationAlreadyUploaded": {"description": "Error: uploading a ride a second time", "placeholders": {"service": {"type": "String"}}},
+  "@integrationAlreadyUploaded": {
+    "description": "Error: uploading a ride a second time",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
   "integrationRideEmpty": "There is nothing to send to {service}: this ride has no track points.",
-  "@integrationRideEmpty": {"description": "Error: uploading a ride without points", "placeholders": {"service": {"type": "String"}}},
+  "@integrationRideEmpty": {
+    "description": "Error: uploading a ride without points",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
   "routingErrorNetwork": "The routing server could not be reached.",
-  "@routingErrorNetwork": {"description": "Routing error: the routing server did not answer"},
+  "@routingErrorNetwork": {
+    "description": "Routing error: the routing server did not answer"
+  },
   "routingErrorNoRoute": "No route was found between these points.",
-  "@routingErrorNoRoute": {"description": "Routing error: the router found no way between the points"},
+  "@routingErrorNoRoute": {
+    "description": "Routing error: the router found no way between the points"
+  },
   "routingErrorInvalid": "The router could not work out this route.",
-  "@routingErrorInvalid": {"description": "Routing error: the request or the answer was not understood"},
+  "@routingErrorInvalid": {
+    "description": "Routing error: the request or the answer was not understood"
+  },
   "routingErrorCancelled": "The routing was cancelled.",
-  "@routingErrorCancelled": {"description": "Routing error: the request was cancelled"},
+  "@routingErrorCancelled": {
+    "description": "Routing error: the request was cancelled"
+  },
   "routingErrorMissingTiles": "The routing tiles for this area are not on this device.",
-  "@routingErrorMissingTiles": {"description": "Routing error: the on-device router has no tiles for the area"},
+  "@routingErrorMissingTiles": {
+    "description": "Routing error: the on-device router has no tiles for the area"
+  },
   "tileDownloadNetwork": "The tile could not be downloaded. Check the connection and try again.",
-  "@tileDownloadNetwork": {"description": "Error: downloading a routing tile failed on the network"},
+  "@tileDownloadNetwork": {
+    "description": "Error: downloading a routing tile failed on the network"
+  },
   "tileDownloadDamaged": "The tile arrived damaged. Try again.",
-  "@tileDownloadDamaged": {"description": "Error: a downloaded routing tile has the wrong size or checksum"},
+  "@tileDownloadDamaged": {
+    "description": "Error: a downloaded routing tile has the wrong size or checksum"
+  },
   "tileDownloadCancelled": "The download was cancelled.",
-  "@tileDownloadCancelled": {"description": "Error: a routing tile download was cancelled"},
+  "@tileDownloadCancelled": {
+    "description": "Error: a routing tile download was cancelled"
+  },
   "tileDownloadNoRoom": "There is no room for the tile on this device.",
-  "@tileDownloadNoRoom": {"description": "Error: the phone's storage is full"},
+  "@tileDownloadNoRoom": {
+    "description": "Error: the phone's storage is full"
+  },
   "tileMirrorUnreachable": "The tile mirror could not be reached. Check the connection and try again.",
-  "@tileMirrorUnreachable": {"description": "Error: the server the routing tiles come from did not answer"},
+  "@tileMirrorUnreachable": {
+    "description": "Error: the server the routing tiles come from did not answer"
+  },
   "tileMirrorUnreadable": "The tile mirror sent a list Velorki could not read.",
-  "@tileMirrorUnreadable": {"description": "Error: the routing tile list is in an unexpected format"},
+  "@tileMirrorUnreadable": {
+    "description": "Error: the routing tile list is in an unexpected format"
+  },
   "plusErrorUnavailable": "This build of Velorki has no store configured.",
-  "@plusErrorUnavailable": {"description": "Subscription error: the app was built without a store"},
+  "@plusErrorUnavailable": {
+    "description": "Subscription error: the app was built without a store"
+  },
   "plusErrorCancelled": "The purchase was cancelled.",
-  "@plusErrorCancelled": {"description": "Subscription error: the rider cancelled the purchase"},
+  "@plusErrorCancelled": {
+    "description": "Subscription error: the rider cancelled the purchase"
+  },
   "plusErrorStore": "The store could not be reached. Try again later.",
-  "@plusErrorStore": {"description": "Subscription error: the App Store or Google Play had a problem or was offline"},
+  "@plusErrorStore": {
+    "description": "Subscription error: the App Store or Google Play had a problem or was offline"
+  },
   "plusErrorNotAllowed": "Purchases are not allowed on this device.",
-  "@plusErrorNotAllowed": {"description": "Subscription error: purchases are restricted on the phone"},
+  "@plusErrorNotAllowed": {
+    "description": "Subscription error: purchases are restricted on the phone"
+  },
   "plusErrorUnknown": "The store reported an error.",
-  "@plusErrorUnknown": {"description": "Subscription error: anything else the store reported"},
+  "@plusErrorUnknown": {
+    "description": "Subscription error: anything else the store reported"
+  },
   "shareNothing": "There is nothing to share.",
-  "@shareNothing": {"description": "Error: sharing a route or ride without points"},
+  "@shareNothing": {
+    "description": "Error: sharing a route or ride without points"
+  },
   "shareFileEmpty": "The shared file was empty.",
-  "@shareFileEmpty": {"description": "Error: a shared link's file came back empty"},
+  "@shareFileEmpty": {
+    "description": "Error: a shared link's file came back empty"
+  },
   "searchErrorUnreachable": "The search server could not be reached.",
-  "@searchErrorUnreachable": {"description": "Under 'Search failed': the search server did not answer"},
+  "@searchErrorUnreachable": {
+    "description": "Under 'Search failed': the search server did not answer"
+  },
   "searchErrorUnreadable": "The search server sent an answer Velorki could not read.",
-  "@searchErrorUnreadable": {"description": "Under 'Search failed': the search server answered in an unexpected format"},
+  "@searchErrorUnreadable": {
+    "description": "Under 'Search failed': the search server answered in an unexpected format"
+  },
   "recordingServiceFailed": "The background service did not start.",
-  "@recordingServiceFailed": {"description": "Why a recording could not start: the phone did not start the recording service"},
+  "@recordingServiceFailed": {
+    "description": "Why a recording could not start: the phone did not start the recording service"
+  },
   "offlineRegionGone": "This map area is no longer on the device.",
-  "@offlineRegionGone": {"description": "Error: an offline map area was removed while it was used"},
+  "@offlineRegionGone": {
+    "description": "Error: an offline map area was removed while it was used"
+  },
   "offlineMapDownloadError": "Check the connection and the free space, then try again.",
-  "@offlineMapDownloadError": {"description": "Why an offline map download failed: MapLibre reported an error (network or storage)"},
+  "@offlineMapDownloadError": {
+    "description": "Why an offline map download failed: MapLibre reported an error (network or storage)"
+  },
   "settingsShowPerformance": "Show performance",
-  "@settingsShowPerformance": {"description": "Switch in Settings > About: shows a small box with frame rate, frame times and memory over the app, for comparing settings on a device"},
+  "@settingsShowPerformance": {
+    "description": "Switch in Settings > About: shows a small box with frame rate, frame times and memory over the app, for comparing settings on a device"
+  },
   "settingsShowPerformanceHint": "Frame rate, frame times and memory in a corner of the screen",
-  "@settingsShowPerformanceHint": {"description": "Subtitle of the show performance switch"},
+  "@settingsShowPerformanceHint": {
+    "description": "Subtitle of the show performance switch"
+  },
   "perfFps": "FPS",
-  "@perfFps": {"description": "Label in the performance box: frames per second, keep it short"},
+  "@perfFps": {
+    "description": "Label in the performance box: frames per second, keep it short"
+  },
   "perfUi": "UI",
-  "@perfUi": {"description": "Label in the performance box: the UI thread's time per frame, keep it short"},
+  "@perfUi": {
+    "description": "Label in the performance box: the UI thread's time per frame, keep it short"
+  },
   "perfRaster": "Raster",
-  "@perfRaster": {"description": "Label in the performance box: the raster (GPU drawing) thread's time per frame, keep it short"},
+  "@perfRaster": {
+    "description": "Label in the performance box: the raster (GPU drawing) thread's time per frame, keep it short"
+  },
   "perfJank": "Jank",
-  "@perfJank": {"description": "Label in the performance box: the share of frames that took too long (stutter), keep it short"},
+  "@perfJank": {
+    "description": "Label in the performance box: the share of frames that took too long (stutter), keep it short"
+  },
   "perfMemory": "RAM",
-  "@perfMemory": {"description": "Label in the performance box: the app's memory use (resident memory), keep it short"},
+  "@perfMemory": {
+    "description": "Label in the performance box: the app's memory use (resident memory), keep it short"
+  },
   "perfFrameTimes": "{average}/{worst} ms",
-  "@perfFrameTimes": {"description": "Average and worst frame time in milliseconds in the performance box", "placeholders": {"average": {"type": "String", "example": "4.1"}, "worst": {"type": "String", "example": "9.8"}}},
+  "@perfFrameTimes": {
+    "description": "Average and worst frame time in milliseconds in the performance box",
+    "placeholders": {
+      "average": {
+        "type": "String",
+        "example": "4.1"
+      },
+      "worst": {
+        "type": "String",
+        "example": "9.8"
+      }
+    }
+  },
   "perfMegabytes": "{value} MB",
-  "@perfMegabytes": {"description": "Memory in megabytes in the performance box", "placeholders": {"value": {"type": "String", "example": "312"}}}
+  "@perfMegabytes": {
+    "description": "Memory in megabytes in the performance box",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "312"
+      }
+    }
+  }
 }

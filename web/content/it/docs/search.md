@@ -38,15 +38,14 @@ Velorki decide in base al **centro della mappa**, non alla tua connessione. Ogni
 - se il riquadro sotto il centro della mappa ha il suo indice sul telefono, la richiesta viene risolta sul telefono;
 - se non lo ha, la richiesta va online a Photon.
 
-In fondo alla scheda dei risultati c'è esattamente una riga, e quale sia ti dice da dove vengono i risultati:
+Su un'area scaricata, in fondo alla scheda dei risultati c'è una riga, e quale sia ti dice da dove vengono i risultati:
 
 | Riga | Significa | Toccandola |
 |---|---|---|
 | **Cerca online "…"** | stai guardando risultati offline | esegue lo stesso testo online |
 | **Mostra risultati offline** | stai guardando risultati online | esegue di nuovo lo stesso testo sul telefono |
-| **Scarica quest'area per cercare offline** | quest'area non ha un indice sul telefono | apre la schermata offline per l'area visibile |
 
-Quella riga resta visibile mentre scorri l'elenco, ed è mostrata anche sotto un messaggio di errore, dove conta di più.
+Quando l'area non ha un indice sul telefono e i risultati sono venuti online, un avviso apre invece l'elenco: **Quest'area non è scaricata**, una riga che ne dice il motivo e un pulsante **Scarica** che apre la schermata offline per l'area visibile. Sotto, l'intestazione **Risultati online** introduce le righe online. L'avviso resta visibile mentre scorri l'elenco e, se la ricerca non è riuscita, sta sopra il messaggio di errore, dove conta di più.
 
 ## Cosa trova
 
@@ -89,7 +88,7 @@ Non c'è un pulsante di salvataggio; le modifiche hanno effetto al prossimo tast
 
 ## Quando la ricerca non funziona
 
-- **"Nessun risultato."** Il testo non corrisponde a nulla, né offline né online. Prova la riga in fondo per cambiare sorgente, o meno parole.
+- **"Nessun risultato."** Il testo non corrisponde a nulla, né offline né online. Prova la riga in fondo per cambiare sorgente (su un'area non scaricata, **Scarica** nell'avviso in alto), o meno parole.
 - **"Ricerca non riuscita."** con un motivo significa che il geocoder online non era raggiungibile. La ricerca offline continua a funzionare dove hai scaricato un'area.
 - **"Nessun server di ricerca configurato, impostane uno in Opzioni → Avanzate."** significa che questa build non ha né un indirizzo del geocoder né alcun indice scaricato. Il campo è disabilitato finché non ne esiste uno.
 

@@ -3,6 +3,8 @@ import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:flutter/widgets.dart' show IconData;
 import 'package:velorki_geo/velorki_geo.dart';
 
+import 'cycle_map.dart';
+
 /// The planner, recorder and library talk to the map only through this
 /// contract. The production implementation wraps maplibre_gl; tests use a
 /// fake. Nothing outside `features/map` may import maplibre types.
@@ -109,6 +111,16 @@ abstract class MapController {
 
   /// Toggle the CyclOSM raster overlay above the vector base map.
   Future<void> setCyclosmOverlay(bool visible);
+
+  /// Draws the offline cycle map from the GeoJSON file at [path], which the
+  /// cycle map worker wrote, or takes it away when [path] is null. The map
+  /// loads the file itself; after a style reload it loads the last one
+  /// again.
+  Future<void> setCycleMap(String? path);
+
+  /// Which parts of the cycle map are drawn: the rest of its layers are
+  /// hidden.
+  Future<void> setCycleMapParts(Set<CycleMapPart> parts);
 
   /// A pin for a searched place the rider has not decided about yet, with
   /// its name; `null` removes it.

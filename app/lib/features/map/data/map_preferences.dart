@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/app_config.dart';
+import '../domain/cycle_map.dart';
 
 part 'map_preferences.g.dart';
 
@@ -73,6 +74,9 @@ class LastMapCamera extends _$LastMapCamera {
 /// Offline downloads read this too: the OpenStreetMap Foundation tile policy
 /// forbids bulk downloading CyclOSM tiles, so the download action is disabled
 /// while the overlay is active.
+///
+/// It and the offline cycle map ([CycleMapPreferences]) draw the same ways,
+/// so one switched on switches the other off.
 @Riverpod(keepAlive: true)
 class CyclosmOverlay extends _$CyclosmOverlay {
   @override
@@ -83,6 +87,9 @@ class CyclosmOverlay extends _$CyclosmOverlay {
   Future<void> set(bool value) async {
     await ref.read(sharedPreferencesProvider).setBool(_prefsCyclosm, value);
     state = value;
+    if (value) {
+      await ref.read(cycleMapPreferencesProvider.notifier).setShown(false);
+    }
   }
 
   /// Flips the overlay.
@@ -193,5 +200,57 @@ class MapStopsPreferences extends _$MapStopsPreferences {
     await ref
         .read(sharedPreferencesProvider)
         .setBool(_prefsStopsAlongRoute, value);
+  }
+}
+
+const String _prefsCycleMapShown = 'map.cycle_map.shown';
+const String _prefsCycleMapParts = 'map.cycle_map.parts';
+
+/// The offline cycle map's settings, remembered across launches.
+@Riverpod(keepAlive: true)
+class CycleMapPreferences extends _$CycleMapPreferences {
+  @override
+  CycleMapSettings build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final names = prefs.getStringList(_prefsCycleMapParts);
+    return CycleMapSettings(
+      shown: prefs.getBool(_prefsCycleMapShown) ?? false,
+      parts: names == null
+          ? defaultCycleMapParts
+          : Set<CycleMapPart>.unmodifiable(<CycleMapPart>{
+              for (final part in CycleMapPart.values)
+                if (names.contains(part.name)) part,
+            }),
+    );
+  }
+
+  /// Draws the cycle map or takes it away; drawing it takes the CyclOSM
+  /// overlay away, which shows the same ways.
+  Future<void> setShown(bool value) async {
+    if (value == state.shown) return;
+    state = state.copyWith(shown: value);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool(_prefsCycleMapShown, value);
+    if (value && ref.read(cyclosmOverlayProvider)) {
+      await ref.read(cyclosmOverlayProvider.notifier).set(false);
+    }
+  }
+
+  /// Draws [part] or stops drawing it.
+  Future<void> setPart(CycleMapPart part, {required bool shown}) async {
+    final parts = Set<CycleMapPart>.of(state.parts);
+    if (shown) {
+      parts.add(part);
+    } else {
+      parts.remove(part);
+    }
+    state = state.copyWith(parts: Set<CycleMapPart>.unmodifiable(parts));
+    await ref
+        .read(sharedPreferencesProvider)
+        .setStringList(
+          _prefsCycleMapParts,
+          <String>[for (final part in parts) part.name]..sort(),
+        );
   }
 }

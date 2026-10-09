@@ -38,15 +38,14 @@ Velorki entscheidet nach der **Kartenmitte**, nicht nach deiner Verbindung. Jede
 - liegt der Index der Kachel unter der Kartenmitte auf dem Handy, wird die Anfrage auf dem Handy beantwortet;
 - liegt er nicht dort, geht die Anfrage online an Photon.
 
-Ganz unten in der Ergebniskarte steht genau eine Zeile, und welche es ist, verrät dir, woher die Ergebnisse kommen:
+Über einem heruntergeladenen Gebiet steht ganz unten in der Ergebniskarte eine Zeile, und welche es ist, verrät dir, woher die Ergebnisse kommen:
 
 | Zeile | Bedeutet | Ein Tipper darauf |
 |---|---|---|
 | **Online nach „…“ suchen** | du siehst Offline-Ergebnisse | sucht denselben Text online |
 | **Offline-Ergebnisse anzeigen** | du siehst Online-Ergebnisse | sucht denselben Text wieder auf dem Handy |
-| **Gebiet herunterladen, um offline zu suchen** | für dieses Gebiet liegt kein Index auf dem Handy | öffnet den Offline-Bildschirm für das sichtbare Gebiet |
 
-Diese Zeile bleibt beim Scrollen durch die Liste sichtbar, und sie steht auch unter einer Fehlermeldung, wo sie am meisten zählt.
+Liegt für das Gebiet kein Index auf dem Handy und kamen die Ergebnisse online, eröffnet stattdessen ein Hinweis die Liste: **Dieses Gebiet ist nicht heruntergeladen**, eine Zeile mit dem Grund und die Schaltfläche **Herunterladen**, die den Offline-Bildschirm für das sichtbare Gebiet öffnet. Darunter leitet die Überschrift **Online-Ergebnisse** die Online-Zeilen ein. Der Hinweis bleibt beim Scrollen durch die Liste sichtbar, und ist die Suche fehlgeschlagen, steht er über der Fehlermeldung, wo er am meisten zählt.
 
 ## Was sie findet
 
@@ -89,7 +88,7 @@ Es gibt keine Schaltfläche zum Speichern; die Änderungen greifen beim nächste
 
 ## Wenn die Suche nicht funktioniert
 
-- **"Nichts gefunden."** Der Text passte zu nichts, weder offline noch online. Nimm die Zeile am Ende, um die Quelle zu wechseln, oder weniger Wörter.
+- **"Nichts gefunden."** Der Text passte zu nichts, weder offline noch online. Nimm die Zeile am Ende, um die Quelle zu wechseln (über einem nicht heruntergeladenen Gebiet **Herunterladen** im Hinweis oben), oder weniger Wörter.
 - **"Suche fehlgeschlagen."** mit einem Grund heißt, dass der Online-Geocoder nicht erreichbar war. Die Offline-Suche läuft weiter, wo du ein Gebiet heruntergeladen hast.
 - **"Kein Suchserver konfiguriert, einen unter Einstellungen → Erweitert festlegen."** heißt, dass dieser Build weder eine Geocoder-Adresse noch einen heruntergeladenen Index hat. Das Feld ist gesperrt, bis es eines von beidem gibt.
 

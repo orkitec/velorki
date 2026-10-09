@@ -64,6 +64,9 @@ class MapControls extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cyclosm = ref.watch(cyclosmOverlayProvider);
+    final cycleMap = ref.watch(
+      cycleMapPreferencesProvider.select((s) => s.shown),
+    );
     final stops = ref.watch(mapStopsPreferencesProvider.select((s) => s.shown));
     final l10n = AppLocalizations.of(context);
     final chrome = MapChromeInsets.maybeOf(context);
@@ -115,7 +118,10 @@ class MapControls extends ConsumerWidget {
           _ControlButton(
             icon: Icons.layers_outlined,
             tooltip: l10n.mapLayers,
-            selected: cyclosm || (stopsOffer != MapStopsOffer.none && stops),
+            selected:
+                cyclosm ||
+                cycleMap ||
+                (stopsOffer != MapStopsOffer.none && stops),
             onPressed: enabled
                 ? () => unawaited(showLayersSheet(context, offer: stopsOffer))
                 : null,

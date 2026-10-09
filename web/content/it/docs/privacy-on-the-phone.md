@@ -24,7 +24,7 @@ Su Android, Velorki è deliberatamente escluso dal backup cloud di Google e dal 
 
 ### Mentre guardi la mappa
 
-I riquadri della mappa vengono scaricati da OpenFreeMap, e da CyclOSM se attivi **Mappa ciclabile** sotto **Livelli**. Chiedere un riquadro dice al server dei riquadri quale quadrato del mondo stai guardando, e comporta il tuo indirizzo IP, come ogni richiesta. Un'area che hai scaricato viene servita dal telefono e non chiede nulla.
+I riquadri della mappa vengono scaricati da OpenFreeMap, e da CyclOSM se attivi **Mappa ciclabile online** sotto **Livelli**. La **Mappa ciclabile** è disegnata sul telefono e non chiede nulla a nessun server. Chiedere un riquadro dice al server dei riquadri quale quadrato del mondo stai guardando, e comporta il tuo indirizzo IP, come ogni richiesta. Un'area che hai scaricato viene servita dal telefono e non chiede nulla.
 
 ### Mentre pianifichi
 

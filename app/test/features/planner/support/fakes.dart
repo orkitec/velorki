@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show EdgeInsets, Offset;
+import 'package:velorki/features/map/domain/cycle_map.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -259,6 +260,16 @@ class TestMapController implements MapController {
   @override
   Future<void> setCyclosmOverlay(bool visible) async {
     calls.add(MapCall('setCyclosmOverlay', [visible]));
+  }
+
+  @override
+  Future<void> setCycleMap(String? path) async {
+    calls.add(MapCall('setCycleMap', [path]));
+  }
+
+  @override
+  Future<void> setCycleMapParts(Set<CycleMapPart> parts) async {
+    calls.add(MapCall('setCycleMapParts', [parts]));
   }
 }
 

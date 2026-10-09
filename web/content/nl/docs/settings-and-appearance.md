@@ -12,7 +12,7 @@ Het tabblad Instellingen is één scrollende pagina met een sectie per onderwerp
 
 **Kaart**: hoe de kaart zelf wordt getekend, los van het thema van de app, **Volgt thema**, **Licht**, **Nacht** of **Zwart**, elk een segment. **Zwart** is die voor een rit in het donker met het scherm gedimd, en het is wat batterijbesparing toch al afdwingt.
 
-**Fietslaag op donkere kaarten**: wat er met de fietskaart uit **Kaartlagen** gebeurt als de kaart eronder donker is: **Omgekeerd**, **Gedimd** of **Ongewijzigd**. De laag is getekend voor een lichte achtergrond, dus op een nachtkaart heeft hij hulp nodig. Deze rij verschijnt alleen in builds die de laag meeleveren.
+**Fietslaag op donkere kaarten**: wat er met de **Online fietskaart** uit **Kaartlagen** gebeurt als de kaart eronder donker is: **Omgekeerd**, **Gedimd** of **Ongewijzigd**. De laag is getekend voor een lichte achtergrond, dus op een nachtkaart heeft hij hulp nodig. Deze rij verschijnt alleen in builds die de laag meeleveren.
 
 **Glas**: hoeveel van de kaart doorschijnt door de tabbalk en de knoppen over de kaart: **Dekkend**, **Transparant**, **Licht glas** of **Helder glas**, de standaard.
 

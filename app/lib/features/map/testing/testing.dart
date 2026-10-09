@@ -6,3 +6,4 @@ library;
 export '../domain/map_controller.dart';
 export 'fake_compass_source.dart';
 export 'fake_map_controller.dart';
+export 'fake_stops_coverage.dart';

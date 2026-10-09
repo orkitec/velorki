@@ -38,15 +38,14 @@ Velorki décide d’après le **centre de la carte**, et non d’après votre co
 - si la tuile située sous le centre de la carte a son index sur le téléphone, la requête est traitée sur le téléphone ;
 - sinon, la requête part en ligne vers Photon.
 
-En bas de la fiche de résultats se trouve exactement une ligne, et celle qui s’affiche vous indique d’où viennent les résultats :
+Sur une zone téléchargée, une ligne se trouve en bas de la fiche de résultats, et celle qui s’affiche vous indique d’où viennent les résultats :
 
 | Ligne | Signification | En la touchant |
 |---|---|---|
 | **Rechercher « … » en ligne** | vous voyez des résultats hors ligne | relance le même texte en ligne |
 | **Afficher les résultats hors ligne** | vous voyez des résultats en ligne | relance le même texte sur le téléphone |
-| **Téléchargez cette zone pour chercher hors ligne** | cette zone n’a pas d’index sur le téléphone | ouvre l’écran hors ligne pour la zone visible |
 
-Cette ligne reste visible pendant que vous faites défiler la liste, et elle s’affiche aussi sous un message d’erreur, ce qui est là où elle compte le plus.
+Quand la zone n’a pas d’index sur le téléphone et que les résultats sont venus en ligne, un avis ouvre la liste à la place : **Cette zone n’est pas téléchargée**, une ligne qui en dit la raison et un bouton **Télécharger** qui ouvre l’écran hors ligne pour la zone visible. Dessous, l’intitulé **Résultats en ligne** introduit les lignes en ligne. L’avis reste visible pendant que vous faites défiler la liste et, si la recherche a échoué, il se place au-dessus du message d’erreur, ce qui est là où il compte le plus.
 
 ## Ce qu’elle trouve
 
@@ -89,7 +88,7 @@ Il n’y a pas de bouton d’enregistrement ; les changements prennent effet �
 
 ## Quand la recherche ne fonctionne pas
 
-- **« Aucun résultat. »** Le texte n’a rien donné, hors ligne comme en ligne. Essayez la dernière ligne pour changer de source, ou moins de mots.
+- **« Aucun résultat. »** Le texte n’a rien donné, hors ligne comme en ligne. Essayez la dernière ligne pour changer de source (sur une zone non téléchargée, **Télécharger** dans l’avis en haut), ou moins de mots.
 - **« La recherche a échoué. »** suivi d’une raison signifie que le géocodeur en ligne n’a pas pu être joint. La recherche hors ligne continue de fonctionner là où vous avez téléchargé une zone.
 - **« Aucun serveur de recherche configuré, définissez-en un dans Réglages → Avancé. »** signifie que cette version n’a ni adresse de géocodeur ni index téléchargé. Le champ est désactivé tant qu’il n’en existe pas.
 

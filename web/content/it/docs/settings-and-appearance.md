@@ -12,7 +12,7 @@ Il tab Opzioni è un'unica pagina scorrevole con una sezione per argomento. Ques
 
 **Mappa**: come viene disegnata la mappa stessa, indipendentemente dal tema dell'app, un segmento ciascuna: **Segue il tema**, **Chiara**, **Notte** o **Nera**. **Nera** è quella per un giro al buio con lo schermo attenuato, ed è quella che il risparmio batteria impone comunque.
 
-**Livello ciclabile su mappe scure**: cosa fare della mappa ciclabile di **Livelli** quando la mappa sotto è scura: **Invertito**, **Attenuato** o **Invariato**. Il livello è disegnato per uno sfondo chiaro, quindi su una mappa notturna ha bisogno di aiuto. Questa riga compare solo nelle build che includono il livello.
+**Livello ciclabile su mappe scure**: cosa fare della **Mappa ciclabile online** di **Livelli** quando la mappa sotto è scura: **Invertito**, **Attenuato** o **Invariato**. Il livello è disegnato per uno sfondo chiaro, quindi su una mappa notturna ha bisogno di aiuto. Questa riga compare solo nelle build che includono il livello.
 
 **Vetro**: quanta mappa si vede attraverso la barra delle schede e i comandi sulla mappa: **Opaca**, **Trasparente**, **Vetro leggero** o **Vetro chiaro**, quella predefinita.
 

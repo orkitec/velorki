@@ -10,10 +10,28 @@ Velorki peut dessiner sur la carte les lieux où l’on s’arrête en sortie :
 
 **Calques** se trouve dans la colonne de boutons à droite de la carte, dans l’onglet Planifier comme dans l’onglet Rouler. Sa feuille contient :
 
-- **Carte vélo** : « Itinéraires cyclables, pistes cyclables et magasins de vélo, dessinés par CyclOSM · nécessite une connexion ». Une surcouche sur la carte, récupérée en ligne.
+- **Carte vélo** : « Pistes, bandes et itinéraires cyclables de vos zones téléchargées · fonctionne hors ligne · visible en zoomant ». Dessinée par l’app à partir des données de routage du téléphone, donc sans connexion, et seulement là où une zone est téléchargée. Ses parties se déplient sous l’interrupteur, voir [la carte vélo](#la-carte-vélo).
+- **Carte vélo en ligne** : « La carte de CyclOSM avec magasins et parkings vélo · nécessite une connexion ». La surcouche de CyclOSM, récupérée en ligne. Les deux cartes vélo alternent : en activer une désactive l’autre.
 - **Haltes**, un interrupteur, désactivé tant que vous ne l’activez pas. Dessous, les types à afficher, par groupe : **Haltes à vélo**, **Hébergement** et **Points d’intérêt**. Touchez un type pour l’afficher ou le masquer. La première fois, l’eau potable, les cafés, les boulangeries, les toilettes et les stations de réparation vélo sont choisis. Interrupteur désactivé, les types se replient ; votre choix est conservé pour la fois suivante.
 
-Le bouton est mis en évidence tant que la carte vélo ou les haltes sont activées.
+Le bouton est mis en évidence tant que la carte vélo, la carte vélo en ligne ou les haltes sont activées.
+
+## La carte vélo
+
+À partir du zoom 13, la carte vélo dessine ce que les données de routage savent de la pratique du vélo. Activée, elle déplie sous l’interrupteur une puce par partie, chacune avec un échantillon de son trait en guise de légende. Touchez une puce pour afficher ou masquer la partie ; le choix est conservé.
+
+| Partie | Dessinée comme |
+| --- | --- |
+| **Pistes & bandes** | Pistes cyclables en bleu plein, rues cyclables avec une bande pâle ; pistes en trait plein et bandes en tirets, le long de la route, de leur côté, en zoomant |
+| **Voies partagées** | Chemins partagés avec les piétons en tirets turquoise, trottoirs ouverts aux vélos en pointillés gris-bleu |
+| **Double sens cyclable** | Flèches sur les rues à sens unique que les vélos peuvent emprunter dans les deux sens, à partir du zoom 15 |
+| **Itinéraires nationaux**, **Itinéraires régionaux**, **Itinéraires locaux** | Itinéraires cyclables balisés en halo violet, plus marqué quand l’itinéraire porte loin |
+| **Non revêtu & cahoteux** | Voies non revêtues en tirets ocre, voies cahoteuses en petits traits rouges |
+| **Obstacles** | Barrières, bornes et échaliers en points à partir du zoom 15 ; en rouge là où il faut porter le vélo |
+
+Au départ, toutes les parties sont actives sauf **Non revêtu & cahoteux** et **Obstacles**.
+
+Dans l’onglet Planifier, avec la carte vélo activée sur une zone non téléchargée, une puce indique **Pas de carte vélo ici – zone non téléchargée**, avec **Télécharger** ; un toucher ouvre le téléchargement de la zone visible. Si la puce des haltes s’applique aussi, elle passe en premier.
 
 ## Dans la zone que vous regardez
 
@@ -21,9 +39,13 @@ Avec **Haltes** activé, les haltes de la partie visible de la carte apparaissen
 
 Plus loin que cela, une pastille indique **Zoomez pour voir les haltes** ; touchez-la et la carte zoome là où elles s’affichent.
 
+Quand la zone n’est pas téléchargée, la pastille indique à la place **Pas de haltes ici – zone non téléchargée**, avec **Télécharger** ; un toucher ouvre le téléchargement de la zone visible.
+
 ## Le long de l’itinéraire à venir
 
 Avec un itinéraire choisi sous **Itinéraire suivi** dans l’onglet Rouler, les haltes sont celles situées à moins de 300 m de la partie de l’itinéraire encore devant vous, jusqu’à 50 km, à tout zoom. Une ligne au-dessus de la carte liste la prochaine de chaque type avec sa distance le long de l’itinéraire, « Eau potable · 2,4 km » ; touchez une entrée pour voir la halte sur la carte. Tant que la carte vous suit pendant une sortie, elle reste avec vous et la halte est seulement mise en évidence.
+
+Quand rien des 50 prochains km de l’itinéraire n’est téléchargé, la même pastille prend la place de cette ligne.
 
 **Le long du parcours** et **Dans cette zone** dans la feuille Calques basculent entre les deux.
 
