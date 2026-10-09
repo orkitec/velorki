@@ -25,7 +25,8 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
    `app/integration_test/store/store_screenshots_test.dart` takes every screen
    the slides use, in each theme: the plan, its variants, a loop, the AI card
    with the loop it asked for, the paywall at the stores' prices (top and
-   bottom), a GPX import, a ride's charts, the library, a
+   bottom) and once as a subscriber sees it (`paywall-active`, no prices, for
+   the website), a GPX import, a ride's charts, the library, a
    route under a status bar with no signal (in the dark theme also in another
    accent), and a ride under way, once with the live card and once navigating
    with the figures bar. The AI card talks to the relay mocked in the test
@@ -125,7 +126,11 @@ The same test on an Android emulator, for the screens the Play set uses.
 Start one first: a Pixel 6 profile (1080 × 2400) on a `google_apis` image,
 e.g. an AVD made with `avdmanager create avd -n Velorki_Shots_Android -d
 pixel_6 -k "system-images;android-35;google_apis;arm64-v8a"` and started with
-`emulator -avd Velorki_Shots_Android -gpu swangle_indirect`. The Play set is
+`emulator -avd Velorki_Shots_Android -gpu swangle_indirect -no-window`.
+Headless on purpose: macOS throttles an emulator whose window is hidden or
+covered (App Nap), and a loop search then takes minutes instead of seconds.
+Started from zsh with `&`, it also runs niced (`bg_nice`): start it from
+bash or with `setopt no_bg_nice`. The Play set is
 made on a Mac: on a GPU-less Linux runner every software renderer either
 draws the map without labels, icons and dashed lines (everything MapLibre
 takes from a texture atlas, cf. maplibre-native #3939) or takes the emulator

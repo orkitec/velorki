@@ -10,7 +10,8 @@
 #
 # Output: web/public/screenshots/<lang>/<mode>-<accent>/<screen>.png plus
 # web/public/screenshots/manifest.json. Screens are planner, loop, search,
-# navigation, recording, ride, library, offline and settings; the appearance
+# navigation, recording, ride, library, offline, settings, assistant and
+# paywall; the appearance
 # matrix is both modes in all five accents — light-volt and dark-volt first,
 # then the other four dark looks, then the other four light ones.
 # One run takes one language; the manifest lists every language found on disk,
@@ -18,9 +19,11 @@
 #
 # Requirements
 # ------------
-# * The `velorki` emulator, running and booted (`~/Work/bin/velorki-emu`);
-#   the phone is never touched, the serial is fixed to emulator-5554 unless
-#   VELORKI_SHOT_DEVICE says otherwise.
+# * The `velorki` emulator, running and booted (`~/Work/bin/velorki-emu`), or
+#   any Pixel 6 profile (1080x2400, on-screen keyboard, the system language
+#   English, so the keyboard is QWERTY) such as the Play capture's AVD; the
+#   phone is never touched, the serial is fixed to emulator-5554 unless
+#   VELORKI_SHOT_DEVICE says otherwise. Bash 3.2 (macOS) is enough.
 # * `mise` (Flutter 3.47 and Java 21), the Android platform tools, python3 and
 #   `env/local.json` (git-ignored; it points the tile mirror at 10.0.2.2:8000).
 # * Network: the map style and its raster tiles come from OpenFreeMap. Routing,
@@ -89,9 +92,9 @@ SERIAL="${VELORKI_SHOT_DEVICE:-emulator-5554}"
 PKG=com.orkitec.velorki
 APP_FILES="/data/user/0/$PKG/files"
 WORK="$(mktemp -d)"
-export PATH="$HOME/Android/Sdk/platform-tools:$PATH"
+export PATH="$HOME/Android/Sdk/platform-tools:$HOME/Library/Android/sdk/platform-tools:$PATH"
 
-ALL_SCREENS=(planner loop search navigation recording ride library offline settings)
+ALL_SCREENS=(planner loop search navigation recording ride library offline settings assistant paywall)
 ALL_LOOKS=(light-volt dark-volt dark-ember dark-glacier dark-berry dark-forest
   light-ember light-glacier light-berry light-forest)
 DO_BUILD=1
@@ -136,119 +139,28 @@ require_device() {
 
 # ---------------------------------------------------------------- the labels
 #
-# Every label the script waits for or taps, per language, because the app is
-# shown in --lang and its own widgets are translated with it. `ui <name>` takes
-# the entry for the current language and falls back to the English one, which
-# is what the demo route and ride names need: proper nouns, seeded once and
-# never re-imported per language.
-#
-# Upper-case names are the captions `StatTile`, `SectionCaption` and the
-# recording pill render with `toUpperCase()`, so they are matched upper-case.
-# The German entries come from `lib/l10n/app_de.arb`; `Zurück`, `Schließen`,
-# `Menü anzeigen` and `Tab 1 von 4` come from Flutter's own
-# `material_de.arb`, which is where those tooltips are translated.
-declare -A UI=(
-  [en:tabbar]='Tab 1 of 4'
-  [de:tabbar]='Tab 1 von 4'
-  [en:tab_plan]='Plan'
-  [de:tab_plan]='Planen'
-  [en:tab_record]='Record'
-  [de:tab_record]='Aufnahme'
-  [en:tab_library]='Library'
-  [de:tab_library]='Bibliothek'
-  [en:tab_settings]='Settings'
-  [de:tab_settings]='Optionen'
-  [en:back]='^Back$'
-  [de:back]='^Zurück$'
-  [en:dismiss]='^Dismiss$'
-  [de:dismiss]='^Schließen$'
-  [en:menu]='^Show menu$'
-  [de:menu]='^Menü anzeigen$'
-  [en:delete]='^Delete$'
-  [de:delete]='^Löschen$'
-  [en:save]='^Save$'
-  [de:save]='^Speichern$'
-  [en:import]='^Import$'
-  [en:kind_Route]='^Route$'
-  [en:kind_Ride]='^Ride$'
-  [de:kind_Ride]='^Fahrt$'
-  [en:snack]='Undo$|deleted$|added to'
-  [de:snack]='Rückgängig$|gelöscht$|hinzugefügt'
-  [en:undo]='Undo'
-  [de:undo]='Rückgängig'
-  [en:empty_plan]='Tap the map to set a start'
-  [de:empty_plan]='Karte antippen, um den Start zu setzen'
-  [en:DISTANCE]='DISTANCE'
-  [de:DISTANCE]='DISTANZ'
-  # The map's own controls and the location rationale, from the ARB like
-  # everything else since the map strings moved into it.
-  [en:locate]='^Show my position$'
-  [de:locate]='^Meine Position anzeigen$'
-  [en:zoom_out]='^Zoom out$'
-  [de:zoom_out]='^Herauszoomen$'
-  [en:offline_entry]='^Offline data$'
-  [de:offline_entry]='^Offline-Daten$'
-  [en:rationale_allow]='^Continue$'
-  [de:rationale_allow]='^Weiter$'
-  [en:download_visible]='^Download the visible area$'
-  [de:download_visible]='^Sichtbares Gebiet herunterladen$'
-  [en:download]='^Download$'
-  [de:download]='^Herunterladen$'
-  [en:routing_data]='Routing data'
-  [de:routing_data]='Routing-Daten'
-  [en:search_hint]='^Search for a place$'
-  [de:search_hint]='^Ort suchen$'
-  [en:search_clear]='^Clear search'
-  [de:search_clear]='^Suche leeren'
-  [en:hit_monte]='Suburb · Funchal'
-  [de:hit_monte]='Stadtteil · Funchal'
-  [en:hit_funchal]='City$|Locality · Funchal'
-  [de:hit_funchal]='Stadt$|Ortslage · Funchal'
-  [en:from_position]='^From my position$'
-  [de:from_position]='^Von meiner Position$'
-  [en:save_route]='^Save route$'
-  [de:save_route]='^Route speichern$'
-  # plannerDefaultRouteName is "Route {date}" in both languages.
-  [en:default_route_name]='Route Sep|Route [A-Z]'
-  [en:loop_make]='^Make a loop$'
-  [de:loop_make]='^Runde planen$'
-  [en:loop_result]='km · .* up|No loop found|Loop search failed'
-  [de:loop_result]='km · .* Anstieg|keine Runde gefunden|Rundensuche fehlgeschlagen'
-  [en:loop_done]='^Done$'
-  [de:loop_done]='^Fertig$'
-  [en:follow_route]='^Follow a route'
-  [de:follow_route]='^Einer Route folgen'
-  [en:no_route]='No route'
-  [de:no_route]='Keine Route'
-  [en:start_ride]='^Start ride$'
-  [de:start_ride]='^Fahrt starten$'
-  # Two dialogs say it: the battery one and the location rationale.
-  [en:not_now]='^Not now$'
-  [de:not_now]='^Jetzt nicht$'
-  [en:RECORDING]='RECORDING'
-  [de:RECORDING]='AUFNAHME'
-  [en:finish]='^Finish$'
-  [de:finish]='^Beenden$'
-  [en:ride_save]='^Save ride$'
-  [de:ride_save]='^Fahrt speichern$'
-  [en:discard]='^Discard$'
-  [de:discard]='^Verwerfen$'
-  [en:lib_routes]='^Routes$'
-  [de:lib_routes]='^Routen$'
-  [en:lib_rides]='^Rides$'
-  [de:lib_rides]='^Fahrten$'
-  [en:open_in_planner]='^Open in planner'
-  [de:open_in_planner]='^Im Planer öffnen'
-  [en:SLOW]='SLOW'
-  [de:SLOW]='LANGSAM'
-  [en:turn]='^(Turn|Bear|Sharp|Keep) '
-  [de:turn]='abbieg|halten|^Wenden|Ausfahrt'
-  [en:metres]='^[0-9]+ m$'
-)
+# Every label the script waits for or taps is in --lang, because the app is
+# shown in it. `screenshots/labels.py` reads them out of the app's ARB files
+# and, for the tooltips Flutter translates itself (Back, Dismiss, Show menu,
+# "Tab 1 of 4"), out of the SDK's `material_<lang>.arb`, so a new language
+# needs nothing here. The demo route and ride names are proper nouns, seeded
+# once and never re-imported per language, so they are matched as they are.
 
-ui() {  # ui <name> -> the selector for --lang, or the English one
-  local entry=${UI["$LANG_TAG:$1"]-}
-  [ -n "$entry" ] || entry=${UI["en:$1"]-}
+flutter_root() {
+  local bin
+  bin="$(mise which flutter 2> /dev/null || command -v flutter || true)"
+  [ -n "$bin" ] || die "flutter is not on PATH and mise could not find it"
+  (cd "$(dirname "$bin")/.." && pwd -P)
+}
+
+load_labels() {
+  python3 "$HERE/labels.py" "$LANG_TAG" "$(flutter_root)" > "$WORK/labels.tsv" \
+    || die "could not read the labels for $LANG_TAG"
+}
+
+ui() {  # ui <name> -> the selector for --lang
+  local entry
+  entry="$(awk -F '\t' -v k="$1" '$1 == k { print $2; exit }' "$WORK/labels.tsv")"
   [ -n "$entry" ] || die "no label named $1"
   printf '%s' "$entry"
 }
@@ -257,10 +169,15 @@ ui() {  # ui <name> -> the selector for --lang, or the English one
 
 dump() {
   local try
-  for try in 1 2 3; do
+  # The file is taken off the device first: a dump that fails ("null root
+  # node", which a busy app's window now and then gives) leaves the last one
+  # there, and reading that back answers with a screen that is gone. A dump
+  # of the launcher, the app not drawn yet, is tried again too.
+  for try in 1 2 3 4 5; do
+    A shell rm -f /sdcard/velorki-ui.xml > /dev/null 2>&1 || true
     A shell uiautomator dump /sdcard/velorki-ui.xml > /dev/null 2>&1 || true
     if A shell cat /sdcard/velorki-ui.xml > "$WORK/ui.xml" 2> /dev/null \
-      && [ -s "$WORK/ui.xml" ]; then
+      && grep -q "package=\"$PKG\"" "$WORK/ui.xml"; then
       return 0
     fi
     sleep 1
@@ -276,9 +193,66 @@ has() { node "$1" "${2:-0}" > /dev/null 2>&1; }
 
 tap_xy() { A shell input tap "$1" "$2"; }
 
+# Pans the map from one point to another, in one `input swipe`: a gesture
+# made of separate `input motionevent` calls is held still between them for
+# as long as each takes to start, which on a loaded emulator is long enough
+# for the map to take it as a long press and mark a place.
+drag() {  # drag <x1> <y1> <x2> <y2>
+  A shell input swipe "$1" "$2" "$3" "$4" 400
+}
+
+# The search field. Newer Android versions leave a text field's hint out of
+# the dump, so when the hint is not there the first text field is it.
+# A button in the planner's action row, which Flutter merges into one node:
+# its place in the row comes from its label's place among the row's labels,
+# so a button added to the row moves nothing here.
+unmark() {
+  if has "$(ui remove_point)"; then tap "$(ui remove_point)"; sleep 3; fi
+  if has "$(ui place_close)"; then tap "$(ui place_close)"; sleep 3; fi
+}
+
+tap_action() {  # tap_action <row_clear|row_loop>
+  local p try
+  # Again after a moment: while the map still moves a dump can come back
+  # without the sheet.
+  for try in 1 2 3 4 5; do
+    if p=$(dump && python3 "$HERE/ui.py" slot "$WORK/ui.xml" "$(ui undo)" "$(ui "$1")"); then
+      set -- $p
+      tap_xy "$1" "$2"
+      return 0
+    fi
+    unmark
+    sleep 3
+  done
+  printf '::error::no %s in the action row\n' "$1" >&2
+  # VELORKI_SHOT_DEBUG names a directory to keep the screen and the dump in.
+  if [ -n "${VELORKI_SHOT_DEBUG:-}" ]; then
+    mkdir -p "$VELORKI_SHOT_DEBUG"
+    A exec-out screencap -p > "$VELORKI_SHOT_DEBUG/missed-$1.png" || true
+    cp "$WORK/ui.xml" "$VELORKI_SHOT_DEBUG/missed-$1.xml" || true
+  fi
+  return 1
+}
+
+tap_search() {
+  local p
+  if has "$(ui search_hint)"; then tap "$(ui search_hint)"; return; fi
+  p=$(dump && python3 "$HERE/ui.py" class "$WORK/ui.xml" android.widget.EditText 0) \
+    || { printf '::error::no search field\n' >&2; return 1; }
+  set -- $p
+  tap_xy "$1" "$2"
+}
+
 tap() {  # tap <regex> [nth] [fraction of the node's height, default 50]
-  local p fy=${3:-50}
-  p=$(node "$1" "${2:-0}") || { printf '::error::no node matching %q\n' "$1" >&2; return 1; }
+  local p fy=${3:-50} try
+  # Three looks, a moment apart: on a busy emulator a dump now and then
+  # comes back while the window is between two frames, without the node.
+  for try in 1 2 3; do
+    p=$(node "$1" "${2:-0}") && break
+    p=
+    sleep 2
+  done
+  [ -n "$p" ] || { printf '::error::no node matching %q\n' "$1" >&2; return 1; }
   # `set --` overwrites the positional parameters, so read $3 before it.
   set -- $p
   tap_xy "$1" "$(( $4 + ($6 - $4) * fy / 100 ))"
@@ -307,12 +281,10 @@ wait_gone() {
 # A snackbar ("… deleted", "… added to the library") sits over the bottom of
 # the screen for a good while and swallows taps meant for the button under it.
 # Swiping it out to the left dismisses it.
-SNACK="$(ui snack)"
-
 dismiss_snackbar() {
   local i p x y
   for i in 1 2 3 4; do
-    p=$(node "$SNACK") || return 0
+    p=$(node "$(ui snack)") || return 0
     # Read the coordinates out before `set --` touches the arguments; the bar
     # floats at a different height on a screen that has a bottom bar of its own.
     x=${p%% *}
@@ -326,7 +298,7 @@ dismiss_snackbar() {
     # times out on its own, so this is the only way it goes.
     A shell input swipe "$x" "$y" "$x" 2390 250
     sleep 2
-    if wait_gone "$SNACK" 12; then return 0; fi
+    if wait_gone "$(ui snack)" 12; then return 0; fi
   done
   say "a snackbar will not go away; the next shot may show it"
 }
@@ -335,16 +307,13 @@ dismiss_snackbar() {
 #
 # Gboard's QWERTY centres on a 1080x2400 screen. Tapped, never typed: see the
 # header on why a key event would tint the whole window.
-declare -A KEYX=(
-  [q]=58 [w]=164 [e]=271 [r]=379 [t]=486 [y]=592 [u]=700 [i]=806 [o]=913 [p]=1020
-  [a]=112 [s]=218 [d]=325 [f]=432 [g]=539 [h]=646 [j]=752 [k]=859 [l]=966
-  [z]=218 [x]=325 [c]=432 [v]=539 [b]=646 [n]=752 [m]=859
-)
-declare -A KEYY=(
-  [q]=1714 [w]=1714 [e]=1714 [r]=1714 [t]=1714 [y]=1714 [u]=1714 [i]=1714 [o]=1714 [p]=1714
-  [a]=1870 [s]=1870 [d]=1870 [f]=1870 [g]=1870 [h]=1870 [j]=1870 [k]=1870 [l]=1870
-  [z]=2026 [x]=2026 [c]=2026 [v]=2026 [b]=2026 [n]=2026 [m]=2026
-)
+key_xy() {  # key_xy <lowercase letter> -> "x y" of that key
+  local row1=qwertyuiop row2=asdfghjkl row3=zxcvbnm i
+  case "$row1" in *"$1"*) i=${row1%%"$1"*}; echo "$(( 58 + ${#i} * 107 )) 1714"; return ;; esac
+  case "$row2" in *"$1"*) i=${row2%%"$1"*}; echo "$(( 112 + ${#i} * 107 )) 1870"; return ;; esac
+  case "$row3" in *"$1"*) i=${row3%%"$1"*}; echo "$(( 218 + ${#i} * 107 )) 2026"; return ;; esac
+  die "no key for $1"
+}
 KEY_SHIFT=(84 2026)
 KEY_SPACE=(592 2180)
 KEY_BACKSPACE=(993 2026)
@@ -364,9 +333,9 @@ type_text() {  # letters and spaces only; a capital taps shift first
     if [[ $c =~ [A-Z] ]]; then
       tap_xy "${KEY_SHIFT[@]}"
       sleep 0.3
-      c=${c,}
+      c=$(printf '%s' "$c" | tr '[:upper:]' '[:lower:]')
     fi
-    tap_xy "${KEYX[$c]}" "${KEYY[$c]}"
+    tap_xy $(key_xy "$c")
     sleep 0.35
   done
 }
@@ -401,10 +370,22 @@ XML
 launch() {
   A shell am force-stop "$PKG"
   sleep 2
-  A shell am start -n "$PKG/.MainActivity" > /dev/null
   # The floating tab bar is on every tab, so it says the shell is up whatever
-  # the app opens on.
-  wait_for "$(ui tabbar)" 90 "the app did not come up"
+  # the app opens on. A start right after an install now and then never
+  # reaches the activity, so it is asked for again.
+  local attempt
+  for attempt in 1 2 3; do
+    A shell am start -n "$PKG/.MainActivity" > /dev/null
+    if wait_for "$(ui tabbar)" 40 2> /dev/null; then break; fi
+    # A run stopped mid-ride leaves a recording behind, and the app asks
+    # about it over everything else.
+    if has "$(ui recovery_title)"; then
+      tap "$(ui recovery_discard)"
+      sleep 3
+      if has "$(ui discard)"; then tap "$(ui discard)"; sleep 3; fi
+    fi
+  done
+  wait_for "$(ui tabbar)" 30 "the app did not come up"
   sleep 5
 }
 
@@ -538,8 +519,9 @@ has_row() { [ -n "$(db "$1" 2> /dev/null)" ]; }
 
 push_gpx() {  # into the app's own files dir, the one place it may read from
   local name=$1
-  A push "$HERE/$name" "/sdcard/Download/$name" > /dev/null
-  A shell "run-as $PKG sh -c 'cat > files/$name' < /sdcard/Download/$name"
+  # Straight from the host through adb's stdin: an app's user cannot read
+  # /sdcard on API 35, so copying from there inside run-as writes an empty file.
+  A shell "run-as $PKG sh -c 'mkdir -p files && cat > files/$name'" < "$HERE/$name"
 }
 
 import_gpx() {  # import_gpx <file> <Route|Ride> <expected row name>
@@ -564,6 +546,29 @@ import_gpx() {  # import_gpx <file> <Route|Ride> <expected row name>
 seed_tile() {
   if has_row "select name from routing_tiles where name = 'W20_N30' and state = 'ready'"; then
     say "the W20_N30 routing tile is already on the device"
+    return
+  fi
+  # A mirror started again stamps its tile anew, and the one on the device
+  # then reads as having an update, which the offline shot would show.
+  if has_row "select name from routing_tiles where name = 'W20_N30' and state = 'stale'"; then
+    say "updating the W20_N30 routing tile from the mirror"
+    tap "$(ui offline_entry)"
+    wait_for "$(ui routing_data)" 30
+    tap "$(ui manage)" 1
+    wait_for "$(ui tile_update)" 30
+    tap "$(ui tile_update)"
+    wait_for "$(ui tile_download)" 30
+    tap "$(ui tile_download)"
+    for _ in $(seq 1 30); do
+      if has_row "select name from routing_tiles where name = 'W20_N30' and state = 'ready'"; then break; fi
+      sleep 5
+    done
+    has_row "select name from routing_tiles where name = 'W20_N30' and state = 'ready'" \
+      || die "the routing tile did not update; is the mirror on port 8000 up?"
+    tap "$(ui back)" || true
+    sleep 2
+    tap "$(ui back)" || true
+    sleep 3
     return
   fi
   say "downloading the Madeira routing tile and the map area"
@@ -592,17 +597,21 @@ seed_navigation_route() {
     say "the navigation route is already saved"
   else
     say "planning Funchal → Monte on the device"
-    tap "^$(ui tab_plan)"
-    sleep 4
+    go_tab "$(ui tab_plan)"
     A emu geo fix -16.9075 32.6465 > /dev/null
     sleep 3
-    tap "$(ui search_hint)"
+    # The search ranks by the map's centre, so bring the map to the rider.
+    tap "$(ui locate)"
+    sleep 5
+    tap_search
     sleep 4
     type_text "Monte"
     wait_for "$(ui hit_monte)" 30 "the offline gazetteer found no Monte"
     tap "$(ui hit_monte)"
-    wait_for "$(ui from_position)" 30
-    tap "$(ui from_position)"
+    # A picked place opens its card; "Route here" rides to it from the
+    # rider's position.
+    wait_for "$(ui route_here)" 30
+    tap "$(ui route_here)"
     wait_for "$(ui DISTANCE)" 180 "the on-device router did not answer"
     tap "$(ui save)"
     wait_for "$(ui save_route)" 30
@@ -615,7 +624,9 @@ seed_navigation_route() {
     sleep 1
     type_text "Funchal to Monte"
     sleep 2
-    tap "$(ui save)" 1
+    # The dialog's Save: the second one while the sheet's own is in the
+    # tree, else the only one.
+    tap "$(ui save)" 1 2> /dev/null || tap "$(ui save)"
     sleep 6
     has_row "select id from routes where name = 'Funchal to Monte'" \
       || die "the planned route was not saved"
@@ -664,6 +675,12 @@ seed() {
 
 demo_mode() {
   say "putting the status bar into demo mode"
+  demo_mode_apply
+}
+
+# Again before every shot: SystemUI drops the demo mode whenever it restarts,
+# which a loaded emulator does now and then.
+demo_mode_apply() {
   A shell settings put global sysui_demo_allowed 1
   local d="am broadcast -a com.android.systemui.demo"
   A shell $d -e command enter > /dev/null
@@ -691,10 +708,10 @@ shot() {  # shot <mode-accent> <screen>
   local dir="$OUT/$LANG_TAG/$1"
   mkdir -p "$dir"
   dismiss_snackbar
-  sleep 1
+  demo_mode_apply
   A exec-out screencap -p > "$dir/$2.png"
   local bytes
-  bytes=$(stat -c%s "$dir/$2.png")
+  bytes=$(wc -c < "$dir/$2.png" | tr -d ' ')
   [ "$bytes" -gt 20000 ] || die "$dir/$2.png came out empty ($bytes bytes)"
   printf '    %s/%s/%s.png (%s kB)\n' "$LANG_TAG" "$1" "$2" "$(( bytes / 1024 ))"
 }
@@ -704,17 +721,30 @@ go_tab() {
   # the focus back when a pushed screen is popped, so put the keyboard away
   # before looking for a tab.
   hide_keyboard
+  # Something left over on top (a sheet, a dialog, a pushed screen without
+  # the bar) hides the bar: back out of it, a step at a time.
+  local i
+  for i in 1 2 3 4; do
+    has "^$1" && break
+    say "    no tab bar; going back"
+    A shell input keyevent 4
+    sleep 3
+  done
+  # Backed out of the app altogether, or it is stuck: start it again.
+  has "^$1" || launch
   # Twice: the first tap switches branch, the second pops that branch back to
   # its root, because a screen pushed inside a tab (a route detail, say) stays
   # on its stack when another tab is shown.
-  tap "^$1"
+  # The second one only if the bar is still there: popping can land on a
+  # screen of the tab that has none of its own.
+  tap "^$1" || { A shell input keyevent 4; sleep 3; tap "^$1"; }
   sleep 2
-  tap "^$1"
+  tap "^$1" 2> /dev/null || true
   sleep 4
 }
 
-clear_plan() {  # the action row is one merged semantics node; Clear is 3rd of 5
-  local i p x1 y1 x2 y2
+clear_plan() {
+  local i
   go_tab "$(ui tab_plan)"
   # Up to three goes: the sheet is not always built by the time the tab
   # switch settles, and a ride that was re-routed puts its new line back into
@@ -725,9 +755,8 @@ clear_plan() {  # the action row is one merged semantics node; Clear is 3rd of 5
     # that holds one lone waypoint and no route, which is enough to make the
     # Record tab offer "The route on the Plan tab" rather than "No route".
     if has "$(ui empty_plan)"; then return 0; fi
-    p=$(node "$(ui undo)") || return 0
-    read -r _ _ x1 y1 x2 y2 <<< "$p"
-    tap_xy "$(( x1 + (x2 - x1) * 5 / 10 ))" "$(( y1 + (y2 - y1) * 35 / 100 ))"
+    has "$(ui undo)" || return 0
+    tap_action row_clear
     sleep 3
   done
   say "the plan would not clear"
@@ -742,16 +771,13 @@ open_demo_route_in_planner() {
   wait_for "$(ui open_in_planner)" 30
   tap "$(ui open_in_planner)"
   wait_for "$(ui DISTANCE)" 90 "the route did not open in the planner"
-  sleep 6
-  # The camera fit does not know about the sheet, so the loop sits low: lift it.
-  A shell input swipe 540 1150 540 870 500
-  sleep 4
+  sleep 8
 }
 
 cap_planner() { open_demo_route_in_planner; shot "$1" planner; }
 
 cap_loop() {
-  local look=$1 p
+  local look=$1
   clear_plan
   # Put the rider back on the Funchal seafront and frame the map so the loop
   # the search draws lands in the strip above the sheet.
@@ -764,18 +790,22 @@ cap_loop() {
     tap "$(ui zoom_out)"
     sleep 2
   done
-  A shell input swipe 540 1200 540 700 500
+  drag 540 1200 540 700
   sleep 3
-  p=$(node "$(ui undo)")
-  # `set --` below overwrites $1, so the folder name is held in $look.
-  set -- $p
-  tap_xy "$(( $3 + ($5 - $3) * 9 / 10 ))" "$(( $4 + ($6 - $4) * 35 / 100 ))"
+  # A tap or drag the loaded emulator delivered slowly enough for a long
+  # press marks a point beside the route and opens its sheet, or opens a
+  # place card: take the point out again, close the card.
+  unmark
+  tap_action row_loop
   wait_for "$(ui loop_make)" 30 "the Smart Loop sheet did not open"
   sleep 2
   tap "$(ui loop_make)" 1
   # On-device loop search over the Madeira tile; around half a minute.
   if wait_for "$(ui loop_result)" 240; then
-    sleep 3
+    # The first loop shows while the search goes on looking for a better
+    # one; the shot wants the search done, its Stop gone and the loop drawn.
+    wait_gone "$(ui loop_stop)" 240 || say "the loop search was still running"
+    sleep 4
     shot "$look" loop
   else
     say "the loop search did not finish; capturing the request sheet instead"
@@ -787,9 +817,9 @@ cap_loop() {
 
 cap_search() {
   clear_plan
-  tap "$(ui search_hint)"
+  tap_search
   sleep 4
-  keyboard_up || { sleep 3; tap "$(ui search_hint)"; sleep 3; }
+  keyboard_up || { sleep 3; tap_search; sleep 3; }
   type_text "Funchal"
   wait_for "$(ui hit_funchal)" 40 "the offline gazetteer returned nothing"
   sleep 3
@@ -804,7 +834,7 @@ start_ride() {  # start_ride <dropdown item: "No route" or a saved route>
   # Always say what to follow: the dropdown keeps whatever the last ride used,
   # and its null item silently means "the route on the Plan tab".
   tap "$(ui follow_route)"
-  if ! wait_for "^$1\$" 20; then
+  if ! wait_for "^$1(\$|\\n)" 20; then
     # "No route" is only offered while the Plan tab holds no route; if one
     # crept back in, close the menu, clear it and ask again.
     tap "$(ui dismiss)" || true
@@ -812,9 +842,9 @@ start_ride() {  # start_ride <dropdown item: "No route" or a saved route>
     clear_plan
     go_tab "$(ui tab_record)"
     tap "$(ui follow_route)"
-    wait_for "^$1\$" 20 "the Follow a route menu has no \"$1\""
+    wait_for "^$1(\$|\\n)" 20 "the Follow a route menu has no \"$1\""
   fi
-  tap "^$1\$"
+  tap "^$1(\$|\\n)"
   sleep 3
   tap "$(ui start_ride)"
   sleep 5
@@ -882,7 +912,8 @@ cap_navigation() {
     dump || true
     turn=$(python3 "$HERE/ui.py" grep "$WORK/ui.xml" "$(ui turn)" || true)
     far=$(python3 "$HERE/ui.py" grep "$WORK/ui.xml" "$(ui metres)" || true)
-    if [ -n "$turn" ] && [ -n "$far" ] && [ "${far% m}" -ge 80 ] && [ "${far% m}" -le 350 ]; then
+    far=${far//[^0-9]/}
+    if [ -n "$turn" ] && [ -n "$far" ] && [ "$far" -ge 80 ] && [ "$far" -le 350 ]; then
       break
     fi
     sleep 3
@@ -916,15 +947,10 @@ cap_ride() {
   wait_for 'Funchal coast and Monte loop' 30
   tap 'Funchal coast and Monte loop'
   wait_for "$(ui SLOW)" 60 "the ride detail did not open"
-  sleep 6
-  # Down far enough that the map hero is out of the way and both charts fit
-  # above the floating tab bar. Both swipes start inside the stats grid: a
-  # drag that lands on a chart leaves its readout ("10.7 km · 684 m") on
-  # screen, which reads as a stuck tooltip in a screenshot.
-  A shell input swipe 540 1500 540 1100 600
-  sleep 2
-  A shell input swipe 540 1100 540 850 600
-  sleep 4
+  # As it opens: the speed-coloured track on the map above the sheet, the
+  # sheet with the speed legend and the figures. Nothing is dragged, so no
+  # chart shows a readout.
+  sleep 10
   shot "$1" ride
   tap "$(ui back)" 2> /dev/null || true
   sleep 3
@@ -953,6 +979,30 @@ cap_settings() {
   shot "$1" settings
 }
 
+# The two Velorki Plus screens come from the Play capture rather than from
+# tapping: the assistant's card needs Plus, consent and an answer from the
+# relay, which `integration_test/store/store_screenshots_test.dart` poses with
+# the relay mocked in the test process, and the Plus page is shown there as a
+# subscriber sees it (`paywall-active`), with no price on it. That test runs
+# on this same emulator profile at 1080x2400 with the status bar in the same
+# demo mode, in the app's default accent, so only the volt looks have them:
+#   tool/store_screenshots.sh --platform android --locales <lang> --until paywall
+# The site shows another accent's frame in volt of the same mode.
+STORE_RAW="${VELORKI_STORE_RAW:-$PWD/build/store_screenshots/android/raw}"
+
+cap_from_store() {  # cap_from_store <mode-accent> <screen> <store shot>
+  local mode=${1%%-*} accent=${1#*-} from
+  from="$STORE_RAW/$mode/$LANG_TAG/$3.png"
+  if [ "$accent" != volt ]; then
+    say "    $2 is taken in volt only; skipped"
+    return 0
+  fi
+  [ -f "$from" ] || die "no $from; run tool/store_screenshots.sh --platform android --locales $LANG_TAG --until paywall"
+  mkdir -p "$OUT/$LANG_TAG/$1"
+  cp "$from" "$OUT/$LANG_TAG/$1/$2.png"
+  printf '    %s/%s/%s.png (from the Play capture)\n' "$LANG_TAG" "$1" "$2"
+}
+
 capture_look() {  # capture_look <mode-accent>
   local look=$1 mode=${1%%-*} accent=${1#*-}
   say "appearance: $mode + $accent"
@@ -970,6 +1020,8 @@ capture_look() {  # capture_look <mode-accent>
       library) cap_library "$look" ;;
       offline) cap_offline "$look" ;;
       settings) cap_settings "$look" ;;
+      assistant) cap_from_store "$look" assistant ai ;;
+      paywall) cap_from_store "$look" paywall paywall-active ;;
       *) die "unknown screen $screen" ;;
     esac
   done
@@ -998,6 +1050,8 @@ titles = {
     "library": "Saved routes and rides",
     "offline": "Offline map and routing data",
     "settings": "Settings, with the appearance block",
+    "assistant": "The assistant's card, with the loop it asked for",
+    "paywall": "Velorki Plus as a subscriber sees it",
 }
 # Every language with a set on disk, not only the one this run took: a German
 # run must leave the English sets in the manifest. English first, the rest
@@ -1063,6 +1117,7 @@ PY
 # --------------------------------------------------------------------- main
 
 require_device
+load_labels
 start_mirror
 if [ "$DO_BUILD" = 1 ]; then build_and_install; fi
 demo_mode

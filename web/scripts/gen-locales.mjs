@@ -136,6 +136,7 @@ const SAME_AS_ENGLISH = new Map([
   ['home.features.sensors.panel.watts', 'unit symbol'],
   ['home.comparison.plus', 'product name (Velorki Plus)'],
   ['home.comparison.plusLink', 'product name (Velorki Plus)'],
+  ['home.plus.eyebrow', 'product name (Velorki Plus)'],
   ['plus.meta.title', 'product name (Velorki Plus)'],
   ['plus.title', 'product name (Velorki Plus)'],
   ['download.eyebrow', 'borrowed word'],

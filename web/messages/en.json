@@ -54,7 +54,9 @@
       "ride": "A finished ride: the speed-coloured track on the map with elevation, speed and split statistics.",
       "library": "The library: saved routes and recorded rides as a list with their distance and ascent.",
       "offline": "Offline downloads: map and routing regions on the phone with their size and state.",
-      "settings": "Settings: the appearance section with the light, dark and system switch and the five accents."
+      "settings": "Settings: the appearance section with the light, dark and system switch and the five accents.",
+      "assistant": "The assistant on the Plan tab: a request for a 40 km gravel loop with a café stop, what it understood, and the loop it planned on the map.",
+      "paywall": "The Velorki Plus page as a subscriber sees it: the four features it includes and the active subscription."
     }
   },
   "home": {
@@ -172,6 +174,33 @@
           "three": "Strava, Ride with GPS and share links with Plus"
         }
       }
+    },
+    "plus": {
+      "eyebrow": "Velorki Plus",
+      "title": "Ask for the ride you want",
+      "lead": "Plus is the optional subscription for what needs a server or a partner account. Most of it is the assistant: you say what you have in mind, and the route is still planned on your phone.",
+      "items": {
+        "describe": {
+          "title": "Describe a ride",
+          "body": "“A gravel loop of about 80 km on quiet roads” becomes a request the planner understands: a distance, a shape, places to pass. The route itself is planned on your phone."
+        },
+        "ask": {
+          "title": "Ask about the route on the map",
+          "body": "Have the route checked, find coffee around halfway or a tap to refill. Each finding has its place on the map, and Add as stop or Avoid changes the route in one step that Undo takes back."
+        },
+        "write": {
+          "title": "A description for your routes",
+          "body": "Describe this route writes a paragraph from what the phone knows about the route: its climbs, surfaces, towns and the cafés along it."
+        },
+        "connect": {
+          "title": "Strava, Ride with GPS and share links",
+          "body": "Upload rides to Strava and import your routes, send routes and trips both ways with Ride with GPS, and share a route or a ride as a link that opens in any browser."
+        }
+      },
+      "privacy": "The assistant asks before it sends anything: what you type and, only if you allow it, your position rounded to about a kilometre. No account, no route history.",
+      "price": "Monthly or yearly through the App Store or Google Play, with a free trial. The app shows the current price in your currency.",
+      "moreLink": "What Plus includes →",
+      "docsLink": "How the assistant works →"
     },
     "comparison": {
       "eyebrow": "Free vs Plus",

@@ -11,16 +11,20 @@ public/screenshots/<lang>/<mode>-<accent>/<screen>.png
 ```
 
 - `<lang>`: the app's own language setting for the run — `en` (the app on
-  System, which is English here) or `de`
+  System, which is English here), `de`, `fr`, `es`, `it` or `nl`
 - `<mode>`: `light` or `dark`
 - `<accent>`: `volt`, `ember`, `glacier`, `berry` or `forest`
 - `<screen>`: `planner`, `loop`, `search`, `navigation`, `recording`, `ride`,
-  `library`, `offline`, `settings`
+  `library`, `offline`, `settings`, `assistant`, `paywall`
 
 So `public/screenshots/en/dark-volt/planner.png` is the planner in the app's
 default look. The pipeline takes the whole matrix — both modes in all five
-accents, ten looks of nine screens — per language: `light-volt` and `dark-volt`
-first, then the four other dark looks, then the four other light ones. One run
+accents, ten looks of nine screens — per language: `light-volt` and
+`dark-volt` first, then the four other dark looks, then the four other light
+ones; the two Plus screens are in `light-volt` and `dark-volt` only. What is on
+disk now: every language in `light-volt` and `dark-volt`, and the other eight
+looks in English only, for the six screens the landing page's switcher swaps,
+which every locale falls back to. One run
 takes one language (`tool/screenshots.sh --lang de`), so the sets need not be
 in step; the site falls back per file. The manifest that lists the grid is `src/site/screenshots.ts`;
 `src/site/screenshot-files.ts` is what checks, at build time, which of those
@@ -55,7 +59,11 @@ it is part of how the app looks on a phone.
 ## What the site uses
 
 The landing page shows `planner`, `loop`, `search`, `navigation`, `recording`
-and `library`; `/plus` shows `settings`, `/download` shows `ride`, and
+and `library`, and in its Velorki Plus section `assistant` (the assistant's
+card over the loop it asked for) and `paywall` (the Plus page as a subscriber
+sees it: no price, which the site never quotes). Those two come from the Play
+capture (`tool/store_screenshots.sh --platform android`), whose test poses
+them with the relay mocked, in volt only; `/plus` shows `settings`, `/download` shows `ride`, and
 `offline` is held for the docs. A page in a locale asks for that locale's
 screenshot and falls back to `en/` for any file the pipeline has not taken in
 it yet, so `/de` shows the German app and `/` the English one. The appearance

@@ -132,7 +132,7 @@ void main() {
           return state.alternatives.length > 1 && !state.loadingAlternatives;
         },
         describe: 'the variants',
-        timeout: const Duration(seconds: 120),
+        timeout: const Duration(minutes: 5),
         onTimeout: () {
           final state = container.read(plannerControllerProvider);
           return '${state.alternatives.length} variants, '
@@ -168,7 +168,7 @@ void main() {
           return !loop.running && loop.hasSearched;
         },
         describe: 'the loop search',
-        timeout: const Duration(minutes: 3),
+        timeout: const Duration(minutes: 5),
         onTimeout: () => '${container.read(smartLoopControllerProvider)}',
       );
       expect(container.read(smartLoopControllerProvider).foundNothing, isFalse);
@@ -229,7 +229,7 @@ void main() {
           return state.result != null && !state.isRouting;
         },
         describe: 'the loop the assistant asked for',
-        timeout: const Duration(seconds: 120),
+        timeout: const Duration(minutes: 5),
         onTimeout: () => '${container.read(plannerControllerProvider).route}',
       );
       final aiLoop = container.read(plannerControllerProvider).result!;
@@ -288,6 +288,16 @@ void main() {
       // Velorki Plus to someone without it, at the stores' prices (see
       // plusOffering): the top of the page, then its end, with the plans,
       // Subscribe and the terms.
+      // First as a subscriber sees it, for the website's Plus section: the
+      // same page with the active banner where the prices are, which the
+      // site never quotes.
+      container.read(plusEntitledProvider.notifier).value = true;
+      unawaited(container.read(routerProvider).push(paywallRoute));
+      await waitForWidget(tester, find.byType(PaywallScreen));
+      await pumpFor(tester, const Duration(seconds: 1));
+      await takeStoreShot(tester, '$shot/paywall-active');
+      container.read(routerProvider).pop();
+      await pumpFor(tester, const Duration(seconds: 1));
       container.read(plusEntitledProvider.notifier).value = false;
       unawaited(container.read(routerProvider).push(paywallRoute));
       await waitForWidget(tester, find.byType(PaywallScreen));
@@ -329,7 +339,13 @@ void main() {
       await pumpFor(tester, const Duration(milliseconds: 500));
       await waitForWidget(tester, find.text(l10n.importKindRide));
       await tapAndPump(tester, find.text(l10n.importKindRide));
-      await takeStoreShot(tester, '$shot/import');
+      // The preview's own map loads its marker images after the route
+      // shows; on a loaded emulator that takes a while longer.
+      await takeStoreShot(
+        tester,
+        '$shot/import',
+        hold: const Duration(seconds: 20),
+      );
 
       if (await stopAfter('import')) return;
 

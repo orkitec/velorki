@@ -54,7 +54,9 @@
       "ride": "Un giro concluso: la traccia colorata per velocità sulla mappa con le statistiche di altimetria, velocità e parziali.",
       "library": "La libreria: percorsi salvati e giri registrati in un elenco con distanza e dislivello.",
       "offline": "Download offline: regioni di mappa e di calcolo percorso sul telefono con dimensione e stato.",
-      "settings": "Opzioni: la sezione Aspetto con il selettore chiaro, scuro e sistema e i cinque accenti."
+      "settings": "Opzioni: la sezione Aspetto con il selettore chiaro, scuro e sistema e i cinque accenti.",
+      "assistant": "L'assistente nella scheda Pianifica: la richiesta di un anello gravel di 40 km con sosta al caffè, ciò che ha capito e l'anello calcolato sulla mappa.",
+      "paywall": "La pagina Velorki Plus come la vede un abbonato: le quattro funzioni incluse e l'abbonamento attivo."
     }
   },
   "home": {
@@ -172,6 +174,33 @@
           "three": "Strava, Ride with GPS e link di condivisione con Plus"
         }
       }
+    },
+    "plus": {
+      "eyebrow": "Velorki Plus",
+      "title": "Chiedi il giro che vuoi",
+      "lead": "Plus è l'abbonamento facoltativo per ciò che richiede un server o l'account di un partner. La parte principale è l'assistente: dici cosa hai in mente, e il percorso viene comunque calcolato sul tuo telefono.",
+      "items": {
+        "describe": {
+          "title": "Descrivere un giro",
+          "body": "“Un anello gravel di circa 80 km su strade tranquille” diventa una richiesta che il pianificatore capisce: una distanza, una forma, i luoghi da toccare. Il percorso vero e proprio lo calcola il tuo telefono."
+        },
+        "ask": {
+          "title": "Domande sul percorso sulla mappa",
+          "body": "Fai controllare il percorso, trova un caffè verso metà strada o una fontanella per riempire la borraccia. Ogni risultato ha il suo posto sulla mappa, e “Aggiungi come sosta” o “Evita” cambiano il percorso in un solo passo che “Annulla” riporta indietro."
+        },
+        "write": {
+          "title": "Una descrizione per i tuoi percorsi",
+          "body": "“Descrivi questo percorso” scrive un paragrafo a partire da ciò che il telefono sa del percorso: salite, fondi, paesi e i caffè lungo la strada."
+        },
+        "connect": {
+          "title": "Strava, Ride with GPS e link di condivisione",
+          "body": "Carica i giri su Strava e importa i tuoi percorsi, scambia percorsi e trip in entrambe le direzioni con Ride with GPS, e condividi un percorso o un giro come link che si apre in qualsiasi browser."
+        }
+      },
+      "privacy": "L'assistente chiede prima di inviare qualcosa: ciò che scrivi e, solo se lo consenti, la tua posizione arrotondata a circa un chilometro. Nessun account, nessuna cronologia dei percorsi.",
+      "price": "Mensile o annuale tramite App Store o Google Play, con un periodo di prova gratuito. L'app mostra il prezzo attuale nella tua valuta.",
+      "moreLink": "Cosa include Plus →",
+      "docsLink": "Come funziona l'assistente →"
     },
     "comparison": {
       "eyebrow": "Gratis vs Plus",

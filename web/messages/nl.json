@@ -54,7 +54,9 @@
       "ride": "Een afgeronde rit: de op snelheid gekleurde track op de kaart met hoogte-, snelheids- en splitstatistieken.",
       "library": "De bibliotheek: opgeslagen routes en opgenomen ritten als lijst met hun afstand en stijging.",
       "offline": "Offline downloads: kaart- en routeringsregio's op de telefoon met hun grootte en status.",
-      "settings": "Instellingen: het onderdeel Weergave met de schakelaar voor licht, donker en systeem en de vijf accentkleuren."
+      "settings": "Instellingen: het onderdeel Weergave met de schakelaar voor licht, donker en systeem en de vijf accentkleuren.",
+      "assistant": "De assistent op het tabblad Plannen: de vraag om een gravelrondje van 40 km met een koffiestop, wat hij begreep en het rondje dat hij op de kaart plande.",
+      "paywall": "De pagina Velorki Plus zoals een abonnee die ziet: de vier inbegrepen functies en het actieve abonnement."
     }
   },
   "home": {
@@ -172,6 +174,33 @@
           "three": "Strava, Ride with GPS en deellinks met Plus"
         }
       }
+    },
+    "plus": {
+      "eyebrow": "Velorki Plus",
+      "title": "Vraag om de rit die je wilt",
+      "lead": "Plus is het optionele abonnement voor wat een server of een partneraccount nodig heeft. Het meeste daarvan is de assistent: je zegt wat je van plan bent, en de route wordt nog steeds op je telefoon gepland.",
+      "items": {
+        "describe": {
+          "title": "Een rit beschrijven",
+          "body": "“Een gravelrondje van zo’n 80 km over rustige wegen” wordt een verzoek dat de planner begrijpt: een afstand, een vorm, plaatsen om langs te komen. De route zelf berekent je telefoon."
+        },
+        "ask": {
+          "title": "Vragen over de route op de kaart",
+          "body": "Laat de route controleren, zoek koffie rond halverwege of een kraan om bij te vullen. Elke vondst heeft zijn plek op de kaart, en ‘Als tussenstop’ of ‘Vermijden’ past de route aan in één stap die ‘Ongedaan maken’ terugdraait."
+        },
+        "write": {
+          "title": "Een beschrijving voor je routes",
+          "body": "‘Deze route beschrijven’ schrijft een alinea uit wat de telefoon over de route weet: de klimmen, de ondergrond, de plaatsen en de cafés onderweg."
+        },
+        "connect": {
+          "title": "Strava, Ride with GPS en deellinks",
+          "body": "Upload ritten naar Strava en importeer je routes, stuur routes en trips beide kanten op met Ride with GPS, en deel een route of rit als link die in elke browser opent."
+        }
+      },
+      "privacy": "De assistent vraagt het voordat hij iets verstuurt: wat je typt en, alleen als je dat toestaat, je positie afgerond op ongeveer een kilometer. Geen account, geen routegeschiedenis.",
+      "price": "Per maand of per jaar via de App Store of Google Play, met een gratis proefperiode. De app toont de actuele prijs in je eigen valuta.",
+      "moreLink": "Wat Plus omvat →",
+      "docsLink": "Hoe de assistent werkt →"
     },
     "comparison": {
       "eyebrow": "Gratis of Plus",

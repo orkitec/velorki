@@ -54,7 +54,9 @@
       "ride": "Eine fertige Fahrt: der nach Geschwindigkeit eingefärbte Track auf der Karte, mit Höhen-, Geschwindigkeits- und Split-Statistik.",
       "library": "Die Bibliothek: gespeicherte Routen und aufgezeichnete Fahrten als Liste mit ihrer Distanz und ihrem Anstieg.",
       "offline": "Offline-Downloads: Karten- und Routing-Regionen auf dem Handy mit ihrer Größe und ihrem Status.",
-      "settings": "Einstellungen: der Bereich Darstellung mit dem Schalter für Hell, Dunkel und System und den fünf Akzentfarben."
+      "settings": "Einstellungen: der Bereich Darstellung mit dem Schalter für Hell, Dunkel und System und den fünf Akzentfarben.",
+      "assistant": "Der Assistent im Tab Planen: die Bitte um eine 40-km-Gravel-Runde mit Café-Stopp, was er verstanden hat, und die Runde, die er auf der Karte geplant hat.",
+      "paywall": "Die Seite Velorki Plus, wie Abonnenten sie sehen: die vier enthaltenen Funktionen und das aktive Abo."
     }
   },
   "home": {
@@ -172,6 +174,33 @@
           "three": "Strava, Ride with GPS und Teilen-Links mit Plus"
         }
       }
+    },
+    "plus": {
+      "eyebrow": "Velorki Plus",
+      "title": "Sag, welche Fahrt du willst",
+      "lead": "Plus ist das optionale Abo für das, was einen Server oder ein Partnerkonto braucht. Das meiste davon ist der Assistent: Du sagst, was du vorhast, und die Route plant trotzdem dein Handy.",
+      "items": {
+        "describe": {
+          "title": "Eine Fahrt beschreiben",
+          "body": "„Eine Gravel-Runde von etwa 80 km auf ruhigen Straßen“ wird zu einer Anfrage, die der Planer versteht: eine Distanz, eine Form, Orte auf dem Weg. Die Route selbst rechnet dein Handy."
+        },
+        "ask": {
+          "title": "Fragen zur Route auf der Karte",
+          "body": "Lass die Route prüfen, such ein Café etwa auf halber Strecke oder einen Brunnen zum Auffüllen. Jeder Fund hat seinen Platz auf der Karte, und „Als Stopp einfügen“ oder „Meiden“ ändert die Route in einem Schritt, den „Rückgängig“ zurücknimmt."
+        },
+        "write": {
+          "title": "Eine Beschreibung für deine Routen",
+          "body": "„Diese Route beschreiben“ schreibt einen Absatz aus dem, was das Handy über die Route weiß: Anstiege, Beläge, Orte und die Cafés am Weg."
+        },
+        "connect": {
+          "title": "Strava, Ride with GPS und Teilen-Links",
+          "body": "Lade Fahrten zu Strava hoch und importiere deine Routen, schick Routen und Trips in beide Richtungen mit Ride with GPS, und teile eine Route oder Fahrt als Link, der in jedem Browser aufgeht."
+        }
+      },
+      "privacy": "Der Assistent fragt, bevor er etwas sendet: was du tippst und, nur wenn du es erlaubst, deine Position auf etwa einen Kilometer gerundet. Kein Konto, kein Routenverlauf.",
+      "price": "Monatlich oder jährlich über den App Store oder Google Play, mit kostenloser Testphase. Den aktuellen Preis in deiner Währung zeigt die App.",
+      "moreLink": "Was Plus enthält →",
+      "docsLink": "So funktioniert der Assistent →"
     },
     "comparison": {
       "eyebrow": "Kostenlos vs. Plus",

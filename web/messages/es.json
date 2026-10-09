@@ -54,7 +54,9 @@
       "ride": "Una salida terminada: el track coloreado según la velocidad en el mapa, con estadísticas de altitud, velocidad y parciales.",
       "library": "La biblioteca: rutas guardadas y salidas grabadas en una lista con su distancia y desnivel.",
       "offline": "Descargas sin conexión: regiones de mapa y de enrutamiento en el teléfono con su tamaño y estado.",
-      "settings": "Ajustes: la sección de apariencia con el selector claro, oscuro y sistema y los cinco colores de acento."
+      "settings": "Ajustes: la sección de apariencia con el selector claro, oscuro y sistema y los cinco colores de acento.",
+      "assistant": "El asistente en la pestaña Planificar: la petición de una ruta circular de gravel de 40 km con parada en un café, lo que ha entendido y la ruta planificada en el mapa.",
+      "paywall": "La página de Velorki Plus tal como la ve un suscriptor: las cuatro funciones incluidas y la suscripción activa."
     }
   },
   "home": {
@@ -172,6 +174,33 @@
           "three": "Strava, Ride with GPS y enlaces compartidos con Plus"
         }
       }
+    },
+    "plus": {
+      "eyebrow": "Velorki Plus",
+      "title": "Pide la salida que quieres",
+      "lead": "Plus es la suscripción opcional para lo que necesita un servidor o la cuenta de un socio. Lo principal es el asistente: dices lo que tienes en mente y la ruta se sigue calculando en tu teléfono.",
+      "items": {
+        "describe": {
+          "title": "Describir una salida",
+          "body": "«Una ruta circular de gravel de unos 80 km por carreteras tranquilas» se convierte en una petición que el planificador entiende: una distancia, una forma, lugares por los que pasar. La ruta en sí se calcula en tu teléfono."
+        },
+        "ask": {
+          "title": "Preguntar por la ruta del mapa",
+          "body": "Pide que revise la ruta, busca un café hacia la mitad o una fuente para rellenar el bidón. Cada hallazgo tiene su sitio en el mapa, y «Añadir como parada» o «Evitar» cambian la ruta en un solo paso que «Deshacer» revierte."
+        },
+        "write": {
+          "title": "Una descripción para tus rutas",
+          "body": "«Describir esta ruta» escribe un párrafo con lo que el teléfono sabe de la ruta: sus subidas, sus firmes, sus pueblos y los cafés del camino."
+        },
+        "connect": {
+          "title": "Strava, Ride with GPS y enlaces compartidos",
+          "body": "Sube salidas a Strava e importa tus rutas, envía rutas y trips en ambos sentidos con Ride with GPS, y comparte una ruta o una salida como un enlace que se abre en cualquier navegador."
+        }
+      },
+      "privacy": "El asistente pregunta antes de enviar nada: lo que escribes y, solo si lo permites, tu posición redondeada a un kilómetro aproximadamente. Sin cuenta, sin historial de rutas.",
+      "price": "Mensual o anual a través de App Store o Google Play, con una prueba gratuita. La app muestra el precio actual en tu moneda.",
+      "moreLink": "Qué incluye Plus →",
+      "docsLink": "Cómo funciona el asistente →"
     },
     "comparison": {
       "eyebrow": "Gratis o Plus",

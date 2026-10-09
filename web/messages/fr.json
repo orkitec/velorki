@@ -54,7 +54,9 @@
       "ride": "Une sortie terminée : la trace colorée selon la vitesse sur la carte, avec l’altitude, la vitesse et les statistiques par tronçon.",
       "library": "La bibliothèque : itinéraires enregistrés et sorties sous forme de liste, avec leur distance et leur montée.",
       "offline": "Téléchargements hors ligne : les régions de carte et de routage sur le téléphone, avec leur taille et leur état.",
-      "settings": "Réglages : la section Apparence avec le choix clair, sombre ou système et les cinq couleurs d’accent."
+      "settings": "Réglages : la section Apparence avec le choix clair, sombre ou système et les cinq couleurs d’accent.",
+      "assistant": "L’assistant dans l’onglet Planifier : une demande de boucle gravel de 40 km avec une pause café, ce qu’il a compris et la boucle calculée sur la carte.",
+      "paywall": "La page Velorki Plus telle qu’un abonné la voit : les quatre fonctions incluses et l’abonnement actif."
     }
   },
   "home": {
@@ -172,6 +174,33 @@
           "three": "Strava, Ride with GPS et liens de partage avec Plus"
         }
       }
+    },
+    "plus": {
+      "eyebrow": "Velorki Plus",
+      "title": "Demandez la sortie que vous voulez",
+      "lead": "Plus est l’abonnement facultatif pour ce qui demande un serveur ou un compte partenaire. L’essentiel, c’est l’assistant : vous dites ce que vous avez en tête, et l’itinéraire reste calculé sur votre téléphone.",
+      "items": {
+        "describe": {
+          "title": "Décrire une sortie",
+          "body": "« Une boucle gravel d’environ 80 km sur des routes calmes » devient une demande que le planificateur comprend : une distance, une forme, des lieux de passage. L’itinéraire lui-même est calculé sur votre téléphone."
+        },
+        "ask": {
+          "title": "Des questions sur l’itinéraire affiché",
+          "body": "Faites vérifier l’itinéraire, trouvez un café vers la mi-parcours ou un point d’eau. Chaque trouvaille a sa place sur la carte, et « Ajouter comme étape » ou « Éviter » modifie l’itinéraire en une seule étape qu’« Annuler » défait."
+        },
+        "write": {
+          "title": "Une description pour vos itinéraires",
+          "body": "« Décrire cet itinéraire » rédige un paragraphe à partir de ce que le téléphone sait de l’itinéraire : ses montées, ses revêtements, ses villes et les cafés le long du chemin."
+        },
+        "connect": {
+          "title": "Strava, Ride with GPS et liens de partage",
+          "body": "Envoyez vos sorties sur Strava et importez vos itinéraires, échangez itinéraires et trips dans les deux sens avec Ride with GPS, et partagez un itinéraire ou une sortie sous forme de lien qui s’ouvre dans n’importe quel navigateur."
+        }
+      },
+      "privacy": "L’assistant demande avant d’envoyer quoi que ce soit : ce que vous tapez et, seulement si vous l’autorisez, votre position arrondie à environ un kilomètre. Pas de compte, pas d’historique d’itinéraires.",
+      "price": "Au mois ou à l’année via l’App Store ou Google Play, avec un essai gratuit. L’application affiche le prix actuel dans votre devise.",
+      "moreLink": "Ce que comprend Plus →",
+      "docsLink": "Comment fonctionne l’assistant →"
     },
     "comparison": {
       "eyebrow": "Gratuit ou Plus",
