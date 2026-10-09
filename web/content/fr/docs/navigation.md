@@ -1,7 +1,7 @@
 ---
 title: Navigation guidée
 description: "Suivez un itinéraire pendant l’enregistrement, avec une bannière de virage et des indications vocales, et découvrez ce que fait Velorki quand vous quittez l’itinéraire."
-order: 7
+order: 8
 ---
 
 Velorki vous guide le long d’un itinéraire pendant l’enregistrement d’une sortie : une bannière au-dessus de la carte montre le prochain virage, et une voix l’annonce à haute voix. Activez les interrupteurs de navigation, choisissez un itinéraire à suivre dans l’onglet Rouler, puis démarrez la sortie.

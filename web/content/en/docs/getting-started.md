@@ -83,7 +83,7 @@ Until you choose, Velorki follows the phone's country: imperial only where the c
 
 ## Where things are
 
-- **The map controls** sit in a column on the right of the map: **Show my position**, **Layers** (the cycle map and [stops on the map](./stops-on-the-map)), **Offline data** (not on a small screen such as an iPhone SE), **Zoom in** and **Zoom out**. On the Record tab a compass button joins them, which swaps between **North up** and **Map turns with you**.
+- **The map controls** sit in a column on the right of the map: **Show my position**, **Layers** ([the cycle map](./map-layers) and [stops on the map](./stops-on-the-map)), **Offline data** (not on a small screen such as an iPhone SE), **Zoom in** and **Zoom out**. On the Record tab a compass button joins them, which swaps between **North up** and **Map turns with you**.
 - **The search field** is at the top of the Plan tab.
 - **The bike profile** (Touring, Road, Gravel, MTB, Direct) is the row of chips under the search field.
 - **The route sheet** is the panel at the bottom of the Plan tab. Drag it up for the elevation profile and the surface breakdown, down to see more map.

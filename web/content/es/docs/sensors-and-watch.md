@@ -1,7 +1,7 @@
 ---
 title: Sensores y tu reloj
 description: Frecuencia cardiaca, cadencia y potencia de un sensor Bluetooth, un Apple Watch o la app de salud de tu teléfono, configurados una vez y guardados con cada salida.
-order: 17
+order: 18
 ---
 
 Velorki puede mostrar tu frecuencia cardiaca, tu cadencia de pedaleo y tu potencia mientras grabas, y guardar las tres con la salida después. Los datos vienen de un sensor Bluetooth, de un Apple Watch o de la propia app de salud del teléfono, y todo ello es gratis y funciona en el teléfono.

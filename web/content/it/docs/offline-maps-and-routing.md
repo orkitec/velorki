@@ -1,7 +1,7 @@
 ---
 title: Mappe offline e calcolo del percorso
 description: Scarica la mappa che guardi e i dati da cui vengono calcolati i percorsi, così pianificazione, ricerca e navigazione funzionano anche senza segnale.
-order: 6
+order: 7
 ---
 
 Due download separati fanno funzionare Velorki senza connessione: la **mappa**, che è quello che vedi, e i **dati di routing**, da cui vengono calcolati i percorsi e la ricerca offline. Scarica entrambi per la zona in cui pedali prima di un giro che si lascia il segnale alle spalle.

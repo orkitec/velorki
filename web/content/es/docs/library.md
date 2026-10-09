@@ -1,7 +1,7 @@
 ---
 title: Biblioteca
 description: Dónde están tus rutas guardadas y tus salidas grabadas, qué muestra la tarjeta de una ruta o de una salida, y cómo renombrarlas o eliminarlas.
-order: 9
+order: 10
 ---
 
 La pestaña Biblioteca guarda todo lo que has conservado: las rutas que planificaste y las salidas que grabaste. Es una tarjeta sobre el mapa, como las pestañas Planificar y Grabar: su contenido se desplaza a cualquier altura, y el asa de arriba la mueve; cuando no hay nada que desplazar, se mueve la tarjeta entera. Súbela para tener más espacio, bájala del todo y la tarjeta se pliega en la barra de navegación y deja el mapa. Ven aquí para volver a abrir una ruta, leer los gráficos y parciales de una salida, y meter y sacar archivos.

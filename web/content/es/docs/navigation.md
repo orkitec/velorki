@@ -1,7 +1,7 @@
 ---
 title: Navegación paso a paso
 description: Sigue una ruta mientras grabas, con un banner de giros y avisos de voz, y mira qué hace Velorki cuando te sales de la ruta.
-order: 7
+order: 8
 ---
 
 Velorki te guía por una ruta mientras grabas una salida: un banner sobre el mapa muestra el siguiente giro y una voz lo dice en alto. Activa los interruptores de navegación, elige una ruta que seguir en la pestaña Grabar y empieza la salida.

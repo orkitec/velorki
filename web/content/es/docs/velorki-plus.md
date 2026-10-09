@@ -1,7 +1,7 @@
 ---
 title: Velorki Plus
 description: Todo lo que funciona en tu teléfono es gratis. Plus es una pequeña suscripción para las cuatro funciones que necesitan nuestros servidores o una cuenta de un socio.
-order: 14
+order: 15
 ---
 
 Velorki Plus es una suscripción opcional que paga las partes de Velorki que no pueden funcionar solo en tu teléfono. Todo lo demás, que es casi toda la app, es gratis para todo el mundo, con o sin ella.

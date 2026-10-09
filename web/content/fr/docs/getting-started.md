@@ -83,7 +83,7 @@ Tant que vous n’avez pas choisi, Velorki suit le pays du téléphone : impé
 
 ## Où trouver quoi
 
-- **Les commandes de la carte** forment une colonne à droite de la carte : **Afficher ma position**, **Calques** (la carte vélo et les [haltes sur la carte](./stops-on-the-map)), **Données hors ligne** (absentes sur un petit écran comme celui d’un iPhone SE), **Zoom avant** et **Zoom arrière**. Dans l’onglet Rouler, un bouton boussole s’y ajoute et bascule entre **Nord en haut** et **La carte tourne avec vous**.
+- **Les commandes de la carte** forment une colonne à droite de la carte : **Afficher ma position**, **Calques** ([la carte vélo](./map-layers) et les [haltes sur la carte](./stops-on-the-map)), **Données hors ligne** (absentes sur un petit écran comme celui d’un iPhone SE), **Zoom avant** et **Zoom arrière**. Dans l’onglet Rouler, un bouton boussole s’y ajoute et bascule entre **Nord en haut** et **La carte tourne avec vous**.
 - **Le champ de recherche** se trouve en haut de l’onglet Planifier.
 - **Le profil de vélo** (Rando, Route, Gravel, VTT, Direct) est la rangée de pastilles sous le champ de recherche.
 - **La feuille d’itinéraire** est le panneau en bas de l’onglet Planifier. Tirez-la vers le haut pour le profil altimétrique et la répartition des revêtements, vers le bas pour voir plus de carte.

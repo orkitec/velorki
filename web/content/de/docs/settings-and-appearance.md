@@ -1,7 +1,7 @@
 ---
 title: Einstellungen und Darstellung
 description: Jede Einstellung in Velorki, von Design, Akzent, Einheiten und Sprache über Navigation, Aufnahme, Sensoren und Suche bis zu Offline-Daten, Verbindungen und Server-URLs.
-order: 15
+order: 16
 ---
 
 Der Tab Einstellungen ist eine einzige scrollende Seite mit einem Abschnitt je Thema. Diese Seite geht ihn von oben nach unten durch, damit du den gesuchten Schalter findest und weißt, was er tut.

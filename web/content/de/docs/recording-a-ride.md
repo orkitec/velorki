@@ -1,7 +1,7 @@
 ---
 title: Fahrt aufzeichnen
 description: Eine Fahrt starten, pausieren und beenden, mit ausgeschaltetem Bildschirm weiter aufzeichnen, Akku sparen und eine Fahrt nach einem Absturz zurückholen.
-order: 8
+order: 9
 ---
 
 Der Tab Aufnahme zeichnet deine Fahrt auf und speichert sie am Ende in der Bibliothek. Er zeichnet mit ausgeschaltetem Bildschirm und mit der App im Hintergrund weiter, und er übersteht es, wenn die App geschlossen oder beendet wird.

@@ -1,7 +1,7 @@
 ---
 title: Fehlerbehebung
 description: "Lösungen für die häufigen Probleme: keine Position, keine Route, das Kachel-Banner, eine stumme Stimme unter iOS, hängende Downloads und tote Links."
-order: 18
+order: 19
 ---
 
 Was am häufigsten schiefgeht, und was jeweils dagegen hilft. Steht dein Problem nicht hier, sagt der letzte Abschnitt, wie du es meldest.

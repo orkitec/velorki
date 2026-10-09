@@ -1,7 +1,7 @@
 ---
 title: Confidentialité sur le téléphone
 description: "En termes de cycliste : ce qui reste sur votre téléphone, ce qui en sort, quand et vers qui. Il n’y a pas de compte et rien n’est téléversé sans que vous le demandiez."
-order: 16
+order: 17
 ---
 
 Velorki n’a pas de compte : il n’y a donc rien à quoi se connecter et rien sur vous sur un serveur. Cette page est la version en langage clair de ce que cela signifie en pratique ; la [politique de confidentialité](/privacy) est la version formelle.

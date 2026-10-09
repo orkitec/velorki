@@ -1,7 +1,7 @@
 ---
 title: Cartes hors ligne et routage
 description: Téléchargez la carte que vous regardez et les données de routage qui servent à calculer vos itinéraires, pour que la planification, la recherche et la navigation fonctionnent sans réseau.
-order: 6
+order: 7
 ---
 
 Deux téléchargements distincts permettent à Velorki de fonctionner sans connexion : la **carte**, ce que vous voyez, et les **données de routage**, à partir desquelles sont calculés les itinéraires et la recherche hors ligne. Téléchargez les deux pour la zone où vous roulez avant une sortie qui quitte la couverture réseau.

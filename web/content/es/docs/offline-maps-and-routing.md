@@ -1,7 +1,7 @@
 ---
 title: Mapas y enrutamiento sin conexión
 description: Descarga el mapa que ves y los datos de rutas con los que se calculan tus rutas, para que la planificación, la búsqueda y la navegación sigan funcionando sin cobertura.
-order: 6
+order: 7
 ---
 
 Dos descargas separadas hacen que Velorki funcione sin conexión: el **mapa**, que es lo que ves, y los **datos de rutas**, que es con lo que se calculan las rutas y la búsqueda sin conexión. Descarga los dos para la zona por la que sales antes de una salida en la que vayas a quedarte sin cobertura.

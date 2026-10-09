@@ -83,7 +83,7 @@ Finché non scegli, Velorki segue il paese del telefono: imperiale solo dove il 
 
 ## Dove si trovano le cose
 
-- **I controlli della mappa** stanno in una colonna a destra della mappa: **Mostra la mia posizione**, **Livelli** (la mappa ciclabile e le [soste sulla mappa](./stops-on-the-map)), **Dati offline** (non su uno schermo piccolo come un iPhone SE), **Ingrandisci** e **Riduci**. Nella scheda Registra si aggiunge un pulsante bussola, che alterna tra **Nord in alto** e **La mappa gira con te**.
+- **I controlli della mappa** stanno in una colonna a destra della mappa: **Mostra la mia posizione**, **Livelli** ([la mappa ciclabile](./map-layers) e le [soste sulla mappa](./stops-on-the-map)), **Dati offline** (non su uno schermo piccolo come un iPhone SE), **Ingrandisci** e **Riduci**. Nella scheda Registra si aggiunge un pulsante bussola, che alterna tra **Nord in alto** e **La mappa gira con te**.
 - **Il campo di ricerca** è in alto nella scheda Pianifica.
 - **Il profilo bici** (Trekking, Corsa, Gravel, MTB, Diretto) è la fila di chip sotto il campo di ricerca.
 - **Il pannello del percorso** è il riquadro in basso nella scheda Pianifica. Trascinalo verso l'alto per l'altimetria e la ripartizione del fondo, verso il basso per vedere più mappa.

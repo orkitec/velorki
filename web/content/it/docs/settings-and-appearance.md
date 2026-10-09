@@ -1,7 +1,7 @@
 ---
 title: Impostazioni e aspetto
 description: Ogni impostazione di Velorki, da tema, accento, unità e lingua a navigazione, registrazione, sensori, ricerca, dati offline, connessioni e URL dei server.
-order: 15
+order: 16
 ---
 
 Il tab Opzioni è un'unica pagina scorrevole con una sezione per argomento. Questa pagina la percorre dall'alto in basso, così trovi l'interruttore che cerchi e sai cosa fa.

@@ -1,7 +1,7 @@
 ---
 title: Privacidad en el teléfono
 description: "En palabras de ciclista: qué se queda en tu teléfono, qué sale de él, cuándo y hacia quién. No hay cuenta y no se sube nada si no lo pides."
-order: 16
+order: 17
 ---
 
 Velorki no tiene cuenta, así que no hay nada en lo que iniciar sesión ni nada sobre ti en un servidor. Esta página es la versión en lenguaje claro de lo que eso significa en la práctica; la [política de privacidad](/privacy) es la formal.

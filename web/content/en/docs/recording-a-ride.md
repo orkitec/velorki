@@ -1,7 +1,7 @@
 ---
 title: Recording a ride
 description: Start, pause and finish a ride, keep it recording with the screen off, save battery, and get a ride back after the app was killed.
-order: 8
+order: 9
 ---
 
 The Record tab tracks your ride and saves it to the library when you finish. It keeps recording with the screen off and with the app in the background, and it survives the app being closed or killed.

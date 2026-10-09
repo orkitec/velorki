@@ -1,7 +1,7 @@
 ---
 title: Assistent
 description: Beschrijf in één zin de rit die je wilt en Velorki maakt er een route van, met je toestemming, hooguit een afgeronde positie en zonder routegeschiedenis te versturen.
-order: 13
+order: 14
 ---
 
 De assistent maakt van een zin als "een gravelrondje van zo'n 80 km over rustige wegen" een route in de planner. Het is het enige deel van Velorki dat wat je typte naar een server stuurt, dus vraagt het eerst om je toestemming en vertelt het je precies wat er meegaat.

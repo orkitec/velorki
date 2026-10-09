@@ -1,7 +1,7 @@
 ---
 title: Velorki Plus
 description: Tout ce qui tourne sur votre téléphone est gratuit. Plus est un petit abonnement pour les quatre fonctions qui nécessitent nos serveurs ou un compte partenaire.
-order: 14
+order: 15
 ---
 
 Velorki Plus est un abonnement facultatif qui finance les parties de Velorki qui ne peuvent pas tourner sur votre seul téléphone. Tout le reste, c’est-à-dire presque toute l’app, est gratuit pour tout le monde, avec ou sans lui.

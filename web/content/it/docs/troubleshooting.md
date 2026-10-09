@@ -1,7 +1,7 @@
 ---
 title: Risoluzione dei problemi
 description: "Soluzioni ai problemi più comuni: nessuna posizione, nessun percorso, il banner dei riquadri, una voce muta su iOS, download bloccati e link che non si aprono."
-order: 18
+order: 19
 ---
 
 Le cose che vanno storte più spesso, e cosa fare in ogni caso. Se il tuo problema non è qui, l'ultima sezione dice come segnalarlo.

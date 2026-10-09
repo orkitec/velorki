@@ -1,7 +1,7 @@
 ---
 title: Registrare un giro
 description: Avvia, metti in pausa e termina un giro, continua a registrare con lo schermo spento, risparmia batteria e recupera un giro dopo una chiusura forzata.
-order: 8
+order: 9
 ---
 
 La scheda Registra traccia il tuo giro e lo salva nella libreria quando termini. Continua a registrare con lo schermo spento e con l'app in background, e sopravvive alla chiusura o alla terminazione forzata dell'app.

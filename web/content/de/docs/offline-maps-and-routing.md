@@ -1,7 +1,7 @@
 ---
 title: Offline-Karten und Routing
 description: Lade die Karte, die du siehst, und die Routing-Daten, aus denen Routen entstehen, damit Planen, Suche und Navigation auch ohne Empfang laufen.
-order: 6
+order: 7
 ---
 
 Zwei getrennte Downloads machen Velorki ohne Verbindung nutzbar: die **Karte**, die du siehst, und die **Routing-Daten**, aus denen Routen und die Offline-Suche berechnet werden. Lade beides für dein Fahrgebiet herunter, bevor du dorthin fährst, wo der Empfang aufhört.

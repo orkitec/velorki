@@ -1,7 +1,7 @@
 ---
 title: Assistant
 description: Describe the ride you want in a sentence and Velorki turns it into a route, with your consent, a rounded position at most, and no route history sent.
-order: 13
+order: 14
 ---
 
 The assistant turns a sentence like "a gravel loop of about 80 km on quiet roads" into a route on the planner. It is the one part of Velorki that sends what you typed to a server, so it asks for your consent first and tells you exactly what goes.

@@ -1,7 +1,7 @@
 ---
 title: Navigation mit Abbiegehinweisen
 description: Einer Route während der Aufnahme folgen, mit Abbiegeband und Sprachansagen, und sehen, was Velorki tut, wenn du die Route verlässt.
-order: 7
+order: 8
 ---
 
 Velorki führt dich während einer laufenden Aufnahme an einer Route entlang: Ein Band über der Karte zeigt die nächste Abbiegung, und eine Stimme sagt sie an. Schalte die Navigation ein, wähle im Tab Aufnahme eine Route zum Folgen und starte die Fahrt.

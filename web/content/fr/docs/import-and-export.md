@@ -1,7 +1,7 @@
 ---
 title: Importer et exporter
 description: "Ouvrir des fichiers GPX, FIT et TCX depuis n’importe où sur le téléphone, les enregistrer comme itinéraires ou sorties, et exporter les vôtres vers Komoot, Garmin ou tout autre outil."
-order: 10
+order: 11
 ---
 
 Velorki lit et écrit des fichiers GPX, FIT et TCX, et c’est ainsi que les itinéraires et les sorties circulent entre lui et le reste du monde. Tout cela est gratuit, sans compte ni connexion, et fonctionne avec Komoot, Garmin Connect, Strava, un compteur de vélo ou un simple fichier sur le téléphone.

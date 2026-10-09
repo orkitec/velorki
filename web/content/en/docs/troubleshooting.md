@@ -1,7 +1,7 @@
 ---
 title: Troubleshooting
 description: "Fixes for the common problems: no position, no route, the missing tiles banner, a silent voice on iOS, stuck downloads and links that will not open."
-order: 18
+order: 19
 ---
 
 The things that go wrong most often, and what to do about each. If your problem is not here, the last section says how to report it.

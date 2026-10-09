@@ -1,7 +1,7 @@
 ---
 title: Offline kaarten en routering
 description: Download de kaart die je ziet en de routeringsgegevens waaruit je routes worden berekend, zodat plannen, zoeken en navigeren zonder bereik blijven werken.
-order: 6
+order: 7
 ---
 
 Twee aparte downloads laten Velorki werken zonder verbinding: de **kaart**, die je ziet, en de **routeringsgegevens**, waaruit routes en offline zoeken worden berekend. Download beide voor het gebied waar je rijdt, voor een rit die het bereik achter zich laat.

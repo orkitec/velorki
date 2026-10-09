@@ -1,7 +1,7 @@
 ---
 title: Assistant
 description: "Décrivez la sortie que vous voulez en une phrase et Velorki en fait un itinéraire, avec votre consentement, une position arrondie au plus, et aucun historique d'itinéraires envoyé."
-order: 13
+order: 14
 ---
 
 L'assistant transforme une phrase comme« une boucle gravel d’environ 80 km sur routes calmes » en itinéraire dans le planificateur. C'est la seule partie de Velorki qui envoie ce que vous avez tapé à un serveur : il demande donc d'abord votre consentement et vous dit exactement ce qui part.

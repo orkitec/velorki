@@ -1,7 +1,7 @@
 ---
 title: Solución de problemas
 description: "Soluciones para los problemas habituales: sin posición, sin ruta, el aviso de teselas que faltan, una voz muda en iOS, descargas atascadas y enlaces que no se abren."
-order: 18
+order: 19
 ---
 
 Lo que falla más a menudo y qué hacer en cada caso. Si tu problema no está aquí, la última sección explica cómo informar de él.

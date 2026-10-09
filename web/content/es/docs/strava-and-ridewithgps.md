@@ -1,7 +1,7 @@
 ---
 title: Strava y Ride with GPS
 description: Conecta tu cuenta de Strava o de Ride with GPS para subir salidas grabadas e importar rutas, y entiende por qué enviar una ruta a Strava es un archivo.
-order: 12
+order: 13
 ---
 
 Velorki puede hablar con Strava y con Ride with GPS en tu nombre: subir una salida que grabaste y traer a tu biblioteca las rutas de esas cuentas. Conectar cualquiera de los dos servicios forma parte de [Velorki Plus](./velorki-plus); los archivos GPX, FIT y TCX siguen siendo gratis y hacen lo mismo a mano.

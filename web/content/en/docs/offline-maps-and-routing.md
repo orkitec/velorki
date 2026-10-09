@@ -1,7 +1,7 @@
 ---
 title: Offline maps and routing
 description: Download the map you look at and the routing data your routes are computed from, so planning, search and navigation keep working with no signal.
-order: 6
+order: 7
 ---
 
 Two separate downloads make Velorki work without a connection: the **map**, which is what you see, and the **routing data**, which is what routes and offline search are computed from. Download both for the area you ride in before a ride that leaves the signal behind.

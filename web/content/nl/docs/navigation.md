@@ -1,7 +1,7 @@
 ---
 title: Navigatie per afslag
 description: Volg een route terwijl je opneemt, met een afslagbanner en gesproken aanwijzingen, en zie wat Velorki doet als je de route verlaat.
-order: 7
+order: 8
 ---
 
 Velorki leidt je langs een route terwijl een rit wordt opgenomen: een banner boven de kaart toont de volgende afslag, en een stem spreekt hem hardop uit. Zet de navigatieschakelaars aan, kies op het tabblad Opnemen een route om te volgen en start de rit.

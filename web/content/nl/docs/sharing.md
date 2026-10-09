@@ -1,7 +1,7 @@
 ---
 title: Delen
 description: Maak van een route of rit een link die iedereen in een browser kan openen, zie wat de pagina toont, en weet dat de link na een jaar verloopt.
-order: 11
+order: 12
 ---
 
 Een deellink maakt van een van je routes of ritten een webpagina die iedereen kan openen, met een kaart, de cijfers en een GPX-download. Gebruik hem om een rit naar een vriend te sturen, een route op een forum te zetten of een route zonder bestand op een andere telefoon te krijgen.

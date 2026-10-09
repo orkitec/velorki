@@ -1,7 +1,7 @@
 ---
 title: Enregistrer une sortie
 description: "Démarrer, mettre en pause et terminer une sortie, la garder en enregistrement écran éteint, économiser la batterie et retrouver une sortie après la fermeture de l’appli."
-order: 8
+order: 9
 ---
 
 L’onglet Rouler suit votre sortie et la sauvegarde dans la bibliothèque quand vous la terminez. Il continue d’enregistrer écran éteint et appli en arrière-plan, et il résiste à la fermeture ou à l’arrêt forcé de l’appli.

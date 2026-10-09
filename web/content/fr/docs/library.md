@@ -1,7 +1,7 @@
 ---
 title: Bibliothèque
 description: "Où se trouvent vos itinéraires enregistrés et vos sorties, ce que montre une fiche d’itinéraire ou de sortie, et comment renommer ou supprimer l’un ou l’autre."
-order: 9
+order: 10
 ---
 
 L’onglet Bibliothèque contient tout ce que vous avez gardé : les itinéraires que vous avez planifiés et les sorties que vous avez enregistrées. C’est une fiche posée sur la carte, comme les onglets Planifier et Enregistrer : son contenu défile à n’importe quelle hauteur et la poignée en haut la déplace ; quand il n’y a rien à faire défiler, c’est toute la fiche qui bouge. Tirez-la vers le haut pour plus de place, tirez-la tout en bas et elle se replie dans la barre de navigation en laissant la carte. C’est ici que vous rouvrez un itinéraire, lisez les graphiques et les tronçons d’une sortie, et faites entrer et sortir des fichiers.

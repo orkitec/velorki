@@ -1,7 +1,7 @@
 ---
 title: Sensoren en je horloge
 description: Hartslag, cadans en vermogen van een Bluetooth-sensor, een Apple Watch of de gezondheidsapp van je telefoon, één keer ingesteld en bij elke rit bewaard.
-order: 17
+order: 18
 ---
 
 Velorki kan tijdens het opnemen je hartslag, je trapfrequentie (cadans) en je vermogen tonen, en alle drie daarna bij de rit bewaren. De waarden komen van een Bluetooth-sensor, van een Apple Watch of van de eigen gezondheidsapp van de telefoon, en dat alles is gratis en draait op de telefoon.

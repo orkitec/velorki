@@ -1,7 +1,7 @@
 ---
 title: Ajustes y apariencia
 description: Todos los ajustes de Velorki, del tema, el acento, las unidades y el idioma a la navegación, la grabación, los sensores, la búsqueda, los datos sin conexión, las conexiones y las URL de los servidores.
-order: 15
+order: 16
 ---
 
 La pestaña Ajustes es una única página que se desplaza, con una sección por tema. Esta página la recorre de arriba abajo, para que encuentres el interruptor que buscas y sepas qué hace.

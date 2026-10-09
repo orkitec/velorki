@@ -1,7 +1,7 @@
 ---
 title: Asistente
 description: Describe en una frase la salida que quieres y Velorki la convierte en una ruta, con tu consentimiento, como mucho una posición aproximada y sin enviar tu historial de rutas.
-order: 13
+order: 14
 ---
 
 El asistente convierte una frase como "una ruta circular de gravel de unos 80 km por carreteras tranquilas" en una ruta en el planificador. Es la única parte de Velorki que envía lo que escribes a un servidor, así que primero te pide tu consentimiento y te dice exactamente qué se envía.

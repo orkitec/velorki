@@ -1,7 +1,7 @@
 ---
 title: Sensors and your watch
 description: Heart rate, cadence and power from a Bluetooth sensor, an Apple Watch or your phone's health app, set up once and kept with every ride.
-order: 17
+order: 18
 ---
 
 Velorki can show your heart rate, your pedalling cadence and your power while you record, and keep all three with the ride afterwards. The readings come from a Bluetooth sensor, from an Apple Watch or from the phone's own health app, and all of it is free and runs on the phone.

@@ -1,7 +1,7 @@
 ---
 title: Turn-by-turn navigation
 description: Follow a route while you record, with a turn banner and spoken cues, and see what Velorki does when you leave the route.
-order: 7
+order: 8
 ---
 
 Velorki guides you along a route while a ride is recording: a banner over the map shows the next turn, and a voice says it out loud. Turn on the navigation switches, pick a route to follow on the Record tab, and start the ride.

@@ -1,7 +1,7 @@
 ---
 title: Importar y exportar
 description: Abre archivos GPX, FIT y TCX desde cualquier parte del teléfono, guárdalos como rutas o salidas y exporta las tuyas a Komoot, Garmin o donde quieras.
-order: 10
+order: 11
 ---
 
 Velorki lee y escribe archivos GPX, FIT y TCX, que es como las rutas y las salidas pasan entre la app y el resto del mundo. Todo es gratis, no necesita cuenta ni conexión, y funciona con Komoot, Garmin Connect, Strava, un ciclocomputador o un simple archivo en el teléfono.

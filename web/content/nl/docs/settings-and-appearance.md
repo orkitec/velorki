@@ -1,7 +1,7 @@
 ---
 title: Instellingen en weergave
 description: Elke instelling in Velorki, van thema, accentkleur, eenheden en taal tot navigatie, opname, sensoren, zoeken, offline gegevens, koppelingen en de server-URL's.
-order: 15
+order: 16
 ---
 
 Het tabblad Instellingen is één scrollende pagina met een sectie per onderwerp. Deze pagina loopt hem van boven naar beneden door, zodat je de schakelaar vindt die je zoekt en weet wat hij doet.

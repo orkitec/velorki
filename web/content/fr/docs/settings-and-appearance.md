@@ -1,7 +1,7 @@
 ---
 title: Réglages et apparence
 description: "Tous les réglages de Velorki, du thème, de l'accent, des unités et de la langue à la navigation, l'enregistrement, les capteurs, la recherche, les données hors ligne, les connexions et les URL de serveur."
-order: 15
+order: 16
 ---
 
 L'onglet Réglages est une page défilante avec une section par sujet. Cette page la parcourt de haut en bas, pour que vous trouviez le réglage que vous cherchez et sachiez ce qu'il fait.

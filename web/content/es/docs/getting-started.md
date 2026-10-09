@@ -83,7 +83,7 @@ Hasta que elijas, Velorki sigue el país del teléfono: imperial solo donde el p
 
 ## Dónde está cada cosa
 
-- **Los controles del mapa** están en una columna a la derecha del mapa: **Mostrar mi posición**, **Capas** (el mapa ciclista y las [paradas en el mapa](./stops-on-the-map)), **Datos sin conexión** (no en una pantalla pequeña como la de un iPhone SE), **Acercar** y **Alejar**. En la pestaña Grabar se les suma un botón de brújula, que alterna entre **Norte arriba** y **El mapa gira contigo**.
+- **Los controles del mapa** están en una columna a la derecha del mapa: **Mostrar mi posición**, **Capas** ([el mapa ciclista](./map-layers) y las [paradas en el mapa](./stops-on-the-map)), **Datos sin conexión** (no en una pantalla pequeña como la de un iPhone SE), **Acercar** y **Alejar**. En la pestaña Grabar se les suma un botón de brújula, que alterna entre **Norte arriba** y **El mapa gira contigo**.
 - **El campo de búsqueda** está arriba en la pestaña Planificar.
 - **El perfil de bici** (Trekking, Carretera, Gravel, MTB, Directo) es la fila de chips bajo el campo de búsqueda.
 - **El panel de ruta** es el panel de la parte inferior de la pestaña Planificar. Arrástralo hacia arriba para ver el perfil de altitud y el desglose de superficies, hacia abajo para ver más mapa.

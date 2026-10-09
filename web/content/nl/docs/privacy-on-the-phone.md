@@ -1,7 +1,7 @@
 ---
 title: Privacy op de telefoon
 description: "In fietsertaal: wat er op je telefoon blijft, wat hem verlaat, wanneer en naar wie. Er is geen account en er wordt niets geüpload tenzij je erom vraagt."
-order: 16
+order: 17
 ---
 
 Velorki heeft geen account, dus er is niets om op in te loggen en niets over jou op een server. Deze pagina is de versie in gewone taal van wat dat in de praktijk betekent; het [privacybeleid](/privacy) is de formele.

@@ -1,7 +1,7 @@
 ---
 title: Sharing
 description: Turn a route or a ride into a link anyone can open in a browser, see what the page shows, and know that the link expires after a year.
-order: 11
+order: 12
 ---
 
 A share link turns one of your routes or rides into a web page that anyone can open, with a map, the figures and a GPX download. Use it to send a ride to a friend, to post a route in a forum, or to get a route onto another phone without a file.

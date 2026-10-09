@@ -1,7 +1,7 @@
 ---
 title: Dépannage
 description: "Solutions aux problèmes courants : pas de position, pas d’itinéraire, la bannière de tuiles manquantes, une voix muette sur iOS, des téléchargements bloqués et des liens qui ne s’ouvrent pas."
-order: 18
+order: 19
 ---
 
 Les problèmes les plus fréquents, et que faire pour chacun. Si le vôtre n’y figure pas, la dernière section explique comment le signaler.

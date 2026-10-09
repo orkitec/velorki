@@ -83,7 +83,7 @@ Tot je kiest, volgt Velorki het land van de telefoon: imperiaal alleen waar het 
 
 ## Waar alles zit
 
-- **De kaartknoppen** staan in een kolom rechts op de kaart: **Mijn positie tonen**, **Kaartlagen** (de fietskaart en [stopplekken op de kaart](./stops-on-the-map)), **Offline gegevens** (niet op een klein scherm zoals een iPhone SE), **Inzoomen** en **Uitzoomen**. Op het tabblad Opnemen komt er een kompasknop bij, die wisselt tussen **Noorden boven** en **Kaart draait mee**.
+- **De kaartknoppen** staan in een kolom rechts op de kaart: **Mijn positie tonen**, **Kaartlagen** ([de fietskaart](./map-layers) en [stopplekken op de kaart](./stops-on-the-map)), **Offline gegevens** (niet op een klein scherm zoals een iPhone SE), **Inzoomen** en **Uitzoomen**. Op het tabblad Opnemen komt er een kompasknop bij, die wisselt tussen **Noorden boven** en **Kaart draait mee**.
 - **Het zoekveld** staat bovenaan het tabblad Plannen.
 - **Het fietsprofiel** (Toer, Racefiets, Gravel, MTB, Direct) is de rij knoppen onder het zoekveld.
 - **Het routepaneel** is het paneel onderaan het tabblad Plannen. Sleep het omhoog voor het hoogteprofiel en de verdeling van de ondergrond, omlaag om meer kaart te zien.

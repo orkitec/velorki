@@ -1,7 +1,7 @@
 ---
 title: Strava et Ride with GPS
 description: Connectez votre compte Strava ou Ride with GPS pour téléverser vos sorties enregistrées et importer des itinéraires, et comprenez pourquoi l’envoi d’un itinéraire vers Strava passe par un fichier.
-order: 12
+order: 13
 ---
 
 Velorki peut dialoguer avec Strava et Ride with GPS en votre nom : téléverser une sortie que vous avez enregistrée et rapatrier dans votre bibliothèque les itinéraires de ces comptes. La connexion à l’un ou l’autre service fait partie de [Velorki Plus](./velorki-plus) ; les fichiers GPX, FIT et TCX restent gratuits et font le même travail à la main.

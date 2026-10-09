@@ -1,7 +1,7 @@
 ---
 title: Libreria
 description: Dove stanno i percorsi salvati e i giri registrati, cosa mostra il pannello di un percorso o di un giro e come rinominarli o eliminarli.
-order: 9
+order: 10
 ---
 
 La scheda Libreria contiene tutto quello che hai conservato: i percorsi che hai pianificato e i giri che hai registrato. È un pannello sopra la mappa, come le schede Pianifica e Registra: il suo contenuto scorre a qualsiasi altezza, e la maniglia in alto lo sposta; quando non c'è nulla da scorrere, si muove tutto il pannello. Tiralo su per avere più spazio, tiralo giù fino in fondo e il pannello si ripiega nella barra di navigazione, lasciando la mappa. Vieni qui per riaprire un percorso, leggere i grafici e i parziali di un giro, e far entrare e uscire i file.

@@ -1,7 +1,7 @@
 ---
 title: Navigazione svolta per svolta
 description: Segui un percorso mentre registri, con un banner di svolta e indicazioni vocali, e scopri cosa fa Velorki quando lasci il percorso.
-order: 7
+order: 8
 ---
 
 Velorki ti guida lungo un percorso mentre un giro è in registrazione: un banner sopra la mappa mostra la prossima svolta, e una voce la dice ad alta voce. Attiva gli interruttori della navigazione, scegli un percorso da seguire nel tab Registra e avvia il giro.

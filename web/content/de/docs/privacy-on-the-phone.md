@@ -1,7 +1,7 @@
 ---
 title: Datenschutz auf dem Handy
 description: "Klartext für Radfahrende: Was auf deinem Handy bleibt, was es verlässt, wann und an wen. Es gibt kein Konto, und nichts geht ungefragt hoch."
-order: 16
+order: 17
 ---
 
 Velorki hat kein Konto, es gibt also nichts, wo man sich anmeldet, und nichts über dich auf einem Server. Diese Seite ist die Fassung in Klartext, was das in der Praxis heißt; die [Datenschutzerklärung](/privacy) ist die förmliche.

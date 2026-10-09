@@ -1,7 +1,7 @@
 ---
 title: Grabar una salida
 description: Empieza, pausa y termina una salida, sigue grabando con la pantalla apagada, ahorra batería y recupera una salida después de que se cerrara la app.
-order: 8
+order: 9
 ---
 
 La pestaña Grabar registra tu salida y la guarda en la biblioteca cuando terminas. Sigue grabando con la pantalla apagada y con la app en segundo plano, y aguanta que la app se cierre o se mate.

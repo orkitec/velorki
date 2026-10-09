@@ -1,7 +1,7 @@
 ---
 title: Strava e Ride with GPS
 description: Collega il tuo account Strava o Ride with GPS per caricare i giri registrati e importare percorsi, e scopri perché inviare un percorso a Strava è un file.
-order: 12
+order: 13
 ---
 
 Velorki può parlare con Strava e con Ride with GPS per conto tuo: caricare un giro che hai registrato, e portare i tuoi percorsi da quegli account nella tua libreria. Collegare uno dei due servizi fa parte di [Velorki Plus](./velorki-plus); i file GPX, FIT e TCX restano gratuiti e fanno lo stesso lavoro a mano.

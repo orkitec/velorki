@@ -1,7 +1,7 @@
 ---
 title: Velorki Plus
 description: Alles wat op je telefoon draait, is gratis. Plus is een klein abonnement voor de vier functies die onze servers of een partneraccount nodig hebben.
-order: 14
+order: 15
 ---
 
 Velorki Plus is een optioneel abonnement dat betaalt voor de onderdelen van Velorki die niet alleen op je telefoon kunnen draaien. Al het andere, en dat is bijna de hele app, is gratis voor iedereen, met of zonder Plus.

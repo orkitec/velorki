@@ -83,7 +83,7 @@ Bis du wählst, folgt Velorki dem Land des Handys: imperial nur dort, wo das Lan
 
 ## Wo was liegt
 
-- **Die Kartenbedienung** sitzt in einer Spalte rechts neben der Karte: **Meine Position anzeigen**, **Ebenen** (die Radkarte und [Stopps auf der Karte](./stops-on-the-map)), **Offline-Daten** (nicht auf einem kleinen Bildschirm wie dem iPhone SE), **Hineinzoomen** und **Herauszoomen**. Im Tab Aufnahme kommt eine Kompass-Schaltfläche dazu, die zwischen **Norden oben** und **Karte dreht mit** wechselt.
+- **Die Kartenbedienung** sitzt in einer Spalte rechts neben der Karte: **Meine Position anzeigen**, **Ebenen** ([die Radkarte](./map-layers) und [Stopps auf der Karte](./stops-on-the-map)), **Offline-Daten** (nicht auf einem kleinen Bildschirm wie dem iPhone SE), **Hineinzoomen** und **Herauszoomen**. Im Tab Aufnahme kommt eine Kompass-Schaltfläche dazu, die zwischen **Norden oben** und **Karte dreht mit** wechselt.
 - **Das Suchfeld** steht oben im Tab Planen.
 - **Das Radprofil** (Trekking, Rennrad, Gravel, MTB, Direkt) ist die Reihe von Chips unter dem Suchfeld.
 - **Die Routenübersicht** ist das Feld am unteren Rand des Tabs Planen. Zieh es nach oben für Höhenprofil und Belagsverteilung, nach unten für mehr Karte.

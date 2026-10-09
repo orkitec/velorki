@@ -1,7 +1,7 @@
 ---
 title: Strava und Ride with GPS
 description: Dein Strava- oder Ride-with-GPS-Konto verbinden, Fahrten hochladen und Routen importieren, und warum eine Route an Strava eine Datei ist.
-order: 12
+order: 13
 ---
 
 Velorki kann in deinem Namen mit Strava und mit Ride with GPS sprechen: eine aufgezeichnete Fahrt hochladen und deine Routen aus diesen Konten in die Bibliothek holen. Einen der beiden Dienste zu verbinden gehört zu [Velorki Plus](./velorki-plus); GPX-, FIT- und TCX-Dateien bleiben kostenlos und erledigen dieselbe Aufgabe von Hand.

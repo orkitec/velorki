@@ -1,0 +1,41 @@
+---
+title: Kaartlagen
+description: De offline fietskaart en zijn onderdelen, de online fietskaart en de stopplekken, alles in het paneel Kaartlagen.
+order: 6
+---
+
+**Kaartlagen** staat in de kolom knoppen rechts op de kaart, op het tabblad Plannen en Opnemen. Het paneel bevat de fietskaart, de online fietskaart en de stopplekken. De knop is gemarkeerd zolang een van die aan staat.
+
+<!-- screenshot: layers -->
+
+## Fietskaart
+
+**Fietskaart**: "Fietspaden, fietsstroken en fietsroutes uit je gedownloade gebieden · werkt offline · zichtbaar bij inzoomen". Door de app getekend uit de routeringsgegevens op de telefoon, dus zonder verbinding, en alleen waar een gebied is gedownload.
+
+De fietskaart vervaagt in tussen zoomniveau 12 en 13 en weer uit bij uitzoomen. Ze tekent wat de routeringsgegevens weten over fietsen. Staat ze aan, dan klapt onder de schakelaar per onderdeel een chip uit, elk met een stukje van zijn lijn als legenda. Tik op een chip om het onderdeel te tonen of te verbergen; de keuze blijft bewaard. Pijlen en stippen die vanaf zoomniveau 15 verschijnen, vervagen in tijdens de zoomstap ervoor.
+
+| Onderdeel | Getekend als |
+| --- | --- |
+| **Fietspaden & -stroken** | Fietspaden effen blauw, fietsstraten met een lichte band; fietspaden effen en fietsstroken gestippeld, aan de rand van de weg, verder naar buiten op grotere wegen. Gedeelde stroken (busstroken waar fietsers mogen, stroken alleen met fietssymbolen gemarkeerd, bermen, trottoirs waar fietsers mogen) als losse lichtblauwe streepjes naast de weg. Tweerichtingsfietspaden en tweerichtingspaden en -stroken zijn breder getekend dan eenrichtingsexemplaren |
+| **Eenrichtingspijlen** | Chevrons in het eigen blauw van de baan tonen de rijrichting: op fietspaden en paden die in één richting worden bereden vanaf zoomniveau 15, en op eenrichtingsfietspaden en -stroken naast de weg vanaf ongeveer zoomniveau 15,5 |
+| **Gedeelde paden** | Paden gedeeld met voetgangers als groenblauwe streepjes, voetpaden waar fietsers mogen als grijsblauwe stippen |
+| **Eenrichtingsstraten** | Een grijze chevron midden op straten die ook voor fietsers eenrichting zijn, in de richting van het verkeer, vanaf zoomniveau 15. Eenrichtingsstraten die fietsers in beide richtingen mogen berijden tonen in plaats daarvan het tweekleurige teken van **Tweerichting fiets**. Waar een fietsstrook of fietspad langs de straat zijn eigen richting toont, krijgt de straat geen eigen chevron |
+| **Tweerichting fiets** | Op eenrichtingsstraten die fietsers in beide richtingen mogen berijden toont vanaf zoomniveau 15 een grijze chevron de richting van het verkeer en een blauwe die van de fietsers ertegenin |
+| **Landelijke routes**, **Regionale routes**, **Lokale routes** | Bewegwijzerde fietsroutes als paarse gloed, sterker naarmate de route verder reikt |
+| **Onverhard & hobbelig** | Grind als okerkleurig streepje, ruw terrein voor mountainbikes als bruin streepje, hobbelige bestrating als rode streepjes |
+| **Obstakels & trappen** | Hekken, paaltjes en overstapjes als stippen vanaf zoomniveau 15; rood waar de fiets gedragen moet worden. Trappen als bruine sporten vanaf zoomniveau 15, met een blauwe strook ernaast waar een fietshelling is |
+| **Rustige straten** | Straten ingekleurd naar rust: cyaan voor 30 km/u (20 mph) of minder, groen voor 20 km/u of woonerven, lichtgroen voor stapvoets, felgroen zonder gemotoriseerd verkeer; voor fietsers gesloten wegen grijs |
+| **Mountainbike** | Moeilijkheidsstreepjes op paden vanaf zoomniveau 14: blauw voor makkelijk (S0–S1), rood voor S2, zwart voor S3 en zwaarder (wit op de nachtkaart); mountainbikeroutes als oranje gloed |
+| **Hellingen** | Steile stukken van de wegen die een fiets mag gebruiken, als band: geel vanaf 6 %, oranje vanaf 10 %, rood vanaf 15 %; chevrons wijzen vanaf zoomniveau 15 bergop. De hoogtes komen uit het terreinmodel in de routeringsdata. Een helling telt alleen mee als die minstens 150 m doorloopt en 10 m hoogteverschil heeft, dus korte hellinkjes ontbreken; in stadscentra met hoge gebouwen kan er toch een helling verschijnen die er niet is, of een gemist worden. Bruggen en tunnels blijven weg. In de dichte kernen van de grootste steden, waar de hoogtes die van de gebouwen zijn, worden geen hellingen getekend. |
+
+In het begin staan alle onderdelen aan behalve **Onverhard & hobbelig**, **Eenrichtingsstraten**, **Rustige straten**, **Mountainbike** en **Hellingen**. Een onderdeel dat in een latere versie wordt toegevoegd, begint met zijn standaard; eerdere keuzes blijven bewaard.
+
+Op het tabblad Plannen zegt een chip, met de fietskaart aan boven een niet-gedownload gebied, **Geen fietskaart hier – gebied niet gedownload**, met **Downloaden**; een tik opent de download voor het zichtbare gebied. Geldt ook de chip van de stopplekken, dan gaat die voor.
+
+## Online fietskaart
+
+**Online fietskaart**: "De kaart van CyclOSM met fietswinkels en fietsenstallingen · heeft een verbinding nodig". De laag van CyclOSM, online opgehaald. De twee fietskaarten wisselen elkaar af: de ene aanzetten zet de andere uit.
+
+## Stopplekken
+
+**Stopplekken** is een schakelaar in hetzelfde paneel, uit tot je hem aanzet. Hij tekent drinkwater, cafés, toiletten, fietsreparatiepunten en meer uit de plaatsindex op de telefoon. De soorten, het gebied waar je naar kijkt en de route vooruit staan in [stopplekken op de kaart](./stops-on-the-map).

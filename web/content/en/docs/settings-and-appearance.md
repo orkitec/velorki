@@ -1,7 +1,7 @@
 ---
 title: Settings and appearance
 description: Every setting in Velorki, from theme, accent, units and language to navigation, recording, sensors, search, offline data, connections and the server URLs.
-order: 15
+order: 16
 ---
 
 The Settings tab is one scrolling page with a section per subject. This page walks it from top to bottom, so you can find the switch you are after and know what it does.

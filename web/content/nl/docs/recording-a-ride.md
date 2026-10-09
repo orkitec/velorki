@@ -1,7 +1,7 @@
 ---
 title: Een rit opnemen
 description: Een rit starten, pauzeren en beëindigen, blijven opnemen met het scherm uit, batterij sparen en een rit terugkrijgen nadat de app werd afgesloten.
-order: 8
+order: 9
 ---
 
 Het tabblad Opnemen legt je rit vast en slaat hem op in de bibliotheek als je klaar bent. Het blijft opnemen met het scherm uit en met de app op de achtergrond, en het overleeft het sluiten of geforceerd stoppen van de app.

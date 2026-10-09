@@ -1,7 +1,7 @@
 ---
 title: Privacy on the phone
 description: "In rider's terms: what stays on your phone, what leaves it, when, and to whom. There is no account and nothing is uploaded unless you ask."
-order: 16
+order: 17
 ---
 
 Velorki has no account, so there is nothing to log in to and nothing about you on a server. This page is the plain-language version of what that means in practice; the [privacy policy](/privacy) is the formal one.

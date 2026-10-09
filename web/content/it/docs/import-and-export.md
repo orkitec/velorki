@@ -1,7 +1,7 @@
 ---
 title: Importa ed esporta
 description: Apri file GPX, FIT e TCX da qualsiasi punto del telefono, salvali come percorsi o giri ed esporta i tuoi verso Komoot, Garmin o qualsiasi altra cosa.
-order: 10
+order: 11
 ---
 
 Velorki legge e scrive file GPX, FIT e TCX, ed è così che percorsi e giri si spostano tra l'app e il resto del mondo. Tutto è gratuito, non richiede né account né connessione, e funziona con Komoot, Garmin Connect, Strava, un ciclocomputer o un semplice file sul telefono.

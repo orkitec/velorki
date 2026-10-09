@@ -1,7 +1,7 @@
 ---
 title: Sensoren und deine Uhr
 description: Puls, Trittfrequenz und Leistung von einem Bluetooth-Sensor, einer Apple Watch oder der Health-App des Handys, einmal eingerichtet und bei jeder Fahrt dabei.
-order: 17
+order: 18
 ---
 
 Velorki kann während der Aufnahme deinen Puls, deine Trittfrequenz und deine Leistung zeigen und alle drei danach bei der Fahrt behalten. Die Werte kommen von einem Bluetooth-Sensor, von einer Apple Watch oder von der Health-App des Handys, und das alles ist kostenlos und läuft auf dem Gerät.

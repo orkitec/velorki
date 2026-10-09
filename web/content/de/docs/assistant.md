@@ -1,7 +1,7 @@
 ---
 title: Assistent
 description: Die gewünschte Fahrt in einem Satz beschreiben und Velorki macht eine Route daraus, mit deiner Zustimmung, höchstens grober Position und ohne Routenhistorie.
-order: 13
+order: 14
 ---
 
 Der Assistent macht aus einem Satz wie "eine Gravel-Runde von etwa 80 km auf ruhigen Straßen" eine Route im Planer. Er ist der einzige Teil von Velorki, der dein Geschriebenes an einen Server schickt, deshalb fragt er zuerst nach deiner Zustimmung und sagt genau, was mitgeht.

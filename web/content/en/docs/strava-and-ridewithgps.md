@@ -1,7 +1,7 @@
 ---
 title: Strava and Ride with GPS
 description: Connect your Strava or Ride with GPS account to upload recorded rides and import routes, and see why sending a route to Strava is a file.
-order: 12
+order: 13
 ---
 
 Velorki can talk to Strava and to Ride with GPS on your behalf: upload a ride you recorded, and pull your routes from those accounts into your library. Connecting either service is part of [Velorki Plus](./velorki-plus); GPX, FIT and TCX files stay free and do the same job by hand.

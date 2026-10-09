@@ -1,7 +1,7 @@
 ---
 title: Privacy sul telefono
 description: "In parole semplici: cosa resta sul tuo telefono, cosa lo lascia, quando e verso chi. Non c'è nessun account e nulla viene caricato se non lo chiedi."
-order: 16
+order: 17
 ---
 
 Velorki non ha account, quindi non c'è nulla a cui accedere e nulla su di te su un server. Questa pagina è la versione in parole semplici di cosa significa in pratica; l'[informativa sulla privacy](/privacy) è quella formale.
