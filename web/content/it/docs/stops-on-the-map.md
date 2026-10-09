@@ -32,8 +32,9 @@ La mappa ciclabile compare in dissolvenza tra lo zoom 12 e 13, e scompare di nuo
 | **Barriere & scale** | Cancelli, paletti e scalini di attraversamento come punti dallo zoom 15; rossi dove la bici va portata a spalla. Scale come gradini marroni dallo zoom 15, con una striscia blu accanto dove c'è una rampa per bici |
 | **Strade tranquille** | Strade colorate secondo la tranquillità: azzurro ciano per 30 km/h (20 mph) o meno, verde per 20 km/h o zone residenziali, verde chiaro per passo d'uomo, verde vivo senza traffico motorizzato; strade chiuse alle bici in grigio |
 | **MTB** | Tacche di difficoltà sui sentieri dallo zoom 14: blu per facile (S0–S1), rosso per S2, nero per S3 e più difficile (bianco sulla mappa notturna); itinerari MTB come alone arancione |
+| **Salite** | Tratti ripidi delle vie che una bici può usare, come una banda: giallo dal 6 %, arancione dal 10 %, rosso dal 15 %; i chevron indicano la salita dallo zoom 15. Le quote vengono dal modello del terreno nei dati di routing. Una salita conta solo se continua per almeno 150 m e 10 m di dislivello, quindi le rampe brevi non compaiono; nei centri città con edifici alti può comunque mostrare una salita che non c'è o non vederne una. Ponti e gallerie sono esclusi |
 
-All'inizio sono attive tutte le parti tranne **Sterrato & sconnesso**, **Strade a senso unico**, **Strade tranquille** e **MTB**. Una parte aggiunta in una versione successiva parte dal suo valore predefinito; le scelte fatte prima restano.
+All'inizio sono attive tutte le parti tranne **Sterrato & sconnesso**, **Strade a senso unico**, **Strade tranquille**, **MTB** e **Salite**. Una parte aggiunta in una versione successiva parte dal suo valore predefinito; le scelte fatte prima restano.
 
 Nella scheda Pianifica, con la mappa ciclabile attiva su un'area non scaricata, un chip dice **Nessuna mappa ciclabile qui – area non scaricata**, con **Scarica**; un tocco apre il download dell'area visibile. Se vale anche il chip delle soste, questo ha la precedenza.
 

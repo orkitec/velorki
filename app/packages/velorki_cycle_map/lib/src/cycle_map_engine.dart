@@ -116,7 +116,12 @@ final class CycleMapEngine {
         _tiles.remove(entry.key);
       }
     }
-    final current = _tiles.values.map((t) => t?.versionKey).toSet();
+    final current = <String?>{
+      for (final tile in _tiles.values) ...[
+        tile?.versionKey,
+        if (tile != null) '${tile.versionKey}_climbs',
+      ],
+    };
     _cells.removeWhere((k, v) {
       final gone = !current.contains(k.$1);
       if (gone) _cellBytes -= v.byteSize;
@@ -138,12 +143,13 @@ final class CycleMapEngine {
     for (final entry in segmentsDir.listSync()) {
       final name = entry.uri.pathSegments.last;
       if (entry is File && name.endsWith('.rd5')) {
-        current.add(
-          CellStore.versionKey(
-            name.substring(0, name.length - 4),
-            entry.statSync(),
-          ),
+        final version = CellStore.versionKey(
+          name.substring(0, name.length - 4),
+          entry.statSync(),
         );
+        current
+          ..add(version)
+          ..add('${version}_climbs');
       }
     }
     store.prune(current);
@@ -196,7 +202,12 @@ final class CycleMapEngine {
       final fragmentKey = (tile.versionKey, x, y, zoom, request.wanted);
       var piece = _fragments.remove(fragmentKey);
       if (piece == null) {
-        final (cell, fresh) = _cell(tile, x, y);
+        final (cell, fresh) = _cell(
+          tile,
+          x,
+          y,
+          climbs: request.wanted & CycleContent.climbs != 0,
+        );
         if (fresh) decoded++;
         piece = _writer.cellFeatures(cell, request.wanted, zoom);
         _fragmentChars += piece.length;
@@ -221,18 +232,22 @@ final class CycleMapEngine {
     );
   }
 
-  (CellWays, bool) _cell(_OpenTile tile, int x, int y) {
-    final key = (tile.versionKey, x, y);
+  /// The cell at [x], [y], with its climbs when [climbs]: finding them
+  /// takes as long again as the rest, so a cell is kept twice, without and
+  /// with, and the second only made when the climbs are on.
+  (CellWays, bool) _cell(_OpenTile tile, int x, int y, {required bool climbs}) {
+    final version = climbs ? '${tile.versionKey}_climbs' : tile.versionKey;
+    final key = (version, x, y);
     final cached = _cells.remove(key);
     if (cached != null) {
       _cells[key] = cached;
       return (cached, false);
     }
     var fresh = false;
-    var cell = _store?.read(tile.versionKey, x, y);
+    var cell = _store?.read(version, x, y);
     if (cell == null) {
-      cell = mergeLines(reader.readCell(tile.rd5, x, y));
-      _store?.write(tile.versionKey, x, y, cell);
+      cell = mergeLines(reader.readCell(tile.rd5, x, y, climbs: climbs));
+      _store?.write(version, x, y, cell);
       fresh = true;
     }
     _cells[key] = cell;

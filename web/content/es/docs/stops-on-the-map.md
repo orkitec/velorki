@@ -32,8 +32,9 @@ El mapa ciclista aparece gradualmente entre el zoom 12 y 13, y se desvanece al a
 | **Barreras y escaleras** | Puertas, bolardos y portillos como puntos desde el zoom 15; en rojo donde hay que llevar la bici en brazos. Escaleras como peldaños marrones desde el zoom 15, con una franja azul al lado donde hay rampa para bicis |
 | **Calles tranquilas** | Calles teñidas según su tranquilidad: cian para 30 km/h (20 mph) o menos, verde para 20 km/h o calles residenciales, verde pálido para paso de peatón, verde vivo sin tráfico motorizado; vías cerradas a las bicis en gris |
 | **Bici de montaña** | Marcas de dificultad en los senderos desde el zoom 14: azul para fácil (S0–S1), rojo para S2, negro para S3 y más difícil (blanco en el mapa nocturno); rutas de bici de montaña como un halo naranja |
+| **Subidas** | Tramos empinados de las vías que puede usar una bici, como una banda: amarillo desde el 6 %, naranja desde el 10 %, rojo desde el 15 %; las flechas apuntan cuesta arriba desde el zoom 15. Las alturas vienen del modelo del terreno de los datos de rutas. Una subida solo cuenta si dura al menos 150 m y 10 m de desnivel, así que las rampas cortas no salen; en centros urbanos con edificios altos aún puede mostrar una subida que no existe o no ver una. Puentes y túneles quedan fuera |
 
-Al principio todas las partes están activas salvo **Sin asfaltar y bacheado**, **Calles de sentido único**, **Calles tranquilas** y **Bici de montaña**. Una parte añadida en una versión posterior empieza con su valor por defecto; las elecciones anteriores se conservan.
+Al principio todas las partes están activas salvo **Sin asfaltar y bacheado**, **Calles de sentido único**, **Calles tranquilas**, **Bici de montaña** y **Subidas**. Una parte añadida en una versión posterior empieza con su valor por defecto; las elecciones anteriores se conservan.
 
 En la pestaña Planificar, con el mapa ciclista activo sobre una zona no descargada, un chip dice **No hay mapa ciclista aquí – zona no descargada**, con **Descargar**; al tocarlo se abre la descarga de la zona visible. Si también vale el chip de las paradas, este va primero.
 

@@ -42,6 +42,7 @@ void main() {
       containsAll(<String>[
         CycleMapLayers.arrowImage,
         CycleMapLayers.onewayStreetImage,
+        CycleMapLayers.climbImage,
         CycleMapLayers.contraflowImage,
       ]),
     );

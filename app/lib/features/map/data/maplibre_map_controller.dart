@@ -2099,6 +2099,10 @@ class MaplibreMapControllerAdapter implements MapController {
           color: colorFromMapHex(colors.infrastructure),
           devicePixelRatio: devicePixelRatio,
         ),
+        CycleMapLayers.climbImage: await buildChevronImage(
+          color: colorFromMapHex(colors.outline),
+          devicePixelRatio: devicePixelRatio,
+        ),
         CycleMapLayers.onewayStreetImage: await buildChevronImage(
           color: colorFromMapHex(colors.trafficArrow),
           devicePixelRatio: devicePixelRatio,

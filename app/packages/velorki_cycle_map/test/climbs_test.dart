@@ -15,12 +15,31 @@ import 'package:velorki_cycle_map/velorki_cycle_map.dart';
   return (coords, elevations);
 }
 
-List<(List<int>, int)> climbs(List<double> heights, {double step = 10}) {
+/// No smoothing, no minimum: the stretches as they are.
+const raw = ClimbRule(
+  smoothMetres: 0,
+  measureSmoothMetres: 0,
+  windowMetres: 30,
+  minLengthMetres: 20,
+  minRiseMetres: 0,
+  detectGrade: 0.06,
+);
+
+List<(List<int>, int)> climbs(
+  List<double> heights, {
+  double step = 10,
+  ClimbRule rule = raw,
+}) {
   final (coords, elevations) = north(heights, stepMetres: step);
   final out = <(List<int>, int)>[];
-  findClimbs(coords, elevations, (c, g) => out.add((c, g)));
+  findClimbs(coords, elevations, (c, g) => out.add((c, g)), rule: rule);
   return out;
 }
+
+/// [metres] of road at [grade], from [from] metres up.
+List<double> slope(double metres, double grade, {double from = 0}) => [
+  for (var d = 0.0; d <= metres; d += 10) from + d * grade,
+];
 
 void main() {
   test('grade classes', () {
@@ -30,41 +49,77 @@ void main() {
     expect(gradeClass(0.2), 3);
   });
 
-  test('a flat line has no climb', () {
-    expect(climbs([0, 0, 0, 0, 0, 0, 0]), isEmpty);
+  group('the stretches as they are', () {
+    test('a flat line has no climb', () {
+      expect(climbs([0, 0, 0, 0, 0, 0, 0]), isEmpty);
+    });
+
+    test('a steady 8 % climb is one piece of class 1, drawn uphill', () {
+      final c = climbs(slope(60, 0.08));
+      expect(c, hasLength(1));
+      expect(c.single.$2, 1);
+      final points = c.single.$1;
+      expect(points[1], lessThan(points[points.length - 1]));
+    });
+
+    test('a descent is drawn from its foot, against the way', () {
+      final c = climbs(slope(60, -0.12, from: 12));
+      expect(c.single.$2, 2);
+      final points = c.single.$1;
+      expect(points[1], greaterThan(points[points.length - 1]));
+    });
+
+    test('a climb then a flat: only the climb', () {
+      final c = climbs([...slope(30, 0.12), 3.6, 3.6, 3.6, 3.6, 3.6, 3.6]);
+      expect(c, hasLength(1));
+      expect(c.single.$2, 2);
+    });
+
+    test('too short to tell', () {
+      expect(climbs([0, 5], step: 15), isEmpty);
+      expect(climbs([0, 5], step: 25), hasLength(1));
+    });
   });
 
-  test('a steady 8 % climb is one piece of class 1, drawn uphill', () {
-    final c = climbs([0, 0.8, 1.6, 2.4, 3.2, 4.0, 4.8]);
-    expect(c, hasLength(1));
-    expect(c.single.$2, 1);
-    final points = c.single.$1;
-    // From the first point to the last: the way goes up.
-    expect(points[1], lessThan(points[points.length - 1]));
-  });
+  group('the rule of the map', () {
+    List<(List<int>, int)> standard(List<double> heights) =>
+        climbs(heights, rule: ClimbRule.standard);
 
-  test('a descent is drawn from its foot, against the way', () {
-    final c = climbs([12, 10.8, 9.6, 8.4, 7.2, 6.0, 4.8]);
-    expect(c.single.$2, 2);
-    final points = c.single.$1;
-    expect(points[1], greaterThan(points[points.length - 1]));
-  });
+    test('a long climb is found and measured at its own grade', () {
+      final c = standard([
+        ...slope(200, 0),
+        ...slope(400, 0.12, from: 0),
+        ...slope(200, 0, from: 48),
+      ]);
+      expect(c, isNotEmpty);
+      expect(c.map((p) => p.$2), contains(2));
+    });
 
-  test('a one-point bump is smoothed away by the window', () {
-    // 1 m up and down over 10 m would be 10 %, over 30 m it is not steep.
-    expect(climbs([0, 0, 0, 1, 0, 0, 0]), isEmpty);
-  });
+    test('the bump of a block of tall buildings is no climb', () {
+      // Up 8 m over 80 m, down again: a terrain model's tower block.
+      final c = standard([
+        ...slope(300, 0),
+        ...slope(80, 0.1),
+        ...slope(80, -0.1, from: 8),
+        ...slope(300, 0),
+      ]);
+      expect(c, isEmpty);
+    });
 
-  test('a climb then a flat: only the climb', () {
-    final c = climbs([0, 1.2, 2.4, 3.6, 3.6, 3.6, 3.6, 3.6, 3.6, 3.6]);
-    expect(c, hasLength(1));
-    expect(c.single.$2, 2);
-    // The climb's three stretches of 10 m make one window of 30 m.
-    expect(c.single.$1, hasLength(8));
-  });
+    test('a short steep ramp that gains little is no climb', () {
+      expect(
+        standard([
+          ...slope(200, 0),
+          ...slope(60, 0.15),
+          ...slope(200, 0, from: 9),
+        ]),
+        isEmpty,
+      );
+    });
 
-  test('too short to tell', () {
-    expect(climbs([0, 5], step: 15), isEmpty);
-    expect(climbs([0, 5], step: 25), hasLength(1));
+    test('a flat street with a metre of noise has no climb', () {
+      final noisy = [for (var i = 0; i < 80; i++) (i % 3 == 0 ? 1.0 : 0.0)];
+      expect(standard(noisy), isEmpty);
+    });
   });
 }

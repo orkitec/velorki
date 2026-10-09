@@ -865,6 +865,7 @@
   "mapCyclePartBarriers": "Hindernisse & Treppen",
   "mapCyclePartTraffic": "Ruhige Straßen",
   "mapCyclePartMtb": "Mountainbike",
+  "mapCyclePartClimbs": "Steigungen",
   "mapCycleMapNotDownloaded": "Keine Radkarte hier – Gebiet nicht heruntergeladen",
   "mapLayersStops": "Stopps",
   "mapStopsZoomIn": "Hineinzoomen, um Stopps zu sehen",

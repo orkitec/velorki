@@ -40,6 +40,9 @@ enum CycleMapPart {
 
   /// Mountain-bike difficulty and mountain-bike routes.
   mtb,
+
+  /// Steep pieces of the ways, from the heights in the routing data.
+  climbs,
 }
 
 /// The parts shown until the rider picks their own.
@@ -76,6 +79,7 @@ int cycleContentOf(Set<CycleMapPart> parts) {
       CycleMapPart.barriers => CycleContent.barriers,
       CycleMapPart.traffic => CycleContent.traffic,
       CycleMapPart.mtb => CycleContent.mtb,
+      CycleMapPart.climbs => CycleContent.climbs,
     };
   }
   return bits;

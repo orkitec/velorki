@@ -261,6 +261,7 @@ String cycleMapPartLabel(AppLocalizations l10n, CycleMapPart part) =>
       CycleMapPart.barriers => l10n.mapCyclePartBarriers,
       CycleMapPart.traffic => l10n.mapCyclePartTraffic,
       CycleMapPart.mtb => l10n.mapCyclePartMtb,
+      CycleMapPart.climbs => l10n.mapCyclePartClimbs,
     };
 
 /// A short stroke of how the cycle map draws [part], in the colours of the
@@ -383,6 +384,22 @@ class _SamplePainter extends CustomPainter {
           ..color = _hex(colors.limit30).withValues(alpha: 0.5)
           ..strokeWidth = 9;
         canvas.drawLine(Offset(1, y), Offset(size.width - 1, y), line);
+      case CycleMapPart.climbs:
+        final third = (size.width - 2) / 3;
+        for (final (i, color) in [
+          colors.climb6,
+          colors.climb10,
+          colors.climb15,
+        ].indexed) {
+          line
+            ..color = _hex(color)
+            ..strokeWidth = 5;
+          canvas.drawLine(
+            Offset(1 + i * third, y),
+            Offset(1 + (i + 1) * third, y),
+            line,
+          );
+        }
       case CycleMapPart.mtb:
         stroke(colors.mtbMedium, 6, dash: 1.2, gap: 3);
       case CycleMapPart.barriers:

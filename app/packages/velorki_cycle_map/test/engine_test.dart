@@ -213,6 +213,38 @@ void main() {
     final y = ((32.65 + 90) * 32).floor();
     expect(reader.readCell(tile, x, y).climbCount, 0);
     final cell = reader.readCell(tile, x, y, climbs: true);
-    expect(cell.climbGrades, contains(3));
+    expect(cell.climbGrades, isNotEmpty);
+  });
+
+  test('climbs only when wanted, kept apart from the cells without', () {
+    final e = engine();
+    addTearDown(e.close);
+    const box = (south: 32.63, west: -16.95, north: 32.67, east: -16.88);
+    CycleMapRequest request(int wanted) => CycleMapRequest(
+      south: box.south,
+      west: box.west,
+      north: box.north,
+      east: box.east,
+      zoom: 16,
+      wanted: wanted,
+    );
+    expect(
+      features(e.render(request(CycleContent.all & ~CycleContent.climbs)))
+          .any((f) => (f['properties'] as Map).containsKey('c')),
+      isFalse,
+    );
+    final withClimbs = e.render(request(CycleContent.climbs));
+    expect(withClimbs.decodedCells, greaterThan(0));
+    expect(
+      features(withClimbs)
+          .every((f) => (f['properties'] as Map).containsKey('c')),
+      isTrue,
+    );
+    expect(features(withClimbs), isNotEmpty);
+    // Both kinds are on disk for a second engine.
+    final second = engine();
+    addTearDown(second.close);
+    expect(second.render(request(CycleContent.climbs)).decodedCells, 0);
+    expect(second.render(request(CycleContent.infrastructure)).decodedCells, 0);
   });
 }

@@ -32,8 +32,9 @@ Die Radkarte blendet zwischen Zoomstufe 12 und 13 ein und beim Herauszoomen wied
 | **Hindernisse & Treppen** | Tore, Poller und Stiegen als Punkte ab Zoomstufe 15; rot, wo das Rad getragen werden muss. Treppen als braune Sprossen ab Zoomstufe 15, mit einem blauen Streifen daneben, wo es eine Rampe für Räder gibt |
 | **Ruhige Straßen** | Straßen nach Ruhe eingefärbt: Türkis für 30 km/h (20 mph) oder weniger, Grün für 20 km/h oder verkehrsberuhigte Bereiche, Hellgrün für Schrittgeschwindigkeit, leuchtendes Grün ohne Kfz-Verkehr; für Räder gesperrte Straßen grau |
 | **Mountainbike** | Schwierigkeitsstriche auf Trails ab Zoomstufe 14: blau für leicht (S0–S1), rot für S2, schwarz für S3 und schwerer (auf der Nachtkarte weiß); Mountainbike-Routen als oranger Hof |
+| **Steigungen** | Steile Stücke der für Räder erlaubten Wege als Band: gelb ab 6 %, orange ab 10 %, rot ab 15 %; Winkel zeigen ab Zoomstufe 15 bergauf. Die Höhen stammen aus dem Geländemodell in den Routingdaten. Eine Steigung zählt nur, wenn sie mindestens 150 m lang ist und 10 m Höhe überwindet; kurze Rampen fehlen deshalb. In Innenstädten mit hohen Gebäuden kann sie dennoch eine Steigung zeigen, die es nicht gibt, oder eine übersehen. Brücken und Tunnel bleiben ausgespart |
 
-Zu Beginn sind alle Teile an außer **Unbefestigt & holprig**, **Einbahnstraßen**, **Ruhige Straßen** und **Mountainbike**. Ein Teil, der in einer späteren Version dazukommt, startet mit seiner Voreinstellung; frühere Entscheidungen bleiben erhalten.
+Zu Beginn sind alle Teile an außer **Unbefestigt & holprig**, **Einbahnstraßen**, **Ruhige Straßen**, **Mountainbike** und **Steigungen**. Ein Teil, der in einer späteren Version dazukommt, startet mit seiner Voreinstellung; frühere Entscheidungen bleiben erhalten.
 
 Im Tab Planen sagt ein Chip bei eingeschalteter Radkarte über einem nicht heruntergeladenen Gebiet **Keine Radkarte hier – Gebiet nicht heruntergeladen**, mit **Herunterladen**; ein Tipp öffnet den Download für das sichtbare Gebiet. Gilt auch der Chip der Stopps, steht er vorn.
 

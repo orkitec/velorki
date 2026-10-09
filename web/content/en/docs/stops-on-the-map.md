@@ -32,8 +32,9 @@ The cycle map fades in between zoom 12 and 13, and out again when you zoom out. 
 | **Barriers & steps** | Gates, bollards and stiles as dots from zoom 15; red where the bike has to be carried. Steps as brown rungs from zoom 15, with a blue strip beside them where there is a ramp for bikes |
 | **Calm streets** | Streets tinted by how calm they are: cyan for 30 km/h (20 mph) or less, green for 20 km/h or living streets, pale green for walking pace, bright green without motor traffic; roads closed to bikes in grey |
 | **Mountain bike** | Difficulty ticks on trails from zoom 14: blue for easy (S0–S1), red for S2, black for S3 and harder (white on the night map); mountain-bike routes as an orange halo |
+| **Climbs** | Steep pieces of the ways a bike may use, as a band: yellow from 6 %, orange from 10 %, red from 15 %; chevrons point uphill from zoom 15. The heights come from the terrain model in the routing data. A climb only counts when it keeps going for at least 150 m and 10 m of height, so short ramps are left out; in city centres with tall buildings it can still show a climb that isn't there or miss one. Bridges and tunnels are left out |
 
-All parts are on by default except **Unpaved & bumpy**, **One-way streets**, **Calm streets** and **Mountain bike**. A part added in a later version starts as its default; choices made before are kept.
+All parts are on by default except **Unpaved & bumpy**, **One-way streets**, **Calm streets**, **Mountain bike** and **Climbs**. A part added in a later version starts as its default; choices made before are kept.
 
 On the Plan tab, with the cycle map on over an area that is not downloaded, a chip says **No cycle map here — area not downloaded**, with **Download**; a tap opens the download for the visible area. If the stops chip applies too, it comes first.
 

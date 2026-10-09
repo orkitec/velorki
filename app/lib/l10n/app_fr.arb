@@ -865,6 +865,7 @@
   "mapCyclePartBarriers": "Obstacles & escaliers",
   "mapCyclePartTraffic": "Rues calmes",
   "mapCyclePartMtb": "VTT",
+  "mapCyclePartClimbs": "Montées",
   "mapCycleMapNotDownloaded": "Pas de carte vélo ici – zone non téléchargée",
   "mapLayersStops": "Haltes",
   "mapStopsZoomIn": "Zoomez pour voir les haltes",

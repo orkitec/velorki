@@ -85,9 +85,9 @@ final class Rd5CellReader {
     final line = <int>[];
     final heights = <int>[];
     final nodeHeights = <int, int>{};
-    // Links to find the climbs of once every node's height is known: the
-    // last point's is its target node's.
-    final pending = <(List<int>, List<int>, int)>[];
+    // Links to find the climbs of once every node's height is known (the
+    // last point's is its target node's), and which way each is.
+    final pending = <(List<int>, List<int>, int, int)>[];
     final size = mc.getSize();
     for (var i = 0; i < size; i++) {
       final id = mc.getIdForIndex(i);
@@ -169,11 +169,28 @@ final class Rd5CellReader {
             List<int>.of(line),
             List<int>.of(heights),
             tlon << 32 | tlat,
+            value >> 33,
           ));
         }
       }
     }
-    for (final (coords, elevations, target) in pending) {
+    _findClimbs(pending, nodeHeights, out);
+    return out.build();
+  }
+
+  /// The climbs of the links in [pending], joined into whole streets first:
+  /// a link ends where the next of the same way starts, and a slope taken
+  /// over a block has the buildings' noise in it, over a street much less.
+  void _findClimbs(
+    List<(List<int>, List<int>, int, int)> pending,
+    Map<int, int> nodeHeights,
+    CellWaysBuilder out,
+  ) {
+    final links = <(List<int>, List<int>)>[];
+    final starts = <int>[];
+    final ends = <int>[];
+    final ways = <int>[];
+    for (final (coords, elevations, target, way) in pending) {
       final last = nodeHeights[target];
       if (last != null && last != _noHeight) {
         elevations.add(last);
@@ -182,24 +199,72 @@ final class Rd5CellReader {
         // with a height.
         coords.length -= 2;
       }
-      if (elevations.contains(_noHeight)) continue;
-      findClimbs(coords, elevations, out.addClimb);
+      if (coords.length < 4 || elevations.contains(_noHeight)) continue;
+      links.add((coords, elevations));
+      starts.add(coords[0] << 32 | coords[1]);
+      ends.add(coords[coords.length - 2] << 32 | coords[coords.length - 1]);
+      ways.add(way);
     }
-    return out.build();
+    // Join a link to the one starting where it ends, of the same way, when
+    // that is the only one there either way.
+    final byStart = <(int, int), int>{};
+    final byEnd = <(int, int), int>{};
+    for (var i = 0; i < links.length; i++) {
+      final s = (starts[i], ways[i]);
+      byStart[s] = byStart.containsKey(s) ? -1 : i;
+      final e = (ends[i], ways[i]);
+      byEnd[e] = byEnd.containsKey(e) ? -1 : i;
+    }
+    final next = List<int>.filled(links.length, -1);
+    final hasPrevious = List<bool>.filled(links.length, false);
+    for (var i = 0; i < links.length; i++) {
+      final at = (ends[i], ways[i]);
+      if (byEnd[at] != i) continue;
+      final j = byStart[at];
+      if (j == null || j < 0 || j == i) continue;
+      next[i] = j;
+      hasPrevious[j] = true;
+    }
+    final done = List<bool>.filled(links.length, false);
+    void chain(int head) {
+      final coords = <int>[];
+      final elevations = <int>[];
+      for (var i = head; i >= 0 && !done[i]; i = next[i]) {
+        done[i] = true;
+        final (c, e) = links[i];
+        final skip = coords.isEmpty ? 0 : 1; // the joint is the same point
+        coords.addAll(c.skip(skip * 2));
+        elevations.addAll(e.skip(skip));
+      }
+      findClimbs(coords, elevations, out.addClimb, rule: climbRule);
+    }
+
+    for (var i = 0; i < links.length; i++) {
+      if (!hasPrevious[i]) chain(i);
+    }
+    for (var i = 0; i < links.length; i++) {
+      if (!done[i]) chain(i);
+    }
   }
 
-  /// A way's attribute bits in the low 32 bits, and [_climbable].
+  /// A way's attribute bits in the low 32 bits, [_climbable], and from bit
+  /// 33 on the number of its description, which tells links of one way.
   int _wayValueOf(Uint8List desc) {
     final known = _wayAttrs.lookup(desc);
     if (known != null) return known;
     final tags = _tags(_way.getKeyValueList(false, desc));
     return _wayAttrs.put(
       desc,
-      classifyWay(tags) & 0xffffffff | (isClimbable(tags) ? _climbable : 0),
+      classifyWay(tags) & 0xffffffff |
+          (isClimbable(tags) ? _climbable : 0) |
+          _wayAttrs.length << 33,
     );
   }
 
   static const int _climbable = 1 << 32;
+
+  /// How the climbs are found.
+  ClimbRule climbRule = ClimbRule.standard;
 
   /// BRouter's height for "none known".
   static const int _noHeight = -32768;

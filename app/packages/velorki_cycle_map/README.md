@@ -22,4 +22,8 @@ The way tags come from `app/assets/brouter/profiles/lookups.dat`; names,
 widths and POIs are not in the tiles.
 
 `dart run tool/survey.dart <rd5> <lon> <lat> [km]` prints what a box holds,
-with timings.
+with timings. `dart run tool/climb_eval.dart [rule]` prints the steep length
+found per grade in flat, hilly and high-rise cities (tiles from the mirror in
+`~/.cache/velorki-tiles/`), for tuning `ClimbRule`: the heights include
+buildings in city centres, and the rule has to keep Manhattan and Cologne
+quiet while Lausanne, San Francisco and Funchal keep their hills.

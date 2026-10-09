@@ -865,6 +865,7 @@
   "mapCyclePartBarriers": "Barreras y escaleras",
   "mapCyclePartTraffic": "Calles tranquilas",
   "mapCyclePartMtb": "Bici de montaña",
+  "mapCyclePartClimbs": "Subidas",
   "mapCycleMapNotDownloaded": "No hay mapa ciclista aquí – zona no descargada",
   "mapLayersStops": "Paradas",
   "mapStopsZoomIn": "Acerca el mapa para ver paradas",

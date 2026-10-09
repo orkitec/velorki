@@ -36,6 +36,9 @@ class CycleMapColors {
     required this.barrierCarry,
     required this.trafficArrow,
     required this.outline,
+    this.climb6 = '#F9A825',
+    this.climb10 = '#EF6C00',
+    this.climb15 = '#C62828',
   });
 
   /// On the day map.
@@ -94,6 +97,9 @@ class CycleMapColors {
     barrierCarry: '#EF5350',
     trafficArrow: '#9E9E9E',
     outline: '#101418',
+    climb6: '#FFD54F',
+    climb10: '#FFB74D',
+    climb15: '#EF5350',
   );
 
   /// Cycleways, cycle streets, tracks and lanes.
@@ -149,6 +155,11 @@ class CycleMapColors {
   /// The rim round barriers and arrows.
   final String outline;
 
+  /// Climbs from 6, 10 and 15 %.
+  final String climb6;
+  final String climb10;
+  final String climb15;
+
   List<String> get _all => <String>[
     infrastructure,
     sharedLane,
@@ -175,6 +186,9 @@ class CycleMapColors {
     barrierCarry,
     trafficArrow,
     outline,
+    climb6,
+    climb10,
+    climb15,
   ];
 
   @override
@@ -237,6 +251,7 @@ class CycleMapLayers {
   /// it).
   static const String arrowImage = 'velorki-cycle-arrow';
   static const String onewayStreetImage = 'velorki-cycle-oneway-street';
+  static const String climbImage = 'velorki-cycle-climb';
   static const String contraflowImage = 'velorki-cycle-contraflow';
 
   /// The source of [generation].
@@ -596,6 +611,27 @@ class CycleMapLayers {
           cap: 'round',
         ),
       ),
+    // Steep pieces as a band in their grade's colour, under the lines
+    // that ride on them; the chevrons on top point uphill.
+    CycleMapLayer(
+      name: 'climbs',
+      part: CycleMapPart.climbs,
+      filter: _has('c'),
+      properties: _line(
+        color: <Object>[
+          'match',
+          _get('c'),
+          3,
+          colors.climb15,
+          2,
+          colors.climb10,
+          colors.climb6,
+        ],
+        width: <double>[13, 3, 16, 6, 18, 10],
+        opacity: 0.7,
+        cap: 'round',
+      ),
+    ),
     CycleMapLayer(
       name: 'cyclestreet-band',
       part: CycleMapPart.infrastructure,
@@ -780,6 +816,21 @@ class CycleMapLayers {
         image: contraflowImage,
         size: _byZoom(<double>[15, 0.9, 16, 1.1, 18, 1.4]),
         spacing: 100,
+      ),
+    ),
+    CycleMapLayer(
+      name: 'climb-chevrons',
+      part: CycleMapPart.climbs,
+      minZoom: 15,
+      filter: _has('c'),
+      properties: ml.SymbolLayerProperties(
+        symbolPlacement: 'line',
+        symbolSpacing: 80,
+        iconImage: climbImage,
+        iconSize: _byZoom(<double>[15, 0.8, 16, 1.0, 18, 1.3]),
+        iconRotationAlignment: 'map',
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
       ),
     ),
     CycleMapLayer(

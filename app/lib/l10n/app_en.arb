@@ -4463,6 +4463,10 @@
   "@mapCyclePartMtb": {
     "description": "Chip: mountain-bike difficulty (mtb:scale) on trails and mountain-bike routes."
   },
+  "mapCyclePartClimbs": "Climbs",
+  "@mapCyclePartClimbs": {
+    "description": "Chip in the cycle map's parts: steep pieces of the ways (from 6, 10, 15 %), coloured by grade, with chevrons pointing uphill."
+  },
   "mapCycleMapNotDownloaded": "No cycle map here — area not downloaded",
   "@mapCycleMapNotDownloaded": {
     "description": "Chip over the map when the offline cycle map is on but the area has no downloaded routing tile; a Download label follows it."
