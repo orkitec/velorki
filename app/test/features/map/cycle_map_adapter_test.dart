@@ -185,4 +185,21 @@ void main() {
       expect(fade[4], 0);
     }
   });
+
+  test('no one-way street chevron where a lane shows its own way', () {
+    final layer = layers.firstWhere((l) => l.name == 'oneway-streets');
+    expect(
+      layer.filter,
+      containsAll(<Object>[
+        <Object>[
+          '!',
+          <Object>['has', 'dl'],
+        ],
+        <Object>[
+          '!',
+          <Object>['has', 'dr'],
+        ],
+      ]),
+    );
+  });
 }

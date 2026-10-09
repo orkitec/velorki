@@ -752,6 +752,8 @@ class CycleMapLayers {
     _sideArrows(Side.right),
     // A street one-way for bikes as well: a grey chevron in its middle,
     // the way the traffic goes, so a rider sees not to ride against it.
+    // Not where a lane or track beside it shows its own direction: its
+    // chevrons say it already.
     CycleMapLayer(
       name: 'oneway-streets',
       part: CycleMapPart.onewayStreets,
@@ -759,6 +761,8 @@ class CycleMapLayers {
       filter: _all(<Object>[
         _has('o'),
         <Object>['!', _has('cf')],
+        <Object>['!', _has('dl')],
+        <Object>['!', _has('dr')],
         _any(<Object>[_kind(CycleKind.none), _kind(CycleKind.cyclestreet)]),
       ]),
       properties: _arrows(
