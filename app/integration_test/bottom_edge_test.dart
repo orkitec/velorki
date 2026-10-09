@@ -135,9 +135,14 @@ void main() {
         reason: 'the map under the chip gets the tap',
       );
     }
-    await tester.tapAt(chipRect.center);
-    await pumpFor(tester, const Duration(seconds: 1));
-    expect(find.byType(Dialog), findsNothing);
+    // In the zone a tap on the chip must open nothing. Without one the tap
+    // is the map's, shown above, and a tap on the planner's map does what
+    // it always does (a point, a place card) in the bar's way.
+    if (zone > 0) {
+      await tester.tapAt(chipRect.center);
+      await pumpFor(tester, const Duration(seconds: 1));
+      expect(find.byType(Dialog), findsNothing);
+    }
 
     await tapAndPump(tester, _tab(1));
     await pumpFor(tester, const Duration(seconds: 1));
