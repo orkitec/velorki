@@ -554,16 +554,24 @@ int classifyWay(Map<String, String> tags) {
     ramp: kind == CycleKind.steps && t('ramp:bicycle') == 'yes',
     traffic: traffic,
   );
-  if (content == 0) return 0;
-
-  // The direction and the road's size only matter on a way drawn for
-  // something else; on their own they would make every one-way street a
-  // line of the cycle map.
+  // A road's one-way: the traffic's direction. On a street bikes may not
+  // ride against, it is a line of its own (the one-way streets); with
+  // contraflow it says which way the cars go. A roundabout is one-way by
+  // nature and not drawn as such.
+  final roadOneway = !_roads.contains(highway) || closedToBikes
+      ? Direction.none
+      : oneway == '-1'
+      ? Direction.backward
+      : _oneway.contains(oneway)
+      ? Direction.forward
+      : Direction.none;
   final bikeKind =
       kind == CycleKind.cycleway ||
       kind == CycleKind.shared ||
       kind == CycleKind.allowed;
-  var direction = Direction.none;
+  if (content == 0 && (bikeKind || roadOneway == Direction.none)) return 0;
+
+  var direction = roadOneway;
   if (bikeKind) {
     final bikeOneway = t('oneway:bicycle');
     direction = bikeOneway == 'no'
@@ -577,8 +585,6 @@ int classifyWay(Map<String, String> tags) {
         : oneway == '-1'
         ? Direction.backward
         : Direction.none;
-  } else if (contraflow) {
-    direction = oneway == '-1' ? Direction.backward : Direction.forward;
   }
   return content |
       CycleBits.pack(

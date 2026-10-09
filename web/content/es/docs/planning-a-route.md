@@ -108,7 +108,7 @@ El gráfico **Perfil de altitud** dibuja la altura frente a la distancia. Tócal
 
 ### Superficie
 
-La barra de **Superficie** es una única barra apilada de tres partes que suman toda la ruta, **Asfaltado**, **Sin asfaltar** y **Desconocido**, con una leyenda de porcentajes debajo. Otras dos entradas de la leyenda, **Carril bici** y **Mucho tráfico**, se solapan con las tres primeras en lugar de sumarse a ellas: te dicen qué parte de la ruta va por un carril bici propio y qué parte por una carretera grande. Para una ruta que no es toda del propio enrutador, con la línea de un archivo en ella, toda la línea se superpone a los datos de rutas para obtener las cifras, lo que necesita la región descargada.
+La barra de **Superficie** es una única barra apilada de tres partes que suman toda la ruta, **Asfaltado**, **Sin asfaltar** y **Desconocido**, con una leyenda de porcentajes debajo. Otras dos entradas de la leyenda, **Carriles bici** y **Mucho tráfico**, se solapan con las tres primeras en lugar de sumarse a ellas: te dicen qué parte de la ruta va por vías ciclistas, sendas señalizadas para bicis, calles ciclistas, o un carril bici junto a la calzada y qué parte por una carretera grande. Para una ruta que no es toda del propio enrutador, con la línea de un archivo en ella, toda la línea se superpone a los datos de rutas para obtener las cifras, lo que necesita la región descargada.
 
 ## Guardarla
 

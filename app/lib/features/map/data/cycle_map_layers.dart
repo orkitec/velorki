@@ -236,6 +236,7 @@ class CycleMapLayers {
   /// of a contraflow street (the traffic's way, and the bikes' against
   /// it).
   static const String arrowImage = 'velorki-cycle-arrow';
+  static const String onewayStreetImage = 'velorki-cycle-oneway-street';
   static const String contraflowImage = 'velorki-cycle-contraflow';
 
   /// The source of [generation].
@@ -749,6 +750,23 @@ class CycleMapLayers {
     ),
     _sideArrows(Side.left),
     _sideArrows(Side.right),
+    // A street one-way for bikes as well: a grey chevron in its middle,
+    // the way the traffic goes, so a rider sees not to ride against it.
+    CycleMapLayer(
+      name: 'oneway-streets',
+      part: CycleMapPart.onewayStreets,
+      minZoom: 15,
+      filter: _all(<Object>[
+        _has('o'),
+        <Object>['!', _has('cf')],
+        _any(<Object>[_kind(CycleKind.none), _kind(CycleKind.cyclestreet)]),
+      ]),
+      properties: _arrows(
+        image: onewayStreetImage,
+        size: _byZoom(<double>[15, 0.8, 16, 1.0, 18, 1.3]),
+        spacing: 90,
+      ),
+    ),
     CycleMapLayer(
       name: 'contraflow',
       part: CycleMapPart.contraflow,

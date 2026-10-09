@@ -22,16 +22,18 @@ La mappa ciclabile compare in dissolvenza tra lo zoom 12 e 13, e scompare di nuo
 
 | Parte | Disegnata come |
 | --- | --- |
-| **Piste & corsie** | Piste ciclabili in blu pieno, strade ciclabili con una fascia chiara; piste in tratto pieno e corsie a trattini, al bordo della strada, più fuori sulle strade grandi. Corsie condivise (corsie bus percorribili in bici, corsie segnate solo con simboli bici, banchine, marciapiedi percorribili in bici) come trattini radi azzurri accanto alla strada. Le piste ciclabili a doppio senso e le piste e corsie a doppio senso sono disegnate più larghe di quelle a senso unico. Dallo zoom 15 frecce dentro piste e percorsi a senso unico indicano il verso di marcia; dallo zoom 16 piccole frecce accanto a una pista o corsia a senso unico |
+| **Piste & corsie** | Piste ciclabili in blu pieno, strade ciclabili con una fascia chiara; piste in tratto pieno e corsie a trattini, al bordo della strada, più fuori sulle strade grandi. Corsie condivise (corsie bus percorribili in bici, corsie segnate solo con simboli bici, banchine, marciapiedi percorribili in bici) come trattini radi azzurri accanto alla strada. Le piste ciclabili a doppio senso e le piste e corsie a doppio senso sono disegnate più larghe di quelle a senso unico |
+| **Frecce senso unico** | Chevron nel blu proprio della corsia indicano il verso di marcia: su piste ciclabili e percorsi a senso unico dallo zoom 15, e su piste e corsie a senso unico accanto alla strada da circa lo zoom 15,5 |
 | **Percorsi condivisi** | Sentieri condivisi con i pedoni a trattini verde acqua, marciapiedi percorribili in bici a puntini grigio-azzurri |
-| **Doppio senso bici** | Sulle strade a senso unico che le bici possono percorrere in entrambi i sensi, dallo zoom 15 una freccia grigia mostra il verso del traffico e una blu quello delle bici contromano |
+| **Strade a senso unico** | Un chevron grigio al centro delle strade a senso unico anche per le bici, nel verso del traffico, dallo zoom 15. Le strade a senso unico che le bici possono percorrere in entrambi i sensi mostrano invece il segno a due colori di **Doppio senso bici** |
+| **Doppio senso bici** | Sulle strade a senso unico che le bici possono percorrere in entrambi i sensi, dallo zoom 15 un chevron grigio mostra il verso del traffico e uno blu quello delle bici contromano |
 | **Itinerari nazionali**, **Itinerari regionali**, **Itinerari locali** | Itinerari ciclabili segnalati come alone viola, più forte quanto più lontano arriva l'itinerario |
 | **Sterrato & sconnesso** | Ghiaia con un trattino ocra, terreno accidentato per MTB con un trattino marrone, selciato sconnesso con tacche rosse |
 | **Barriere & scale** | Cancelli, paletti e scalini di attraversamento come punti dallo zoom 15; rossi dove la bici va portata a spalla. Scale come gradini marroni dallo zoom 15, con una striscia blu accanto dove c'è una rampa per bici |
 | **Strade tranquille** | Strade colorate secondo la tranquillità: azzurro ciano per 30 km/h (20 mph) o meno, verde per 20 km/h o zone residenziali, verde chiaro per passo d'uomo, verde vivo senza traffico motorizzato; strade chiuse alle bici in grigio |
 | **MTB** | Tacche di difficoltà sui sentieri dallo zoom 14: blu per facile (S0–S1), rosso per S2, nero per S3 e più difficile (bianco sulla mappa notturna); itinerari MTB come alone arancione |
 
-All'inizio sono attive tutte le parti tranne **Sterrato & sconnesso**, **Strade tranquille** e **MTB**.
+All'inizio sono attive tutte le parti tranne **Sterrato & sconnesso**, **Strade a senso unico**, **Strade tranquille** e **MTB**. Una parte aggiunta in una versione successiva parte dal suo valore predefinito; le scelte fatte prima restano.
 
 Nella scheda Pianifica, con la mappa ciclabile attiva su un'area non scaricata, un chip dice **Nessuna mappa ciclabile qui – area non scaricata**, con **Scarica**; un tocco apre il download dell'area visibile. Se vale anche il chip delle soste, questo ha la precedenza.
 

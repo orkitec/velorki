@@ -22,16 +22,18 @@ Die Radkarte blendet zwischen Zoomstufe 12 und 13 ein und beim Herauszoomen wied
 
 | Teil | Gezeichnet als |
 | --- | --- |
-| **Radwege & -streifen** | Radwege durchgehend blau, Fahrradstraßen mit hellem Band; Radwege an der Straße durchgehend, Radstreifen gestrichelt, am Straßenrand, bei größeren Straßen weiter außen. Geteilte Streifen (Busspuren, die Räder nutzen dürfen, nur mit Fahrradsymbolen markierte Streifen, Seitenstreifen, Gehwege, die Räder nutzen dürfen) als lockere hellblaue Striche neben der Straße. Zweirichtungs-Radwege sowie Zweirichtungs-Radwege und -streifen an der Straße sind breiter gezeichnet als Einrichtungs-Radwege. Ab Zoomstufe 15 zeigen Pfeile in Einrichtungs-Radwegen und Wegen, in welche Richtung gefahren wird; ab Zoomstufe 16 kleine Pfeile neben einem als Einrichtung getaggten Radweg oder -streifen |
+| **Radwege & -streifen** | Radwege durchgehend blau, Fahrradstraßen mit hellem Band; Radwege an der Straße durchgehend, Radstreifen gestrichelt, am Straßenrand, bei größeren Straßen weiter außen. Geteilte Streifen (Busspuren, die Räder nutzen dürfen, nur mit Fahrradsymbolen markierte Streifen, Seitenstreifen, Gehwege, die Räder nutzen dürfen) als lockere hellblaue Striche neben der Straße. Zweirichtungs-Radwege sowie Zweirichtungs-Radwege und -streifen an der Straße sind breiter gezeichnet als Einrichtungs-Radwege |
+| **Einbahn-Pfeile** | Pfeilspitzen im eigenen Blau der Spur zeigen die Fahrtrichtung: auf Radwegen und Wegen, die nur in eine Richtung befahren werden, ab Zoomstufe 15, und auf Einrichtungs-Radwegen und -streifen an der Straße ab etwa Zoomstufe 15,5 |
 | **Gemeinsame Wege** | Mit Fußgängern geteilte Wege blaugrün gestrichelt, Gehwege, die Räder nutzen dürfen, grau-blau gepunktet |
-| **Gegenverkehr frei** | Auf Einbahnstraßen, die Räder in beide Richtungen befahren dürfen, zeigt ab Zoomstufe 15 ein grauer Pfeil die Richtung des Verkehrs und ein blauer die der Räder dagegen |
+| **Einbahnstraßen** | Eine graue Pfeilspitze in der Mitte von Straßen, die auch für Räder Einbahnstraßen sind, zeigt ab Zoomstufe 15 in Richtung des Verkehrs. Einbahnstraßen, die Räder in beide Richtungen befahren dürfen, zeigen stattdessen das zweifarbige Zeichen von **Gegenverkehr frei** |
+| **Gegenverkehr frei** | Auf Einbahnstraßen, die Räder in beide Richtungen befahren dürfen, zeigt ab Zoomstufe 15 eine graue Pfeilspitze die Richtung des Verkehrs und eine blaue die der Räder dagegen |
 | **Fernrouten**, **Regionale Routen**, **Lokale Routen** | Beschilderte Radrouten als violetter Hof, kräftiger je weiter die Route reicht |
 | **Unbefestigt & holprig** | Schotter als ockerfarbene Striche, grobes Gelände für Mountainbikes als braune Striche, holpriges Pflaster mit roten Zacken |
 | **Hindernisse & Treppen** | Tore, Poller und Stiegen als Punkte ab Zoomstufe 15; rot, wo das Rad getragen werden muss. Treppen als braune Sprossen ab Zoomstufe 15, mit einem blauen Streifen daneben, wo es eine Rampe für Räder gibt |
 | **Ruhige Straßen** | Straßen nach Ruhe eingefärbt: Türkis für 30 km/h (20 mph) oder weniger, Grün für 20 km/h oder verkehrsberuhigte Bereiche, Hellgrün für Schrittgeschwindigkeit, leuchtendes Grün ohne Kfz-Verkehr; für Räder gesperrte Straßen grau |
 | **Mountainbike** | Schwierigkeitsstriche auf Trails ab Zoomstufe 14: blau für leicht (S0–S1), rot für S2, schwarz für S3 und schwerer (auf der Nachtkarte weiß); Mountainbike-Routen als oranger Hof |
 
-Zu Beginn sind alle Teile an außer **Unbefestigt & holprig**, **Ruhige Straßen** und **Mountainbike**.
+Zu Beginn sind alle Teile an außer **Unbefestigt & holprig**, **Einbahnstraßen**, **Ruhige Straßen** und **Mountainbike**. Ein Teil, der in einer späteren Version dazukommt, startet mit seiner Voreinstellung; frühere Entscheidungen bleiben erhalten.
 
 Im Tab Planen sagt ein Chip bei eingeschalteter Radkarte über einem nicht heruntergeladenen Gebiet **Keine Radkarte hier – Gebiet nicht heruntergeladen**, mit **Herunterladen**; ein Tipp öffnet den Download für das sichtbare Gebiet. Gilt auch der Chip der Stopps, steht er vorn.
 

@@ -14,6 +14,8 @@ dependencies:
   brouter_dart:
     path: ../brouter_dart
   http: ^1.2.0
+  velorki_cycle_map:
+    path: ../velorki_cycle_map
   velorki_geo:
     path: ../velorki_geo
 

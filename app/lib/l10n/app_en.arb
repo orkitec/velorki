@@ -602,9 +602,9 @@
   "@surfaceUnknown": {
     "description": "Share of the route whose surface the map data does not say"
   },
-  "surfaceCycleway": "Cycleway",
-  "@surfaceCycleway": {
-    "description": "Share of the route on cycling infrastructure"
+  "surfaceBikeInfrastructure": "Bike paths & lanes",
+  "@surfaceBikeInfrastructure": {
+    "description": "Share of the route on bike infrastructure: cycleways, cycle streets, and bike lanes and tracks beside roads. Shown with a percentage, as in 'Bike paths & lanes 68 %'."
   },
   "surfaceBusy": "Busy roads",
   "@surfaceBusy": {
@@ -4430,6 +4430,10 @@
   "mapCyclePartDirections": "One-way arrows",
   "@mapCyclePartDirections": {
     "description": "Chip in the cycle map's parts: chevrons showing which way to ride on one-way cycleways, tracks and lanes."
+  },
+  "mapCyclePartOnewayStreets": "One-way streets",
+  "@mapCyclePartOnewayStreets": {
+    "description": "Chip in the cycle map's parts: grey chevrons in the middle of streets that are one-way for bikes too."
   },
   "mapCyclePartRoutesNational": "National routes",
   "@mapCyclePartRoutesNational": {

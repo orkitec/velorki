@@ -108,7 +108,7 @@ De grafiek **Hoogteprofiel** tekent de hoogte tegen de afstand. Raak hem aan en 
 
 ### Ondergrond
 
-De balk **Ondergrond** is één gestapelde balk van drie delen die samen de hele route vormen, **Verhard**, **Onverhard** en **Onbekend**, met daaronder een legenda met percentages. Twee andere items in de legenda, **Fietspad** en **Drukke wegen**, overlappen met de eerste drie in plaats van erbij op te tellen: ze vertellen hoeveel van de route over een vrijliggend fietspad gaat, en hoeveel over een grote weg. Voor een route die niet helemaal van de router zelf komt, met de lijn van een bestand erin, wordt de hele lijn voor de cijfers over de routeringsgegevens gelegd, en daarvoor moet de regio gedownload zijn.
+De balk **Ondergrond** is één gestapelde balk van drie delen die samen de hele route vormen, **Verhard**, **Onverhard** en **Onbekend**, met daaronder een legenda met percentages. Twee andere items in de legenda, **Fietspaden & -stroken** en **Drukke wegen**, overlappen met de eerste drie in plaats van erbij op te tellen: ze vertellen hoeveel van de route over fietspaden, voor fietsers bewegwijzerde paden, fietsstraten, of een fietsstrook of fietspad naast de weg gaat, en hoeveel over een grote weg. Voor een route die niet helemaal van de router zelf komt, met de lijn van een bestand erin, wordt de hele lijn voor de cijfers over de routeringsgegevens gelegd, en daarvoor moet de regio gedownload zijn.
 
 ## Opslaan
 

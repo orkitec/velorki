@@ -7,7 +7,7 @@ import '../../shared/presentation/stat_tile.dart';
 import 'route_format.dart';
 
 /// What the route is made of: a paved/unpaved/unknown bar plus chips for the
-/// shares that overlap it (cycleway, busy roads).
+/// shares that overlap it (bike infrastructure, busy roads).
 class SurfaceStatsBar extends StatelessWidget {
   /// Creates the bar.
   const SurfaceStatsBar({required this.stats, super.key});
@@ -68,8 +68,9 @@ class SurfaceStatsBar extends StatelessWidget {
             for (final (label, share, color) in segments)
               _ShareChip(label: label, share: share, color: color),
             _ShareChip(
-              label: l10n.surfaceCycleway,
-              share: s.cyclewayShare,
+              label: l10n.surfaceBikeInfrastructure,
+              // Stored before the share existed: the old, looser count.
+              share: s.bikeInfrastructureShare ?? s.cyclewayShare,
               color: theme.colorScheme.secondary,
             ),
             _ShareChip(

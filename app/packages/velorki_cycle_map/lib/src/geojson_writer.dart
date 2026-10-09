@@ -42,8 +42,18 @@ abstract final class CycleContent {
   /// Steep pieces of the ways.
   static const int climbs = 1 << 10;
 
+  /// One-way streets bikes may not ride against.
+  static const int onewayStreets = 1 << 11;
+
   /// Everything.
-  static const int all = (1 << 11) - 1;
+  static const int all = (1 << 12) - 1;
+
+  /// Whether [a] is a street one-way for bikes too: a road with a
+  /// direction and no contraflow.
+  static bool isOnewayStreet(CycleAttrs a) =>
+      a.oneway != 0 &&
+      !a.contraflow &&
+      (a.kind == CycleKind.none || a.kind == CycleKind.cyclestreet);
 
   /// Whether a line with [attrs] has anything [wanted].
   static bool wants(int wanted, int attrs) {
@@ -76,6 +86,7 @@ abstract final class CycleContent {
     if (wanted & mtb != 0 && (a.mtbScale != null || a.mtbRoute)) return true;
     if (wanted & barriers != 0 && kind == CycleKind.steps) return true;
     if (wanted & traffic != 0 && a.traffic != 0) return true;
+    if (wanted & onewayStreets != 0 && isOnewayStreet(a)) return true;
     return false;
   }
 }

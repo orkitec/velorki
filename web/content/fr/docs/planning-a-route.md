@@ -108,7 +108,7 @@ Le graphique **Profil altimétrique** trace la hauteur en fonction de la distanc
 
 ### Revêtement
 
-La barre **Revêtement** est une barre empilée unique de trois parts dont la somme fait tout l’itinéraire, **Revêtu**, **Non revêtu** et **Inconnu**, avec une légende de pourcentages en dessous. Deux autres entrées de la légende, **Piste cyclable** et **Routes fréquentées**, recoupent les trois premières au lieu de s’y ajouter : elles indiquent quelle part de l’itinéraire suit une piste cyclable dédiée, et quelle part suit une grande route. Pour un itinéraire dont tout n’est pas du calculateur, avec une ligne de fichier dedans, toute la ligne est superposée aux données de routage pour établir les chiffres, ce qui demande que la région soit téléchargée.
+La barre **Revêtement** est une barre empilée unique de trois parts dont la somme fait tout l’itinéraire, **Revêtu**, **Non revêtu** et **Inconnu**, avec une légende de pourcentages en dessous. Deux autres entrées de la légende, **Pistes & bandes** et **Routes fréquentées**, recoupent les trois premières au lieu de s’y ajouter : elles indiquent quelle part de l’itinéraire suit des pistes cyclables, des chemins signalés pour les vélos, des rues cyclables, ou une bande ou piste cyclable le long de la route, et quelle part suit une grande route. Pour un itinéraire dont tout n’est pas du calculateur, avec une ligne de fichier dedans, toute la ligne est superposée aux données de routage pour établir les chiffres, ce qui demande que la région soit téléchargée.
 
 ## L’enregistrer
 

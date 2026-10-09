@@ -193,4 +193,24 @@ void main() {
     expect(count(CycleContent.barriers), 1);
     expect(count(CycleContent.climbs), 1);
   });
+
+  test('one-way streets only when wanted, and not with contraflow', () {
+    final b = CellWaysBuilder()
+      ..addLine([
+        ...at(-16.9, 32.6),
+        ...at(-16.89, 32.6),
+      ], CycleBits.pack(oneway: Direction.forward))
+      ..addLine([
+        ...at(-16.9, 32.61),
+        ...at(-16.89, 32.61),
+      ], CycleBits.pack(oneway: Direction.forward, contraflow: true));
+    final cell = b.build();
+    final writer = GeoJsonWriter();
+    List<Object?> features(int wanted) =>
+        decode(writer.cellFeatures(cell, wanted, 16))['features'] as List;
+    expect(features(CycleContent.infrastructure), isEmpty);
+    final oneway = features(CycleContent.onewayStreets);
+    expect(oneway, hasLength(1));
+    expect(((oneway.single as Map)['properties'] as Map)['o'], 1);
+  });
 }

@@ -108,7 +108,7 @@ Das Diagramm **Höhenprofil** zeichnet die Höhe über der Distanz. Berühre es 
 
 ### Belag
 
-Der Balken **Belag** ist ein einzelner gestapelter Balken aus drei Anteilen, die zusammen die ganze Route ergeben: **Befestigt**, **Unbefestigt** und **Unbekannt**, mit einer Legende mit Prozentwerten darunter. Zwei weitere Einträge in der Legende, **Radweg** und **Stark befahren**, überlagern die ersten drei, statt sich dazuzuaddieren: Sie sagen dir, wie viel der Route auf einem eigenen Radweg liegt und wie viel auf einer großen Straße. Ist die Route nicht ganz die des Routers, etwa mit der Linie einer Datei darin, wird für die Zahlen die ganze Linie über die Routing-Daten gelegt; dafür muss die Region geladen sein.
+Der Balken **Belag** ist ein einzelner gestapelter Balken aus drei Anteilen, die zusammen die ganze Route ergeben: **Befestigt**, **Unbefestigt** und **Unbekannt**, mit einer Legende mit Prozentwerten darunter. Zwei weitere Einträge in der Legende, **Radwege & -streifen** und **Stark befahren**, überlagern die ersten drei, statt sich dazuzuaddieren: Sie sagen dir, wie viel der Route auf Radwegen, für Räder beschilderten Wegen, Fahrradstraßen oder auf einem Radstreifen oder Radweg an der Straße verläuft und wie viel auf einer großen Straße. Ist die Route nicht ganz die des Routers, etwa mit der Linie einer Datei darin, wird für die Zahlen die ganze Linie über die Routing-Daten gelegt; dafür muss die Region geladen sein.
 
 ## Speichern
 

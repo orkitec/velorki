@@ -108,7 +108,7 @@ Il grafico **Altimetria** disegna l'altitudine in funzione della distanza. Tocca
 
 ### Fondo
 
-La barra **Fondo** è un'unica barra impilata di tre quote che insieme fanno l'intero percorso, **Asfaltato**, **Sterrato** e **Sconosciuto**, con sotto una legenda di percentuali. Altre due voci nella legenda, **Pista ciclabile** e **Strade trafficate**, si sovrappongono alle prime tre invece di sommarsi: ti dicono quanta parte del percorso è su una ciclabile dedicata e quanta su una strada grande. Per un percorso che non è tutto del router, con dentro la linea di un file, l'intera linea viene confrontata con i dati di routing per ottenere i numeri, e questo richiede la regione scaricata.
+La barra **Fondo** è un'unica barra impilata di tre quote che insieme fanno l'intero percorso, **Asfaltato**, **Sterrato** e **Sconosciuto**, con sotto una legenda di percentuali. Altre due voci nella legenda, **Piste & corsie** e **Strade trafficate**, si sovrappongono alle prime tre invece di sommarsi: ti dicono quanta parte del percorso è su piste ciclabili, percorsi segnalati per le bici, strade ciclabili, o una corsia o pista accanto alla strada e quanta su una strada grande. Per un percorso che non è tutto del router, con dentro la linea di un file, l'intera linea viene confrontata con i dati di routing per ottenere i numeri, e questo richiede la regione scaricata.
 
 ## Salvalo
 

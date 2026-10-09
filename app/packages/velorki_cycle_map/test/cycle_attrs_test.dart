@@ -372,8 +372,29 @@ void main() {
       );
     });
 
-    test('a plain one-way street is no line of its own', () {
-      expect(way({'highway': 'residential', 'oneway': 'yes'}).isEmpty, isTrue);
+    test('a plain one-way street carries its direction', () {
+      final a = way({'highway': 'residential', 'oneway': 'yes'});
+      expect(a.isEmpty, isFalse);
+      expect(a.kind, CycleKind.none);
+      expect(a.oneway, Direction.forward);
+      expect(a.contraflow, isFalse);
+      expect(
+        way({'highway': 'tertiary', 'oneway': '-1'}).oneway,
+        Direction.backward,
+      );
+    });
+
+    test('roundabouts, two-way and closed roads are no one-way street', () {
+      expect(
+        way({'highway': 'primary', 'junction': 'roundabout'}).isEmpty,
+        isTrue,
+      );
+      expect(way({'highway': 'residential', 'oneway': 'no'}).isEmpty, isTrue);
+      expect(
+        way({'highway': 'primary', 'oneway': 'yes', 'bicycle': 'no'}).oneway,
+        Direction.none,
+      );
+      expect(way({'highway': 'track', 'oneway': 'yes'}).isEmpty, isTrue);
     });
 
     test('per side, from cycleway:*:oneway and opposite_*', () {

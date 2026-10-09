@@ -15,7 +15,7 @@ final class CellStore {
   CellStore(this.root);
 
   /// Bump when the classification or the file layout changes.
-  static const int formatVersion = 2;
+  static const int formatVersion = 3;
 
   static const int _lists = 7;
 

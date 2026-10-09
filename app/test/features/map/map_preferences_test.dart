@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
+import 'package:velorki/features/map/domain/cycle_map.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 const String _latKey = 'map.camera.lat';
@@ -283,6 +284,40 @@ void main() {
 
       expect(container.read(mapStopsPreferencesProvider).kinds, isEmpty);
       expect(prefs.getStringList('map.stops.kinds'), isEmpty);
+    });
+  });
+
+  group('CycleMapPreferences', () {
+    test('off with the default parts on a fresh install', () async {
+      final (container, _) = await _container();
+      final settings = container.read(cycleMapPreferencesProvider);
+      expect(settings.shown, isFalse);
+      expect(settings.parts, defaultCycleMapParts);
+    });
+
+    test('a part switched off stays off', () async {
+      final (container, _) = await _container();
+      await container
+          .read(cycleMapPreferencesProvider.notifier)
+          .setPart(CycleMapPart.directions, shown: false);
+      container.invalidate(cycleMapPreferencesProvider);
+      expect(
+        container.read(cycleMapPreferencesProvider).parts,
+        isNot(contains(CycleMapPart.directions)),
+      );
+    });
+
+    test('a part added since the last choice starts as its default', () async {
+      // Saved by a build that knew neither one-way part.
+      final (container, _) = await _container(<String, Object>{
+        'map.cycle_map.parts': <String>['infrastructure'],
+        'map.cycle_map.known': <String>['infrastructure', 'paths'],
+      });
+      final parts = container.read(cycleMapPreferencesProvider).parts;
+      expect(parts, contains(CycleMapPart.infrastructure));
+      expect(parts, isNot(contains(CycleMapPart.paths)));
+      expect(parts, contains(CycleMapPart.directions));
+      expect(parts, isNot(contains(CycleMapPart.onewayStreets)));
     });
   });
 }

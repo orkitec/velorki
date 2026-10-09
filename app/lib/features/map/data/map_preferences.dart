@@ -205,6 +205,7 @@ class MapStopsPreferences extends _$MapStopsPreferences {
 
 const String _prefsCycleMapShown = 'map.cycle_map.shown';
 const String _prefsCycleMapParts = 'map.cycle_map.parts';
+const String _prefsCycleMapKnown = 'map.cycle_map.known';
 
 /// The offline cycle map's settings, remembered across launches.
 @Riverpod(keepAlive: true)
@@ -213,13 +214,19 @@ class CycleMapPreferences extends _$CycleMapPreferences {
   CycleMapSettings build() {
     final prefs = ref.watch(sharedPreferencesProvider);
     final names = prefs.getStringList(_prefsCycleMapParts);
+    // A part added since the rider last chose starts as its default; one
+    // they knew keeps their choice.
+    final known = prefs.getStringList(_prefsCycleMapKnown) ?? names;
     return CycleMapSettings(
       shown: prefs.getBool(_prefsCycleMapShown) ?? false,
       parts: names == null
           ? defaultCycleMapParts
           : Set<CycleMapPart>.unmodifiable(<CycleMapPart>{
               for (final part in CycleMapPart.values)
-                if (names.contains(part.name)) part,
+                if (names.contains(part.name) ||
+                    !known!.contains(part.name) &&
+                        defaultCycleMapParts.contains(part))
+                  part,
             }),
     );
   }
@@ -246,11 +253,13 @@ class CycleMapPreferences extends _$CycleMapPreferences {
       parts.remove(part);
     }
     state = state.copyWith(parts: Set<CycleMapPart>.unmodifiable(parts));
-    await ref
-        .read(sharedPreferencesProvider)
-        .setStringList(
-          _prefsCycleMapParts,
-          <String>[for (final part in parts) part.name]..sort(),
-        );
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setStringList(
+      _prefsCycleMapParts,
+      <String>[for (final part in parts) part.name]..sort(),
+    );
+    await prefs.setStringList(_prefsCycleMapKnown, <String>[
+      for (final part in CycleMapPart.values) part.name,
+    ]);
   }
 }

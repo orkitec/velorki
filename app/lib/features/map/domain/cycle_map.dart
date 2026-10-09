@@ -16,6 +16,9 @@ enum CycleMapPart {
   /// Chevrons on cycleways, tracks and lanes ridden one way.
   directions,
 
+  /// Streets one-way for bikes too.
+  onewayStreets,
+
   /// International and national cycle routes.
   routesNational,
 
@@ -65,6 +68,7 @@ int cycleContentOf(Set<CycleMapPart> parts) {
       CycleMapPart.contraflow => CycleContent.contraflow,
       // The chevrons draw on lines the other parts bring.
       CycleMapPart.directions => 0,
+      CycleMapPart.onewayStreets => CycleContent.onewayStreets,
       CycleMapPart.routesNational => CycleContent.routesNational,
       CycleMapPart.routesRegional => CycleContent.routesRegional,
       CycleMapPart.routesLocal => CycleContent.routesLocal,
