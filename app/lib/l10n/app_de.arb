@@ -128,6 +128,7 @@
   "searchUnavailable": "Kein Suchserver konfiguriert, einen unter Einstellungen → Erweitert festlegen.",
   "searchOnlineFor": "Online nach „{query}“ suchen",
   "searchShowOffline": "Offline-Ergebnisse anzeigen",
+  "searchInDownloaded": "In heruntergeladenen Gebieten suchen",
   "searchAreaNotDownloaded": "Dieses Gebiet ist nicht heruntergeladen",
   "searchAreaNotDownloadedHint": "Lade es herunter, um hier ohne Verbindung zu suchen, Routen zu planen und Stopps und die Radkarte zu sehen.",
   "searchAreaDownload": "Herunterladen",

@@ -1,10 +1,10 @@
 ---
 title: Zoeken
-description: Vind plaatsen, straten, huisnummers en dingen als drinkwater of toiletten, op de telefoon waar je een gebied hebt gedownload en online overal anders.
+description: Vind plaatsen, straten, huisnummers en dingen als drinkwater of toiletten, op de telefoon in gedownloade gebieden en online als je dat kiest.
 order: 4
 ---
 
-Het zoekveld bovenaan het tabblad Plannen vindt steden, straten, huisnummers en interessante punten zoals cafés, drinkwater en fietsenwinkels. Waar je een gebied hebt gedownload, antwoordt het vanaf de telefoon, meteen en zonder bereik; overal anders vraagt het een online geocoder.
+Het zoekveld bovenaan het tabblad Plannen vindt steden, straten, huisnummers en interessante punten zoals cafés, drinkwater en fietsenwinkels. Boven een gedownload gebied antwoordt het vanaf de telefoon, meteen en zonder bereik; boven een gebied dat niet is gedownload kies je tussen een online geocoder en de gebieden die je hebt gedownload.
 
 ## Zo zoek je
 
@@ -33,19 +33,15 @@ De kaart sluiten (de **X**, omlaag vegen of een tik op de kaart) verandert niets
 
 ## Offline of online
 
-Velorki beslist op basis van het **midden van de kaart**, niet van je verbinding. Elke gedownloade routeringstegel brengt een zoekindex van zijn gebied mee, dus:
+Velorki beslist op basis van het **midden van de kaart**, niet van je verbinding. Elke gedownloade routeringstegel brengt een zoekindex van zijn gebied mee.
 
-- als de index van de tegel onder het midden van de kaart op de telefoon staat, wordt de zoekopdracht op de telefoon beantwoord;
-- als dat niet zo is, gaat de zoekopdracht online naar Photon.
+- **Midden van de kaart boven een gedownload gebied**: de zoekopdracht wordt op de telefoon beantwoord. De laatste regel van de resultatenkaart, **Online zoeken naar "…"**, zoekt dezelfde tekst online.
+- **Midden van de kaart boven een gebied dat niet is gedownload, terwijl andere dat wel zijn**: er wordt niets gezocht en niets verlaat de telefoon tot je kiest. De lijst toont een melding, **Dit gebied is niet gedownload**, een regel met de reden en een knop **Downloaden** die het offlinescherm voor het zichtbare gebied opent, met twee keuzes: **Online zoeken naar "…"** en **Zoeken in gedownloade gebieden**, dat elk gedownload gebied doorzoekt, het dichtst bij de kaart eerst. Je keuze geldt voor de volgende toetsaanslagen tot je de zoekopdracht wist. Online resultaten staan onder het kopje **Online resultaten**, en de laatste regel, **Offline resultaten tonen**, wisselt naar de gedownloade gebieden; resultaten van de telefoon eindigen met **Online zoeken naar "…"**.
+- **Helemaal niets gedownload**: het zoeken gaat meteen online, met de melding bovenaan.
+- **Geen online zoekopdracht ingesteld**: de gedownloade gebieden antwoorden.
+- **Geen midden van de kaart**: online.
 
-Boven een gedownload gebied staat onderaan de resultatenkaart één regel, en welke het is, zegt je waar de resultaten vandaan komen:
-
-| Regel | Betekent | Erop tikken |
-|---|---|---|
-| **Online zoeken naar "…"** | je kijkt naar offline resultaten | zoekt dezelfde tekst online |
-| **Offline resultaten tonen** | je kijkt naar online resultaten | zoekt dezelfde tekst weer op de telefoon |
-
-Als het gebied geen index op de telefoon heeft en de resultaten online kwamen, opent een melding de lijst in plaats daarvan: **Dit gebied is niet gedownload**, een regel met de reden en een knop **Downloaden** die het offlinescherm voor het zichtbare gebied opent. Eronder leidt het kopje **Online resultaten** de online regels in. De melding blijft zichtbaar terwijl je door de lijst scrolt en staat, als het zoeken mislukte, boven de foutmelding, waar hij het meest nodig is.
+De melding blijft zichtbaar terwijl je door de lijst scrolt en staat, als het zoeken mislukte, boven de foutmelding, waar hij het meest nodig is.
 
 ## Wat het vindt
 
@@ -88,7 +84,7 @@ Er is geen opslaanknop; wijzigingen gelden bij je volgende toetsaanslag. Een gro
 
 ## Als zoeken niet werkt
 
-- **"Niets gevonden."** De tekst leverde niets op, offline noch online. Probeer de regel onderaan om van bron te wisselen (boven een gebied dat niet is gedownload **Downloaden** in de melding bovenaan), of minder woorden.
+- **"Niets gevonden."** De tekst leverde niets op, offline noch online. Probeer de regel onderaan om van bron te wisselen, of minder woorden.
 - **"Zoeken mislukt."** met een reden betekent dat de online geocoder niet bereikbaar was. Offline zoeken blijft werken waar je een gebied hebt gedownload.
 - **"Geen zoekserver ingesteld, stel er een in onder Instellingen → Geavanceerd."** betekent dat deze build geen geocoderadres en geen gedownloade index heeft. Het veld is uitgeschakeld tot er een is.
 

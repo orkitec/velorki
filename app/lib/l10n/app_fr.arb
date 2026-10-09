@@ -128,6 +128,7 @@
   "searchUnavailable": "Aucun serveur de recherche configuré, définissez-en un dans Réglages → Avancé.",
   "searchOnlineFor": "Rechercher « {query} » en ligne",
   "searchShowOffline": "Afficher les résultats hors ligne",
+  "searchInDownloaded": "Chercher dans les zones téléchargées",
   "searchAreaNotDownloaded": "Cette zone n’est pas téléchargée",
   "searchAreaNotDownloadedHint": "Téléchargez-la pour chercher, calculer des itinéraires et voir les haltes et la carte vélo ici sans connexion.",
   "searchAreaDownload": "Télécharger",

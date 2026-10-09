@@ -1,10 +1,10 @@
 ---
 title: Recherche
-description: "Trouvez des lieux, des rues, des numéros de rue et des choses comme l’eau potable ou les toilettes, sur le téléphone là où vous avez téléchargé une zone et en ligne partout ailleurs."
+description: "Trouvez des lieux, des rues, des numéros de rue et des choses comme l’eau potable ou les toilettes, sur le téléphone dans les zones téléchargées et en ligne quand vous le choisissez."
 order: 4
 ---
 
-Le champ de recherche en haut de l’onglet Planifier trouve des villes, des rues, des numéros de rue et des points d’intérêt comme les cafés, l’eau potable et les magasins de vélos. Là où vous avez téléchargé une zone, il répond depuis le téléphone, instantanément et sans réseau ; partout ailleurs, il interroge un géocodeur en ligne.
+Le champ de recherche en haut de l’onglet Planifier trouve des villes, des rues, des numéros de rue et des points d’intérêt comme les cafés, l’eau potable et les magasins de vélos. Sur une zone téléchargée, il répond depuis le téléphone, instantanément et sans réseau ; sur une zone non téléchargée, vous choisissez entre un géocodeur en ligne et les zones que vous avez téléchargées.
 
 ## Comment chercher
 
@@ -33,19 +33,15 @@ Fermer la fiche (le **X**, un balayage vers le bas ou un toucher sur la carte) n
 
 ## Hors ligne ou en ligne
 
-Velorki décide d’après le **centre de la carte**, et non d’après votre connexion. Chaque tuile de routage téléchargée apporte avec elle un index de recherche de sa zone, donc :
+Velorki décide d’après le **centre de la carte**, et non d’après votre connexion. Chaque tuile de routage téléchargée apporte avec elle un index de recherche de sa zone.
 
-- si la tuile située sous le centre de la carte a son index sur le téléphone, la requête est traitée sur le téléphone ;
-- sinon, la requête part en ligne vers Photon.
+- **Centre de la carte sur une zone téléchargée** : la requête est traitée sur le téléphone. La dernière ligne de la fiche de résultats, **Rechercher « … » en ligne**, relance le même texte en ligne.
+- **Centre de la carte sur une zone non téléchargée, alors que d’autres le sont** : rien n’est cherché et rien ne quitte le téléphone avant que vous ne choisissiez. La liste affiche un avis, **Cette zone n’est pas téléchargée**, une ligne qui en dit la raison et un bouton **Télécharger** qui ouvre l’écran hors ligne pour la zone visible, avec deux choix : **Rechercher « … » en ligne** et **Chercher dans les zones téléchargées**, qui parcourt toutes les zones téléchargées, la plus proche de la carte d’abord. Votre choix vaut pour les frappes suivantes, jusqu’à ce que vous effaciez la recherche. Les résultats en ligne viennent sous l’intitulé **Résultats en ligne**, et la dernière ligne, **Afficher les résultats hors ligne**, bascule vers les zones téléchargées ; les résultats du téléphone se terminent par **Rechercher « … » en ligne**.
+- **Rien de téléchargé du tout** : la recherche part tout de suite en ligne, avec l’avis en haut.
+- **Aucune recherche en ligne configurée** : les zones téléchargées répondent.
+- **Pas de centre de carte** : en ligne.
 
-Sur une zone téléchargée, une ligne se trouve en bas de la fiche de résultats, et celle qui s’affiche vous indique d’où viennent les résultats :
-
-| Ligne | Signification | En la touchant |
-|---|---|---|
-| **Rechercher « … » en ligne** | vous voyez des résultats hors ligne | relance le même texte en ligne |
-| **Afficher les résultats hors ligne** | vous voyez des résultats en ligne | relance le même texte sur le téléphone |
-
-Quand la zone n’a pas d’index sur le téléphone et que les résultats sont venus en ligne, un avis ouvre la liste à la place : **Cette zone n’est pas téléchargée**, une ligne qui en dit la raison et un bouton **Télécharger** qui ouvre l’écran hors ligne pour la zone visible. Dessous, l’intitulé **Résultats en ligne** introduit les lignes en ligne. L’avis reste visible pendant que vous faites défiler la liste et, si la recherche a échoué, il se place au-dessus du message d’erreur, ce qui est là où il compte le plus.
+L’avis reste visible pendant que vous faites défiler la liste et, si la recherche a échoué, il se place au-dessus du message d’erreur, ce qui est là où il compte le plus.
 
 ## Ce qu’elle trouve
 
@@ -88,7 +84,7 @@ Il n’y a pas de bouton d’enregistrement ; les changements prennent effet �
 
 ## Quand la recherche ne fonctionne pas
 
-- **« Aucun résultat. »** Le texte n’a rien donné, hors ligne comme en ligne. Essayez la dernière ligne pour changer de source (sur une zone non téléchargée, **Télécharger** dans l’avis en haut), ou moins de mots.
+- **« Aucun résultat. »** Le texte n’a rien donné, hors ligne comme en ligne. Essayez la dernière ligne pour changer de source, ou moins de mots.
 - **« La recherche a échoué. »** suivi d’une raison signifie que le géocodeur en ligne n’a pas pu être joint. La recherche hors ligne continue de fonctionner là où vous avez téléchargé une zone.
 - **« Aucun serveur de recherche configuré, définissez-en un dans Réglages → Avancé. »** signifie que cette version n’a ni adresse de géocodeur ni index téléchargé. Le champ est désactivé tant qu’il n’en existe pas.
 

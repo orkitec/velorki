@@ -34,9 +34,9 @@ Routing happens on your phone wherever you have the routing tiles. For an area y
 
 ### While you search
 
-Search is answered on the phone wherever the area's index is downloaded, and nothing you type leaves the device.
+Search is answered on the phone over a downloaded area, and nothing you type leaves the device.
 
-It goes online when you tap **Search online for "…"**, or when you have no index for the area you are looking at. Then what you typed goes to Photon, together with a rough position so that nearby results come first.
+It goes online when you tap **Search online for "…"**, or when nothing is downloaded at all. Over an area that is not downloaded, while others are, nothing is sent until you pick **Search online for "…"**; **Search downloaded areas** stays on the phone. Then what you typed goes to Photon, together with a rough position so that nearby results come first.
 
 [Stops on the map](./stops-on-the-map) are read from the index on the phone and ask for nothing.
 

@@ -1,10 +1,10 @@
 ---
 title: Ricerca
-description: Trova luoghi, vie, numeri civici e cose come acqua potabile o bagni, sul telefono dove hai scaricato un'area e online ovunque altrove.
+description: Trova luoghi, vie, numeri civici e cose come acqua potabile o bagni, sul telefono nelle aree scaricate e online quando lo scegli.
 order: 4
 ---
 
-Il campo di ricerca in alto nel tab Pianifica trova città, vie, numeri civici e punti di interesse come caffè, acqua potabile e negozi di bici. Dove hai scaricato un'area risponde dal telefono, all'istante e senza segnale; ovunque altrove interroga un geocoder online.
+Il campo di ricerca in alto nel tab Pianifica trova città, vie, numeri civici e punti di interesse come caffè, acqua potabile e negozi di bici. Su un'area scaricata risponde dal telefono, all'istante e senza segnale; su un'area non scaricata scegli tra un geocoder online e le aree che hai scaricato.
 
 ## Come cercare
 
@@ -33,19 +33,15 @@ Chiudere la scheda (la **X**, uno scorrimento verso il basso o un tocco sulla ma
 
 ## Offline o online
 
-Velorki decide in base al **centro della mappa**, non alla tua connessione. Ogni riquadro di routing scaricato porta con sé un indice di ricerca della sua area, quindi:
+Velorki decide in base al **centro della mappa**, non alla tua connessione. Ogni riquadro di routing scaricato porta con sé un indice di ricerca della sua area.
 
-- se il riquadro sotto il centro della mappa ha il suo indice sul telefono, la richiesta viene risolta sul telefono;
-- se non lo ha, la richiesta va online a Photon.
+- **Centro della mappa su un'area scaricata**: la richiesta viene risolta sul telefono. L'ultima riga della scheda dei risultati, **Cerca online "…"**, esegue lo stesso testo online.
+- **Centro della mappa su un'area non scaricata, con altre aree scaricate**: non si cerca nulla e nulla lascia il telefono finché non scegli. L'elenco mostra un avviso, **Quest'area non è scaricata**, una riga che ne dice il motivo e un pulsante **Scarica** che apre la schermata offline per l'area visibile, con due scelte: **Cerca online "…"** e **Cerca nelle aree scaricate**, che cerca in ogni area scaricata, prima la più vicina alla mappa. La tua scelta vale per i tasti seguenti finché non svuoti la ricerca. I risultati online stanno sotto l'intestazione **Risultati online**, e l'ultima riga, **Mostra risultati offline**, passa alle aree scaricate; i risultati del telefono finiscono con **Cerca online "…"**.
+- **Niente scaricato**: la ricerca va subito online, con l'avviso in alto.
+- **Nessuna ricerca online configurata**: rispondono le aree scaricate.
+- **Nessun centro della mappa**: online.
 
-Su un'area scaricata, in fondo alla scheda dei risultati c'è una riga, e quale sia ti dice da dove vengono i risultati:
-
-| Riga | Significa | Toccandola |
-|---|---|---|
-| **Cerca online "…"** | stai guardando risultati offline | esegue lo stesso testo online |
-| **Mostra risultati offline** | stai guardando risultati online | esegue di nuovo lo stesso testo sul telefono |
-
-Quando l'area non ha un indice sul telefono e i risultati sono venuti online, un avviso apre invece l'elenco: **Quest'area non è scaricata**, una riga che ne dice il motivo e un pulsante **Scarica** che apre la schermata offline per l'area visibile. Sotto, l'intestazione **Risultati online** introduce le righe online. L'avviso resta visibile mentre scorri l'elenco e, se la ricerca non è riuscita, sta sopra il messaggio di errore, dove conta di più.
+L'avviso resta visibile mentre scorri l'elenco e, se la ricerca non è riuscita, sta sopra il messaggio di errore, dove conta di più.
 
 ## Cosa trova
 
@@ -88,7 +84,7 @@ Non c'è un pulsante di salvataggio; le modifiche hanno effetto al prossimo tast
 
 ## Quando la ricerca non funziona
 
-- **"Nessun risultato."** Il testo non corrisponde a nulla, né offline né online. Prova la riga in fondo per cambiare sorgente (su un'area non scaricata, **Scarica** nell'avviso in alto), o meno parole.
+- **"Nessun risultato."** Il testo non corrisponde a nulla, né offline né online. Prova la riga in fondo per cambiare sorgente, o meno parole.
 - **"Ricerca non riuscita."** con un motivo significa che il geocoder online non era raggiungibile. La ricerca offline continua a funzionare dove hai scaricato un'area.
 - **"Nessun server di ricerca configurato, impostane uno in Opzioni → Avanzate."** significa che questa build non ha né un indirizzo del geocoder né alcun indice scaricato. Il campo è disabilitato finché non ne esiste uno.
 

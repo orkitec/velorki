@@ -35,6 +35,7 @@ class PlaceSearchState {
     this.offlineAvailableHere = false,
     this.correctedQuery,
     this.searching = false,
+    this.choosingSource = false,
   });
 
   /// The results, already ranked.
@@ -49,14 +50,16 @@ class PlaceSearchState {
   /// Whether a geocoder is configured, so "Search online" can be offered.
   final bool canSearchOnline;
 
-  /// Whether the area under the map centre has a gazetteer, so this query
-  /// could be answered on the device.
-  ///
-  /// False when there is no map centre to judge by, when nothing is
-  /// downloaded, and when what is downloaded is somewhere else. The list then
-  /// offers the download for the area on screen instead of "Show offline
-  /// results".
+  /// Whether this query could be answered on the device: the area under the
+  /// map centre has a gazetteer, or, over an area that has none, other areas
+  /// do. False when nothing is downloaded.
   final bool offlineAvailableHere;
+
+  /// Whether nothing was searched yet because the area under the map centre
+  /// is not downloaded while other areas are: the list asks whether to
+  /// search online or the downloaded areas, and sends nothing off the phone
+  /// until the rider says.
+  final bool choosingSource;
 
   /// What the on-device index was searched for when nothing matched [query]
   /// and the spelling was guessed at; `null` when [query] answered by itself.
@@ -77,6 +80,7 @@ class PlaceSearchState {
     offlineAvailableHere: offlineAvailableHere,
     correctedQuery: correctedQuery,
     searching: true,
+    choosingSource: choosingSource,
   );
 
   @override
@@ -85,7 +89,8 @@ class PlaceSearchState {
       '"$query"${correctedQuery == null ? '' : ' (corrected to '
                 '"$correctedQuery")'}, online available: $canSearchOnline, '
       'offline available here: $offlineAvailableHere'
-      '${searching ? ', searching' : ''})';
+      '${searching ? ', searching' : ''}'
+      '${choosingSource ? ', choosing the source' : ''})';
 }
 
 /// The place search behind the planner's search field.
@@ -94,10 +99,11 @@ class PlaceSearchState {
 /// device happens to hold: a rider looking at a region whose `<TILE>.gaz`
 /// gazetteer is downloaded searches it — instant, free and working with no
 /// signal — with Photon one tap away as the last row of the list
-/// ([searchOnline]). Anywhere else the field goes straight to Photon, exactly
-/// as a device with no gazetteer at all does, and the list offers the download
-/// for the area on screen. [searchOffline] is the way back from an online list
-/// to the local one, where there is one.
+/// ([searchOnline]). Over an area that is not downloaded, a device with other
+/// areas asks first: online, or the downloaded areas ([searchOffline]); the
+/// pick holds until the search is cleared. A device with nothing downloaded
+/// goes straight to Photon. Either way the list offers the download for the
+/// area on screen.
 ///
 /// Debounced, never fired below [searchMinChars] characters, and every
 /// keystroke cancels the request that is still in flight.
@@ -111,6 +117,13 @@ class PlaceSearch extends _$PlaceSearch {
 
   /// Whether the last query's map centre had a gazetteer.
   bool _coveredHere = false;
+
+  /// Where the rider asked to search an area that is not downloaded:
+  /// `null` until they pick, then true for online, false for the device.
+  bool? _online;
+
+  /// Whether the device has a gazetteer for anywhere at all.
+  bool get _anyDownloaded => _store?.hasTiles ?? false;
 
   @override
   AsyncValue<PlaceSearchState> build() {
@@ -169,6 +182,7 @@ class PlaceSearch extends _$PlaceSearch {
   Future<void> searchOnline({String? lang, LatLng? bias}) async {
     final text = _query;
     if (text.length < searchMinChars) return;
+    if (!_coveredHere) _online = true;
     _debounce?.cancel();
     _pending?.cancel('superseded');
     _pending = null;
@@ -179,8 +193,9 @@ class PlaceSearch extends _$PlaceSearch {
   /// Answers the text the field is showing from the device again.
   ///
   /// The way back from an online list to the local one, offered as the last
-  /// row whenever the results came off the network and the area under [bias]
-  /// has a gazetteer. Does nothing when it has none.
+  /// row whenever the results came off the network and the device has a
+  /// gazetteer; over an area that is not downloaded, every downloaded area is
+  /// searched, nearest first. Does nothing with none downloaded.
   Future<void> searchOffline({
     LatLng? bias,
     Map<String, String> keywords = const <String, String>{},
@@ -188,11 +203,15 @@ class PlaceSearch extends _$PlaceSearch {
     final text = _query;
     final store = _store;
     if (text.length < searchMinChars) return;
-    if (store == null || bias == null || !store.covers(bias)) return;
+    if (store == null || !store.hasTiles) return;
     _debounce?.cancel();
     _pending?.cancel('superseded');
     _pending = null;
-    _coveredHere = true;
+    if (bias != null && store.covers(bias)) {
+      _coveredHere = true;
+    } else {
+      _online = false;
+    }
     _showSearching();
     await _searchLocal(store, text, near: bias, keywords: keywords);
   }
@@ -213,6 +232,7 @@ class PlaceSearch extends _$PlaceSearch {
     _pending?.cancel('cleared');
     _pending = null;
     _query = '';
+    _online = null;
     state = AsyncData<PlaceSearchState>(_emptyState());
   }
 
@@ -252,6 +272,26 @@ class PlaceSearch extends _$PlaceSearch {
     if (store != null && bias != null && store.covers(bias)) {
       await _searchLocal(store, text, near: bias, keywords: keywords);
       return;
+    }
+    // Not downloaded here, but somewhere: the device can answer too, so
+    // nothing goes online until the rider says so, and with no online
+    // search the device is the answer.
+    if (store != null && bias != null && _anyDownloaded) {
+      if (_online == false || !_hasGeocoder) {
+        await _searchLocal(store, text, near: bias, keywords: keywords);
+        return;
+      }
+      if (_online == null) {
+        state = AsyncData<PlaceSearchState>(
+          PlaceSearchState(
+            query: text,
+            canSearchOnline: true,
+            offlineAvailableHere: true,
+            choosingSource: true,
+          ),
+        );
+        return;
+      }
     }
     await _searchOnline(text, lang: lang, bias: bias);
   }
@@ -311,7 +351,7 @@ class PlaceSearch extends _$PlaceSearch {
           results: results,
           query: text,
           canSearchOnline: true,
-          offlineAvailableHere: _coveredHere,
+          offlineAvailableHere: _coveredHere || _anyDownloaded,
         ),
       );
     } on SearchException catch (e, st) {

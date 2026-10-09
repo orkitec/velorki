@@ -1,10 +1,10 @@
 ---
 title: Búsqueda
-description: Encuentra lugares, calles, números de portal y cosas como agua potable o aseos, en el teléfono donde hayas descargado una zona y en línea en todas las demás.
+description: Encuentra lugares, calles, números de portal y cosas como agua potable o aseos, en el teléfono en las zonas descargadas y en línea cuando lo eliges.
 order: 4
 ---
 
-El campo de búsqueda en la parte superior de la pestaña Planificar encuentra pueblos, calles, números de portal y puntos de interés como cafeterías, agua potable y tiendas de bicis. Donde has descargado una zona responde desde el teléfono, al instante y sin cobertura; en el resto pregunta a un geocodificador en línea.
+El campo de búsqueda en la parte superior de la pestaña Planificar encuentra pueblos, calles, números de portal y puntos de interés como cafeterías, agua potable y tiendas de bicis. Sobre una zona descargada responde desde el teléfono, al instante y sin cobertura; sobre una zona sin descargar eliges entre un geocodificador en línea y las zonas que has descargado.
 
 ## Cómo buscar
 
@@ -33,19 +33,15 @@ Cerrar la ficha (la **X**, deslizar hacia abajo o tocar el mapa) no cambia nada 
 
 ## Sin conexión o en línea
 
-Velorki decide por el **centro del mapa**, no por tu conexión. Cada tesela de rutas descargada trae consigo un índice de búsqueda de su zona, así que:
+Velorki decide por el **centro del mapa**, no por tu conexión. Cada tesela de rutas descargada trae consigo un índice de búsqueda de su zona.
 
-- si la tesela bajo el centro del mapa tiene su índice en el teléfono, la consulta se responde en el teléfono;
-- si no, la consulta va en línea a Photon.
+- **Centro del mapa sobre una zona descargada**: la consulta se responde en el teléfono. La última fila de la ficha de resultados, **Buscar «…» en línea**, lanza el mismo texto en línea.
+- **Centro del mapa sobre una zona sin descargar, habiendo otras descargadas**: no se busca nada y nada sale del teléfono hasta que elijas. La lista muestra un aviso, **Esta zona no está descargada**, una línea con el motivo y un botón **Descargar** que abre la pantalla sin conexión para la zona visible, con dos opciones: **Buscar «…» en línea** y **Buscar en las zonas descargadas**, que recorre todas las zonas descargadas, la más cercana al mapa primero. Tu elección vale para las pulsaciones siguientes hasta que borres la búsqueda. Los resultados en línea van bajo el rótulo **Resultados en línea**, y la última fila, **Mostrar resultados sin conexión**, cambia a las zonas descargadas; los resultados del teléfono terminan en **Buscar «…» en línea**.
+- **Nada descargado**: la búsqueda va en línea de inmediato, con el aviso arriba.
+- **Sin búsqueda en línea configurada**: responden las zonas descargadas.
+- **Sin centro del mapa**: en línea.
 
-Sobre una zona descargada, hay una fila al pie de la ficha de resultados, y cuál es te dice de dónde vienen los resultados:
-
-| Fila | Significa | Al tocarla |
-|---|---|---|
-| **Buscar «…» en línea** | estás viendo resultados sin conexión | lanza el mismo texto en línea |
-| **Mostrar resultados sin conexión** | estás viendo resultados en línea | vuelve a lanzar el mismo texto en el teléfono |
-
-Cuando la zona no tiene índice en el teléfono y los resultados vinieron en línea, un aviso abre la lista en su lugar: **Esta zona no está descargada**, una línea con el motivo y un botón **Descargar** que abre la pantalla sin conexión para la zona visible. Debajo, el rótulo **Resultados en línea** introduce las filas en línea. El aviso sigue visible mientras desplazas la lista y, si la búsqueda falló, queda sobre el mensaje de error, que es donde más importa.
+El aviso sigue visible mientras desplazas la lista y, si la búsqueda falló, queda sobre el mensaje de error, que es donde más importa.
 
 ## Qué encuentra
 
@@ -88,7 +84,7 @@ No hay botón de guardar; los cambios se aplican con la siguiente tecla que puls
 
 ## Cuando la búsqueda no funciona
 
-- **«No se encontró nada.»** El texto no coincidió con nada, ni sin conexión ni en línea. Prueba la fila del final para cambiar de fuente (sobre una zona sin descargar, **Descargar** en el aviso de arriba), o menos palabras.
+- **«No se encontró nada.»** El texto no coincidió con nada, ni sin conexión ni en línea. Prueba la fila del final para cambiar de fuente, o menos palabras.
 - **«Falló la búsqueda.»** con un motivo significa que no se pudo contactar con el geocodificador en línea. La búsqueda sin conexión sigue funcionando donde has descargado una zona.
 - **«No hay servidor de búsqueda configurado; añade uno en Ajustes → Avanzado.»** significa que esta versión no tiene ni dirección de geocodificador ni ningún índice descargado. El campo está desactivado hasta que exista uno.
 

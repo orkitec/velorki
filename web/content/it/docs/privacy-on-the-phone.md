@@ -34,9 +34,9 @@ Il calcolo del percorso avviene sul tuo telefono ovunque tu abbia i riquadri. Pe
 
 ### Mentre cerchi
 
-La ricerca riceve risposta sul telefono ovunque l'indice dell'area sia scaricato, e nulla di quello che scrivi lascia il dispositivo.
+La ricerca viene risolta sul telefono su un'area scaricata, e nulla di ciò che scrivi lascia il dispositivo.
 
-Va online quando tocchi **Cerca online "…"**, o quando non hai un indice per l'area che stai guardando. Allora quello che hai scritto va a Photon, insieme a una posizione approssimativa perché i risultati vicini vengano prima.
+Va online quando tocchi **Cerca online "…"**, o quando non hai scaricato nulla. Su un'area non scaricata, con altre aree scaricate, non viene inviato nulla finché non scegli **Cerca online "…"**; **Cerca nelle aree scaricate** resta sul telefono. Allora quello che hai scritto va a Photon, insieme a una posizione approssimativa perché i risultati vicini vengano prima.
 
 Le [soste sulla mappa](./stops-on-the-map) sono lette dall'indice sul telefono e non chiedono nulla.
 

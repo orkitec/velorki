@@ -551,6 +551,24 @@ class _ResultsCardState extends State<_ResultsCard> {
   /// leaves little room still fits.
   Widget _list(BuildContext context, PlaceSearchState state) {
     final l10n = AppLocalizations.of(context);
+    // Over an area that is not downloaded, with others on the phone: the
+    // rider picks where to search before anything leaves the phone.
+    if (state.choosingSource) {
+      final notice = _notice(context);
+      return _scrolling(<Widget>[
+        ?notice,
+        ListTile(
+          leading: const Icon(Icons.travel_explore_outlined),
+          title: Text(l10n.searchOnlineFor(state.query)),
+          onTap: widget.onSearchOnline,
+        ),
+        ListTile(
+          leading: const Icon(Icons.offline_pin_outlined),
+          title: Text(l10n.searchInDownloaded),
+          onTap: widget.onSearchOffline,
+        ),
+      ]);
+    }
     final online = state.source == SearchSource.local && state.canSearchOnline;
     final offline =
         state.source == SearchSource.online && state.offlineAvailableHere;

@@ -1,10 +1,10 @@
 ---
 title: Search
-description: Find places, streets, house numbers and things like drinking water or toilets, on the phone where you have downloaded an area and online everywhere else.
+description: Find places, streets, house numbers and things like drinking water or toilets, on the phone in downloaded areas and online when you choose.
 order: 4
 ---
 
-The search field at the top of the Plan tab finds towns, streets, house numbers and points of interest such as cafés, drinking water and bike shops. Where you have downloaded an area it answers from the phone, instantly and with no signal; everywhere else it asks an online geocoder.
+The search field at the top of the Plan tab finds towns, streets, house numbers and points of interest such as cafés, drinking water and bike shops. Over a downloaded area it answers from the phone, instantly and with no signal; over an area that is not downloaded you choose between an online geocoder and the areas you have downloaded.
 
 ## How to search
 
@@ -33,19 +33,15 @@ Closing the card (the **X**, a swipe down or a tap on the map) changes nothing a
 
 ## Offline or online
 
-Velorki decides by the **map centre**, not by your connection. Each downloaded routing tile brings a search index of its area with it, so:
+Velorki decides by the **map centre**, not by your connection. Each downloaded routing tile brings a search index of its area with it.
 
-- if the tile under the centre of the map has its index on the phone, the query is answered on the phone;
-- if it does not, the query goes online to Photon.
+- **Map centre over a downloaded area**: the query is answered on the phone. The last row of the result card, **Search online for "…"**, runs the same text online.
+- **Map centre over an area that is not downloaded, while others are**: nothing is searched and nothing leaves the phone until you pick. The list shows a notice, **This area isn't downloaded**, a line saying why and a **Download** button that opens the offline screen for the visible area, with two choices: **Search online for "…"** and **Search downloaded areas**, which searches every downloaded area, nearest to the map first. Your pick holds for the following keystrokes until you clear the search. Online results come under the caption **Online results**, and the last row, **Show offline results**, switches to the downloaded areas; results from the phone end in **Search online for "…"**.
+- **Nothing downloaded at all**: the search goes online straight away, with the notice on top.
+- **No online search configured**: the downloaded areas answer.
+- **No map centre**: online.
 
-Over a downloaded area, one row sits at the bottom of the result card, and which one it is tells you where the results came from:
-
-| Row | Means | Tapping it |
-|---|---|---|
-| **Search online for "…"** | you are looking at offline results | runs the same text online |
-| **Show offline results** | you are looking at online results | runs the same text on the phone again |
-
-Where the area has no index on the phone and the results came online, a notice opens the list instead: **This area isn't downloaded**, a line saying why, and a **Download** button that opens the offline screen for the visible area. Under it the caption **Online results** introduces the online rows. The notice stays visible while you scroll the list, and when the search failed it sits above the error message, which is where it matters most.
+The notice stays visible while you scroll the list, and when the search failed it sits above the error message, which is where it matters most.
 
 ## What it finds
 
@@ -89,7 +85,7 @@ There is no save button; changes take effect on your next keystroke. A group tha
 
 ## When search does not work
 
-- **"Nothing found."** The text matched nothing, offline or online. Try the trailing row to switch source (over an area that is not downloaded, **Download** in the notice at the top), or fewer words.
+- **"Nothing found."** The text matched nothing, offline or online. Try the trailing row to switch source, or fewer words.
 - **"Search failed."** with a reason means the online geocoder could not be reached. Offline search keeps working where you have downloaded an area.
 - **"No search server configured, set one in Settings → Advanced."** means this build has neither a geocoder address nor any downloaded index. The field is disabled until one exists.
 

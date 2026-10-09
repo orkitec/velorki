@@ -128,6 +128,7 @@
   "searchUnavailable": "No hay servidor de búsqueda configurado; añade uno en Ajustes → Avanzado.",
   "searchOnlineFor": "Buscar «{query}» en línea",
   "searchShowOffline": "Mostrar resultados sin conexión",
+  "searchInDownloaded": "Buscar en las zonas descargadas",
   "searchAreaNotDownloaded": "Esta zona no está descargada",
   "searchAreaNotDownloadedHint": "Descárgala para buscar, trazar rutas y ver paradas y el mapa ciclista aquí sin conexión.",
   "searchAreaDownload": "Descargar",

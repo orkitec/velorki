@@ -34,9 +34,9 @@ Das Routing läuft auf deinem Handy, wo immer du die Routing-Kacheln hast. Für 
 
 ### Während du suchst
 
-Die Suche wird auf dem Handy beantwortet, wo immer der Index des Gebiets heruntergeladen ist, und nichts von dem, was du tippst, verlässt das Gerät.
+Die Suche wird über einem heruntergeladenen Gebiet auf dem Handy beantwortet, und nichts, was du tippst, verlässt das Gerät.
 
-Sie geht online, wenn du auf **Online nach „…“ suchen** tippst, oder wenn du für das angesehene Gebiet keinen Index hast. Dann geht dein Text an Photon, zusammen mit einer groben Position, damit nahe Ergebnisse zuerst kommen.
+Sie geht online, wenn du auf **Online nach „…“ suchen** tippst oder wenn gar nichts heruntergeladen ist. Über einem nicht heruntergeladenen Gebiet wird, solange andere heruntergeladen sind, nichts gesendet, bis du **Online nach „…“ suchen** wählst; **In heruntergeladenen Gebieten suchen** bleibt auf dem Handy. Dann geht dein Text an Photon, zusammen mit einer groben Position, damit nahe Ergebnisse zuerst kommen.
 
 [Stopps auf der Karte](./stops-on-the-map) werden aus dem Index auf dem Handy gelesen und fragen nach nichts.
 

@@ -674,6 +674,10 @@
   "@searchShowOffline": {
     "description": "Last row of an online result list when the area under the map centre has a downloaded gazetteer; searches the device again"
   },
+  "searchInDownloaded": "Search downloaded areas",
+  "@searchInDownloaded": {
+    "description": "Choice in the search results over an area that isn't downloaded: search the areas that are downloaded on the phone instead of online."
+  },
   "searchAreaNotDownloaded": "This area isn't downloaded",
   "@searchAreaNotDownloaded": {
     "description": "Title of the notice at the top of the search results when the area under the map centre has no offline data, so the results came from the online search"

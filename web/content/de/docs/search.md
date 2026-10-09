@@ -1,10 +1,10 @@
 ---
 title: Suche
-description: Orte, Straßen, Hausnummern und Dinge wie Trinkwasser oder Toiletten finden, auf dem Handy in heruntergeladenen Gebieten und überall sonst online.
+description: Orte, Straßen, Hausnummern und Dinge wie Trinkwasser oder Toiletten finden, auf dem Handy in heruntergeladenen Gebieten und online, wenn du es wählst.
 order: 4
 ---
 
-Das Suchfeld oben im Tab Planen findet Städte, Straßen, Hausnummern und Ziele wie Cafés, Trinkwasser und Fahrradläden. Wo du ein Gebiet heruntergeladen hast, antwortet es vom Handy, sofort und ohne Empfang; überall sonst fragt es einen Online-Geocoder.
+Das Suchfeld oben im Tab Planen findet Städte, Straßen, Hausnummern und Ziele wie Cafés, Trinkwasser und Fahrradläden. Über einem heruntergeladenen Gebiet antwortet es vom Handy, sofort und ohne Empfang; über einem nicht heruntergeladenen Gebiet wählst du zwischen einem Online-Geocoder und den Gebieten, die du heruntergeladen hast.
 
 ## So suchst du
 
@@ -33,19 +33,15 @@ Die Ortskarte zu schließen (das **X**, nach unten wischen oder auf die Karte ti
 
 ## Offline oder online
 
-Velorki entscheidet nach der **Kartenmitte**, nicht nach deiner Verbindung. Jede heruntergeladene Routing-Kachel bringt einen Suchindex ihres Gebiets mit, also:
+Velorki entscheidet nach der **Kartenmitte**, nicht nach deiner Verbindung. Jede heruntergeladene Routing-Kachel bringt einen Suchindex ihres Gebiets mit.
 
-- liegt der Index der Kachel unter der Kartenmitte auf dem Handy, wird die Anfrage auf dem Handy beantwortet;
-- liegt er nicht dort, geht die Anfrage online an Photon.
+- **Kartenmitte über einem heruntergeladenen Gebiet**: Die Anfrage wird auf dem Handy beantwortet. Die letzte Zeile der Ergebniskarte, **Online nach „…“ suchen**, sucht denselben Text online.
+- **Kartenmitte über einem nicht heruntergeladenen Gebiet, während andere heruntergeladen sind**: Es wird nichts gesucht und nichts verlässt das Handy, bis du wählst. Die Liste zeigt einen Hinweis, **Dieses Gebiet ist nicht heruntergeladen**, eine Zeile mit dem Grund und die Schaltfläche **Herunterladen**, die den Offline-Bildschirm für das sichtbare Gebiet öffnet, dazu zwei Möglichkeiten: **Online nach „…“ suchen** und **In heruntergeladenen Gebieten suchen**, was jedes heruntergeladene Gebiet durchsucht, das der Karte nächste zuerst. Deine Wahl gilt für die folgenden Tastendrücke, bis du die Suche leerst. Online-Ergebnisse stehen unter der Überschrift **Online-Ergebnisse**, und die letzte Zeile, **Offline-Ergebnisse anzeigen**, wechselt zu den heruntergeladenen Gebieten; Ergebnisse vom Handy enden mit **Online nach „…“ suchen**.
+- **Gar nichts heruntergeladen**: Die Suche geht gleich online, mit dem Hinweis oben.
+- **Keine Online-Suche eingerichtet**: Die heruntergeladenen Gebiete antworten.
+- **Keine Kartenmitte**: online.
 
-Über einem heruntergeladenen Gebiet steht ganz unten in der Ergebniskarte eine Zeile, und welche es ist, verrät dir, woher die Ergebnisse kommen:
-
-| Zeile | Bedeutet | Ein Tipper darauf |
-|---|---|---|
-| **Online nach „…“ suchen** | du siehst Offline-Ergebnisse | sucht denselben Text online |
-| **Offline-Ergebnisse anzeigen** | du siehst Online-Ergebnisse | sucht denselben Text wieder auf dem Handy |
-
-Liegt für das Gebiet kein Index auf dem Handy und kamen die Ergebnisse online, eröffnet stattdessen ein Hinweis die Liste: **Dieses Gebiet ist nicht heruntergeladen**, eine Zeile mit dem Grund und die Schaltfläche **Herunterladen**, die den Offline-Bildschirm für das sichtbare Gebiet öffnet. Darunter leitet die Überschrift **Online-Ergebnisse** die Online-Zeilen ein. Der Hinweis bleibt beim Scrollen durch die Liste sichtbar, und ist die Suche fehlgeschlagen, steht er über der Fehlermeldung, wo er am meisten zählt.
+Der Hinweis bleibt beim Scrollen durch die Liste sichtbar, und ist die Suche fehlgeschlagen, steht er über der Fehlermeldung, wo er am meisten zählt.
 
 ## Was sie findet
 
@@ -88,7 +84,7 @@ Es gibt keine Schaltfläche zum Speichern; die Änderungen greifen beim nächste
 
 ## Wenn die Suche nicht funktioniert
 
-- **"Nichts gefunden."** Der Text passte zu nichts, weder offline noch online. Nimm die Zeile am Ende, um die Quelle zu wechseln (über einem nicht heruntergeladenen Gebiet **Herunterladen** im Hinweis oben), oder weniger Wörter.
+- **"Nichts gefunden."** Der Text passte zu nichts, weder offline noch online. Nimm die Zeile am Ende, um die Quelle zu wechseln, oder weniger Wörter.
 - **"Suche fehlgeschlagen."** mit einem Grund heißt, dass der Online-Geocoder nicht erreichbar war. Die Offline-Suche läuft weiter, wo du ein Gebiet heruntergeladen hast.
 - **"Kein Suchserver konfiguriert, einen unter Einstellungen → Erweitert festlegen."** heißt, dass dieser Build weder eine Geocoder-Adresse noch einen heruntergeladenen Index hat. Das Feld ist gesperrt, bis es eines von beidem gibt.
 
