@@ -213,4 +213,27 @@ void main() {
     expect(oneway, hasLength(1));
     expect(((oneway.single as Map)['properties'] as Map)['o'], 1);
   });
+
+  test('no line of fewer than two distinct points, and no repeats', () {
+    final cycleway = CycleBits.pack(kind: CycleKind.cycleway);
+    final b = CellWaysBuilder()
+      // Two points a few centimetres apart: one point at five decimals.
+      ..addLine([...at(-16.9, 32.6), 163100001, 122600001], cycleway)
+      ..addLine([
+        ...at(-16.9, 32.61),
+        ...at(-16.9, 32.61),
+        ...at(-16.89, 32.61),
+      ], cycleway)
+      ..addClimb([...at(-16.9, 32.63), ...at(-16.9, 32.63)], 2);
+    final features =
+        decode(
+              GeoJsonWriter().cellFeatures(b.build(), CycleContent.all, 16),
+            )['features']
+            as List;
+    expect(features, hasLength(1));
+    expect(((features.single as Map)['geometry'] as Map)['coordinates'], [
+      [-16.9, 32.61],
+      [-16.89, 32.61],
+    ]);
+  });
 }

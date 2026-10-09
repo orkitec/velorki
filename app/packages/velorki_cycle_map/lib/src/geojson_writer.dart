@@ -132,11 +132,13 @@ final class GeoJsonWriter {
           keep,
           _stack,
         );
+        final points = _distinct(coords, keep, kept);
+        if (points < 2) continue;
         if (out.isNotEmpty) out.write(',');
         out.write('{"type":"Feature","properties":');
         _properties(out, CycleAttrs(attrs));
         out.write(',"geometry":{"type":"LineString","coordinates":[');
-        for (var k = 0; k < kept; k++) {
+        for (var k = 0; k < points; k++) {
           if (k > 0) out.write(',');
           final p = keep[k];
           _position(out, coords[p * 2], coords[p * 2 + 1]);
@@ -162,11 +164,13 @@ final class GeoJsonWriter {
           keep,
           _stack,
         );
+        final points = _distinct(cc, keep, kept);
+        if (points < 2) continue;
         if (out.isNotEmpty) out.write(',');
         out.write('{"type":"Feature","properties":{"c":');
         out.write(cell.climbGrades[i]);
         out.write('},"geometry":{"type":"LineString","coordinates":[');
-        for (var k = 0; k < kept; k++) {
+        for (var k = 0; k < points; k++) {
           if (k > 0) out.write(',');
           final p = keep[k];
           _position(out, cc[p * 2], cc[p * 2 + 1]);
@@ -200,6 +204,31 @@ final class GeoJsonWriter {
     out.write(']}');
     return out.toString();
   }
+
+  /// The first [kept] point indices of [keep] without the ones that fall
+  /// on the point before them once written to five decimals, moved to the
+  /// front of [keep]; how many are left. A line of fewer than two is no
+  /// line: the map rejects it as an invalid geometry.
+  static int _distinct(Int32List coords, Int32List keep, int kept) {
+    var n = 0;
+    int? lastLon;
+    int? lastLat;
+    for (var k = 0; k < kept; k++) {
+      final p = keep[k];
+      final lon = _rounded(coords[p * 2]);
+      final lat = _rounded(coords[p * 2 + 1]);
+      if (lon == lastLon && lat == lastLat) continue;
+      keep[n++] = p;
+      lastLon = lon;
+      lastLat = lat;
+    }
+    return n;
+  }
+
+  /// BRouter's micro-degrees to the 1e-5 steps [_degrees] writes; the
+  /// offset to the real degrees is a whole number of steps, so it changes
+  /// nothing about which points coincide.
+  static int _rounded(int micro) => (micro + 5) ~/ 10;
 
   static void _properties(StringBuffer out, CycleAttrs a) {
     out
