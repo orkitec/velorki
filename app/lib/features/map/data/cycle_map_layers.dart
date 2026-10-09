@@ -35,6 +35,7 @@ class CycleMapColors {
     required this.barrier,
     required this.barrierCarry,
     required this.arrow,
+    required this.arrowRim,
     required this.trafficArrow,
     required this.outline,
   });
@@ -64,8 +65,9 @@ class CycleMapColors {
     noBikes: '#9E9E9E',
     barrier: '#37474F',
     barrierCarry: '#C62828',
-    arrow: '#E3F2FD',
-    trafficArrow: '#616161',
+    arrow: '#FFFFFF',
+    arrowRim: '#0D3C78',
+    trafficArrow: '#9E9E9E',
     outline: '#FFFFFF',
   );
 
@@ -94,8 +96,9 @@ class CycleMapColors {
     noBikes: '#757575',
     barrier: '#ECEFF1',
     barrierCarry: '#EF5350',
-    arrow: '#0D47A1',
-    trafficArrow: '#BDBDBD',
+    arrow: '#FFFFFF',
+    arrowRim: '#0D3C78',
+    trafficArrow: '#9E9E9E',
     outline: '#101418',
   );
 
@@ -146,8 +149,9 @@ class CycleMapColors {
   final String barrier;
   final String barrierCarry;
 
-  /// The arrow inside a one-way cycleway's line.
+  /// The chevrons showing which way to ride, on the line, and their rim.
   final String arrow;
+  final String arrowRim;
 
   /// The arrow of the cars' way on a contraflow street.
   final String trafficArrow;
@@ -237,12 +241,11 @@ class CycleMapLayers {
   /// The colours.
   final CycleMapColors colors;
 
-  /// The style images the layers draw: the arrow inside a one-way
-  /// cycleway, the arrow beside a road on a track or lane of one direction,
-  /// and the two arrows of a contraflow street (the traffic's way, and the
-  /// bikes' against it).
+  /// The style images the layers draw: the chevron on a line ridden one
+  /// way (a cycleway, or a track or lane beside a road), and the two
+  /// chevrons of a contraflow street (the traffic's way, and the bikes'
+  /// against it).
   static const String arrowImage = 'velorki-cycle-arrow';
-  static const String sideArrowImage = 'velorki-cycle-side-arrow';
   static const String contraflowImage = 'velorki-cycle-contraflow';
 
   /// The source of [generation].
@@ -274,7 +277,7 @@ class CycleMapLayers {
   ];
 
   /// The size of the side arrows, against their bitmap.
-  static const double _sideArrowSize = 0.8;
+  static const double _sideArrowSize = 1.25;
 
   static List<Object> _byZoom(List<double> stops) => <Object>[
     'interpolate',
@@ -406,15 +409,15 @@ class CycleMapLayers {
     return CycleMapLayer(
       name: 'side-arrows-${side == Side.left ? 'left' : 'right'}',
       part: CycleMapPart.infrastructure,
-      minZoom: 16,
+      minZoom: 15.5,
       filter: _any(<Object>[
         _is(key, Direction.forward),
         _is(key, Direction.backward),
       ]),
       properties: ml.SymbolLayerProperties(
         symbolPlacement: 'line',
-        symbolSpacing: 120,
-        iconImage: sideArrowImage,
+        symbolSpacing: 70,
+        iconImage: arrowImage,
         iconSize: _sideArrowSize,
         iconRotate: <Object>['case', _is(key, Direction.backward), 180, 0],
         iconOffset: <Object>[
@@ -422,7 +425,7 @@ class CycleMapLayers {
           <Object>['linear'],
           <Object>['zoom'],
           for (final (zoom, minor, middle, major) in _sideOffsets)
-            if (zoom >= 16) ...[
+            if (zoom >= 15) ...[
               zoom,
               <Object>[
                 'match',
@@ -750,8 +753,8 @@ class CycleMapLayers {
       ]),
       properties: _arrows(
         image: arrowImage,
-        size: _byZoom(<double>[15, 0.6, 18, 0.9]),
-        spacing: 90,
+        size: _byZoom(<double>[15, 1.0, 16, 1.25, 18, 1.6]),
+        spacing: 60,
       ),
     ),
     _sideArrows(Side.left),
@@ -763,8 +766,8 @@ class CycleMapLayers {
       minZoom: 15,
       properties: _arrows(
         image: contraflowImage,
-        size: _byZoom(<double>[15, 0.6, 18, 0.9]),
-        spacing: 140,
+        size: _byZoom(<double>[15, 0.9, 16, 1.1, 18, 1.4]),
+        spacing: 100,
       ),
     ),
     CycleMapLayer(

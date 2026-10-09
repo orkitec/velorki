@@ -41,7 +41,6 @@ void main() {
       ops.images,
       containsAll(<String>[
         CycleMapLayers.arrowImage,
-        CycleMapLayers.sideArrowImage,
         CycleMapLayers.contraflowImage,
       ]),
     );

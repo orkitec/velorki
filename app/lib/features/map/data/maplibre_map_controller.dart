@@ -2095,22 +2095,15 @@ class MaplibreMapControllerAdapter implements MapController {
     final colors = palette.cycle;
     try {
       final images = <String, Uint8List>{
-        CycleMapLayers.arrowImage: await buildArrowImage(
+        CycleMapLayers.arrowImage: await buildChevronImage(
           fill: colorFromMapHex(colors.arrow),
-          rim: colorFromMapHex(colors.infrastructure),
+          rim: colorFromMapHex(colors.arrowRim),
           devicePixelRatio: devicePixelRatio,
-        ),
-        CycleMapLayers.sideArrowImage: await buildArrowImage(
-          fill: colorFromMapHex(colors.infrastructure),
-          rim: colorFromMapHex(colors.outline),
-          devicePixelRatio: devicePixelRatio,
-          width: 14,
-          height: 7,
         ),
         CycleMapLayers.contraflowImage: await buildContraflowImage(
           traffic: colorFromMapHex(colors.trafficArrow),
           bikes: colorFromMapHex(colors.infrastructure),
-          rim: colorFromMapHex(colors.outline),
+          rim: colorFromMapHex(colors.arrow),
           devicePixelRatio: devicePixelRatio,
         ),
       };
