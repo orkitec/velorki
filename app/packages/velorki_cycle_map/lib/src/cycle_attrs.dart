@@ -601,7 +601,7 @@ int classifyWay(Map<String, String> tags) {
 
 /// Whether a way with [tags] is one whose slope the map shows: a road,
 /// track or path a bike may use, neither bridge nor tunnel, whose heights
-/// are the terrain's and not its own.
+/// are the terrain's and not its own, outside the densest city cores.
 bool isClimbable(Map<String, String> tags) {
   String t(String key) {
     final v = tags[key];
@@ -614,6 +614,11 @@ bool isClimbable(Map<String, String> tags) {
   if (bicycle == 'no' || bicycle == 'private' || bicycle == 'use_sidepath') {
     return false;
   }
+  // The densest built-up class, the high-rise core of a big city: there
+  // the terrain model's heights are the buildings', and its climbs were
+  // nearly all false (Midtown Manhattan), while hilly towns and cities keep
+  // theirs (tool/climb_eval.dart).
+  if (t('estimated_town_class') == '6') return false;
   final tunnel = t('tunnel');
   return (tunnel.isEmpty || tunnel == 'no') && t('bridge').isEmpty;
 }

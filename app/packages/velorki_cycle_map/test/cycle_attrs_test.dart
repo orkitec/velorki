@@ -590,4 +590,26 @@ void main() {
       expect(b.isEmpty, isFalse);
     }
   });
+
+  group('climbable', () {
+    test('roads, tracks and paths a bike may use', () {
+      expect(isClimbable({'highway': 'residential'}), isTrue);
+      expect(isClimbable({'highway': 'track'}), isTrue);
+      expect(isClimbable({'highway': 'motorway'}), isFalse);
+      expect(isClimbable({'highway': 'path', 'bicycle': 'no'}), isFalse);
+    });
+
+    test('not bridges, tunnels, or the densest city cores', () {
+      expect(isClimbable({'highway': 'primary', 'bridge': 'yes'}), isFalse);
+      expect(isClimbable({'highway': 'primary', 'tunnel': 'yes'}), isFalse);
+      expect(
+        isClimbable({'highway': 'residential', 'estimated_town_class': '6'}),
+        isFalse,
+      );
+      expect(
+        isClimbable({'highway': 'residential', 'estimated_town_class': '5'}),
+        isTrue,
+      );
+    });
+  });
 }
