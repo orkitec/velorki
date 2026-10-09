@@ -39,9 +39,8 @@ void main() {
     expect(h.photonAdapter.requests, isEmpty);
   });
 
-  testWidgets('three characters search after the debounce, once', (
-    tester,
-  ) async {
+  testWidgets('three characters ask where to search after the debounce, and '
+      'once picked online Photon is asked once', (tester) async {
     final selected = <SearchResult>[];
     final h = await pumpScreen(
       tester,
@@ -58,6 +57,15 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pumpAndSettle();
+
+    // Nothing downloaded and no map centre: the list asks, and nothing has
+    // left the phone yet.
+    expect(h.photonAdapter.requests, isEmpty);
+    expect(find.text(l10n.searchOnlineFor('munich')), findsOneWidget);
+    expect(find.text(l10n.searchInDownloaded), findsNothing);
+    expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
+
+    await pickOnlineSearch(tester, 'munich');
 
     expect(h.photonAdapter.requests, hasLength(1));
     expect(h.photonAdapter.lastUri.queryParameters['q'], 'munich');
@@ -95,9 +103,7 @@ void main() {
         surfaceSize: const Size(874, 402),
       );
 
-      await tester.enterText(find.byType(TextField), 'munich');
-      await tester.pump(const Duration(milliseconds: 400));
-      await tester.pumpAndSettle();
+      await searchOnlineFor(tester, 'munich');
       expect(find.text('Munich'), findsOneWidget);
 
       final field = tester.getRect(find.byType(SearchField));
@@ -136,9 +142,8 @@ void main() {
       ),
     );
 
-    await tester.enterText(find.byType(TextField), 'munich');
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.pumpAndSettle();
+    await searchOnlineFor(tester, 'munich');
+    expect(find.text('Munich'), findsOneWidget);
 
     final field = tester.getRect(find.byType(SearchField));
     final list = tester.getRect(
@@ -164,9 +169,7 @@ void main() {
       ),
     );
 
-    await tester.enterText(find.byType(TextField), 'nowhere');
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.pumpAndSettle();
+    await searchOnlineFor(tester, 'nowhere');
 
     expect(find.text(l10n.searchNoResults), findsOneWidget);
 
@@ -516,14 +519,23 @@ void main() {
       expect(find.text(l10n.searchOnlineFor('vaduz')), findsOneWidget);
     });
 
-    testWidgets('without a map centre the notice stays away', (tester) async {
-      await pumpField(
+    testWidgets('without a map centre the search asks where, without the '
+        'notice', (tester) async {
+      final h = await pumpField(
         tester,
         text: 'munich',
         bias: null,
         onDownloadArea: () {},
       );
 
+      expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
+      expect(find.text(l10n.searchOnlineFor('munich')), findsOneWidget);
+      expect(find.text(l10n.searchInDownloaded), findsOneWidget);
+      expect(h.photonAdapter.requests, isEmpty);
+
+      await pickOnlineSearch(tester, 'munich');
+
+      expect(h.photonAdapter.requests, hasLength(1));
       expect(find.text('Munich'), findsOneWidget);
       expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
     });
@@ -590,10 +602,21 @@ void main() {
       );
     });
 
-    testWidgets('an empty gazetteer directory goes online as before', (
-      tester,
-    ) async {
-      final h = await pumpField(tester, empty: true, text: 'munich');
+    testWidgets('an empty gazetteer directory asks before going online, with '
+        'the notice and no downloaded areas to offer', (tester) async {
+      final h = await pumpField(
+        tester,
+        empty: true,
+        text: 'munich',
+        onDownloadArea: () {},
+      );
+
+      expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
+      expect(find.text(l10n.searchOnlineFor('munich')), findsOneWidget);
+      expect(find.text(l10n.searchInDownloaded), findsNothing);
+      expect(h.photonAdapter.requests, isEmpty);
+
+      await pickOnlineSearch(tester, 'munich');
 
       expect(h.photonAdapter.requests, hasLength(1));
       expect(find.text('Munich'), findsOneWidget);

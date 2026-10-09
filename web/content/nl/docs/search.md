@@ -4,7 +4,7 @@ description: Vind plaatsen, straten, huisnummers en dingen als drinkwater of toi
 order: 4
 ---
 
-Het zoekveld bovenaan het tabblad Plannen vindt steden, straten, huisnummers en interessante punten zoals cafés, drinkwater en fietsenwinkels. Boven een gedownload gebied antwoordt het vanaf de telefoon, meteen en zonder bereik; boven een gebied dat niet is gedownload kies je tussen een online geocoder en de gebieden die je hebt gedownload.
+Het zoekveld bovenaan het tabblad Plannen vindt steden, straten, huisnummers en interessante punten zoals cafés, drinkwater en fietsenwinkels. Boven een gedownload gebied antwoordt het vanaf de telefoon, meteen en zonder bereik; overal elders wordt niets gezocht tot je kiest tussen een online geocoder en de gebieden die je hebt gedownload.
 
 ## Zo zoek je
 
@@ -36,10 +36,8 @@ De kaart sluiten (de **X**, omlaag vegen of een tik op de kaart) verandert niets
 Velorki beslist op basis van het **midden van de kaart**, niet van je verbinding. Elke gedownloade routeringstegel brengt een zoekindex van zijn gebied mee.
 
 - **Midden van de kaart boven een gedownload gebied**: de zoekopdracht wordt op de telefoon beantwoord. De laatste regel van de resultatenkaart, **Online zoeken naar "…"**, zoekt dezelfde tekst online.
-- **Midden van de kaart boven een gebied dat niet is gedownload, terwijl andere dat wel zijn**: er wordt niets gezocht en niets verlaat de telefoon tot je kiest. De lijst toont een melding, **Dit gebied is niet gedownload**, een regel met de reden en een knop **Downloaden** die het offlinescherm voor het zichtbare gebied opent, met twee keuzes: **Online zoeken naar "…"** en **Zoeken in gedownloade gebieden**, dat elk gedownload gebied doorzoekt, het dichtst bij de kaart eerst. Je keuze geldt voor de volgende toetsaanslagen tot je de zoekopdracht wist. Online resultaten staan onder het kopje **Online resultaten**, en de laatste regel, **Offline resultaten tonen**, wisselt naar de gedownloade gebieden; resultaten van de telefoon eindigen met **Online zoeken naar "…"**.
-- **Helemaal niets gedownload**: het zoeken gaat meteen online, met de melding bovenaan.
+- **Overal elders** (midden van de kaart boven een gebied dat niet is gedownload, helemaal niets gedownload of geen midden van de kaart): er wordt niets gezocht en niets verlaat de telefoon tot je **Online zoeken naar "…"** kiest of, als je gebieden hebt gedownload, **Zoeken in gedownloade gebieden**, dat ze allemaal doorzoekt, het dichtst bij de kaart eerst. Je keuze geldt voor de volgende toetsaanslagen tot je de zoekopdracht wist. Met een midden van de kaart toont de lijst ook een melding, **Dit gebied is niet gedownload**, een regel met de reden en een knop **Downloaden** die het offlinescherm voor het zichtbare gebied opent. Online resultaten staan onder het kopje **Online resultaten**, en de laatste regel, **Offline resultaten tonen**, wisselt naar de gedownloade gebieden; resultaten van de telefoon eindigen met **Online zoeken naar "…"**.
 - **Geen online zoekopdracht ingesteld**: de gedownloade gebieden antwoorden.
-- **Geen midden van de kaart**: online.
 
 De melding blijft zichtbaar terwijl je door de lijst scrolt en staat, als het zoeken mislukte, boven de foutmelding, waar hij het meest nodig is.
 

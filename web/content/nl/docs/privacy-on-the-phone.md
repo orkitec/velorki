@@ -36,7 +36,7 @@ Routering gebeurt op je telefoon overal waar je de routeringstegels hebt. Voor e
 
 Zoeken wordt boven een gedownload gebied op de telefoon beantwoord, en niets wat je typt verlaat het apparaat.
 
-Het gaat online als je op **Online zoeken naar "…"** tikt, of als er helemaal niets is gedownload. Boven een gebied dat niet is gedownload, terwijl andere dat wel zijn, wordt niets verstuurd tot je **Online zoeken naar "…"** kiest; **Zoeken in gedownloade gebieden** blijft op de telefoon. Dan gaat wat je typte naar Photon, samen met een globale positie zodat resultaten in de buurt bovenaan komen.
+Het gaat nooit uit zichzelf online: er wordt niets verstuurd tenzij je op **Online zoeken naar "…"** tikt. Waar niets is gedownload, of de kaart boven een niet-gedownload gebied staat, wordt niets gezocht tot je dat kiest; **Zoeken in gedownloade gebieden** blijft op de telefoon. Dan gaat wat je typte naar Photon, samen met een globale positie zodat resultaten in de buurt bovenaan komen.
 
 [Stopplekken op de kaart](./stops-on-the-map) worden gelezen uit de index op de telefoon en vragen nergens om.
 

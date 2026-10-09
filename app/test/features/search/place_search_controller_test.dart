@@ -229,22 +229,45 @@ void main() {
     expect(adapter.requests, isEmpty);
   });
 
-  test('with nothing downloaded the search goes online at once', () async {
+  test('with nothing downloaded the search asks before going online, '
+      'and the pick holds until cleared', () async {
     final adapter = FakeHttpAdapter(body: photonFixture);
     final container = await containerFor(
       adapter: adapter,
       withGazetteer: false,
     );
+    final notifier = container.read(placeSearchProvider.notifier);
 
-    container
-        .read(placeSearchProvider.notifier)
-        .query('vaduz', lang: 'en', bias: outsideTheTile);
+    notifier.query('vaduz', lang: 'en', bias: outsideTheTile);
     await settle(container);
+    var state = container.read(placeSearchProvider).value!;
+    expect(state.choosingSource, isTrue);
+    expect(state.query, 'vaduz');
+    expect(state.canSearchOnline, isTrue);
+    expect(
+      state.offlineAvailableHere,
+      isFalse,
+      reason: 'there is nothing downloaded to offer',
+    );
+    expect(adapter.requests, isEmpty, reason: 'nothing leaves the phone');
 
-    final state = container.read(placeSearchProvider).value!;
+    await notifier.searchOnline(lang: 'en', bias: outsideTheTile);
+    state = container.read(placeSearchProvider).value!;
     expect(adapter.requests, hasLength(1));
     expect(state.choosingSource, isFalse);
+    expect(state.source, SearchSource.online);
     expect(state.offlineAvailableHere, isFalse);
+
+    notifier.query('vaduz s', lang: 'en', bias: outsideTheTile);
+    await settle(container);
+    expect(adapter.requests, hasLength(2), reason: 'the pick holds');
+
+    notifier
+      ..clear()
+      ..query('vaduz', lang: 'en', bias: outsideTheTile);
+    await settle(container);
+    expect(container.read(placeSearchProvider).value!.choosingSource, isTrue);
+    expect(adapter.requests, hasLength(2));
   });
 
   test('outside the tile with no online search, the device answers', () async {
@@ -261,14 +284,21 @@ void main() {
     expect(state.results.map((r) => r.name), contains('Vaduz'));
   });
 
-  test('without a map centre there is no area to judge, so online', () async {
+  test('without a map centre the search asks first too', () async {
     final adapter = FakeHttpAdapter(body: photonFixture);
     final container = await containerFor(adapter: adapter);
+    final notifier = container.read(placeSearchProvider.notifier);
 
-    container.read(placeSearchProvider.notifier).query('vaduz', lang: 'en');
+    notifier.query('vaduz', lang: 'en');
     await settle(container);
 
-    final state = container.read(placeSearchProvider).value!;
+    var state = container.read(placeSearchProvider).value!;
+    expect(state.choosingSource, isTrue);
+    expect(state.offlineAvailableHere, isTrue);
+    expect(adapter.requests, isEmpty, reason: 'nothing leaves the phone');
+
+    await notifier.searchOnline(lang: 'en');
+    state = container.read(placeSearchProvider).value!;
     expect(adapter.requests, hasLength(1));
     expect(state.source, SearchSource.online);
     expect(
@@ -342,15 +372,20 @@ void main() {
     expect(container.read(placeSearchProvider).hasError, isTrue);
   });
 
-  test('without a gazetteer the field behaves as it always did', () async {
+  test('without a gazetteer, Photon answers once picked', () async {
     final adapter = FakeHttpAdapter(body: photonFixture);
     final container = await containerFor(
       withGazetteer: false,
       adapter: adapter,
     );
+    final notifier = container.read(placeSearchProvider.notifier);
 
-    container.read(placeSearchProvider.notifier).query('munich', lang: 'en');
+    notifier.query('munich', lang: 'en');
     await settle(container);
+    expect(container.read(placeSearchProvider).value!.choosingSource, isTrue);
+    expect(adapter.requests, isEmpty);
+
+    await notifier.searchOnline(lang: 'en');
 
     final state = container.read(placeSearchProvider).value!;
     expect(adapter.requests, hasLength(1));
@@ -395,6 +430,7 @@ void main() {
     final notifier = container.read(placeSearchProvider.notifier)
       ..query('munich');
     await settle(container);
+    await notifier.searchOnline();
     expect(adapter.requests, hasLength(1));
 
     notifier.query('munchen');
@@ -427,9 +463,28 @@ void main() {
       adapter: adapter,
     );
 
+    final notifier = container.read(placeSearchProvider.notifier)
+      ..query('munich');
+    await settle(container);
+    await notifier.searchOnline();
+
+    expect(container.read(placeSearchProvider).hasError, isTrue);
+  });
+
+  test('with no geocoder and nothing downloaded the field says so', () async {
+    final container = await containerFor(
+      withGazetteer: false,
+      withGeocoder: false,
+    );
+
     container.read(placeSearchProvider.notifier).query('munich');
     await settle(container);
 
-    expect(container.read(placeSearchProvider).hasError, isTrue);
+    final value = container.read(placeSearchProvider);
+    expect(value.hasError, isTrue);
+    expect(
+      (value.error! as SearchException).failure,
+      SearchFailure.unconfigured,
+    );
   });
 }

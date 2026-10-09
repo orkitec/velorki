@@ -25,6 +25,7 @@ import 'package:velorki/features/planner/presentation/elevation_profile_chart.da
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
+import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
 import 'support/fakes.dart';
@@ -56,7 +57,7 @@ void main() {
         ),
         // This is the online path. The suite runs its files on one install,
         // so a gazetteer left behind by offline_search_test would answer the
-        // search itself and Photon would never be asked.
+        // search itself, or be offered beside Photon.
         gazetteerStoreProvider.overrideWith(
           (ref) async => GazetteerStore(null),
         ),
@@ -78,6 +79,16 @@ void main() {
     await waitForWidget(tester, field);
     await tester.enterText(field, region.searchQuery);
     await pumpFor(tester, const Duration(milliseconds: 800));
+
+    // Nothing downloaded: the list asks before anything leaves the phone.
+    final l10n = AppLocalizations.of(tester.element(find.byType(SearchField)));
+    final online = find.widgetWithText(
+      ListTile,
+      l10n.searchOnlineFor(region.searchQuery),
+    );
+    await waitForWidget(tester, online);
+    expect(photon.requests, isEmpty, reason: 'nothing asked before the pick');
+    await tapAndPump(tester, online);
 
     final row = find.widgetWithText(ListTile, region.searchPlace);
     await waitForWidget(tester, row);

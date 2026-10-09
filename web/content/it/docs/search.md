@@ -4,7 +4,7 @@ description: Trova luoghi, vie, numeri civici e cose come acqua potabile o bagni
 order: 4
 ---
 
-Il campo di ricerca in alto nel tab Pianifica trova città, vie, numeri civici e punti di interesse come caffè, acqua potabile e negozi di bici. Su un'area scaricata risponde dal telefono, all'istante e senza segnale; su un'area non scaricata scegli tra un geocoder online e le aree che hai scaricato.
+Il campo di ricerca in alto nel tab Pianifica trova città, vie, numeri civici e punti di interesse come caffè, acqua potabile e negozi di bici. Su un'area scaricata risponde dal telefono, all'istante e senza segnale; altrove non si cerca nulla finché non scegli tra un geocoder online e le aree che hai scaricato.
 
 ## Come cercare
 
@@ -36,10 +36,8 @@ Chiudere la scheda (la **X**, uno scorrimento verso il basso o un tocco sulla ma
 Velorki decide in base al **centro della mappa**, non alla tua connessione. Ogni riquadro di routing scaricato porta con sé un indice di ricerca della sua area.
 
 - **Centro della mappa su un'area scaricata**: la richiesta viene risolta sul telefono. L'ultima riga della scheda dei risultati, **Cerca online "…"**, esegue lo stesso testo online.
-- **Centro della mappa su un'area non scaricata, con altre aree scaricate**: non si cerca nulla e nulla lascia il telefono finché non scegli. L'elenco mostra un avviso, **Quest'area non è scaricata**, una riga che ne dice il motivo e un pulsante **Scarica** che apre la schermata offline per l'area visibile, con due scelte: **Cerca online "…"** e **Cerca nelle aree scaricate**, che cerca in ogni area scaricata, prima la più vicina alla mappa. La tua scelta vale per i tasti seguenti finché non svuoti la ricerca. I risultati online stanno sotto l'intestazione **Risultati online**, e l'ultima riga, **Mostra risultati offline**, passa alle aree scaricate; i risultati del telefono finiscono con **Cerca online "…"**.
-- **Niente scaricato**: la ricerca va subito online, con l'avviso in alto.
+- **Altrove** (centro della mappa su un'area non scaricata, niente scaricato o nessun centro della mappa): non si cerca nulla e nulla lascia il telefono finché non scegli **Cerca online "…"** o, se hai aree scaricate, **Cerca nelle aree scaricate**, che le cerca tutte, prima la più vicina alla mappa. La tua scelta vale per i tasti seguenti finché non svuoti la ricerca. Con un centro della mappa l'elenco mostra anche un avviso, **Quest'area non è scaricata**, una riga che ne dice il motivo e un pulsante **Scarica** che apre la schermata offline per l'area visibile. I risultati online stanno sotto l'intestazione **Risultati online**, e l'ultima riga, **Mostra risultati offline**, passa alle aree scaricate; i risultati del telefono finiscono con **Cerca online "…"**.
 - **Nessuna ricerca online configurata**: rispondono le aree scaricate.
-- **Nessun centro della mappa**: online.
 
 L'avviso resta visibile mentre scorri l'elenco e, se la ricerca non è riuscita, sta sopra il messaggio di errore, dove conta di più.
 

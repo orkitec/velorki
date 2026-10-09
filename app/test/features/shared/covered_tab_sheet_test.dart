@@ -164,9 +164,7 @@ void main() {
     final collapsed = _sheet(tester).minChildSize;
 
     // The field parks the sheet at its handle while it has focus.
-    await tester.enterText(find.byType(TextField).first, 'munich');
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pumpAndSettle();
+    await searchOnlineFor(tester, 'munich');
     expect(_extent(tester), closeTo(collapsed, 0.001));
     await tester.tap(find.text('Bavaria, Germany'));
     await tester.pumpAndSettle();

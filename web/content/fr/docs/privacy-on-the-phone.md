@@ -36,7 +36,7 @@ Le routage s’effectue sur votre téléphone partout où vous avez les tuiles d
 
 La recherche est traitée sur le téléphone sur une zone téléchargée, et rien de ce que vous tapez ne quitte l’appareil.
 
-Elle passe en ligne lorsque vous touchez **Rechercher « … » en ligne**, ou lorsque rien n’est téléchargé du tout. Sur une zone non téléchargée, alors que d’autres le sont, rien n’est envoyé avant que vous ne choisissiez **Rechercher « … » en ligne** ; **Chercher dans les zones téléchargées** reste sur le téléphone. Ce que vous avez tapé est alors envoyé à Photon, avec une position approximative pour que les résultats proches arrivent en premier.
+Elle ne passe jamais en ligne d’elle-même : rien n’est envoyé tant que vous ne touchez pas **Rechercher « … » en ligne**. Quand rien n’est téléchargé ou que la carte est sur une zone non téléchargée, rien n’est cherché avant ce choix ; **Chercher dans les zones téléchargées** reste sur le téléphone. Ce que vous avez tapé est alors envoyé à Photon, avec une position approximative pour que les résultats proches arrivent en premier.
 
 Les [haltes sur la carte](./stops-on-the-map) sont lues dans l’index sur le téléphone et ne demandent rien.
 

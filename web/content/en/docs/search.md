@@ -4,7 +4,7 @@ description: Find places, streets, house numbers and things like drinking water 
 order: 4
 ---
 
-The search field at the top of the Plan tab finds towns, streets, house numbers and points of interest such as cafés, drinking water and bike shops. Over a downloaded area it answers from the phone, instantly and with no signal; over an area that is not downloaded you choose between an online geocoder and the areas you have downloaded.
+The search field at the top of the Plan tab finds towns, streets, house numbers and points of interest such as cafés, drinking water and bike shops. Over a downloaded area it answers from the phone, instantly and with no signal; everywhere else nothing is searched until you choose between an online geocoder and the areas you have downloaded.
 
 ## How to search
 
@@ -36,10 +36,8 @@ Closing the card (the **X**, a swipe down or a tap on the map) changes nothing a
 Velorki decides by the **map centre**, not by your connection. Each downloaded routing tile brings a search index of its area with it.
 
 - **Map centre over a downloaded area**: the query is answered on the phone. The last row of the result card, **Search online for "…"**, runs the same text online.
-- **Map centre over an area that is not downloaded, while others are**: nothing is searched and nothing leaves the phone until you pick. The list shows a notice, **This area isn't downloaded**, a line saying why and a **Download** button that opens the offline screen for the visible area, with two choices: **Search online for "…"** and **Search downloaded areas**, which searches every downloaded area, nearest to the map first. Your pick holds for the following keystrokes until you clear the search. Online results come under the caption **Online results**, and the last row, **Show offline results**, switches to the downloaded areas; results from the phone end in **Search online for "…"**.
-- **Nothing downloaded at all**: the search goes online straight away, with the notice on top.
+- **Anywhere else** (the map centre is over an area that is not downloaded, nothing is downloaded at all, or there is no map centre): nothing is searched and nothing leaves the phone until you pick **Search online for "…"** or, when you have downloaded areas, **Search downloaded areas**, which searches every one of them, nearest to the map first. Your pick holds for the following keystrokes until you clear the search. With a map centre the list also shows a notice, **This area isn't downloaded**, a line saying why and a **Download** button that opens the offline screen for the visible area. Online results come under the caption **Online results**, and the last row, **Show offline results**, switches to the downloaded areas; results from the phone end in **Search online for "…"**.
 - **No online search configured**: the downloaded areas answer.
-- **No map centre**: online.
 
 The notice stays visible while you scroll the list, and when the search failed it sits above the error message, which is where it matters most.
 

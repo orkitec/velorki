@@ -4,7 +4,7 @@ description: Encuentra lugares, calles, números de portal y cosas como agua pot
 order: 4
 ---
 
-El campo de búsqueda en la parte superior de la pestaña Planificar encuentra pueblos, calles, números de portal y puntos de interés como cafeterías, agua potable y tiendas de bicis. Sobre una zona descargada responde desde el teléfono, al instante y sin cobertura; sobre una zona sin descargar eliges entre un geocodificador en línea y las zonas que has descargado.
+El campo de búsqueda en la parte superior de la pestaña Planificar encuentra pueblos, calles, números de portal y puntos de interés como cafeterías, agua potable y tiendas de bicis. Sobre una zona descargada responde desde el teléfono, al instante y sin cobertura; en cualquier otro caso no se busca nada hasta que eliges entre un geocodificador en línea y las zonas que has descargado.
 
 ## Cómo buscar
 
@@ -36,10 +36,8 @@ Cerrar la ficha (la **X**, deslizar hacia abajo o tocar el mapa) no cambia nada 
 Velorki decide por el **centro del mapa**, no por tu conexión. Cada tesela de rutas descargada trae consigo un índice de búsqueda de su zona.
 
 - **Centro del mapa sobre una zona descargada**: la consulta se responde en el teléfono. La última fila de la ficha de resultados, **Buscar «…» en línea**, lanza el mismo texto en línea.
-- **Centro del mapa sobre una zona sin descargar, habiendo otras descargadas**: no se busca nada y nada sale del teléfono hasta que elijas. La lista muestra un aviso, **Esta zona no está descargada**, una línea con el motivo y un botón **Descargar** que abre la pantalla sin conexión para la zona visible, con dos opciones: **Buscar «…» en línea** y **Buscar en las zonas descargadas**, que recorre todas las zonas descargadas, la más cercana al mapa primero. Tu elección vale para las pulsaciones siguientes hasta que borres la búsqueda. Los resultados en línea van bajo el rótulo **Resultados en línea**, y la última fila, **Mostrar resultados sin conexión**, cambia a las zonas descargadas; los resultados del teléfono terminan en **Buscar «…» en línea**.
-- **Nada descargado**: la búsqueda va en línea de inmediato, con el aviso arriba.
+- **En cualquier otro caso** (centro del mapa sobre una zona sin descargar, nada descargado o sin centro del mapa): no se busca nada y nada sale del teléfono hasta que elijas **Buscar «…» en línea** o, si tienes zonas descargadas, **Buscar en las zonas descargadas**, que recorre todas, la más cercana al mapa primero. Tu elección vale para las pulsaciones siguientes hasta que borres la búsqueda. Con un centro del mapa, la lista muestra además un aviso, **Esta zona no está descargada**, una línea con el motivo y un botón **Descargar** que abre la pantalla sin conexión para la zona visible. Los resultados en línea van bajo el rótulo **Resultados en línea**, y la última fila, **Mostrar resultados sin conexión**, cambia a las zonas descargadas; los resultados del teléfono terminan en **Buscar «…» en línea**.
 - **Sin búsqueda en línea configurada**: responden las zonas descargadas.
-- **Sin centro del mapa**: en línea.
 
 El aviso sigue visible mientras desplazas la lista y, si la búsqueda falló, queda sobre el mensaje de error, que es donde más importa.
 

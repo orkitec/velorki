@@ -10,6 +10,7 @@ import 'package:velorki/features/shared/presentation/adaptive_docking_sheet.dart
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 
 import '../features/recording/support/pump.dart';
+import '../support/app.dart';
 
 /// The phone upright and sideways, in points, as an iPhone 17 Pro has it.
 const Size _upright = Size(402, 874);
@@ -191,6 +192,7 @@ void main() {
     await _turn(tester, from, announce: false);
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
+    await pickOnlineSearch(tester, 'munich');
     _expectListUnderField(tester, from);
 
     await _turn(tester, to);
@@ -237,9 +239,7 @@ void main() {
       expectTextFits: false,
     );
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'munich');
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.pumpAndSettle();
+    await searchOnlineFor(tester, 'munich');
     for (final way in <_Way>[RailSide.left, RailSide.right, null]) {
       await _turn(tester, way, keyboard: false);
       expect(_fieldText(tester), 'munich');

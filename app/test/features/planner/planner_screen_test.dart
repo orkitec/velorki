@@ -293,9 +293,7 @@ void main() {
   ) async {
     final h = await pumpScreen(tester, const PlannerScreen());
 
-    await tester.enterText(find.byType(TextField).first, 'munich');
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pumpAndSettle();
+    await searchOnlineFor(tester, 'munich');
 
     expect(find.text('Munich'), findsWidgets);
     await tester.tap(find.text('Bavaria, Germany'));
@@ -713,9 +711,7 @@ void main() {
       ],
     );
 
-    await tester.enterText(find.byType(TextField).first, 'munich');
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pumpAndSettle();
+    await searchOnlineFor(tester, 'munich');
     await tester.tap(find.text('Bavaria, Germany'));
     await tester.pumpAndSettle();
 
@@ -737,9 +733,7 @@ void main() {
     final h = await pumpScreen(tester, const PlannerScreen());
     TextField field() => tester.widget<TextField>(find.byType(TextField).first);
     Future<void> pick() async {
-      await tester.enterText(find.byType(TextField).first, 'munich');
-      await tester.pump(const Duration(milliseconds: 300));
-      await tester.pumpAndSettle();
+      await searchOnlineFor(tester, 'munich');
       await tester.tap(find.text('Bavaria, Germany'));
       await tester.pumpAndSettle();
       expect(find.byType(PlaceCard), findsOneWidget);
@@ -948,9 +942,7 @@ void main() {
     final h = await pumpScreen(tester, const PlannerScreen());
     await _plotRoute(tester, h);
 
-    await tester.enterText(find.byType(TextField).first, 'munich');
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pumpAndSettle();
+    await searchOnlineFor(tester, 'munich');
     await tester.tap(find.text('Bavaria, Germany'));
     await tester.pumpAndSettle();
     expect(find.text(l10n.placeCardAddStop), findsOneWidget);

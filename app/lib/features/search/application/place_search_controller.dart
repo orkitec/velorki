@@ -56,8 +56,8 @@ class PlaceSearchState {
   final bool offlineAvailableHere;
 
   /// Whether nothing was searched yet because the area under the map centre
-  /// is not downloaded while other areas are: the list asks whether to
-  /// search online or the downloaded areas, and sends nothing off the phone
+  /// is not downloaded: the list asks whether to search online, or the
+  /// downloaded areas where there are any, and sends nothing off the phone
   /// until the rider says.
   final bool choosingSource;
 
@@ -99,11 +99,11 @@ class PlaceSearchState {
 /// device happens to hold: a rider looking at a region whose `<TILE>.gaz`
 /// gazetteer is downloaded searches it — instant, free and working with no
 /// signal — with Photon one tap away as the last row of the list
-/// ([searchOnline]). Over an area that is not downloaded, a device with other
-/// areas asks first: online, or the downloaded areas ([searchOffline]); the
-/// pick holds until the search is cleared. A device with nothing downloaded
-/// goes straight to Photon. Either way the list offers the download for the
-/// area on screen.
+/// ([searchOnline]). Anywhere else nothing is searched before the rider
+/// picks: online, or, where any are downloaded, the downloaded areas
+/// ([searchOffline]); the pick holds until the search is cleared. The search
+/// never goes online by itself. The list offers the download for the area
+/// on screen.
 ///
 /// Debounced, never fired below [searchMinChars] characters, and every
 /// keystroke cancels the request that is still in flight.
@@ -273,25 +273,24 @@ class PlaceSearch extends _$PlaceSearch {
       await _searchLocal(store, text, near: bias, keywords: keywords);
       return;
     }
-    // Not downloaded here, but somewhere: the device can answer too, so
-    // nothing goes online until the rider says so, and with no online
-    // search the device is the answer.
-    if (store != null && bias != null && _anyDownloaded) {
-      if (_online == false || !_hasGeocoder) {
-        await _searchLocal(store, text, near: bias, keywords: keywords);
-        return;
-      }
-      if (_online == null) {
-        state = AsyncData<PlaceSearchState>(
-          PlaceSearchState(
-            query: text,
-            canSearchOnline: true,
-            offlineAvailableHere: true,
-            choosingSource: true,
-          ),
-        );
-        return;
-      }
+    // Not downloaded here: nothing goes online until the rider says so.
+    // The downloaded areas answer once picked, or by themselves where
+    // there is no online search to offer.
+    final downloaded = store != null && _anyDownloaded;
+    if (downloaded && (_online == false || !_hasGeocoder)) {
+      await _searchLocal(store, text, near: bias, keywords: keywords);
+      return;
+    }
+    if (_online != true && _hasGeocoder) {
+      state = AsyncData<PlaceSearchState>(
+        PlaceSearchState(
+          query: text,
+          canSearchOnline: true,
+          offlineAvailableHere: downloaded,
+          choosingSource: true,
+        ),
+      );
+      return;
     }
     await _searchOnline(text, lang: lang, bias: bias);
   }

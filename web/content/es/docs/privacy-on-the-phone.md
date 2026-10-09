@@ -36,7 +36,7 @@ El cálculo de rutas se hace en tu teléfono allí donde tengas las teselas de r
 
 La búsqueda se responde en el teléfono sobre una zona descargada, y nada de lo que escribes sale del dispositivo.
 
-Se hace en línea cuando tocas **Buscar «…» en línea**, o cuando no hay nada descargado. Sobre una zona sin descargar, habiendo otras descargadas, no se envía nada hasta que eliges **Buscar «…» en línea**; **Buscar en las zonas descargadas** se queda en el teléfono. Entonces lo que escribiste va a Photon, junto con una posición aproximada para que los resultados cercanos salgan primero.
+Nunca se hace en línea por sí sola: no se envía nada si no tocas **Buscar «…» en línea**. Si no hay nada descargado o el mapa está sobre una zona sin descargar, no se busca nada hasta que lo eliges; **Buscar en las zonas descargadas** se queda en el teléfono. Entonces lo que escribiste va a Photon, junto con una posición aproximada para que los resultados cercanos salgan primero.
 
 Las [paradas en el mapa](./stops-on-the-map) se leen del índice del teléfono y no piden nada.
 

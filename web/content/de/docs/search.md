@@ -4,7 +4,7 @@ description: Orte, Straßen, Hausnummern und Dinge wie Trinkwasser oder Toilette
 order: 4
 ---
 
-Das Suchfeld oben im Tab Planen findet Städte, Straßen, Hausnummern und Ziele wie Cafés, Trinkwasser und Fahrradläden. Über einem heruntergeladenen Gebiet antwortet es vom Handy, sofort und ohne Empfang; über einem nicht heruntergeladenen Gebiet wählst du zwischen einem Online-Geocoder und den Gebieten, die du heruntergeladen hast.
+Das Suchfeld oben im Tab Planen findet Städte, Straßen, Hausnummern und Ziele wie Cafés, Trinkwasser und Fahrradläden. Über einem heruntergeladenen Gebiet antwortet es vom Handy, sofort und ohne Empfang; überall sonst wird nichts gesucht, bis du zwischen einem Online-Geocoder und den Gebieten, die du heruntergeladen hast, wählst.
 
 ## So suchst du
 
@@ -36,10 +36,8 @@ Die Ortskarte zu schließen (das **X**, nach unten wischen oder auf die Karte ti
 Velorki entscheidet nach der **Kartenmitte**, nicht nach deiner Verbindung. Jede heruntergeladene Routing-Kachel bringt einen Suchindex ihres Gebiets mit.
 
 - **Kartenmitte über einem heruntergeladenen Gebiet**: Die Anfrage wird auf dem Handy beantwortet. Die letzte Zeile der Ergebniskarte, **Online nach „…“ suchen**, sucht denselben Text online.
-- **Kartenmitte über einem nicht heruntergeladenen Gebiet, während andere heruntergeladen sind**: Es wird nichts gesucht und nichts verlässt das Handy, bis du wählst. Die Liste zeigt einen Hinweis, **Dieses Gebiet ist nicht heruntergeladen**, eine Zeile mit dem Grund und die Schaltfläche **Herunterladen**, die den Offline-Bildschirm für das sichtbare Gebiet öffnet, dazu zwei Möglichkeiten: **Online nach „…“ suchen** und **In heruntergeladenen Gebieten suchen**, was jedes heruntergeladene Gebiet durchsucht, das der Karte nächste zuerst. Deine Wahl gilt für die folgenden Tastendrücke, bis du die Suche leerst. Online-Ergebnisse stehen unter der Überschrift **Online-Ergebnisse**, und die letzte Zeile, **Offline-Ergebnisse anzeigen**, wechselt zu den heruntergeladenen Gebieten; Ergebnisse vom Handy enden mit **Online nach „…“ suchen**.
-- **Gar nichts heruntergeladen**: Die Suche geht gleich online, mit dem Hinweis oben.
+- **Überall sonst** (Kartenmitte über einem nicht heruntergeladenen Gebiet, gar nichts heruntergeladen oder keine Kartenmitte): Es wird nichts gesucht und nichts verlässt das Handy, bis du **Online nach „…“ suchen** oder, wenn du Gebiete heruntergeladen hast, **In heruntergeladenen Gebieten suchen** wählst; das durchsucht jedes davon, das der Karte nächste zuerst. Deine Wahl gilt für die folgenden Tastendrücke, bis du die Suche leerst. Mit einer Kartenmitte zeigt die Liste außerdem einen Hinweis, **Dieses Gebiet ist nicht heruntergeladen**, eine Zeile mit dem Grund und die Schaltfläche **Herunterladen**, die den Offline-Bildschirm für das sichtbare Gebiet öffnet. Online-Ergebnisse stehen unter der Überschrift **Online-Ergebnisse**, und die letzte Zeile, **Offline-Ergebnisse anzeigen**, wechselt zu den heruntergeladenen Gebieten; Ergebnisse vom Handy enden mit **Online nach „…“ suchen**.
 - **Keine Online-Suche eingerichtet**: Die heruntergeladenen Gebiete antworten.
-- **Keine Kartenmitte**: online.
 
 Der Hinweis bleibt beim Scrollen durch die Liste sichtbar, und ist die Suche fehlgeschlagen, steht er über der Fehlermeldung, wo er am meisten zählt.
 

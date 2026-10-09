@@ -188,7 +188,9 @@ void main() {
     expect(_activeTab(tester), plannerRoute);
     expect(find.widgetWithText(TextField, 'munich'), findsOneWidget);
     expect(h.map.searchPin, isNull);
-    // The search ran and offers what it found, as if the rider had typed it.
+    // The search runs as if the rider had typed it: asked where, online,
+    // it offers what it found.
+    await pickOnlineSearch(tester, 'munich');
     await tester.tap(find.text('Bavaria, Germany'));
     await tester.pumpAndSettle();
     expect(h.map.searchPin, const LatLng(48.1374, 11.5755));

@@ -4,7 +4,7 @@ description: "Trouvez des lieux, des rues, des numéros de rue et des choses com
 order: 4
 ---
 
-Le champ de recherche en haut de l’onglet Planifier trouve des villes, des rues, des numéros de rue et des points d’intérêt comme les cafés, l’eau potable et les magasins de vélos. Sur une zone téléchargée, il répond depuis le téléphone, instantanément et sans réseau ; sur une zone non téléchargée, vous choisissez entre un géocodeur en ligne et les zones que vous avez téléchargées.
+Le champ de recherche en haut de l’onglet Planifier trouve des villes, des rues, des numéros de rue et des points d’intérêt comme les cafés, l’eau potable et les magasins de vélos. Sur une zone téléchargée, il répond depuis le téléphone, instantanément et sans réseau ; partout ailleurs, rien n’est cherché avant que vous ne choisissiez entre un géocodeur en ligne et les zones que vous avez téléchargées.
 
 ## Comment chercher
 
@@ -36,10 +36,8 @@ Fermer la fiche (le **X**, un balayage vers le bas ou un toucher sur la carte) n
 Velorki décide d’après le **centre de la carte**, et non d’après votre connexion. Chaque tuile de routage téléchargée apporte avec elle un index de recherche de sa zone.
 
 - **Centre de la carte sur une zone téléchargée** : la requête est traitée sur le téléphone. La dernière ligne de la fiche de résultats, **Rechercher « … » en ligne**, relance le même texte en ligne.
-- **Centre de la carte sur une zone non téléchargée, alors que d’autres le sont** : rien n’est cherché et rien ne quitte le téléphone avant que vous ne choisissiez. La liste affiche un avis, **Cette zone n’est pas téléchargée**, une ligne qui en dit la raison et un bouton **Télécharger** qui ouvre l’écran hors ligne pour la zone visible, avec deux choix : **Rechercher « … » en ligne** et **Chercher dans les zones téléchargées**, qui parcourt toutes les zones téléchargées, la plus proche de la carte d’abord. Votre choix vaut pour les frappes suivantes, jusqu’à ce que vous effaciez la recherche. Les résultats en ligne viennent sous l’intitulé **Résultats en ligne**, et la dernière ligne, **Afficher les résultats hors ligne**, bascule vers les zones téléchargées ; les résultats du téléphone se terminent par **Rechercher « … » en ligne**.
-- **Rien de téléchargé du tout** : la recherche part tout de suite en ligne, avec l’avis en haut.
+- **Partout ailleurs** (centre de la carte sur une zone non téléchargée, rien de téléchargé du tout, ou pas de centre de carte) : rien n’est cherché et rien ne quitte le téléphone avant que vous ne choisissiez **Rechercher « … » en ligne** ou, si vous avez des zones téléchargées, **Chercher dans les zones téléchargées**, qui les parcourt toutes, la plus proche de la carte d’abord. Votre choix vaut pour les frappes suivantes, jusqu’à ce que vous effaciez la recherche. Avec un centre de carte, la liste affiche aussi un avis, **Cette zone n’est pas téléchargée**, une ligne qui en dit la raison et un bouton **Télécharger** qui ouvre l’écran hors ligne pour la zone visible. Les résultats en ligne viennent sous l’intitulé **Résultats en ligne**, et la dernière ligne, **Afficher les résultats hors ligne**, bascule vers les zones téléchargées ; les résultats du téléphone se terminent par **Rechercher « … » en ligne**.
 - **Aucune recherche en ligne configurée** : les zones téléchargées répondent.
-- **Pas de centre de carte** : en ligne.
 
 L’avis reste visible pendant que vous faites défiler la liste et, si la recherche a échoué, il se place au-dessus du message d’erreur, ce qui est là où il compte le plus.
 

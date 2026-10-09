@@ -130,3 +130,25 @@ Future<void> tapBack(WidgetTester tester) async {
   await tester.tap(find.byType(BackButton).first);
   await tester.pumpAndSettle();
 }
+
+/// Picks the online search the result list offers for [text] once the field
+/// has been typed into: over an area that is not downloaded the search asks
+/// before anything leaves the phone.
+Future<void> pickOnlineSearch(WidgetTester tester, String text) async {
+  await tester.tap(find.text(l10n.searchOnlineFor(text)));
+  await tester.pumpAndSettle();
+}
+
+/// Types [text] into [field] (the first text field unless given), waits out
+/// the debounce and picks the online search, as a rider looking at an area
+/// that is not downloaded does.
+Future<void> searchOnlineFor(
+  WidgetTester tester,
+  String text, {
+  Finder? field,
+}) async {
+  await tester.enterText(field ?? find.byType(TextField).first, text);
+  await tester.pump(const Duration(milliseconds: 400));
+  await tester.pumpAndSettle();
+  await pickOnlineSearch(tester, text);
+}
