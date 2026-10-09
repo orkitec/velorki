@@ -856,6 +856,7 @@
   "mapCyclePartInfrastructure": "Carriles bici",
   "mapCyclePartPaths": "Sendas compartidas",
   "mapCyclePartContraflow": "Doble sentido bici",
+  "mapCyclePartDirections": "Flechas de sentido único",
   "mapCyclePartRoutesNational": "Rutas nacionales",
   "mapCyclePartRoutesRegional": "Rutas regionales",
   "mapCyclePartRoutesLocal": "Rutas locales",

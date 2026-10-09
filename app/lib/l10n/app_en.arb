@@ -4427,6 +4427,10 @@
   "@mapCyclePartContraflow": {
     "description": "Chip: one-way streets bikes may ride both ways."
   },
+  "mapCyclePartDirections": "One-way arrows",
+  "@mapCyclePartDirections": {
+    "description": "Chip in the cycle map's parts: chevrons showing which way to ride on one-way cycleways, tracks and lanes."
+  },
   "mapCyclePartRoutesNational": "National routes",
   "@mapCyclePartRoutesNational": {
     "description": "Chip: international and national signed cycle routes."

@@ -2096,14 +2096,12 @@ class MaplibreMapControllerAdapter implements MapController {
     try {
       final images = <String, Uint8List>{
         CycleMapLayers.arrowImage: await buildChevronImage(
-          fill: colorFromMapHex(colors.arrow),
-          rim: colorFromMapHex(colors.arrowRim),
+          color: colorFromMapHex(colors.infrastructure),
           devicePixelRatio: devicePixelRatio,
         ),
         CycleMapLayers.contraflowImage: await buildContraflowImage(
           traffic: colorFromMapHex(colors.trafficArrow),
           bikes: colorFromMapHex(colors.infrastructure),
-          rim: colorFromMapHex(colors.arrow),
           devicePixelRatio: devicePixelRatio,
         ),
       };

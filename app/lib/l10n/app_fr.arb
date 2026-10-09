@@ -856,6 +856,7 @@
   "mapCyclePartInfrastructure": "Pistes & bandes",
   "mapCyclePartPaths": "Voies partagées",
   "mapCyclePartContraflow": "Double sens cyclable",
+  "mapCyclePartDirections": "Flèches de sens unique",
   "mapCyclePartRoutesNational": "Itinéraires nationaux",
   "mapCyclePartRoutesRegional": "Itinéraires régionaux",
   "mapCyclePartRoutesLocal": "Itinéraires locaux",

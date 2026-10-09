@@ -34,8 +34,6 @@ class CycleMapColors {
     required this.noBikes,
     required this.barrier,
     required this.barrierCarry,
-    required this.arrow,
-    required this.arrowRim,
     required this.trafficArrow,
     required this.outline,
   });
@@ -65,8 +63,6 @@ class CycleMapColors {
     noBikes: '#9E9E9E',
     barrier: '#37474F',
     barrierCarry: '#C62828',
-    arrow: '#FFFFFF',
-    arrowRim: '#0D3C78',
     trafficArrow: '#9E9E9E',
     outline: '#FFFFFF',
   );
@@ -96,8 +92,6 @@ class CycleMapColors {
     noBikes: '#757575',
     barrier: '#ECEFF1',
     barrierCarry: '#EF5350',
-    arrow: '#FFFFFF',
-    arrowRim: '#0D3C78',
     trafficArrow: '#9E9E9E',
     outline: '#101418',
   );
@@ -149,10 +143,6 @@ class CycleMapColors {
   final String barrier;
   final String barrierCarry;
 
-  /// The chevrons showing which way to ride, on the line, and their rim.
-  final String arrow;
-  final String arrowRim;
-
   /// The arrow of the cars' way on a contraflow street.
   final String trafficArrow;
 
@@ -183,7 +173,6 @@ class CycleMapColors {
     noBikes,
     barrier,
     barrierCarry,
-    arrow,
     trafficArrow,
     outline,
   ];
@@ -242,9 +231,10 @@ class CycleMapLayers {
   final CycleMapColors colors;
 
   /// The style images the layers draw: the chevron on a line ridden one
-  /// way (a cycleway, or a track or lane beside a road), and the two
-  /// chevrons of a contraflow street (the traffic's way, and the bikes'
-  /// against it).
+  /// way (a cycleway, or a track or lane beside a road), in the line's own
+  /// colour, wider than the line so its shape shows; and the two chevrons
+  /// of a contraflow street (the traffic's way, and the bikes' against
+  /// it).
   static const String arrowImage = 'velorki-cycle-arrow';
   static const String contraflowImage = 'velorki-cycle-contraflow';
 
@@ -277,7 +267,7 @@ class CycleMapLayers {
   ];
 
   /// The size of the side arrows, against their bitmap.
-  static const double _sideArrowSize = 1.25;
+  static const double _sideArrowSize = 1.0;
 
   static List<Object> _byZoom(List<double> stops) => <Object>[
     'interpolate',
@@ -408,7 +398,7 @@ class CycleMapLayers {
 
     return CycleMapLayer(
       name: 'side-arrows-${side == Side.left ? 'left' : 'right'}',
-      part: CycleMapPart.infrastructure,
+      part: CycleMapPart.directions,
       minZoom: 15.5,
       filter: _any(<Object>[
         _is(key, Direction.forward),
@@ -741,7 +731,7 @@ class CycleMapLayers {
     ),
     CycleMapLayer(
       name: 'oneway-arrows',
-      part: CycleMapPart.infrastructure,
+      part: CycleMapPart.directions,
       minZoom: 15,
       filter: _all(<Object>[
         _has('o'),
@@ -753,7 +743,7 @@ class CycleMapLayers {
       ]),
       properties: _arrows(
         image: arrowImage,
-        size: _byZoom(<double>[15, 1.0, 16, 1.25, 18, 1.6]),
+        size: _byZoom(<double>[15, 0.8, 16, 1.0, 18, 1.3]),
         spacing: 60,
       ),
     ),

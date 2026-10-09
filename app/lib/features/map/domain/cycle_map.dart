@@ -13,6 +13,9 @@ enum CycleMapPart {
   /// One-ways open to bikes both ways.
   contraflow,
 
+  /// Chevrons on cycleways, tracks and lanes ridden one way.
+  directions,
+
   /// International and national cycle routes.
   routesNational,
 
@@ -41,6 +44,7 @@ const Set<CycleMapPart> defaultCycleMapParts = <CycleMapPart>{
   CycleMapPart.infrastructure,
   CycleMapPart.paths,
   CycleMapPart.contraflow,
+  CycleMapPart.directions,
   CycleMapPart.routesNational,
   CycleMapPart.routesRegional,
   CycleMapPart.routesLocal,
@@ -59,6 +63,8 @@ int cycleContentOf(Set<CycleMapPart> parts) {
       CycleMapPart.infrastructure => CycleContent.infrastructure,
       CycleMapPart.paths => CycleContent.paths,
       CycleMapPart.contraflow => CycleContent.contraflow,
+      // The chevrons draw on lines the other parts bring.
+      CycleMapPart.directions => 0,
       CycleMapPart.routesNational => CycleContent.routesNational,
       CycleMapPart.routesRegional => CycleContent.routesRegional,
       CycleMapPart.routesLocal => CycleContent.routesLocal,

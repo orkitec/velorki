@@ -7,40 +7,37 @@ import 'dart:ui' as ui;
 // drawn, to the right in the bitmap.
 
 /// A bold chevron pointing along the line, [size] logical pixels square,
-/// in [fill] with a rim of [rim], as PNG bytes at [devicePixelRatio]: it
-/// reads on a thin line, which a small arrow inside it did not.
+/// in [color], as PNG bytes at [devicePixelRatio].
 Future<Uint8List> buildChevronImage({
-  required ui.Color fill,
-  required ui.Color rim,
+  required ui.Color color,
   required double devicePixelRatio,
   double size = 14,
 }) => _png(ui.Size(size, size), devicePixelRatio, (canvas) {
-  _chevron(canvas, ui.Offset(size / 2, size / 2), size * 0.62, fill, rim);
+  _chevron(canvas, ui.Offset(size / 2, size / 2), size * 0.62, color);
 });
 
-/// A chevron ">" centred on [centre], [extent] wide and high, its stroke
-/// drawn twice: the rim, then the fill on it.
+/// A chevron ">" centred on [centre], [extent] wide and high, as one round
+/// stroke in [color].
 void _chevron(
   ui.Canvas canvas,
   ui.Offset centre,
   double extent,
-  ui.Color fill,
-  ui.Color rim,
+  ui.Color color,
 ) {
   final h = extent / 2;
   final path = ui.Path()
     ..moveTo(centre.dx - h * 0.55, centre.dy - h)
     ..lineTo(centre.dx + h * 0.55, centre.dy)
     ..lineTo(centre.dx - h * 0.55, centre.dy + h);
-  ui.Paint stroke(ui.Color color, double width) => ui.Paint()
-    ..color = color
-    ..style = ui.PaintingStyle.stroke
-    ..strokeWidth = width
-    ..strokeCap = ui.StrokeCap.round
-    ..strokeJoin = ui.StrokeJoin.round;
-  canvas
-    ..drawPath(path, stroke(rim, extent * 0.42))
-    ..drawPath(path, stroke(fill, extent * 0.2));
+  canvas.drawPath(
+    path,
+    ui.Paint()
+      ..color = color
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = extent * 0.32
+      ..strokeCap = ui.StrokeCap.round
+      ..strokeJoin = ui.StrokeJoin.round,
+  );
 }
 
 /// The two chevrons of a street one-way for traffic and two-way for bikes,
@@ -49,15 +46,14 @@ void _chevron(
 Future<Uint8List> buildContraflowImage({
   required ui.Color traffic,
   required ui.Color bikes,
-  required ui.Color rim,
   required double devicePixelRatio,
 }) => _png(const ui.Size(24, 24), devicePixelRatio, (canvas) {
-  _chevron(canvas, const ui.Offset(12, 7), 10, traffic, rim);
+  _chevron(canvas, const ui.Offset(12, 7), 10, traffic);
   canvas
     ..save()
     ..translate(24, 24)
     ..rotate(math.pi);
-  _chevron(canvas, const ui.Offset(12, 7), 10, bikes, rim);
+  _chevron(canvas, const ui.Offset(12, 7), 10, bikes);
   canvas.restore();
 });
 

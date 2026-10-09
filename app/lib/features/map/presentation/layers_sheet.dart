@@ -252,6 +252,7 @@ String cycleMapPartLabel(AppLocalizations l10n, CycleMapPart part) =>
       CycleMapPart.infrastructure => l10n.mapCyclePartInfrastructure,
       CycleMapPart.paths => l10n.mapCyclePartPaths,
       CycleMapPart.contraflow => l10n.mapCyclePartContraflow,
+      CycleMapPart.directions => l10n.mapCyclePartDirections,
       CycleMapPart.routesNational => l10n.mapCyclePartRoutesNational,
       CycleMapPart.routesRegional => l10n.mapCyclePartRoutesRegional,
       CycleMapPart.routesLocal => l10n.mapCyclePartRoutesLocal,
@@ -341,6 +342,20 @@ class _SamplePainter extends CustomPainter {
               ..close(),
             arrow,
           );
+      case CycleMapPart.directions:
+        stroke(colors.infrastructure, 2);
+        canvas.drawPath(
+          Path()
+            ..moveTo(size.width / 2 - 3, y - 5)
+            ..lineTo(size.width / 2 + 3, y)
+            ..lineTo(size.width / 2 - 3, y + 5),
+          Paint()
+            ..color = _hex(colors.infrastructure)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.6
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round,
+        );
       case CycleMapPart.routesNational:
         stroke(colors.routeNational, 7);
       case CycleMapPart.routesRegional:

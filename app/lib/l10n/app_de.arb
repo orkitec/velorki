@@ -856,6 +856,7 @@
   "mapCyclePartInfrastructure": "Radwege & -streifen",
   "mapCyclePartPaths": "Gemeinsame Wege",
   "mapCyclePartContraflow": "Gegenverkehr frei",
+  "mapCyclePartDirections": "Einbahn-Pfeile",
   "mapCyclePartRoutesNational": "Fernrouten",
   "mapCyclePartRoutesRegional": "Regionale Routen",
   "mapCyclePartRoutesLocal": "Lokale Routen",

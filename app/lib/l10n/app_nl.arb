@@ -856,6 +856,7 @@
   "mapCyclePartInfrastructure": "Fietspaden & -stroken",
   "mapCyclePartPaths": "Gedeelde paden",
   "mapCyclePartContraflow": "Tweerichting fiets",
+  "mapCyclePartDirections": "Eenrichtingspijlen",
   "mapCyclePartRoutesNational": "Landelijke routes",
   "mapCyclePartRoutesRegional": "Regionale routes",
   "mapCyclePartRoutesLocal": "Lokale routes",
