@@ -56,7 +56,9 @@
       "offline": "Download offline: regioni di mappa e di calcolo percorso sul telefono con dimensione e stato.",
       "settings": "Opzioni: la sezione Aspetto con il selettore chiaro, scuro e sistema e i cinque accenti.",
       "assistant": "L'assistente nella scheda Pianifica: la richiesta di un anello gravel di 40 km con sosta al caffè, ciò che ha capito e l'anello calcolato sulla mappa.",
-      "paywall": "La pagina Velorki Plus come la vede un abbonato: le quattro funzioni incluse e l'abbonamento attivo."
+      "paywall": "La pagina Velorki Plus come la vede un abbonato: le quattro funzioni incluse e l'abbonamento attivo.",
+      "cyclemap": "La mappa ciclabile a Chelsea, New York: la Hudson River Greenway, corsie protette sulle avenue, itinerari locali, frecce di senso unico e soste per caffè e fontanelle sulla mappa.",
+      "layers": "Il pannello Livelli: la mappa ciclabile attiva con un chip per ogni elemento, la mappa ciclabile online e le soste con i loro tipi."
     }
   },
   "home": {
@@ -174,6 +176,39 @@
           "three": "Strava, Ride with GPS e link di condivisione con Plus"
         }
       }
+    },
+    "cycleMap": {
+      "eyebrow": "Mappa ciclabile",
+      "title": "La mappa ciclabile",
+      "lead": "Piste ciclabili, itinerari e frecce di senso unico disegnati sulla mappa dai dati che hai già scaricato per il calcolo dei percorsi. Funziona senza alcuna connessione e compare ingrandendo.",
+      "partsTitle": "Cosa disegna",
+      "parts": {
+        "infrastructure": "Piste & corsie",
+        "paths": "Percorsi condivisi",
+        "contraflow": "Doppio senso bici",
+        "directions": "Frecce senso unico",
+        "onewayStreets": "Strade a senso unico",
+        "routesNational": "Itinerari nazionali",
+        "routesRegional": "Itinerari regionali",
+        "routesLocal": "Itinerari locali",
+        "surface": "Sterrato & sconnesso",
+        "barriers": "Barriere & scale",
+        "traffic": "Strade tranquille",
+        "mtb": "MTB",
+        "climbs": "Salite"
+      },
+      "partsNote": "Ogni elemento si attiva e si disattiva da solo, nel pannello Livelli della mappa. Lì i chip fanno da legenda: ognuno mostra la sua linea.",
+      "stopsTitle": "Soste sulla mappa",
+      "stopsBody": "Per cominciare caffè, fontanelle, panetterie, bagni e stazioni di riparazione, dagli stessi dati scaricati. Scegli qualsiasi altro tipo da questi gruppi, e tocca una sosta per pianificare fin lì.",
+      "stopGroups": {
+        "cyclingStops": "Soste in bici",
+        "overnight": "Pernottamento",
+        "landmarks": "Punti di riferimento"
+      },
+      "onlineTitle": "Mappa ciclabile online",
+      "onlineBody": "La mappa di CyclOSM è l'alternativa quando c'è campo: aggiunge negozi e parcheggi per bici, e richiede una connessione.",
+      "offline": "Offline dalle aree scaricate: nessun download in più, nessun server.",
+      "docsLink": "Come funzionano i livelli della mappa"
     },
     "plus": {
       "eyebrow": "Velorki Plus",

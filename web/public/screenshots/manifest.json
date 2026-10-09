@@ -94,6 +94,18 @@
           "title": "Velorki Plus as a subscriber sees it",
           "file": "en/light-volt/paywall.png",
           "bytes": 321104
+        },
+        {
+          "screen": "cyclemap",
+          "title": "The offline cycle map and stops in Chelsea, New York",
+          "file": "en/light-volt/cyclemap.png",
+          "bytes": 1204029
+        },
+        {
+          "screen": "layers",
+          "title": "The Layers sheet with the cycle map's parts",
+          "file": "en/light-volt/layers.png",
+          "bytes": 319627
         }
       ]
     },
@@ -167,6 +179,18 @@
           "title": "Velorki Plus as a subscriber sees it",
           "file": "en/dark-volt/paywall.png",
           "bytes": 321465
+        },
+        {
+          "screen": "cyclemap",
+          "title": "The offline cycle map and stops in Chelsea, New York",
+          "file": "en/dark-volt/cyclemap.png",
+          "bytes": 682219
+        },
+        {
+          "screen": "layers",
+          "title": "The Layers sheet with the cycle map's parts",
+          "file": "en/dark-volt/layers.png",
+          "bytes": 294388
         }
       ]
     },
@@ -584,6 +608,18 @@
           "title": "Velorki Plus as a subscriber sees it",
           "file": "de/light-volt/paywall.png",
           "bytes": 329898
+        },
+        {
+          "screen": "cyclemap",
+          "title": "The offline cycle map and stops in Chelsea, New York",
+          "file": "de/light-volt/cyclemap.png",
+          "bytes": 1215502
+        },
+        {
+          "screen": "layers",
+          "title": "The Layers sheet with the cycle map's parts",
+          "file": "de/light-volt/layers.png",
+          "bytes": 330571
         }
       ]
     },
@@ -657,6 +693,18 @@
           "title": "Velorki Plus as a subscriber sees it",
           "file": "de/dark-volt/paywall.png",
           "bytes": 331091
+        },
+        {
+          "screen": "cyclemap",
+          "title": "The offline cycle map and stops in Chelsea, New York",
+          "file": "de/dark-volt/cyclemap.png",
+          "bytes": 695445
+        },
+        {
+          "screen": "layers",
+          "title": "The Layers sheet with the cycle map's parts",
+          "file": "de/dark-volt/layers.png",
+          "bytes": 306629
         }
       ]
     },
@@ -730,6 +778,18 @@
           "title": "Velorki Plus as a subscriber sees it",
           "file": "es/light-volt/paywall.png",
           "bytes": 337930
+        },
+        {
+          "screen": "cyclemap",
+          "title": "The offline cycle map and stops in Chelsea, New York",
+          "file": "es/light-volt/cyclemap.png",
+          "bytes": 1212565
+        },
+        {
+          "screen": "layers",
+          "title": "The Layers sheet with the cycle map's parts",
+          "file": "es/light-volt/layers.png",
+          "bytes": 325191
         }
       ]
     },
@@ -803,6 +863,18 @@
           "title": "Velorki Plus as a subscriber sees it",
           "file": "es/dark-volt/paywall.png",
           "bytes": 340255
+        },
+        {
+          "screen": "cyclemap",
+          "title": "The offline cycle map and stops in Chelsea, New York",
+          "file": "es/dark-volt/cyclemap.png",
+          "bytes": 691988
+        },
+        {
+          "screen": "layers",
+          "title": "The Layers sheet with the cycle map's parts",
+          "file": "es/dark-volt/layers.png",
+          "bytes": 300104
         }
       ]
     },
@@ -876,6 +948,18 @@
           "title": "Velorki Plus as a subscriber sees it",
           "file": "fr/light-volt/paywall.png",
           "bytes": 338483
+        },
+        {
+          "screen": "cyclemap",
+          "title": "The offline cycle map and stops in Chelsea, New York",
+          "file": "fr/light-volt/cyclemap.png",
+          "bytes": 1219066
+        },
+        {
+          "screen": "layers",
+          "title": "The Layers sheet with the cycle map's parts",
+          "file": "fr/light-volt/layers.png",
+          "bytes": 307816
         }
       ]
     },
@@ -949,6 +1033,18 @@
           "title": "Velorki Plus as a subscriber sees it",
           "file": "fr/dark-volt/paywall.png",
           "bytes": 339358
+        },
+        {
+          "screen": "cyclemap",
+          "title": "The offline cycle map and stops in Chelsea, New York",
+          "file": "fr/dark-volt/cyclemap.png",
+          "bytes": 697812
+        },
+        {
+          "screen": "layers",
+          "title": "The Layers sheet with the cycle map's parts",
+          "file": "fr/dark-volt/layers.png",
+          "bytes": 283589
         }
       ]
     },
@@ -1022,6 +1118,18 @@
           "title": "Velorki Plus as a subscriber sees it",
           "file": "it/light-volt/paywall.png",
           "bytes": 334985
+        },
+        {
+          "screen": "cyclemap",
+          "title": "The offline cycle map and stops in Chelsea, New York",
+          "file": "it/light-volt/cyclemap.png",
+          "bytes": 1224084
+        },
+        {
+          "screen": "layers",
+          "title": "The Layers sheet with the cycle map's parts",
+          "file": "it/light-volt/layers.png",
+          "bytes": 330785
         }
       ]
     },
@@ -1095,6 +1203,18 @@
           "title": "Velorki Plus as a subscriber sees it",
           "file": "it/dark-volt/paywall.png",
           "bytes": 335638
+        },
+        {
+          "screen": "cyclemap",
+          "title": "The offline cycle map and stops in Chelsea, New York",
+          "file": "it/dark-volt/cyclemap.png",
+          "bytes": 703290
+        },
+        {
+          "screen": "layers",
+          "title": "The Layers sheet with the cycle map's parts",
+          "file": "it/dark-volt/layers.png",
+          "bytes": 306112
         }
       ]
     },
@@ -1168,6 +1288,18 @@
           "title": "Velorki Plus as a subscriber sees it",
           "file": "nl/light-volt/paywall.png",
           "bytes": 330990
+        },
+        {
+          "screen": "cyclemap",
+          "title": "The offline cycle map and stops in Chelsea, New York",
+          "file": "nl/light-volt/cyclemap.png",
+          "bytes": 1214293
+        },
+        {
+          "screen": "layers",
+          "title": "The Layers sheet with the cycle map's parts",
+          "file": "nl/light-volt/layers.png",
+          "bytes": 331366
         }
       ]
     },
@@ -1241,6 +1373,18 @@
           "title": "Velorki Plus as a subscriber sees it",
           "file": "nl/dark-volt/paywall.png",
           "bytes": 332980
+        },
+        {
+          "screen": "cyclemap",
+          "title": "The offline cycle map and stops in Chelsea, New York",
+          "file": "nl/dark-volt/cyclemap.png",
+          "bytes": 693548
+        },
+        {
+          "screen": "layers",
+          "title": "The Layers sheet with the cycle map's parts",
+          "file": "nl/dark-volt/layers.png",
+          "bytes": 306959
         }
       ]
     }

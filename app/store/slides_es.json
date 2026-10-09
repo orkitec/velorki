@@ -12,6 +12,11 @@
     "headline": "Rutas hechas para **tu bici**",
     "subline": "Cicloturismo, carretera, gravel o MTB, con alternativas, altitud y superficies."
   },
+  "cyclemap": {
+    "eyebrow": "Mapa ciclista",
+    "headline": "Carriles bici en el mapa, **incluso sin conexión**",
+    "subline": "Carriles, rutas, flechas de sentido único y más, de los datos que descargaste. Activa o quita cada parte."
+  },
   "navigation": {
     "eyebrow": "Navegación",
     "headline": "Cada giro, **en voz alta**",

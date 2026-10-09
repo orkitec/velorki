@@ -3,10 +3,10 @@
   { "slide": "variants", "layout": "phone", "screen": "variants", "style": "light" },
   { "slide": "navigation", "layout": "whole", "screen": "navigation", "style": "dark" },
   { "slide": "loops", "layout": "phone", "screen": "loop", "style": "light" },
+  { "slide": "cyclemap", "layout": "phone", "screen": "cyclemap", "style": "dark" },
   { "slide": "ai", "layout": "phone", "screen": "ai", "style": "light" },
   { "slide": "ride", "layout": "phone", "screen": "ride", "style": "dark" },
   { "slide": "offline-themes", "layout": "split", "screen": "offline", "style": "split" },
-  { "slide": "import", "layout": "phone", "screen": "import", "style": "dark" },
   { "slide": "lock-screen", "layout": "lock", "screen": "activity", "style": "dark" },
   { "slide": "watch", "layout": "watch", "screen": "live", "style": "light" }
 ]

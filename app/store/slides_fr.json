@@ -12,6 +12,11 @@
     "headline": "Des itinéraires faits pour **votre vélo**",
     "subline": "Randonnée, route, gravel ou VTT, avec variantes, dénivelé et revêtements."
   },
+  "cyclemap": {
+    "eyebrow": "Carte vélo",
+    "headline": "Les pistes sur la carte, **même hors ligne**",
+    "subline": "Pistes, itinéraires, flèches de sens unique et plus, tirés de vos données téléchargées. Chaque élément s'active à part."
+  },
   "navigation": {
     "eyebrow": "Navigation",
     "headline": "Chaque virage, **annoncé à voix haute**",

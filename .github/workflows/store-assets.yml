@@ -163,6 +163,26 @@ jobs:
           dart run build_runner build
           flutter gen-l10n
 
+      # New York's tile and gazetteer for the cycle map shots: the script
+      # fetches them with curl from the tile mirror's current snapshot into
+      # VELORKI_STORE_TILES unless they are there; cached per snapshot.
+      - name: Mirror snapshot
+        id: snapshot
+        run: |
+          set -euo pipefail
+          tag=$(curl --retry 3 --retry-all-errors --fail --location --silent --show-error \
+            --user-agent "velorki-ci (+https://github.com/orkitec/velorki)" \
+            https://raw.githubusercontent.com/orkitec/velorki-data/main/latest.json \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag"])')
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "VELORKI_STORE_TILES=$HOME/store-tiles" >> "$GITHUB_ENV"
+
+      - name: New York tile cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/store-tiles
+          key: store-tiles-W75_N40-${{ steps.snapshot.outputs.tag }}
+
       - name: Screenshots and slides
         working-directory: app
         env:
@@ -373,6 +393,26 @@ jobs:
             ~/.android/avd/*
             ~/.android/adb*
           key: avd-${{ env.API_LEVEL }}-x86_64-google_apis-pixel_6-r${{ steps.sysimg.outputs.revision }}
+
+      # New York's tile and gazetteer for the cycle map shots: the script
+      # fetches them with curl from the tile mirror's current snapshot into
+      # VELORKI_STORE_TILES unless they are there; cached per snapshot.
+      - name: Mirror snapshot
+        id: snapshot
+        run: |
+          set -euo pipefail
+          tag=$(curl --retry 3 --retry-all-errors --fail --location --silent --show-error \
+            --user-agent "velorki-ci (+https://github.com/orkitec/velorki)" \
+            https://raw.githubusercontent.com/orkitec/velorki-data/main/latest.json \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag"])')
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "VELORKI_STORE_TILES=$HOME/store-tiles" >> "$GITHUB_ENV"
+
+      - name: New York tile cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/store-tiles
+          key: store-tiles-W75_N40-${{ steps.snapshot.outputs.tag }}
 
       - name: Screenshots and slides
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2

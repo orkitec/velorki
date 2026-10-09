@@ -27,7 +27,9 @@
 #   runtime when there is none: 1320x2868 is the size App Store Connect wants
 #   for 6.9";
 # * serves the Madeira tile and its gazetteer with tool/itest_mirror.sh, unless
-#   a mirror already answers on the port, and stops it again at the end;
+#   a mirror already answers on the port, and stops it again at the end; beside
+#   them New York's W75_N40 tile and gazetteer for the cycle map shots, fetched
+#   once from the tile mirror into VELORKI_STORE_TILES (~/.cache/velorki-tiles/store);
 # * per locale, sets the simulator's language and region (the region decides
 #   the clock format, in the app and in the status bar) and reboots it, sets
 #   the status bar to 9:41 with full bars, and runs
@@ -198,8 +200,69 @@ android_boot() {  # android_boot <serial> <language-tag>
     com.android.internal.systemui.navbar.gestural > /dev/null 2>&1 || true
   # A moment for SystemUI to settle before the bar is set.
   sleep 10
+  # Then the cutout off and on again: after a reboot the status bar is now and
+  # then laid out for no cutout, its top row cut off, until it changes.
+  adb -s "$serial" shell cmd overlay disable \
+    com.android.internal.display.cutout.emulation.hole > /dev/null 2>&1 || true
+  sleep 3
+  adb -s "$serial" shell cmd overlay enable-exclusive --category \
+    com.android.internal.display.cutout.emulation.hole > /dev/null 2>&1 || true
+  sleep 5
   adb -s "$serial" shell settings put global sysui_demo_allowed 1
   python3 "$APP/tool/store_shutter.py" --android-status-bar "$serial"
+}
+
+# New York's tile and gazetteer, for the cycle map shots: from the snapshot the
+# tile mirror points at now, kept in CITY_DIR and fetched again only when that
+# snapshot has other bytes.
+CITY_TILE=W75_N40
+CITY_DIR="${VELORKI_STORE_TILES:-$HOME/.cache/velorki-tiles/store}"
+MIRROR_LATEST="${VELORKI_STORE_MIRROR:-https://raw.githubusercontent.com/orkitec/velorki-data/main/latest.json}"
+fetch_city_tile() {
+  mkdir -p "$CITY_DIR"
+  python3 - "$MIRROR_LATEST" "$CITY_TILE" "$CITY_DIR" << 'PY' || die "could not fetch $CITY_TILE"
+import hashlib, json, os, subprocess, sys
+
+latest, tile, out = sys.argv[1:]
+
+def curl(url, *args):
+    return subprocess.run(
+        ["curl", "--retry", "3", "--retry-all-errors", "--fail", "--location",
+         "--silent", "--show-error", "--user-agent",
+         "velorki-store (+https://github.com/orkitec/velorki)", *args, url],
+        check=True, stdout=subprocess.PIPE).stdout
+
+def sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+pointer = json.loads(curl(latest))
+bases = [s["baseUrl"] for s in pointer.get("shards", []) if s.get("baseUrl")]
+if pointer.get("baseUrl") and pointer["baseUrl"] not in bases:
+    bases.insert(0, pointer["baseUrl"])
+for base in bases:
+    entry = next((t for t in json.loads(curl(base + "manifest.json"))["tiles"]
+                  if t["tile"] == tile), None)
+    if entry:
+        break
+else:
+    sys.exit(f"{tile} is in no shard of {pointer['tag']}")
+files = [(tile + ".rd5", entry["sha256"])]
+if entry.get("gazetteer"):
+    files.append((tile + ".gaz", entry["gazetteer"]["sha256"]))
+for name, want in files:
+    path = os.path.join(out, name)
+    if os.path.exists(path) and sha256(path) == want:
+        continue
+    print(f"==> fetching {name} from {pointer['tag']}", file=sys.stderr)
+    curl(base + name, "--output", path + ".part")
+    if sha256(path + ".part") != want:
+        sys.exit(f"{name} does not match the mirror's sha256")
+    os.replace(path + ".part", path)
+PY
 }
 
 # Runs the test for one locale. Right after the simulator boots, flutter test
@@ -293,8 +356,12 @@ if [ "$CAPTURE" = 1 ]; then
 
   if curl -sf "http://127.0.0.1:$PORT/manifest.json" > /dev/null; then
     say "a mirror already answers on port $PORT"
+    curl -sf "http://127.0.0.1:$PORT/manifest.json" | grep -q "\"$CITY_TILE\"" \
+      || die "the mirror on port $PORT has no $CITY_TILE, which the cycle map shots need"
   else
-    ITEST_MIRROR_PORT="$PORT" bash "$APP/tool/itest_mirror.sh" > /dev/null
+    fetch_city_tile
+    ITEST_MIRROR_PORT="$PORT" ITEST_MIRROR_EXTRA="$CITY_DIR/$CITY_TILE.rd5" \
+      bash "$APP/tool/itest_mirror.sh" > /dev/null
     MIRROR_PID="$(cat "$ROOT/mirror.pid")"
     for _ in $(seq 1 20); do
       curl -sf "http://127.0.0.1:$PORT/manifest.json" > /dev/null && break

@@ -12,6 +12,11 @@
     "headline": "Routes die bij **je fiets** passen",
     "subline": "Toer, racefiets, gravel of MTB, met alternatieven, hoogte en ondergrond."
   },
+  "cyclemap": {
+    "eyebrow": "Fietskaart",
+    "headline": "Fietspaden op de kaart, **ook offline**",
+    "subline": "Fietspaden, routes, eenrichtingspijlen en meer uit je gedownloade gegevens. Elk onderdeel apart aan of uit."
+  },
   "navigation": {
     "eyebrow": "Navigatie",
     "headline": "Elke afslag **hardop**",

@@ -10,8 +10,8 @@
 #
 # Output: web/public/screenshots/<lang>/<mode>-<accent>/<screen>.png plus
 # web/public/screenshots/manifest.json. Screens are planner, loop, search,
-# navigation, recording, ride, library, offline, settings, assistant and
-# paywall; the appearance
+# navigation, recording, ride, library, offline, settings, assistant,
+# paywall, cyclemap and layers; the appearance
 # matrix is both modes in all five accents — light-volt and dark-volt first,
 # then the other four dark looks, then the other four light ones.
 # One run takes one language; the manifest lists every language found on disk,
@@ -94,7 +94,7 @@ APP_FILES="/data/user/0/$PKG/files"
 WORK="$(mktemp -d)"
 export PATH="$HOME/Android/Sdk/platform-tools:$HOME/Library/Android/sdk/platform-tools:$PATH"
 
-ALL_SCREENS=(planner loop search navigation recording ride library offline settings assistant paywall)
+ALL_SCREENS=(planner loop search navigation recording ride library offline settings assistant paywall cyclemap layers)
 ALL_LOOKS=(light-volt dark-volt dark-ember dark-glacier dark-berry dark-forest
   light-ember light-glacier light-berry light-forest)
 DO_BUILD=1
@@ -360,9 +360,12 @@ set_prefs() {  # set_prefs key=value ...  (the app is stopped and left stopped)
   done
   A shell am force-stop "$PKG"
   sleep 2
+  # The performance box (Settings, About) never goes into a picture, whatever
+  # the device had: it is written off here, not left to the default.
   A shell "run-as $PKG sh -c 'mkdir -p shared_prefs && cat > shared_prefs/FlutterSharedPreferences.xml'" << XML
 <?xml version='1.0' encoding='utf-8' standalone='yes' ?>
 <map>
+    <boolean name="flutter.debug.showPerformance" value="false" />
 $entries</map>
 XML
 }
@@ -410,6 +413,9 @@ if "<map" not in body:
             "<map>\n</map>\n")
 body = body.replace("<map />", "<map>\n</map>").replace("<map/>", "<map>\n</map>")
 body = re.sub(r'\s*<string name="flutter\.language\.locale">[^<]*</string>', "", body)
+body = re.sub(r'\s*<boolean name="flutter\.debug\.showPerformance"[^>]*>', "", body)
+body = body.replace(
+    "<map>", '<map>\n    <boolean name="flutter.debug.showPerformance" value="false" />', 1)
 if tag not in ("en", "system"):
     body = body.replace(
         "<map>",
@@ -979,8 +985,9 @@ cap_settings() {
   shot "$1" settings
 }
 
-# The two Velorki Plus screens come from the Play capture rather than from
-# tapping: the assistant's card needs Plus, consent and an answer from the
+# The two Velorki Plus screens and the cycle map's two (New York's map with
+# the cycle map and stops on, and the Layers sheet) come from the Play capture
+# rather than from tapping: the assistant's card needs Plus, consent and an answer from the
 # relay, which `integration_test/store/store_screenshots_test.dart` poses with
 # the relay mocked in the test process, and the Plus page is shown there as a
 # subscriber sees it (`paywall-active`), with no price on it. That test runs
@@ -1022,6 +1029,8 @@ capture_look() {  # capture_look <mode-accent>
       settings) cap_settings "$look" ;;
       assistant) cap_from_store "$look" assistant ai ;;
       paywall) cap_from_store "$look" paywall paywall-active ;;
+      cyclemap) cap_from_store "$look" cyclemap cyclemap ;;
+      layers) cap_from_store "$look" layers layers ;;
       *) die "unknown screen $screen" ;;
     esac
   done
@@ -1052,6 +1061,8 @@ titles = {
     "settings": "Settings, with the appearance block",
     "assistant": "The assistant's card, with the loop it asked for",
     "paywall": "Velorki Plus as a subscriber sees it",
+    "cyclemap": "The offline cycle map and stops in Chelsea, New York",
+    "layers": "The Layers sheet with the cycle map's parts",
 }
 # Every language with a set on disk, not only the one this run took: a German
 # run must leave the English sets in the manifest. English first, the rest

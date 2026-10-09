@@ -23,7 +23,8 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
    Max, created on the first run), once per language: the simulator's
    language and region are set, the status bar reads 9:41, and
    `app/integration_test/store/store_screenshots_test.dart` takes every screen
-   the slides use, in each theme: the plan, its variants, a loop, the AI card
+   the slides use, in each theme: the offline cycle map with stops and the
+   Layers sheet over it, the plan, its variants, a loop, the AI card
    with the loop it asked for, the paywall at the stores' prices (top and
    bottom) and once as a subscriber sees it (`paywall-active`, no prices, for
    the website), a GPX import, a ride's charts, the library, a
@@ -36,7 +37,11 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
    in `demo_data.dart`: €34.99 a year with a 7-day free trial, €3.99 a month
    without one, priced in the language's format). Everything is on
    Madeira and computed on the device from the tile `app/tool/itest_mirror.sh`
-   serves. The demo ride is laid along a route the device plans, with a speed
+   serves, but the cycle map, which is in Chelsea, New York (Funchal has
+   too few bike lanes to show it): the script fetches `W75_N40.rd5` and its
+   `.gaz` from the tile mirror's current snapshot into
+   `VELORKI_STORE_TILES` (`~/.cache/velorki-tiles/store`, again only when
+   the snapshot changed) and serves them beside Madeira's. The demo ride is laid along a route the device plans, with a speed
    from the gradient and a heart rate from the effort; the ride under way is
    the same model, fed to the real recorder with its clock and a heart-rate
    sensor following the fixes, so about 20 km and an hour in take a minute.
@@ -79,14 +84,16 @@ Copy and order live in `app/store/`:
   features marked.
 - `slide_set.json`: the set that is uploaded, in order, and per slide its
   layout, the screen it shows and its style (plan, variants, navigation,
-  loops, ai, ride, offline-themes, import, lock-screen, watch); `brand` puts the app's icon and
+  loops, cyclemap, ai, ride, offline-themes, lock-screen, watch: ten, the
+  most a size takes; the `import` slide's copy is kept but not in the set); `brand` puts the app's icon and
   name above the eyebrow (slide 01 only). The preview's first caption card
   carries them too. Changing the mix is an edit
   there and `--skip-capture`.
 
-`--until plan` or `--until variants` captures only the screens up to that
-one (the test takes them in the order plan, variants, loop, ai, paywall,
-import, ride, library, offline, live) and keeps the rest of the last capture.
+`--until layers` or `--until variants` captures only the screens up to that
+one (the test takes them in the order cyclemap, layers, plan, variants,
+loop, ai, paywall, import, ride, library, offline, live) and keeps the rest
+of the last capture.
 
 Output, git-ignored, under `app/build/store_screenshots/`:
 
@@ -149,7 +156,7 @@ Screen or preview.
 
 `app/tool/store_slides.py --platform android` lays the slides out at
 1242 × 2208 (9:16), the phone frame taking the capture's shape. The set is
-`app/store/slide_set_android.json` (the first eight, no Lock Screen or watch); a
+`app/store/slide_set_android.json` (the first eight, no Lock Screen or watch: eight is Play's limit); a
 slide's `android` object in `slides_<lang>.json` overrides its copy there
 (the plan's subline names no phone). Beside the set it makes the 1024 × 500
 feature graphic (the brand line and `feature.headline` over the dark plan)

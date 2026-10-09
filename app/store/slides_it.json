@@ -12,6 +12,11 @@
     "headline": "Percorsi su misura per **la tua bici**",
     "subline": "Trekking, corsa, gravel o MTB, con alternative, altimetria e fondo."
   },
+  "cyclemap": {
+    "eyebrow": "Mappa ciclabile",
+    "headline": "Piste ciclabili sulla mappa, **anche offline**",
+    "subline": "Piste, itinerari, frecce di senso unico e altro dai dati scaricati. Ogni elemento si attiva a parte."
+  },
   "navigation": {
     "eyebrow": "Navigazione",
     "headline": "Ogni svolta, **ad alta voce**",

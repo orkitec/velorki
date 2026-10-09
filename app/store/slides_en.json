@@ -12,6 +12,11 @@
     "headline": "Routes that fit **your bike**",
     "subline": "Touring, road, gravel or MTB, with alternatives, elevation and surfaces."
   },
+  "cyclemap": {
+    "eyebrow": "Cycle map",
+    "headline": "Bike lanes on the map, **even offline**",
+    "subline": "Lanes, routes, one-way arrows and more from the data you downloaded. Switch each part on or off."
+  },
   "navigation": {
     "eyebrow": "Navigation",
     "headline": "Every turn, **spoken aloud**",

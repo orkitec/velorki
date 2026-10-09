@@ -56,7 +56,9 @@
       "offline": "Offline-Downloads: Karten- und Routing-Regionen auf dem Handy mit ihrer Größe und ihrem Status.",
       "settings": "Einstellungen: der Bereich Darstellung mit dem Schalter für Hell, Dunkel und System und den fünf Akzentfarben.",
       "assistant": "Der Assistent im Tab Planen: die Bitte um eine 40-km-Gravel-Runde mit Café-Stopp, was er verstanden hat, und die Runde, die er auf der Karte geplant hat.",
-      "paywall": "Die Seite Velorki Plus, wie Abonnenten sie sehen: die vier enthaltenen Funktionen und das aktive Abo."
+      "paywall": "Die Seite Velorki Plus, wie Abonnenten sie sehen: die vier enthaltenen Funktionen und das aktive Abo.",
+      "cyclemap": "Die Radkarte in Chelsea, New York: der Hudson River Greenway, geschützte Radstreifen auf den Avenues, lokale Radrouten, Einbahn-Pfeile und Stopps für Café und Trinkwasser auf der Karte.",
+      "layers": "Das Ebenen-Blatt: die Radkarte eingeschaltet, mit einem Chip für jeden Teil, die Online-Radkarte und die Stopps mit ihren Arten."
     }
   },
   "home": {
@@ -174,6 +176,39 @@
           "three": "Strava, Ride with GPS und Teilen-Links mit Plus"
         }
       }
+    },
+    "cycleMap": {
+      "eyebrow": "Radkarte",
+      "title": "Die Radkarte",
+      "lead": "Radwege, Radrouten und Einbahn-Pfeile auf der Karte, gezeichnet aus den Daten, die du fürs Routing schon geladen hast. Sie funktioniert ganz ohne Verbindung und erscheint beim Hineinzoomen.",
+      "partsTitle": "Was sie zeichnet",
+      "parts": {
+        "infrastructure": "Radwege & -streifen",
+        "paths": "Gemeinsame Wege",
+        "contraflow": "Gegenverkehr frei",
+        "directions": "Einbahn-Pfeile",
+        "onewayStreets": "Einbahnstraßen",
+        "routesNational": "Fernrouten",
+        "routesRegional": "Regionale Routen",
+        "routesLocal": "Lokale Routen",
+        "surface": "Unbefestigt & holprig",
+        "barriers": "Hindernisse & Treppen",
+        "traffic": "Ruhige Straßen",
+        "mtb": "Mountainbike",
+        "climbs": "Steigungen"
+      },
+      "partsNote": "Jeder Teil lässt sich einzeln ein- und ausschalten, im Ebenen-Blatt der Karte. Die Chips dort sind die Legende: Jeder zeigt seine Linie.",
+      "stopsTitle": "Stopps auf der Karte",
+      "stopsBody": "Zum Start Cafés, Trinkwasser, Bäckereien, Toiletten und Reparaturstationen, aus denselben geladenen Daten. Jede andere Art wählst du aus diesen Gruppen, und ein Tipp auf einen Stopp plant dorthin.",
+      "stopGroups": {
+        "cyclingStops": "Stopps unterwegs",
+        "overnight": "Übernachten",
+        "landmarks": "Sehenswürdigkeiten"
+      },
+      "onlineTitle": "Online-Radkarte",
+      "onlineBody": "Die Karte von CyclOSM ist die Alternative, wenn du Empfang hast: Sie zeigt zusätzlich Radläden und Abstellplätze und braucht eine Verbindung.",
+      "offline": "Offline aus deinen geladenen Gebieten: kein zusätzlicher Download, kein Server.",
+      "docsLink": "So funktionieren die Kartenebenen"
     },
     "plus": {
       "eyebrow": "Velorki Plus",

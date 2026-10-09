@@ -56,7 +56,9 @@
       "offline": "Téléchargements hors ligne : les régions de carte et de routage sur le téléphone, avec leur taille et leur état.",
       "settings": "Réglages : la section Apparence avec le choix clair, sombre ou système et les cinq couleurs d’accent.",
       "assistant": "L’assistant dans l’onglet Planifier : une demande de boucle gravel de 40 km avec une pause café, ce qu’il a compris et la boucle calculée sur la carte.",
-      "paywall": "La page Velorki Plus telle qu’un abonné la voit : les quatre fonctions incluses et l’abonnement actif."
+      "paywall": "La page Velorki Plus telle qu’un abonné la voit : les quatre fonctions incluses et l’abonnement actif.",
+      "cyclemap": "La carte vélo à Chelsea, New York : la Hudson River Greenway, des pistes protégées sur les avenues, des itinéraires locaux, des flèches de sens unique et des haltes café et eau potable sur la carte.",
+      "layers": "Le panneau Calques : la carte vélo activée avec une puce pour chaque élément, la carte vélo en ligne, et les haltes avec leurs types."
     }
   },
   "home": {
@@ -174,6 +176,39 @@
           "three": "Strava, Ride with GPS et liens de partage avec Plus"
         }
       }
+    },
+    "cycleMap": {
+      "eyebrow": "Carte vélo",
+      "title": "La carte vélo",
+      "lead": "Pistes cyclables, itinéraires et flèches de sens unique dessinés sur la carte à partir des données déjà téléchargées pour le calcul d’itinéraire. Elle fonctionne sans aucune connexion et apparaît en zoomant.",
+      "partsTitle": "Ce qu’elle dessine",
+      "parts": {
+        "infrastructure": "Pistes & bandes",
+        "paths": "Voies partagées",
+        "contraflow": "Double sens cyclable",
+        "directions": "Flèches de sens unique",
+        "onewayStreets": "Rues à sens unique",
+        "routesNational": "Itinéraires nationaux",
+        "routesRegional": "Itinéraires régionaux",
+        "routesLocal": "Itinéraires locaux",
+        "surface": "Non revêtu & cahoteux",
+        "barriers": "Obstacles & escaliers",
+        "traffic": "Rues calmes",
+        "mtb": "VTT",
+        "climbs": "Montées"
+      },
+      "partsNote": "Chaque élément s’active et se désactive séparément, dans le panneau Calques de la carte. Les puces y servent de légende : chacune montre sa ligne.",
+      "stopsTitle": "Les haltes sur la carte",
+      "stopsBody": "Cafés, eau potable, boulangeries, toilettes et stations de réparation pour commencer, tirés des mêmes données téléchargées. Choisissez tout autre type dans ces groupes, et touchez une halte pour y aller.",
+      "stopGroups": {
+        "cyclingStops": "Haltes à vélo",
+        "overnight": "Hébergement",
+        "landmarks": "Points d’intérêt"
+      },
+      "onlineTitle": "Carte vélo en ligne",
+      "onlineBody": "La carte de CyclOSM est l’alternative quand vous avez du réseau : elle ajoute les magasins et parkings vélo, et nécessite une connexion.",
+      "offline": "Hors ligne, depuis vos zones téléchargées : aucun téléchargement en plus, aucun serveur.",
+      "docsLink": "Comment fonctionnent les calques"
     },
     "plus": {
       "eyebrow": "Velorki Plus",

@@ -56,7 +56,9 @@
       "offline": "Offline downloads: map and routing regions on the phone with their size and state.",
       "settings": "Settings: the appearance section with the light, dark and system switch and the five accents.",
       "assistant": "The assistant on the Plan tab: a request for a 40 km gravel loop with a café stop, what it understood, and the loop it planned on the map.",
-      "paywall": "The Velorki Plus page as a subscriber sees it: the four features it includes and the active subscription."
+      "paywall": "The Velorki Plus page as a subscriber sees it: the four features it includes and the active subscription.",
+      "cyclemap": "The cycle map in Chelsea, New York: the Hudson River Greenway, protected lanes on the avenues, local cycle routes, one-way arrows and café and drinking water stops on the map.",
+      "layers": "The Layers sheet: the cycle map switched on with a chip for each part, the online cycle map, and stops with their kinds."
     }
   },
   "home": {
@@ -174,6 +176,39 @@
           "three": "Strava, Ride with GPS and share links with Plus"
         }
       }
+    },
+    "cycleMap": {
+      "eyebrow": "Cycle map",
+      "title": "The cycle map",
+      "lead": "Bike lanes, cycle routes and one-way arrows drawn over the map from the data you already downloaded for routing. It works with no connection at all and shows up as you zoom in.",
+      "partsTitle": "What it draws",
+      "parts": {
+        "infrastructure": "Bike lanes & tracks",
+        "paths": "Shared paths",
+        "contraflow": "Two-way for bikes",
+        "directions": "One-way arrows",
+        "onewayStreets": "One-way streets",
+        "routesNational": "National routes",
+        "routesRegional": "Regional routes",
+        "routesLocal": "Local routes",
+        "surface": "Unpaved & bumpy",
+        "barriers": "Barriers & steps",
+        "traffic": "Calm streets",
+        "mtb": "Mountain bike",
+        "climbs": "Climbs"
+      },
+      "partsNote": "Each part switches on and off on its own, in the map's Layers sheet. The chips there are the legend: each one shows its line.",
+      "stopsTitle": "Stops on the map",
+      "stopsBody": "Cafés, drinking water, bakeries, toilets and repair stations to start with, from the same downloaded data. Pick any other kind from these groups, and tap a stop to plan to it.",
+      "stopGroups": {
+        "cyclingStops": "Cycling stops",
+        "overnight": "Overnight",
+        "landmarks": "Landmarks"
+      },
+      "onlineTitle": "Online cycle map",
+      "onlineBody": "CyclOSM's map is the alternative when you have a signal: it adds bike shops and parking, and needs a connection.",
+      "offline": "Offline from your downloaded areas: no extra download, no server.",
+      "docsLink": "How the map layers work"
     },
     "plus": {
       "eyebrow": "Velorki Plus",

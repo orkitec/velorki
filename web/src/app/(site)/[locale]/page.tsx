@@ -40,6 +40,26 @@ const BULLETS = ['one', 'two', 'three'] as const;
 /** What Plus adds, from the app's gate list (`PlusFeature` in lib/core/plus/plus_gate.dart). */
 const PLUS_ITEMS = ['describe', 'ask', 'write', 'connect'] as const;
 
+/** The cycle map's parts, in the Layers sheet's order (`CycleMapPart` in lib/features/map/domain/cycle_map.dart). */
+const CYCLE_MAP_PARTS = [
+  'infrastructure',
+  'paths',
+  'contraflow',
+  'directions',
+  'onewayStreets',
+  'routesNational',
+  'routesRegional',
+  'routesLocal',
+  'surface',
+  'barriers',
+  'traffic',
+  'mtb',
+  'climbs',
+] as const;
+
+/** The groups the Layers sheet offers stops from (`stopGroups` in layers_sheet.dart). */
+const STOP_GROUPS = ['cyclingStops', 'overnight', 'landmarks'] as const;
+
 const FREE_ITEMS = ['routing', 'loops', 'search', 'maps', 'navigation', 'recording', 'sensors', 'files'] as const;
 
 /** Free vs Plus, from docs/ARCHITECTURE.md: free is everything on the phone. */
@@ -85,6 +105,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
       <Hero locale={locale} />
       <FreeBand />
       <Features locale={locale} />
+      <CycleMapShowcase locale={locale} />
       <PlusShowcase locale={locale} />
       <Comparison locale={locale} />
       <OpenSource locale={locale} />
@@ -237,6 +258,69 @@ function SensorShowcase() {
       </ul>
       <WatchMock />
     </div>
+  );
+}
+
+/**
+ * The offline cycle map: what it draws, each part named as the app's Layers
+ * sheet names it, the stops beside it and the online map as the alternative,
+ * with the map over Chelsea and the Layers sheet from the store pipeline.
+ */
+function CycleMapShowcase({ locale }: { locale: string }) {
+  const t = useTranslations('home.cycleMap');
+  return (
+    <section id="cycle-map" aria-labelledby="cycle-map-title" className="hairline scroll-mt-24 py-20">
+      <div className="shell grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+        <div className="max-w-2xl lg:order-2">
+          <p className="overline">{t('eyebrow')}</p>
+          <h2 id="cycle-map-title" className="mt-3 text-4xl sm:text-5xl">
+            {t('title')}
+          </h2>
+          <p className="mt-4 text-lg text-muted">{t('lead')}</p>
+          <h3 className="mt-8 font-display text-xl">{t('partsTitle')}</h3>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {CYCLE_MAP_PARTS.map((part) => (
+              <li key={part} className="chip">
+                {t(`parts.${part}`)}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-muted">{t('partsNote')}</p>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <div className="panel p-5">
+              <h3 className="font-display text-xl">{t('stopsTitle')}</h3>
+              <p className="mt-2 text-muted">{t('stopsBody')}</p>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {STOP_GROUPS.map((group) => (
+                  <li key={group} className="chip">
+                    {t(`stopGroups.${group}`)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="panel p-5">
+              <h3 className="font-display text-xl">{t('onlineTitle')}</h3>
+              <p className="mt-2 text-muted">{t('onlineBody')}</p>
+            </div>
+          </div>
+          <p className="mt-6 flex gap-3">
+            <CheckIcon width={18} height={18} className="mt-1 shrink-0 text-accent" />
+            <span>{t('offline')}</span>
+          </p>
+          <p className="mt-6 font-bold">
+            <Link href={localePath(locale, '/docs/map-layers')} className="link-accent">
+              {t('docsLink')}
+            </Link>
+          </p>
+        </div>
+        <div className="mx-auto grid w-full max-w-xl grid-cols-2 items-start gap-4 sm:gap-6">
+          <PhoneFrame screen="cyclemap" />
+          <div className="mt-12">
+            <PhoneFrame screen="layers" />
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

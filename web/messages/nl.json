@@ -56,7 +56,9 @@
       "offline": "Offline downloads: kaart- en routeringsregio's op de telefoon met hun grootte en status.",
       "settings": "Instellingen: het onderdeel Weergave met de schakelaar voor licht, donker en systeem en de vijf accentkleuren.",
       "assistant": "De assistent op het tabblad Plannen: de vraag om een gravelrondje van 40 km met een koffiestop, wat hij begreep en het rondje dat hij op de kaart plande.",
-      "paywall": "De pagina Velorki Plus zoals een abonnee die ziet: de vier inbegrepen functies en het actieve abonnement."
+      "paywall": "De pagina Velorki Plus zoals een abonnee die ziet: de vier inbegrepen functies en het actieve abonnement.",
+      "cyclemap": "De fietskaart in Chelsea, New York: de Hudson River Greenway, beschermde fietsstroken op de avenues, lokale fietsroutes, eenrichtingspijlen en stopplekken voor koffie en drinkwater op de kaart.",
+      "layers": "Het paneel Kaartlagen: de fietskaart aan met een chip voor elk onderdeel, de online fietskaart en de stopplekken met hun soorten."
     }
   },
   "home": {
@@ -174,6 +176,39 @@
           "three": "Strava, Ride with GPS en deellinks met Plus"
         }
       }
+    },
+    "cycleMap": {
+      "eyebrow": "Fietskaart",
+      "title": "De fietskaart",
+      "lead": "Fietspaden, fietsroutes en eenrichtingspijlen op de kaart, getekend uit de gegevens die je al voor de routering hebt gedownload. Hij werkt zonder enige verbinding en verschijnt als je inzoomt.",
+      "partsTitle": "Wat hij tekent",
+      "parts": {
+        "infrastructure": "Fietspaden & -stroken",
+        "paths": "Gedeelde paden",
+        "contraflow": "Tweerichting fiets",
+        "directions": "Eenrichtingspijlen",
+        "onewayStreets": "Eenrichtingsstraten",
+        "routesNational": "Landelijke routes",
+        "routesRegional": "Regionale routes",
+        "routesLocal": "Lokale routes",
+        "surface": "Onverhard & hobbelig",
+        "barriers": "Obstakels & trappen",
+        "traffic": "Rustige straten",
+        "mtb": "Mountainbike",
+        "climbs": "Hellingen"
+      },
+      "partsNote": "Elk onderdeel zet je apart aan en uit, in het paneel Kaartlagen. De chips daar zijn de legenda: elk laat zijn lijn zien.",
+      "stopsTitle": "Stopplekken op de kaart",
+      "stopsBody": "Om te beginnen cafés, drinkwater, bakkers, toiletten en reparatiepunten, uit dezelfde gedownloade gegevens. Kies elke andere soort uit deze groepen, en tik op een stopplek om ernaartoe te plannen.",
+      "stopGroups": {
+        "cyclingStops": "Stops onderweg",
+        "overnight": "Overnachten",
+        "landmarks": "Bezienswaardigheden"
+      },
+      "onlineTitle": "Online fietskaart",
+      "onlineBody": "De kaart van CyclOSM is het alternatief als je bereik hebt: hij voegt fietsenwinkels en fietsenstallingen toe en heeft een verbinding nodig.",
+      "offline": "Offline uit je gedownloade gebieden: geen extra download, geen server.",
+      "docsLink": "Zo werken de kaartlagen"
     },
     "plus": {
       "eyebrow": "Velorki Plus",

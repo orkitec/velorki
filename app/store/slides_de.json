@@ -12,6 +12,11 @@
     "headline": "Routen, die zu **deinem Rad** passen",
     "subline": "Tour, Rennrad, Gravel oder MTB, mit Alternativen, Höhe und Belag."
   },
+  "cyclemap": {
+    "eyebrow": "Radkarte",
+    "headline": "Radwege auf der Karte, **auch offline**",
+    "subline": "Radwege, Routen, Einbahn-Pfeile und mehr aus deinen geladenen Daten. Jeder Teil einzeln schaltbar."
+  },
   "navigation": {
     "eyebrow": "Navigation",
     "headline": "Jede Abbiegung **angesagt**",

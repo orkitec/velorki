@@ -15,13 +15,14 @@ public/screenshots/<lang>/<mode>-<accent>/<screen>.png
 - `<mode>`: `light` or `dark`
 - `<accent>`: `volt`, `ember`, `glacier`, `berry` or `forest`
 - `<screen>`: `planner`, `loop`, `search`, `navigation`, `recording`, `ride`,
-  `library`, `offline`, `settings`, `assistant`, `paywall`
+  `library`, `offline`, `settings`, `assistant`, `paywall`, `cyclemap`, `layers`
 
 So `public/screenshots/en/dark-volt/planner.png` is the planner in the app's
 default look. The pipeline takes the whole matrix — both modes in all five
 accents, ten looks of nine screens — per language: `light-volt` and
 `dark-volt` first, then the four other dark looks, then the four other light
-ones; the two Plus screens are in `light-volt` and `dark-volt` only. What is on
+ones; the two Plus screens and the two cycle map screens are in `light-volt`
+and `dark-volt` only. What is on
 disk now: every language in `light-volt` and `dark-volt`, and the other eight
 looks in English only, for the six screens the landing page's switcher swaps,
 which every locale falls back to. One run
@@ -61,8 +62,9 @@ it is part of how the app looks on a phone.
 The landing page shows `planner`, `loop`, `search`, `navigation`, `recording`
 and `library`, and in its Velorki Plus section `assistant` (the assistant's
 card over the loop it asked for) and `paywall` (the Plus page as a subscriber
-sees it: no price, which the site never quotes). Those two come from the Play
-capture (`tool/store_screenshots.sh --platform android`), whose test poses
+sees it: no price, which the site never quotes), and in its cycle map section
+`cyclemap` (the cycle map and stops over Chelsea, New York) and `layers` (the
+Layers sheet over it). Those four come from the Play capture (`tool/store_screenshots.sh --platform android`), whose test poses
 them with the relay mocked, in volt only; `/plus` shows `settings`, `/download` shows `ride`, and
 `offline` is held for the docs. A page in a locale asks for that locale's
 screenshot and falls back to `en/` for any file the pipeline has not taken in

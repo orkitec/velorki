@@ -18,13 +18,16 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'harness.dart';
 import 'region.dart';
 
-/// Downloads [region]'s tile unless it is already on the device.
+/// Downloads [region]'s tile, or the one named [name], unless it is already
+/// on the device.
 Future<void> ensureRegionTile(
   WidgetTester tester,
   ProviderContainer container, {
+  String? name,
   Duration timeout = const Duration(minutes: 5),
 }) async {
-  final tile = TileName.parse(region.tile);
+  final tileName = name ?? region.tile;
+  final tile = TileName.parse(tileName);
   final repository = await container.read(
     routingTilesRepositoryProvider.future,
   );
@@ -33,20 +36,16 @@ Future<void> ensureRegionTile(
       segmentsManifestSourceProvider.future,
     );
     final entry = manifest.byTile[tile];
-    expect(
-      entry,
-      isNotNull,
-      reason: 'the mirror manifest lacks ${region.tile}',
-    );
+    expect(entry, isNotNull, reason: 'the mirror manifest lacks $tileName');
     await container.read(tileDownloadQueueProvider.notifier).enqueue([entry!]);
     final clock = Stopwatch()..start();
     await waitUntil(
       tester,
       () => repository.readyTiles().contains(tile),
-      describe: 'the ${region.tile} tile to download',
+      describe: 'the $tileName tile to download',
       timeout: timeout,
     );
-    debugPrint('VELORKI_TILE ${region.tile} in ${clock.elapsedMilliseconds}ms');
+    debugPrint('VELORKI_TILE $tileName in ${clock.elapsedMilliseconds}ms');
   }
   // Let the routing backend provider rebuild around the new tile.
   await pumpFor(tester, const Duration(seconds: 2));

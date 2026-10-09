@@ -1,5 +1,6 @@
 // The App Store screenshots: every screen the slides use, from the real app
-// on Madeira, in one language, in each app theme asked for.
+// on Madeira (the cycle map in New York), in one language, in each app theme
+// asked for.
 //
 //   tool/store_screenshots.sh            # the whole pipeline; see there
 //
@@ -32,6 +33,9 @@ import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/assistant/application/assistant_controller.dart';
 import 'package:velorki/features/assistant/presentation/assistant_sheet.dart';
 import 'package:velorki/features/import_export/data/incoming_file_service.dart';
+import 'package:velorki/features/map/data/map_preferences.dart';
+import 'package:velorki/features/map/domain/cycle_map.dart';
+import 'package:velorki/features/map/presentation/layers_sheet.dart';
 import 'package:velorki/features/recording/application/ride_notification_updater.dart';
 import 'package:velorki/features/recording/data/follow_mode.dart';
 import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
@@ -42,6 +46,7 @@ import 'package:velorki/features/recording/application/recording_controller.dart
 import 'package:velorki/features/recording/presentation/live_figures_view.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_charts.dart';
+import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/settings/data/appearance_controller.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
@@ -52,6 +57,7 @@ import 'package:velorki_gpx/velorki_gpx.dart';
 import '../../test/support/mock_relay.dart';
 import '../support/fakes.dart';
 import '../support/harness.dart';
+import '../support/tiles.dart';
 import 'demo_data.dart';
 import 'shutter.dart';
 import 'store_support.dart';
@@ -109,12 +115,56 @@ void main() {
         return true;
       }
 
+      // ------------------------------------------------------- cycle map
+      // The offline cycle map and the stops, drawn on the device from New
+      // York's routing tile and gazetteer (Funchal has too few bike lanes to
+      // show them), with the parts and the kinds of stop the app starts
+      // with; then the Layers sheet that switches them.
+      await ensureRegionTile(tester, container, name: cycleMapTile);
+      await (await container.read(gazetteerStoreProvider.future)).refresh();
+      final cycleMap = container.read(cycleMapPreferencesProvider.notifier);
+      for (final part in CycleMapPart.values) {
+        await cycleMap.setPart(
+          part,
+          shown: defaultCycleMapParts.contains(part),
+        );
+      }
+      final stops = container.read(mapStopsPreferencesProvider.notifier);
+      for (final kind in {
+        ...container.read(mapStopsPreferencesProvider).kinds,
+        ...defaultStopKinds,
+      }) {
+        await stops.setKind(kind, shown: defaultStopKinds.contains(kind));
+      }
+      await cycleMap.setShown(true);
+      await stops.setShown(true);
+      planner.clear();
+      await frameArea(tester, container, chelsea, chelseaZoom);
+      // The first shot of a run waits for the map style and its tiles.
+      await takeStoreShot(
+        tester,
+        '$shot/cyclemap',
+        hold: const Duration(seconds: 20),
+      );
+
+      if (await stopAfter('cyclemap')) return;
+
+      await tapAndPump(tester, find.byTooltip(l10n.mapLayers));
+      await waitForWidget(tester, find.byType(LayersSheet));
+      await takeStoreShot(tester, '$shot/layers');
+      Navigator.of(tester.element(find.byType(LayersSheet))).pop();
+      await cycleMap.setShown(false);
+      await stops.setShown(false);
+      await pumpFor(tester, const Duration(seconds: 1));
+
+      if (await stopAfter('layers')) return;
+
       // ------------------------------------------------------------ plan
       planner
         ..clear()
         ..loadSavedRoute(featured);
       await frameRoute(tester, container, featured.geometry);
-      // The first shot of a run waits for the map style and its tiles.
+      // The first shot over Madeira waits for its tiles.
       await takeStoreShot(
         tester,
         '$shot/plan',

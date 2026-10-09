@@ -56,7 +56,9 @@
       "offline": "Descargas sin conexión: regiones de mapa y de enrutamiento en el teléfono con su tamaño y estado.",
       "settings": "Ajustes: la sección de apariencia con el selector claro, oscuro y sistema y los cinco colores de acento.",
       "assistant": "El asistente en la pestaña Planificar: la petición de una ruta circular de gravel de 40 km con parada en un café, lo que ha entendido y la ruta planificada en el mapa.",
-      "paywall": "La página de Velorki Plus tal como la ve un suscriptor: las cuatro funciones incluidas y la suscripción activa."
+      "paywall": "La página de Velorki Plus tal como la ve un suscriptor: las cuatro funciones incluidas y la suscripción activa.",
+      "cyclemap": "El mapa ciclista en Chelsea, Nueva York: la Hudson River Greenway, carriles protegidos en las avenidas, rutas ciclistas locales, flechas de sentido único y paradas de café y agua potable en el mapa.",
+      "layers": "La hoja Capas: el mapa ciclista activado con un chip para cada parte, el mapa ciclista en línea y las paradas con sus tipos."
     }
   },
   "home": {
@@ -174,6 +176,39 @@
           "three": "Strava, Ride with GPS y enlaces compartidos con Plus"
         }
       }
+    },
+    "cycleMap": {
+      "eyebrow": "Mapa ciclista",
+      "title": "El mapa ciclista",
+      "lead": "Carriles bici, rutas ciclistas y flechas de sentido único dibujados sobre el mapa con los datos que ya descargaste para calcular rutas. Funciona sin ninguna conexión y aparece al acercar el mapa.",
+      "partsTitle": "Lo que dibuja",
+      "parts": {
+        "infrastructure": "Carriles bici",
+        "paths": "Sendas compartidas",
+        "contraflow": "Doble sentido bici",
+        "directions": "Flechas de sentido único",
+        "onewayStreets": "Calles de sentido único",
+        "routesNational": "Rutas nacionales",
+        "routesRegional": "Rutas regionales",
+        "routesLocal": "Rutas locales",
+        "surface": "Sin asfaltar y bacheado",
+        "barriers": "Barreras y escaleras",
+        "traffic": "Calles tranquilas",
+        "mtb": "Bici de montaña",
+        "climbs": "Subidas"
+      },
+      "partsNote": "Cada parte se activa y se quita por separado, en la hoja Capas del mapa. Los chips de ahí son la leyenda: cada uno muestra su línea.",
+      "stopsTitle": "Paradas en el mapa",
+      "stopsBody": "Cafés, agua potable, panaderías, aseos y estaciones de reparación para empezar, de los mismos datos descargados. Elige cualquier otro tipo de estos grupos, y toca una parada para planificar hasta ella.",
+      "stopGroups": {
+        "cyclingStops": "Paradas en ruta",
+        "overnight": "Alojamiento",
+        "landmarks": "Puntos de interés"
+      },
+      "onlineTitle": "Mapa ciclista en línea",
+      "onlineBody": "El mapa de CyclOSM es la alternativa cuando tienes cobertura: añade tiendas y aparcamientos de bicis, y necesita conexión.",
+      "offline": "Sin conexión, desde tus zonas descargadas: ninguna descarga extra, ningún servidor.",
+      "docsLink": "Cómo funcionan las capas del mapa"
     },
     "plus": {
       "eyebrow": "Velorki Plus",

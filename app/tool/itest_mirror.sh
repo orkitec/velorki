@@ -4,6 +4,10 @@
 #
 #   tool/itest_mirror.sh [mirror-dir]        (ITEST_MIRROR_PORT overrides 8000)
 #
+# ITEST_MIRROR_EXTRA names more rd5 files, space-separated, to serve beside
+# the oracle tile, each with the <TILE>.gaz next to it when there is one: the
+# store screenshots add New York's. They are taken as they are, unchecked.
+#
 # Used by the Android and the iOS integration workflows; the emulator reaches
 # it as http://10.0.2.2:8000, the iOS simulator as http://127.0.0.1:8000.
 # An altered tile stops here with a message that says what to look at:
@@ -72,23 +76,45 @@ else
   rm -f "$mirror/${tile}.gaz"
 fi
 
+extra=""
+for rd5 in ${ITEST_MIRROR_EXTRA:-}; do
+  name="$(basename "$rd5" .rd5)"
+  [ -f "$rd5" ] || { echo "::error::$rd5 is missing."; exit 1; }
+  echo "==> adding $rd5"
+  ln -sf "$rd5" "$mirror/${name}.rd5"
+  if [ -f "${rd5%.rd5}.gaz" ]; then
+    ln -sf "${rd5%.rd5}.gaz" "$mirror/${name}.gaz"
+  else
+    rm -f "$mirror/${name}.gaz"
+  fi
+  extra="$extra $name"
+done
+
 echo "==> writing manifest.json"
-ORACLE_TILE="$tile" RD5_FORMAT_VERSION="$format_version" python3 - "$mirror" <<'PY'
+ORACLE_TILE="$tile" EXTRA_TILES="$extra" RD5_FORMAT_VERSION="$format_version" \
+  python3 - "$mirror" <<'PY'
 import hashlib, json, os, sys, datetime
 mirror = sys.argv[1]
-tile = os.environ["ORACLE_TILE"]
-path = os.path.join(mirror, tile + ".rd5")
-data = open(path, "rb").read()
 stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+def entry(tile):
+    digest = hashlib.sha256()
+    path = os.path.join(mirror, tile + ".rd5")
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return {
+        "tile": tile,
+        "bytes": os.path.getsize(path),
+        "updatedAt": stamp,
+        "sha256": digest.hexdigest(),
+    }
+
+tiles = [os.environ["ORACLE_TILE"], *os.environ["EXTRA_TILES"].split()]
 manifest = {
     "formatVersion": os.environ["RD5_FORMAT_VERSION"],
     "generatedAt": stamp,
-    "tiles": [{
-        "tile": tile,
-        "bytes": len(data),
-        "updatedAt": stamp,
-        "sha256": hashlib.sha256(data).hexdigest(),
-    }],
+    "tiles": [entry(tile) for tile in tiles],
 }
 with open(os.path.join(mirror, "manifest.json"), "w") as out:
     json.dump(manifest, out, indent=1)
