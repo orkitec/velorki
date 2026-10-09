@@ -67,5 +67,6 @@ CellWays mergeLines(CellWays cell) {
   for (var i = 0; i + 2 < b.length; i += 3) {
     out.addBarrier(b[i], b[i + 1], b[i + 2]);
   }
+  out.addClimbsOf(cell);
   return out.build();
 }

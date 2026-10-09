@@ -3,7 +3,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart'
-    show Brightness, Color, IconData, Icons, ThemeData;
+    show Brightness, Color, IconData, ThemeData;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show EdgeInsets, Offset, Rect, Size;
 import 'package:flutter/services.dart'
@@ -15,6 +15,7 @@ import '../../../app/theme.dart';
 import '../domain/cycle_map.dart';
 import '../domain/map_controller.dart';
 import '../domain/visible_map.dart';
+import 'cycle_map_images.dart';
 import 'cycle_map_layers.dart';
 import 'cyclosm_tone.dart';
 import 'marker_glyph.dart';
@@ -710,7 +711,7 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> _cycleMapTurn = Future<void>.value();
   String? _cycleAnchor;
   bool _cycleAnchorKnown = false;
-  bool _contraflowImageAdded = false;
+  bool _cycleImagesAdded = false;
   bool _attached = false;
   bool _disposed = false;
 
@@ -767,7 +768,7 @@ class MaplibreMapControllerAdapter implements MapController {
     // A fresh style holds no cycle map; the replay adds the last one.
     _cycleGenerations.clear();
     _cycleAnchorKnown = false;
-    _contraflowImageAdded = false;
+    _cycleImagesAdded = false;
     // A fresh style holds none of our bitmaps; the replay registers the
     // ones the markers still need.
     _glyphImages.clear();
@@ -2034,7 +2035,7 @@ class MaplibreMapControllerAdapter implements MapController {
       );
       _cycleAnchorKnown = true;
     }
-    if (!_contraflowImageAdded) await _addContraflowImage();
+    if (!_cycleImagesAdded) await _addCycleMapImages();
     final generation = _nextCycleGeneration++;
     final source = CycleMapLayers.sourceId(generation);
     await _ops.addSource(
@@ -2089,28 +2090,43 @@ class MaplibreMapControllerAdapter implements MapController {
     }
   }
 
-  /// The arrows of a one-way open to bikes both ways, in the cycle map's
-  /// colour on its outline.
-  Future<void> _addContraflowImage() async {
+  /// The cycle map's arrows, in its colours.
+  Future<void> _addCycleMapImages() async {
+    final colors = palette.cycle;
     try {
-      final bytes = await buildMarkerGlyphImage(
-        icon: Icons.swap_horiz_rounded,
-        color: colorFromMapHex(palette.cycle.infrastructure),
-        haloColor: colorFromMapHex(palette.cycle.outline),
-        devicePixelRatio: devicePixelRatio,
-        sizePx: 20,
-      );
-      await _ops.addImage(CycleMapLayers.contraflowImage, bytes);
-      _contraflowImageAdded = true;
+      final images = <String, Uint8List>{
+        CycleMapLayers.arrowImage: await buildArrowImage(
+          fill: colorFromMapHex(colors.arrow),
+          rim: colorFromMapHex(colors.infrastructure),
+          devicePixelRatio: devicePixelRatio,
+        ),
+        CycleMapLayers.sideArrowImage: await buildArrowImage(
+          fill: colorFromMapHex(colors.infrastructure),
+          rim: colorFromMapHex(colors.outline),
+          devicePixelRatio: devicePixelRatio,
+          width: 14,
+          height: 7,
+        ),
+        CycleMapLayers.contraflowImage: await buildContraflowImage(
+          traffic: colorFromMapHex(colors.trafficArrow),
+          bikes: colorFromMapHex(colors.infrastructure),
+          rim: colorFromMapHex(colors.outline),
+          devicePixelRatio: devicePixelRatio,
+        ),
+      };
+      for (final entry in images.entries) {
+        await _ops.addImage(entry.key, entry.value);
+      }
+      _cycleImagesAdded = true;
     } on Object catch (error) {
       // The arrows are missing until the next cycle map tries again.
-      debugPrint('velorki: contraflow arrows not registered: $error');
+      debugPrint('velorki: cycle map arrows not registered: $error');
     }
   }
 
   Future<void> _recolourCycleMap() async {
     if (_cycleGenerations.isEmpty) return;
-    await _addContraflowImage();
+    await _addCycleMapImages();
     for (final generation in List<int>.of(_cycleGenerations)) {
       for (final layer in CycleMapLayers(palette.cycle).layers) {
         final id = CycleMapLayers.layerId(generation, layer);

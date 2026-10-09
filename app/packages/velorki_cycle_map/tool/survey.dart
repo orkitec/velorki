@@ -22,6 +22,7 @@ void main(List<String> args) {
   for (var rep = 0; rep < 3; rep++) {
     final sw = Stopwatch()..start();
     var lines = 0, points = 0, barriers = 0, cells = 0, bytes = 0;
+    final grades = [0, 0, 0, 0];
     final kinds = <String, int>{};
     for (var x = idx(lon - dLon, 180); x <= idx(lon + dLon, 180); x++) {
       for (var y = idx(lat - dLat, 90); y <= idx(lat + dLat, 90); y++) {
@@ -31,6 +32,9 @@ void main(List<String> args) {
         points += cell.pointCount;
         barriers += cell.barrierCount;
         bytes += cell.byteSize;
+        for (final g in cell.climbGrades) {
+          grades[g]++;
+        }
         for (final a in cell.attrs) {
           final at = CycleAttrs(a);
           void count(String k) => kinds[k] = (kinds[k] ?? 0) + 1;
@@ -52,6 +56,7 @@ void main(List<String> args) {
         '${reader.descriptionCount} descriptions',
       );
       print(kinds);
+      print('climbs by grade class 1/2/3: ${grades.sublist(1)}');
     }
   }
   tile.close();

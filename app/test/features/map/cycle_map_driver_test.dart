@@ -134,7 +134,7 @@ void main() {
       ..configure(shown);
     await renderer.answerAll();
     map
-      ..zoom = 11
+      ..zoom = 12.4
       ..visibleBounds = box(-16.91, 32.65, 0.3);
     map.emitCameraIdle();
     expect(renderer.requests, hasLength(1));
@@ -210,5 +210,13 @@ void main() {
     driver.detach(clear: false);
     await renderer.answerAll();
     expect(map.cycleMapCalls, isEmpty);
+  });
+
+  test('halfway into the fade a new area is drawn already', () async {
+    map.zoom = 12.6;
+    driver
+      ..attach(map)
+      ..configure(shown);
+    expect(renderer.requests, hasLength(1));
   });
 }

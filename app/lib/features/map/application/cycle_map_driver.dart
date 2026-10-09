@@ -110,9 +110,10 @@ class CycleMapDriver {
     final zoom = map.zoom;
     final bounds = map.visibleBounds;
     if (zoom == null || bounds == null) return;
-    // Zoomed out the map keeps what it has; its layers stop drawing at
-    // [cycleMapMinZoom] by themselves.
-    if (zoom < cycleMapMinZoom - 0.01) return;
+    // Zoomed out the map keeps what it has; its layers fade out in the
+    // step before [cycleMapMinZoom] by themselves. Halfway through that
+    // fade a new area is drawn already, so it fades in with something.
+    if (zoom < cycleMapMinZoom - 0.51) return;
     _needsDownload.value = !_covers(bounds.center);
     final step = zoomStep(zoom);
     final content = cycleContentOf(_settings.parts);

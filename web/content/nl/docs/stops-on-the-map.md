@@ -18,18 +18,20 @@ De knop is gemarkeerd zolang de fietskaart, de online fietskaart of de stopplekk
 
 ## De fietskaart
 
-Vanaf zoomniveau 13 tekent de fietskaart wat de routeringsgegevens weten over fietsen. Staat ze aan, dan klapt onder de schakelaar per onderdeel een chip uit, elk met een stukje van zijn lijn als legenda. Tik op een chip om het onderdeel te tonen of te verbergen; de keuze blijft bewaard.
+De fietskaart vervaagt in tussen zoomniveau 12 en 13 en weer uit bij uitzoomen. Ze tekent wat de routeringsgegevens weten over fietsen. Staat ze aan, dan klapt onder de schakelaar per onderdeel een chip uit, elk met een stukje van zijn lijn als legenda. Tik op een chip om het onderdeel te tonen of te verbergen; de keuze blijft bewaard. Pijlen en stippen die vanaf zoomniveau 15 verschijnen, vervagen in tijdens de zoomstap ervoor.
 
 | Onderdeel | Getekend als |
 | --- | --- |
-| **Fietspaden & -stroken** | Fietspaden effen blauw, fietsstraten met een lichte band; fietspaden effen en fietsstroken gestippeld, bij inzoomen naast de weg aan hun kant |
+| **Fietspaden & -stroken** | Fietspaden effen blauw, fietsstraten met een lichte band; fietspaden effen en fietsstroken gestippeld, aan de rand van de weg, verder naar buiten op grotere wegen. Gedeelde stroken (busstroken waar fietsers mogen, stroken alleen met fietssymbolen gemarkeerd, bermen, trottoirs waar fietsers mogen) als losse lichtblauwe streepjes naast de weg. Tweerichtingsfietspaden en tweerichtingspaden en -stroken zijn breder getekend dan eenrichtingsexemplaren. Vanaf zoomniveau 15 tonen pijlen in eenrichtingsfietspaden en -paden de rijrichting; vanaf zoomniveau 16 kleine pijlen naast een als eenrichting getagd fietspad of fietsstrook |
 | **Gedeelde paden** | Paden gedeeld met voetgangers als groenblauwe streepjes, voetpaden waar fietsers mogen als grijsblauwe stippen |
-| **Tweerichting fiets** | Pijlen op eenrichtingsstraten die fietsers in beide richtingen mogen berijden, vanaf zoomniveau 15 |
+| **Tweerichting fiets** | Op eenrichtingsstraten die fietsers in beide richtingen mogen berijden toont vanaf zoomniveau 15 een grijze pijl de richting van het verkeer en een blauwe die van de fietsers ertegenin |
 | **Landelijke routes**, **Regionale routes**, **Lokale routes** | Bewegwijzerde fietsroutes als paarse gloed, sterker naarmate de route verder reikt |
-| **Onverhard & hobbelig** | Onverharde wegen als okerkleurig streepje, hobbelige als rode streepjes |
-| **Obstakels** | Hekken, paaltjes en overstapjes als stippen vanaf zoomniveau 15; rood waar de fiets gedragen moet worden |
+| **Onverhard & hobbelig** | Grind als okerkleurig streepje, ruw terrein voor mountainbikes als bruin streepje, hobbelige bestrating als rode streepjes |
+| **Obstakels & trappen** | Hekken, paaltjes en overstapjes als stippen vanaf zoomniveau 15; rood waar de fiets gedragen moet worden. Trappen als bruine sporten vanaf zoomniveau 15, met een blauwe strook ernaast waar een fietshelling is |
+| **Rustige straten** | Straten ingekleurd naar rust: cyaan voor 30 km/u (20 mph) of minder, groen voor 20 km/u of woonerven, lichtgroen voor stapvoets, felgroen zonder gemotoriseerd verkeer; voor fietsers gesloten wegen grijs |
+| **Mountainbike** | Moeilijkheidsstreepjes op paden vanaf zoomniveau 14: blauw voor makkelijk (S0–S1), rood voor S2, zwart voor S3 en zwaarder (wit op de nachtkaart); mountainbikeroutes als oranje gloed |
 
-In het begin staan alle onderdelen aan behalve **Onverhard & hobbelig** en **Obstakels**.
+In het begin staan alle onderdelen aan behalve **Onverhard & hobbelig**, **Rustige straten** en **Mountainbike**.
 
 Op het tabblad Plannen zegt een chip, met de fietskaart aan boven een niet-gedownload gebied, **Geen fietskaart hier – gebied niet gedownload**, met **Downloaden**; een tik opent de download voor het zichtbare gebied. Geldt ook de chip van de stopplekken, dan gaat die voor.
 

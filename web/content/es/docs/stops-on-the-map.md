@@ -18,18 +18,20 @@ El botón se resalta mientras el mapa ciclista, el mapa ciclista en línea o las
 
 ## El mapa ciclista
 
-A partir del zoom 13, el mapa ciclista dibuja lo que los datos de rutas saben de ir en bici. Activado, bajo el interruptor se despliega un chip por parte, cada uno con una muestra de su línea como leyenda. Toca un chip para mostrar u ocultar la parte; la elección se conserva.
+El mapa ciclista aparece gradualmente entre el zoom 12 y 13, y se desvanece al alejar. Dibuja lo que los datos de rutas saben de ir en bici. Activado, bajo el interruptor se despliega un chip por parte, cada uno con una muestra de su línea como leyenda. Toca un chip para mostrar u ocultar la parte; la elección se conserva. Las flechas y puntos que se muestran desde el zoom 15 aparecen gradualmente durante el paso de zoom anterior.
 
 | Parte | Dibujada como |
 | --- | --- |
-| **Carriles bici** | Vías ciclistas en azul continuo, calles ciclistas con una banda pálida; carriles bici segregados continuos y carriles en trazos, junto a la calzada y en su lado al acercar |
+| **Carriles bici** | Vías ciclistas en azul continuo, calles ciclistas con una banda pálida; carriles bici segregados continuos y carriles en trazos, al borde de la calzada, más afuera en las vías grandes. Carriles compartidos (carriles bus que las bicis pueden usar, carriles marcados solo con símbolos de bici, arcenes, aceras que las bicis pueden usar) como trazos espaciados azul claro junto a la calzada. Las vías ciclistas de doble sentido y los carriles bici y carriles de doble sentido se dibujan más anchos que los de sentido único. Desde el zoom 15, flechas dentro de las vías ciclistas y sendas de sentido único indican hacia dónde circular; desde el zoom 16, pequeñas flechas junto a un carril bici o carril de sentido único |
 | **Sendas compartidas** | Sendas compartidas con peatones en trazos verdeazulados, aceras que las bicis pueden usar en puntos gris azulado |
-| **Doble sentido bici** | Flechas en calles de sentido único que las bicis pueden recorrer en ambos sentidos, desde el zoom 15 |
+| **Doble sentido bici** | En calles de sentido único que las bicis pueden recorrer en ambos sentidos, desde el zoom 15 una flecha gris muestra el sentido del tráfico y una azul el de las bicis en contra |
 | **Rutas nacionales**, **Rutas regionales**, **Rutas locales** | Rutas ciclistas señalizadas como un halo violeta, más fuerte cuanto más lejos llega la ruta |
-| **Sin asfaltar y bacheado** | Vías sin asfaltar con un trazo ocre, bacheadas con marcas rojas |
-| **Barreras** | Puertas, bolardos y portillos como puntos desde el zoom 15; en rojo donde hay que llevar la bici en brazos |
+| **Sin asfaltar y bacheado** | Grava con un trazo ocre, terreno accidentado para bici de montaña con un trazo marrón, pavimento bacheado con marcas rojas |
+| **Barreras y escaleras** | Puertas, bolardos y portillos como puntos desde el zoom 15; en rojo donde hay que llevar la bici en brazos. Escaleras como peldaños marrones desde el zoom 15, con una franja azul al lado donde hay rampa para bicis |
+| **Calles tranquilas** | Calles teñidas según su tranquilidad: cian para 30 km/h (20 mph) o menos, verde para 20 km/h o calles residenciales, verde pálido para paso de peatón, verde vivo sin tráfico motorizado; vías cerradas a las bicis en gris |
+| **Bici de montaña** | Marcas de dificultad en los senderos desde el zoom 14: azul para fácil (S0–S1), rojo para S2, negro para S3 y más difícil (blanco en el mapa nocturno); rutas de bici de montaña como un halo naranja |
 
-Al principio todas las partes están activas salvo **Sin asfaltar y bacheado** y **Barreras**.
+Al principio todas las partes están activas salvo **Sin asfaltar y bacheado**, **Calles tranquilas** y **Bici de montaña**.
 
 En la pestaña Planificar, con el mapa ciclista activo sobre una zona no descargada, un chip dice **No hay mapa ciclista aquí – zona no descargada**, con **Descargar**; al tocarlo se abre la descarga de la zona visible. Si también vale el chip de las paradas, este va primero.
 

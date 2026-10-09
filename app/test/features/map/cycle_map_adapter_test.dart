@@ -37,7 +37,14 @@ void main() {
       expect(added.enableInteraction, isFalse);
       expect(added.filter, layer.filter);
     }
-    expect(ops.images, contains(CycleMapLayers.contraflowImage));
+    expect(
+      ops.images,
+      containsAll(<String>[
+        CycleMapLayers.arrowImage,
+        CycleMapLayers.sideArrowImage,
+        CycleMapLayers.contraflowImage,
+      ]),
+    );
   });
 
   test('a style it does not know: under everything Velorki draws', () async {
@@ -161,4 +168,21 @@ void main() {
       expect(shownAfter[CycleMapLayers.layerId(0, rough)], isFalse);
     },
   );
+
+  test('every layer fades in over the zoom step before its own', () async {
+    await map.setCycleMap('/a.geojson');
+    for (final layer in layers) {
+      final added = ops.addLayerOf(CycleMapLayers.layerId(0, layer))!;
+      final props = added.properties!;
+      final opacity =
+          props['line-opacity'] ??
+          props['icon-opacity'] ??
+          props['circle-opacity'];
+      expect(opacity, isA<List<Object?>>(), reason: layer.name);
+      final fade = opacity as List<Object?>;
+      expect(fade[0], 'interpolate');
+      expect(fade[3], layer.minZoom, reason: layer.name);
+      expect(fade[4], 0);
+    }
+  });
 }

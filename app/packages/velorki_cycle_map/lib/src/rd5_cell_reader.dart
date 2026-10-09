@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:brouter_dart/brouter_dart.dart';
 
 import 'cell_ways.dart';
+import 'climbs.dart';
 import 'cycle_attrs.dart';
 
 /// Reads the cycle map's lines and barriers out of BRouter's rd5 tiles, one
@@ -49,11 +50,17 @@ final class Rd5CellReader {
   ///
   /// [keep] says which lines to keep by their attribute bits; by default
   /// everything with something to draw.
+  ///
+  /// With [climbs], the steep pieces of every way a bike may use are found
+  /// as well, from the heights the tile keeps for every point. Off by
+  /// default: in cities the tiles' heights include the buildings, and a
+  /// block-long stretch shows climbs on flat streets.
   CellWays readCell(
     Rd5Tile tile,
     int lonIdx,
     int latIdx, {
     bool Function(int attrs)? keep,
+    bool climbs = false,
   }) {
     final div = tile._file.divisor;
     final lonDeg = lonIdx ~/ div;
@@ -76,13 +83,18 @@ final class Rd5CellReader {
 
     final out = CellWaysBuilder();
     final line = <int>[];
+    final heights = <int>[];
+    final nodeHeights = <int, int>{};
+    // Links to find the climbs of once every node's height is known: the
+    // last point's is its target node's.
+    final pending = <(List<int>, List<int>, int)>[];
     final size = mc.getSize();
     for (var i = 0; i < size; i++) {
       final id = mc.getIdForIndex(i);
       if (!mc.getAndClear(id)) continue;
       final ilon = id >> 32;
       final ilat = id & 0xffffffff;
-      // Turn restrictions, then the elevation: not for drawing.
+      // Turn restrictions are not for drawing.
       while (mc.readBoolean()) {
         mc
           ..readShort()
@@ -92,7 +104,8 @@ final class Rd5CellReader {
           ..readInt()
           ..readInt();
       }
-      mc.readShort();
+      final selev = mc.readShort();
+      nodeHeights[id] = selev;
       final nodeDescSize = mc.readVarLengthUnsigned();
       if (nodeDescSize > 0) {
         final desc = Uint8List.sublistView(
@@ -120,8 +133,11 @@ final class Rd5CellReader {
           mc.aboffset + descSize,
         );
         mc.aboffset += descSize;
-        final attrs = _wayAttrsOf(desc);
-        if (attrs == 0 || keep != null && !keep(attrs)) {
+        final value = _wayValueOf(desc);
+        final attrs = value & 0xffffffff;
+        final drawn = attrs != 0 && (keep == null || keep(attrs));
+        final climbable = climbs && value & _climbable != 0;
+        if (!drawn && !climbable) {
           mc.aboffset = end;
           continue;
         }
@@ -129,31 +145,67 @@ final class Rd5CellReader {
           ..clear()
           ..add(ilon)
           ..add(ilat);
+        heights
+          ..clear()
+          ..add(selev);
         var olon = ilon;
         var olat = ilat;
+        var oelev = selev;
         while (mc.aboffset < end) {
           olon += mc.readVarLengthSigned();
           olat += mc.readVarLengthSigned();
-          mc.readVarLengthSigned(); // elevation
+          oelev = _short(oelev + mc.readVarLengthSigned());
           line
             ..add(olon)
             ..add(olat);
+          heights.add(oelev);
         }
         line
           ..add(tlon)
           ..add(tlat);
-        out.addLine(line, attrs);
+        if (drawn) out.addLine(line, attrs);
+        if (climbable && selev != _noHeight) {
+          pending.add((
+            List<int>.of(line),
+            List<int>.of(heights),
+            tlon << 32 | tlat,
+          ));
+        }
       }
+    }
+    for (final (coords, elevations, target) in pending) {
+      final last = nodeHeights[target];
+      if (last != null && last != _noHeight) {
+        elevations.add(last);
+      } else {
+        // The target is in another cell: the link ends at its last point
+        // with a height.
+        coords.length -= 2;
+      }
+      if (elevations.contains(_noHeight)) continue;
+      findClimbs(coords, elevations, out.addClimb);
     }
     return out.build();
   }
 
-  int _wayAttrsOf(Uint8List desc) =>
-      _wayAttrs.lookup(desc) ??
-      _wayAttrs.put(
-        desc,
-        classifyWay(_tags(_way.getKeyValueList(false, desc))),
-      );
+  /// A way's attribute bits in the low 32 bits, and [_climbable].
+  int _wayValueOf(Uint8List desc) {
+    final known = _wayAttrs.lookup(desc);
+    if (known != null) return known;
+    final tags = _tags(_way.getKeyValueList(false, desc));
+    return _wayAttrs.put(
+      desc,
+      classifyWay(tags) & 0xffffffff | (isClimbable(tags) ? _climbable : 0),
+    );
+  }
+
+  static const int _climbable = 1 << 32;
+
+  /// BRouter's height for "none known".
+  static const int _noHeight = -32768;
+
+  /// [v] as Java's short: the heights are kept in 16 bits.
+  static int _short(int v) => ((v + 32768) & 0xffff) - 32768;
 
   int _nodeClass(Uint8List desc) =>
       _nodeClasses.lookup(desc) ??

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:test/test.dart';
 import 'package:velorki_cycle_map/velorki_cycle_map.dart';
 
@@ -107,14 +109,17 @@ void main() {
       );
     });
 
-    test('a shared bus lane counts as a lane, sharrows do not', () {
+    test('bus lanes, marked lanes and shoulders are shared, not lanes', () {
+      final bus = way({'highway': 'primary', 'cycleway:right': 'share_busway'});
+      expect(bus.lane, 0);
+      expect(bus.sharedLane, Side.right);
       expect(
-        way({'highway': 'primary', 'cycleway:right': 'share_busway'}).lane,
-        Side.right,
+        way({'highway': 'primary', 'cycleway': 'shared_lane'}).sharedLane,
+        Side.both,
       );
       expect(
-        way({'highway': 'primary', 'cycleway': 'shared_lane'}).isEmpty,
-        isTrue,
+        way({'highway': 'primary', 'cycleway:left': 'shoulder'}).sharedLane,
+        Side.left,
       );
     });
 
@@ -132,9 +137,10 @@ void main() {
             .track,
         Side.right,
       );
+      // One bikes may use but that isn't theirs is shared.
       expect(
-        way({'highway': 'primary', 'sidewalk:bicycle': 'yes'}).isEmpty,
-        isTrue,
+        way({'highway': 'primary', 'sidewalk:bicycle': 'yes'}).sharedLane,
+        Side.both,
       );
     });
 
@@ -323,5 +329,244 @@ void main() {
         BarrierClass.carry,
       );
     });
+  });
+
+  group('direction', () {
+    test('a one-way cycleway, either way', () {
+      expect(
+        way({'highway': 'cycleway', 'oneway': 'yes'}).oneway,
+        Direction.forward,
+      );
+      expect(
+        way({'highway': 'cycleway', 'oneway': '-1'}).oneway,
+        Direction.backward,
+      );
+      expect(way({'highway': 'cycleway'}).oneway, Direction.none);
+    });
+
+    test('oneway:bicycle wins on a path', () {
+      expect(
+        way({
+          'highway': 'path',
+          'bicycle': 'designated',
+          'oneway': 'yes',
+          'oneway:bicycle': 'no',
+        }).oneway,
+        Direction.none,
+      );
+      expect(
+        way({
+          'highway': 'path',
+          'bicycle': 'designated',
+          'oneway:bicycle': 'yes',
+        }).oneway,
+        Direction.forward,
+      );
+    });
+
+    test('a contraflow street keeps the direction of its traffic', () {
+      expect(
+        way({'highway': 'residential', 'oneway': '-1', 'oneway:bicycle': 'no'})
+            .oneway,
+        Direction.backward,
+      );
+    });
+
+    test('a plain one-way street is no line of its own', () {
+      expect(way({'highway': 'residential', 'oneway': 'yes'}).isEmpty, isTrue);
+    });
+
+    test('per side, from cycleway:*:oneway and opposite_*', () {
+      final a = way({
+        'highway': 'secondary',
+        'cycleway:left': 'track',
+        'cycleway:left:oneway': 'no',
+        'cycleway:right': 'lane',
+        'cycleway:right:oneway': 'yes',
+      });
+      expect(a.leftDirection, Direction.both);
+      expect(a.rightDirection, Direction.forward);
+      expect(
+        way({
+          'highway': 'residential',
+          'oneway': 'yes',
+          'cycleway:left': 'opposite_lane',
+        }).leftDirection,
+        Direction.backward,
+      );
+    });
+
+    test('no side direction without a lane on that side', () {
+      expect(
+        way({
+          'highway': 'secondary',
+          'cycleway:right': 'lane',
+          'cycleway:left:oneway': 'yes',
+        }).leftDirection,
+        Direction.none,
+      );
+    });
+  });
+
+  group('road size, for the offset of lanes', () {
+    test('by highway, only where there is something beside the road', () {
+      expect(
+        way({'highway': 'primary', 'cycleway': 'lane'}).road,
+        RoadClass.major,
+      );
+      expect(
+        way({'highway': 'tertiary', 'cycleway': 'lane'}).road,
+        RoadClass.middle,
+      );
+      expect(
+        way({'highway': 'residential', 'cycleway': 'lane'}).road,
+        RoadClass.minor,
+      );
+      expect(
+        way({'highway': 'primary', 'route_bicycle_ncn': 'yes'}).road,
+        RoadClass.minor,
+      );
+    });
+  });
+
+  group('steps', () {
+    test('steps, with or without a ramp', () {
+      expect(way({'highway': 'steps'}).kind, CycleKind.steps);
+      expect(way({'highway': 'steps'}).ramp, isFalse);
+      expect(way({'highway': 'steps', 'ramp:bicycle': 'yes'}).ramp, isTrue);
+    });
+  });
+
+  group('traffic', () {
+    test('speed limits, living streets', () {
+      expect(
+        way({'highway': 'residential', 'maxspeed': '30'}).traffic,
+        TrafficClass.limit30,
+      );
+      expect(
+        way({'highway': 'residential', 'zone:maxspeed': '30'}).traffic,
+        TrafficClass.limit30,
+      );
+      expect(
+        way({'highway': 'residential', 'maxspeed': '20'}).traffic,
+        TrafficClass.limit20,
+      );
+      expect(way({'highway': 'living_street'}).traffic, TrafficClass.limit20);
+      expect(
+        way({'highway': 'service', 'maxspeed': '10'}).traffic,
+        TrafficClass.walk,
+      );
+      expect(way({'highway': 'residential', 'maxspeed': '50'}).isEmpty, isTrue);
+    });
+
+    test('no motor traffic, by the first access tag that says', () {
+      expect(
+        way({'highway': 'residential', 'motor_vehicle': 'no'}).traffic,
+        TrafficClass.noMotor,
+      );
+      expect(
+        way({
+          'highway': 'unclassified',
+          'motorcar': 'yes',
+          'motor_vehicle': 'no',
+        }).traffic,
+        TrafficClass.none,
+      );
+      expect(
+        way({'highway': 'service', 'access': 'agricultural'}).traffic,
+        TrafficClass.noMotor,
+      );
+    });
+
+    test('closed to bikes', () {
+      expect(
+        way({'highway': 'primary', 'bicycle': 'no'}).traffic,
+        TrafficClass.noBikes,
+      );
+      expect(
+        way({'highway': 'trunk', 'motorroad': 'yes'}).traffic,
+        TrafficClass.noBikes,
+      );
+      expect(
+        way({'highway': 'residential', 'access': 'no', 'bicycle': 'yes'})
+            .traffic,
+        isNot(TrafficClass.noBikes),
+      );
+      // A closed road carries no lanes or routes.
+      final closed = way({
+        'highway': 'primary',
+        'bicycle': 'use_sidepath',
+        'cycleway': 'lane',
+        'route_bicycle_ncn': 'yes',
+      });
+      expect(closed.lane, 0);
+      expect(closed.routes, 0);
+    });
+
+    test('not on paths and tracks', () {
+      expect(way({'highway': 'track', 'maxspeed': '30'}).isEmpty, isTrue);
+    });
+  });
+
+  group('surface grades', () {
+    test('gravel and rugged', () {
+      final gravel = way({'highway': 'track', 'surface': 'gravel'});
+      expect(gravel.unpaved, isTrue);
+      expect(gravel.rugged, isFalse);
+      final mud = way({'highway': 'path', 'surface': 'mud'});
+      expect(mud.unpaved, isTrue);
+      expect(mud.rugged, isTrue);
+      expect(way({'highway': 'track', 'tracktype': 'grade5'}).rugged, isTrue);
+      expect(
+        way({'highway': 'track', 'smoothness': 'horrible'}).rugged,
+        isTrue,
+      );
+    });
+
+    test('a paved road with bad smoothness is bumpy, not gravel', () {
+      final a = way({'highway': 'residential', 'smoothness': 'bad'});
+      expect(a.rough, isTrue);
+      expect(a.unpaved, isFalse);
+      final track = way({'highway': 'track', 'smoothness': 'bad'});
+      expect(track.unpaved, isTrue);
+      expect(track.rough, isFalse);
+    });
+  });
+
+  test('mountain-bike routes', () {
+    expect(way({'highway': 'path', 'route_mtb_': 'yes'}).mtbRoute, isTrue);
+    expect(way({'highway': 'track', 'route_mtb_lcn': 'yes'}).mtbRoute, isTrue);
+  });
+
+  test('every new part survives packing, the top bit included', () {
+    final a = CycleAttrs(
+      CycleBits.pack(
+        kind: CycleKind.steps,
+        oneway: Direction.backward,
+        leftDirection: Direction.both,
+        rightDirection: Direction.forward,
+        sharedLane: Side.left,
+        ramp: true,
+        traffic: TrafficClass.noBikes,
+        road: RoadClass.major,
+        mtbRoute: true,
+        rugged: true,
+      ),
+    );
+    // As a cell stores it: 32 bits, signed.
+    final stored = CycleAttrs(Int32List.fromList([a.bits])[0]);
+    for (final b in [a, stored]) {
+      expect(b.kind, CycleKind.steps);
+      expect(b.oneway, Direction.backward);
+      expect(b.leftDirection, Direction.both);
+      expect(b.rightDirection, Direction.forward);
+      expect(b.sharedLane, Side.left);
+      expect(b.ramp, isTrue);
+      expect(b.traffic, TrafficClass.noBikes);
+      expect(b.road, RoadClass.major);
+      expect(b.mtbRoute, isTrue);
+      expect(b.rugged, isTrue);
+      expect(b.isEmpty, isFalse);
+    }
   });
 }

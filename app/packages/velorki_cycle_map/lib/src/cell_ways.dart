@@ -11,14 +11,23 @@ final class CellWays {
     required this.starts,
     required this.attrs,
     required this.barriers,
-  }) : assert(starts.length == attrs.length + 1);
+    Int32List? climbCoords,
+    Int32List? climbStarts,
+    Int32List? climbGrades,
+  }) : climbCoords = climbCoords ?? Int32List(0),
+       climbStarts = climbStarts ?? Int32List(1),
+       climbGrades = climbGrades ?? Int32List(0),
+       assert(starts.length == attrs.length + 1);
 
   /// A cell with nothing in it.
   CellWays.empty()
     : coords = Int32List(0),
       starts = Int32List(1),
       attrs = Int32List(0),
-      barriers = Int32List(0);
+      barriers = Int32List(0),
+      climbCoords = Int32List(0),
+      climbStarts = Int32List(1),
+      climbGrades = Int32List(0);
 
   /// The lines' points, longitude and latitude in turn.
   final Int32List coords;
@@ -33,6 +42,16 @@ final class CellWays {
   /// Barrier points: longitude, latitude and class in turn.
   final Int32List barriers;
 
+  /// The steep pieces of the ways, each drawn from its foot uphill: their
+  /// points, where each starts (as [starts]), and each one's grade class
+  /// (1 from 6 %, 2 from 10 %, 3 from 15 %).
+  final Int32List climbCoords;
+  final Int32List climbStarts;
+  final Int32List climbGrades;
+
+  /// How many steep pieces there are.
+  int get climbCount => climbGrades.length;
+
   /// How many lines there are.
   int get lineCount => attrs.length;
 
@@ -44,7 +63,14 @@ final class CellWays {
 
   /// The bytes the lists take, for the cache's budget.
   int get byteSize =>
-      (coords.length + starts.length + attrs.length + barriers.length) * 4;
+      (coords.length +
+          starts.length +
+          attrs.length +
+          barriers.length +
+          climbCoords.length +
+          climbStarts.length +
+          climbGrades.length) *
+      4;
 }
 
 /// Collects lines and barriers into a [CellWays].
@@ -53,6 +79,9 @@ final class CellWaysBuilder {
   final _starts = _IntBuffer()..add(0);
   final _attrs = _IntBuffer();
   final _barriers = _IntBuffer();
+  final _climbCoords = _IntBuffer();
+  final _climbStarts = _IntBuffer()..add(0);
+  final _climbGrades = _IntBuffer();
 
   /// Adds a line through the points in [coords] (longitude and latitude in
   /// turn, from [from] to [to], exclusive).
@@ -73,12 +102,39 @@ final class CellWaysBuilder {
       ..add(barrierClass);
   }
 
+  /// Adds a steep piece through the points in [coords], from its foot
+  /// uphill, of grade class [grade].
+  void addClimb(List<int> coords, int grade) {
+    for (final v in coords) {
+      _climbCoords.add(v);
+    }
+    _climbStarts.add(_climbCoords.length >> 1);
+    _climbGrades.add(grade);
+  }
+
+  /// Adds every steep piece of [cell] as it is.
+  void addClimbsOf(CellWays cell) {
+    for (var i = 0; i < cell.climbCount; i++) {
+      addClimb(
+        Int32List.sublistView(
+          cell.climbCoords,
+          cell.climbStarts[i] * 2,
+          cell.climbStarts[i + 1] * 2,
+        ),
+        cell.climbGrades[i],
+      );
+    }
+  }
+
   /// The cell.
   CellWays build() => CellWays(
     coords: _coords.toList(),
     starts: _starts.toList(),
     attrs: _attrs.toList(),
     barriers: _barriers.toList(),
+    climbCoords: _climbCoords.toList(),
+    climbStarts: _climbStarts.toList(),
+    climbGrades: _climbGrades.toList(),
   );
 }
 

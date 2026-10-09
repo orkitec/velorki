@@ -18,18 +18,20 @@ The button is highlighted while the cycle map, the online cycle map or the stops
 
 ## The cycle map
 
-From zoom 13 on, the cycle map draws what the routing data knows about riding a bike. With it on, a chip per part unfolds below the switch, each with a sample of its line as legend. Tap a chip to show or hide the part; the choice is kept.
+The cycle map fades in between zoom 12 and 13, and out again when you zoom out. It draws what the routing data knows about riding a bike. With it on, a chip per part unfolds below the switch, each with a sample of its line as legend. Tap a chip to show or hide the part; the choice is kept. Arrows and dots shown from zoom 15 fade in over the zoom step before.
 
 | Part | Drawn as |
 | --- | --- |
-| **Bike lanes & tracks** | Cycleways solid blue, cycle streets with a pale band; tracks solid and lanes dashed, beside the road on their side when zoomed in |
+| **Bike lanes & tracks** | Cycleways solid blue, cycle streets with a pale band; tracks solid and lanes dashed, at the road's edge, farther out on bigger roads. Shared lanes (bus lanes bikes may use, lanes marked only with bike symbols, shoulders, sidewalks bikes may use) as a sparse light-blue dash beside the road. Two-way cycleways and two-way tracks and lanes are drawn wider than one-way ones. From zoom 15 arrows inside one-way cycleways and paths show which way to ride; from zoom 16 small arrows beside a track or lane tagged one-way |
 | **Shared paths** | Paths shared with walkers dashed teal, footways bikes may use dotted grey-blue |
-| **Two-way for bikes** | Arrows on one-way streets that bikes may ride both ways, from zoom 15 |
+| **Two-way for bikes** | On one-way streets that bikes may ride both ways, from zoom 15 a grey arrow shows the traffic's way and a blue one the bikes' way against it |
 | **National routes**, **Regional routes**, **Local routes** | Signed cycle routes as a violet halo, stronger the farther the route reaches |
-| **Unpaved & bumpy** | Unpaved ways an ochre dash, bumpy ways red ticks |
-| **Barriers** | Gates, bollards and stiles as dots from zoom 15; red where the bike has to be carried |
+| **Unpaved & bumpy** | Gravel an ochre dash, rugged ground for mountain bikes a brown dash, bumpy paving red ticks |
+| **Barriers & steps** | Gates, bollards and stiles as dots from zoom 15; red where the bike has to be carried. Steps as brown rungs from zoom 15, with a blue strip beside them where there is a ramp for bikes |
+| **Calm streets** | Streets tinted by how calm they are: cyan for 30 km/h (20 mph) or less, green for 20 km/h or living streets, pale green for walking pace, bright green without motor traffic; roads closed to bikes in grey |
+| **Mountain bike** | Difficulty ticks on trails from zoom 14: blue for easy (S0–S1), red for S2, black for S3 and harder (white on the night map); mountain-bike routes as an orange halo |
 
-All parts are on at first except **Unpaved & bumpy** and **Barriers**.
+All parts are on at first except **Unpaved & bumpy**, **Calm streets** and **Mountain bike**.
 
 On the Plan tab, with the cycle map on over an area that is not downloaded, a chip says **No cycle map here — area not downloaded**, with **Download**; a tap opens the download for the visible area. If the stops chip applies too, it comes first.
 

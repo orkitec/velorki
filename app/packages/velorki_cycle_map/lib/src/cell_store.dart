@@ -15,9 +15,11 @@ final class CellStore {
   CellStore(this.root);
 
   /// Bump when the classification or the file layout changes.
-  static const int formatVersion = 1;
+  static const int formatVersion = 2;
 
-  static const int _magic = 0x56434d31; // VCM1
+  static const int _lists = 7;
+
+  static const int _magic = 0x56434d32; // VCM2
 
   /// The directory holding the stores' directories.
   final Directory root;
@@ -39,50 +41,52 @@ final class CellStore {
     } on FileSystemException {
       return null;
     }
-    if (bytes.length < 20 || bytes.length % 4 != 0) return null;
+    if (bytes.length < 32 || bytes.length % 4 != 0) return null;
     final ints = bytes.buffer.asInt32List(
       bytes.offsetInBytes,
       bytes.length >> 2,
     );
     if (ints[0] != _magic) return null;
-    final nCoords = ints[1];
-    final nStarts = ints[2];
-    final nAttrs = ints[3];
-    final nBarriers = ints[4];
-    if (nCoords < 0 ||
-        nStarts != nAttrs + 1 ||
-        nBarriers < 0 ||
-        5 + nCoords + nStarts + nAttrs + nBarriers != ints.length) {
+    final n = List<int>.generate(_lists, (i) => ints[1 + i]);
+    if (n.any((v) => v < 0) ||
+        n[1] != n[2] + 1 ||
+        n[5] != n[6] + 1 ||
+        1 + _lists + n.fold<int>(0, (a, b) => a + b) != ints.length) {
       return null;
     }
-    var at = 5;
+    var at = 1 + _lists;
     Int32List take(int n) =>
         Int32List.fromList(Int32List.sublistView(ints, at, at += n));
     return CellWays(
-      coords: take(nCoords),
-      starts: take(nStarts),
-      attrs: take(nAttrs),
-      barriers: take(nBarriers),
+      coords: take(n[0]),
+      starts: take(n[1]),
+      attrs: take(n[2]),
+      barriers: take(n[3]),
+      climbCoords: take(n[4]),
+      climbStarts: take(n[5]),
+      climbGrades: take(n[6]),
     );
   }
 
   /// Stores [cell]; a failure to write only means it is decoded again.
   void write(String versionKey, int lonIdx, int latIdx, CellWays cell) {
+    final lists = [
+      cell.coords,
+      cell.starts,
+      cell.attrs,
+      cell.barriers,
+      cell.climbCoords,
+      cell.climbStarts,
+      cell.climbGrades,
+    ];
     final ints = Int32List(
-      5 +
-          cell.coords.length +
-          cell.starts.length +
-          cell.attrs.length +
-          cell.barriers.length,
-    );
-    ints
-      ..[0] = _magic
-      ..[1] = cell.coords.length
-      ..[2] = cell.starts.length
-      ..[3] = cell.attrs.length
-      ..[4] = cell.barriers.length;
-    var at = 5;
-    for (final list in [cell.coords, cell.starts, cell.attrs, cell.barriers]) {
+      1 + _lists + lists.fold<int>(0, (a, l) => a + l.length),
+    )..[0] = _magic;
+    for (var i = 0; i < _lists; i++) {
+      ints[1 + i] = lists[i].length;
+    }
+    var at = 1 + _lists;
+    for (final list in lists) {
       ints.setAll(at, list);
       at += list.length;
     }

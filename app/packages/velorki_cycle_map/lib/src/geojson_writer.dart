@@ -30,14 +30,20 @@ abstract final class CycleContent {
   /// Unpaved and rough surfaces.
   static const int surface = 1 << 6;
 
-  /// Mountain-bike difficulty.
+  /// Mountain-bike difficulty and mountain-bike routes.
   static const int mtb = 1 << 7;
 
-  /// Barriers on the way.
+  /// Barriers on the way, and steps.
   static const int barriers = 1 << 8;
 
+  /// How calm a road is, and roads closed to bikes.
+  static const int traffic = 1 << 9;
+
+  /// Steep pieces of the ways.
+  static const int climbs = 1 << 10;
+
   /// Everything.
-  static const int all = (1 << 9) - 1;
+  static const int all = (1 << 11) - 1;
 
   /// Whether a line with [attrs] has anything [wanted].
   static bool wants(int wanted, int attrs) {
@@ -47,7 +53,8 @@ abstract final class CycleContent {
         (kind == CycleKind.cycleway ||
             kind == CycleKind.cyclestreet ||
             a.track != 0 ||
-            a.lane != 0)) {
+            a.lane != 0 ||
+            a.sharedLane != 0)) {
       return true;
     }
     if (wanted & paths != 0 &&
@@ -66,7 +73,9 @@ abstract final class CycleContent {
       return true;
     }
     if (wanted & surface != 0 && (a.unpaved || a.rough)) return true;
-    if (wanted & mtb != 0 && a.mtbScale != null) return true;
+    if (wanted & mtb != 0 && (a.mtbScale != null || a.mtbRoute)) return true;
+    if (wanted & barriers != 0 && kind == CycleKind.steps) return true;
+    if (wanted & traffic != 0 && a.traffic != 0) return true;
     return false;
   }
 }
@@ -77,8 +86,13 @@ abstract final class CycleContent {
 ///
 /// Each line carries short properties the map's layers read:
 /// `k` the [CycleKind] index, `t` and `l` the [Side] masks of tracks and
-/// lanes, and when set `cf` contraflow, `nn`/`nr`/`nl` the national,
-/// regional and local routes, `u` unpaved, `r` rough, `m` the mtb scale.
+/// lanes, and when set: `s` the [Side] mask of shared lanes, `o` the
+/// one-way [Direction], `dl`/`dr` the [Direction] of the left and right
+/// side, `rc` the [RoadClass] (with something beside the road), `cf`
+/// contraflow, `nn`/`nr`/`nl` the national, regional and local routes, `mr`
+/// a mountain-bike route, `u` unpaved, `rg` rugged, `r` rough, `m` the mtb
+/// scale, `rp` a ramp beside steps, `tr` the [TrafficClass].
+/// A steep piece is a line with `c`, its grade class, drawn uphill.
 /// A barrier is a point with `b`, its [BarrierClass].
 final class GeoJsonWriter {
   final _keep = Int32List(4096);
@@ -119,6 +133,36 @@ final class GeoJsonWriter {
         out.write(']}}');
       }
     }
+    if (wanted & CycleContent.climbs != 0 && cell.climbCount > 0) {
+      final cc = cell.climbCoords;
+      final lat = cc[1] / 1e6 - 90;
+      final tolerance = toleranceAtZoom(zoom, lat);
+      final lonScale = math.cos(lat * math.pi / 180);
+      for (var i = 0; i < cell.climbCount; i++) {
+        final from = cell.climbStarts[i];
+        final to = cell.climbStarts[i + 1];
+        final keep = to - from <= _keep.length ? _keep : Int32List(to - from);
+        final kept = simplifyLine(
+          cc,
+          from,
+          to,
+          tolerance,
+          lonScale,
+          keep,
+          _stack,
+        );
+        if (out.isNotEmpty) out.write(',');
+        out.write('{"type":"Feature","properties":{"c":');
+        out.write(cell.climbGrades[i]);
+        out.write('},"geometry":{"type":"LineString","coordinates":[');
+        for (var k = 0; k < kept; k++) {
+          if (k > 0) out.write(',');
+          final p = keep[k];
+          _position(out, cc[p * 2], cc[p * 2 + 1]);
+        }
+        out.write(']}}');
+      }
+    }
     if (wanted & CycleContent.barriers != 0) {
       final b = cell.barriers;
       for (var i = 0; i + 2 < b.length; i += 3) {
@@ -154,13 +198,27 @@ final class GeoJsonWriter {
       ..write(a.track)
       ..write(',"l":')
       ..write(a.lane);
+    final shared = a.sharedLane;
+    if (shared != 0) out.write(',"s":$shared');
+    if (a.track | a.lane | shared != 0) out.write(',"rc":${a.road}');
+    final oneway = a.oneway;
+    if (oneway != 0) out.write(',"o":$oneway');
+    final left = a.leftDirection;
+    if (left != 0) out.write(',"dl":$left');
+    final right = a.rightDirection;
+    if (right != 0) out.write(',"dr":$right');
     if (a.contraflow) out.write(',"cf":1');
     final routes = a.routes;
     if (routes & CycleBits.routeNational != 0) out.write(',"nn":1');
     if (routes & CycleBits.routeRegional != 0) out.write(',"nr":1');
     if (routes & CycleBits.routeLocal != 0) out.write(',"nl":1');
+    if (a.mtbRoute) out.write(',"mr":1');
     if (a.unpaved) out.write(',"u":1');
+    if (a.rugged) out.write(',"rg":1');
     if (a.rough) out.write(',"r":1');
+    if (a.ramp) out.write(',"rp":1');
+    final traffic = a.traffic;
+    if (traffic != 0) out.write(',"tr":$traffic');
     final mtb = a.mtbScale;
     if (mtb != null) out.write(',"m":$mtb');
     out.write('}');

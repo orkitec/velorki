@@ -6,6 +6,7 @@ library;
 
 export 'src/cell_store.dart';
 export 'src/cell_ways.dart';
+export 'src/climbs.dart';
 export 'src/cycle_attrs.dart';
 export 'src/cycle_map_engine.dart';
 export 'src/cycle_map_worker.dart';

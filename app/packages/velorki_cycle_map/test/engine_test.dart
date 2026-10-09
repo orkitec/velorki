@@ -52,6 +52,7 @@ void main() {
     expect(any((p) => p['r'] == 1), isTrue);
     expect(any((p) => p['nn'] == 1 || p['nr'] == 1 || p['nl'] == 1), isTrue);
     expect(any((p) => p.containsKey('b')), isTrue);
+    expect(any((p) => p['k'] == CycleKind.steps.index), isTrue);
     // Every line is a real line inside the cells around the box.
     for (final f in fs) {
       final g = f['geometry'] as Map;
@@ -121,8 +122,13 @@ void main() {
       ),
     );
     expect(barriers, isNotEmpty);
+    // Barrier points, and steps.
     expect(
-      barriers.every((f) => (f['properties'] as Map).containsKey('b')),
+      barriers.every(
+        (f) =>
+            (f['properties'] as Map).containsKey('b') ||
+            (f['properties'] as Map)['k'] == CycleKind.steps.index,
+      ),
       isTrue,
     );
   });
@@ -198,5 +204,15 @@ void main() {
     tile.setLastModifiedSync(DateTime(2020));
     engine().pruneStore();
     expect(cache.listSync(), isEmpty);
+  });
+
+  test('the reader finds the climbs of Funchal when asked to', () {
+    final tile = reader.open(File('${segments.path}/W20_N30.rd5'));
+    addTearDown(tile.close);
+    final x = ((-16.91 + 180) * 32).floor();
+    final y = ((32.65 + 90) * 32).floor();
+    expect(reader.readCell(tile, x, y).climbCount, 0);
+    final cell = reader.readCell(tile, x, y, climbs: true);
+    expect(cell.climbGrades, contains(3));
   });
 }

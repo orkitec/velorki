@@ -25,8 +25,15 @@ enum CycleMapPart {
   /// Unpaved and bumpy surfaces.
   surface,
 
-  /// Gates, bollards and other barriers.
+  /// Gates, bollards and other barriers, and steps.
   barriers,
+
+  /// Speed limits and roads without motor traffic, and roads closed to
+  /// bikes.
+  traffic,
+
+  /// Mountain-bike difficulty and mountain-bike routes.
+  mtb,
 }
 
 /// The parts shown until the rider picks their own.
@@ -37,6 +44,7 @@ const Set<CycleMapPart> defaultCycleMapParts = <CycleMapPart>{
   CycleMapPart.routesNational,
   CycleMapPart.routesRegional,
   CycleMapPart.routesLocal,
+  CycleMapPart.barriers,
 };
 
 /// The zoom the cycle map is drawn from: closer than this a view is a
@@ -56,6 +64,8 @@ int cycleContentOf(Set<CycleMapPart> parts) {
       CycleMapPart.routesLocal => CycleContent.routesLocal,
       CycleMapPart.surface => CycleContent.surface,
       CycleMapPart.barriers => CycleContent.barriers,
+      CycleMapPart.traffic => CycleContent.traffic,
+      CycleMapPart.mtb => CycleContent.mtb,
     };
   }
   return bits;

@@ -53,6 +53,7 @@ void main() {
       'k': 0,
       't': 0,
       'l': Side.right,
+      'rc': RoadClass.minor,
       'cf': 1,
       'nn': 1,
       'nl': 1,
@@ -108,5 +109,88 @@ void main() {
       'type': 'FeatureCollection',
       'features': <Object>[],
     });
+  });
+
+  test('the new properties and steep pieces', () {
+    final b = CellWaysBuilder()
+      ..addLine(
+        [...at(-16.9, 32.6), ...at(-16.89, 32.6)],
+        CycleBits.pack(
+          kind: CycleKind.cycleway,
+          oneway: Direction.backward,
+          mtbRoute: true,
+          unpaved: true,
+          rugged: true,
+          traffic: TrafficClass.limit30,
+        ),
+      )
+      ..addLine(
+        [...at(-16.9, 32.61), ...at(-16.89, 32.61)],
+        CycleBits.pack(
+          sharedLane: Side.left,
+          leftDirection: Direction.forward,
+          rightDirection: Direction.both,
+          lane: Side.right,
+          road: RoadClass.major,
+        ),
+      )
+      ..addLine([
+        ...at(-16.9, 32.62),
+        ...at(-16.9, 32.6201),
+      ], CycleBits.pack(kind: CycleKind.steps, ramp: true))
+      ..addClimb([...at(-16.9, 32.63), ...at(-16.9, 32.64)], 2);
+    final features =
+        decode(
+              GeoJsonWriter().cellFeatures(b.build(), CycleContent.all, 16),
+            )['features']
+            as List;
+    Map props(int i) => (features[i] as Map)['properties'] as Map;
+    expect(props(0), {
+      'k': CycleKind.cycleway.index,
+      't': 0,
+      'l': 0,
+      'o': Direction.backward,
+      'mr': 1,
+      'u': 1,
+      'rg': 1,
+      'tr': TrafficClass.limit30,
+    });
+    expect(props(1), {
+      'k': 0,
+      't': 0,
+      'l': Side.right,
+      's': Side.left,
+      'rc': RoadClass.major,
+      'dl': Direction.forward,
+      'dr': Direction.both,
+    });
+    expect(props(2), {'k': CycleKind.steps.index, 't': 0, 'l': 0, 'rp': 1});
+    expect(props(3), {'c': 2});
+    expect(((features[3] as Map)['geometry'] as Map)['coordinates'], [
+      [-16.9, 32.63],
+      [-16.9, 32.64],
+    ]);
+  });
+
+  test('climbs, traffic and steps only when wanted', () {
+    final b = CellWaysBuilder()
+      ..addLine([
+        ...at(-16.9, 32.6),
+        ...at(-16.89, 32.6),
+      ], CycleBits.pack(traffic: TrafficClass.noMotor))
+      ..addLine([
+        ...at(-16.9, 32.62),
+        ...at(-16.9, 32.6201),
+      ], CycleBits.pack(kind: CycleKind.steps))
+      ..addClimb([...at(-16.9, 32.63), ...at(-16.9, 32.64)], 1);
+    final cell = b.build();
+    final writer = GeoJsonWriter();
+    int count(int wanted) =>
+        (decode(writer.cellFeatures(cell, wanted, 16))['features'] as List)
+            .length;
+    expect(count(CycleContent.infrastructure), 0);
+    expect(count(CycleContent.traffic), 1);
+    expect(count(CycleContent.barriers), 1);
+    expect(count(CycleContent.climbs), 1);
   });
 }

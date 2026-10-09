@@ -18,18 +18,20 @@ Le bouton est mis en évidence tant que la carte vélo, la carte vélo en ligne 
 
 ## La carte vélo
 
-À partir du zoom 13, la carte vélo dessine ce que les données de routage savent de la pratique du vélo. Activée, elle déplie sous l’interrupteur une puce par partie, chacune avec un échantillon de son trait en guise de légende. Touchez une puce pour afficher ou masquer la partie ; le choix est conservé.
+La carte vélo apparaît en fondu entre le zoom 12 et 13, et disparaît de même en dézoomant. Elle dessine ce que les données de routage savent de la pratique du vélo. Activée, elle déplie sous l’interrupteur une puce par partie, chacune avec un échantillon de son trait en guise de légende. Touchez une puce pour afficher ou masquer la partie ; le choix est conservé. Les flèches et points affichés à partir du zoom 15 apparaissent en fondu pendant le palier de zoom précédent.
 
 | Partie | Dessinée comme |
 | --- | --- |
-| **Pistes & bandes** | Pistes cyclables en bleu plein, rues cyclables avec une bande pâle ; pistes en trait plein et bandes en tirets, le long de la route, de leur côté, en zoomant |
+| **Pistes & bandes** | Pistes cyclables en bleu plein, rues cyclables avec une bande pâle ; pistes en trait plein et bandes en tirets, au bord de la route, plus loin sur les grandes routes. Voies partagées (couloirs de bus ouverts aux vélos, bandes marquées seulement de symboles vélo, accotements, trottoirs ouverts aux vélos) en tirets espacés bleu clair le long de la route. Les pistes cyclables à double sens et les pistes et bandes à double sens sont tracées plus larges que celles à sens unique. À partir du zoom 15, des flèches dans les pistes et chemins à sens unique indiquent le sens à suivre ; à partir du zoom 16, de petites flèches le long d’une piste ou d’une bande à sens unique |
 | **Voies partagées** | Chemins partagés avec les piétons en tirets turquoise, trottoirs ouverts aux vélos en pointillés gris-bleu |
-| **Double sens cyclable** | Flèches sur les rues à sens unique que les vélos peuvent emprunter dans les deux sens, à partir du zoom 15 |
+| **Double sens cyclable** | Sur les rues à sens unique que les vélos peuvent emprunter dans les deux sens, à partir du zoom 15, une flèche grise montre le sens de la circulation et une bleue celui des vélos à contresens |
 | **Itinéraires nationaux**, **Itinéraires régionaux**, **Itinéraires locaux** | Itinéraires cyclables balisés en halo violet, plus marqué quand l’itinéraire porte loin |
-| **Non revêtu & cahoteux** | Voies non revêtues en tirets ocre, voies cahoteuses en petits traits rouges |
-| **Obstacles** | Barrières, bornes et échaliers en points à partir du zoom 15 ; en rouge là où il faut porter le vélo |
+| **Non revêtu & cahoteux** | Gravier en tirets ocre, terrain accidenté pour VTT en tirets bruns, pavage cahoteux en petits traits rouges |
+| **Obstacles & escaliers** | Barrières, bornes et échaliers en points à partir du zoom 15 ; en rouge là où il faut porter le vélo. Escaliers en barreaux bruns à partir du zoom 15, avec une bande bleue à côté là où une rampe pour vélos existe |
+| **Rues calmes** | Rues teintées selon leur calme : cyan pour 30 km/h (20 mph) ou moins, vert pour 20 km/h ou zones de rencontre, vert pâle pour l’allure du pas, vert vif sans trafic motorisé ; routes interdites aux vélos en gris |
+| **VTT** | Petits traits de difficulté sur les sentiers à partir du zoom 14 : bleu pour facile (S0–S1), rouge pour S2, noir pour S3 et plus difficile (blanc sur la carte de nuit) ; itinéraires VTT en halo orange |
 
-Au départ, toutes les parties sont actives sauf **Non revêtu & cahoteux** et **Obstacles**.
+Au départ, toutes les parties sont actives sauf **Non revêtu & cahoteux**, **Rues calmes** et **VTT**.
 
 Dans l’onglet Planifier, avec la carte vélo activée sur une zone non téléchargée, une puce indique **Pas de carte vélo ici – zone non téléchargée**, avec **Télécharger** ; un toucher ouvre le téléchargement de la zone visible. Si la puce des haltes s’applique aussi, elle passe en premier.
 

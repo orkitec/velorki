@@ -18,18 +18,20 @@ Die Schaltfläche ist hervorgehoben, solange die Radkarte, die Online-Radkarte o
 
 ## Die Radkarte
 
-Ab Zoomstufe 13 zeichnet die Radkarte, was die Routingdaten über das Radfahren wissen. Ist sie an, klappt unter dem Schalter pro Teil ein Chip auf, jeder mit einem Muster seiner Linie als Legende. Tippe auf einen Chip, um den Teil ein- oder auszublenden; die Wahl bleibt erhalten.
+Die Radkarte blendet zwischen Zoomstufe 12 und 13 ein und beim Herauszoomen wieder aus. Sie zeichnet, was die Routingdaten über das Radfahren wissen. Ist sie an, klappt unter dem Schalter pro Teil ein Chip auf, jeder mit einem Muster seiner Linie als Legende. Tippe auf einen Chip, um den Teil ein- oder auszublenden; die Wahl bleibt erhalten. Pfeile und Punkte, die ab Zoomstufe 15 erscheinen, blenden in der Zoomstufe davor ein.
 
 | Teil | Gezeichnet als |
 | --- | --- |
-| **Radwege & -streifen** | Radwege durchgehend blau, Fahrradstraßen mit hellem Band; Radwege an der Straße durchgehend, Radstreifen gestrichelt, beim Hineinzoomen neben der Straße auf ihrer Seite |
+| **Radwege & -streifen** | Radwege durchgehend blau, Fahrradstraßen mit hellem Band; Radwege an der Straße durchgehend, Radstreifen gestrichelt, am Straßenrand, bei größeren Straßen weiter außen. Geteilte Streifen (Busspuren, die Räder nutzen dürfen, nur mit Fahrradsymbolen markierte Streifen, Seitenstreifen, Gehwege, die Räder nutzen dürfen) als lockere hellblaue Striche neben der Straße. Zweirichtungs-Radwege sowie Zweirichtungs-Radwege und -streifen an der Straße sind breiter gezeichnet als Einrichtungs-Radwege. Ab Zoomstufe 15 zeigen Pfeile in Einrichtungs-Radwegen und Wegen, in welche Richtung gefahren wird; ab Zoomstufe 16 kleine Pfeile neben einem als Einrichtung getaggten Radweg oder -streifen |
 | **Gemeinsame Wege** | Mit Fußgängern geteilte Wege blaugrün gestrichelt, Gehwege, die Räder nutzen dürfen, grau-blau gepunktet |
-| **Gegenverkehr frei** | Pfeile auf Einbahnstraßen, die Räder in beide Richtungen befahren dürfen, ab Zoomstufe 15 |
+| **Gegenverkehr frei** | Auf Einbahnstraßen, die Räder in beide Richtungen befahren dürfen, zeigt ab Zoomstufe 15 ein grauer Pfeil die Richtung des Verkehrs und ein blauer die der Räder dagegen |
 | **Fernrouten**, **Regionale Routen**, **Lokale Routen** | Beschilderte Radrouten als violetter Hof, kräftiger je weiter die Route reicht |
-| **Unbefestigt & holprig** | Unbefestigte Wege als ockerfarbene Striche, holprige mit roten Zacken |
-| **Hindernisse** | Tore, Poller und Stiegen als Punkte ab Zoomstufe 15; rot, wo das Rad getragen werden muss |
+| **Unbefestigt & holprig** | Schotter als ockerfarbene Striche, grobes Gelände für Mountainbikes als braune Striche, holpriges Pflaster mit roten Zacken |
+| **Hindernisse & Treppen** | Tore, Poller und Stiegen als Punkte ab Zoomstufe 15; rot, wo das Rad getragen werden muss. Treppen als braune Sprossen ab Zoomstufe 15, mit einem blauen Streifen daneben, wo es eine Rampe für Räder gibt |
+| **Ruhige Straßen** | Straßen nach Ruhe eingefärbt: Türkis für 30 km/h (20 mph) oder weniger, Grün für 20 km/h oder verkehrsberuhigte Bereiche, Hellgrün für Schrittgeschwindigkeit, leuchtendes Grün ohne Kfz-Verkehr; für Räder gesperrte Straßen grau |
+| **Mountainbike** | Schwierigkeitsstriche auf Trails ab Zoomstufe 14: blau für leicht (S0–S1), rot für S2, schwarz für S3 und schwerer (auf der Nachtkarte weiß); Mountainbike-Routen als oranger Hof |
 
-Zu Beginn sind alle Teile an außer **Unbefestigt & holprig** und **Hindernisse**.
+Zu Beginn sind alle Teile an außer **Unbefestigt & holprig**, **Ruhige Straßen** und **Mountainbike**.
 
 Im Tab Planen sagt ein Chip bei eingeschalteter Radkarte über einem nicht heruntergeladenen Gebiet **Keine Radkarte hier – Gebiet nicht heruntergeladen**, mit **Herunterladen**; ein Tipp öffnet den Download für das sichtbare Gebiet. Gilt auch der Chip der Stopps, steht er vorn.
 

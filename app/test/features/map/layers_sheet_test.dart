@@ -253,7 +253,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(container.read(cycleMapPreferencesProvider).shown, isTrue);
       expect(prefs.getBool('map.cycle_map.shown'), isTrue);
-      expect(find.byType(CycleMapPartSample), findsNWidgets(8));
+      expect(
+        find.byType(CycleMapPartSample),
+        findsNWidgets(CycleMapPart.values.length),
+      );
 
       await tester.ensureVisible(surface);
       await tester.tap(surface);

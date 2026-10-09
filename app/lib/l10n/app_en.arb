@@ -4443,9 +4443,17 @@
   "@mapCyclePartSurface": {
     "description": "Chip: ways that are not paved, or are bumpy (cobbles, bad smoothness)."
   },
-  "mapCyclePartBarriers": "Barriers",
+  "mapCyclePartBarriers": "Barriers & steps",
   "@mapCyclePartBarriers": {
-    "description": "Chip: gates, bollards, stiles on the way."
+    "description": "Chip: gates, bollards, stiles on the way, and steps."
+  },
+  "mapCyclePartTraffic": "Calm streets",
+  "@mapCyclePartTraffic": {
+    "description": "Chip: streets tinted by speed limit (30, 20, walking pace) or without motor traffic, and roads closed to bikes in grey."
+  },
+  "mapCyclePartMtb": "Mountain bike",
+  "@mapCyclePartMtb": {
+    "description": "Chip: mountain-bike difficulty (mtb:scale) on trails and mountain-bike routes."
   },
   "mapCycleMapNotDownloaded": "No cycle map here — area not downloaded",
   "@mapCycleMapNotDownloaded": {
