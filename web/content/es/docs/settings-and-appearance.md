@@ -12,7 +12,7 @@ La pestaña Ajustes es una única página que se desplaza, con una sección por 
 
 **Mapa**: cómo se dibuja el propio mapa, con independencia del tema de la app, un segmento cada uno: **Según el tema**, **Claro**, **Noche** o **Negro**. **Negro** es el adecuado para una salida a oscuras con la pantalla atenuada, y es el que fuerza en cualquier caso el ahorro de batería.
 
-**Capa ciclista en mapas oscuros**: qué hacer con el **Mapa ciclista en línea** de **Capas** cuando el mapa de debajo es oscuro: **Invertida**, **Atenuada** o **Sin cambios**. La capa está dibujada para un fondo claro, así que en un mapa nocturno necesita ayuda. Esta fila solo aparece en versiones que incluyen la capa.
+**Mapa ciclista en línea en mapas oscuros**: qué hacer con el **Mapa ciclista en línea** de **Capas** cuando el mapa de debajo es oscuro: **Invertida**, **Atenuada** o **Sin cambios**. Ese mapa llega como imágenes dibujadas para un fondo claro, así que en un mapa nocturno necesita ayuda. El **Mapa ciclista** sin conexión tiene sus propios colores para mapas oscuros y no se ve afectado.
 
 **Cristal**: cuánto del mapa se ve a través de la barra de pestañas y de los controles sobre el mapa: **Opaca**, **Transparente**, **Cristal suave** o **Cristal claro**, el valor por defecto.
 

@@ -2554,9 +2554,9 @@
   "@mapLookBlack": {
     "description": "Map style option: always the black map"
   },
-  "appearanceOverlayDarkTitle": "Cycling overlay on dark maps",
+  "appearanceOverlayDarkTitle": "Online cycle map on dark maps",
   "@appearanceOverlayDarkTitle": {
-    "description": "Label above the choice of how the CyclOSM overlay is drawn on the night and black maps"
+    "description": "Label above the choice of how the online cycle map (CyclOSM's raster overlay) is drawn on the night and black maps. The offline cycle map has its own dark colours and is not affected."
   },
   "appearanceOverlayDarkInverted": "Inverted",
   "@appearanceOverlayDarkInverted": {

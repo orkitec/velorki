@@ -12,7 +12,7 @@ L'onglet Réglages est une page défilante avec une section par sujet. Cette pag
 
 **Carte** : la façon dont la carte elle-même est dessinée, indépendamment du thème de l'app, un segment chacune : **Suit le thème**, **Clair**, **Nuit** ou **Noir**. **Noir** est celui des sorties de nuit avec l'écran atténué, et c'est de toute façon celui qu'impose l'économie de batterie.
 
-**Surcouche vélo sur cartes sombres** : ce qu’il faut faire de la **Carte vélo en ligne** de **Calques** quand la carte dessous est sombre : **Inversée**, **Atténuée** ou **Inchangée**. La surcouche est dessinée pour un fond clair, il a donc besoin d'aide sur une carte de nuit. Cette ligne n'apparaît que dans les versions qui embarquent la surcouche.
+**Carte vélo en ligne sur cartes sombres** : ce qu’il faut faire de la **Carte vélo en ligne** de **Calques** quand la carte dessous est sombre : **Inversée**, **Atténuée** ou **Inchangée**. Cette carte arrive sous forme d'images dessinées pour un fond clair, elle a donc besoin d'aide sur une carte de nuit. La **Carte vélo** hors ligne a ses propres couleurs pour les cartes sombres et n'est pas concernée.
 
 **Verre** : la part de la carte qui transparaît à travers la barre d’onglets et les commandes sur la carte : **Opaque**, **Transparente**, **Verre léger** ou **Verre clair**, le réglage par défaut.
 

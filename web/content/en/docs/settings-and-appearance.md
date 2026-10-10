@@ -12,7 +12,7 @@ The Settings tab is one scrolling page with a section per subject. This page wal
 
 **Map**: how the map itself is drawn, independently of the app's theme, one segment each: **Follows theme**, **Light**, **Night** or **Black**. **Black** is the one for a dark ride with the display dimmed, and it is what battery saver forces anyway.
 
-**Cycling overlay on dark maps**: what to do with the **Online cycle map** from **Layers** when the map underneath is dark: **Inverted**, **Dimmed** or **Unchanged**. The overlay is drawn for a light background, so on a night map it needs help. This row only appears in builds that ship the overlay.
+**Online cycle map on dark maps**: what to do with the **Online cycle map** from **Layers** when the map underneath is dark: **Inverted**, **Dimmed** or **Unchanged**. That map comes as pictures drawn for a light background, so on a night map it needs help. The offline **Cycle map** has its own colours for dark maps and is not affected.
 
 **Glass**: how much of the map shows through the tab bar and the controls over the map: **Solid**, **Transparent**, **Subtle glass** or **Clear glass**, the default.
 

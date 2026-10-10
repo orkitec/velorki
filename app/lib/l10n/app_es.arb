@@ -480,7 +480,7 @@
   "mapLookLight": "Claro",
   "mapLookNight": "Noche",
   "mapLookBlack": "Negro",
-  "appearanceOverlayDarkTitle": "Capa ciclista en mapas oscuros",
+  "appearanceOverlayDarkTitle": "Mapa ciclista en línea en mapas oscuros",
   "appearanceOverlayDarkInverted": "Invertida",
   "appearanceOverlayDarkDimmed": "Atenuada",
   "appearanceOverlayDarkUnchanged": "Sin cambios",

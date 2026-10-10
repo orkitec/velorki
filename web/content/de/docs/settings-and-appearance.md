@@ -12,7 +12,7 @@ Der Tab Einstellungen ist eine einzige scrollende Seite mit einem Abschnitt je T
 
 **Karte**: wie die Karte selbst gezeichnet wird, unabhängig vom Design der App, je ein Segment: **Automatisch**, **Hell**, **Nacht** oder **Schwarz**. **Schwarz** ist das für eine Fahrt im Dunkeln mit gedimmtem Display, und Energiesparen erzwingt es ohnehin.
 
-**Rad-Overlay auf dunklen Karten**: was mit der **Online-Radkarte** aus **Ebenen** geschehen soll, wenn die Karte darunter dunkel ist: **Invertiert**, **Gedimmt** oder **Unverändert**. Das Overlay ist für einen hellen Untergrund gezeichnet, auf einer Nachtkarte braucht es also Hilfe. Diese Zeile erscheint nur in Builds, die das Overlay mitbringen.
+**Online-Radkarte auf dunklen Karten**: was mit der **Online-Radkarte** aus **Ebenen** geschehen soll, wenn die Karte darunter dunkel ist: **Invertiert**, **Gedimmt** oder **Unverändert**. Diese Karte kommt als Bilder, gezeichnet für einen hellen Untergrund, auf einer Nachtkarte braucht sie also Hilfe. Die Offline-**Radkarte** hat eigene Farben für dunkle Karten und ist davon nicht betroffen.
 
 **Glas**: wie viel von der Karte durch die Tab-Leiste und die Bedienelemente über der Karte scheint: **Deckend**, **Transparent**, **Leichtes Glas** oder **Klares Glas**, die Voreinstellung.
 

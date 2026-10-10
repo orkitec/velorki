@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1594,7 +1596,11 @@ void main() {
       go(tester, settingsRoute);
       await tester.pumpAndSettle();
       expect(h.screenWake.enabled, isFalse, reason: 'Record is away');
-      await tester.ensureVisible(keepOn);
+      // To the middle: at the bottom edge the floating bar would take the tap.
+      unawaited(
+        Scrollable.ensureVisible(tester.element(keepOn), alignment: 0.5),
+      );
+      await tester.pumpAndSettle();
       expect(shown(tester), isTrue);
       await tester.tap(keepOn);
       await tester.pumpAndSettle();

@@ -480,7 +480,7 @@
   "mapLookLight": "Clair",
   "mapLookNight": "Nuit",
   "mapLookBlack": "Noir",
-  "appearanceOverlayDarkTitle": "Surcouche vélo sur cartes sombres",
+  "appearanceOverlayDarkTitle": "Carte vélo en ligne sur cartes sombres",
   "appearanceOverlayDarkInverted": "Inversée",
   "appearanceOverlayDarkDimmed": "Atténuée",
   "appearanceOverlayDarkUnchanged": "Inchangée",

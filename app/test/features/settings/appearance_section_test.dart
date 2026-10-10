@@ -255,13 +255,11 @@ void main() {
     expect(container.read(appearanceSettingProvider).mapLook, MapLook.night);
   });
 
-  testWidgets('a build without CyclOSM tiles offers no overlay choice', (
-    tester,
-  ) async {
+  testWidgets('the online map choice shows in every build', (tester) async {
     await _pump(tester);
 
-    expect(find.byType(SegmentedButton<OverlayDarkMode>), findsNothing);
-    expect(find.text(l10n.appearanceOverlayDarkTitle), findsNothing);
+    expect(find.byType(SegmentedButton<OverlayDarkMode>), findsOneWidget);
+    expect(find.text(l10n.appearanceOverlayDarkTitle), findsOneWidget);
   });
 
   testWidgets('choosing Dimmed switches the overlay and stores it', (

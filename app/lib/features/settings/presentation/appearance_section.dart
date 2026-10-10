@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/app_config.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/appearance_controller.dart';
@@ -66,29 +65,27 @@ class AppearanceSection extends ConsumerWidget {
             onSelectionChanged: (selection) =>
                 unawaited(controller.setMapLook(selection.single)),
           ),
-          // Only a build that ships CyclOSM tiles can draw the overlay, and
-          // only then is there anything to choose here.
-          if (ref.watch(effectiveConfigProvider).cyclosmTileUrl.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Text(
-              l10n.appearanceOverlayDarkTitle,
-              style: theme.textTheme.titleSmall,
-            ),
-            const SizedBox(height: 10),
-            SegmentedButton<OverlayDarkMode>(
-              showSelectedIcon: false,
-              segments: [
-                for (final mode in OverlayDarkMode.values)
-                  ButtonSegment(
-                    value: mode,
-                    label: _SegmentLabel(overlayDarkLabel(l10n, mode)),
-                  ),
-              ],
-              selected: {appearance.overlayDark},
-              onSelectionChanged: (selection) =>
-                  unawaited(controller.setOverlayDark(selection.single)),
-            ),
-          ],
+          // Only the online cycle map: its tiles are pictures drawn for a
+          // light map. The offline one has its own colours for dark maps.
+          const SizedBox(height: 20),
+          Text(
+            l10n.appearanceOverlayDarkTitle,
+            style: theme.textTheme.titleSmall,
+          ),
+          const SizedBox(height: 10),
+          SegmentedButton<OverlayDarkMode>(
+            showSelectedIcon: false,
+            segments: [
+              for (final mode in OverlayDarkMode.values)
+                ButtonSegment(
+                  value: mode,
+                  label: _SegmentLabel(overlayDarkLabel(l10n, mode)),
+                ),
+            ],
+            selected: {appearance.overlayDark},
+            onSelectionChanged: (selection) =>
+                unawaited(controller.setOverlayDark(selection.single)),
+          ),
           const SizedBox(height: 20),
           Text(l10n.appearanceGlass, style: theme.textTheme.titleSmall),
           const SizedBox(height: 10),
