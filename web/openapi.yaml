@@ -31,10 +31,10 @@ info:
     it. (The Fastify relay this service replaced used per-process token
     buckets; the numbers are unchanged, the refill behaviour is not.)
 
-    On the two routes with a large body, `POST /share` and `POST /ai/plan`,
-    the per-IP limit is charged **before the body is read**, so an over-limit
-    caller gets 429 rather than having a megabyte buffered for it. A malformed
-    body from such a caller therefore answers 429, not 400.
+    On `POST /share`, `POST /ai/plan` and `POST /weather` the per-IP limit is
+    charged **before the body is read**, so an over-limit caller gets 429
+    rather than having a megabyte buffered for it. A malformed body from such
+    a caller therefore answers 429, not 400.
 
     The API is served on `api.velorki.com` only. Share links live on
     `velorki.com`; a request for `/s/<id>` on the api host answers 308 to the
@@ -81,6 +81,12 @@ tags:
     description: |
       Public share links for routes and rides. `POST /share` is on the API
       host; the two public paths below are served by `velorki.com`.
+  - name: weather
+    description: |
+      Hourly forecasts along a route, from public weather services: the US
+      National Weather Service in the US, the Deutscher Wetterdienst (through
+      Bright Sky) in and around Germany, MET Norway everywhere else and as the
+      fallback whenever one of those fails.
 
 paths:
   /health:
@@ -651,6 +657,148 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimited'
 
+  /weather:
+    post:
+      tags: [weather]
+      operationId: getWeather
+      summary: Hourly forecasts for a list of grid cells.
+      description: |
+        The app snaps every point it asks about to a 0.025° grid (about 2.5 km)
+        and its altitude to 50 m before sending it, so no precise position
+        leaves the phone; a coordinate with more than three decimals is
+        refused with 400 `invalid_request` rather than rounded. Nothing in a
+        request is logged but counts.
+
+        `cells[i]` of the answer answers `cells[i]` of the request: same order,
+        same length. Each carries one entry per full UTC hour from the hour at
+        or before `from`, for `hours` hours, leaving out the hours its source
+        does not forecast (past its horizon, or before its first step). Where
+        MET Norway steps six-hourly, the instant values are interpolated
+        linearly to the hour and the six hours' precipitation is split evenly;
+        nothing is extrapolated past its last step.
+
+        Each cell is answered by the first source whose area covers it: `nws`
+        in the US (contiguous states, Alaska, Hawaii, Puerto Rico), `dwd` from
+        45.8° to 55.1° N and 5.8° to 17.2° E where a forecast station lies
+        within 25 km, `metno` everywhere else. A cell whose source fails, or
+        has no hour in the window, is asked of `metno`. A cell no source
+        answered has `source: null` and no hours; the request still succeeds
+        unless that is every cell, which is 502 `upstream_error`.
+
+        `sources` lists, once each, the sources the answer used, with the
+        attribution the app shows beside the data.
+
+        Forecasts are cached across the cluster: an hour per NWS grid and DWD
+        station, and until MET's `Expires` (10 minutes to 2 hours) per MET
+        point. Asking again within that costs no upstream call.
+
+        Rate limits: 120 per hour per IP, charged before the body is read,
+        then 60 per hour and 400 per day per app user. 503 `unavailable` when
+        weather is switched off on this server (`WEATHER_PROVIDERS=none`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeatherRequest'
+            examples:
+              berlinAndTokyo:
+                value:
+                  from: '2026-10-11T06:00:00Z'
+                  hours: 2
+                  cells:
+                    - { lat: 52.525, lon: 13.4, alt: 50 }
+                    - { lat: 35.675, lon: 139.7, alt: 50 }
+      responses:
+        '200':
+          description: One forecast per requested cell, in request order.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeatherResponse'
+              examples:
+                answered:
+                  value:
+                    cells:
+                      - source: dwd
+                        hours:
+                          - t: '2026-10-11T06:00:00Z'
+                            temp: 8.1
+                            wind: 4.6
+                            windDir: 246
+                            gust: 9.8
+                            precip: 0.1
+                            precipProb: 22
+                            cloud: 80
+                          - t: '2026-10-11T07:00:00Z'
+                            temp: 9.4
+                            wind: 5.1
+                            windDir: 250
+                            gust: 10.7
+                            precip: 0
+                            precipProb: 9
+                            cloud: 63
+                      - source: metno
+                        hours:
+                          - t: '2026-10-11T06:00:00Z'
+                            temp: 24.6
+                            wind: 3.2
+                            windDir: 158
+                            gust: null
+                            precip: 0
+                            precipProb: null
+                            cloud: 41
+                          - t: '2026-10-11T07:00:00Z'
+                            temp: 24.1
+                            wind: 3.5
+                            windDir: 161
+                            gust: null
+                            precip: 0.2
+                            precipProb: null
+                            cloud: 67
+                    sources:
+                      - id: dwd
+                        name: Deutscher Wetterdienst
+                        url: https://www.dwd.de
+                        licence: 'Forecast data: Deutscher Wetterdienst (DWD), via Bright Sky.'
+                      - id: metno
+                        name: MET Norway
+                        url: https://www.met.no/en
+                        licence: Weather data from MET Norway, CC BY 4.0 and NLOD 2.0.
+                partial:
+                  value:
+                    cells:
+                      - source: dwd
+                        hours:
+                          - t: '2026-10-11T06:00:00Z'
+                            temp: 8.1
+                            wind: 4.6
+                            windDir: 246
+                            gust: 9.8
+                            precip: 0.1
+                            precipProb: 22
+                            cloud: 80
+                      - source: null
+                        hours: []
+                    sources:
+                      - id: dwd
+                        name: Deutscher Wetterdienst
+                        url: https://www.dwd.de
+                        licence: 'Forecast data: Deutscher Wetterdienst (DWD), via Bright Sky.'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
   /s/{id}:
     get:
       tags: [share]
@@ -1142,6 +1290,148 @@ components:
             distance_km: { type: number, minimum: 0 }
             ascent_m: { type: number, minimum: 0 }
             duration_s: { type: number, minimum: 0 }
+
+    WeatherRequest:
+      type: object
+      required: [from, hours, cells]
+      additionalProperties: false
+      properties:
+        from:
+          type: string
+          format: date-time
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$'
+          description: |
+            UTC, between 3 hours ago and 9 days from now. The first hour
+            answered is the full hour at or before it.
+        hours:
+          type: integer
+          minimum: 1
+          maximum: 72
+        cells:
+          type: array
+          maxItems: 150
+          description: 1 to 150 cells.
+          items:
+            $ref: '#/components/schemas/WeatherCell'
+
+    WeatherCell:
+      type: object
+      required: [lat, lon]
+      additionalProperties: false
+      properties:
+        lat:
+          type: number
+          minimum: -90
+          maximum: 90
+          description: At most three decimals; the app sends multiples of 0.025.
+        lon:
+          type: number
+          minimum: -180
+          maximum: 180
+          description: At most three decimals; the app sends multiples of 0.025.
+        alt:
+          type: integer
+          minimum: -500
+          maximum: 9000
+          description: Metres; the app sends multiples of 50. MET Norway corrects its temperature to it.
+
+    WeatherResponse:
+      type: object
+      required: [cells, sources]
+      additionalProperties: false
+      properties:
+        cells:
+          type: array
+          maxItems: 150
+          items:
+            $ref: '#/components/schemas/WeatherCellForecast'
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/WeatherSource'
+
+    WeatherCellForecast:
+      type: object
+      required: [source, hours]
+      additionalProperties: false
+      properties:
+        source:
+          description: The id of the source that answered; null when none did.
+          oneOf:
+            - type: string
+              enum: [nws, dwd, metno]
+            - type: 'null'
+        hours:
+          type: array
+          maxItems: 72
+          items:
+            $ref: '#/components/schemas/WeatherHour'
+
+    WeatherHour:
+      type: object
+      description: |
+        One UTC hour. `temp`, `wind`, `windDir` and `cloud` hold at `t`;
+        `precip`, `precipProb` and `gust` describe the hour that starts at `t`.
+      required: [t, temp, wind, windDir, gust, precip, precipProb, cloud]
+      additionalProperties: false
+      properties:
+        t:
+          type: string
+          format: date-time
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:00:00Z$'
+        temp:
+          type: number
+          description: Air temperature, °C.
+        wind:
+          type: number
+          minimum: 0
+          description: Mean wind speed at 10 m, m/s.
+        windDir:
+          type: integer
+          minimum: 0
+          maximum: 360
+          description: Degrees the wind comes from.
+        gust:
+          description: Strongest gust at 10 m, m/s; null when the source has none.
+          oneOf:
+            - type: number
+              minimum: 0
+            - type: 'null'
+        precip:
+          type: number
+          minimum: 0
+          description: Precipitation in the hour, mm.
+        precipProb:
+          description: Probability of precipitation, percent; null when the source has none.
+          oneOf:
+            - type: integer
+              minimum: 0
+              maximum: 100
+            - type: 'null'
+        cloud:
+          description: Cloud cover, percent; null when the source has none.
+          oneOf:
+            - type: integer
+              minimum: 0
+              maximum: 100
+            - type: 'null'
+
+    WeatherSource:
+      type: object
+      required: [id, name, url, licence]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          enum: [nws, dwd, metno]
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+        licence:
+          type: string
+          description: The attribution the app shows beside the forecast.
 
   responses:
     OAuthTokenPassthrough:

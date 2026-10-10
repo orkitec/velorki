@@ -64,6 +64,7 @@ class RelayClient {
     String? clientId,
     this.appUserId,
     this.planIdleTimeout = const Duration(seconds: 45),
+    this.weatherTimeout = const Duration(seconds: 20),
   }) : _base = _normalizeBase(baseUrl),
        _client = client ?? http.Client(),
        clientId = clientId ?? 'dart/$packageVersion';
@@ -80,6 +81,12 @@ class RelayClient {
   /// at its own deadline, so this long without a byte means the connection
   /// is gone, not that the model is thinking.
   final Duration planIdleTimeout;
+
+  /// How long a `/weather` call may take before it is given up.
+  ///
+  /// The relay asks up to three forecast services per call; past this the
+  /// rider is better served by a retry than by a spinner.
+  final Duration weatherTimeout;
 
   final String _base;
   final http.Client _client;
@@ -291,20 +298,49 @@ class RelayClient {
     }
   }
 
+  /* -------------------------------------------------------------- weather */
+
+  /// Fetches hourly forecasts for [cells] with `POST /weather`.
+  ///
+  /// [from] is rounded down to the full UTC hour by the relay; [hours] is 1
+  /// to 72, [cells] 1 to 150, each already snapped to the 0.025° grid (the
+  /// relay refuses more than three decimals). `cells[i]` of the answer
+  /// answers `cells[i]` of the request.
+  ///
+  /// Gives up after [weatherTimeout] with an `unavailable` [RelayException].
+  Future<WeatherForecast> routeWeather({
+    required DateTime from,
+    required int hours,
+    required List<WeatherRequestCell> cells,
+  }) async => WeatherForecast.fromJson(
+    await _postJson('/weather', <String, Object?>{
+      'from': weatherTime(from),
+      'hours': hours,
+      'cells': <Object?>[for (final cell in cells) cell.toJson()],
+    }, timeout: weatherTimeout),
+  );
+
   /* ------------------------------------------------------------- plumbing */
 
   /// POSTs [body] as JSON and returns the decoded response object.
+  ///
+  /// With a [timeout], a response that takes longer is given up as
+  /// `unavailable`, like a transport failure.
   Future<Map<String, Object?>> _postJson(
     String path,
-    Map<String, Object?> body,
-  ) async {
+    Map<String, Object?> body, {
+    Duration? timeout,
+  }) async {
     final http.Response response;
     try {
-      response = await _client.post(
+      final sent = _client.post(
         uriFor(path),
         headers: _headers(),
         body: jsonEncode(body),
       );
+      response = await (timeout == null ? sent : sent.timeout(timeout));
+    } on TimeoutException {
+      throw _silent();
     } on Object catch (e) {
       throw _transportException(e);
     }
@@ -319,13 +355,8 @@ class RelayClient {
     return decodeJsonObject(response.body, what: 'response body');
   }
 
-  /// Wraps anything the transport threw in a [RelayException].
-  ///
-  /// `SocketException` is deliberately not caught by type: importing
-  /// `dart:io` would make this package unusable on the web, and an
-  /// `http.ClientException` is not the only thing a platform client can throw.
-  /// Whatever it is, the caller gets an `unavailable` error instead.
-  /// The relay went quiet for longer than [planIdleTimeout].
+  /// The relay went quiet for longer than [planIdleTimeout] or a call's
+  /// timeout.
   static RelayException _silent() => const RelayException(
     RelayError(
       code: RelayErrorCode.unavailable,
@@ -333,6 +364,12 @@ class RelayClient {
     ),
   );
 
+  /// Wraps anything the transport threw in a [RelayException].
+  ///
+  /// `SocketException` is deliberately not caught by type: importing
+  /// `dart:io` would make this package unusable on the web, and an
+  /// `http.ClientException` is not the only thing a platform client can throw.
+  /// Whatever it is, the caller gets an `unavailable` error instead.
   static RelayException _transportException(Object cause) {
     if (cause is RelayException) return cause;
     final detail = cause is http.ClientException ? cause.message : '$cause';

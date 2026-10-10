@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -296,6 +297,172 @@ void main() {
           name: 'n',
           gpx: gpx,
           summary: const ShareSummary(distanceKm: 1),
+        ),
+        throwsA(isA<RelayFormatException>()),
+      );
+    });
+  });
+
+  group('routeWeather', () {
+    const answer = <String, Object?>{
+      'cells': <Object?>[
+        <String, Object?>{
+          'source': 'dwd',
+          'hours': <Object?>[
+            <String, Object?>{
+              't': '2026-10-11T06:00:00Z',
+              'temp': 8.1,
+              'wind': 4.6,
+              'windDir': 246,
+              'gust': 9.8,
+              'precip': 0.1,
+              'precipProb': 22,
+              'cloud': 80,
+            },
+          ],
+        },
+        <String, Object?>{'source': null, 'hours': <Object?>[]},
+      ],
+      'sources': <Object?>[
+        <String, Object?>{
+          'id': 'dwd',
+          'name': 'Deutscher Wetterdienst',
+          'url': 'https://www.dwd.de',
+          'licence': 'Forecast data: Deutscher Wetterdienst (DWD).',
+        },
+      ],
+    };
+
+    test('posts from, hours and cells and parses the answer', () async {
+      final captured = Captured();
+      final client = RelayClient(
+        base,
+        client: captured.answering(json(answer)),
+        appUserId: 'rc_user_42',
+      );
+      addTearDown(client.close);
+
+      final forecast = await client.routeWeather(
+        from: DateTime.utc(2026, 10, 11, 6, 0, 0, 250),
+        hours: 2,
+        cells: const <WeatherRequestCell>[
+          WeatherRequestCell(lat: 52.525, lon: 13.4, alt: 50),
+          WeatherRequestCell(lat: 35.675, lon: 139.7),
+        ],
+      );
+
+      final request = captured.request!;
+      expect(request.method, 'POST');
+      expect(request.url.toString(), '$base/weather');
+      expect(request.headers['Authorization'], 'Bearer rc_user_42');
+      expect(request.headers.containsKey('X-AI-Consent'), isFalse);
+      expect(captured.body, <String, Object?>{
+        'from': '2026-10-11T06:00:00Z',
+        'hours': 2,
+        'cells': <Object?>[
+          <String, Object?>{'lat': 52.525, 'lon': 13.4, 'alt': 50},
+          <String, Object?>{'lat': 35.675, 'lon': 139.7},
+        ],
+      });
+
+      expect(forecast.cells, hasLength(2));
+      final hour = forecast.cells.first.hours.single;
+      expect(forecast.cells.first.source, 'dwd');
+      expect(hour.t, DateTime.utc(2026, 10, 11, 6));
+      expect(hour.temp, 8.1);
+      expect(hour.wind, 4.6);
+      expect(hour.windDir, 246);
+      expect(hour.gust, 9.8);
+      expect(hour.precip, 0.1);
+      expect(hour.precipProb, 22);
+      expect(hour.cloud, 80);
+      expect(forecast.cells.last.source, isNull);
+      expect(forecast.cells.last.hours, isEmpty);
+      expect(forecast.sources.single.id, 'dwd');
+      expect(forecast.toJson(), answer);
+    });
+
+    test('maps the uniform errors', () async {
+      for (final (status, code) in <(int, String)>[
+        (401, RelayErrorCode.notEntitled),
+        (429, RelayErrorCode.rateLimited),
+        (502, RelayErrorCode.upstreamError),
+        (503, RelayErrorCode.unavailable),
+      ]) {
+        final client = RelayClient(
+          base,
+          client: MockClient(
+            (_) async => json(<String, Object?>{
+              'error': <String, Object?>{'code': code, 'message': 'no'},
+            }, status: status),
+          ),
+        );
+        addTearDown(client.close);
+        await expectLater(
+          client.routeWeather(
+            from: DateTime.utc(2026, 10, 11, 6),
+            hours: 1,
+            cells: const <WeatherRequestCell>[
+              WeatherRequestCell(lat: 1, lon: 2),
+            ],
+          ),
+          throwsA(
+            isA<RelayException>()
+                .having((e) => e.error.code, 'code', code)
+                .having((e) => e.statusCode, 'status', status),
+          ),
+          reason: '$status',
+        );
+      }
+    });
+
+    test('a forecast that never comes is unavailable', () async {
+      final never = Completer<http.Response>();
+      final client = RelayClient(
+        base,
+        client: MockClient((_) => never.future),
+        weatherTimeout: const Duration(milliseconds: 20),
+      );
+      addTearDown(client.close);
+      await expectLater(
+        client.routeWeather(
+          from: DateTime.utc(2026, 10, 11, 6),
+          hours: 1,
+          cells: const <WeatherRequestCell>[WeatherRequestCell(lat: 1, lon: 2)],
+        ),
+        throwsA(
+          isA<RelayException>().having(
+            (e) => e.error.code,
+            'code',
+            RelayErrorCode.unavailable,
+          ),
+        ),
+      );
+    });
+
+    test('a malformed hour throws RelayFormatException', () async {
+      final client = RelayClient(
+        base,
+        client: MockClient(
+          (_) async => json(<String, Object?>{
+            'cells': <Object?>[
+              <String, Object?>{
+                'source': 'metno',
+                'hours': <Object?>[
+                  <String, Object?>{'t': 'soon', 'temp': 1},
+                ],
+              },
+            ],
+            'sources': <Object?>[],
+          }),
+        ),
+      );
+      addTearDown(client.close);
+      expect(
+        () => client.routeWeather(
+          from: DateTime.utc(2026, 10, 11, 6),
+          hours: 1,
+          cells: const <WeatherRequestCell>[WeatherRequestCell(lat: 1, lon: 2)],
         ),
         throwsA(isA<RelayFormatException>()),
       );

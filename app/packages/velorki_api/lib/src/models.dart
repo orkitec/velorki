@@ -78,6 +78,24 @@ List<String>? _optStringList(Map<String, Object?> json, String key) {
       .toList(growable: false);
 }
 
+/// Reads [key] from [json] as an array of objects, or throws
+/// [RelayFormatException].
+List<Map<String, Object?>> _reqObjectList(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  if (value is! List) {
+    throw RelayFormatException('$key is missing or not an array');
+  }
+  return value
+      .map((Object? e) {
+        if (e is Map<String, Object?>) return e;
+        throw RelayFormatException('$key contains a non-object entry');
+      })
+      .toList(growable: false);
+}
+
 /// Deep equality for lists, used by the generated-by-hand `==` operators.
 bool _listEquals<T>(List<T>? a, List<T>? b) {
   if (identical(a, b)) return true;
@@ -996,4 +1014,293 @@ class ShareLink {
 
   @override
   String toString() => 'ShareLink($id, $url, expiresAt: $expiresAt)';
+}
+
+/* ---------------------------------------------------------------- weather */
+
+/// [time] in UTC to the second, as the weather endpoint writes and reads it:
+/// `2026-10-11T06:00:00Z`.
+String weatherTime(DateTime time) {
+  final iso = time.toUtc().toIso8601String();
+  final dot = iso.indexOf('.');
+  return dot < 0 ? iso : '${iso.substring(0, dot)}Z';
+}
+
+/// One grid cell asked about in a `POST /weather` request.
+///
+/// The relay refuses a coordinate with more than three decimals; the app
+/// snaps every point to a 0.025° grid and its altitude to 50 m before it gets
+/// here, so no precise position leaves the phone.
+class WeatherRequestCell {
+  /// Creates a request cell.
+  const WeatherRequestCell({required this.lat, required this.lon, this.alt});
+
+  /// Latitude in degrees, at most three decimals.
+  final double lat;
+
+  /// Longitude in degrees, at most three decimals.
+  final double lon;
+
+  /// Altitude in metres, when known.
+  final int? alt;
+
+  /// Parses a request `cells[]` entry.
+  factory WeatherRequestCell.fromJson(Map<String, Object?> json) =>
+      WeatherRequestCell(
+        lat: _reqDouble(json, 'lat'),
+        lon: _reqDouble(json, 'lon'),
+        alt: _optInt(json, 'alt'),
+      );
+
+  /// Serialises to a request `cells[]` entry; [alt] is omitted when null.
+  Map<String, Object?> toJson() => <String, Object?>{
+    'lat': lat,
+    'lon': lon,
+    if (alt != null) 'alt': alt,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is WeatherRequestCell &&
+      other.lat == lat &&
+      other.lon == lon &&
+      other.alt == alt;
+
+  @override
+  int get hashCode => Object.hash(lat, lon, alt);
+
+  @override
+  String toString() => 'WeatherRequestCell($lat, $lon, alt: $alt)';
+}
+
+/// One UTC hour of a cell's forecast.
+///
+/// [temp], [wind], [windDir] and [cloud] hold at [t]; [precip], [precipProb]
+/// and [gust] describe the hour that starts at [t].
+class WeatherHour {
+  /// Creates an hourly entry.
+  const WeatherHour({
+    required this.t,
+    required this.temp,
+    required this.wind,
+    required this.windDir,
+    required this.precip,
+    this.gust,
+    this.precipProb,
+    this.cloud,
+  });
+
+  /// The full UTC hour.
+  final DateTime t;
+
+  /// Air temperature, °C.
+  final double temp;
+
+  /// Mean wind speed at 10 m, m/s.
+  final double wind;
+
+  /// Degrees the wind comes from, 0 to 360.
+  final int windDir;
+
+  /// Strongest gust at 10 m in m/s; null when the source has none.
+  final double? gust;
+
+  /// Precipitation in the hour, mm.
+  final double precip;
+
+  /// Probability of precipitation in percent; null when the source has none.
+  final int? precipProb;
+
+  /// Cloud cover in percent; null when the source has none.
+  final int? cloud;
+
+  /// Parses an `hours[]` entry.
+  factory WeatherHour.fromJson(Map<String, Object?> json) {
+    final t = DateTime.tryParse(_reqString(json, 't'));
+    if (t == null) throw const RelayFormatException('t is not a date-time');
+    return WeatherHour(
+      t: t.toUtc(),
+      temp: _reqDouble(json, 'temp'),
+      wind: _reqDouble(json, 'wind'),
+      windDir: _reqDouble(json, 'windDir').round(),
+      gust: _optDouble(json, 'gust'),
+      precip: _reqDouble(json, 'precip'),
+      precipProb: _optInt(json, 'precipProb'),
+      cloud: _optInt(json, 'cloud'),
+    );
+  }
+
+  /// Serialises back to the wire shape; absent values are written as null.
+  Map<String, Object?> toJson() => <String, Object?>{
+    't': weatherTime(t),
+    'temp': temp,
+    'wind': wind,
+    'windDir': windDir,
+    'gust': gust,
+    'precip': precip,
+    'precipProb': precipProb,
+    'cloud': cloud,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is WeatherHour &&
+      other.t == t &&
+      other.temp == temp &&
+      other.wind == wind &&
+      other.windDir == windDir &&
+      other.gust == gust &&
+      other.precip == precip &&
+      other.precipProb == precipProb &&
+      other.cloud == cloud;
+
+  @override
+  int get hashCode =>
+      Object.hash(t, temp, wind, windDir, gust, precip, precipProb, cloud);
+
+  @override
+  String toString() =>
+      'WeatherHour($t, temp: $temp, wind: $wind from $windDir, '
+      'gust: $gust, precip: $precip, precipProb: $precipProb, cloud: $cloud)';
+}
+
+/// The forecast for one requested cell.
+class WeatherCellForecast {
+  /// Creates a cell forecast.
+  const WeatherCellForecast({required this.source, required this.hours});
+
+  /// The id of the source that answered (`nws`, `dwd`, `metno`); null when
+  /// none did, and then [hours] is empty.
+  final String? source;
+
+  /// One entry per full UTC hour the source forecasts, oldest first.
+  final List<WeatherHour> hours;
+
+  /// Parses a response `cells[]` entry.
+  factory WeatherCellForecast.fromJson(Map<String, Object?> json) =>
+      WeatherCellForecast(
+        source: _optString(json, 'source'),
+        hours: _reqObjectList(
+          json,
+          'hours',
+        ).map(WeatherHour.fromJson).toList(growable: false),
+      );
+
+  /// Serialises back to the wire shape.
+  Map<String, Object?> toJson() => <String, Object?>{
+    'source': source,
+    'hours': <Object?>[for (final h in hours) h.toJson()],
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is WeatherCellForecast &&
+      other.source == source &&
+      _listEquals(other.hours, hours);
+
+  @override
+  int get hashCode => Object.hash(source, Object.hashAll(hours));
+
+  @override
+  String toString() => 'WeatherCellForecast($source, ${hours.length} hours)';
+}
+
+/// A forecast source and the attribution shown beside its data.
+class WeatherSource {
+  /// Creates a source.
+  const WeatherSource({
+    required this.id,
+    required this.name,
+    required this.url,
+    required this.licence,
+  });
+
+  /// `nws`, `dwd` or `metno`.
+  final String id;
+
+  /// The source's name, e.g. `MET Norway`.
+  final String name;
+
+  /// The source's website.
+  final String url;
+
+  /// The attribution the app shows beside the forecast.
+  final String licence;
+
+  /// Parses a `sources[]` entry.
+  factory WeatherSource.fromJson(Map<String, Object?> json) => WeatherSource(
+    id: _reqString(json, 'id'),
+    name: _reqString(json, 'name'),
+    url: _reqString(json, 'url'),
+    licence: _reqString(json, 'licence'),
+  );
+
+  /// Serialises back to the wire shape.
+  Map<String, Object?> toJson() => <String, Object?>{
+    'id': id,
+    'name': name,
+    'url': url,
+    'licence': licence,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is WeatherSource &&
+      other.id == id &&
+      other.name == name &&
+      other.url == url &&
+      other.licence == licence;
+
+  @override
+  int get hashCode => Object.hash(id, name, url, licence);
+
+  @override
+  String toString() => 'WeatherSource($id, $name)';
+}
+
+/// What `POST /weather` returns.
+///
+/// `cells[i]` answers request `cells[i]`: same order, same length.
+class WeatherForecast {
+  /// Creates a forecast.
+  const WeatherForecast({required this.cells, required this.sources});
+
+  /// One forecast per requested cell, in request order.
+  final List<WeatherCellForecast> cells;
+
+  /// The sources the answer used, once each.
+  final List<WeatherSource> sources;
+
+  /// Parses the `POST /weather` response.
+  factory WeatherForecast.fromJson(Map<String, Object?> json) =>
+      WeatherForecast(
+        cells: _reqObjectList(
+          json,
+          'cells',
+        ).map(WeatherCellForecast.fromJson).toList(growable: false),
+        sources: _reqObjectList(
+          json,
+          'sources',
+        ).map(WeatherSource.fromJson).toList(growable: false),
+      );
+
+  /// Serialises back to the wire shape.
+  Map<String, Object?> toJson() => <String, Object?>{
+    'cells': <Object?>[for (final c in cells) c.toJson()],
+    'sources': <Object?>[for (final s in sources) s.toJson()],
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is WeatherForecast &&
+      _listEquals(other.cells, cells) &&
+      _listEquals(other.sources, sources);
+
+  @override
+  int get hashCode =>
+      Object.hash(Object.hashAll(cells), Object.hashAll(sources));
+
+  @override
+  String toString() =>
+      'WeatherForecast(${cells.length} cells, sources: $sources)';
 }

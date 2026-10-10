@@ -226,6 +226,16 @@ class TestMapController implements MapController {
   }
 
   @override
+  Future<void> setRouteWind(List<WindSegment> segments) async {
+    calls.add(MapCall('setRouteWind', [segments]));
+  }
+
+  @override
+  Future<void> clearRouteWind() async {
+    calls.add(const MapCall('clearRouteWind', []));
+  }
+
+  @override
   Future<void> setPosition(
     LatLng? position, {
     double? accuracyM,

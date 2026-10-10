@@ -201,6 +201,13 @@ class FakeMapController implements MapController {
   /// Every [setTrackSegments] call, in order.
   final List<List<TrackSegment>> trackSegmentCalls = <List<TrackSegment>>[];
 
+  /// The wind drawn on the route; empty when there is none.
+  List<WindSegment> routeWind = const <WindSegment>[];
+
+  /// Every [setRouteWind] call, in order; a [clearRouteWind] records an
+  /// empty list.
+  final List<List<WindSegment>> routeWindCalls = <List<WindSegment>>[];
+
   /// The last [setPosition] call, `null` until one happens.
   RecordedPosition? position;
 
@@ -428,6 +435,19 @@ class FakeMapController implements MapController {
     trackSegments = copy;
     trackSegmentCalls.add(copy);
     trackLine = const <LatLng>[];
+  }
+
+  @override
+  Future<void> setRouteWind(List<WindSegment> segments) async {
+    final copy = List<WindSegment>.unmodifiable(segments);
+    routeWind = copy;
+    routeWindCalls.add(copy);
+  }
+
+  @override
+  Future<void> clearRouteWind() async {
+    routeWind = const <WindSegment>[];
+    routeWindCalls.add(const <WindSegment>[]);
   }
 
   @override

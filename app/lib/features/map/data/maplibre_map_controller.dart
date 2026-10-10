@@ -56,6 +56,8 @@ abstract final class MapLayerIds {
   static const String stopsClusterLayer = 'velorki-stops-cluster';
   static const String turnsSource = 'velorki-turns';
   static const String turnsLayer = 'velorki-turns-dot';
+  static const String routeWindSource = 'velorki-route-wind';
+  static const String routeWindLayer = 'velorki-route-wind-line';
 
   static String routeSource(String id) => 'velorki-route-${_slug(id)}';
   static String routeLayer(String id) => 'velorki-route-${_slug(id)}-line';
@@ -103,7 +105,17 @@ class MapPalette {
     this.stopCluster = '#1565C0',
     this.stopClusterLabel = '#FFFFFF',
     this.cycle = CycleMapColors.light,
+    this.windHead = '#D62C45',
+    this.windCross = '#C77800',
+    this.windTail = '#1C9A57',
+    this.windCalm = '#7D8792',
   });
+
+  /// The wind on the route: from ahead, from the side, from behind, calm.
+  final String windHead;
+  final String windCross;
+  final String windTail;
+  final String windCalm;
 
   /// The offline cycle map's colours.
   final CycleMapColors cycle;
@@ -149,7 +161,11 @@ class MapPalette {
       routeOriginal = '#607D8B',
       stopCluster = '#1565C0',
       stopClusterLabel = '#FFFFFF',
-      cycle = CycleMapColors.light;
+      cycle = CycleMapColors.light,
+      windHead = '#D62C45',
+      windCross = '#C77800',
+      windTail = '#1C9A57',
+      windCalm = '#7D8792';
 
   /// The palette of [theme]'s [VelorkiColors].
   factory MapPalette.fromTheme(ThemeData theme) {
@@ -188,6 +204,10 @@ class MapPalette {
       stopCluster: VelorkiColors.hex(colors.accent),
       stopClusterLabel: VelorkiColors.hex(theme.colorScheme.onPrimary),
       cycle: dark ? CycleMapColors.dark : CycleMapColors.light,
+      windHead: VelorkiColors.hex(colors.windHead),
+      windCross: VelorkiColors.hex(colors.windCross),
+      windTail: VelorkiColors.hex(colors.windTail),
+      windCalm: VelorkiColors.hex(colors.windCalm),
     );
   }
 
@@ -243,7 +263,11 @@ class MapPalette {
       other.routeOriginal == routeOriginal &&
       other.stopCluster == stopCluster &&
       other.stopClusterLabel == stopClusterLabel &&
-      other.cycle == cycle;
+      other.cycle == cycle &&
+      other.windHead == windHead &&
+      other.windCross == windCross &&
+      other.windTail == windTail &&
+      other.windCalm == windCalm;
 
   @override
   int get hashCode => Object.hash(
@@ -266,7 +290,15 @@ class MapPalette {
     positionDot,
     positionAccuracy,
     routeOriginal,
-    Object.hash(stopCluster, stopClusterLabel, cycle),
+    Object.hash(
+      stopCluster,
+      stopClusterLabel,
+      cycle,
+      windHead,
+      windCross,
+      windTail,
+      windCalm,
+    ),
   );
 }
 
@@ -691,6 +723,8 @@ class MaplibreMapControllerAdapter implements MapController {
   // paints with, so a recording does not rewrite the paint on every fix.
   List<TrackSegment> _trackSegments = const <TrackSegment>[];
   bool _trackColoured = false;
+  // The wind on the planned route, replayed after a style reload.
+  List<WindSegment> _routeWind = const <WindSegment>[];
   // Hysteresis and circular averaging for the heading cone, so it neither
   // blinks nor spins while the rider rolls along at walking pace.
   final HeadingSmoother _headingSmoother = HeadingSmoother();
@@ -843,6 +877,14 @@ class MaplibreMapControllerAdapter implements MapController {
       filter: MarkerLayers.isCluster,
     );
 
+    // The wind on the planned route: over every route line, which is
+    // inserted under it, and under the puck and the markers.
+    await _ops.addGeoJsonSource(
+      MapLayerIds.routeWindSource,
+      emptyFeatureCollection(),
+    );
+    await add(MapLayerIds.routeWindSource, MapLayerIds.routeWindLayer);
+
     await _ops.addGeoJsonSource(
       MapLayerIds.positionSource,
       emptyFeatureCollection(),
@@ -931,6 +973,7 @@ class MaplibreMapControllerAdapter implements MapController {
     }
     if (_track.isNotEmpty) await setTrackLine(_track);
     if (_trackSegments.isNotEmpty) await setTrackSegments(_trackSegments);
+    if (_routeWind.isNotEmpty) await setRouteWind(_routeWind);
     final lines = Map<String, List<LatLng>>.of(_routePoints);
     for (final entry in lines.entries) {
       await setRouteLine(
@@ -1364,14 +1407,15 @@ class MaplibreMapControllerAdapter implements MapController {
     RouteLineStyle style,
   ) async {
     await _ops.addGeoJsonSource(sourceId, data);
-    // Under the puck and the markers; an alternative also under the track
-    // and, since every chosen route sits above the track, under the chosen
-    // route, whatever order they arrive in. A ride page draws the route it
-    // followed that way, so the ridden track stays the subject.
+    // Under the wind on the route, the puck and the markers; an alternative
+    // also under the track and, since every chosen route sits above the
+    // track, under the chosen route, whatever order they arrive in. A ride
+    // page draws the route it followed that way, so the ridden track stays
+    // the subject.
     final below =
         style == RouteLineStyle.alternative || style == RouteLineStyle.original
         ? MapLayerIds.trackLayer
-        : MapLayerIds.positionAccuracyLayer;
+        : MapLayerIds.routeWindLayer;
     // A dark casing under the line keeps any accent readable on any map
     // style: lime on a green park, orange on a yellow road.
     await _ops.addLayer(
@@ -1583,6 +1627,24 @@ class MaplibreMapControllerAdapter implements MapController {
     final markers = _markers;
     return <String, ml.LayerProperties>{
       MapLayerIds.trackLayer: _trackProperties(),
+      // As wide as the main route, which it lies on.
+      MapLayerIds.routeWindLayer: ml.LineLayerProperties(
+        lineColor: <Object>[
+          'match',
+          <Object>['get', 'w'],
+          'head',
+          palette.windHead,
+          'cross',
+          palette.windCross,
+          'tail',
+          palette.windTail,
+          palette.windCalm,
+        ],
+        lineWidth: 5.0,
+        lineOpacity: 1.0,
+        lineCap: 'round',
+        lineJoin: 'round',
+      ),
       MapLayerIds.positionAccuracyLayer: _accuracyProperties(),
       MapLayerIds.positionHeadingLayer: ml.SymbolLayerProperties(
         iconImage: headingConeImageName,
@@ -1832,6 +1894,23 @@ class MaplibreMapControllerAdapter implements MapController {
       trackSegmentsFeatureCollection(segments),
     );
   }
+
+  @override
+  Future<void> setRouteWind(List<WindSegment> segments) async {
+    _routeWind = List<WindSegment>.unmodifiable(segments);
+    if (!_attached) return;
+    if (await _hasSource(MapLayerIds.routeWindSource) == false) {
+      await attachToStyle();
+      return;
+    }
+    await _writeBaseSource(
+      MapLayerIds.routeWindSource,
+      windSegmentsFeatureCollection(segments),
+    );
+  }
+
+  @override
+  Future<void> clearRouteWind() => setRouteWind(const <WindSegment>[]);
 
   /// Switches the track layer between the flat colour and the speed ramp,
   /// writing the paint only when it actually changes.

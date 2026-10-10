@@ -2280,6 +2280,14 @@
   "@plusFeatureLinkSharingBody": {
     "description": "Paywall feature detail: share links"
   },
+  "plusFeatureWeather": "Weather on your route",
+  "@plusFeatureWeather": {
+    "description": "Paywall feature: the forecast along the planned route"
+  },
+  "plusFeatureWeatherBody": "Wind, rain and temperature at the time you reach each part of your route.",
+  "@plusFeatureWeatherBody": {
+    "description": "Paywall feature detail: the forecast along the planned route"
+  },
   "plusFreeAnyway": "Planning, recording, smart loops, offline maps and GPX/FIT files stay free, with or without Plus.",
   "@plusFreeAnyway": {
     "description": "Reassurance under the feature list on the paywall"
@@ -4791,6 +4799,15 @@
       }
     }
   },
+  "unitFahrenheit": "{value} °F",
+  "@unitFahrenheit": {
+    "description": "A temperature in degrees Fahrenheit",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "statMaxCadence": "Max cadence",
   "@statMaxCadence": {
     "description": "Label of the highest pedalling cadence of a ride"
@@ -5662,6 +5679,157 @@
       "value": {
         "type": "String",
         "example": "312"
+      }
+    }
+  },
+  "weatherTitle": "Weather on the way",
+  "@weatherTitle": {
+    "description": "Caption of the planner sheet's section with the forecast along the route"
+  },
+  "weatherHeadwind": "Headwind {percent}",
+  "@weatherHeadwind": {
+    "description": "Weather summary: the share of the route ridden into a headwind, e.g. 'Headwind 60%'",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherTailwind": "Tailwind {percent}",
+  "@weatherTailwind": {
+    "description": "Weather summary: the share of the route ridden with a tailwind",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherCrosswind": "Crosswind {percent}",
+  "@weatherCrosswind": {
+    "description": "Weather summary: the share of the route ridden in a crosswind",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherMostlyCalm": "Mostly calm",
+  "@weatherMostlyCalm": {
+    "description": "Weather summary: hardly any wind on most of the route"
+  },
+  "weatherDry": "Dry",
+  "@weatherDry": {
+    "description": "Weather summary: no rain expected on the route"
+  },
+  "weatherRainFrom": "Rain from {distance}",
+  "@weatherRainFrom": {
+    "description": "Weather summary: where along the route the rain starts, e.g. 'Rain from 34 km'",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherGusts": "Gusts up to {speed}",
+  "@weatherGusts": {
+    "description": "Weather summary: the strongest gust on the route, e.g. 'Gusts up to 45 km/h'",
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherTemperatureRange": "{low}–{high}",
+  "@weatherTemperatureRange": {
+    "description": "Weather summary: the lowest and highest temperature on the route; low is a bare number, high carries the unit, e.g. '12–17 °C'",
+    "placeholders": {
+      "low": {
+        "type": "String"
+      },
+      "high": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherNoForecast": "No forecast for this time",
+  "@weatherNoForecast": {
+    "description": "Weather section: the forecast does not reach the chosen departure"
+  },
+  "weatherStart": "Start",
+  "@weatherStart": {
+    "description": "Weather section: label before the departure time the forecast is for"
+  },
+  "weatherDepartureToday": "Today {time}",
+  "@weatherDepartureToday": {
+    "description": "Departure time today, e.g. 'Today 10:15'",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherDepartureTomorrow": "Tomorrow {time}",
+  "@weatherDepartureTomorrow": {
+    "description": "Departure time tomorrow, e.g. 'Tomorrow 08:30'",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherDepartureOnDay": "{day} {time}",
+  "@weatherDepartureOnDay": {
+    "description": "Departure time on a later day: abbreviated weekday and time, e.g. 'Sat 07:00'",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherBestTime": "Best time",
+  "@weatherBestTime": {
+    "description": "Button: move the departure to the time with the least rain and headwind"
+  },
+  "weatherBestTimeNow": "Best time now",
+  "@weatherBestTimeNow": {
+    "description": "Disabled button: the chosen departure already is the best one"
+  },
+  "weatherWindOnMap": "Show wind on the route",
+  "@weatherWindOnMap": {
+    "description": "Switch: colour the route on the map by how the wind meets the rider"
+  },
+  "weatherAttribution": "Weather: {sources}",
+  "@weatherAttribution": {
+    "description": "Attribution line under the forecast, naming the weather services, e.g. 'Weather: MET Norway · Deutscher Wetterdienst'",
+    "placeholders": {
+      "sources": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherSourcesTitle": "Weather data",
+  "@weatherSourcesTitle": {
+    "description": "Title of the sheet listing the weather services and their licences"
+  },
+  "weatherTryAgain": "Try again",
+  "@weatherTryAgain": {
+    "description": "Button: ask for the forecast again after it failed"
+  },
+  "weatherStripSemantics": "Weather along the route: {wind}, {rain}, {temperature}",
+  "@weatherStripSemantics": {
+    "description": "Screen reader label of the weather strip, built from the summary figures",
+    "placeholders": {
+      "wind": {
+        "type": "String"
+      },
+      "rain": {
+        "type": "String"
+      },
+      "temperature": {
+        "type": "String"
       }
     }
   }

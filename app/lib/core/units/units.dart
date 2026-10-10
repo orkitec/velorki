@@ -107,6 +107,11 @@ Measure formatDistance(UnitSystem system, double meters) {
   return Measure(miles, MeasureUnit.miles, decimals: 1);
 }
 
+/// [celsius] in the degrees [system] reads temperatures in: Celsius for
+/// metric, Fahrenheit for imperial.
+double temperatureIn(UnitSystem system, double celsius) =>
+    system == UnitSystem.metric ? celsius : celsius * 9 / 5 + 32;
+
 /// A speed, with one decimal either way.
 Measure formatSpeed(UnitSystem system, double metersPerSecond) =>
     system == UnitSystem.metric

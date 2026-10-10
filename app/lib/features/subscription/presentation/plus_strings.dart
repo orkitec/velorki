@@ -24,6 +24,7 @@ String plusFeatureTitle(AppLocalizations l10n, PlusFeature feature) =>
       PlusFeature.stravaConnection => l10n.plusFeatureStrava,
       PlusFeature.rwgpsConnection => l10n.plusFeatureRwgps,
       PlusFeature.linkSharing => l10n.plusFeatureLinkSharing,
+      PlusFeature.weather => l10n.plusFeatureWeather,
     };
 
 /// What [feature] does, in one sentence.
@@ -33,6 +34,7 @@ String plusFeatureBody(AppLocalizations l10n, PlusFeature feature) =>
       PlusFeature.stravaConnection => l10n.plusFeatureStravaBody,
       PlusFeature.rwgpsConnection => l10n.plusFeatureRwgpsBody,
       PlusFeature.linkSharing => l10n.plusFeatureLinkSharingBody,
+      PlusFeature.weather => l10n.plusFeatureWeatherBody,
     };
 
 /// How often a package is billed, e.g. "per month".

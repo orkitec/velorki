@@ -52,6 +52,14 @@ export const LIMITS = {
    * a worker buffering megabytes; the per-user daily limit is the real one.
    */
   sharePerIpHour: { name: 'share_ip_hour', limit: 60, windowS: 3_600 },
+  /**
+   * A planned route asks once and refreshes now and then; a ride re-asks as
+   * it goes. The day is the real limit, the hour catches a loop in a client.
+   */
+  weatherPerHour: { name: 'weather_hour', limit: 60, windowS: 3_600 },
+  weatherPerDay: { name: 'weather_day', limit: 400, windowS: 86_400 },
+  /** Charged before the body is read, like the share route's. */
+  weatherPerIpHour: { name: 'weather_ip_hour', limit: 120, windowS: 3_600 },
 } as const satisfies Record<string, LimitSpec>;
 
 /** The counter key of one window. Exported so tests can assert the shape. */

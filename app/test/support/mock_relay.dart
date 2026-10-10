@@ -1,5 +1,5 @@
-/// The relay's `POST /ai/plan`, mocked at the HTTP layer inside the test
-/// process.
+/// The relay's `POST /ai/plan` and `POST /weather`, mocked at the HTTP layer
+/// inside the test process.
 ///
 /// Everything above the socket is the app's own: [RelayClient] gets
 /// [MockRelay.httpClient] and parses what comes back as it would parse the
@@ -7,7 +7,8 @@
 /// controllers, sheets and planner above it run unchanged. No server process.
 ///
 /// What it answers with is the relay's documented contract
-/// ([documentedPlanStreams], [documentedErrors]); what a test scripts beyond
+/// ([documentedPlanStreams], [documentedErrors], [documentedWeatherAnswers]);
+/// what a test scripts beyond
 /// that is framed the same way and, given a [SchemaCheck], held to the yaml's
 /// schemas, as is every request the app sends. It records each request so a
 /// test can say what the app sent.
@@ -77,6 +78,69 @@ class RecordedPlanRequest {
 
   @override
   String toString() => 'POST /ai/plan ${jsonEncode(body)}';
+}
+
+/// One `POST /weather` the app sent.
+class RecordedWeatherRequest {
+  RecordedWeatherRequest._(this.headers, this.body);
+
+  /// The headers, by lower-case name.
+  final Map<String, String> headers;
+
+  /// The JSON body.
+  final Map<String, Object?> body;
+
+  /// The first hour asked about.
+  DateTime get from => DateTime.parse(body['from']! as String);
+
+  /// How many hours.
+  int get hours => body['hours']! as int;
+
+  /// The cells, as sent.
+  List<Map<String, Object?>> get cells => [
+    for (final c in body['cells']! as List<Object?>) c! as Map<String, Object?>,
+  ];
+
+  @override
+  String toString() => 'POST /weather ${jsonEncode(body)}';
+}
+
+/// How the mock answers one `POST /weather`.
+sealed class WeatherReply {
+  const WeatherReply({this.delay = Duration.zero});
+
+  /// [body] after [delay]; held to `WeatherResponse` when the mock has the
+  /// schemas.
+  const factory WeatherReply.json(Map<String, Object?> body, {Duration delay}) =
+      _WeatherJsonReply;
+
+  /// Whatever [build] answers the request with, after [delay].
+  const factory WeatherReply.answering(
+    Map<String, Object?> Function(RecordedWeatherRequest request) build, {
+    Duration delay,
+  }) = _WeatherBuiltReply;
+
+  /// A documented error response, after [delay].
+  const factory WeatherReply.error(DocumentedError error, {Duration delay}) =
+      _WeatherErrorReply;
+
+  /// How long the answer takes.
+  final Duration delay;
+}
+
+class _WeatherJsonReply extends WeatherReply {
+  const _WeatherJsonReply(this.body, {super.delay});
+  final Map<String, Object?> body;
+}
+
+class _WeatherBuiltReply extends WeatherReply {
+  const _WeatherBuiltReply(this.build, {super.delay});
+  final Map<String, Object?> Function(RecordedWeatherRequest request) build;
+}
+
+class _WeatherErrorReply extends WeatherReply {
+  const _WeatherErrorReply(this.error, {super.delay});
+  final DocumentedError error;
 }
 
 /// One frame of a scripted stream.
@@ -224,8 +288,9 @@ class _ProxyErrorReply extends RelayReply {
   final String body;
 }
 
-/// The mocked relay. Queue a reply per request with [reply]; a request with
-/// nothing queued gets its step's documented example.
+/// The mocked relay. Queue a reply per request with [reply] (or
+/// [replyWeather]); a request with nothing queued gets its step's documented
+/// example, a `/weather` request the documented `answered` one.
 class MockRelay {
   /// Creates the relay; [schemas] holds requests and scripted payloads to
   /// the yaml, where the yaml is at hand (not on a device).
@@ -253,6 +318,15 @@ class MockRelay {
 
   final Queue<RelayReply> _replies = Queue<RelayReply>();
 
+  /// Every `POST /weather`, in order.
+  final List<RecordedWeatherRequest> weatherRequests =
+      <RecordedWeatherRequest>[];
+
+  final Queue<WeatherReply> _weatherReplies = Queue<WeatherReply>();
+
+  /// Queues [reply] for the next `POST /weather`.
+  void replyWeather(WeatherReply reply) => _weatherReplies.add(reply);
+
   /// The last request.
   RecordedPlanRequest get last => requests.last;
 
@@ -276,12 +350,14 @@ class MockRelay {
   /// A [RelayClient] on [httpClient], as the app's provider builds it.
   RelayClient client({
     Duration planIdleTimeout = const Duration(seconds: 45),
+    Duration weatherTimeout = const Duration(seconds: 20),
   }) => RelayClient(
     baseUrl,
     client: httpClient,
     clientId: 'test/1.0.0+1',
     appUserId: appUserId,
     planIdleTimeout: planIdleTimeout,
+    weatherTimeout: weatherTimeout,
   );
 
   void _checkFrame(SseFrame frame) {
@@ -318,6 +394,10 @@ class MockRelay {
     http.ByteStream bodyStream,
   ) async {
     final text = await bodyStream.bytesToString();
+    if (request.method == 'POST' &&
+        request.url.toString() == '$baseUrl/weather') {
+      return _handleWeather(request, text);
+    }
     if (request.method != 'POST' ||
         request.url.toString() != '$baseUrl/ai/plan') {
       return _json(
@@ -386,6 +466,67 @@ class MockRelay {
         stall: thenStall,
       ),
     };
+  }
+
+  Future<http.StreamedResponse> _handleWeather(
+    http.BaseRequest request,
+    String text,
+  ) async {
+    final headers = {
+      for (final e in request.headers.entries) e.key.toLowerCase(): e.value,
+    };
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(text);
+    } on FormatException {
+      return _json(400, invalidRequest.body);
+    }
+    final recorded = RecordedWeatherRequest._(
+      headers,
+      (decoded as Map).cast<String, Object?>(),
+    );
+    weatherRequests.add(recorded);
+
+    final bearer = headers['authorization'] ?? '';
+    if (!bearer.startsWith('Bearer ') || bearer.length <= 7) {
+      return _documented(notEntitled);
+    }
+    final problems = [...?schemas?.call('WeatherRequest', recorded.body)];
+    if (problems.isNotEmpty) {
+      // ignore: avoid_print
+      print('MockRelay: the relay would refuse $recorded: $problems');
+      return _json(
+        400,
+        jsonEncode({
+          'error': {'code': 'invalid_request', 'message': problems.join('; ')},
+        }),
+      );
+    }
+
+    final reply = _weatherReplies.isEmpty
+        ? WeatherReply.json(
+            jsonDecode(documentedWeatherAnswers['answered']!)
+                as Map<String, Object?>,
+          )
+        : _weatherReplies.removeFirst();
+    if (reply.delay > Duration.zero) await Future<void>.delayed(reply.delay);
+    final Map<String, Object?> body;
+    switch (reply) {
+      case _WeatherErrorReply(:final error):
+        return _documented(error);
+      case _WeatherJsonReply(body: final json):
+        body = json;
+      case _WeatherBuiltReply(:final build):
+        body = build(recorded);
+    }
+    final answerProblems = [...?schemas?.call('WeatherResponse', body)];
+    if (answerProblems.isNotEmpty) {
+      throw ArgumentError(
+        'a scripted weather answer the relay could never send: '
+        '${answerProblems.join('; ')}',
+      );
+    }
+    return _json(200, jsonEncode(body));
   }
 
   http.StreamedResponse _documented(DocumentedError error) =>

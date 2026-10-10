@@ -104,6 +104,7 @@ export const API_ROUTES: readonly ({ method: string } & ({ path: string } | { pr
     { method: 'POST', prefix: '/proxy/rwgps/' },
     { method: 'POST', path: '/ai/plan' },
     { method: 'POST', path: '/share' },
+    { method: 'POST', path: '/weather' },
   ];
 
 export function isApiRoute(method: string, pathname: string): boolean {

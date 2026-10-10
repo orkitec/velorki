@@ -96,6 +96,11 @@ const List<_Allowed> _allowed = <_Allowed>[
     "'Plus'",
     'the product name, Velorki Plus, as a caption',
   ),
+  _Allowed(
+    'lib/features/weather/presentation/route_weather_section.dart',
+    "'Plus'",
+    'the product name, Velorki Plus, as a caption on the locked weather',
+  ),
 ];
 
 class _Allowed {

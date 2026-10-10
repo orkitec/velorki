@@ -133,6 +133,9 @@ void main() {
           MapLayerIds.stopsLayer,
           MapLayerIds.stopsLabelLayer,
           MapLayerIds.stopsClusterLayer,
+          // The wind on the route, over every route line.
+          MapLayerIds.routeWindSource,
+          MapLayerIds.routeWindLayer,
           MapLayerIds.positionSource,
           // The ring is the bottom of the puck, the dot the top, so a route
           // line inserted below the ring stays under the whole puck.
@@ -1130,7 +1133,7 @@ void main() {
       ]);
       final layer = ops.lastCall('addLayer')!;
       expect(layer.layerId, MapLayerIds.routeLayer('main'));
-      expect(layer.belowLayerId, MapLayerIds.positionAccuracyLayer);
+      expect(layer.belowLayerId, MapLayerIds.routeWindLayer);
       expect(layer.enableInteraction, isFalse);
       expect(
         layer.properties!['line-color'],
@@ -1276,7 +1279,7 @@ void main() {
       );
       expect(
         ops.addLayerOf('velorki-route-main-line')!.belowLayerId,
-        MapLayerIds.positionAccuracyLayer,
+        MapLayerIds.routeWindLayer,
       );
     });
   });
@@ -1615,6 +1618,80 @@ void main() {
     });
   });
 
+  group('setRouteWind', () {
+    const wind = <WindSegment>[
+      WindSegment(
+        points: <LatLng>[LatLng(47.0, 8.0), LatLng(47.1, 8.1)],
+        windClass: WindClassOnMap.head,
+      ),
+      WindSegment(
+        points: <LatLng>[LatLng(47.1, 8.1), LatLng(47.2, 8.2)],
+        windClass: WindClassOnMap.tail,
+      ),
+    ];
+
+    test(
+      'writes one line per segment, its class in w, coloured by it',
+      () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        ops.clearCalls();
+
+        await adapter.setRouteWind(wind);
+
+        final features = _featuresOf(ops, MapLayerIds.routeWindSource);
+        expect(
+          features.map((f) => (f as Map<String, dynamic>)['properties']['w']),
+          <String>['head', 'tail'],
+        );
+        final layer = ops.addLayerOf(MapLayerIds.routeWindLayer);
+        expect(layer, isNull, reason: 'the layer is added once, on attach');
+      },
+    );
+
+    test(
+      'the layer sits over the route lines and matches the palette',
+      () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        final layer = ops.addLayerOf(MapLayerIds.routeWindLayer)!;
+        const palette = MapPalette.classic();
+        expect(layer.properties!['line-color'], <Object>[
+          'match',
+          <Object>['get', 'w'],
+          'head',
+          palette.windHead,
+          'cross',
+          palette.windCross,
+          'tail',
+          palette.windTail,
+          palette.windCalm,
+        ]);
+        await adapter.setRouteLine('main', _points);
+        expect(
+          ops.addLayerOf(MapLayerIds.routeLayer('main'))!.belowLayerId,
+          MapLayerIds.routeWindLayer,
+        );
+      },
+    );
+
+    test('comes back after a style reload, and goes with a clear', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteWind(wind);
+
+      ops.reloadStyle();
+      await adapter.attachToStyle();
+      expect(_featuresOf(ops, MapLayerIds.routeWindSource), hasLength(2));
+
+      await adapter.clearRouteWind();
+      expect(_featuresOf(ops, MapLayerIds.routeWindSource), isEmpty);
+    });
+  });
+
   group('before the style is attached', () {
     test('nothing at all is sent to the map', () async {
       final ops = RecordingStyleOps();
@@ -1673,7 +1750,7 @@ void main() {
       final line = ops.addLayerOf(MapLayerIds.routeLayer('main'))!;
       expect(_featuresOf(ops, MapLayerIds.routeSource('main')), hasLength(1));
       // Still under the puck, as on the first attach.
-      expect(line.belowLayerId, MapLayerIds.positionAccuracyLayer);
+      expect(line.belowLayerId, MapLayerIds.routeWindLayer);
     });
 
     test('replays a preview route as a preview', () async {

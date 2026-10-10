@@ -1,4 +1,5 @@
-// The in-process relay the AI tests talk to is held to web/openapi.yaml, the
+// The in-process relay the AI and weather tests talk to is held to
+// web/openapi.yaml, the
 // same document the relay's contract tests replay byte for byte against the
 // real handler. The examples are Dart copies so they reach a device build;
 // this file fails as soon as a copy and the yaml part ways.
@@ -7,6 +8,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki_api/velorki_api.dart';
+import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki/features/weather/domain/route_sampling.dart';
 
 import '../../support/mock_relay.dart';
 import '../../support/openapi_schema.dart';
@@ -188,6 +191,128 @@ void main() {
           ],
         }),
         isNotEmpty,
+      );
+    });
+  });
+
+  group('/weather', () {
+    Map<String, Object?> examples(Map<String, Object?> named) => {
+      for (final e in named.entries)
+        e.key: (e.value! as Map<String, Object?>)['value'],
+    };
+
+    test('the request copies are the yaml\'s and pass its schema', () {
+      final yaml = examples(spec.weatherRequestExamples);
+      expect(documentedWeatherRequests.keys, unorderedEquals(yaml.keys));
+      for (final name in yaml.keys) {
+        expect(
+          jsonDecode(documentedWeatherRequests[name]!),
+          yaml[name],
+          reason: name,
+        );
+        expect(spec.check('WeatherRequest', yaml[name]), isEmpty);
+      }
+    });
+
+    test('the answer copies are the yaml\'s and pass its schema', () {
+      final yaml = examples(spec.weatherAnswerExamples);
+      expect(documentedWeatherAnswers.keys, unorderedEquals(yaml.keys));
+      for (final name in yaml.keys) {
+        expect(
+          jsonDecode(documentedWeatherAnswers[name]!),
+          yaml[name],
+          reason: name,
+        );
+        expect(spec.check('WeatherResponse', yaml[name]), isEmpty);
+      }
+    });
+
+    test('the errors are the yaml\'s, under the status /weather lists', () {
+      final responses = spec.weather['responses']! as Map<String, Object?>;
+      expect(
+        responses.keys.where((k) => k != '200'),
+        unorderedEquals([
+          for (final e in documentedWeatherErrors) '${e.status}',
+        ]),
+      );
+      for (final error in documentedWeatherErrors) {
+        final listed = responses['${error.status}']! as Map<String, Object?>;
+        expect(
+          listed[r'$ref'],
+          '#/components/responses/${error.component}',
+          reason: error.component,
+        );
+        final named =
+            ((spec.response(error.component)['content']!
+                        as Map<String, Object?>)['application/json']!
+                    as Map<String, Object?>)['examples']!
+                as Map<String, Object?>;
+        expect(
+          jsonDecode(error.body),
+          (named.values.first! as Map<String, Object?>)['value'],
+          reason: error.component,
+        );
+        expect(spec.check('Error', jsonDecode(error.body)), isEmpty);
+      }
+    });
+
+    test('the request schema refuses what the relay refuses', () {
+      final request = jsonDecode(
+        documentedWeatherRequests['berlinAndTokyo']!,
+      ) as Map<String, Object?>;
+      expect(spec.check('WeatherRequest', {...request, 'hours': 73}), [
+        'WeatherRequest.hours is 73, above 72',
+      ]);
+      expect(
+        spec.check('WeatherRequest', {...request, 'from': '2026-10-11'}),
+        isNotEmpty,
+      );
+      expect(
+        spec.check('WeatherRequest', {
+          ...request,
+          'cells': [
+            {'lat': 52.5, 'lon': 13.4, 'alt': 50, 'name': 'Berlin'},
+          ],
+        }),
+        isNotEmpty,
+      );
+    });
+
+    test('what the app sends passes the request schema', () {
+      final cell = snapCell(const LatLng(52.52437, 13.41053), 37.4);
+      final window = requestWindow(
+        DateTime.utc(2026, 10, 11, 6, 40),
+        const Duration(hours: 3),
+      );
+      expect(
+        spec.check('WeatherRequest', {
+          'from': weatherTime(window.from),
+          'hours': window.hours,
+          'cells': [cell.toJson()],
+        }),
+        isEmpty,
+      );
+    });
+
+    test('the documented answer parses in the app\'s client', () async {
+      final relay = MockRelay(schemas: spec.check);
+      final client = relay.client();
+      addTearDown(client.close);
+      final forecast = await client.routeWeather(
+        from: DateTime.utc(2026, 10, 11, 6),
+        hours: 2,
+        cells: const [
+          WeatherRequestCell(lat: 52.525, lon: 13.4, alt: 50),
+          WeatherRequestCell(lat: 35.675, lon: 139.7, alt: 50),
+        ],
+      );
+      expect(forecast.cells.map((c) => c.source), ['dwd', 'metno']);
+      expect(forecast.cells.last.hours.first.gust, isNull);
+      expect(forecast.sources.map((s) => s.id), ['dwd', 'metno']);
+      expect(relay.weatherRequests.single.hours, 2);
+      expect(
+        forecast.toJson(),
+        jsonDecode(documentedWeatherAnswers['answered']!),
       );
     });
   });

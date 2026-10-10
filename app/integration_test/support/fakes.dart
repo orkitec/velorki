@@ -528,6 +528,13 @@ class RecordingMapController implements MapController {
       inner.setTrackSegments(segments);
 
   @override
+  Future<void> setRouteWind(List<WindSegment> segments) =>
+      inner.setRouteWind(segments);
+
+  @override
+  Future<void> clearRouteWind() => inner.clearRouteWind();
+
+  @override
   Future<void> setPosition(
     LatLng? position, {
     double? accuracyM,

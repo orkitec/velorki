@@ -1,5 +1,6 @@
-/// What the relay's contract documents for `POST /ai/plan`, copied out of
-/// `web/openapi.yaml` so it reaches a device build, where that file is not.
+/// What the relay's contract documents for `POST /ai/plan` and
+/// `POST /weather`, copied out of `web/openapi.yaml` so it reaches a device
+/// build, where that file is not.
 ///
 /// The relay's own contract tests (`web/test/contract`) replay these same
 /// examples byte for byte against the real handler; the app's
@@ -56,7 +57,7 @@ String onTheWire(String name) {
   return '$value\n';
 }
 
-/// One documented error response of `POST /ai/plan`.
+/// One documented error response of `POST /ai/plan` or `POST /weather`.
 class DocumentedError {
   /// Creates the response.
   const DocumentedError({
@@ -69,7 +70,7 @@ class DocumentedError {
   /// Its name under `components/responses` in the yaml.
   final String component;
 
-  /// The status `/ai/plan` lists it under.
+  /// The status the endpoint lists it under.
   final int status;
 
   /// The example body, as JSON.
@@ -125,6 +126,13 @@ const DocumentedError unavailable = DocumentedError(
       '"message":"Strava is not configured on this server."}}',
 );
 
+/// 502, the forecast services failed for every cell.
+const DocumentedError upstreamError = DocumentedError(
+  component: 'UpstreamError',
+  status: 502,
+  body: '{"error":{"code":"upstream_error","message":"Bad Request"}}',
+);
+
 /// Every documented error response of `POST /ai/plan`.
 const List<DocumentedError> documentedErrors = <DocumentedError>[
   invalidRequest,
@@ -133,6 +141,53 @@ const List<DocumentedError> documentedErrors = <DocumentedError>[
   rateLimited,
   unavailable,
 ];
+
+/// Every documented error response of `POST /weather`.
+const List<DocumentedError> documentedWeatherErrors = <DocumentedError>[
+  invalidRequest,
+  notEntitled,
+  rateLimited,
+  upstreamError,
+  unavailable,
+];
+
+/// The request body examples of `POST /weather`, by name, as JSON.
+const Map<String, String> documentedWeatherRequests = <String, String>{
+  'berlinAndTokyo':
+      '{"from":"2026-10-11T06:00:00Z","hours":2,"cells":['
+      '{"lat":52.525,"lon":13.4,"alt":50},'
+      '{"lat":35.675,"lon":139.7,"alt":50}]}',
+};
+
+/// The 200 examples of `POST /weather`, by name, as JSON.
+const Map<String, String> documentedWeatherAnswers = <String, String>{
+  'answered':
+      '{"cells":['
+      '{"source":"dwd","hours":['
+      '{"t":"2026-10-11T06:00:00Z","temp":8.1,"wind":4.6,"windDir":246,'
+      '"gust":9.8,"precip":0.1,"precipProb":22,"cloud":80},'
+      '{"t":"2026-10-11T07:00:00Z","temp":9.4,"wind":5.1,"windDir":250,'
+      '"gust":10.7,"precip":0,"precipProb":9,"cloud":63}]},'
+      '{"source":"metno","hours":['
+      '{"t":"2026-10-11T06:00:00Z","temp":24.6,"wind":3.2,"windDir":158,'
+      '"gust":null,"precip":0,"precipProb":null,"cloud":41},'
+      '{"t":"2026-10-11T07:00:00Z","temp":24.1,"wind":3.5,"windDir":161,'
+      '"gust":null,"precip":0.2,"precipProb":null,"cloud":67}]}],'
+      '"sources":['
+      '{"id":"dwd","name":"Deutscher Wetterdienst","url":"https://www.dwd.de",'
+      '"licence":"Forecast data: Deutscher Wetterdienst (DWD), via Bright Sky."},'
+      '{"id":"metno","name":"MET Norway","url":"https://www.met.no/en",'
+      '"licence":"Weather data from MET Norway, CC BY 4.0 and NLOD 2.0."}]}',
+  'partial':
+      '{"cells":['
+      '{"source":"dwd","hours":['
+      '{"t":"2026-10-11T06:00:00Z","temp":8.1,"wind":4.6,"windDir":246,'
+      '"gust":9.8,"precip":0.1,"precipProb":22,"cloud":80}]},'
+      '{"source":null,"hours":[]}],'
+      '"sources":['
+      '{"id":"dwd","name":"Deutscher Wetterdienst","url":"https://www.dwd.de",'
+      '"licence":"Forecast data: Deutscher Wetterdienst (DWD), via Bright Sky."}]}',
+};
 
 /// The message the relay's `error` event carries when the model ran past
 /// `LLM_TIMEOUT_S` (`web/src/app/(api)/ai/plan/route.ts`); not an example in

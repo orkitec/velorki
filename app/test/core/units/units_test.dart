@@ -1,5 +1,8 @@
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/units/units.dart';
+import 'package:velorki/features/planner/presentation/route_format.dart' as fmt;
+import 'package:velorki/l10n/generated/app_localizations.dart';
 
 void main() {
   group('distance', () {
@@ -70,6 +73,27 @@ void main() {
       expect(measure.unit, MeasureUnit.milesPerHour);
       expect(measure.value, closeTo(22.3694, 1e-4));
       expect(measure.decimals, 1);
+    });
+  });
+
+  group('temperature', () {
+    test('metric is Celsius, imperial Fahrenheit', () {
+      expect(temperatureIn(UnitSystem.metric, 21.5), 21.5);
+      expect(temperatureIn(UnitSystem.imperial, 0), 32);
+      expect(temperatureIn(UnitSystem.imperial, -40), -40);
+      expect(temperatureIn(UnitSystem.imperial, 100), closeTo(212, 1e-9));
+    });
+
+    test('reads in whole degrees with the unit', () {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(
+        fmt.formatTemperature(l10n, UnitSystem.metric, 14.6),
+        l10n.unitCelsius('15'),
+      );
+      expect(
+        fmt.formatTemperature(l10n, UnitSystem.imperial, 14.6),
+        l10n.unitFahrenheit('58'),
+      );
     });
   });
 

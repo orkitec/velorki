@@ -55,9 +55,10 @@ Host separation is strict and enforced before any handler runs, in
 | `GET`/`POST` `/proxy/strava/*` · `/proxy/rwgps/*` | Pass-through to the service: the upstream path follows the prefix, the wrapped token comes in `X-Velorki-Token`, the body streams both ways. Only the calls the app makes (`src/server/passthrough.ts`); everything else is 404. `POST /proxy/rwgps/oauth/revoke.json` is the one call the relay writes the body for, from its client secret and the unwrapped token. |
 | `POST /ai/plan` | Server-Sent Events. `step=plan` turns a rider's sentence into structured routing parameters via one forced tool call; `step=describe` streams a short prose description of a computed route. |
 | `POST /share` | Stores a GPX plus a summary and returns a public link on the site host. |
+| `POST /weather` | Hourly forecasts for up to 150 grid cells from NWS (US), DWD via Bright Sky (Germany and around) or MET Norway (everywhere, and the fallback), cached across the cluster. Providers are one module each in `src/weather/`; `WEATHER_PROVIDERS` orders them. |
 | `GET /s/<id>` · `/s/<id>.gpx` | The public share page and the raw GPX, on `velorki.com`. No auth. |
 
-Everything under `/oauth/*`, `/proxy/*`, `/ai/*` and `POST /share` requires
+Everything under `/oauth/*`, `/proxy/*`, `/ai/*`, `POST /share` and `POST /weather` requires
 `Authorization: Bearer <revenuecat_app_user_id>` and an active entitlement.
 
 ### Wrapped tokens
@@ -92,9 +93,10 @@ per-rider rate-limit window; the host's per-route metrics give the totals.
   and the GPX `public, max-age=3600`.
 - Handler order is the Fastify one, with one addition in front: the per-IP
   rate limit → body → entitlement → consent → per-rider rate limit → handler.
-  `POST /share` (60 per hour per IP) and `POST /ai/plan` (60 per hour per IP)
-  charge that first limit before reading up to 3 MB and 1 MB respectively, so
-  an unauthenticated caller cannot keep the workers buffering.
+  `POST /share` (60 per hour per IP), `POST /ai/plan` (60 per hour per IP)
+  and `POST /weather` (120 per hour per IP) charge that first limit before
+  reading up to 3 MB, 1 MB and 64 KB respectively, so an unauthenticated
+  caller cannot keep the workers buffering.
 
 ### Rate limits are fixed windows
 
@@ -108,8 +110,8 @@ answers it.
 
 The same `Counters` interface (`incr` / `get` / `set`, see
 [`src/server/counters.ts`](./src/server/counters.ts)) carries the entitlement
-cache (600 s entitled, 60 s not), the daily LLM spend and the share-sweep
-election. Nothing in it has to survive a restart.
+cache (600 s entitled, 60 s not), the daily LLM spend, the weather forecast
+cache and the share-sweep election. Nothing in it has to survive a restart.
 
 ### Privacy notes
 
@@ -120,6 +122,9 @@ These are deliberate, and worth keeping that way in a fork:
 - The prompt sent to the model never contains the `app_user_id`, and start
   coordinates are rounded to two decimals (~1 km) server-side as well as in the
   app.
+- `POST /weather` refuses a coordinate finer than three decimals (the app
+  sends a 0.025° grid), sends weather services nothing but grid points and our
+  User-Agent, and logs counts only, never a cell.
 - Share rows carry no link to the rider who created them. The 10-character id
   is the only capability, and rows expire after 365 days.
 - The share page is `noindex`, carries no third-party script source at all
@@ -211,6 +216,8 @@ imports the route module and calls its exported `GET`/`POST` with a real
 | `prompts.test.ts` | Both system prompts load from `src/ai/prompts` without their SPDX header. |
 | `wellknown.test.ts` | The association files, configured and unconfigured. |
 | `contract/sse.test.ts` | Replays the three `text/event-stream` examples from `openapi.yaml` byte for byte. |
+| `weather.test.ts` · `weather-parse.test.ts` | `/weather` against stubbed upstreams (`fixtures/weather/`): gate, routing, units, MET interpolation, fallback, cache and `If-Modified-Since`, the MET concurrency cap, logs without coordinates; the parsers on their own. |
+| `contract/weather.test.ts` | The `/weather` examples and a real answer against `openapi.yaml`'s schemas, with the keywords the app's checker knows. |
 | `sharepage.test.tsx` | The page's markup and escaping, and `loadShare()`: live, unknown, malformed and expired ids. |
 
 One thing the suite cannot assert is an HTTP status Next owns. After a change
@@ -246,7 +253,8 @@ src/
   ai/                 provider (the single getModel switch point), plan,
                       describe, schema, prompts/*.md
   share/              sqlite store, presentation helpers
-  app/(api)/          health, oauth/*, ai/plan, share
+  weather/            forecast router, one module per provider
+  app/(api)/          health, oauth/*, ai/plan, share, weather
   app/(share)/         the share document root, its not-found body, and
   app/(share)/s/[id]/  the share page, its map, and the gpx route
   app/(share)/s/gone/  the 404 the proxy rewrites a dead link to

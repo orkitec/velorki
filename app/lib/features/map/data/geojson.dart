@@ -122,6 +122,25 @@ Map<String, dynamic> trackSegmentsFeatureCollection(
   return <String, dynamic>{'type': 'FeatureCollection', 'features': features};
 }
 
+/// The wind on the route, one line feature per segment, its class in `w`
+/// (`head`, `cross`, `tail`, `calm`).
+Map<String, dynamic> windSegmentsFeatureCollection(List<WindSegment> segments) {
+  final features = <Map<String, dynamic>>[
+    for (final segment in segments)
+      if (segment.points.length >= 2)
+        <String, dynamic>{
+          'type': 'Feature',
+          'properties': <String, dynamic>{'w': segment.windClass.name},
+          'geometry': <String, dynamic>{
+            'type': 'LineString',
+            'coordinates': segment.points.map(lngLat).toList(),
+          },
+        },
+  ];
+  if (features.isEmpty) return emptyFeatureCollection();
+  return <String, dynamic>{'type': 'FeatureCollection', 'features': features};
+}
+
 /// A `line-color` expression ramping from [slow] to [fast] over the `t` of
 /// [trackSegmentsFeatureCollection].
 ///

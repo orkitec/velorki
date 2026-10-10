@@ -16,6 +16,7 @@ runtime dependency is `package:http`.
 | `POST /oauth/rwgps/token` | `exchangeRwgpsCode` |
 | `POST /share` | `createShare` |
 | `POST /ai/plan` (SSE) | `planStream` |
+| `POST /weather` | `routeWeather` |
 
 Every request carries `X-Velorki-Client: <platform>/<version>`; every
 entitlement-gated call carries `Authorization: Bearer <revenuecat app user id>`;
@@ -46,6 +47,9 @@ class RelayClient {
                                    PlanContext? context,
                                    RouteSummary? routeSummary,
                                    String? appUserId});
+  Future<WeatherForecast> routeWeather({required DateTime from,
+                                        required int hours,
+                                        required List<WeatherRequestCell> cells});
   void close();
 }
 

@@ -5,6 +5,8 @@ import { ApiError } from './errors';
 export const DEFAULT_BODY_LIMIT = 1024 * 1024;
 /** /share carries a 2 MB GPX plus its JSON escaping overhead. */
 export const SHARE_BODY_LIMIT = 3 * 1024 * 1024;
+/** /weather carries at most 150 cells; 64 KB leaves room for any whitespace. */
+export const WEATHER_BODY_LIMIT = 64 * 1024;
 
 const TOO_LARGE = 'Request body is too large.';
 const REQUIRED = 'A JSON request body is required.';

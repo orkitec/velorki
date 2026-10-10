@@ -61,6 +61,10 @@ import 'save_route_dialog.dart';
 import 'surface_section.dart';
 import 'surface_stats_bar.dart';
 import 'waypoint_edit_sheet.dart';
+import '../../weather/application/route_weather_controller.dart';
+import '../../weather/application/route_wind.dart';
+import '../../weather/application/wind_on_map.dart';
+import '../../weather/presentation/route_weather_section.dart';
 import '../../shared/presentation/error_text.dart';
 
 /// The Plan tab: the search and profile controls at the top and the route
@@ -638,6 +642,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             null => null,
             final place => shownPoi(place),
           };
+      // The wind on the route, when the rider asked for it on the map.
+      binding.routeWind = () => routeWindFor(
+        ref.read(plannerControllerProvider).result,
+        ref.read(routeWeatherControllerProvider),
+        on: ref.read(windOnMapProvider),
+      );
       _binding = binding;
     }
     binding.attach();
@@ -1048,6 +1058,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         unawaited(_binding?.sync(ref.read(plannerControllerProvider)));
       }
     });
+    // The weather or the switch for the wind on the map changed.
+    void syncWind() {
+      if (_drawing) unawaited(_binding?.syncWind());
+    }
+
+    ref.listen(routeWeatherControllerProvider, (_, _) => syncWind());
+    ref.listen(windOnMapProvider, (_, _) => syncWind());
     ref.listen(plannerControllerProvider, (previous, next) {
       // Only while this tab's layers are on the map; a plan that changes
       // while the tab is away is drawn whole when it comes back.
@@ -1527,6 +1544,9 @@ class _SheetBody extends StatelessWidget {
           )
         else
           SurfaceStatsBar(stats: state.surfaceStats),
+        // The weather on the way; it brings its own space above it, and
+        // takes none when there is nothing to show.
+        const RouteWeatherSection(),
       ],
     );
   }

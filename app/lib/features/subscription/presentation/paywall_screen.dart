@@ -182,6 +182,7 @@ IconData _featureIcon(PlusFeature feature) => switch (feature) {
   PlusFeature.stravaConnection => Icons.directions_bike_outlined,
   PlusFeature.rwgpsConnection => Icons.map_outlined,
   PlusFeature.linkSharing => Icons.link_rounded,
+  PlusFeature.weather => Icons.air_rounded,
 };
 
 class _FeatureRow extends StatelessWidget {

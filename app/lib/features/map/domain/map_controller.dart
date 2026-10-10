@@ -88,6 +88,14 @@ abstract class MapController {
   /// through [setTrackLine], which has nothing to colour by yet.
   Future<void> setTrackSegments(List<TrackSegment> segments);
 
+  /// The wind along the planned route, drawn over the route line in the
+  /// colour of how it meets the rider; replaces what the last call drew.
+  /// Remembered across a style reload like the route lines.
+  Future<void> setRouteWind(List<WindSegment> segments);
+
+  /// Takes the wind off the route.
+  Future<void> clearRouteWind();
+
   /// User position puck. `null` hides it.
   ///
   /// [headingDeg] is a course over ground, so [speedMps] comes with it: the
@@ -183,6 +191,36 @@ class TrackSegment {
 
   @override
   String toString() => 'TrackSegment(${points.length} points, t: $t)';
+}
+
+/// How the wind meets the rider on a stretch of the route, as the map
+/// colours it.
+enum WindClassOnMap { head, cross, tail, calm }
+
+/// One stretch of the route with the same wind.
+@immutable
+class WindSegment {
+  /// Creates a segment.
+  const WindSegment({required this.points, required this.windClass});
+
+  /// The polyline, in riding order.
+  final List<LatLng> points;
+
+  /// How the wind meets the rider along it.
+  final WindClassOnMap windClass;
+
+  @override
+  bool operator ==(Object other) =>
+      other is WindSegment &&
+      other.windClass == windClass &&
+      listEquals(other.points, points);
+
+  @override
+  int get hashCode => Object.hash(windClass, Object.hashAll(points));
+
+  @override
+  String toString() =>
+      'WindSegment(${points.length} points, ${windClass.name})';
 }
 
 /// How a route line is drawn: the route, a variant beside it, a preview

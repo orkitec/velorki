@@ -142,6 +142,12 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     required this.barClear,
     required this.barRim,
     required this.chartFill,
+    required this.windHead,
+    required this.windCross,
+    required this.windTail,
+    required this.windCalm,
+    required this.rain,
+    required this.temperature,
   });
 
   /// The vivid accent, for figures and indicators.
@@ -241,6 +247,19 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
   /// Area fill under the elevation profile.
   final Color chartFill;
 
+  /// The wind along the planned route, as the weather strip and the map
+  /// draw it: from ahead, from the side, from behind, and calm air.
+  final Color windHead;
+  final Color windCross;
+  final Color windTail;
+  final Color windCalm;
+
+  /// Rain in the weather strip.
+  final Color rain;
+
+  /// The temperature line in the weather strip.
+  final Color temperature;
+
   /// `#RRGGBB` for maplibre style properties.
   static String hex(Color color) {
     final rgb = color.toARGB32() & 0xFFFFFF;
@@ -275,6 +294,12 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     Color? barClear,
     Color? barRim,
     Color? chartFill,
+    Color? windHead,
+    Color? windCross,
+    Color? windTail,
+    Color? windCalm,
+    Color? rain,
+    Color? temperature,
   }) => VelorkiColors(
     accent: accent ?? this.accent,
     ai: ai ?? this.ai,
@@ -302,6 +327,12 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     barClear: barClear ?? this.barClear,
     barRim: barRim ?? this.barRim,
     chartFill: chartFill ?? this.chartFill,
+    windHead: windHead ?? this.windHead,
+    windCross: windCross ?? this.windCross,
+    windTail: windTail ?? this.windTail,
+    windCalm: windCalm ?? this.windCalm,
+    rain: rain ?? this.rain,
+    temperature: temperature ?? this.temperature,
   );
 
   @override
@@ -341,6 +372,12 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
       barClear: mix(barClear, other.barClear),
       barRim: mix(barRim, other.barRim),
       chartFill: mix(chartFill, other.chartFill),
+      windHead: mix(windHead, other.windHead),
+      windCross: mix(windCross, other.windCross),
+      windTail: mix(windTail, other.windTail),
+      windCalm: mix(windCalm, other.windCalm),
+      rain: mix(rain, other.rain),
+      temperature: mix(temperature, other.temperature),
     );
   }
 }
@@ -551,6 +588,15 @@ VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   barClear: const Color(0x8C1B1F26),
   barRim: const Color(0x47FFFFFF),
   chartFill: p.dark.withValues(alpha: 0.18),
+  // Red into the wind, amber across it, green behind, grey for calm air:
+  // the same reading as the waypoint colours, bright enough for the night
+  // map.
+  windHead: const Color(0xFFFF5C6E),
+  windCross: const Color(0xFFF0B84A),
+  windTail: const Color(0xFF3DDC84),
+  windCalm: const Color(0xFF9AA4AF),
+  rain: const Color(0xFF4DA3FF),
+  temperature: const Color(0xFFFF8A50),
 );
 
 VelorkiColors _lightColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
@@ -587,6 +633,13 @@ VelorkiColors _lightColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   barClear: const Color(0x59FFFFFF),
   barRim: const Color(0xE6FFFFFF),
   chartFill: p.light.withValues(alpha: 0.14),
+  // Deep enough to hold on a pale map and a white sheet.
+  windHead: const Color(0xFFD62C45),
+  windCross: const Color(0xFFC77800),
+  windTail: const Color(0xFF1C9A57),
+  windCalm: const Color(0xFF7D8792),
+  rain: const Color(0xFF1E7CE6),
+  temperature: const Color(0xFFD9530F),
 );
 
 // -------------------------------------------------------------------- build
