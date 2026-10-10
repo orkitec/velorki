@@ -14,7 +14,9 @@ import '../../shared/application/covering_sheets.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../data/cycle_map_layers.dart';
 import '../data/map_preferences.dart';
+import '../data/weather_map_preferences.dart';
 import '../domain/cycle_map.dart';
+import '../domain/weather_map.dart';
 import 'map_chrome.dart';
 
 /// The groups whose kinds the sheet offers as stops, in this order.
@@ -68,6 +70,9 @@ class LayersSheet extends ConsumerWidget {
     final cyclosm = ref.watch(cyclosmOverlayProvider);
     final cycleMap = ref.watch(cycleMapPreferencesProvider);
     final cycleMapPrefs = ref.read(cycleMapPreferencesProvider.notifier);
+    final weather = ref.watch(weatherMapPreferencesProvider);
+    final weatherPrefs = ref.read(weatherMapPreferencesProvider.notifier);
+    final weatherSources = ref.watch(weatherMapSourcesProvider);
     final stops = ref.watch(mapStopsPreferencesProvider);
     final preferences = ref.read(mapStopsPreferencesProvider.notifier);
     final guided =
@@ -129,6 +134,24 @@ class LayersSheet extends ConsumerWidget {
             onChanged: (value) =>
                 unawaited(ref.read(cyclosmOverlayProvider.notifier).set(value)),
           ),
+          // The weather, straight from the public services that make it;
+          // a switch whose services a build or the mirror turned off goes.
+          if (weatherKindAvailable(weatherSources, WeatherKind.radar))
+            SwitchListTile(
+              secondary: const Icon(Icons.water_drop_outlined),
+              title: Text(l10n.mapLayersRainRadar),
+              subtitle: Text(l10n.mapLayersRainRadarSubtitle),
+              value: weather.radar,
+              onChanged: (value) => unawaited(weatherPrefs.setRadar(value)),
+            ),
+          if (weatherKindAvailable(weatherSources, WeatherKind.clouds))
+            SwitchListTile(
+              secondary: const Icon(Icons.cloud_outlined),
+              title: Text(l10n.mapLayersClouds),
+              subtitle: Text(l10n.mapLayersCloudsSubtitle),
+              value: weather.clouds,
+              onChanged: (value) => unawaited(weatherPrefs.setClouds(value)),
+            ),
           if (offer != MapStopsOffer.none) ...[
             SwitchListTile(
               secondary: const Icon(Icons.local_cafe_outlined),

@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart' show IconData;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'cycle_map.dart';
+import 'weather_map.dart';
 
 /// The planner, recorder and library talk to the map only through this
 /// contract. The production implementation wraps maplibre_gl; tests use a
@@ -129,6 +130,12 @@ abstract class MapController {
   /// Which parts of the cycle map are drawn: the rest of its layers are
   /// hidden.
   Future<void> setCycleMapParts(Set<CycleMapPart> parts);
+
+  /// The weather layers drawn: rain radar tiles and cloud images, under the
+  /// labels and everything Velorki draws; an empty list takes them away.
+  /// A layer already drawn with the same frame stays as it is; a new frame
+  /// is swapped in without the map going bare.
+  Future<void> setWeatherLayers(List<WeatherLayer> layers);
 
   /// A pin for a searched place the rider has not decided about yet, with
   /// its name; `null` removes it.

@@ -99,6 +99,24 @@ on screen, and are never bulk downloaded or pre-cached.
 https://www.cyclosm.org/
 https://github.com/cyclosm/cyclosm-cartocss-style
 https://operations.osmfoundation.org/policies/tiles/'''),
+  _DataLicense('Weather map: rain radar and clouds', '''
+The optional rain radar and clouds layers are loaded by the phone straight
+from the public services that make them; those services see the map area
+requested.
+
+Rain radar over Germany: Deutscher Wetterdienst (DWD), CC BY 4.0.
+Rain radar over the US: NOAA National Weather Service, public domain. Not
+endorsed by NOAA.
+Clouds over the Americas: NOAA GOES imagery via NASA GIBS (Global Imagery
+Browse Services), public domain.
+Clouds over Europe and Africa: contains modified EUMETSAT Meteosat data,
+CC BY 4.0 under the EUMETSAT Data Policy. Only the hourly images that policy
+makes freely available are used.
+
+https://www.dwd.de/
+https://www.weather.gov/
+https://www.earthdata.nasa.gov/gibs
+https://www.eumetsat.int/'''),
   _DataLicense('Photon', '''
 Place search by Photon, © komoot GmbH and contributors, Apache License 2.0.
 

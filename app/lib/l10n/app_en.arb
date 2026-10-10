@@ -4427,6 +4427,72 @@
   "@mapLayersOnlineCycleMapSubtitle": {
     "description": "Under the online cycle map switch. CyclOSM is the name of the map's maker; keep it."
   },
+  "mapLayersRainRadar": "Rain radar",
+  "@mapLayersRainRadar": {
+    "description": "Layers sheet: switch for the rain radar layer over the map."
+  },
+  "mapLayersRainRadarSubtitle": "Germany and the US · now and the next two hours in Germany",
+  "@mapLayersRainRadarSubtitle": {
+    "description": "Under the Rain radar switch: where the radar exists, and that the next two hours (a forecast) are only offered in Germany."
+  },
+  "mapLayersClouds": "Clouds",
+  "@mapLayersClouds": {
+    "description": "Layers sheet: switch for the clouds layer (satellite images) over the map."
+  },
+  "mapLayersCloudsSubtitle": "Europe, Africa and the Americas · updated hourly in Europe",
+  "@mapLayersCloudsSubtitle": {
+    "description": "Under the Clouds switch: where the clouds layer exists, and that it is updated once an hour in Europe."
+  },
+  "mapWeatherNow": "Now",
+  "@mapWeatherNow": {
+    "description": "The rain radar's time control at the present moment."
+  },
+  "mapWeatherMinutesAgo": "−{minutes} min",
+  "@mapWeatherMinutesAgo": {
+    "description": "The rain radar's time control set to a moment in the past, e.g. '−45 min'. The minus is a real minus sign (U+2212).",
+    "placeholders": {
+      "minutes": {
+        "type": "int",
+        "example": "45"
+      }
+    }
+  },
+  "mapWeatherMinutesAhead": "+{minutes} min",
+  "@mapWeatherMinutesAhead": {
+    "description": "The rain radar's time control set to a moment ahead (a forecast), e.g. '+30 min'.",
+    "placeholders": {
+      "minutes": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "mapWeatherRadarTime": "Rain radar time",
+  "@mapWeatherRadarTime": {
+    "description": "Screen-reader label of the rain radar's time slider."
+  },
+  "mapWeatherForecastGermanyOnly": "Forecast: Germany only",
+  "@mapWeatherForecastGermanyOnly": {
+    "description": "Hint under the rain radar's time control when a moment ahead is chosen but the map shows an area without a radar forecast."
+  },
+  "mapWeatherRadarUnavailable": "Rain radar unavailable right now",
+  "@mapWeatherRadarUnavailable": {
+    "description": "Hint over the map when the rain radar's service did not answer: the empty map does not mean no rain."
+  },
+  "mapWeatherCloudsUnavailable": "Clouds unavailable right now",
+  "@mapWeatherCloudsUnavailable": {
+    "description": "Hint over the map when the clouds' service did not answer."
+  },
+  "mapWeatherCloudsAt": "Clouds {time}",
+  "@mapWeatherCloudsAt": {
+    "description": "Small caption over the map: the time the clouds image shows, e.g. 'Clouds 14:00'.",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "14:00"
+      }
+    }
+  },
   "mapCyclePartInfrastructure": "Bike lanes & tracks",
   "@mapCyclePartInfrastructure": {
     "description": "Chip in the Layers sheet under Cycle map: cycleways, cycle streets, and bike lanes and tracks beside roads."

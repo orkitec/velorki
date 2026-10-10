@@ -1,10 +1,10 @@
 ---
 title: Capas del mapa
-description: El mapa ciclista sin conexión y sus partes, el mapa ciclista en línea y las paradas, todo en el panel Capas.
+description: El mapa ciclista sin conexión y sus partes, el mapa ciclista en línea, el radar de lluvia, las nubes y las paradas, todo en el panel Capas.
 order: 6
 ---
 
-**Capas** está en la columna de botones a la derecha del mapa, en las pestañas Planificar y Grabar. Su panel contiene el mapa ciclista, el mapa ciclista en línea y las paradas. El botón se resalta mientras uno de ellos está activo.
+**Capas** está en la columna de botones a la derecha del mapa, en las pestañas Planificar y Grabar. Su panel contiene el mapa ciclista, el mapa ciclista en línea, el radar de lluvia, las nubes y las paradas. El botón se resalta mientras uno de ellos está activo.
 
 <!-- screenshot: layers -->
 
@@ -35,6 +35,16 @@ En la pestaña Planificar, con el mapa ciclista activo sobre una zona no descarg
 ## Mapa ciclista en línea
 
 **Mapa ciclista en línea**: "El mapa de CyclOSM con tiendas y aparcamientos de bicis · necesita conexión". La capa de CyclOSM, que se pide en línea. Los dos mapas ciclistas se turnan: activar uno desactiva el otro.
+
+## Radar de lluvia y nubes
+
+**Radar de lluvia**: "Alemania y EE. UU. · ahora y las próximas dos horas en Alemania". **Nubes**: "Europa, África y América · cada hora en Europa". Los dos son gratis, están desactivados hasta que los activas y necesitan conexión.
+
+El radar de lluvia viene del servicio meteorológico alemán (Deutscher Wetterdienst) sobre Alemania y sus alrededores, y del servicio meteorológico de EE. UU. (National Weather Service) sobre EE. UU.; en otros sitios no hay. Con él activo, un control deslizante bajo la columna de botones lo mueve de dos horas atrás a dos horas adelante, en pasos de un cuarto de hora. Su etiqueta dice cuánto se aleja de ahora y la hora que muestra la imagen del radar, por ejemplo **−45 min · 13:50**. Las dos horas adelante son la previsión del Deutscher Wetterdienst, así que solo las tiene Alemania: en otros sitios, un paso adelante muestra **Previsión: solo Alemania**. La app busca una imagen más nueva cada cinco minutos.
+
+Las nubes son imágenes de satélite dibujadas en blanco sobre el mapa: Meteosat de EUMETSAT sobre Europa, África y alrededores, con una imagen nueva cada hora en punto, y los satélites GOES a través de la NASA sobre América. Con solo las nubes activas, una pequeña etiqueta dice la hora de la imagen. Las nubes más gruesas y frías se ven más claras; la niebla y las nubes bajas se ven débiles o nada.
+
+Si un servicio no responde, el mapa dice **Radar de lluvia no disponible ahora mismo** o **Nubes no disponibles ahora mismo**, para que un mapa vacío no se tome por un día seco y despejado. La app carga las imágenes directamente del Deutscher Wetterdienst, la NOAA, la NASA y EUMETSAT, no a través de Velorki, así que esos servicios ven la zona del mapa pedida. Sus créditos aparecen en la línea al pie del mapa mientras una capa está dibujada.
 
 ## Paradas
 

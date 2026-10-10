@@ -1,10 +1,10 @@
 ---
 title: Map layers
-description: The offline cycle map and its parts, the online cycle map and the stops, all in the Layers sheet.
+description: The offline cycle map and its parts, the online cycle map, rain radar, clouds and the stops, all in the Layers sheet.
 order: 6
 ---
 
-**Layers** sits in the button column on the right of the map, on the Plan and the Record tab. Its sheet holds the cycle map, the online cycle map and the stops. The button is highlighted while one of them is on.
+**Layers** sits in the button column on the right of the map, on the Plan and the Record tab. Its sheet holds the cycle map, the online cycle map, the rain radar, the clouds and the stops. The button is highlighted while one of them is on.
 
 <!-- screenshot: layers -->
 
@@ -35,6 +35,16 @@ On the Plan tab, with the cycle map on over an area that is not downloaded, a ch
 ## Online cycle map
 
 **Online cycle map**: "CyclOSM's map with bike shops and parking · needs a connection". CyclOSM's overlay, fetched online. The two cycle maps take turns: turning one on turns the other off.
+
+## Rain radar and clouds
+
+**Rain radar**: "Germany and the US · now and the next two hours in Germany". **Clouds**: "Europe, Africa and the Americas · updated hourly in Europe". Both are free, off until you turn them on, and need a connection.
+
+The rain radar comes from the Deutscher Wetterdienst over Germany and its borders and from the US National Weather Service over the US; elsewhere there is none. With it on, a slider under the button column moves it from two hours back to two hours ahead in quarter-hour steps. Its label says how far from now and the time the radar image shows, such as **−45 min · 13:50**. The two hours ahead are the Deutscher Wetterdienst's forecast, so only Germany has them: elsewhere a step ahead shows **Forecast: Germany only**. The app looks for a newer image every five minutes.
+
+The clouds are satellite images drawn in white over the map: Meteosat from EUMETSAT over Europe, Africa and around, a new image every full hour, and the GOES satellites through NASA over the Americas. With only the clouds on, a small label says the time of the image. The thickest, coldest clouds are brightest; fog and low cloud show faintly or not at all.
+
+If a service does not answer, the map says **Rain radar unavailable right now** or **Clouds unavailable right now**, so an empty map is not taken for a dry, clear day. The app loads the images straight from the Deutscher Wetterdienst, NOAA, NASA and EUMETSAT, not through Velorki, so those services see the map area requested. Their credits are in the line at the bottom of the map while a layer is drawn.
 
 ## Stops
 

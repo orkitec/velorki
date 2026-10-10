@@ -15,6 +15,7 @@ import '../../../app/theme.dart';
 import '../domain/cycle_map.dart';
 import '../domain/map_controller.dart';
 import '../domain/visible_map.dart';
+import '../domain/weather_map.dart';
 import 'cycle_map_images.dart';
 import 'cycle_map_layers.dart';
 import 'cyclosm_tone.dart';
@@ -24,6 +25,7 @@ import 'geojson.dart';
 import 'heading_cone.dart';
 import 'heading_smoother.dart';
 import 'tile_template.dart';
+import 'weather_paint.dart';
 
 /// Source and layer ids. Everything Velorki adds to the style is prefixed so
 /// it can never collide with a layer of the base style.
@@ -58,6 +60,12 @@ abstract final class MapLayerIds {
   static const String turnsLayer = 'velorki-turns-dot';
   static const String routeWindSource = 'velorki-route-wind';
   static const String routeWindLayer = 'velorki-route-wind-line';
+
+  /// Generation [n] of the weather layer [id]: its source and its layer.
+  static String weatherSource(String id, int n) =>
+      'velorki-weather-${_slug(id)}-$n';
+  static String weatherLayer(String id, int n) =>
+      'velorki-weather-${_slug(id)}-$n-raster';
 
   static String routeSource(String id) => 'velorki-route-${_slug(id)}';
   static String routeLayer(String id) => 'velorki-route-${_slug(id)}-line';
@@ -384,6 +392,14 @@ abstract class MapLibreStyleOps {
   /// raster tiles.
   Future<void> addSource(String sourceId, ml.SourceProperties properties);
 
+  /// Creates an image source called [sourceId]: one picture, [bytes],
+  /// stretched over [corners]. The clouds are such pictures.
+  Future<void> addImageSource(
+    String sourceId,
+    Uint8List bytes,
+    ml.LatLngQuad corners,
+  );
+
   /// Adds the style layer [layerId] drawing [sourceId].
   ///
   /// [belowLayerId] is what keeps the route lines under the puck, and
@@ -527,6 +543,13 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       tolerateMapGone(() => map.addSource(sourceId, properties));
 
   @override
+  Future<void> addImageSource(
+    String sourceId,
+    Uint8List bytes,
+    ml.LatLngQuad corners,
+  ) => tolerateMapGone(() => map.addImageSource(sourceId, bytes, corners));
+
+  @override
   Future<void> addLayer(
     String sourceId,
     String layerId,
@@ -638,12 +661,14 @@ class MaplibreMapControllerAdapter implements MapController {
     double devicePixelRatio = 1.0,
     MapPalette palette = const MapPalette.classic(),
     RasterTone cyclosmTone = lightCyclosmTone,
+    bool weatherDark = false,
   }) : this.withOps(
          PluginMapLibreStyleOps(map),
          cyclosmTileUrl: cyclosmTileUrl,
          devicePixelRatio: devicePixelRatio,
          palette: palette,
          cyclosmTone: cyclosmTone,
+         weatherDark: weatherDark,
        );
 
   /// Drives [ops] instead of a plugin controller, so the layer work can be
@@ -654,9 +679,17 @@ class MaplibreMapControllerAdapter implements MapController {
     this.devicePixelRatio = 1.0,
     MapPalette palette = const MapPalette.classic(),
     RasterTone cyclosmTone = lightCyclosmTone,
+    bool weatherDark = false,
     this.cycleMapSwapDelay = const Duration(milliseconds: 400),
+    this.weatherSwapDelay = const Duration(seconds: 2),
   }) : _palette = palette, // ignore: prefer_initializing_formals
-       _cyclosmTone = cyclosmTone; // ignore: prefer_initializing_formals
+       _cyclosmTone = cyclosmTone, // ignore: prefer_initializing_formals
+       _weatherDark = weatherDark; // ignore: prefer_initializing_formals
+
+  /// How long a weather layer's old frame stays under the new one: the new
+  /// tiles come over the network, and taking the old away at once would
+  /// leave the map bare until they arrive.
+  final Duration weatherSwapDelay;
 
   /// How long an old cycle map stays under a new one: the map loads the new
   /// file on a thread of its own, and taking the old away at once would
@@ -746,6 +779,20 @@ class MaplibreMapControllerAdapter implements MapController {
   String? _cycleAnchor;
   bool _cycleAnchorKnown = false;
   bool _cycleImagesAdded = false;
+  // The weather layers: the ones asked for, replayed after a style reload,
+  // and the generations the style holds of each, newest last. A new frame
+  // is a new source under a new layer, the old one going once the new one
+  // has had time to load; see [setWeatherLayers].
+  List<WeatherLayer> _weatherWanted = const <WeatherLayer>[];
+  final Map<String, List<(int, WeatherLayer)>> _weatherDrawn =
+      <String, List<(int, WeatherLayer)>>{};
+  // The weather layers' order in the style, bottom to top.
+  final List<(String, WeatherKind)> _weatherStack = <(String, WeatherKind)>[];
+  int _nextWeatherGeneration = 0;
+  Future<void> _weatherTurn = Future<void>.value();
+  bool _weatherDark;
+  final ValueNotifier<List<String>> _weatherAttributions =
+      ValueNotifier<List<String>>(const <String>[]);
   bool _attached = false;
   bool _disposed = false;
 
@@ -803,6 +850,9 @@ class MaplibreMapControllerAdapter implements MapController {
     _cycleGenerations.clear();
     _cycleAnchorKnown = false;
     _cycleImagesAdded = false;
+    // Nor any weather; the replay adds what is wanted.
+    _weatherDrawn.clear();
+    _weatherStack.clear();
     // A fresh style holds none of our bitmaps; the replay registers the
     // ones the markers still need.
     _glyphImages.clear();
@@ -963,6 +1013,10 @@ class MaplibreMapControllerAdapter implements MapController {
   /// Re-applies the cached waypoints, track and route lines after a style
   /// load dropped every source.
   Future<void> _replay() async {
+    // Not waited for: an old frame's swap may still hold the weather's turn.
+    if (_weatherWanted.isNotEmpty) {
+      unawaited(setWeatherLayers(_weatherWanted));
+    }
     if (_cycleMapPath != null) await setCycleMap(_cycleMapPath);
     if (_waypoints.isNotEmpty) await setWaypoints(_waypoints);
     if (_pois.isNotEmpty) await setPois(_pois);
@@ -2105,15 +2159,7 @@ class MaplibreMapControllerAdapter implements MapController {
       await _removeCycleGenerations(List<int>.of(_cycleGenerations));
       return;
     }
-    if (!_cycleAnchorKnown) {
-      final ids = await _ops.getLayerIds();
-      _cycleAnchor = CycleMapLayers.anchors.firstWhere(
-        ids.contains,
-        // A style of unknown layers: under everything Velorki draws.
-        orElse: () => MapLayerIds.trackLayer,
-      );
-      _cycleAnchorKnown = true;
-    }
+    await _findLabelAnchor();
     if (!_cycleImagesAdded) await _addCycleMapImages();
     final generation = _nextCycleGeneration++;
     final source = CycleMapLayers.sourceId(generation);
@@ -2144,6 +2190,19 @@ class MaplibreMapControllerAdapter implements MapController {
     await _removeCycleGenerations(old);
   }
 
+  /// Finds the base map's first label layer, under which the cycle map and
+  /// the weather go, once per style.
+  Future<void> _findLabelAnchor() async {
+    if (_cycleAnchorKnown) return;
+    final ids = await _ops.getLayerIds();
+    _cycleAnchor = CycleMapLayers.anchors.firstWhere(
+      ids.contains,
+      // A style of unknown layers: under everything Velorki draws.
+      orElse: () => MapLayerIds.trackLayer,
+    );
+    _cycleAnchorKnown = true;
+  }
+
   Future<void> _removeCycleGenerations(List<int> generations) async {
     final layers = CycleMapLayers(palette.cycle).layers;
     for (final generation in generations) {
@@ -2152,6 +2211,169 @@ class MaplibreMapControllerAdapter implements MapController {
         await _ops.removeLayer(CycleMapLayers.layerId(generation, layer));
       }
       await _ops.removeSource(CycleMapLayers.sourceId(generation));
+    }
+  }
+
+  /// The credits of the weather layers on this map, for its attribution
+  /// line: each one for as long as its layer is drawn.
+  ValueListenable<List<String>> get weatherAttributions => _weatherAttributions;
+
+  /// Puts the weather layers [layers] on the map and takes the others
+  /// away. A layer whose frame changed gets a new source over the old one,
+  /// which goes [weatherSwapDelay] later, so the map never flashes bare.
+  /// One change at a time, the newest list winning.
+  @override
+  Future<void> setWeatherLayers(List<WeatherLayer> layers) {
+    final wanted = List<WeatherLayer>.unmodifiable(layers);
+    _weatherWanted = wanted;
+    _weatherAttributions.value = List<String>.unmodifiable(<String>{
+      for (final layer in layers) layer.attribution,
+    });
+    if (!_attached || _disposed) return Future<void>.value();
+    return _weatherTurn = _weatherTurn.then((_) async {
+      if (!_attached || _disposed || !identical(wanted, _weatherWanted)) {
+        return;
+      }
+      try {
+        await _drawWeather(wanted);
+      } on PlatformException catch (error) {
+        // The style is going; the next attach puts the layers back.
+        debugPrint('velorki: weather not drawn: $error');
+      }
+    });
+  }
+
+  Future<void> _drawWeather(List<WeatherLayer> wanted) async {
+    final ids = <String>{for (final layer in wanted) layer.id};
+    // Gone from the list: away at once.
+    for (final id in List<String>.of(_weatherDrawn.keys)) {
+      if (!ids.contains(id)) {
+        await _removeWeatherGenerations(id, _weatherDrawn[id]!.length);
+      }
+    }
+    final stale = <String, int>{};
+    for (final layer in wanted) {
+      final drawn = _weatherDrawn[layer.id];
+      if (drawn != null && drawn.last.$2.frameKey == layer.frameKey) {
+        // The same frame: only the paint may have changed.
+        if (drawn.last.$2.opacity != layer.opacity) {
+          drawn[drawn.length - 1] = (drawn.last.$1, layer);
+          await _ops.setLayerProperties(
+            MapLayerIds.weatherLayer(layer.id, drawn.last.$1),
+            _weatherProperties(layer),
+          );
+        }
+        continue;
+      }
+      await _addWeatherGeneration(layer);
+      final now = _weatherDrawn[layer.id]!;
+      if (now.length > 1) stale[layer.id] = now.length - 1;
+    }
+    if (stale.isEmpty) return;
+    await Future<void>.delayed(weatherSwapDelay);
+    if (!_attached || _disposed) return;
+    for (final entry in stale.entries) {
+      await _removeWeatherGenerations(entry.key, entry.value);
+    }
+  }
+
+  /// Adds [layer] as the newest generation of its id: clouds under the
+  /// rain, both under the cycle map and the base map's labels.
+  Future<void> _addWeatherGeneration(WeatherLayer layer) async {
+    await _findLabelAnchor();
+    final n = _nextWeatherGeneration++;
+    final source = MapLayerIds.weatherSource(layer.id, n);
+    final id = MapLayerIds.weatherLayer(layer.id, n);
+    final image = layer.image;
+    final box = layer.imageBox;
+    if (image != null && box != null) {
+      await _ops.addImageSource(
+        source,
+        image,
+        ml.LatLngQuad(
+          topLeft: ml.LatLng(box.north, box.west),
+          topRight: ml.LatLng(box.north, box.east),
+          bottomRight: ml.LatLng(box.south, box.east),
+          bottomLeft: ml.LatLng(box.south, box.west),
+        ),
+      );
+    } else {
+      await _ops.addSource(
+        source,
+        ml.RasterSourceProperties(
+          tiles: <String>[layer.tiles ?? ''],
+          tileSize: layer.tileSize.toDouble(),
+          minzoom: layer.minZoom.toDouble(),
+          maxzoom: layer.maxZoom.toDouble(),
+          bounds: layer.bounds,
+          attribution: layer.attribution,
+        ),
+      );
+    }
+    // Under the lowest rain for clouds, else under the cycle map's lowest
+    // layer, else under the labels.
+    var at = _weatherStack.length;
+    String? below;
+    if (layer.kind == WeatherKind.clouds) {
+      final radar = _weatherStack.indexWhere((e) => e.$2 == WeatherKind.radar);
+      if (radar >= 0) {
+        at = radar;
+        below = _weatherStack[radar].$1;
+      }
+    }
+    below ??= _cycleGenerations.isEmpty
+        ? _cycleAnchor
+        : CycleMapLayers.layerId(
+            _cycleGenerations.first,
+            CycleMapLayers(palette.cycle).layers.first,
+          );
+    await _ops.addLayer(
+      source,
+      id,
+      _weatherProperties(layer),
+      belowLayerId: below,
+      enableInteraction: false,
+    );
+    _weatherStack.insert(at, (id, layer.kind));
+    (_weatherDrawn[layer.id] ??= <(int, WeatherLayer)>[]).add((n, layer));
+  }
+
+  /// Removes the oldest [count] generations of the weather layer [id].
+  Future<void> _removeWeatherGenerations(String id, int count) async {
+    final drawn = _weatherDrawn[id];
+    if (drawn == null) return;
+    for (final (n, _) in drawn.take(count).toList()) {
+      final layerId = MapLayerIds.weatherLayer(id, n);
+      _weatherStack.removeWhere((e) => e.$1 == layerId);
+      await _ops.removeLayer(layerId);
+      await _ops.removeSource(MapLayerIds.weatherSource(id, n));
+    }
+    drawn.removeRange(0, math.min(count, drawn.length));
+    if (drawn.isEmpty) _weatherDrawn.remove(id);
+  }
+
+  ml.LayerProperties _weatherProperties(WeatherLayer layer) => weatherTone(
+    layer.kind,
+    dark: _weatherDark,
+    opacity: layer.opacity,
+  ).layerProperties();
+
+  /// Paints the weather for a dark map look or a light one.
+  Future<void> setWeatherDark(bool dark) async {
+    if (dark == _weatherDark) return;
+    _weatherDark = dark;
+    if (!_attached || _disposed) return;
+    try {
+      for (final entry in _weatherDrawn.entries) {
+        for (final (n, layer) in entry.value) {
+          await _ops.setLayerProperties(
+            MapLayerIds.weatherLayer(entry.key, n),
+            _weatherProperties(layer),
+          );
+        }
+      }
+    } on PlatformException {
+      // The old style is on its way out; the next attach paints anew.
     }
   }
 
@@ -2493,6 +2715,8 @@ class MaplibreMapControllerAdapter implements MapController {
     onStopTapped = null;
     onCameraIdle = null;
     _cameraIdleListeners.clear();
+    // The weather credits stay readable: the map view's line may still be
+    // listening until it is rebuilt with the next adapter.
   }
 
   static ml.LatLng _toMl(LatLng p) => ml.LatLng(p.lat, p.lon);

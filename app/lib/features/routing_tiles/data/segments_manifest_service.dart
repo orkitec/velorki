@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -8,6 +9,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart' hide CancelToken;
 
 import '../../../app/app_config.dart';
+import '../../map/data/weather_map_preferences.dart';
 import 'routing_tiles_repository.dart';
 import '../../../core/l10n/localized_text.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -75,15 +77,35 @@ class _Shard {
 /// each entry remembering the shard it is served from. One unreadable shard
 /// fails the whole fetch: a manifest missing a shard would silently hide
 /// whole regions from the rider.
+///
+/// The pointer may also carry `weatherLayers`, which overrides the weather
+/// map's built-in sources by `id` (see `applyWeatherOverride`); every read
+/// pointer hands it to [onPointer]. Each entry names an `id` and any of
+/// `enabled` (bool), `kind` (`radar`/`clouds`), `url` (https, the tile or
+/// GetMap template with `{bbox-epsg-3857}`, `{z}/{x}/{y}`, `{width}`,
+/// `{height}`, `{time}`, `{timeMs}`), `time` (`none`/`iso`/`epochMs`),
+/// `stepMinutes`, `delayMinutes`, `historyMinutes`, `forecastMinutes`,
+/// `tileSize`, `minzoom`, `maxzoom`, `coverage` (`[[west, south, east,
+/// north], ...]`), `attribution` (`{year}` is the image's year) and
+/// `opacity`. An unknown `id` with `kind`, `url`, `coverage` and
+/// `attribution` adds a source. Anything unreadable falls back to the
+/// built-in sources; it is never an error.
 class SegmentsManifestService {
   /// Creates the service. An empty [segmentsUrl] selects the brouter.de
   /// fallback.
-  SegmentsManifestService({required Dio dio, required String segmentsUrl})
+  SegmentsManifestService({
+    required Dio dio,
+    required String segmentsUrl,
+    this.onPointer,
+  })
     // Named parameters cannot be private, so this cannot be an initialising
     // formal.
     // ignore: prefer_initializing_formals
     : _dio = dio,
-      _segmentsUrl = segmentsUrl.trim();
+       _segmentsUrl = segmentsUrl.trim();
+
+  /// Hears every pointer read, for what it carries besides the tiles.
+  final void Function(Map<Object?, Object?> pointer)? onPointer;
 
   final Dio _dio;
   final String _segmentsUrl;
@@ -211,6 +233,11 @@ class SegmentsManifestService {
         'The tile mirror pointer at $_segmentsUrl is not readable.',
       );
     }
+    try {
+      onPointer?.call(data);
+    } on Object {
+      // What the pointer carries besides the tiles never fails the fetch.
+    }
     return data;
   }
 
@@ -311,6 +338,11 @@ SegmentsManifestService segmentsManifestService(Ref ref) =>
     SegmentsManifestService(
       dio: ref.watch(segmentsDioProvider),
       segmentsUrl: ref.watch(effectiveConfigProvider).segmentsUrl,
+      onPointer: (pointer) => unawaited(
+        ref
+            .read(weatherMapSourcesProvider.notifier)
+            .applyPointer(pointer['weatherLayers']),
+      ),
     );
 
 /// The manifest, fetched once and refreshable.

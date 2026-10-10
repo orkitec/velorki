@@ -1,10 +1,10 @@
 ---
 title: Livelli della mappa
-description: La mappa ciclabile offline e le sue parti, la mappa ciclabile online e le soste, tutto nel foglio Livelli.
+description: La mappa ciclabile offline e le sue parti, la mappa ciclabile online, il radar pioggia, le nuvole e le soste, tutto nel foglio Livelli.
 order: 6
 ---
 
-**Livelli** sta nella colonna di pulsanti a destra della mappa, nei tab Pianifica e Registra. Il suo foglio contiene la mappa ciclabile, la mappa ciclabile online e le soste. Il pulsante è evidenziato finché una di esse è attiva.
+**Livelli** sta nella colonna di pulsanti a destra della mappa, nei tab Pianifica e Registra. Il suo foglio contiene la mappa ciclabile, la mappa ciclabile online, il radar pioggia, le nuvole e le soste. Il pulsante è evidenziato finché una di esse è attiva.
 
 <!-- screenshot: layers -->
 
@@ -35,6 +35,16 @@ Nella scheda Pianifica, con la mappa ciclabile attiva su un'area non scaricata, 
 ## Mappa ciclabile online
 
 **Mappa ciclabile online**: "La mappa di CyclOSM con negozi e parcheggi per bici · richiede una connessione". Il livello di CyclOSM, scaricato online. Le due mappe ciclabili si alternano: attivarne una disattiva l'altra.
+
+## Radar pioggia e nuvole
+
+**Radar pioggia**: "Germania e Stati Uniti · ora e nelle prossime due ore in Germania". **Nuvole**: "Europa, Africa e Americhe · ogni ora in Europa". Sono entrambi gratuiti, disattivati finché non li attivi, e richiedono una connessione.
+
+Il radar pioggia viene dal servizio meteorologico tedesco (Deutscher Wetterdienst) sopra la Germania e i dintorni, e dal servizio meteorologico statunitense (National Weather Service) sopra gli Stati Uniti; altrove non c'è. Quando è attivo, un cursore sotto la colonna di pulsanti lo sposta da due ore indietro a due ore avanti, a passi di un quarto d'ora. La sua etichetta dice quanto dista da adesso e l'ora dell'immagine radar, per esempio **−45 min · 13:50**. Le due ore avanti sono la previsione del Deutscher Wetterdienst, quindi le ha solo la Germania: altrove un passo avanti mostra **Previsione: solo Germania**. L'app cerca un'immagine più recente ogni cinque minuti.
+
+Le nuvole sono immagini satellitari disegnate in bianco sulla mappa: Meteosat di EUMETSAT sopra Europa, Africa e dintorni, con una nuova immagine a ogni ora esatta, e i satelliti GOES tramite la NASA sopra le Americhe. Con solo le nuvole attive, una piccola etichetta dice l'ora dell'immagine. Le nuvole più spesse e fredde sono le più chiare; nebbia e nuvole basse appaiono deboli o per niente.
+
+Se un servizio non risponde, la mappa dice **Radar pioggia non disponibile al momento** o **Nuvole non disponibili al momento**, così una mappa vuota non viene scambiata per una giornata asciutta e serena. L'app carica le immagini direttamente da Deutscher Wetterdienst, NOAA, NASA ed EUMETSAT, non tramite Velorki, quindi questi servizi vedono l'area di mappa richiesta. I loro crediti sono nella riga in fondo alla mappa finché un livello è disegnato.
 
 ## Soste
 

@@ -1,10 +1,10 @@
 ---
 title: Calques de la carte
-description: La carte vélo hors ligne et ses parties, la carte vélo en ligne et les haltes, tout dans la feuille Calques.
+description: La carte vélo hors ligne et ses parties, la carte vélo en ligne, le radar de pluie, les nuages et les haltes, tout dans la feuille Calques.
 order: 6
 ---
 
-**Calques** se trouve dans la colonne de boutons à droite de la carte, dans l’onglet Planifier comme dans l’onglet Rouler. Sa feuille contient la carte vélo, la carte vélo en ligne et les haltes. Le bouton est mis en évidence tant que l’une d’elles est activée.
+**Calques** se trouve dans la colonne de boutons à droite de la carte, dans l’onglet Planifier comme dans l’onglet Rouler. Sa feuille contient la carte vélo, la carte vélo en ligne, le radar de pluie, les nuages et les haltes. Le bouton est mis en évidence tant que l’une d’elles est activée.
 
 <!-- screenshot: layers -->
 
@@ -35,6 +35,16 @@ Dans l’onglet Planifier, avec la carte vélo activée sur une zone non téléc
 ## Carte vélo en ligne
 
 **Carte vélo en ligne** : « La carte de CyclOSM avec magasins et parkings vélo · nécessite une connexion ». La surcouche de CyclOSM, récupérée en ligne. Les deux cartes vélo alternent : en activer une désactive l’autre.
+
+## Radar de pluie et nuages
+
+**Radar de pluie** : "Allemagne et États-Unis · maintenant et les deux prochaines heures en Allemagne". **Nuages** : "Europe, Afrique et Amériques · mis à jour toutes les heures en Europe". Les deux sont gratuits, désactivés tant que vous ne les activez pas, et nécessitent une connexion.
+
+Le radar de pluie vient du service météorologique allemand (Deutscher Wetterdienst) au-dessus de l’Allemagne et de ses environs, et du service météorologique américain (National Weather Service) au-dessus des États-Unis ; ailleurs, il n’y en a pas. Activé, un curseur sous la colonne de boutons le déplace de deux heures en arrière à deux heures en avant, par quarts d’heure. Son libellé indique l’écart avec maintenant et l’heure de l’image radar, par exemple **−45 min · 13:50**. Les deux heures à venir sont la prévision du Deutscher Wetterdienst, donc seule l’Allemagne les a : ailleurs, un pas en avant affiche **Prévision : Allemagne uniquement**. L’app cherche une image plus récente toutes les cinq minutes.
+
+Les nuages sont des images satellite dessinées en blanc sur la carte : Meteosat d’EUMETSAT au-dessus de l’Europe, de l’Afrique et des environs, une nouvelle image à chaque heure pile, et les satellites GOES via la NASA au-dessus des Amériques. Avec seulement les nuages activés, un petit libellé indique l’heure de l’image. Les nuages les plus épais et les plus froids sont les plus clairs ; le brouillard et les nuages bas apparaissent à peine ou pas du tout.
+
+Si un service ne répond pas, la carte affiche **Radar de pluie indisponible pour le moment** ou **Nuages indisponibles pour le moment**, pour qu’une carte vide ne passe pas pour une journée sèche et dégagée. L’app charge les images directement auprès du Deutscher Wetterdienst, de la NOAA, de la NASA et d’EUMETSAT, pas via Velorki : ces services voient donc la zone de carte demandée. Leurs crédits figurent dans la ligne au bas de la carte tant qu’un calque est dessiné.
 
 ## Haltes
 

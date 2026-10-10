@@ -1,10 +1,10 @@
 ---
 title: Ebenen auf der Karte
-description: Die Radkarte offline und ihre Teile, die Online-Radkarte und die Stopps, alles im Fenster Ebenen.
+description: Die Radkarte offline und ihre Teile, die Online-Radkarte, Regenradar, Wolken und die Stopps, alles im Fenster Ebenen.
 order: 6
 ---
 
-**Ebenen** sitzt in der Spalte rechts neben der Karte, im Tab Planen und im Tab Aufnahme. Das Fenster enthält die Radkarte, die Online-Radkarte und die Stopps. Die Schaltfläche ist hervorgehoben, solange eine davon an ist.
+**Ebenen** sitzt in der Spalte rechts neben der Karte, im Tab Planen und im Tab Aufnahme. Das Fenster enthält die Radkarte, die Online-Radkarte, das Regenradar, die Wolken und die Stopps. Die Schaltfläche ist hervorgehoben, solange eine davon an ist.
 
 <!-- screenshot: layers -->
 
@@ -35,6 +35,16 @@ Im Tab Planen sagt ein Chip bei eingeschalteter Radkarte über einem nicht herun
 ## Online-Radkarte
 
 **Online-Radkarte**: "Die Karte von CyclOSM mit Radläden und Abstellplätzen · braucht eine Verbindung". Das Overlay von CyclOSM, online geholt. Die beiden Radkarten wechseln sich ab: Schaltest du eine ein, geht die andere aus.
+
+## Regenradar und Wolken
+
+**Regenradar**: "Deutschland und die USA · jetzt und die nächsten zwei Stunden in Deutschland". **Wolken**: "Europa, Afrika und Amerika · in Europa stündlich aktualisiert". Beide sind kostenlos, aus, bis du sie einschaltest, und brauchen eine Verbindung.
+
+Das Regenradar kommt über Deutschland und seinen Nachbargebieten vom Deutschen Wetterdienst und über den USA vom US-Wetterdienst (National Weather Service); anderswo gibt es keins. Ist es an, verschiebt ein Schieberegler unter der Spalte der Schaltflächen es in Viertelstunden von zwei Stunden zurück bis zwei Stunden voraus. Seine Beschriftung sagt, wie weit von jetzt, und die Uhrzeit des Radarbilds, etwa **−45 min · 13:50**. Die zwei Stunden voraus sind die Vorhersage des Deutschen Wetterdiensts, also gibt es sie nur für Deutschland: anderswo zeigt ein Schritt voraus **Vorhersage: nur Deutschland**. Alle fünf Minuten schaut die App nach einem neueren Bild.
+
+Die Wolken sind Satellitenbilder, weiß über die Karte gezeichnet: Meteosat von EUMETSAT über Europa, Afrika und Umgebung, ein neues Bild zu jeder vollen Stunde, und die GOES-Satelliten über die NASA für Amerika. Sind nur die Wolken an, nennt eine kleine Beschriftung die Uhrzeit des Bilds. Die dicksten, kältesten Wolken sind am hellsten; Nebel und tiefe Wolken erscheinen schwach oder gar nicht.
+
+Antwortet ein Dienst nicht, sagt die Karte **Regenradar gerade nicht verfügbar** oder **Wolken gerade nicht verfügbar**, damit eine leere Karte nicht für einen trockenen, klaren Tag gehalten wird. Die App lädt die Bilder direkt beim Deutschen Wetterdienst, bei NOAA, NASA und EUMETSAT, nicht über Velorki; diese Dienste sehen also den angefragten Kartenausschnitt. Ihre Quellenangaben stehen in der Zeile unten auf der Karte, solange eine Ebene gezeichnet ist.
 
 ## Stopps
 

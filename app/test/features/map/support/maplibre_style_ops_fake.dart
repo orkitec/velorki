@@ -282,6 +282,23 @@ class RecordingStyleOps implements MapLibreStyleOps {
   }
 
   @override
+  Future<void> addImageSource(
+    String sourceId,
+    Uint8List bytes,
+    ml.LatLngQuad corners,
+  ) async {
+    sourceIds.add(sourceId);
+    calls.add(
+      RecordedStyleCall(
+        'addImageSource',
+        id: sourceId,
+        imageBytes: bytes,
+        properties: <String, dynamic>{'coordinates': corners.toList()},
+      ),
+    );
+  }
+
+  @override
   Future<void> addLayer(
     String sourceId,
     String layerId,

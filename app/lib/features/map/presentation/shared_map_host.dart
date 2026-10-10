@@ -12,6 +12,7 @@ import '../../shared/application/nav_bar_docking.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../application/cycle_map_binding.dart';
 import '../application/locate_on_open.dart';
+import '../application/weather_map_binding.dart';
 import '../data/map_preferences.dart';
 import '../domain/map_controller.dart';
 import 'map_attribution.dart' show shellAttributionFloor;
@@ -72,6 +73,9 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
   /// The offline cycle map on this map; its hint is the shell's.
   late final CycleMapBinding _cycleMap;
 
+  /// The weather layers on this map; their status is the shell's.
+  late final WeatherMapBinding _weather;
+
   @override
   void initState() {
     super.initState();
@@ -80,6 +84,15 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
     final hint = ref.read(sharedCycleMapNeedsDownloadProvider.notifier);
     _cycleMap.driver.needsDownload.addListener(
       () => hint.set(_cycleMap.driver.needsDownload.value),
+    );
+    _weather = WeatherMapBinding(ref);
+    final weatherStatus = ref.read(sharedWeatherMapStatusProvider.notifier);
+    // Out of the build that may have handed the map over: a status may
+    // not be written to a provider there.
+    _weather.driver.status.addListener(
+      () => scheduleMicrotask(() {
+        if (mounted) weatherStatus.set(_weather.driver.status.value);
+      }),
     );
     _locate = ref.read(locateOnOpenProvider);
     WidgetsBinding.instance.addObserver(this);
@@ -114,6 +127,7 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
     _map = controller;
     unawaited(controller.setCyclosmOverlay(ref.read(cyclosmOverlayProvider)));
     _cycleMap.attach(controller);
+    _weather.attach(controller);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && identical(_map, controller)) _shared.set(controller);
     });
@@ -123,6 +137,7 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _cycleMap.dispose();
+    _weather.dispose();
     // Deferred: the tree is locked while a widget goes.
     final shared = _shared;
     scheduleMicrotask(() => shared.set(null));
@@ -135,6 +150,7 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
       unawaited(_map?.setCyclosmOverlay(next));
     });
     _cycleMap.listen();
+    _weather.listen();
     final builder = ref.watch(mapViewBuilderProvider);
     if (!identical(builder, _builder)) {
       _builder = builder;

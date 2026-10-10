@@ -121,6 +121,32 @@ SegmentEntry _entry(TileName tile, {String? baseUrl}) =>
     SegmentEntry(tile: tile, bytes: 0, baseUrl: baseUrl);
 
 void main() {
+  test('the pointer is handed on, with what it carries for the weather '
+      'map', () async {
+    final pointers = <Map<Object?, Object?>>[];
+    final adapter = FakeSegmentsAdapter((options) {
+      final url = options.uri.toString();
+      if (url.endsWith('latest.json')) {
+        return FakeSegmentsResponse.json(<String, Object?>{
+          ..._pointerOver(<String>['tiles-a']),
+          'weatherLayers': <Object?>[
+            <String, Object?>{'id': 'radar_noaa', 'enabled': false},
+          ],
+        });
+      }
+      return FakeSegmentsResponse.json(_shardManifest('tiles-a', {}));
+    });
+    final service = SegmentsManifestService(
+      dio: segmentsDioWith(adapter),
+      segmentsUrl: _pointerUrl,
+      onPointer: pointers.add,
+    );
+    await service.fetch();
+    expect(pointers.single['weatherLayers'], [
+      {'id': 'radar_noaa', 'enabled': false},
+    ]);
+  });
+
   group('with a mirror configured', () {
     test('reads manifest.json', () async {
       final adapter = FakeSegmentsAdapter(

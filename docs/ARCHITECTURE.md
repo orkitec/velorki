@@ -17,7 +17,9 @@ in [`web/README.md`](../web/README.md).
 | CI | GitHub Actions in both repositories |
 
 Upstreams: brouter.de (rd5 tiles), Geofabrik (the OSM extracts the `.gaz` files
-are built from), OpenFreeMap and CyclOSM (map tiles), Photon (online search).
+are built from), OpenFreeMap and CyclOSM (map tiles), Photon (online search),
+DWD, NOAA, NASA GIBS and EUMETSAT (the free weather map: rain radar and
+clouds, fetched by the phone, no relay).
 
 ```
  brouter.de/segments4                      Geofabrik extracts
@@ -91,6 +93,7 @@ and hides the Plus features — see [SELF_HOSTING.md](SELF_HOSTING.md).
 | HTTP | dio | interceptors for token refresh, the rate-limit bucket, multipart, cancellation |
 | Map | maplibre_gl behind a `MapController` interface so widget tests can fake it; style URL from config | BSD-licensed, vector tiles, offline regions. Mapbox is proprietary and metered per monthly active user |
 | Map tiles | OpenFreeMap vector tiles by default; an offline cycle map drawn from the rd5 tiles, or CyclOSM raster as an online overlay | no key, no limits; swappable to self-hosted PMTiles |
+| Weather map | rain radar as raster tiles (DWD WMS, NOAA ImageServer); clouds as one image per region (EUMETSAT and NASA GIBS WMS), whitened by brightness on the phone and drawn as an image source; `WeatherMapDriver` picks the sources over the view and refreshes them | free public services; EUMETSAT only on the full hour, which its data policy makes free |
 
 Versions live in `app/pubspec.yaml`. Deliberately not used: `strava_client` (it
 expects the client secret inside the app) and `latlong2`.
@@ -402,7 +405,10 @@ and `SegmentsManifestService` fetches every shard's `manifest.json` from the
 the release they are served from (one unreadable shard fails the fetch rather
 than hiding a region). The app marks tiles the mirror has rebuilt as stale
 (checked weekly) and refuses tiles in a newer rd5 format than its bundled
-`lookups.dat`, asking for an app update instead. The map's download button opens `features/offline`,
+`lookups.dat`, asking for an app update instead. The pointer may also carry
+`weatherLayers`, which overrides or switches off the weather map's built-in
+sources by `id` (field list on `SegmentsManifestService`); the last one read
+is kept for offline use, and anything unreadable means the built-in sources. The map's download button opens `features/offline`,
 one screen that fetches the map area and the routing tiles together; the two
 kinds keep their own screens behind it. `CompositeRoutingBackend`
 takes the bounding box of the waypoints, expands it by max(10 km, 20 %), and

@@ -89,6 +89,11 @@ String mapStyleUrlFor(
   };
 }
 
+/// The weather credits of a map that has no adapter yet.
+final ValueListenable<List<String>> _noCredits = ValueNotifier<List<String>>(
+  const <String>[],
+);
+
 /// How far down the native (i) button sits on a phone turned sideways: in
 /// the top corner of the map away from the rail, below the row at the top
 /// (whose far end is the search) and the turn banner, so the attribution
@@ -215,6 +220,7 @@ class _MapViewState extends ConsumerState<MapView> {
         devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
         palette: MapPalette.fromTheme(Theme.of(context)),
         cyclosmTone: _readCyclosmTone(),
+        weatherDark: _readMapLook() != MapLook.light,
       );
     } on StateError {
       // The style finished loading while the world around the map is being
@@ -237,6 +243,14 @@ class _MapViewState extends ConsumerState<MapView> {
     // wait for the next one, which is up to five metres of riding away.
     final known = ref.read(devicePositionProvider).value;
     if (known != null) _pushPosition(known);
+  }
+
+  /// The map look on screen right now, resolved.
+  MapLook _readMapLook() {
+    final appearance = ref.read(appearanceSettingProvider);
+    final look =
+        ref.read(appearanceOverrideProvider)?.mapLook ?? appearance.mapLook;
+    return resolveMapLook(look, Theme.of(context).brightness);
   }
 
   /// How the CyclOSM overlay is painted for the map look and the overlay
@@ -305,6 +319,11 @@ class _MapViewState extends ConsumerState<MapView> {
             resolveMapLook(look, brightness),
             appearance.overlayDark,
           ),
+        ),
+      );
+      unawaited(
+        adapter.setWeatherDark(
+          resolveMapLook(look, brightness) != MapLook.light,
         ),
       );
     }
@@ -427,7 +446,16 @@ class _MapViewState extends ConsumerState<MapView> {
                     (chrome?.attributionInsets.right ?? 0),
                 bottom: attributionBottom,
                 // Text only, it takes no touch: one on it reaches the map.
-                child: const Center(child: MapAttributionChip()),
+                // The weather layers' credits are this map's own, shown
+                // while their layers are drawn.
+                child: Center(
+                  child: ValueListenableBuilder<List<String>>(
+                    valueListenable:
+                        _adapter?.weatherAttributions ?? _noCredits,
+                    builder: (context, credits, _) =>
+                        MapAttributionChip(extra: credits),
+                  ),
+                ),
               ),
           ],
         );

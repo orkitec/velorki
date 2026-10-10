@@ -1,10 +1,10 @@
 ---
 title: Kaartlagen
-description: De offline fietskaart en zijn onderdelen, de online fietskaart en de stopplekken, alles in het paneel Kaartlagen.
+description: De offline fietskaart en zijn onderdelen, de online fietskaart, de regenradar, de wolken en de stopplekken, alles in het paneel Kaartlagen.
 order: 6
 ---
 
-**Kaartlagen** staat in de kolom knoppen rechts op de kaart, op het tabblad Plannen en Opnemen. Het paneel bevat de fietskaart, de online fietskaart en de stopplekken. De knop is gemarkeerd zolang een van die aan staat.
+**Kaartlagen** staat in de kolom knoppen rechts op de kaart, op het tabblad Plannen en Opnemen. Het paneel bevat de fietskaart, de online fietskaart, de regenradar, de wolken en de stopplekken. De knop is gemarkeerd zolang een van die aan staat.
 
 <!-- screenshot: layers -->
 
@@ -35,6 +35,16 @@ Op het tabblad Plannen zegt een chip, met de fietskaart aan boven een niet-gedow
 ## Online fietskaart
 
 **Online fietskaart**: "De kaart van CyclOSM met fietswinkels en fietsenstallingen · heeft een verbinding nodig". De laag van CyclOSM, online opgehaald. De twee fietskaarten wisselen elkaar af: de ene aanzetten zet de andere uit.
+
+## Regenradar en wolken
+
+**Regenradar**: "Duitsland en de VS · nu en de komende twee uur in Duitsland". **Wolken**: "Europa, Afrika en Amerika · elk uur bijgewerkt in Europa". Beide zijn gratis, staan uit tot je ze aanzet, en hebben een verbinding nodig.
+
+De regenradar komt boven Duitsland en omgeving van de Duitse weerdienst (Deutscher Wetterdienst) en boven de VS van de Amerikaanse weerdienst (National Weather Service); elders is er geen. Staat hij aan, dan verschuift een schuifregelaar onder de kolom knoppen hem in kwartieren van twee uur terug tot twee uur vooruit. Het label zegt hoe ver van nu en het tijdstip van het radarbeeld, bijvoorbeeld **−45 min · 13:50**. De twee uur vooruit zijn de verwachting van de Deutscher Wetterdienst, dus alleen Duitsland heeft ze: elders toont een stap vooruit **Verwachting: alleen Duitsland**. De app kijkt elke vijf minuten of er een nieuwer beeld is.
+
+De wolken zijn satellietbeelden, wit over de kaart getekend: Meteosat van EUMETSAT boven Europa, Afrika en omgeving, elk heel uur een nieuw beeld, en de GOES-satellieten via NASA boven Amerika. Staan alleen de wolken aan, dan noemt een klein label het tijdstip van het beeld. De dikste, koudste wolken zijn het lichtst; mist en lage bewolking zijn zwak of niet te zien.
+
+Antwoordt een dienst niet, dan zegt de kaart **Regenradar is nu niet beschikbaar** of **Wolken zijn nu niet beschikbaar**, zodat een lege kaart niet voor een droge, heldere dag wordt aangezien. De app laadt de beelden rechtstreeks bij de Deutscher Wetterdienst, NOAA, NASA en EUMETSAT, niet via Velorki; die diensten zien dus het opgevraagde kaartgebied. Hun bronvermeldingen staan in de regel onderaan de kaart zolang een laag getekend is.
 
 ## Stopplekken
 

@@ -12,6 +12,7 @@ import '../../offline/presentation/offline_screen.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../data/map_preferences.dart';
 import '../data/position_provider.dart';
+import '../data/weather_map_preferences.dart';
 import '../domain/map_controller.dart';
 import 'layers_sheet.dart';
 import 'location_rationale_dialog.dart';
@@ -68,6 +69,9 @@ class MapControls extends ConsumerWidget {
       cycleMapPreferencesProvider.select((s) => s.shown),
     );
     final stops = ref.watch(mapStopsPreferencesProvider.select((s) => s.shown));
+    final weather = ref.watch(
+      weatherMapPreferencesProvider.select((s) => s.any),
+    );
     final l10n = AppLocalizations.of(context);
     final chrome = MapChromeInsets.maybeOf(context);
     final enabled = controller != null;
@@ -121,6 +125,7 @@ class MapControls extends ConsumerWidget {
             selected:
                 cyclosm ||
                 cycleMap ||
+                weather ||
                 (stopsOffer != MapStopsOffer.none && stops),
             onPressed: enabled
                 ? () => unawaited(showLayersSheet(context, offer: stopsOffer))

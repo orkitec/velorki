@@ -124,7 +124,7 @@ export const nws: ProviderFactory = (ctx: WeatherContext): Provider => ({
     id: ID,
     name: 'U.S. National Weather Service',
     url: 'https://www.weather.gov',
-    licence: 'Forecast data: NOAA National Weather Service, public domain.',
+    licence: 'Forecast data: NOAA National Weather Service, public domain. Not endorsed by NOAA.',
   },
   covers,
   async fetch(cell, signal) {

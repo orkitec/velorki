@@ -179,6 +179,8 @@ const Map<String, String> sameAsEnglish = <String, String>{
   'unitFahrenheit': 'unit symbol',
   'valueHoursMinutes': 'unit symbols',
   'valueMinutes': 'unit symbol',
+  'mapWeatherMinutesAgo': 'unit symbol',
+  'mapWeatherMinutesAhead': 'unit symbol',
   'navDistanceMetres': 'unit symbol',
   'navDistanceKm': 'unit symbol',
   'navDistanceFeet': 'unit symbol',

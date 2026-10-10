@@ -49,10 +49,18 @@ double? shellAttributionFloor(
 /// reaching for the map's bottom edge does not open anything by accident.
 /// The full credits, with their links, are in Settings → About.
 class MapAttributionChip extends ConsumerWidget {
-  const MapAttributionChip({super.key, this.cyclosmActive});
+  const MapAttributionChip({
+    super.key,
+    this.cyclosmActive,
+    this.extra = const <String>[],
+  });
 
   /// Overrides the CyclOSM state; by default it follows the overlay toggle.
   final bool? cyclosmActive;
+
+  /// Further credits, for what this map draws from other sources: the
+  /// weather layers.
+  final List<String> extra;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,13 +71,19 @@ class MapAttributionChip extends ConsumerWidget {
       l10n.osmAttribution,
       l10n.mapAttributionOpenFreeMap,
       if (cyclosm) l10n.mapAttributionCyclosm,
+      ...extra,
     ];
     return IgnorePointer(
       child: GlassPanel(
         radius: 999,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          child: Text(parts.join(' · '), style: theme.textTheme.labelSmall),
+          child: Text(
+            parts.join(' · '),
+            // Centred when the weather credits make it wrap.
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall,
+          ),
         ),
       ),
     );

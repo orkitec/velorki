@@ -175,7 +175,7 @@ const Map<String, String> documentedWeatherAnswers = <String, String>{
       '"gust":null,"precip":0.2,"precipProb":null,"cloud":67}]}],'
       '"sources":['
       '{"id":"dwd","name":"Deutscher Wetterdienst","url":"https://www.dwd.de",'
-      '"licence":"Forecast data: Deutscher Wetterdienst (DWD), via Bright Sky."},'
+      '"licence":"Forecast data: Deutscher Wetterdienst (DWD), CC BY 4.0, via Bright Sky."},'
       '{"id":"metno","name":"MET Norway","url":"https://www.met.no/en",'
       '"licence":"Weather data from MET Norway, CC BY 4.0 and NLOD 2.0."}]}',
   'partial':
@@ -186,7 +186,7 @@ const Map<String, String> documentedWeatherAnswers = <String, String>{
       '{"source":null,"hours":[]}],'
       '"sources":['
       '{"id":"dwd","name":"Deutscher Wetterdienst","url":"https://www.dwd.de",'
-      '"licence":"Forecast data: Deutscher Wetterdienst (DWD), via Bright Sky."}]}',
+      '"licence":"Forecast data: Deutscher Wetterdienst (DWD), CC BY 4.0, via Bright Sky."}]}',
 };
 
 /// The message the relay's `error` event carries when the model ran past

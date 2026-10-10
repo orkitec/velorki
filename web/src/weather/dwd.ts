@@ -113,7 +113,7 @@ export const dwd: ProviderFactory = (ctx: WeatherContext): Provider => {
       id: ID,
       name: 'Deutscher Wetterdienst',
       url: 'https://www.dwd.de',
-      licence: 'Forecast data: Deutscher Wetterdienst (DWD), via Bright Sky.',
+      licence: 'Forecast data: Deutscher Wetterdienst (DWD), CC BY 4.0, via Bright Sky.',
     },
     covers,
     async fetch(cell, signal) {

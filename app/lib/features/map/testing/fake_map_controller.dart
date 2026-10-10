@@ -4,6 +4,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../domain/cycle_map.dart';
 import '../domain/map_controller.dart';
+import '../domain/weather_map.dart';
 
 /// One recorded [MapController.moveTo] call.
 @immutable
@@ -228,6 +229,12 @@ class FakeMapController implements MapController {
 
   /// The cycle map parts drawn.
   Set<CycleMapPart> cycleMapParts = const <CycleMapPart>{};
+
+  /// The weather layers of the last [setWeatherLayers] call.
+  List<WeatherLayer> weatherLayers = const <WeatherLayer>[];
+
+  /// Every [setWeatherLayers] call, in order.
+  final List<List<WeatherLayer>> weatherLayerCalls = <List<WeatherLayer>>[];
 
   @override
   LatLng? center;
@@ -498,5 +505,11 @@ class FakeMapController implements MapController {
   @override
   Future<void> setCycleMapParts(Set<CycleMapPart> parts) async {
     cycleMapParts = parts;
+  }
+
+  @override
+  Future<void> setWeatherLayers(List<WeatherLayer> layers) async {
+    weatherLayers = layers;
+    weatherLayerCalls.add(layers);
   }
 }
