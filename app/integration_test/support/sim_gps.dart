@@ -34,19 +34,25 @@ Future<void> rideSimulatorAlong(
   await file.parent.create(recursive: true);
   final token = '${DateTime.now().microsecondsSinceEpoch}';
   final points = thinLine(line, 12);
-  await file.writeAsString(
+  // Written beside and renamed into place, so tool/sim_ride.py never reads
+  // half a route.
+  final partial = File('${file.path}.partial');
+  await partial.writeAsString(
     <String>[
       'id=$token',
       if (speedMps != null) 'speed=$speedMps',
       for (final point in points) '${point.lat},${point.lon}',
     ].join('\n'),
+    flush: true,
   );
-  // The runner polls once a second.
+  await partial.rename(file.path);
+  // The runner polls once a second, but simctl on a busy CI Mac has taken
+  // close to a minute to start a ride.
   await waitUntil(
     tester,
     () => ack.existsSync() && ack.readAsStringSync() == token,
     describe: 'tool/sim_ride.py to ride the new route',
-    timeout: const Duration(seconds: 30),
+    timeout: const Duration(seconds: 90),
     onTimeout: () => 'is tool/sim_ride.py still running?',
   );
   // simctl needs a moment to issue the first fix on the new path.

@@ -78,46 +78,61 @@ def follow_requests(udid: str, speed: str) -> int:
     until the script that started this one is gone."""
     parent = os.getppid()
     seen = None
+    container = None
     while os.getppid() == parent:
-        data = subprocess.run(
-            ["xcrun", "simctl", "get_app_container", udid, BUNDLE, "data"],
-            capture_output=True, text=True,
-        )
-        if data.returncode == 0:
+        # Asking simctl for the container costs seconds on a busy CI Mac,
+        # and asked every second it made the app wait past its timeout. It
+        # only moves when the app is reinstalled, so it is asked again only
+        # when the folder is gone.
+        if container is None or not os.path.isdir(container):
+            data = subprocess.run(
+                ["xcrun", "simctl", "get_app_container", udid, BUNDLE, "data"],
+                capture_output=True, text=True,
+            )
+            container = data.stdout.strip() if data.returncode == 0 else None
+        if container is not None:
             path = os.path.join(
-                data.stdout.strip(), "Library", "Application Support",
+                container, "Library", "Application Support",
                 "itest", "route.txt",
             )
             if os.path.exists(path):
                 stamp = os.path.getmtime(path)
-                if stamp != seen:
+                if stamp != seen and ride(udid, speed, path):
                     seen = stamp
-                    with open(path) as fh:
-                        points = [line.strip() for line in fh if line.strip()]
-                    pace = speed
-                    token = None
-                    while points and "=" in points[0]:
-                        key, value = points.pop(0).split("=", 1)
-                        if key == "speed":
-                            pace = value
-                        elif key == "id":
-                            token = value
-                    if len(points) >= 2:
-                        subprocess.run(
-                            ["xcrun", "simctl", "location", udid, "start",
-                             f"--speed={pace}", "--interval=1", *points],
-                            check=True,
-                        )
-                        print(f"sim_ride: riding the app's route, "
-                              f"{len(points)} points", flush=True)
-                        if token is not None:
-                            with open(os.path.join(
-                                os.path.dirname(path), "route.ack",
-                            ), "w") as fh:
-                                fh.write(token)
         time.sleep(1)
     return 0
 
+
+def ride(udid: str, speed: str, path: str) -> bool:
+    """Starts the ride [path] asks for and acknowledges it; False when
+    simctl failed, so the next poll tries the same request again rather
+    than this script dying and leaving every later one unanswered."""
+    with open(path) as fh:
+        points = [line.strip() for line in fh if line.strip()]
+    pace = speed
+    token = None
+    while points and "=" in points[0]:
+        key, value = points.pop(0).split("=", 1)
+        if key == "speed":
+            pace = value
+        elif key == "id":
+            token = value
+    if len(points) < 2:
+        return True
+    started = subprocess.run(
+        ["xcrun", "simctl", "location", udid, "start",
+         f"--speed={pace}", "--interval=1", *points],
+    )
+    if started.returncode != 0:
+        print(f"sim_ride: simctl location start failed "
+              f"({started.returncode}), trying again", flush=True)
+        return False
+    print(f"sim_ride: riding the app's route, {len(points)} points",
+          flush=True)
+    if token is not None:
+        with open(os.path.join(os.path.dirname(path), "route.ack"), "w") as fh:
+            fh.write(token)
+    return True
 
 if __name__ == "__main__":
     sys.exit(main())

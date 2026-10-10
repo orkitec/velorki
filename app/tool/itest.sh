@@ -225,6 +225,27 @@ clear_emulator() {
   adb -s "$DEVICE" shell am force-stop com.orkitec.velorki >/dev/null 2>&1 || true
 }
 
+# Before a retry after the tooling failed to attach: the same connection
+# had refused the VM service three times running on API 35 in CI, each try
+# two seconds after the last. Reconnect adb, wait until the emulator reports
+# booted again and give it a moment, so the retry is on a fresh connection.
+recover_emulator() {
+  [[ "$DEVICE" == emulator-* ]] || return 0
+  adb -s "$DEVICE" reconnect >/dev/null 2>&1 || true
+  # coreutils' timeout is on Linux CI; a Mac without it waits unbounded.
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 60 adb -s "$DEVICE" wait-for-device >/dev/null 2>&1 || true
+  else
+    adb -s "$DEVICE" wait-for-device >/dev/null 2>&1 || true
+  fi
+  local i
+  for ((i = 0; i < 30; i++)); do
+    [ "$(adb -s "$DEVICE" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && break
+    sleep 2
+  done
+  sleep 15
+}
+
 flutter_test_one() {
   clear_emulator
   # A previous file's app instance still running on the simulator has been
@@ -339,6 +360,7 @@ run_one() {
     if [ "$try" -lt "$TRIES" ] && tooling_failed "$rc" "$log"; then
       printf '    the tooling did not get going; running %s again (%s of %s)\n' \
         "$(basename "$f")" "$((try + 1))" "$TRIES"
+      recover_emulator
       continue
     fi
     break
