@@ -92,7 +92,7 @@ describe('config.matcher', () => {
     expect(matches('/_next/static/chunks/main.js')).toBe(false);
     expect(matches('/_next/image')).toBe(false);
     expect(matches('/favicon.ico')).toBe(false);
-    expect(matches('/screenshots/dark/library.png')).toBe(false);
+    expect(matches('/screenshots/dark/library.webp')).toBe(false);
     // Named explicitly: the app-linking files are routes of ours, extension
     // and all, so they have to pass the host gate.
     expect(matches('/.well-known/assetlinks.json')).toBe(true);

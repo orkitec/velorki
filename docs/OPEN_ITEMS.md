@@ -8,14 +8,13 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
 
 ## Servers and accounts (Steffen)
 
-- [ ] **Website settings**: `NEXT_PUBLIC_STORE_URL_IOS`
-      (`https://apps.apple.com/app/id6816790504`) now and
-      `NEXT_PUBLIC_STORE_URL_ANDROID` once Play is live, both read at build
-      time, so redeploy after setting them; and `ANDROID_CERT_SHA256` — the
-      Play app signing key's SHA-256 from Play Console → App integrity — so
+- [ ] **Website settings**: `NEXT_PUBLIC_STORE_URL_ANDROID` once Play is
+      live, in `web/orkify.yml`'s `buildEnv` beside the iOS one (read at build
+      time; the dashboard's environment only reaches the processes); and in
+      the Orkify dashboard `ANDROID_CERT_SHA256` — the Play app signing key's
+      SHA-256 from Play Console → App integrity, then the upload key's — so
       `/.well-known/assetlinks.json` stops answering 404 and Android's App
-      Links verify (iOS's `apple-app-site-association` is served already).
-      Process environment in the Orkify dashboard.
+      Links verify, and `WEATHER_CONTACT` for the relay's weather calls.
 - [ ] **BRouter on the VPS**: `deploy/` (compose with Caddy + BRouter + updater,
       or the systemd units). First planet sync 1–3 h; `SEGMENT_FILTER` for a
       regional start. Only needed for routing outside downloaded tiles.

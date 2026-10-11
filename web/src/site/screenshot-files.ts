@@ -34,7 +34,7 @@ export function availableVariants(screen: Screen, locale: string): ScreenshotLoc
     for (const accent of ACCENTS) {
       const key: VariantKey = variantKey(mode, accent);
       for (const language of languages) {
-        const file = path.join(process.cwd(), 'public', 'screenshots', language, key, `${screen}.png`);
+        const file = path.join(process.cwd(), 'public', 'screenshots', language, key, `${screen}.webp`);
         if (existsSync(file)) {
           available[key] = language;
           break;

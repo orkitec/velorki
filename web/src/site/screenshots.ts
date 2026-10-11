@@ -2,7 +2,7 @@
 // The screenshot manifest: pure data, no filesystem, so client components can
 // import it too. The build-time existence check lives in screenshot-files.ts.
 // `app/tool/screenshots.sh` writes
-// public/screenshots/<lang>/<mode>-<accent>/<screen>.png; the site knows the
+// public/screenshots/<lang>/<mode>-<accent>/<screen>.webp; the site knows the
 // grid of files it may ask for, checks at build time which of them exist, and
 // renders a labelled placeholder for the rest, so the pages are complete
 // before the pipeline has run.
@@ -60,7 +60,7 @@ export type ScreenshotLocales = Record<string, string>;
 
 /** The public path of one screenshot. */
 export function screenshotSrc(locale: string, mode: Mode, accent: Accent, screen: Screen): string {
-  return `/screenshots/${locale}/${variantKey(mode, accent)}/${screen}.png`;
+  return `/screenshots/${locale}/${variantKey(mode, accent)}/${screen}.webp`;
 }
 
 /**

@@ -30,10 +30,11 @@ deploy:
   # Build-time-only variables. Next inlines every NEXT_PUBLIC_* into the client
   # bundle while `next build` runs, so they have to be here and not in the
   # runtime environment; Orkify does not pass this block to the processes
-  # (https://github.com/orkify/orkify, "buildEnv"). The store URLs stay empty
-  # until the listings exist; the site hides the badges while they are.
+  # (https://github.com/orkify/orkify, "buildEnv"). A store URL stays out
+  # until its listing is public; the site hides a badge without one.
   buildEnv:
     NEXT_PUBLIC_SITE_URL: 'https://velorki.com'
+    NEXT_PUBLIC_STORE_URL_IOS: 'https://apps.apple.com/app/id6816790504'
 
   # Seconds a freshly started worker has to stay alive before the release
   # counts as good. A crash inside this window rolls back to the previous

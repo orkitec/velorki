@@ -32,80 +32,80 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "en/light-volt/planner.png",
-          "bytes": 926046
+          "file": "en/light-volt/planner.webp",
+          "bytes": 168178
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "en/light-volt/loop.png",
-          "bytes": 548530
+          "file": "en/light-volt/loop.webp",
+          "bytes": 96868
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "en/light-volt/search.png",
-          "bytes": 301935
+          "file": "en/light-volt/search.webp",
+          "bytes": 74982
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "en/light-volt/navigation.png",
-          "bytes": 1090838
+          "file": "en/light-volt/navigation.webp",
+          "bytes": 200536
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "en/light-volt/recording.png",
-          "bytes": 1050344
+          "file": "en/light-volt/recording.webp",
+          "bytes": 177496
         },
         {
           "screen": "ride",
           "title": "A finished ride, with its charts and splits",
-          "file": "en/light-volt/ride.png",
-          "bytes": 874842
+          "file": "en/light-volt/ride.webp",
+          "bytes": 169888
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "en/light-volt/library.png",
-          "bytes": 233504
+          "file": "en/light-volt/library.webp",
+          "bytes": 67764
         },
         {
           "screen": "offline",
           "title": "Offline map and routing data",
-          "file": "en/light-volt/offline.png",
-          "bytes": 191928
+          "file": "en/light-volt/offline.webp",
+          "bytes": 85216
         },
         {
           "screen": "settings",
           "title": "Settings, with the appearance block",
-          "file": "en/light-volt/settings.png",
-          "bytes": 273820
+          "file": "en/light-volt/settings.webp",
+          "bytes": 89806
         },
         {
           "screen": "assistant",
           "title": "The assistant's card, with the loop it asked for",
-          "file": "en/light-volt/assistant.png",
-          "bytes": 744786
+          "file": "en/light-volt/assistant.webp",
+          "bytes": 177808
         },
         {
           "screen": "paywall",
           "title": "Velorki Plus as a subscriber sees it",
-          "file": "en/light-volt/paywall.png",
-          "bytes": 321104
+          "file": "en/light-volt/paywall.webp",
+          "bytes": 136696
         },
         {
           "screen": "cyclemap",
           "title": "The offline cycle map and stops in Chelsea, New York",
-          "file": "en/light-volt/cyclemap.png",
-          "bytes": 1204029
+          "file": "en/light-volt/cyclemap.webp",
+          "bytes": 235896
         },
         {
           "screen": "layers",
           "title": "The Layers sheet with the cycle map's parts",
-          "file": "en/light-volt/layers.png",
-          "bytes": 319627
+          "file": "en/light-volt/layers.webp",
+          "bytes": 123518
         }
       ]
     },
@@ -117,80 +117,80 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "en/dark-volt/planner.png",
-          "bytes": 702807
+          "file": "en/dark-volt/planner.webp",
+          "bytes": 130664
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "en/dark-volt/loop.png",
-          "bytes": 380012
+          "file": "en/dark-volt/loop.webp",
+          "bytes": 73582
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "en/dark-volt/search.png",
-          "bytes": 265595
+          "file": "en/dark-volt/search.webp",
+          "bytes": 66520
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "en/dark-volt/navigation.png",
-          "bytes": 776507
+          "file": "en/dark-volt/navigation.webp",
+          "bytes": 125670
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "en/dark-volt/recording.png",
-          "bytes": 523138
+          "file": "en/dark-volt/recording.webp",
+          "bytes": 86708
         },
         {
           "screen": "ride",
           "title": "A finished ride, with its charts and splits",
-          "file": "en/dark-volt/ride.png",
-          "bytes": 697434
+          "file": "en/dark-volt/ride.webp",
+          "bytes": 123986
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "en/dark-volt/library.png",
-          "bytes": 202473
+          "file": "en/dark-volt/library.webp",
+          "bytes": 62470
         },
         {
           "screen": "offline",
           "title": "Offline map and routing data",
-          "file": "en/dark-volt/offline.png",
-          "bytes": 190244
+          "file": "en/dark-volt/offline.webp",
+          "bytes": 80814
         },
         {
           "screen": "settings",
           "title": "Settings, with the appearance block",
-          "file": "en/dark-volt/settings.png",
-          "bytes": 253038
+          "file": "en/dark-volt/settings.webp",
+          "bytes": 89154
         },
         {
           "screen": "assistant",
           "title": "The assistant's card, with the loop it asked for",
-          "file": "en/dark-volt/assistant.png",
-          "bytes": 579357
+          "file": "en/dark-volt/assistant.webp",
+          "bytes": 126650
         },
         {
           "screen": "paywall",
           "title": "Velorki Plus as a subscriber sees it",
-          "file": "en/dark-volt/paywall.png",
-          "bytes": 321465
+          "file": "en/dark-volt/paywall.webp",
+          "bytes": 131330
         },
         {
           "screen": "cyclemap",
           "title": "The offline cycle map and stops in Chelsea, New York",
-          "file": "en/dark-volt/cyclemap.png",
-          "bytes": 682219
+          "file": "en/dark-volt/cyclemap.webp",
+          "bytes": 132974
         },
         {
           "screen": "layers",
           "title": "The Layers sheet with the cycle map's parts",
-          "file": "en/dark-volt/layers.png",
-          "bytes": 294388
+          "file": "en/dark-volt/layers.webp",
+          "bytes": 115658
         }
       ]
     },
@@ -202,38 +202,38 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "en/dark-ember/planner.png",
-          "bytes": 699481
+          "file": "en/dark-ember/planner.webp",
+          "bytes": 132376
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "en/dark-ember/loop.png",
-          "bytes": 378768
+          "file": "en/dark-ember/loop.webp",
+          "bytes": 74072
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "en/dark-ember/search.png",
-          "bytes": 265595
+          "file": "en/dark-ember/search.webp",
+          "bytes": 66520
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "en/dark-ember/navigation.png",
-          "bytes": 668404
+          "file": "en/dark-ember/navigation.webp",
+          "bytes": 108812
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "en/dark-ember/recording.png",
-          "bytes": 539838
+          "file": "en/dark-ember/recording.webp",
+          "bytes": 89164
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "en/dark-ember/library.png",
-          "bytes": 202197
+          "file": "en/dark-ember/library.webp",
+          "bytes": 63084
         }
       ]
     },
@@ -245,38 +245,38 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "en/dark-glacier/planner.png",
-          "bytes": 705119
+          "file": "en/dark-glacier/planner.webp",
+          "bytes": 131472
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "en/dark-glacier/loop.png",
-          "bytes": 380866
+          "file": "en/dark-glacier/loop.webp",
+          "bytes": 74622
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "en/dark-glacier/search.png",
-          "bytes": 265504
+          "file": "en/dark-glacier/search.webp",
+          "bytes": 66466
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "en/dark-glacier/navigation.png",
-          "bytes": 667957
+          "file": "en/dark-glacier/navigation.webp",
+          "bytes": 107370
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "en/dark-glacier/recording.png",
-          "bytes": 583659
+          "file": "en/dark-glacier/recording.webp",
+          "bytes": 95300
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "en/dark-glacier/library.png",
-          "bytes": 202724
+          "file": "en/dark-glacier/library.webp",
+          "bytes": 62920
         }
       ]
     },
@@ -288,38 +288,38 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "en/dark-berry/planner.png",
-          "bytes": 704631
+          "file": "en/dark-berry/planner.webp",
+          "bytes": 126506
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "en/dark-berry/loop.png",
-          "bytes": 381523
+          "file": "en/dark-berry/loop.webp",
+          "bytes": 71900
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "en/dark-berry/search.png",
-          "bytes": 265504
+          "file": "en/dark-berry/search.webp",
+          "bytes": 66560
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "en/dark-berry/navigation.png",
-          "bytes": 664926
+          "file": "en/dark-berry/navigation.webp",
+          "bytes": 106554
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "en/dark-berry/recording.png",
-          "bytes": 533067
+          "file": "en/dark-berry/recording.webp",
+          "bytes": 88300
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "en/dark-berry/library.png",
-          "bytes": 202674
+          "file": "en/dark-berry/library.webp",
+          "bytes": 61568
         }
       ]
     },
@@ -331,38 +331,38 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "en/dark-forest/planner.png",
-          "bytes": 694219
+          "file": "en/dark-forest/planner.webp",
+          "bytes": 125568
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "en/dark-forest/loop.png",
-          "bytes": 376741
+          "file": "en/dark-forest/loop.webp",
+          "bytes": 70974
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "en/dark-forest/search.png",
-          "bytes": 265498
+          "file": "en/dark-forest/search.webp",
+          "bytes": 66594
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "en/dark-forest/navigation.png",
-          "bytes": 763766
+          "file": "en/dark-forest/navigation.webp",
+          "bytes": 120802
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "en/dark-forest/recording.png",
-          "bytes": 537380
+          "file": "en/dark-forest/recording.webp",
+          "bytes": 88216
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "en/dark-forest/library.png",
-          "bytes": 202411
+          "file": "en/dark-forest/library.webp",
+          "bytes": 61070
         }
       ]
     },
@@ -374,38 +374,38 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "en/light-ember/planner.png",
-          "bytes": 925497
+          "file": "en/light-ember/planner.webp",
+          "bytes": 171966
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "en/light-ember/loop.png",
-          "bytes": 549208
+          "file": "en/light-ember/loop.webp",
+          "bytes": 99128
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "en/light-ember/search.png",
-          "bytes": 313698
+          "file": "en/light-ember/search.webp",
+          "bytes": 79208
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "en/light-ember/navigation.png",
-          "bytes": 1108924
+          "file": "en/light-ember/navigation.webp",
+          "bytes": 202640
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "en/light-ember/recording.png",
-          "bytes": 1034368
+          "file": "en/light-ember/recording.webp",
+          "bytes": 173436
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "en/light-ember/library.png",
-          "bytes": 233360
+          "file": "en/light-ember/library.webp",
+          "bytes": 68742
         }
       ]
     },
@@ -417,38 +417,38 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "en/light-glacier/planner.png",
-          "bytes": 924119
+          "file": "en/light-glacier/planner.webp",
+          "bytes": 171688
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "en/light-glacier/loop.png",
-          "bytes": 542351
+          "file": "en/light-glacier/loop.webp",
+          "bytes": 98378
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "en/light-glacier/search.png",
-          "bytes": 313697
+          "file": "en/light-glacier/search.webp",
+          "bytes": 79194
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "en/light-glacier/navigation.png",
-          "bytes": 1105774
+          "file": "en/light-glacier/navigation.webp",
+          "bytes": 202656
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "en/light-glacier/recording.png",
-          "bytes": 1040445
+          "file": "en/light-glacier/recording.webp",
+          "bytes": 172424
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "en/light-glacier/library.png",
-          "bytes": 233377
+          "file": "en/light-glacier/library.webp",
+          "bytes": 68772
         }
       ]
     },
@@ -460,38 +460,38 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "en/light-berry/planner.png",
-          "bytes": 923087
+          "file": "en/light-berry/planner.webp",
+          "bytes": 169832
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "en/light-berry/loop.png",
-          "bytes": 548040
+          "file": "en/light-berry/loop.webp",
+          "bytes": 97144
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "en/light-berry/search.png",
-          "bytes": 301929
+          "file": "en/light-berry/search.webp",
+          "bytes": 75012
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "en/light-berry/navigation.png",
-          "bytes": 1083494
+          "file": "en/light-berry/navigation.webp",
+          "bytes": 194458
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "en/light-berry/recording.png",
-          "bytes": 1038118
+          "file": "en/light-berry/recording.webp",
+          "bytes": 170776
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "en/light-berry/library.png",
-          "bytes": 233411
+          "file": "en/light-berry/library.webp",
+          "bytes": 67928
         }
       ]
     },
@@ -503,38 +503,38 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "en/light-forest/planner.png",
-          "bytes": 922272
+          "file": "en/light-forest/planner.webp",
+          "bytes": 165074
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "en/light-forest/loop.png",
-          "bytes": 547264
+          "file": "en/light-forest/loop.webp",
+          "bytes": 94834
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "en/light-forest/search.png",
-          "bytes": 302159
+          "file": "en/light-forest/search.webp",
+          "bytes": 74918
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "en/light-forest/navigation.png",
-          "bytes": 1046079
+          "file": "en/light-forest/navigation.webp",
+          "bytes": 193294
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "en/light-forest/recording.png",
-          "bytes": 1048718
+          "file": "en/light-forest/recording.webp",
+          "bytes": 170636
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "en/light-forest/library.png",
-          "bytes": 233577
+          "file": "en/light-forest/library.webp",
+          "bytes": 66372
         }
       ]
     },
@@ -546,80 +546,80 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "de/light-volt/planner.png",
-          "bytes": 956868
+          "file": "de/light-volt/planner.webp",
+          "bytes": 176732
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "de/light-volt/loop.png",
-          "bytes": 551425
+          "file": "de/light-volt/loop.webp",
+          "bytes": 101556
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "de/light-volt/search.png",
-          "bytes": 347504
+          "file": "de/light-volt/search.webp",
+          "bytes": 85966
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "de/light-volt/navigation.png",
-          "bytes": 1086340
+          "file": "de/light-volt/navigation.webp",
+          "bytes": 198964
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "de/light-volt/recording.png",
-          "bytes": 1072519
+          "file": "de/light-volt/recording.webp",
+          "bytes": 180774
         },
         {
           "screen": "ride",
           "title": "A finished ride, with its charts and splits",
-          "file": "de/light-volt/ride.png",
-          "bytes": 888702
+          "file": "de/light-volt/ride.webp",
+          "bytes": 173056
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "de/light-volt/library.png",
-          "bytes": 268329
+          "file": "de/light-volt/library.webp",
+          "bytes": 77162
         },
         {
           "screen": "offline",
           "title": "Offline map and routing data",
-          "file": "de/light-volt/offline.png",
-          "bytes": 215657
+          "file": "de/light-volt/offline.webp",
+          "bytes": 100916
         },
         {
           "screen": "settings",
           "title": "Settings, with the appearance block",
-          "file": "de/light-volt/settings.png",
-          "bytes": 279192
+          "file": "de/light-volt/settings.webp",
+          "bytes": 94794
         },
         {
           "screen": "assistant",
           "title": "The assistant's card, with the loop it asked for",
-          "file": "de/light-volt/assistant.png",
-          "bytes": 756687
+          "file": "de/light-volt/assistant.webp",
+          "bytes": 186908
         },
         {
           "screen": "paywall",
           "title": "Velorki Plus as a subscriber sees it",
-          "file": "de/light-volt/paywall.png",
-          "bytes": 329898
+          "file": "de/light-volt/paywall.webp",
+          "bytes": 149572
         },
         {
           "screen": "cyclemap",
           "title": "The offline cycle map and stops in Chelsea, New York",
-          "file": "de/light-volt/cyclemap.png",
-          "bytes": 1215502
+          "file": "de/light-volt/cyclemap.webp",
+          "bytes": 248590
         },
         {
           "screen": "layers",
           "title": "The Layers sheet with the cycle map's parts",
-          "file": "de/light-volt/layers.png",
-          "bytes": 330571
+          "file": "de/light-volt/layers.webp",
+          "bytes": 135632
         }
       ]
     },
@@ -631,80 +631,80 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "de/dark-volt/planner.png",
-          "bytes": 721934
+          "file": "de/dark-volt/planner.webp",
+          "bytes": 136224
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "de/dark-volt/loop.png",
-          "bytes": 379965
+          "file": "de/dark-volt/loop.webp",
+          "bytes": 77364
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "de/dark-volt/search.png",
-          "bytes": 284186
+          "file": "de/dark-volt/search.webp",
+          "bytes": 70698
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "de/dark-volt/navigation.png",
-          "bytes": 744804
+          "file": "de/dark-volt/navigation.webp",
+          "bytes": 123436
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "de/dark-volt/recording.png",
-          "bytes": 556472
+          "file": "de/dark-volt/recording.webp",
+          "bytes": 90410
         },
         {
           "screen": "ride",
           "title": "A finished ride, with its charts and splits",
-          "file": "de/dark-volt/ride.png",
-          "bytes": 708937
+          "file": "de/dark-volt/ride.webp",
+          "bytes": 126940
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "de/dark-volt/library.png",
-          "bytes": 227378
+          "file": "de/dark-volt/library.webp",
+          "bytes": 69102
         },
         {
           "screen": "offline",
           "title": "Offline map and routing data",
-          "file": "de/dark-volt/offline.png",
-          "bytes": 214657
+          "file": "de/dark-volt/offline.webp",
+          "bytes": 96356
         },
         {
           "screen": "settings",
           "title": "Settings, with the appearance block",
-          "file": "de/dark-volt/settings.png",
-          "bytes": 261208
+          "file": "de/dark-volt/settings.webp",
+          "bytes": 94174
         },
         {
           "screen": "assistant",
           "title": "The assistant's card, with the loop it asked for",
-          "file": "de/dark-volt/assistant.png",
-          "bytes": 590421
+          "file": "de/dark-volt/assistant.webp",
+          "bytes": 135814
         },
         {
           "screen": "paywall",
           "title": "Velorki Plus as a subscriber sees it",
-          "file": "de/dark-volt/paywall.png",
-          "bytes": 331091
+          "file": "de/dark-volt/paywall.webp",
+          "bytes": 145530
         },
         {
           "screen": "cyclemap",
           "title": "The offline cycle map and stops in Chelsea, New York",
-          "file": "de/dark-volt/cyclemap.png",
-          "bytes": 695445
+          "file": "de/dark-volt/cyclemap.webp",
+          "bytes": 141694
         },
         {
           "screen": "layers",
           "title": "The Layers sheet with the cycle map's parts",
-          "file": "de/dark-volt/layers.png",
-          "bytes": 306629
+          "file": "de/dark-volt/layers.webp",
+          "bytes": 127530
         }
       ]
     },
@@ -716,80 +716,80 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "es/light-volt/planner.png",
-          "bytes": 961660
+          "file": "es/light-volt/planner.webp",
+          "bytes": 180910
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "es/light-volt/loop.png",
-          "bytes": 561068
+          "file": "es/light-volt/loop.webp",
+          "bytes": 103920
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "es/light-volt/search.png",
-          "bytes": 334669
+          "file": "es/light-volt/search.webp",
+          "bytes": 81414
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "es/light-volt/navigation.png",
-          "bytes": 1102848
+          "file": "es/light-volt/navigation.webp",
+          "bytes": 204714
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "es/light-volt/recording.png",
-          "bytes": 1079145
+          "file": "es/light-volt/recording.webp",
+          "bytes": 178502
         },
         {
           "screen": "ride",
           "title": "A finished ride, with its charts and splits",
-          "file": "es/light-volt/ride.png",
-          "bytes": 892181
+          "file": "es/light-volt/ride.webp",
+          "bytes": 173836
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "es/light-volt/library.png",
-          "bytes": 269940
+          "file": "es/light-volt/library.webp",
+          "bytes": 76610
         },
         {
           "screen": "offline",
           "title": "Offline map and routing data",
-          "file": "es/light-volt/offline.png",
-          "bytes": 227257
+          "file": "es/light-volt/offline.webp",
+          "bytes": 102552
         },
         {
           "screen": "settings",
           "title": "Settings, with the appearance block",
-          "file": "es/light-volt/settings.png",
-          "bytes": 287715
+          "file": "es/light-volt/settings.webp",
+          "bytes": 96958
         },
         {
           "screen": "assistant",
           "title": "The assistant's card, with the loop it asked for",
-          "file": "es/light-volt/assistant.png",
-          "bytes": 594524
+          "file": "es/light-volt/assistant.webp",
+          "bytes": 151812
         },
         {
           "screen": "paywall",
           "title": "Velorki Plus as a subscriber sees it",
-          "file": "es/light-volt/paywall.png",
-          "bytes": 337930
+          "file": "es/light-volt/paywall.webp",
+          "bytes": 149034
         },
         {
           "screen": "cyclemap",
           "title": "The offline cycle map and stops in Chelsea, New York",
-          "file": "es/light-volt/cyclemap.png",
-          "bytes": 1212565
+          "file": "es/light-volt/cyclemap.webp",
+          "bytes": 243706
         },
         {
           "screen": "layers",
           "title": "The Layers sheet with the cycle map's parts",
-          "file": "es/light-volt/layers.png",
-          "bytes": 325191
+          "file": "es/light-volt/layers.webp",
+          "bytes": 129720
         }
       ]
     },
@@ -801,80 +801,80 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "es/dark-volt/planner.png",
-          "bytes": 725946
+          "file": "es/dark-volt/planner.webp",
+          "bytes": 137648
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "es/dark-volt/loop.png",
-          "bytes": 389613
+          "file": "es/dark-volt/loop.webp",
+          "bytes": 79672
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "es/dark-volt/search.png",
-          "bytes": 282957
+          "file": "es/dark-volt/search.webp",
+          "bytes": 70238
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "es/dark-volt/navigation.png",
-          "bytes": 679396
+          "file": "es/dark-volt/navigation.webp",
+          "bytes": 114190
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "es/dark-volt/recording.png",
-          "bytes": 493932
+          "file": "es/dark-volt/recording.webp",
+          "bytes": 88746
         },
         {
           "screen": "ride",
           "title": "A finished ride, with its charts and splits",
-          "file": "es/dark-volt/ride.png",
-          "bytes": 712742
+          "file": "es/dark-volt/ride.webp",
+          "bytes": 127624
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "es/dark-volt/library.png",
-          "bytes": 229127
+          "file": "es/dark-volt/library.webp",
+          "bytes": 68870
         },
         {
           "screen": "offline",
           "title": "Offline map and routing data",
-          "file": "es/dark-volt/offline.png",
-          "bytes": 226270
+          "file": "es/dark-volt/offline.webp",
+          "bytes": 97302
         },
         {
           "screen": "settings",
           "title": "Settings, with the appearance block",
-          "file": "es/dark-volt/settings.png",
-          "bytes": 268578
+          "file": "es/dark-volt/settings.webp",
+          "bytes": 96488
         },
         {
           "screen": "assistant",
           "title": "The assistant's card, with the loop it asked for",
-          "file": "es/dark-volt/assistant.png",
-          "bytes": 467127
+          "file": "es/dark-volt/assistant.webp",
+          "bytes": 119200
         },
         {
           "screen": "paywall",
           "title": "Velorki Plus as a subscriber sees it",
-          "file": "es/dark-volt/paywall.png",
-          "bytes": 340255
+          "file": "es/dark-volt/paywall.webp",
+          "bytes": 144962
         },
         {
           "screen": "cyclemap",
           "title": "The offline cycle map and stops in Chelsea, New York",
-          "file": "es/dark-volt/cyclemap.png",
-          "bytes": 691988
+          "file": "es/dark-volt/cyclemap.webp",
+          "bytes": 140738
         },
         {
           "screen": "layers",
           "title": "The Layers sheet with the cycle map's parts",
-          "file": "es/dark-volt/layers.png",
-          "bytes": 300104
+          "file": "es/dark-volt/layers.webp",
+          "bytes": 122056
         }
       ]
     },
@@ -886,80 +886,80 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "fr/light-volt/planner.png",
-          "bytes": 931131
+          "file": "fr/light-volt/planner.webp",
+          "bytes": 173292
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "fr/light-volt/loop.png",
-          "bytes": 555714
+          "file": "fr/light-volt/loop.webp",
+          "bytes": 100800
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "fr/light-volt/search.png",
-          "bytes": 301582
+          "file": "fr/light-volt/search.webp",
+          "bytes": 75570
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "fr/light-volt/navigation.png",
-          "bytes": 1097055
+          "file": "fr/light-volt/navigation.webp",
+          "bytes": 200544
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "fr/light-volt/recording.png",
-          "bytes": 1034150
+          "file": "fr/light-volt/recording.webp",
+          "bytes": 176970
         },
         {
           "screen": "ride",
           "title": "A finished ride, with its charts and splits",
-          "file": "fr/light-volt/ride.png",
-          "bytes": 880000
+          "file": "fr/light-volt/ride.webp",
+          "bytes": 172334
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "fr/light-volt/library.png",
-          "bytes": 236801
+          "file": "fr/light-volt/library.webp",
+          "bytes": 71340
         },
         {
           "screen": "offline",
           "title": "Offline map and routing data",
-          "file": "fr/light-volt/offline.png",
-          "bytes": 225347
+          "file": "fr/light-volt/offline.webp",
+          "bytes": 102332
         },
         {
           "screen": "settings",
           "title": "Settings, with the appearance block",
-          "file": "fr/light-volt/settings.png",
-          "bytes": 283000
+          "file": "fr/light-volt/settings.webp",
+          "bytes": 97242
         },
         {
           "screen": "assistant",
           "title": "The assistant's card, with the loop it asked for",
-          "file": "fr/light-volt/assistant.png",
-          "bytes": 761047
+          "file": "fr/light-volt/assistant.webp",
+          "bytes": 186940
         },
         {
           "screen": "paywall",
           "title": "Velorki Plus as a subscriber sees it",
-          "file": "fr/light-volt/paywall.png",
-          "bytes": 338483
+          "file": "fr/light-volt/paywall.webp",
+          "bytes": 149296
         },
         {
           "screen": "cyclemap",
           "title": "The offline cycle map and stops in Chelsea, New York",
-          "file": "fr/light-volt/cyclemap.png",
-          "bytes": 1219066
+          "file": "fr/light-volt/cyclemap.webp",
+          "bytes": 250058
         },
         {
           "screen": "layers",
           "title": "The Layers sheet with the cycle map's parts",
-          "file": "fr/light-volt/layers.png",
-          "bytes": 307816
+          "file": "fr/light-volt/layers.webp",
+          "bytes": 121768
         }
       ]
     },
@@ -971,80 +971,80 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "fr/dark-volt/planner.png",
-          "bytes": 707693
+          "file": "fr/dark-volt/planner.webp",
+          "bytes": 135406
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "fr/dark-volt/loop.png",
-          "bytes": 387116
+          "file": "fr/dark-volt/loop.webp",
+          "bytes": 77304
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "fr/dark-volt/search.png",
-          "bytes": 265566
+          "file": "fr/dark-volt/search.webp",
+          "bytes": 67136
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "fr/dark-volt/navigation.png",
-          "bytes": 625336
+          "file": "fr/dark-volt/navigation.webp",
+          "bytes": 108642
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "fr/dark-volt/recording.png",
-          "bytes": 542879
+          "file": "fr/dark-volt/recording.webp",
+          "bytes": 91946
         },
         {
           "screen": "ride",
           "title": "A finished ride, with its charts and splits",
-          "file": "fr/dark-volt/ride.png",
-          "bytes": 704396
+          "file": "fr/dark-volt/ride.webp",
+          "bytes": 126394
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "fr/dark-volt/library.png",
-          "bytes": 205413
+          "file": "fr/dark-volt/library.webp",
+          "bytes": 65942
         },
         {
           "screen": "offline",
           "title": "Offline map and routing data",
-          "file": "fr/dark-volt/offline.png",
-          "bytes": 223882
+          "file": "fr/dark-volt/offline.webp",
+          "bytes": 97212
         },
         {
           "screen": "settings",
           "title": "Settings, with the appearance block",
-          "file": "fr/dark-volt/settings.png",
-          "bytes": 265457
+          "file": "fr/dark-volt/settings.webp",
+          "bytes": 96674
         },
         {
           "screen": "assistant",
           "title": "The assistant's card, with the loop it asked for",
-          "file": "fr/dark-volt/assistant.png",
-          "bytes": 595336
+          "file": "fr/dark-volt/assistant.webp",
+          "bytes": 134296
         },
         {
           "screen": "paywall",
           "title": "Velorki Plus as a subscriber sees it",
-          "file": "fr/dark-volt/paywall.png",
-          "bytes": 339358
+          "file": "fr/dark-volt/paywall.webp",
+          "bytes": 143254
         },
         {
           "screen": "cyclemap",
           "title": "The offline cycle map and stops in Chelsea, New York",
-          "file": "fr/dark-volt/cyclemap.png",
-          "bytes": 697812
+          "file": "fr/dark-volt/cyclemap.webp",
+          "bytes": 143508
         },
         {
           "screen": "layers",
           "title": "The Layers sheet with the cycle map's parts",
-          "file": "fr/dark-volt/layers.png",
-          "bytes": 283589
+          "file": "fr/dark-volt/layers.webp",
+          "bytes": 114314
         }
       ]
     },
@@ -1056,80 +1056,80 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "it/light-volt/planner.png",
-          "bytes": 927576
+          "file": "it/light-volt/planner.webp",
+          "bytes": 169524
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "it/light-volt/loop.png",
-          "bytes": 547642
+          "file": "it/light-volt/loop.webp",
+          "bytes": 97776
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "it/light-volt/search.png",
-          "bytes": 299578
+          "file": "it/light-volt/search.webp",
+          "bytes": 74848
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "it/light-volt/navigation.png",
-          "bytes": 1129104
+          "file": "it/light-volt/navigation.webp",
+          "bytes": 205814
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "it/light-volt/recording.png",
-          "bytes": 1014997
+          "file": "it/light-volt/recording.webp",
+          "bytes": 167434
         },
         {
           "screen": "ride",
           "title": "A finished ride, with its charts and splits",
-          "file": "it/light-volt/ride.png",
-          "bytes": 878882
+          "file": "it/light-volt/ride.webp",
+          "bytes": 171702
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "it/light-volt/library.png",
-          "bytes": 230743
+          "file": "it/light-volt/library.webp",
+          "bytes": 67610
         },
         {
           "screen": "offline",
           "title": "Offline map and routing data",
-          "file": "it/light-volt/offline.png",
-          "bytes": 200155
+          "file": "it/light-volt/offline.webp",
+          "bytes": 92074
         },
         {
           "screen": "settings",
           "title": "Settings, with the appearance block",
-          "file": "it/light-volt/settings.png",
-          "bytes": 275293
+          "file": "it/light-volt/settings.webp",
+          "bytes": 94080
         },
         {
           "screen": "assistant",
           "title": "The assistant's card, with the loop it asked for",
-          "file": "it/light-volt/assistant.png",
-          "bytes": 586668
+          "file": "it/light-volt/assistant.webp",
+          "bytes": 146474
         },
         {
           "screen": "paywall",
           "title": "Velorki Plus as a subscriber sees it",
-          "file": "it/light-volt/paywall.png",
-          "bytes": 334985
+          "file": "it/light-volt/paywall.webp",
+          "bytes": 150370
         },
         {
           "screen": "cyclemap",
           "title": "The offline cycle map and stops in Chelsea, New York",
-          "file": "it/light-volt/cyclemap.png",
-          "bytes": 1224084
+          "file": "it/light-volt/cyclemap.webp",
+          "bytes": 247618
         },
         {
           "screen": "layers",
           "title": "The Layers sheet with the cycle map's parts",
-          "file": "it/light-volt/layers.png",
-          "bytes": 330785
+          "file": "it/light-volt/layers.webp",
+          "bytes": 136150
         }
       ]
     },
@@ -1141,80 +1141,80 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "it/dark-volt/planner.png",
-          "bytes": 704213
+          "file": "it/dark-volt/planner.webp",
+          "bytes": 132062
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "it/dark-volt/loop.png",
-          "bytes": 379466
+          "file": "it/dark-volt/loop.webp",
+          "bytes": 74566
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "it/dark-volt/search.png",
-          "bytes": 263902
+          "file": "it/dark-volt/search.webp",
+          "bytes": 66358
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "it/dark-volt/navigation.png",
-          "bytes": 684540
+          "file": "it/dark-volt/navigation.webp",
+          "bytes": 112788
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "it/dark-volt/recording.png",
-          "bytes": 530714
+          "file": "it/dark-volt/recording.webp",
+          "bytes": 89392
         },
         {
           "screen": "ride",
           "title": "A finished ride, with its charts and splits",
-          "file": "it/dark-volt/ride.png",
-          "bytes": 701426
+          "file": "it/dark-volt/ride.webp",
+          "bytes": 124202
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "it/dark-volt/library.png",
-          "bytes": 199521
+          "file": "it/dark-volt/library.webp",
+          "bytes": 62244
         },
         {
           "screen": "offline",
           "title": "Offline map and routing data",
-          "file": "it/dark-volt/offline.png",
-          "bytes": 199103
+          "file": "it/dark-volt/offline.webp",
+          "bytes": 87362
         },
         {
           "screen": "settings",
           "title": "Settings, with the appearance block",
-          "file": "it/dark-volt/settings.png",
-          "bytes": 254090
+          "file": "it/dark-volt/settings.webp",
+          "bytes": 93248
         },
         {
           "screen": "assistant",
           "title": "The assistant's card, with the loop it asked for",
-          "file": "it/dark-volt/assistant.png",
-          "bytes": 459297
+          "file": "it/dark-volt/assistant.webp",
+          "bytes": 114246
         },
         {
           "screen": "paywall",
           "title": "Velorki Plus as a subscriber sees it",
-          "file": "it/dark-volt/paywall.png",
-          "bytes": 335638
+          "file": "it/dark-volt/paywall.webp",
+          "bytes": 144352
         },
         {
           "screen": "cyclemap",
           "title": "The offline cycle map and stops in Chelsea, New York",
-          "file": "it/dark-volt/cyclemap.png",
-          "bytes": 703290
+          "file": "it/dark-volt/cyclemap.webp",
+          "bytes": 141278
         },
         {
           "screen": "layers",
           "title": "The Layers sheet with the cycle map's parts",
-          "file": "it/dark-volt/layers.png",
-          "bytes": 306112
+          "file": "it/dark-volt/layers.webp",
+          "bytes": 127696
         }
       ]
     },
@@ -1226,80 +1226,80 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "nl/light-volt/planner.png",
-          "bytes": 965290
+          "file": "nl/light-volt/planner.webp",
+          "bytes": 181222
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "nl/light-volt/loop.png",
-          "bytes": 551804
+          "file": "nl/light-volt/loop.webp",
+          "bytes": 100938
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "nl/light-volt/search.png",
-          "bytes": 337550
+          "file": "nl/light-volt/search.webp",
+          "bytes": 81766
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "nl/light-volt/navigation.png",
-          "bytes": 1060998
+          "file": "nl/light-volt/navigation.webp",
+          "bytes": 198284
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "nl/light-volt/recording.png",
-          "bytes": 1072059
+          "file": "nl/light-volt/recording.webp",
+          "bytes": 172986
         },
         {
           "screen": "ride",
           "title": "A finished ride, with its charts and splits",
-          "file": "nl/light-volt/ride.png",
-          "bytes": 886899
+          "file": "nl/light-volt/ride.webp",
+          "bytes": 173798
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "nl/light-volt/library.png",
-          "bytes": 269469
+          "file": "nl/light-volt/library.webp",
+          "bytes": 77464
         },
         {
           "screen": "offline",
           "title": "Offline map and routing data",
-          "file": "nl/light-volt/offline.png",
-          "bytes": 211530
+          "file": "nl/light-volt/offline.webp",
+          "bytes": 99786
         },
         {
           "screen": "settings",
           "title": "Settings, with the appearance block",
-          "file": "nl/light-volt/settings.png",
-          "bytes": 282378
+          "file": "nl/light-volt/settings.webp",
+          "bytes": 95540
         },
         {
           "screen": "assistant",
           "title": "The assistant's card, with the loop it asked for",
-          "file": "nl/light-volt/assistant.png",
-          "bytes": 759253
+          "file": "nl/light-volt/assistant.webp",
+          "bytes": 187934
         },
         {
           "screen": "paywall",
           "title": "Velorki Plus as a subscriber sees it",
-          "file": "nl/light-volt/paywall.png",
-          "bytes": 330990
+          "file": "nl/light-volt/paywall.webp",
+          "bytes": 148150
         },
         {
           "screen": "cyclemap",
           "title": "The offline cycle map and stops in Chelsea, New York",
-          "file": "nl/light-volt/cyclemap.png",
-          "bytes": 1214293
+          "file": "nl/light-volt/cyclemap.webp",
+          "bytes": 248750
         },
         {
           "screen": "layers",
           "title": "The Layers sheet with the cycle map's parts",
-          "file": "nl/light-volt/layers.png",
-          "bytes": 331366
+          "file": "nl/light-volt/layers.webp",
+          "bytes": 136664
         }
       ]
     },
@@ -1311,80 +1311,80 @@
         {
           "screen": "planner",
           "title": "Planning the Funchal coast and Monte loop",
-          "file": "nl/dark-volt/planner.png",
-          "bytes": 728535
+          "file": "nl/dark-volt/planner.webp",
+          "bytes": 137776
         },
         {
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
-          "file": "nl/dark-volt/loop.png",
-          "bytes": 378997
+          "file": "nl/dark-volt/loop.webp",
+          "bytes": 76370
         },
         {
           "screen": "search",
           "title": "Searching the offline gazetteer",
-          "file": "nl/dark-volt/search.png",
-          "bytes": 285870
+          "file": "nl/dark-volt/search.webp",
+          "bytes": 70740
         },
         {
           "screen": "navigation",
           "title": "Turn-by-turn guidance while recording",
-          "file": "nl/dark-volt/navigation.png",
-          "bytes": 679321
+          "file": "nl/dark-volt/navigation.webp",
+          "bytes": 111976
         },
         {
           "screen": "recording",
           "title": "A ride being recorded",
-          "file": "nl/dark-volt/recording.png",
-          "bytes": 563129
+          "file": "nl/dark-volt/recording.webp",
+          "bytes": 91766
         },
         {
           "screen": "ride",
           "title": "A finished ride, with its charts and splits",
-          "file": "nl/dark-volt/ride.png",
-          "bytes": 698659
+          "file": "nl/dark-volt/ride.webp",
+          "bytes": 126110
         },
         {
           "screen": "library",
           "title": "Saved routes and rides",
-          "file": "nl/dark-volt/library.png",
-          "bytes": 202941
+          "file": "nl/dark-volt/library.webp",
+          "bytes": 65100
         },
         {
           "screen": "offline",
           "title": "Offline map and routing data",
-          "file": "nl/dark-volt/offline.png",
-          "bytes": 211108
+          "file": "nl/dark-volt/offline.webp",
+          "bytes": 93430
         },
         {
           "screen": "settings",
           "title": "Settings, with the appearance block",
-          "file": "nl/dark-volt/settings.png",
-          "bytes": 259750
+          "file": "nl/dark-volt/settings.webp",
+          "bytes": 96392
         },
         {
           "screen": "assistant",
           "title": "The assistant's card, with the loop it asked for",
-          "file": "nl/dark-volt/assistant.png",
-          "bytes": 593880
+          "file": "nl/dark-volt/assistant.webp",
+          "bytes": 136514
         },
         {
           "screen": "paywall",
           "title": "Velorki Plus as a subscriber sees it",
-          "file": "nl/dark-volt/paywall.png",
-          "bytes": 332980
+          "file": "nl/dark-volt/paywall.webp",
+          "bytes": 142314
         },
         {
           "screen": "cyclemap",
           "title": "The offline cycle map and stops in Chelsea, New York",
-          "file": "nl/dark-volt/cyclemap.png",
-          "bytes": 693548
+          "file": "nl/dark-volt/cyclemap.webp",
+          "bytes": 142182
         },
         {
           "screen": "layers",
           "title": "The Layers sheet with the cycle map's parts",
-          "file": "nl/dark-volt/layers.png",
-          "bytes": 306959
+          "file": "nl/dark-volt/layers.webp",
+          "bytes": 128126
         }
       ]
     }
