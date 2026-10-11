@@ -11,7 +11,7 @@ import 'package:velorki/features/settings/presentation/about_section.dart';
 import '../../support/app.dart';
 
 void main() {
-  // The map's own credit is text only; the one that leads anywhere is here.
+  // The credit in Settings → About leads to OpenStreetMap's copyright page.
   testWidgets('the OpenStreetMap credit opens the copyright page', (
     tester,
   ) async {

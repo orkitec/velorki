@@ -90,16 +90,9 @@ String mapStyleUrlFor(
   };
 }
 
-/// The weather credits of a map that has no adapter yet.
-final ValueListenable<List<String>> _noCredits = ValueNotifier<List<String>>(
-  const <String>[],
-);
-
-/// How far down the native (i) button sits on a phone turned sideways: in
-/// the top corner of the map away from the rail, below the row at the top
-/// (whose far end is the search) and the turn banner, so the attribution
-/// chip has the narrow map's whole width at the bottom.
-const double _infoButtonTopSideways = 124;
+/// Where the native (i) button goes: this far past the map's right edge,
+/// out of view on any screen.
+const double _infoButtonOffscreen = -10000;
 
 /// The map itself: a `MapLibreMap` platform view plus the adapter that turns
 /// it into a [MapController].
@@ -341,11 +334,8 @@ class _MapViewState extends ConsumerState<MapView> {
     final chrome = MapChromeInsets.maybeOf(context);
     final chromeTop = chrome?.controlsTop;
     // The bottom of the view, whatever an owner removed from the padding:
-    // the chip and the (i) button sit in the band under the bar, or, where
-    // the safe area is not that band, where the owner's chrome puts them.
-    // Turned sideways the map beside the rail and the sheet is narrow.
-    final sideways =
-        (chrome?.attributionInsets ?? EdgeInsets.zero) != EdgeInsets.zero;
+    // the chip sits in the band under the bar, or, where the safe area is
+    // not that band, where the owner's chrome puts it.
     final attributionBottom = mapAttributionBottom(
       context,
       gap: widget.attributionPadding.bottom,
@@ -366,19 +356,15 @@ class _MapViewState extends ConsumerState<MapView> {
         trackCameraPosition: true,
         compassEnabled: false,
         logoEnabled: false,
-        // maplibre_gl 0.27 cannot hide the native attribution (i) button, so it
-        // is parked bottom right, in the same band as our own chip; sideways in
-        // the top corner away from the rail, where the narrow map leaves it
-        // room the chip's band does not.
-        attributionButtonPosition: !sideways
-            ? ml.AttributionButtonPosition.bottomRight
-            : (chrome?.attributionInsets.left ?? 0) > 0
-            ? ml.AttributionButtonPosition.topRight
-            : ml.AttributionButtonPosition.topLeft,
-        attributionButtonMargins: Point<num>(
-          8,
-          sideways ? _infoButtonTopSideways : attributionBottom,
-        ),
+        // maplibre_gl 0.27 has no switch for the native attribution (i)
+        // button, and a clear tint would still leave it taking taps. Our
+        // chip carries the (i) and the credits instead, so the native button
+        // is pushed off the map's right edge by a negative margin, upright
+        // and sideways alike (one bottom-right corner for both): both
+        // platforms apply margins as they change (Android's
+        // `setAttributionMargins`, iOS's `attributionButtonMargins`).
+        attributionButtonPosition: ml.AttributionButtonPosition.bottomRight,
+        attributionButtonMargins: const Point<num>(_infoButtonOffscreen, 0),
         rotateGesturesEnabled: true,
         tiltGesturesEnabled: false,
         // The map claims every touch that lands on it. Inside a scroll view
@@ -451,15 +437,11 @@ class _MapViewState extends ConsumerState<MapView> {
                     widget.attributionPadding.right +
                     (chrome?.attributionInsets.right ?? 0),
                 bottom: attributionBottom,
-                // Text only, it takes no touch: one on it reaches the map.
-                // The weather layers' credits are this map's own, shown
-                // while their layers are drawn.
+                // A tap on it opens the credits, the weather layers' among
+                // them while their layers are drawn.
                 child: Center(
-                  child: ValueListenableBuilder<List<String>>(
-                    valueListenable:
-                        _adapter?.weatherAttributions ?? _noCredits,
-                    builder: (context, credits, _) =>
-                        MapAttributionChip(extra: credits),
+                  child: MapAttributionChip(
+                    weatherCredits: _adapter?.weatherAttributions,
                   ),
                 ),
               ),

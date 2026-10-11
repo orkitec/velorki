@@ -40,15 +40,15 @@ class MapChromeInsets extends InheritedWidget {
   /// What the Layers sheet offers about stops on this map.
   final MapStopsOffer stopsOffer;
 
-  /// What covers the map's sides at the bottom, so the attribution chip and
-  /// the (i) button stay on the map beside it: the rail and the side panel
+  /// What covers the map's sides at the bottom, so the attribution chip
+  /// stays on the map beside it: the rail and the side panel
   /// of a phone turned sideways. Nothing upright.
   final EdgeInsets attributionInsets;
 
-  /// How far above the map's bottom edge the attribution chip and the (i)
-  /// button stand, their gap not included; `null` for the band under the
+  /// How far above the map's bottom edge the attribution chip stands, its
+  /// gap not included; `null` for the band under the
   /// floating bar, the view's bottom padding. The shell's map, whose view
-  /// padding is taken off, puts them on the safe area's edge on a phone with
+  /// padding is taken off, puts it on the safe area's edge on a phone with
   /// no gesture zone at the bottom, under the raised bar
   /// (`shellAttributionFloor`).
   final double? attributionFloor;

@@ -2,12 +2,33 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/links/link_opener.dart';
 import '../../../core/links/velorki_urls.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../performance/data/show_performance_setting.dart';
 import '../data/package_info_provider.dart';
+
+/// Opens the licence page: every package's licence and the data sources
+/// that `registerVelorkiLicenses()` adds. From Settings → About and from the
+/// map's credits.
+void showVelorkiLicenses(BuildContext context, WidgetRef ref) {
+  final l10n = AppLocalizations.of(context);
+  showLicensePage(
+    context: context,
+    applicationName: l10n.appName,
+    applicationVersion: _version(ref.read(packageInfoProvider)),
+    applicationLegalese: l10n.settingsLegalese,
+  );
+}
+
+/// The app's version and build, `null` while unknown.
+String? _version(AsyncValue<PackageInfo> info) => info.when<String?>(
+  data: (i) => '${i.version}+${i.buildNumber}',
+  loading: () => null,
+  error: (_, _) => null,
+);
 
 /// Settings → About: version, attribution, licences and the legal links.
 ///
@@ -28,25 +49,11 @@ class AboutSection extends ConsumerWidget {
     messenger.showSnackBar(SnackBar(content: Text(l10n.settingsOpenFailed)));
   }
 
-  void _showLicenses(BuildContext context, String? version) {
-    final l10n = AppLocalizations.of(context);
-    showLicensePage(
-      context: context,
-      applicationName: l10n.appName,
-      applicationVersion: version,
-      applicationLegalese: l10n.settingsLegalese,
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final info = ref.watch(packageInfoProvider);
-    final version = info.when<String?>(
-      data: (i) => '${i.version}+${i.buildNumber}',
-      loading: () => null,
-      error: (_, _) => null,
-    );
+    final version = _version(info);
     return Column(
       children: [
         ListTile(
@@ -72,7 +79,7 @@ class AboutSection extends ConsumerWidget {
           title: Text(l10n.settingsLicenses),
           subtitle: Text(l10n.settingsLicensesSubtitle),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => _showLicenses(context, version),
+          onTap: () => showVelorkiLicenses(context, ref),
         ),
         ListTile(
           leading: const Icon(Icons.privacy_tip_outlined),

@@ -4397,6 +4397,26 @@
   "@mapAttributionCyclosm": {
     "description": "The cycling overlay renderer, in the attribution line on the map. A project name: keep it."
   },
+  "mapAttributionOpenMapTiles": "© OpenMapTiles",
+  "@mapAttributionOpenMapTiles": {
+    "description": "The vector tile schema, in the map credits sheet. A project name: keep it."
+  },
+  "mapCredits": "Map credits",
+  "@mapCredits": {
+    "description": "Title of the sheet listing the map's data sources, and the screen-reader label of the credit chip on the map that opens it"
+  },
+  "mapCreditsMap": "Map",
+  "@mapCreditsMap": {
+    "description": "Section caption in the map credits sheet: the base map's sources"
+  },
+  "mapCreditsWeather": "Weather",
+  "@mapCreditsWeather": {
+    "description": "Section caption in the map credits sheet: the weather layers' sources"
+  },
+  "mapCreditsAllLicences": "All licences",
+  "@mapCreditsAllLicences": {
+    "description": "Row in the map credits sheet that opens the list of every licence"
+  },
   "mapLocateMe": "Show my position",
   "@mapLocateMe": {
     "description": "Tooltip of the map button that centres the map on the rider"

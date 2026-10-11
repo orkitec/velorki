@@ -156,6 +156,7 @@ const Map<String, String> sameAsEnglish = <String, String>{
   'plusTitle': 'product name (Velorki Plus)',
   'mapAttributionOpenFreeMap': 'project name',
   'mapAttributionCyclosm': 'project name',
+  'mapAttributionOpenMapTiles': 'project name',
   'settingsSensorsAppleHealth': 'product name',
   'settingsSensorsHealthConnect': 'product name',
   'settingsSensorsAppleWatch': 'product name',

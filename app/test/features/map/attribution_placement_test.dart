@@ -137,7 +137,7 @@ void main() {
   for (final MapEntry(key: platform, value: phones) in _phones.entries) {
     for (final phone in phones) {
       testWidgets('${platform.name}, ${phone.name}: the credit is in view '
-          'and takes no touch, with the sheet docked and during a ride', (
+          'and opens the credits, with the sheet docked and during a ride', (
         tester,
       ) async {
         const size = Size(390, 844);
@@ -165,21 +165,21 @@ void main() {
               )
               .first,
         );
-        // Nothing of the chip takes a touch: a tap on it opens nothing.
+        // The (i) beside the credit: a tap there is the (i)'s.
+        final glass = tester.getCenter(
+          find.descendant(
+            of: find.byType(MapAttributionChip),
+            matching: find.byIcon(Icons.info_outline),
+          ),
+        );
         final hit = HitTestResult();
-        tester.binding.hitTestInView(hit, chip.center, tester.view.viewId);
-        final chipObjects = {
-          tester.renderObject(find.byType(MapAttributionChip)),
-          for (final e
-              in find
-                  .descendant(
-                    of: find.byType(MapAttributionChip),
-                    matching: find.byWidgetPredicate((_) => true),
-                  )
-                  .evaluate())
-            e.renderObject,
-        };
-        expect(hit.path.where((e) => chipObjects.contains(e.target)), isEmpty);
+        tester.binding.hitTestInView(hit, glass, tester.view.viewId);
+        final info = tester.renderObject(find.byIcon(Icons.info_outline));
+        expect(
+          hit.path.any((e) => identical(e.target, info)),
+          isTrue,
+          reason: 'the system gesture zone lets a tap on the (i) through',
+        );
         if (phone.zone > 0) {
           expect(
             chip.bottom,
@@ -203,9 +203,6 @@ void main() {
           // lines at this width, so it is not measured against the bar's
           // bottom: on a phone it is one line of about 21 dp).
           expect(chip.bottom, greaterThan(bar.bottom));
-          // Under it, the map: a tap there is the map's.
-          final map = tester.renderObject(find.byType(TestMapView));
-          expect(hit.path.any((e) => identical(e.target, map)), isTrue);
         }
         // The sheet's strip still meets the bar's top edge exactly.
         final strip = find.descendant(
@@ -218,9 +215,12 @@ void main() {
           ),
         );
         expect(tester.getRect(strip).bottom, closeTo(bar.top, 0.01));
-        await tester.tapAt(chip.center);
+        await tester.tapAt(glass);
         await tester.pumpAndSettle();
-        expect(find.byType(Dialog), findsNothing);
+        expect(find.byType(MapCreditsSheet), findsOneWidget);
+        Navigator.of(tester.element(find.byType(MapCreditsSheet))).pop();
+        await tester.pumpAndSettle();
+        expect(find.byType(MapCreditsSheet), findsNothing);
 
         // During a ride the figures bar takes the tab bar's place exactly,
         // and the credit stays where it was.

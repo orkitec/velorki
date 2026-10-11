@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart' as geo;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
+import 'package:velorki/core/links/link_opener.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
@@ -160,31 +162,161 @@ void main() {
       expect(find.textContaining(l10n.mapAttributionCyclosm), findsOneWidget);
     });
 
-    testWidgets('is text only: a tap goes through to what lies under it', (
-      tester,
-    ) async {
-      var taps = 0;
+    testWidgets('leaves the weather credits to the sheet', (tester) async {
       await tester.pumpWidget(
         await _wrap(
-          Stack(
-            children: [
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => taps++,
-                ),
-              ),
-              const Center(child: MapAttributionChip()),
-            ],
+          MapAttributionChip(
+            weatherCredits: ValueNotifier<List<String>>(['Radar: X 2026']),
           ),
         ),
       );
 
-      await tester.tap(find.byType(MapAttributionChip));
+      expect(
+        find.text('${l10n.osmAttribution} · ${l10n.mapAttributionOpenFreeMap}'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Radar: X'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(MapAttributionChip),
+          matching: find.byIcon(Icons.info_outline),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('only its (i) is a button, 48 dp tall, named for the '
+        'credits; the credit lets taps through', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(await _wrap(const MapAttributionChip()));
+
+      final info = find.byIcon(Icons.info_outline);
+      final button = find.ancestor(
+        of: info,
+        matching: find.byType(GestureDetector),
+      );
+      expect(
+        tester.getSize(button.first).height,
+        greaterThanOrEqualTo(kMinInteractiveDimension),
+      );
+      expect(
+        tester.getSemantics(info),
+        matchesSemantics(
+          label: l10n.mapCredits,
+          isButton: true,
+          hasTapAction: true,
+        ),
+      );
+      // A tap on the credit's text opens nothing.
+      await tester.tap(
+        find.text('${l10n.osmAttribution} · ${l10n.mapAttributionOpenFreeMap}'),
+        warnIfMissed: false,
+      );
       await tester.pumpAndSettle();
-      expect(taps, 1, reason: 'the map under the chip gets the tap');
-      expect(find.byType(Dialog), findsNothing);
-      expect(find.textContaining(l10n.osmAttribution), findsOneWidget);
+      expect(find.byType(MapCreditsSheet), findsNothing);
+      semantics.dispose();
+    });
+
+    Future<List<Uri>> pumpAndOpen(
+      WidgetTester tester, {
+      List<String> weather = const <String>[],
+      bool cyclosm = false,
+    }) async {
+      final opened = <Uri>[];
+      await tester.pumpWidget(
+        await _wrap(
+          MapAttributionChip(
+            weatherCredits: ValueNotifier<List<String>>(weather),
+          ),
+          cyclosm: cyclosm,
+          overrides: [
+            linkOpenerProvider.overrideWithValue((url) async {
+              opened.add(url);
+              return true;
+            }),
+          ],
+        ),
+      );
+      await tester.tap(find.byIcon(Icons.info_outline));
+      await tester.pumpAndSettle();
+      return opened;
+    }
+
+    testWidgets('a tap opens the credits: the map, then the weather', (
+      tester,
+    ) async {
+      final opened = await pumpAndOpen(
+        tester,
+        weather: ['Radar: X 2026', 'Wind: Y'],
+      );
+
+      final sheet = find.byType(MapCreditsSheet);
+      expect(sheet, findsOneWidget);
+      Finder inSheet(String text) =>
+          find.descendant(of: sheet, matching: find.text(text));
+      expect(inSheet(l10n.mapCredits), findsOneWidget);
+      expect(inSheet(l10n.mapCreditsMap.toUpperCase()), findsOneWidget);
+      expect(inSheet(l10n.osmAttribution), findsOneWidget);
+      expect(inSheet(l10n.mapAttributionOpenFreeMap), findsOneWidget);
+      expect(inSheet(l10n.mapAttributionOpenMapTiles), findsOneWidget);
+      expect(inSheet(l10n.mapAttributionCyclosm), findsNothing);
+      expect(inSheet(l10n.mapCreditsWeather.toUpperCase()), findsOneWidget);
+      expect(inSheet('Radar: X 2026'), findsOneWidget);
+      expect(inSheet('Wind: Y'), findsOneWidget);
+      expect(
+        tester.getTopLeft(inSheet('Radar: X 2026')).dy,
+        greaterThan(tester.getTopLeft(inSheet(l10n.osmAttribution)).dy),
+      );
+
+      await tester.tap(inSheet(l10n.osmAttribution));
+      await tester.tap(inSheet(l10n.mapAttributionOpenFreeMap));
+      await tester.tap(inSheet(l10n.mapAttributionOpenMapTiles));
+      await tester.pumpAndSettle();
+      expect(opened, [
+        Uri.parse('https://www.openstreetmap.org/copyright'),
+        Uri.parse('https://openfreemap.org'),
+        Uri.parse('https://www.openmaptiles.org/'),
+      ]);
+    });
+
+    testWidgets('without weather the sheet has no weather section', (
+      tester,
+    ) async {
+      await pumpAndOpen(tester, cyclosm: true);
+
+      final sheet = find.byType(MapCreditsSheet);
+      expect(sheet, findsOneWidget);
+      expect(
+        find.descendant(
+          of: sheet,
+          matching: find.text(l10n.mapCreditsWeather.toUpperCase()),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: sheet,
+          matching: find.text(l10n.mapAttributionCyclosm),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('"All licences" opens the licence page', (tester) async {
+      PackageInfo.setMockInitialValues(
+        appName: 'Velorki',
+        packageName: 'com.velorki',
+        version: '1.0.0',
+        buildNumber: '1',
+        buildSignature: '',
+      );
+      await pumpAndOpen(tester);
+
+      final row = find.text(l10n.mapCreditsAllLicences);
+      await tester.ensureVisible(row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+      expect(find.byType(LicensePage), findsOneWidget);
     });
   });
 
