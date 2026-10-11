@@ -82,11 +82,30 @@ class MarkerLayers {
   /// The name beside a disc.
   static List<Object> nameTextSize() => whenSelected(nameSelectedPx, namePx);
 
-  /// The glyph on a disc: drawn at the size the chosen point wants and
-  /// scaled down for the rest, so it keeps its share of whichever disc it
-  /// sits on.
-  static List<Object> glyphScale() =>
-      whenSelected(1.0, markerGlyphUnselectedScale);
+  /// The glyph on a disc, as the name of its picture: the feature's `icon`
+  /// for the chosen point, the smaller picture of the same glyph
+  /// ([markerGlyphUnselectedName]) for the rest, so it keeps its share of
+  /// whichever disc it sits on.
+  ///
+  /// Two pictures, each drawn at the size it is shown at, rather than one
+  /// scaled by `icon-size`: MapLibre filters a scaled icon, and that blurs
+  /// a glyph's thin strokes. Unscaled, a picture registered at the screen's
+  /// pixel ratio is drawn pixel for pixel.
+  ///
+  /// A feature with no `icon` names no picture.
+  static List<Object> glyphImage() => <Object>[
+    'case',
+    <Object>['has', 'icon'],
+    whenSelected(
+      <Object>['get', 'icon'],
+      <Object>[
+        'concat',
+        <Object>['get', 'icon'],
+        markerGlyphUnselectedSuffix,
+      ],
+    ),
+    '',
+  ];
 
   /// How much smaller a stop's glyph is than the chosen point's: smaller
   /// than a route's own places, which matter more than any tap nearby.
@@ -148,24 +167,24 @@ class MarkerLayers {
   static const List<double> clusterRadiiPx = <double>[14, 17, 20];
   static const List<int> clusterRadiusSteps = <int>[10, 50];
 
-  /// What the bubble's picture is called in the style.
-  static const String clusterImageName = 'velorki-stop-cluster';
+  /// What the picture of a bubble of [radiusPx] is called in the style.
+  ///
+  /// One picture per radius, each drawn at its own size with the stops'
+  /// rim round it, rather than one scaled by `icon-size`, which MapLibre
+  /// filters and so blurs.
+  static String clusterImageName(double radiusPx) =>
+      'velorki-stop-cluster-${radiusPx.round()}';
 
-  /// The bubble's picture is drawn once, at the widest radius, and scaled
-  /// down: to the rim's outside edge, so a bubble covers as much of the
-  /// map as a circle of the same radius and rim did.
-  static double clusterScale(double radiusPx) =>
-      (radiusPx + stopStrokePx) / (clusterRadiiPx.last + stopStrokePx);
-
-  /// A cluster bubble's size, stepping up with how many stops it holds.
-  static List<Object> clusterIconSize() => <Object>[
+  /// The picture of a cluster bubble, stepping up with how many stops it
+  /// holds.
+  static List<Object> clusterImage() => <Object>[
     'step',
     <Object>['get', 'point_count'],
-    clusterScale(clusterRadiiPx[0]),
+    clusterImageName(clusterRadiiPx[0]),
     clusterRadiusSteps[0],
-    clusterScale(clusterRadiiPx[1]),
+    clusterImageName(clusterRadiiPx[1]),
     clusterRadiusSteps[1],
-    clusterScale(clusterRadiiPx[2]),
+    clusterImageName(clusterRadiiPx[2]),
   ];
 
   /// What a cluster bubble says: how many stops it holds, "99+" beyond.
@@ -189,8 +208,7 @@ class MarkerLayers {
   /// Forced, like a waypoint's number: every bubble shows, and its count is
   /// inside it, where nothing else is.
   ml.SymbolLayerProperties clusterBubble() => ml.SymbolLayerProperties(
-    iconImage: clusterImageName,
-    iconSize: clusterIconSize(),
+    iconImage: clusterImage(),
     iconAnchor: 'center',
     iconAllowOverlap: true,
     iconIgnorePlacement: true,
@@ -220,8 +238,7 @@ class MarkerLayers {
   /// The glyph on a marker's disc. A feature with no `icon` keeps the plain
   /// disc.
   ml.SymbolLayerProperties glyph() => ml.SymbolLayerProperties(
-    iconImage: <Object>['get', 'icon'],
-    iconSize: glyphScale(),
+    iconImage: glyphImage(),
     iconOpacity: opacity(),
     iconAnchor: 'center',
     iconAllowOverlap: true,

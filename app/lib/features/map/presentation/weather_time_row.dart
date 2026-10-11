@@ -127,8 +127,10 @@ String weatherWindLabel(
 /// where that would leave the slider less than [weatherSliderMinShare] of
 /// the row, the label on a small line of its own over a slider as wide as
 /// the row ([weatherTimeRowStacks]). The step is the one all tabs share
-/// ([weatherRadarOffsetProvider]); the map follows when the slider is let
-/// go.
+/// ([weatherRadarOffsetProvider]), set when the slider is let go; while it
+/// is dragged the map shows the step under the finger where it is loaded,
+/// else the nearest one that is ([weatherRadarPreviewProvider]), and the
+/// label says which.
 class WeatherTimeRow extends ConsumerStatefulWidget {
   /// Creates the row, with [padding] around it while it shows.
   const WeatherTimeRow({super.key, this.padding = EdgeInsets.zero});
@@ -259,19 +261,25 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
     final sources = ref.watch(weatherMapSourcesProvider);
     final status = ref.watch(sharedWeatherMapStatusProvider);
     final committed = ref.watch(weatherRadarOffsetProvider);
-    final offset = _dragging ?? committed;
+    final dragging = _dragging;
+    // The slider under the finger; the label the step the map shows, which
+    // while dragging is the nearest one loaded.
+    final offset = dragging ?? committed;
+    final labelOffset = dragging == null
+        ? committed
+        : status.shownOffset ?? dragging;
     // With the rain on the label tells the rain's moment, else the wind's.
     final rainOn = weatherRainOn(ref);
     final label = rainOn
         ? weatherRainLabel(
             context,
-            offset,
-            weatherRainAt(sources, status, offset),
+            labelOffset,
+            weatherRainAt(sources, status, labelOffset),
           )
         : weatherWindLabel(
             context,
-            offset,
-            weatherWindAt(sources, status, offset),
+            labelOffset,
+            weatherWindAt(sources, status, labelOffset),
           );
     final labelWidth = weatherTimeLabelWidth(
       context,
@@ -363,14 +371,17 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
             max: (weatherRadarOffsets.length - 1).toDouble(),
             divisions: weatherRadarOffsets.length - 1,
             semanticFormatterCallback: (_) => label,
-            onChanged: (value) => setState(
-              () => _dragging = weatherOffsetOfSliderIndex(value.round()),
-            ),
+            onChanged: (value) {
+              final step = weatherOffsetOfSliderIndex(value.round());
+              setState(() => _dragging = step);
+              ref.read(weatherRadarPreviewProvider.notifier).set(step);
+            },
             onChangeEnd: (value) {
               setState(() => _dragging = null);
               ref
                   .read(weatherRadarOffsetProvider.notifier)
                   .set(weatherOffsetOfSliderIndex(value.round()));
+              ref.read(weatherRadarPreviewProvider.notifier).set(null);
             },
           ),
         ),
@@ -379,11 +390,11 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
   }
 }
 
-/// The weather's short lines over the map: the clouds' time while they are
-/// on, and that a layer (the rain, the clouds, the wind) is unavailable where its service did not answer,
-/// which would otherwise look like a dry, clear day. With [rainTime], also
-/// the rain's moment, for the Library tab, which has no time control.
-/// Nothing when there is nothing to say.
+/// The weather's short lines over the map: that a layer (the rain, the
+/// clouds, the wind) is unavailable where its service did not answer, which
+/// would otherwise look like a dry, clear day. With [rainTime], also the
+/// rain's moment, for the Library tab, which has no time control. Nothing
+/// when there is nothing to say. (The clouds' time is in the Layers sheet.)
 class WeatherMapHints extends ConsumerWidget {
   /// Creates the hints, with [padding] around them while there are any.
   const WeatherMapHints({
@@ -406,14 +417,8 @@ class WeatherMapHints extends ConsumerWidget {
     if (!rain && !clouds && !wind) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
     final status = ref.watch(sharedWeatherMapStatusProvider);
-    final cloudsFrame = clouds ? status.cloudsFrame : null;
     final chips = <Widget>[
       if (rain && rainTime) _rainChip(context, ref, sources, status),
-      if (cloudsFrame != null)
-        WeatherMapChip(
-          text: l10n.mapWeatherCloudsAt(weatherClockTime(context, cloudsFrame)),
-          icon: Icons.cloud_outlined,
-        ),
       if (rain)
         for (final role in RainRole.values)
           if (status.failedRain.contains(role))
@@ -477,8 +482,8 @@ class WeatherMapHints extends ConsumerWidget {
   }
 }
 
-/// A short glass line over the map: the clouds' or the rain's time, or
-/// that a layer is unavailable.
+/// A short glass line over the map: the rain's time, or that a layer is
+/// unavailable.
 class WeatherMapChip extends StatelessWidget {
   /// Creates the chip.
   const WeatherMapChip({

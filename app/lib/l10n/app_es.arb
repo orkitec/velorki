@@ -897,6 +897,7 @@
   "mapStopsZoomIn": "Acerca el mapa para ver paradas",
   "mapStopsNotDownloaded": "No hay paradas aquí – zona no descargada",
   "mapStopsDownload": "Descargar",
+  "mapAreaHintHide": "Ocultar",
   "mapLayersStopsPlanHint": "Visibles al acercar · toca una para planificar hasta ella",
   "mapLayersStopsRideHint": "Toca una para verla en el mapa",
   "mapLayersAlongRoute": "A lo largo de la ruta",

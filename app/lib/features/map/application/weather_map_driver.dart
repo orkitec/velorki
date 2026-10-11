@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -36,6 +37,23 @@ const Duration windDebounce = Duration(milliseconds: 400);
 /// tile around the middle of the view.
 const int weatherProbeZoom = 5;
 
+/// How many of the time control's other frames are asked for at once in
+/// the background (see [WeatherMapDriver.prefetch]).
+const int weatherPrefetchConcurrency = 2;
+
+/// How many frames of one rain image (one source, one piece of the view)
+/// the map keeps loaded at most: one a step of the time control.
+const int weatherPreloadMaxFrames = 32;
+
+/// How many pixels all the rain frames kept loaded hold together at most,
+/// some 100 MB decoded: the background stops asking when they would hold
+/// more, and the frames used longest ago go first.
+const int weatherPreloadMaxPixels = 24 * 1024 * 1024;
+
+/// How many wind grids are kept in memory: one an hour of the time control
+/// and a few more.
+const int windGridsKept = 32;
+
 /// What the weather layers on a map say about themselves, for the time
 /// control and its hints.
 @immutable
@@ -45,6 +63,7 @@ class WeatherMapStatus {
     this.centre,
     this.at,
     this.cloudsFrame,
+    this.shownOffset,
     this.failed = const <WeatherKind>{},
     this.failedRain = const <RainRole>{},
   });
@@ -59,6 +78,11 @@ class WeatherMapStatus {
   /// The moment the clouds in view show, UTC, where the service names it.
   final DateTime? cloudsFrame;
 
+  /// The step of the time control the rain and the wind on the map show,
+  /// in minutes from now: while the slider is dragged the step under the
+  /// finger, or the nearest one already loaded; `null` before the first.
+  final int? shownOffset;
+
   /// The kinds of which a source over the view did not answer.
   final Set<WeatherKind> failed;
 
@@ -72,6 +96,7 @@ class WeatherMapStatus {
       other.centre == centre &&
       other.at == at &&
       other.cloudsFrame == cloudsFrame &&
+      other.shownOffset == shownOffset &&
       setEquals(other.failed, failed) &&
       setEquals(other.failedRain, failedRain);
 
@@ -80,6 +105,7 @@ class WeatherMapStatus {
     centre,
     at,
     cloudsFrame,
+    shownOffset,
     Object.hashAllUnordered(failed),
     Object.hashAllUnordered(failedRain),
   );
@@ -87,7 +113,7 @@ class WeatherMapStatus {
   @override
   String toString() =>
       'WeatherMapStatus(centre: $centre, at: $at, clouds: $cloudsFrame, '
-      'failed: $failed, failedRain: $failedRain)';
+      'shown: $shownOffset, failed: $failed, failedRain: $failedRain)';
 }
 
 /// Keeps one map drawing the weather layers the settings ask for: the
@@ -113,36 +139,57 @@ class WeatherMapStatus {
 /// anew with each; nothing after it is asked for where it measures all over
 /// the view.
 /// Radar drawn soft ([RadarStyle.soft]), the satellite and the models are
-/// one image of the view and its surroundings per source instead of tiles,
-/// fetched and prepared by this driver once the camera has rested
-/// ([radarImageDebounce]), at once when the time control or the style
-/// changes, and with each refresh; the image shown stays until the next is
-/// in, one request per source at a time, an answer for a view, moment or
-/// mask since left dropped. That fetch is the source's check, in place of
-/// the probe.
+/// images of the view and its surroundings instead of tiles, at every zoom:
+/// one, or zoomed far out or across the antimeridian two
+/// ([weatherImageAreas]), fetched and prepared by this driver once the
+/// camera has rested ([radarImageDebounce]), at once when the time control
+/// or the style changes, and with each refresh; the image shown stays
+/// until the next is in, one request per image at a time. That fetch is
+/// the source's check, in place of the probe.
 ///
 /// The wind is one grid of the view and its margin ([windRequestFor]) at
 /// the time control's hour, fetched once the camera has rested
 /// ([windDebounce]), at once when the step changes, and again when the
 /// hour turns or the grid is older than [windCacheMaxAge]; from it the
 /// arrows over the view are worked out on the phone ([windArrowsFor]) at
-/// every rest of the camera. One request at a time, an answer for a view
-/// or moment since left dropped; the grid shown stays until the next is
-/// in. Not below [weatherImageMinZoom]. That fetch is the wind's check.
+/// every rest of the camera. One request at a time; the grid shown stays
+/// until the next is in. At every zoom, thinned zoomed out. That fetch is
+/// the wind's check.
+///
+/// With the step's own frames in, the other steps' rain images and wind
+/// grids for the view are asked for in the background ([prefetch]): the
+/// nowcast's steps first, then the hours ahead, at most
+/// [weatherPrefetchConcurrency] at a time, through the fetcher's cache.
+/// They stay loaded on the map unseen ([WeatherLayer.preloaded]), at most
+/// [weatherPreloadMaxFrames] an image and [weatherPreloadMaxPixels] in
+/// all, until the view leaves them; so while the slider is dragged
+/// ([preview]) the map shows the step under the finger at once where it is
+/// loaded, or the nearest step that is, by switching which frame is seen.
 ///
 /// A source that does not answer is reported in [status], so the map can
 /// say so instead of looking like a dry, clear day.
 class WeatherMapDriver {
-  /// A driver fetching through [fetcher], telling the time by [clock].
-  WeatherMapDriver({required this._fetcher, DateTime Function()? clock})
-    : _clock = clock ?? DateTime.now;
+  /// A driver fetching through [fetcher], telling the time by [clock];
+  /// with [prefetch] off (for tests), only the time control's own step is
+  /// asked for.
+  WeatherMapDriver({
+    required this._fetcher,
+    DateTime Function()? clock,
+    this.prefetch = true,
+  }) : _clock = clock ?? DateTime.now;
 
   final WeatherFetcher _fetcher;
   final DateTime Function() _clock;
+
+  /// Whether the other steps of the time control are asked for in the
+  /// background.
+  final bool prefetch;
+
   MapController? _map;
   WeatherMapSettings _settings = const WeatherMapSettings();
   List<WeatherMapSource> _sources = const <WeatherMapSource>[];
   int _offset = 0;
+  int? _preview;
   RadarStyle _radarStyle = RadarStyle.soft;
   bool _foreground = true;
   bool _disposed = false;
@@ -153,12 +200,15 @@ class WeatherMapDriver {
   Timer? _windTimer;
   Timer? _windRefreshTimer;
 
-  /// The wind grid shown, the request in flight (its key) and the last
-  /// one that failed, which is not asked again for until the next
+  /// The wind grids in memory, the oldest used first; the one shown; the
+  /// request in flight for the time control's own step (its key) and the
+  /// requests that failed, which are not asked again for until the next
   /// refresh, step or switch.
+  final LinkedHashMap<String, _WindShown> _windGrids =
+      LinkedHashMap<String, _WindShown>();
   _WindShown? _wind;
   String? _windInFlight;
-  String? _windFailed;
+  final Set<String> _windFailed = <String>{};
 
   /// The arrows last handed to the map.
   WindArrows? _windDrawn;
@@ -185,12 +235,19 @@ class WeatherMapDriver {
   final Map<String, String> _detailInFlight = <String, String>{};
   final Map<String, String> _detailFailed = <String, String>{};
 
-  /// Each radar source's soft image, the request in flight for it (its
-  /// key) and the last one that failed, which is not asked again for until
-  /// the next refresh, step or look.
-  final Map<String, _RadarImage> _radarImages = <String, _RadarImage>{};
+  /// The rain images loaded for the view, by key (the source, the box, the
+  /// moment and what it is cut by), and when each was last used; those
+  /// shown now, by slot (a source's piece of the view); the requests in
+  /// flight for the time control's own step (by slot) and in the
+  /// background (by key); and those that failed, by key, not asked again
+  /// for until the next refresh, step or look.
+  final Map<String, _RadarImage> _frames = <String, _RadarImage>{};
+  final Map<String, int> _frameUse = <String, int>{};
+  int _useCount = 0;
+  final Map<String, _RadarImage> _shown = <String, _RadarImage>{};
   final Map<String, String> _radarInFlight = <String, String>{};
-  final Map<String, String> _radarFailed = <String, String>{};
+  final Set<String> _prefetchInFlight = <String>{};
+  final Set<String> _rainFailed = <String>{};
 
   /// The radar sources switched to soft while drawn as tiles: their tiles
   /// stay until the first soft image is in or fails, so the switch leaves
@@ -201,6 +258,7 @@ class WeatherMapDriver {
   DateTime? _cloudsFrame;
   LatLng? _centre;
   DateTime? _clockAt;
+  int? _shownOffset;
 
   final ValueNotifier<WeatherMapStatus> _status =
       ValueNotifier<WeatherMapStatus>(const WeatherMapStatus());
@@ -275,8 +333,10 @@ class WeatherMapDriver {
               if (layer.kind == WeatherKind.radar && layer.tiles != null)
                 layer.id,
         });
-      // The images shown stay until those in the new look replace them.
-      _radarFailed.clear();
+      // The images shown stay until those in the new look replace them;
+      // those kept for the time control go.
+      _rainFailed.clear();
+      _frames.clear();
       _radarStyle = radarStyle;
     }
     final turnedOn = <WeatherKind>{
@@ -285,7 +345,11 @@ class WeatherMapDriver {
     };
     // Another step of the time control: what failed for the last one is
     // asked again.
-    if (offsetMinutes != _offset) _radarFailed.clear();
+    if (offsetMinutes != _offset) {
+      _rainFailed.clear();
+      _windFailed.clear();
+    }
+    if (!listEquals(sources, _sources)) _frames.clear();
     _settings = settings;
     _sources = sources;
     _offset = offsetMinutes;
@@ -300,27 +364,42 @@ class WeatherMapDriver {
       _attempted.clear();
       _detailFailed.clear();
     }
-    if (turnedOn.contains(WeatherKind.radar)) _radarFailed.clear();
-    if (turnedOn.contains(WeatherKind.wind)) _windFailed = null;
-    if (offsetMinutes != _offset) _windFailed = null;
+    if (turnedOn.contains(WeatherKind.radar)) _rainFailed.clear();
+    if (turnedOn.contains(WeatherKind.wind)) _windFailed.clear();
     // Clouds switched off let their images go, and so does the radar.
     if (!settings.clouds) {
       _images.clear();
       _details.clear();
     }
     if (!settings.radar) {
-      _radarImages.clear();
+      _frames.clear();
+      _shown.clear();
       _tilesUntilSoft.clear();
     }
     if (!settings.wind) {
       _wind = null;
-      _windFailed = null;
+      _windGrids.clear();
+      _windFailed.clear();
     }
     _update();
     _resetTimers();
     _scheduleDetails();
     _planRadar();
     _planWind();
+  }
+
+  /// Shows the step [offsetMinutes] of the time control while its slider
+  /// is dragged, without asking for anything: where its frames are loaded
+  /// that step, else the nearest step whose are, else the step set; the
+  /// step shown is in [status]. `null` when the slider is let go, back to
+  /// the step set ([configure]).
+  void preview(int? offsetMinutes) {
+    final step = offsetMinutes == null
+        ? null
+        : snapWeatherOffset(offsetMinutes);
+    if (step == _preview) return;
+    _preview = step;
+    _update();
   }
 
   /// Whether the app is in the foreground: refreshes run only then, and
@@ -331,8 +410,8 @@ class WeatherMapDriver {
     if (foreground) {
       _attempted.clear();
       _detailFailed.clear();
-      _radarFailed.clear();
-      _windFailed = null;
+      _rainFailed.clear();
+      _windFailed.clear();
       _update(recheck: true);
     }
     _resetTimers();
@@ -400,14 +479,15 @@ class WeatherMapDriver {
     if (_disposed || _map == null || !_foreground) return;
     if (_settings.wind) {
       _windRefreshTimer = Timer.periodic(windRefreshInterval, (_) {
-        _windFailed = null;
+        _windFailed.clear();
         _update();
         _planWind();
       });
     }
     if (_settings.radar) {
       _radarTimer = Timer.periodic(radarRefreshInterval, (_) {
-        _radarFailed.clear();
+        _rainFailed.clear();
+        _pruneFrames();
         _update(recheck: true);
         _planRadar();
       });
@@ -449,18 +529,23 @@ class WeatherMapDriver {
       covering.add(source.id);
       _cloudsFrame ??= frame.time;
       final stamp = cloudImageStamp(frame, now);
+      // Where it fades into its neighbours, which says what it is too.
+      final fades = cloudFadesOf(source, _enabled(WeatherKind.clouds));
+      final fadesKey = fades.map((f) => f.key).join('-');
       for (var region = 0; region < source.coverage.length; region++) {
         if (!_regionMeets(source.coverage[region], view)) continue;
         // A box MapLibre cannot draw (a mirror's override) is not fetched.
         if (!safeImageBox(source.coverage[region])) continue;
         final key = '${source.id}.$region';
-        final frameKey = '$key@$stamp';
+        final frameKey = '$key@$stamp$fadesKey';
         // The last image of the region stays until the next one is in.
         final shown = _images[key];
         if (shown != null) layers.add(shown);
         if (shown?.frameKey != frameKey && _attempted[key] != frameKey) {
           _attempted[key] = frameKey;
-          unawaited(_loadCloud(source, region, frame, now, key, frameKey));
+          unawaited(
+            _loadCloud(source, region, frame, now, key, frameKey, fades),
+          );
         }
       }
       // The detail over the region's image, the last one until the next
@@ -478,67 +563,88 @@ class WeatherMapDriver {
     // leaving the reach of those before it to them.
     _centre = view?.center;
     _clockAt = now;
-    final parts = view == null
-        ? const <RainPart>[]
-        : rainPartsAt(_enabled(WeatherKind.radar), now, _offset, view: view);
-    final shownParts = <String>{for (final part in parts) part.source.id};
+    final z = view == null ? 0.0 : _zoomOf(view, zoom);
+    // Frames that no longer serve the view go.
+    if (view != null) {
+      _frames.removeWhere((key, frame) {
+        final gone = !frame.fits(view, z);
+        if (gone) _frameUse.remove(key);
+        return gone;
+      });
+    }
+    final shownStep = view == null ? _offset : _shownStep(view, zoom, now);
+    _shownOffset = shownStep;
+    final plan = view == null
+        ? const <_PartPlan>[]
+        : _stepPlan(shownStep, view, zoom, now);
+    final inPlan = <String>{for (final p in plan) p.part.source.id};
     for (final source in _enabled(WeatherKind.radar)) {
       // Out of the view or without the moment: checked again when back.
-      if (!shownParts.contains(source.id)) _probed.remove(source.id);
+      if (!inPlan.contains(source.id)) _probed.remove(source.id);
     }
-    final imageShown = <String>{};
-    final imagesTooFar =
-        view != null && _zoomOf(view, zoom) < weatherImageMinZoom;
-    for (final part in parts) {
-      final source = part.source;
-      final frame = part.frame;
-      if (imagesTooFar && _drawnAsImage(source)) {
-        // Zoomed out too far for an image of the view: none, and no probe.
-        _probed.remove(source.id);
+    final tiles = <String, WeatherLayer>{};
+    final visible = <String, _RadarImage>{};
+    final imageParts = <String>{};
+    for (final p in plan) {
+      final source = p.part.source;
+      if (p.tiles) {
+        covering.add(source.id);
+        tiles[source.id] = WeatherLayer.ofRadar(source, p.part.frame, now);
+        final probe = source.probeUrl(
+          p.part.frame,
+          view!.center,
+          weatherProbeZoom,
+        );
+        if (recheck || _probed[source.id] != probe) {
+          _probed[source.id] = probe;
+          unawaited(_probe(source.id, probe));
+        }
         continue;
       }
-      final mask = _maskOf(part, parts, view!, zoom, now);
       // Wholly left to those before it: nothing to draw, nothing to ask.
-      if (mask != null && mask.hides) continue;
+      if (p.hidden) continue;
+      // Images: no probe, the fetch checks. While the frames it is cut by
+      // are still out, the one shown stays.
       covering.add(source.id);
-      if (_imageBoxOf(source, view, zoom) != null) {
-        // An image: the one shown stays until the next is in, unless the
-        // next failed and it shows another moment. No probe: the fetch
-        // checks. While the frames it is cut by are still out, the one
-        // shown stays too.
-        _probed.remove(source.id);
-        imageShown.add(source.id);
-        final shown = _radarImages[source.id];
-        final stamp = mask == null ? null : _stampOf(part, now, mask.key);
-        if (shown != null &&
-            (shown.stamp == stamp || !_failed.contains(source.id))) {
-          layers.add(shown.layer);
+      _probed.remove(source.id);
+      imageParts.add(source.id);
+      var any = false;
+      for (final slot in p.slots) {
+        final frame = p.waiting ? null : _frames[slot.key];
+        if (frame != null) {
+          _touch(slot.key);
+          visible[slot.id] = frame;
+          any = true;
           continue;
         }
-        if (!_tilesUntilSoft.contains(source.id)) continue;
-        // Just switched to soft: the tiles until the image is in.
-        layers.add(WeatherLayer.ofRadar(source, frame, now));
-        continue;
+        // The one shown stays until the next is in, unless the next failed
+        // and it shows another moment.
+        final old = _shown[slot.id];
+        if (old != null &&
+            (old.stamp == slot.stamp || !_rainFailed.contains(slot.key))) {
+          visible[slot.id] = old;
+          any = true;
+        }
       }
-      layers.add(WeatherLayer.ofRadar(source, frame, now));
-      final probe = source.probeUrl(frame, view.center, weatherProbeZoom);
-      if (recheck || _probed[source.id] != probe) {
-        _probed[source.id] = probe;
-        unawaited(_probe(source.id, probe));
+      // Just switched to soft: the tiles until the image is in.
+      if (!any && _tilesUntilSoft.contains(source.id)) {
+        tiles[source.id] = WeatherLayer.ofRadar(source, p.part.frame, now);
       }
     }
-    // Out of view, off, without the moment or back on tiles: the images
-    // go.
-    _radarImages.removeWhere((id, _) => !imageShown.contains(id));
-    _tilesUntilSoft.removeWhere((id) => !imageShown.contains(id));
+    _shown
+      ..clear()
+      ..addAll(visible);
+    _tilesUntilSoft.removeWhere((id) => !imageParts.contains(id));
+    layers.addAll(_rainLayers(tiles, visible));
 
     // The wind, over the rest: the arrows of the grid shown over the view.
     final wind = _windSource();
     WindArrows? arrows;
     if (wind != null && view != null) {
-      final z = _zoomOf(view, zoom);
       if (windRequestFor(view, z) != null) {
         covering.add(wind.id);
+        final wanted = _windFor(wind, shownStep, view, z, now);
+        if (wanted != null) _wind = wanted;
         final shown = _wind;
         if (shown != null && shown.source == wind.id) {
           arrows = WindArrows(
@@ -561,12 +667,210 @@ class WeatherMapDriver {
     _publish();
   }
 
+  /// The rain's layers, in the order of the sources: each source's tiles
+  /// where it is drawn as tiles, and a layer for each piece of the view it
+  /// has images of, the one shown ([visible]) and the others loaded for
+  /// the time control kept unseen.
+  List<WeatherLayer> _rainLayers(
+    Map<String, WeatherLayer> tiles,
+    Map<String, _RadarImage> visible,
+  ) {
+    final bySlot = <String, List<_RadarImage>>{};
+    for (final frame in _frames.values) {
+      (bySlot[frame.layer.id] ??= <_RadarImage>[]).add(frame);
+    }
+    final out = <WeatherLayer>[];
+    for (final source in _enabled(WeatherKind.radar)) {
+      final tile = tiles[source.id];
+      if (tile != null) out.add(tile);
+      final slots = <String>[
+        for (final id in <String>{...visible.keys, ...bySlot.keys})
+          if (_slotSource(id) == source.id) id,
+      ]..sort((a, b) => _slotPiece(a).compareTo(_slotPiece(b)));
+      for (final id in slots) {
+        final shown = visible[id];
+        final kept = <_RadarImage>[
+          for (final frame in bySlot[id] ?? const <_RadarImage>[])
+            if (frame.key != shown?.key) frame,
+        ]..sort((a, b) => a.key.compareTo(b.key));
+        final main = shown ?? kept.removeAt(0);
+        final layer = main.layer;
+        out.add(
+          WeatherLayer.image(
+            id: layer.id,
+            kind: layer.kind,
+            image: layer.image!,
+            imageBox: layer.imageBox!,
+            frameKey: layer.frameKey,
+            attribution: layer.attribution,
+            opacity: layer.opacity,
+            visible: shown != null,
+            preloaded: <WeatherImageFrame>[
+              for (final frame in kept.take(weatherPreloadMaxFrames - 1))
+                ?frame.layer.asFrame,
+            ],
+          ),
+        );
+      }
+    }
+    return out;
+  }
+
+  /// The id of the layer of [source]'s image of piece [piece] of the view.
+  static String _slotId(WeatherMapSource source, int piece) =>
+      piece == 0 ? source.id : '${source.id}#$piece';
+
+  static String _slotSource(String slot) => slot.split('#').first;
+
+  static int _slotPiece(String slot) {
+    final at = slot.indexOf('#');
+    return at < 0 ? 0 : int.tryParse(slot.substring(at + 1)) ?? 0;
+  }
+
+  /// The step the map shows: the one set, or while the slider is dragged
+  /// the step under the finger where it is loaded ([_stepReady]), else the
+  /// nearest one that is, on the side of the step set first.
+  int _shownStep(BoundingBox view, double? zoom, DateTime now) {
+    final preview = _preview;
+    if (preview == null || preview == _offset) return _offset;
+    final target = weatherSliderIndexOf(preview);
+    final set = weatherSliderIndexOf(_offset);
+    for (var d = 0; d < weatherRadarOffsets.length; d++) {
+      final candidates = d == 0
+          ? <int>[target]
+          : set < target
+          ? <int>[target - d, target + d]
+          : <int>[target + d, target - d];
+      for (final i in candidates) {
+        if (i < 0 || i >= weatherRadarOffsets.length) continue;
+        final step = weatherRadarOffsets[i];
+        if (step == _offset || _stepReady(step, view, zoom, now)) return step;
+      }
+    }
+    return _offset;
+  }
+
+  /// Whether everything [step] draws over [view] is loaded: with the rain
+  /// on, each of its images (none of it tiles, which load only once
+  /// shown); with the rain off, the wind's grid of its hour.
+  bool _stepReady(int step, BoundingBox view, double? zoom, DateTime now) {
+    if (_settings.radar) {
+      for (final p in _stepPlan(step, view, zoom, now)) {
+        if (p.tiles || p.waiting) return false;
+        if (p.hidden) continue;
+        for (final slot in p.slots) {
+          if (!_frames.containsKey(slot.key)) return false;
+        }
+      }
+      return true;
+    }
+    final wind = _windSource();
+    if (wind == null) return false;
+    return _windFor(wind, step, view, _zoomOf(view, zoom), now) != null;
+  }
+
+  /// What the rain draws over [view] at [step]: each part [rainPartsAt]
+  /// picks, as tiles or as images of the pieces of the view, with what it
+  /// is masked by and so the keys of its images.
+  List<_PartPlan> _stepPlan(
+    int step,
+    BoundingBox view,
+    double? zoom,
+    DateTime now,
+  ) {
+    final z = _zoomOf(view, zoom);
+    final parts = rainPartsAt(
+      _enabled(WeatherKind.radar),
+      now,
+      step,
+      view: view,
+    );
+    final areas = weatherImageAreas(view, z);
+    final out = <_PartPlan>[];
+    for (final part in parts) {
+      final source = part.source;
+      if (!_drawnAsImage(source)) {
+        out.add(_PartPlan(part: part, tiles: true));
+        continue;
+      }
+      final own = _imageAreasOf(source, areas);
+      final mask = _maskOf(part, out, view);
+      final stamp = mask == null ? '' : _stampOf(part, now, mask.key);
+      out.add(
+        _PartPlan(
+          part: part,
+          mask: mask,
+          areas: own,
+          zoom: z,
+          slots: <_Slot>[
+            for (final (piece, area) in own.indexed)
+              if (source.softBox(area) case final box?)
+                if (safeImageBox(box))
+                  _Slot(
+                    id: _slotId(source, piece),
+                    box: box,
+                    stamp: stamp,
+                    key: '${source.id}@${cloudDetailKey(box)}@$stamp',
+                  ),
+          ],
+        ),
+      );
+    }
+    return out;
+  }
+
+  /// The areas [source]'s images over [areas] are asked for, before its
+  /// coverage clips them: for a model each grown to [modelMinCells] of its
+  /// cells ([modelImageArea]), kept to its piece's longitudes where the
+  /// view is in two.
+  static List<BoundingBox> _imageAreasOf(
+    WeatherMapSource source,
+    List<BoundingBox> areas,
+  ) {
+    if (source.role != RainRole.model) return areas;
+    return <BoundingBox>[
+      for (final area in areas)
+        if (modelImageArea(source, area) case final grown)
+          areas.length == 1
+              ? grown
+              : BoundingBox(
+                  south: grown.south,
+                  west: area.west,
+                  north: grown.north,
+                  east: area.east,
+                ),
+    ];
+  }
+
   /// The wind source in use: the first enabled one, while the wind is on.
   WeatherMapSource? _windSource() => _enabled(WeatherKind.wind).firstOrNull;
 
-  /// Asks for the wind of the view where the grid shown is missing, of
-  /// another hour, older than [windCacheMaxAge], or no longer serves the
-  /// view ([WindRequest.fits]).
+  /// The grid in memory of [source]'s wind at [step]'s hour that serves
+  /// [view] at [zoom] and is younger than [windCacheMaxAge]; `null` where
+  /// there is none.
+  _WindShown? _windFor(
+    WeatherMapSource source,
+    int step,
+    BoundingBox view,
+    double zoom,
+    DateTime now,
+  ) {
+    final time = source.frameAt(now, offsetMinutes: step)?.time;
+    if (time == null) return null;
+    for (final grid in _windGrids.values.toList().reversed) {
+      if (grid.source == source.id &&
+          grid.time == time &&
+          now.difference(grid.fetchedAt) < windCacheMaxAge &&
+          grid.request.fits(view, zoom)) {
+        return grid;
+      }
+    }
+    return null;
+  }
+
+  /// Asks for the wind of the view where the grid of the step's hour is
+  /// not in memory, is older than [windCacheMaxAge], or no longer serves
+  /// the view ([WindRequest.fits]).
   void _planWind() {
     _windTimer?.cancel();
     _windTimer = null;
@@ -581,73 +885,85 @@ class WeatherMapDriver {
     final frame = source.frameAt(now, offsetMinutes: _offset);
     final time = frame?.time;
     if (request == null || frame == null || time == null) return;
-    final shown = _wind;
-    if (shown != null &&
-        shown.source == source.id &&
-        shown.time == time &&
-        now.difference(shown.fetchedAt) < windCacheMaxAge &&
-        shown.request.fits(view, zoom)) {
+    if (_windFor(source, _offset, view, zoom, now) != null) {
+      // In memory: shown with the update, then the other steps.
+      if (_wind?.time != time) _update();
+      _prefetch();
       return;
     }
+    // One that would be dropped when it comes is not asked for: its
+    // answer would be asked for again, over and over.
+    if (!request.fits(view, zoom)) return;
     // One request at a time: the next is planned when it is back.
     if (_windInFlight != null) return;
-    final key = '${source.id}@${request.key}@${time.millisecondsSinceEpoch}';
+    final key = _windKey(source, request, time);
     // Only a request that failed waits for the refresh.
-    if (_windFailed == key) return;
+    if (_windFailed.contains(key)) return;
     _windInFlight = key;
     unawaited(_loadWind(source, request, frame, key, now));
   }
+
+  static String _windKey(
+    WeatherMapSource source,
+    WindRequest request,
+    DateTime time,
+  ) => '${source.id}@${request.key}@${time.millisecondsSinceEpoch}';
 
   Future<void> _loadWind(
     WeatherMapSource source,
     WindRequest request,
     WeatherFrame frame,
     String key,
-    DateTime now,
-  ) async {
+    DateTime now, {
+    bool background = false,
+  }) async {
     final grid = await _fetcher.windGrid(source, request, frame, now);
     if (_disposed) return;
-    _windInFlight = null;
-    if (grid == null) {
-      _windFailed = key;
-      _failed.add(source.id);
-      // A grid of another hour does not stand in for this one.
-      if (_wind != null && _wind!.time != frame.time) _wind = null;
+    if (background) {
+      _prefetchInFlight.remove(key);
     } else {
-      _windFailed = null;
-      _failed.remove(source.id);
-      if (_windStillWanted(source, request, frame)) {
-        _wind = _WindShown(
-          source: source.id,
-          request: request,
-          time: frame.time!,
-          grid: grid,
-          fetchedAt: now,
-          attribution: source.attributionFor(frame, now),
-        );
+      _windInFlight = null;
+    }
+    if (grid == null) {
+      _windFailed.add(key);
+      if (!background) {
+        _failed.add(source.id);
+        // A grid of another hour does not stand in for this one.
+        if (_wind != null && _wind!.time != frame.time) _wind = null;
+      }
+    } else {
+      _windFailed.remove(key);
+      if (!background) _failed.remove(source.id);
+      if (_windStillWanted(source, request)) {
+        _windGrids
+          ..remove(key)
+          ..[key] = _WindShown(
+            source: source.id,
+            request: request,
+            time: frame.time!,
+            grid: grid,
+            fetchedAt: now,
+            attribution: source.attributionFor(frame, now),
+          );
+        while (_windGrids.length > windGridsKept) {
+          _windGrids.remove(_windGrids.keys.first);
+        }
       }
     }
     _update();
-    // An answer for a view or moment since left is dropped; what the view
-    // wants now is asked for.
+    // What the view wants now is asked for, then the other steps.
     _planWind();
+    _prefetch();
   }
 
-  /// Whether a grid of [request] at [frame] still serves the map: the wind
-  /// on with [source] in use, the step's hour the same and the view inside
-  /// the request's area at its thinning.
-  bool _windStillWanted(
-    WeatherMapSource source,
-    WindRequest request,
-    WeatherFrame frame,
-  ) {
+  /// Whether a grid of [request] still serves the map: the wind on with
+  /// [source] in use and the view inside the request's area at its
+  /// thinning.
+  bool _windStillWanted(WeatherMapSource source, WindRequest request) {
     if (!_settings.wind || _windSource()?.id != source.id) return false;
     final map = _map;
     final view = map?.visibleBounds;
     if (map == null || view == null) return false;
-    if (source.frameAt(_clock(), offsetMinutes: _offset) != frame) {
-      return false;
-    }
     return request.fits(view, _zoomOf(view, map.zoom));
   }
 
@@ -678,8 +994,15 @@ class WeatherMapDriver {
     DateTime now,
     String key,
     String frameKey,
+    List<CloudFade> fades,
   ) async {
-    final image = await _fetcher.cloudImage(source, region, frame, now);
+    final image = await _fetcher.cloudImage(
+      source,
+      region,
+      frame,
+      now,
+      fades: fades,
+    );
     if (_disposed) return;
     if (image == null) {
       _failed.add(source.id);
@@ -759,7 +1082,13 @@ class WeatherMapDriver {
     DateTime now,
   ) async {
     final box = planned.layer.imageBox!;
-    final image = await _fetcher.cloudDetailImage(source, box, frame, now);
+    final image = await _fetcher.cloudDetailImage(
+      source,
+      box,
+      frame,
+      now,
+      fades: cloudFadesOf(source, _enabled(WeatherKind.clouds)),
+    );
     if (_disposed) return;
     _detailInFlight.remove(source.id);
     if (image == null) {
@@ -790,43 +1119,13 @@ class WeatherMapDriver {
     _planDetails();
   }
 
-  /// The box [source]'s image of [view] shows, `null` where the source is
-  /// drawn as tiles: a radar as measured, or one without an image request,
-  /// or a view across the antimeridian; also `null` zoomed out below
-  /// [weatherImageMinZoom] or for a box MapLibre cannot draw
-  /// ([safeImageBox]). The satellite and the models are
-  /// always an image, as measured too, since their images are masked.
-  BoundingBox? _imageBoxOf(
-    WeatherMapSource source,
-    BoundingBox view,
-    double? zoom,
-  ) {
-    if (!_drawnAsImage(source)) return null;
-    final z = _zoomOf(view, zoom);
-    if (z < weatherImageMinZoom) return null;
-    final area = _imageAreaOf(source, view, z);
-    final box = area == null ? null : source.softBox(area);
-    return box != null && safeImageBox(box) ? box : null;
-  }
-
   /// Whether [source] is drawn as an image of the view rather than tiles:
-  /// one with an image request, a radar only when drawn soft.
+  /// one with an image request, a radar only when drawn soft. The
+  /// satellite and the models are always images, as measured too, since
+  /// their images are masked.
   bool _drawnAsImage(WeatherMapSource source) {
     if (source.imageUrlTemplate == null) return false;
     return source.role != RainRole.radar || _radarStyle == RadarStyle.soft;
-  }
-
-  /// The area [source]'s image of [view] at [zoom] is asked for, before
-  /// its coverage clips it: the view and its margin ([cloudDetailArea]),
-  /// for a model grown to [modelMinCells] of its cells ([modelImageArea]).
-  static BoundingBox? _imageAreaOf(
-    WeatherMapSource source,
-    BoundingBox view,
-    double zoom,
-  ) {
-    final area = cloudDetailArea(view, zoom);
-    if (area == null || source.role != RainRole.model) return area;
-    return modelImageArea(source, area);
   }
 
   /// What tells one image of [part] from the next, besides its box: its
@@ -835,19 +1134,14 @@ class WeatherMapDriver {
       '${radarImageStamp(part.source, part.frame, now)}'
       '${_radarStyle == RadarStyle.soft ? '' : 'm'}$maskKey';
 
-  /// What [part] (one of [parts]) is masked by over [view]: the fixed rings
-  /// of those before it, and of those in [RainPart.cutBy] their frame's
-  /// coverage where it is drawn soft as an image. `null` while such a frame
-  /// for the step and the view is still to come: the part waits for it.
-  /// Where a frame cannot be had (it failed, it is drawn as tiles, or its
-  /// image carries no coverage), its fixed reach stands in.
-  _RainMask? _maskOf(
-    RainPart part,
-    List<RainPart> parts,
-    BoundingBox view,
-    double? zoom,
-    DateTime now,
-  ) {
+  /// What [part] is masked by over [view], [before] being the plans of the
+  /// parts before it at the same step: the fixed rings of those, and of
+  /// those in [RainPart.cutBy] their frame's coverage where it is drawn
+  /// soft as images. `null` while such a frame for the step and the view
+  /// is still to come: the part waits for it. Where a frame cannot be had
+  /// (it failed, it is drawn as tiles, or its image carries no coverage),
+  /// its fixed reach stands in.
+  _RainMask? _maskOf(RainPart part, List<_PartPlan> before, BoundingBox view) {
     if (part.cutBy.isEmpty) {
       return _RainMask(rings: part.masks, key: part.maskKey);
     }
@@ -856,50 +1150,41 @@ class WeatherMapDriver {
     final key = StringBuffer();
     var hides = false;
     var byReach = false;
-    final z = _zoomOf(view, zoom);
-    for (final beforePart in parts) {
-      if (identical(beforePart, part)) break;
-      final before = beforePart.source;
-      if (!part.cutBy.contains(before)) {
-        rings.addAll(before.reachRings);
-        key.write('-${before.id}');
+    for (final prior in before) {
+      final source = prior.part.source;
+      if (!part.cutBy.contains(source)) {
+        rings.addAll(source.reachRings);
+        key.write('-${source.id}');
         continue;
       }
-      final beforeArea = _imageAreaOf(before, view, z);
-      // An image that would not serve the view is never asked for: no
-      // frame to wait for.
-      final asked =
-          beforeArea != null &&
-          view.west <= view.east &&
-          view.west >= beforeArea.west &&
-          view.east <= beforeArea.east &&
-          view.south >= beforeArea.south &&
-          view.north <= beforeArea.north;
-      final beforeBox = asked ? _imageBoxOf(before, view, zoom) : null;
-      final beforeMask = beforeBox == null
-          ? null
-          : _maskOf(beforePart, parts, view, zoom, now);
-      if (beforeBox != null && beforeMask == null) return null;
-      if (beforeBox != null && beforeMask != null && !beforeMask.hides) {
-        final shown = _radarImages[before.id];
-        final stamp = _stampOf(beforePart, now, beforeMask.key);
-        final coverage = shown?.coverage;
-        if (shown != null && shown.stamp == stamp && shown.fits(view, z)) {
-          if (coverage != null) {
-            coverages.add(coverage);
-            key.write('-${before.id}~${_hashOf(shown.layer.frameKey)}');
-            if (coverage.coversAll(view)) hides = true;
+      final mask = prior.mask;
+      if (!prior.tiles && prior.slots.isNotEmpty) {
+        if (mask == null) return null;
+        if (!mask.hides) {
+          final frames = <_RadarImage?>[
+            for (final slot in prior.slots) _frames[slot.key],
+          ];
+          if (frames.every((f) => f?.coverage != null)) {
+            for (final frame in frames) {
+              final coverage = frame!.coverage!;
+              coverages.add(coverage);
+              if (coverage.coversAll(view)) hides = true;
+            }
+            final keys = prior.slots.map((s) => s.key).join('|');
+            key.write('-${source.id}~${_hashOf(keys)}');
             continue;
           }
-        } else if (_radarFailed[before.id] !=
-            '${before.id}@${cloudDetailKey(beforeBox)}@$stamp') {
           // Its frame of this step and view is still to come.
-          return null;
+          if (prior.slots.any(
+            (s) => !_frames.containsKey(s.key) && !_rainFailed.contains(s.key),
+          )) {
+            return null;
+          }
         }
       }
       // The frame cannot be had: its fixed reach instead.
-      rings.addAll(before.reachRings);
-      key.write('-${before.id}');
+      rings.addAll(source.reachRings);
+      key.write('-${source.id}');
       byReach = true;
     }
     if (byReach && part.hiddenByReach(view)) hides = true;
@@ -928,8 +1213,33 @@ class WeatherMapDriver {
     return (math.log(360 / span) / math.ln2 + 2).clamp(0.0, 22.0);
   }
 
-  /// Asks for each rain source's image of the view where the one shown is
-  /// missing, of another moment, or no longer fits.
+  /// The image [p]'s [slot] would be, before it comes.
+  _RadarImage _planned(_PartPlan p, _Slot slot, DateTime now) {
+    final source = p.part.source;
+    return _RadarImage(
+      layer: WeatherLayer.image(
+        id: slot.id,
+        kind: WeatherKind.radar,
+        image: Uint8List(0),
+        imageBox: slot.box,
+        frameKey: slot.key,
+        attribution: source.attributionFor(p.part.frame, now),
+        // As measured, as see-through as the radar's tiles; soft, the
+        // image's alpha says it all.
+        opacity: _radarStyle == RadarStyle.soft
+            ? null
+            : source.opacity ?? radarTone.opacity,
+      ),
+      areas: p.areas,
+      zoom: p.zoom,
+      stamp: slot.stamp,
+      capped: radarSoftCapped(source, slot.box),
+    );
+  }
+
+  /// Asks for each rain image of the time control's step over the view
+  /// that is not loaded: one request per image at a time, a failed one not
+  /// again before the refresh. Then the other steps ([_prefetch]).
   void _planRadar() {
     _radarImageTimer?.cancel();
     _radarImageTimer = null;
@@ -939,74 +1249,138 @@ class WeatherMapDriver {
     if (map == null || view == null) return;
     final zoom = _zoomOf(view, map.zoom);
     final now = _clock();
-    final parts = rainPartsAt(
-      _enabled(WeatherKind.radar),
-      now,
-      _offset,
-      view: view,
-    );
-    for (final part in parts) {
-      final source = part.source;
-      final frame = part.frame;
-      final area = _imageAreaOf(source, view, zoom);
-      final box = _imageBoxOf(source, view, zoom);
-      if (area == null || box == null) continue;
-      // Waiting for the frames it is cut by, or wholly left to them.
-      final mask = _maskOf(part, parts, view, map.zoom, now);
-      if (mask == null || mask.hides) continue;
-      final stamp = _stampOf(part, now, mask.key);
-      final shown = _radarImages[source.id];
-      if (shown != null && shown.stamp == stamp && shown.fits(view, zoom)) {
-        continue;
+    for (final p in _stepPlan(_offset, view, map.zoom, now)) {
+      // Drawn as tiles, waiting for the frames it is cut by, or wholly
+      // left to them.
+      if (p.tiles || p.waiting || p.hidden) continue;
+      for (final slot in p.slots) {
+        if (_frames.containsKey(slot.key)) continue;
+        // One request per image: the next is planned when it is back.
+        if (_radarInFlight.containsKey(slot.id)) continue;
+        // Only a request that failed waits for the refresh; one that came
+        // and was replaced (another step, another view) is asked again,
+        // and comes from the cache.
+        if (_rainFailed.contains(slot.key)) continue;
+        final planned = _planned(p, slot, now);
+        // An image that would not serve the view even when it comes is not
+        // asked for: its answer would be dropped and asked for again, over
+        // and over.
+        if (!planned.fits(view, zoom)) continue;
+        _radarInFlight[slot.id] = slot.key;
+        unawaited(_loadRadar(p, slot, planned, now));
       }
-      // One request per source: the next is planned when it is back.
-      if (_radarInFlight.containsKey(source.id)) continue;
-      final key = '${source.id}@${cloudDetailKey(box)}@$stamp';
-      // Only a request that failed waits for the refresh; one that came
-      // and was replaced (another step, another view) is asked again, and
-      // comes from the cache.
-      if (_radarFailed[source.id] == key) continue;
-      final planned = _RadarImage(
-        layer: WeatherLayer.image(
-          id: source.id,
-          kind: WeatherKind.radar,
-          image: Uint8List(0),
-          imageBox: box,
-          frameKey: key,
-          attribution: source.attributionFor(frame, now),
-          // As measured, as see-through as the radar's tiles; soft, the
-          // image's alpha says it all.
-          opacity: _radarStyle == RadarStyle.soft
-              ? null
-              : source.opacity ?? radarTone.opacity,
-        ),
-        area: area,
-        zoom: zoom,
-        stamp: stamp,
-        capped: radarSoftCapped(source, box),
-      );
-      // An image that would not serve the view even when it comes (a view
-      // beyond the world's edges) is not asked for: its answer would be
-      // dropped and asked for again, over and over.
-      if (!planned.fits(view, zoom)) continue;
-      _radarInFlight[source.id] = key;
-      unawaited(_loadRadar(part, mask, planned, now));
+    }
+    _prefetch();
+  }
+
+  /// The order the other steps of the time control are asked for in: the
+  /// nowcast's quarter hours (and "Now"), nearest the step set first, then
+  /// the hours ahead.
+  List<int> _prefetchOrder() {
+    final set = weatherSliderIndexOf(_offset);
+    int distance(int step) => (weatherSliderIndexOf(step) - set).abs();
+    final near = <int>[
+      for (final step in weatherRadarOffsets)
+        if (step <= 120 && step != _offset) step,
+    ]..sort((a, b) => distance(a).compareTo(distance(b)));
+    return <int>[
+      ...near,
+      for (final step in weatherRadarOffsets)
+        if (step > 120 && step != _offset) step,
+    ];
+  }
+
+  /// Asks in the background for the other steps' rain images and wind
+  /// grids of the view (see [_prefetchOrder]), once the step set has all
+  /// of its own in; at most [weatherPrefetchConcurrency] at a time, the
+  /// rain's within [weatherPreloadMaxPixels].
+  void _prefetch() {
+    if (!prefetch || _disposed || !_foreground) return;
+    if (!_settings.radar && !_settings.wind) return;
+    final map = _map;
+    final view = map?.visibleBounds;
+    if (map == null || view == null) return;
+    // The step set first.
+    if (_radarInFlight.isNotEmpty || _windInFlight != null) return;
+    if (_prefetchInFlight.length >= weatherPrefetchConcurrency) return;
+    final zoom = _zoomOf(view, map.zoom);
+    final now = _clock();
+    var pixels = 0;
+    for (final frame in _frames.values) {
+      pixels += frame.pixels;
+    }
+    final wind = _windSource();
+    final windRequest = wind == null ? null : windRequestFor(view, zoom);
+    for (final step in _prefetchOrder()) {
+      if (_settings.radar) {
+        for (final p in _stepPlan(step, view, map.zoom, now)) {
+          if (p.tiles || p.waiting || p.hidden) continue;
+          for (final slot in p.slots) {
+            if (_frames.containsKey(slot.key) ||
+                _rainFailed.contains(slot.key) ||
+                _prefetchInFlight.contains(slot.key) ||
+                _radarInFlight.containsValue(slot.key)) {
+              continue;
+            }
+            final planned = _planned(p, slot, now);
+            if (!planned.fits(view, zoom)) continue;
+            final more = _pixelsOf(p.part.source, slot.box);
+            // Full: no more in the background until the view changes.
+            if (pixels + more > weatherPreloadMaxPixels) return;
+            pixels += more;
+            _prefetchInFlight.add(slot.key);
+            unawaited(_loadRadar(p, slot, planned, now, background: true));
+            if (_prefetchInFlight.length >= weatherPrefetchConcurrency) {
+              return;
+            }
+          }
+        }
+      }
+      if (wind != null && windRequest != null && windRequest.fits(view, zoom)) {
+        final frame = wind.frameAt(now, offsetMinutes: step);
+        final time = frame?.time;
+        if (frame == null || time == null) continue;
+        if (_windFor(wind, step, view, zoom, now) != null) continue;
+        final key = _windKey(wind, windRequest, time);
+        if (_windFailed.contains(key) || _prefetchInFlight.contains(key)) {
+          continue;
+        }
+        _prefetchInFlight.add(key);
+        unawaited(
+          _loadWind(wind, windRequest, frame, key, now, background: true),
+        );
+        if (_prefetchInFlight.length >= weatherPrefetchConcurrency) return;
+      }
     }
   }
 
+  /// About how many pixels [source]'s image of [box] holds once prepared:
+  /// drawn soft, scaled up ([rainUpsample]).
+  int _pixelsOf(WeatherMapSource source, BoundingBox box) {
+    final (w, h) = radarSoftImageSize(source, box);
+    if (_radarStyle != RadarStyle.soft) return w * h;
+    final long = math.max(w, h);
+    final scale = math.max(
+      1.0,
+      math.min(rainUpsample, radarSoftMaxSide / long),
+    );
+    return (w * h * scale * scale).round();
+  }
+
   Future<void> _loadRadar(
-    RainPart part,
-    _RainMask mask,
+    _PartPlan p,
+    _Slot slot,
     _RadarImage planned,
-    DateTime now,
-  ) async {
-    final source = part.source;
-    final box = planned.layer.imageBox!;
+    DateTime now, {
+    bool background = false,
+  }) async {
+    final source = p.part.source;
+    final mask = p.mask!;
     final style = _radarStyle;
     final image = await _fetcher.radarImage(
       source,
-      box,
-      part.frame,
+      slot.box,
+      p.part.frame,
       now,
       style: style,
       masks: mask.rings,
@@ -1014,52 +1388,103 @@ class WeatherMapDriver {
       maskKey: mask.key,
     );
     if (_disposed) return;
-    _radarInFlight.remove(source.id);
-    if (image == null) {
-      _radarFailed[source.id] = planned.layer.frameKey;
+    if (background) {
+      _prefetchInFlight.remove(slot.key);
     } else {
-      _radarFailed.remove(source.id);
+      _radarInFlight.remove(slot.id);
     }
-    if (_stillWanted(source, planned)) {
-      _tilesUntilSoft.remove(source.id);
-      if (image == null) {
-        _failed.add(source.id);
-      } else {
-        _failed.remove(source.id);
-        // Where its frame measures, for the sources cut by it.
-        final coverage = style == RadarStyle.soft && source.extent != null
-            ? readRainCoverage(image, box)
-            : null;
-        _radarImages[source.id] = planned.withImage(image, coverage);
+    if (image == null) {
+      _rainFailed.add(slot.key);
+    } else {
+      _rainFailed.remove(slot.key);
+    }
+    final map = _map;
+    final view = map?.visibleBounds;
+    // What the time control's own step draws says whether the source
+    // answers; an image of another step does not.
+    if (!background && view != null && _settings.radar) {
+      final own = _stepPlan(
+        _offset,
+        view,
+        map?.zoom,
+        _clock(),
+      ).any((q) => q.slots.any((s) => s.key == slot.key));
+      if (own) {
+        _tilesUntilSoft.remove(source.id);
+        if (image == null) {
+          _failed.add(source.id);
+        } else {
+          _failed.remove(source.id);
+        }
       }
-      _update();
     }
-    // An answer for a view, moment or look since left is dropped; what
-    // the view wants now is asked for.
+    if (image != null &&
+        style == _radarStyle &&
+        _settings.radar &&
+        view != null &&
+        planned.fits(view, _zoomOf(view, map?.zoom))) {
+      // Where its frame measures, for the sources cut by it.
+      final coverage = style == RadarStyle.soft && source.extent != null
+          ? readRainCoverage(image, slot.box)
+          : null;
+      _store(planned.withImage(image, coverage));
+    }
+    _update();
+    // What the view wants now is asked for, then the other steps.
     _planRadar();
   }
 
-  /// Whether [planned] still serves the map: the radar on, the source in
-  /// use as an image, the view inside its area, the moment and the masks
-  /// the same.
-  bool _stillWanted(WeatherMapSource source, _RadarImage planned) {
-    if (!_settings.radar) return false;
-    final view = _map?.visibleBounds;
-    if (view == null) return false;
+  /// Keeps [frame] loaded, the frames used longest ago going where one
+  /// image has more than [weatherPreloadMaxFrames] or all more than
+  /// [weatherPreloadMaxPixels]; never one shown.
+  void _store(_RadarImage frame) {
+    _frames[frame.key] = frame;
+    _touch(frame.key);
+    final shown = <String>{for (final f in _shown.values) f.key, frame.key};
+    List<String> byAge(bool Function(_RadarImage) which) => <String>[
+      for (final MapEntry(:key, :value) in _frames.entries)
+        if (!shown.contains(key) && which(value)) key,
+    ]..sort((a, b) => (_frameUse[a] ?? 0).compareTo(_frameUse[b] ?? 0));
+    final slot = frame.layer.id;
+    var count = _frames.values.where((f) => f.layer.id == slot).length;
+    for (final key in byAge((f) => f.layer.id == slot)) {
+      if (count <= weatherPreloadMaxFrames) break;
+      _drop(key);
+      count--;
+    }
+    var pixels = 0;
+    for (final f in _frames.values) {
+      pixels += f.pixels;
+    }
+    for (final key in byAge((_) => true)) {
+      if (pixels <= weatherPreloadMaxPixels) break;
+      pixels -= _frames[key]?.pixels ?? 0;
+      _drop(key);
+    }
+  }
+
+  void _drop(String key) {
+    _frames.remove(key);
+    _frameUse.remove(key);
+  }
+
+  void _touch(String key) => _frameUse[key] = ++_useCount;
+
+  /// Lets go of the loaded frames no step of the time control draws over
+  /// the view any more (a newer measurement made them old).
+  void _pruneFrames() {
+    final map = _map;
+    final view = map?.visibleBounds;
+    if (map == null || view == null || _frames.isEmpty) return;
     final now = _clock();
-    final parts = rainPartsAt(
-      _enabled(WeatherKind.radar),
-      now,
-      _offset,
-      view: view,
-    );
-    final part = parts.where((p) => p.source.id == source.id).firstOrNull;
-    if (part == null) return false;
-    if (_imageBoxOf(part.source, view, _map?.zoom) == null) return false;
-    final mask = _maskOf(part, parts, view, _map?.zoom, now);
-    if (mask == null || mask.hides) return false;
-    return _stampOf(part, now, mask.key) == planned.stamp &&
-        planned.fits(view, _zoomOf(view, _map?.zoom));
+    final wanted = <String>{
+      for (final step in weatherRadarOffsets)
+        for (final p in _stepPlan(step, view, map.zoom, now))
+          for (final slot in p.slots) slot.key,
+    };
+    for (final key in _frames.keys.toList()) {
+      if (!wanted.contains(key)) _drop(key);
+    }
   }
 
   void _publish() {
@@ -1073,6 +1498,7 @@ class WeatherMapDriver {
       centre: _centre,
       at: _clockAt,
       cloudsFrame: _settings.clouds ? _cloudsFrame : null,
+      shownOffset: _shownOffset,
       failed: <WeatherKind>{for (final source in failing) source.kind},
       failedRain: <RainRole>{
         for (final source in failing)
@@ -1082,8 +1508,8 @@ class WeatherMapDriver {
   }
 }
 
-/// The wind grid shown: the source and the request it came from, the hour
-/// it shows, when it was fetched and its credit.
+/// A wind grid in memory: the source and the request it came from, the
+/// hour it shows, when it was fetched and its credit.
 @immutable
 class _WindShown {
   const _WindShown({
@@ -1146,23 +1572,71 @@ class _CloudDetail {
   );
 }
 
-/// A radar source's soft image: the layer drawn, the [area] it was asked
-/// for (the view and its margin, a model's grown to its cells, before the
-/// coverage clips it), the zoom it was asked at, the moment it shows and
-/// whether it is [capped] coarser than the radar's own resolution.
+/// One image a rain part draws at a step: its layer's id (the source's,
+/// with the piece of the view), its box, the moment and masks it shows
+/// ([stamp]) and the [key] naming it.
+@immutable
+class _Slot {
+  const _Slot({
+    required this.id,
+    required this.box,
+    required this.stamp,
+    required this.key,
+  });
+
+  final String id;
+  final BoundingBox box;
+  final String stamp;
+  final String key;
+}
+
+/// What one rain part draws at a step: [tiles], or images ([slots]) asked
+/// for over [areas] at [zoom], masked by [mask]; `null` there while it
+/// waits for the frames it is cut by.
+@immutable
+class _PartPlan {
+  const _PartPlan({
+    required this.part,
+    this.tiles = false,
+    this.mask,
+    this.areas = const <BoundingBox>[],
+    this.zoom = 0,
+    this.slots = const <_Slot>[],
+  });
+
+  final RainPart part;
+  final bool tiles;
+  final _RainMask? mask;
+  final List<BoundingBox> areas;
+  final double zoom;
+  final List<_Slot> slots;
+
+  /// Waiting for the frames it is cut by.
+  bool get waiting => !tiles && mask == null;
+
+  /// Wholly left to those before it.
+  bool get hidden => mask?.hides ?? false;
+}
+
+/// A rain image loaded: the layer drawn, the [areas] it was asked for
+/// (the pieces of the view and their margin, a model's grown to its cells,
+/// before the coverage clips them), the zoom it was asked at, the moment
+/// it shows and whether it is [capped] coarser than the source's own
+/// resolution.
 @immutable
 class _RadarImage {
   const _RadarImage({
     required this.layer,
-    required this.area,
+    required this.areas,
     required this.zoom,
     required this.stamp,
     required this.capped,
     this.coverage,
+    this.pixels = 0,
   });
 
   final WeatherLayer layer;
-  final BoundingBox area;
+  final List<BoundingBox> areas;
   final double zoom;
   final String stamp;
   final bool capped;
@@ -1170,34 +1644,40 @@ class _RadarImage {
   /// Where the frame measures, for a source with an extent drawn soft.
   final RainCoverage? coverage;
 
-  /// Whether it still serves [view] at [zoom]: the view inside its area,
-  /// and, where the image is coarser than the radar's own cells, the zoom
-  /// less than [cloudDetailRezoom] further in. At the radar's own
-  /// resolution zooming in brings nothing finer.
+  /// How many pixels the image holds.
+  final int pixels;
+
+  /// What names it: its layer's frame key.
+  String get key => layer.frameKey;
+
+  /// Whether it still serves [view] at [zoom]: the view inside its areas
+  /// ([weatherAreasServe]), and, where the image is coarser than the
+  /// source's own cells, the zoom less than [cloudDetailRezoom] further in.
+  /// At the source's own resolution zooming in brings nothing finer.
   bool fits(BoundingBox view, double zoom) =>
       (!capped || zoom - this.zoom < cloudDetailRezoom) &&
-      view.west <= view.east &&
-      view.west >= area.west &&
-      view.east <= area.east &&
-      view.south >= area.south &&
-      view.north <= area.north;
+      weatherAreasServe(areas, view);
 
-  _RadarImage withImage(Uint8List image, RainCoverage? coverage) => _RadarImage(
-    layer: WeatherLayer.image(
-      id: layer.id,
-      kind: layer.kind,
-      image: image,
-      imageBox: layer.imageBox!,
-      frameKey: layer.frameKey,
-      attribution: layer.attribution,
-      opacity: layer.opacity,
-    ),
-    area: area,
-    zoom: zoom,
-    stamp: stamp,
-    capped: capped,
-    coverage: coverage,
-  );
+  _RadarImage withImage(Uint8List image, RainCoverage? coverage) {
+    final (w, h) = pngSize(image) ?? (1, 1);
+    return _RadarImage(
+      layer: WeatherLayer.image(
+        id: layer.id,
+        kind: layer.kind,
+        image: image,
+        imageBox: layer.imageBox!,
+        frameKey: layer.frameKey,
+        attribution: layer.attribution,
+        opacity: layer.opacity,
+      ),
+      areas: areas,
+      zoom: zoom,
+      stamp: stamp,
+      capped: capped,
+      coverage: coverage,
+      pixels: w * h,
+    );
+  }
 }
 
 /// What a rain part is masked by ([WeatherMapDriver._maskOf]): fixed

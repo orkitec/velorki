@@ -75,6 +75,10 @@ MaplibreMapControllerAdapter _adapter(
   cyclosmTone: cyclosmTone,
 );
 
+/// The width of a PNG, from its IHDR chunk (big-endian at bytes 16..19).
+int pngWidth(List<int> png) =>
+    png[16] << 24 | png[17] << 16 | png[18] << 8 | png[19];
+
 /// The features of the collection last written to [sourceId].
 List<dynamic> _featuresOf(RecordingStyleOps ops, String sourceId) =>
     ops.lastGeoJsonOf(sourceId)!['features'] as List<dynamic>;
@@ -262,18 +266,18 @@ void main() {
       final cluster = ops
           .addLayerOf(MapLayerIds.stopsClusterLayer)!
           .properties!;
-      expect(cluster['icon-image'], MarkerLayers.clusterImageName);
-      // One picture at the widest radius, scaled to the rim's outside edge
-      // of a 14, a 17 and a 20 px bubble.
-      expect(cluster['icon-size'], <Object>[
+      // A picture of its own for a 14, a 17 and a 20 px bubble, never one
+      // scaled by the style.
+      expect(cluster['icon-image'], <Object>[
         'step',
         <Object>['get', 'point_count'],
-        (14 + 1.5) / (20 + 1.5),
+        MarkerLayers.clusterImageName(14),
         10,
-        (17 + 1.5) / (20 + 1.5),
+        MarkerLayers.clusterImageName(17),
         50,
-        1.0,
+        MarkerLayers.clusterImageName(20),
       ]);
+      expect(cluster.containsKey('icon-size'), isFalse);
       expect(cluster['text-font'], waypointLabelFont);
       expect(cluster['text-size'], MarkerLayers.discTextPx);
       expect(
@@ -328,31 +332,48 @@ void main() {
       }
     });
 
-    test('the bubble picture is registered before the layer that names it, '
-        'and drawn again in a new palette', () async {
+    test('the bubble pictures are registered before the layer that names '
+        'them, and drawn again in a new palette', () async {
       final ops = RecordingStyleOps();
-      final adapter = _adapter(ops);
+      final adapter = MaplibreMapControllerAdapter.withOps(
+        ops,
+        devicePixelRatio: 3,
+      );
       await adapter.attachToStyle();
 
-      final image = ops.calls.indexWhere(
-        (c) => c.name == 'addImage' && c.id == MarkerLayers.clusterImageName,
-      );
       final layer = ops.calls.indexWhere(
         (c) =>
             c.name == 'addLayer' && c.layerId == MapLayerIds.stopsClusterLayer,
       );
-      expect(image, isNonNegative);
-      expect(image, lessThan(layer));
-      final before = ops.calls[image].imageBytes!;
+      final before = <String, List<int>>{};
+      for (final radius in MarkerLayers.clusterRadiiPx) {
+        final name = MarkerLayers.clusterImageName(radius);
+        final image = ops.calls.indexWhere(
+          (c) => c.name == 'addImage' && c.id == name,
+        );
+        expect(image, isNonNegative, reason: name);
+        expect(image, lessThan(layer), reason: name);
+        before[name] = ops.calls[image].imageBytes!;
+        // Drawn at its own size: the disc, its rim and a pixel of air each
+        // side, at the pixel ratio, not one picture scaled down.
+        expect(
+          pngWidth(before[name]!),
+          markerBitmapPixels(
+            (radius + MarkerLayers.stopStrokePx + markerDiscBitmapPadPx) * 2,
+            3,
+          ),
+          reason: name,
+        );
+      }
       ops.clearCalls();
 
       await adapter.setPalette(_repainted);
 
-      final after = ops
-          .callsNamed('addImage')
-          .where((c) => c.id == MarkerLayers.clusterImageName);
-      expect(after, hasLength(1));
-      expect(after.single.imageBytes, isNot(before));
+      for (final name in before.keys) {
+        final after = ops.callsNamed('addImage').where((c) => c.id == name);
+        expect(after, hasLength(1), reason: name);
+        expect(after.single.imageBytes, isNot(before[name]), reason: name);
+      }
       expect(
         ops
             .lastPropertiesOf(MapLayerIds.stopsClusterLayer)!
@@ -432,7 +453,12 @@ void main() {
       await adapter.attachToStyle();
       expect(registered(), contains(waterName));
       expect(ops.images, contains(waterName));
-      expect(ops.images, contains(MarkerLayers.clusterImageName));
+      expect(
+        ops.images,
+        containsAll(
+          MarkerLayers.clusterRadiiPx.map(MarkerLayers.clusterImageName),
+        ),
+      );
     });
 
     group('a tap on a bubble of stops', () {
@@ -1819,6 +1845,16 @@ void main() {
         ),
       ]);
       expect(ops.images, contains(markerGlyphName(glyph)));
+      // A picture per size the glyph is shown at, the ordinary one smaller.
+      expect(ops.images, contains(markerGlyphUnselectedName(glyph)));
+      Iterable<int> widthsOf(String name) => ops
+          .callsNamed('addImage')
+          .where((c) => c.id == name)
+          .map((c) => pngWidth(c.imageBytes!));
+      expect(
+        widthsOf(markerGlyphUnselectedName(glyph)).first,
+        lessThan(widthsOf(markerGlyphName(glyph)).first),
+      );
 
       ops.reloadStyle();
       await adapter.attachToStyle();

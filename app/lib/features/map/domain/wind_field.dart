@@ -145,10 +145,14 @@ class WindRequest {
   bool fits(BoundingBox view, double zoom) {
     if (windThinning(zoom) != thinning) return false;
     final (west, east) = _unwrap(view);
-    return west >= area.west - 1e-9 &&
-        east <= area.east + 1e-9 &&
-        view.south >= area.south - 1e-9 &&
-        view.north <= area.north + 1e-9;
+    // An area a whole turn of the globe wide serves every longitude, and
+    // none serves the poles beyond [windMaxLat].
+    final lonFits =
+        area.east - area.west >= 360 - 1e-6 ||
+        (west >= area.west - 1e-9 && east <= area.east + 1e-9);
+    return lonFits &&
+        math.max(-windMaxLat, view.south) >= area.south - 1e-9 &&
+        math.min(windMaxLat, view.north) <= area.north + 1e-9;
   }
 
   @override
@@ -173,13 +177,13 @@ class WindRequest {
 /// longitude within a turn of the globe from -180° on, the edges put on a
 /// grid of eight steps outward (so a small pan asks for the same box and
 /// finds it in the cache) and one step more, so the edges of the view
-/// have grid points beyond them. `null` below [weatherImageMinZoom], where
-/// the view is a large part of the world.
+/// have grid points beyond them. At every zoom: zoomed out to the whole
+/// world the grid is thinned ([windThinning]) to a few dozen points a
+/// side, which the service scales the coverage down to (`scalesize`).
 ///
 /// A view across the antimeridian is one box whose east is over 180°: the
 /// service wraps around, so it is still one request.
 WindRequest? windRequestFor(BoundingBox view, double zoom) {
-  if (zoom < weatherImageMinZoom) return null;
   final edges = <double>[view.west, view.south, view.east, view.north];
   if (edges.any((v) => !v.isFinite)) return null;
   var (west, east) = _unwrap(view);
@@ -417,7 +421,14 @@ class WindArrow {
 List<WindArrow> windArrowsFor(WindGrid grid, BoundingBox view, double zoom) {
   final spacing = windArrowSpacingMetres(zoom);
   var (west, east) = _unwrap(view);
-  final dx = (east - west) * windAreaMargin;
+  var dx = (east - west) * windAreaMargin;
+  // Zoomed out past a turn of the globe: one turn, so no place gets two
+  // arrows from the map's copies of the world.
+  if (east - west + 2 * dx >= 360) {
+    west = -180;
+    east = 180 - 1e-9;
+    dx = 0;
+  }
   final south = math.max(-windMaxLat, view.south);
   final north = math.min(windMaxLat, view.north);
   if (south >= north) return const <WindArrow>[];

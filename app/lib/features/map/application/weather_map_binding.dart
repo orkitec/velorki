@@ -22,8 +22,9 @@ class SharedWeatherMapStatus extends _$SharedWeatherMapStatus {
 
 /// Puts the weather layers on a map host's map as the settings say: one
 /// [WeatherMapDriver] per host, attached to whatever map the host has now,
-/// fed the settings, the sources, the time control, the radar's look and
-/// whether the app is in the foreground.
+/// fed the settings, the sources, the time control (and the step under
+/// the finger while its slider is dragged), the radar's look and whether
+/// the app is in the foreground.
 ///
 /// A host makes one in `initState`, calls [listen] from `build`, [attach]
 /// with each map it is handed and [dispose] when it goes.
@@ -62,6 +63,10 @@ class WeatherMapBinding {
       ..listen(weatherMapPreferencesProvider, (_, _) => _configure())
       ..listen(weatherMapSourcesProvider, (_, _) => _configure())
       ..listen(weatherRadarOffsetProvider, (_, _) => _configure())
+      ..listen(
+        weatherRadarPreviewProvider,
+        (_, preview) => driver.preview(preview),
+      )
       ..listen(
         appearanceSettingProvider.select((a) => a.radarStyle),
         (_, _) => _configure(),

@@ -19,6 +19,18 @@ import 'package:flutter/widgets.dart';
 /// disc of the marker it belongs to.
 String markerGlyphName(IconData icon) => 'velorki-glyph-${icon.codePoint}';
 
+/// What the smaller glyph of an ordinary point is called: its name with
+/// [markerGlyphUnselectedSuffix] after it.
+///
+/// Each size a glyph is shown at has a bitmap of its own, drawn at that
+/// size: the style picks one by name instead of scaling a bitmap, which
+/// smeared the thin strokes of a glyph scaled down.
+String markerGlyphUnselectedName(IconData icon) =>
+    '${markerGlyphName(icon)}$markerGlyphUnselectedSuffix';
+
+/// What [markerGlyphUnselectedName] puts after a glyph's name.
+const String markerGlyphUnselectedSuffix = '-small';
+
 /// Height of the glyph on the chosen point's disc, in logical pixels.
 ///
 /// The glyph is the measure here, and the disc is sized to it: picking a
@@ -29,10 +41,18 @@ const double markerGlyphOnDiscSizePx = 18;
 /// How much smaller the glyph on an ordinary disc is than the chosen
 /// point's.
 ///
-/// The bitmap is drawn once, at the size the chosen point needs, and scaled
-/// down for the rest: scaling a bitmap down keeps its edges, scaling one up
-/// softens them.
+/// Drawn at that size, outline and all, into a bitmap of its own
+/// ([markerGlyphUnselectedName]), never scaled down by the style.
 const double markerGlyphUnselectedScale = 0.8;
+
+/// Height of the glyph on an ordinary point's disc, in logical pixels.
+const double markerGlyphUnselectedSizePx =
+    markerGlyphOnDiscSizePx * markerGlyphUnselectedScale;
+
+/// The outline of the glyph on an ordinary point's disc, which shrinks with
+/// the glyph so it keeps its share of it.
+const double markerGlyphUnselectedHaloPx =
+    markerGlyphHaloPx * markerGlyphUnselectedScale;
 
 /// How much of a glyph's square its ink actually covers, taking the widest
 /// and tallest of the sixteen.
@@ -54,8 +74,8 @@ const double markerGlyphMarginPx = 2.5;
 
 /// Half of what a glyph of [glyphPx] paints, its outline included.
 ///
-/// The outline is part of the one bitmap, so the style scales it along with
-/// the glyph.
+/// The outline shrinks with the glyph, as [markerGlyphUnselectedHaloPx]
+/// does.
 double markerGlyphDrawnHalfPx(double glyphPx) =>
     glyphPx * markerGlyphInkShare / 2 +
     markerGlyphHaloPx * glyphPx / markerGlyphOnDiscSizePx;
@@ -125,30 +145,50 @@ const double markerGlyphHaloPx = 1.6;
   );
 }
 
+/// How many whole device pixels a marker bitmap [logicalPx] wide takes at
+/// [devicePixelRatio]: rounded up, so nothing is cut off, and never none.
+///
+/// MapLibre shows a bitmap registered at the screen's pixel ratio one
+/// bitmap pixel to one screen pixel, as long as the style does not scale
+/// it (`icon-size` left alone): the picture then is exactly what was drawn
+/// here, with nothing for the map's texture filter to smear.
+int markerBitmapPixels(double logicalPx, double devicePixelRatio) {
+  final ratio = devicePixelRatio <= 0 ? 1.0 : devicePixelRatio;
+  // A hair below a whole number is that number, not the next one up.
+  return math.max(1, (logicalPx * ratio - 1e-6).ceil());
+}
+
 /// Records what [paint] draws on a canvas of [logical] size and encodes it
 /// as a PNG at [devicePixelRatio].
+///
+/// The bitmap is a whole number of device pixels each way
+/// ([markerBitmapPixels]) and the canvas is scaled by exactly the ratio, so
+/// a logical pixel is the same number of device pixels in every bitmap;
+/// what the rounding up adds is shared out round the picture, to the
+/// nearest whole pixel, which keeps it centred on its point. [paint] is told the ratio, to put what it
+/// draws on whole device pixels.
 Future<Uint8List> _encodePng(
   Size logical,
   double devicePixelRatio,
-  void Function(Canvas canvas) paint,
+  void Function(Canvas canvas, double ratio) paint,
 ) async {
   final ratio = devicePixelRatio <= 0 ? 1.0 : devicePixelRatio;
-  final pixels = Size(
-    math.max(1, (logical.width * ratio).round()).toDouble(),
-    math.max(1, (logical.height * ratio).round()).toDouble(),
-  );
+  final width = markerBitmapPixels(logical.width, ratio);
+  final height = markerBitmapPixels(logical.height, ratio);
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(
     recorder,
-    Rect.fromLTWH(0, 0, pixels.width, pixels.height),
+    Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
   );
-  canvas.scale(pixels.width / logical.width, pixels.height / logical.height);
-  paint(canvas);
+  canvas
+    ..translate(
+      ((width - logical.width * ratio) / 2).roundToDouble(),
+      ((height - logical.height * ratio) / 2).roundToDouble(),
+    )
+    ..scale(ratio);
+  paint(canvas, ratio);
 
-  final image = await recorder.endRecording().toImage(
-    pixels.width.round(),
-    pixels.height.round(),
-  );
+  final image = await recorder.endRecording().toImage(width, height);
   try {
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     return data!.buffer.asUint8List();
@@ -161,7 +201,9 @@ Future<Uint8List> _encodePng(
 ///
 /// The glyph is stroked in [haloColor] and filled with [color], so it is
 /// legible on any ground the map paints under it, and rendered at
-/// [devicePixelRatio] so it stays crisp on a phone.
+/// [devicePixelRatio] so it stays crisp on a phone. Drawn at the size it is
+/// shown at, [sizePx] with an outline of [haloPx]: the style shows it as it
+/// is, never scaled.
 Future<Uint8List> buildMarkerGlyphImage({
   required IconData icon,
   required Color color,
@@ -182,8 +224,8 @@ Future<Uint8List> buildMarkerGlyphImage({
       glyph.halo.width + haloPx * 2,
       glyph.halo.height + haloPx * 2,
     );
-    return await _encodePng(logical, devicePixelRatio, (canvas) {
-      const origin = Offset(markerGlyphHaloPx, markerGlyphHaloPx);
+    return await _encodePng(logical, devicePixelRatio, (canvas, ratio) {
+      final origin = _onDevicePixels(Offset(haloPx, haloPx), ratio);
       glyph.halo.paint(canvas, origin);
       glyph.fill.paint(canvas, origin);
     });
@@ -192,6 +234,13 @@ Future<Uint8List> buildMarkerGlyphImage({
     glyph.fill.dispose();
   }
 }
+
+/// [offset], logical, moved to the nearest whole device pixel at [ratio], so
+/// a glyph starts on a pixel rather than astride one.
+Offset _onDevicePixels(Offset offset, double ratio) => Offset(
+  (offset.dx * ratio).roundToDouble() / ratio,
+  (offset.dy * ratio).roundToDouble() / ratio,
+);
 
 /// Air left round a disc's rim in its bitmap, in logical pixels, so the
 /// anti-aliased edge is not cut off.
@@ -232,7 +281,10 @@ Future<Uint8List> buildDiscMarkerImage({
   try {
     final side = (radiusPx + strokePx + markerDiscBitmapPadPx) * 2;
     final center = Offset(side / 2, side / 2);
-    return await _encodePng(Size(side, side), devicePixelRatio, (canvas) {
+    return await _encodePng(Size(side, side), devicePixelRatio, (
+      canvas,
+      ratio,
+    ) {
       canvas.drawCircle(
         center,
         radiusPx,
@@ -254,8 +306,10 @@ Future<Uint8List> buildDiscMarkerImage({
       }
       if (glyph != null) {
         // Centred as the glyph's own bitmap is centred on its point.
-        final origin =
-            center - Offset(glyph.halo.width / 2, glyph.halo.height / 2);
+        final origin = _onDevicePixels(
+          center - Offset(glyph.halo.width / 2, glyph.halo.height / 2),
+          ratio,
+        );
         glyph.halo.paint(canvas, origin);
         glyph.fill.paint(canvas, origin);
       }

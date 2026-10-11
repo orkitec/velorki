@@ -1,7 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:velorki_brouter/velorki_brouter.dart' show TileName;
 
 import '../domain/map_controller.dart';
 import 'map_stops_controller.dart' show StopsCoverage;
+
+part 'area_download_hint.g.dart';
 
 /// The zoom from which the map says an area is not downloaded: farther out
 /// the view is a region, and its middle says little about where one rides.
@@ -21,10 +25,18 @@ class AreaDownloadHint extends ChangeNotifier {
 
   final StopsCoverage _coverage;
   MapController? _map;
-  bool _needed = false;
+  TileName? _missingArea;
 
-  /// Whether the hint shows.
-  bool get needed => _needed;
+  /// Whether the hint shows, unless the rider closed it for [missingArea].
+  bool get needed => _missingArea != null;
+
+  /// The tile under the middle of the map while it is not downloaded, which
+  /// is the area the hint speaks of; `null` while there is no hint.
+  TileName? get missingArea => _missingArea;
+
+  /// Whether the hint shows once the rider has closed it over [dismissed].
+  bool shownDespite(Set<TileName> dismissed) =>
+      _missingArea != null && !dismissed.contains(_missingArea);
 
   /// Judges [map] from now on.
   void attach(MapController map) {
@@ -39,7 +51,7 @@ class AreaDownloadHint extends ChangeNotifier {
   void detach() {
     _map?.removeCameraIdleListener(_update);
     _map = null;
-    _set(false);
+    _set(null);
   }
 
   void _update() {
@@ -47,12 +59,22 @@ class AreaDownloadHint extends ChangeNotifier {
     final zoom = map?.zoom;
     final bounds = map?.visibleBounds;
     if (map == null || zoom == null || bounds == null) return;
-    _set(zoom >= areaHintMinZoom - 0.01 && !_coverage.covers(bounds.center));
+    final center = bounds.center;
+    if (zoom < areaHintMinZoom - 0.01 || _coverage.covers(center)) {
+      _set(null);
+      return;
+    }
+    try {
+      _set(TileName.fromLatLng(center));
+    } on ArgumentError {
+      // A map that is not ready yet can answer with a non-finite centre.
+      _set(null);
+    }
   }
 
-  void _set(bool value) {
-    if (value == _needed) return;
-    _needed = value;
+  void _set(TileName? area) {
+    if (area == _missingArea) return;
+    _missingArea = area;
     notifyListeners();
   }
 
@@ -61,5 +83,20 @@ class AreaDownloadHint extends ChangeNotifier {
     detach();
     _coverage.removeListener(_update);
     super.dispose();
+  }
+}
+
+/// The areas whose not-downloaded hint the rider closed, for as long as the
+/// app runs: the hint stays away over them and comes back over any other
+/// area that is not downloaded, and over these after a restart.
+@Riverpod(keepAlive: true)
+class AreaHintDismissals extends _$AreaHintDismissals {
+  @override
+  Set<TileName> build() => const {};
+
+  /// Closes the hint over [area].
+  void dismiss(TileName area) {
+    if (state.contains(area)) return;
+    state = {...state, area};
   }
 }

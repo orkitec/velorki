@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/map/data/cycle_map_layers.dart';
@@ -23,7 +24,7 @@ WeatherLayer _clouds(String id, String frame) => WeatherLayer.image(
   id: id,
   kind: WeatherKind.clouds,
   image: Uint8List.fromList(<int>[1, 2, 3]),
-  imageBox: eumetsatClouds.coverage.single,
+  imageBox: eumetsatClouds.coverage.first,
   frameKey: '$id@$frame',
   attribution: 'Clouds: $id',
 );
@@ -68,7 +69,7 @@ void main() {
     final image = ops.lastCall('addImageSource')!;
     expect(image.id, MapLayerIds.weatherSource('clouds_eumetsat.0', 1));
     final corners = image.properties!['coordinates'] as List;
-    expect(corners.first, [75.0, -30.0]); // top left, lat/lng
+    expect(corners.first, [70.0, -30.0]); // top left, lat/lng
     expect(corners[2], [25.0, 45.0]); // bottom right
     final layer = ops.addLayerOf(
       MapLayerIds.weatherLayer('clouds_eumetsat.0', 1),
@@ -319,6 +320,147 @@ void main() {
     }
   });
 
+  group('frames kept unseen for the time control', () {
+    const box = BoundingBox(south: 52, west: 13, north: 53, east: 14);
+    WeatherImageFrame frame(String key) => WeatherImageFrame(
+      frameKey: key,
+      image: Uint8List.fromList(<int>[key.length]),
+      box: box,
+    );
+    WeatherLayer rain(String shown, List<String> kept, {bool visible = true}) =>
+        WeatherLayer.image(
+          id: 'radar_dwd',
+          kind: WeatherKind.radar,
+          image: Uint8List.fromList(<int>[1]),
+          imageBox: box,
+          frameKey: shown,
+          attribution: 'Radar: radar_dwd',
+          visible: visible,
+          preloaded: <WeatherImageFrame>[for (final k in kept) frame(k)],
+        );
+    double? opacityOf(int n) =>
+        (ops.lastPropertiesOf(MapLayerIds.weatherLayer('radar_dwd', n)) ??
+                    ops.addLayerOf(MapLayerIds.weatherLayer('radar_dwd', n)))!
+                .properties!['raster-opacity']
+            as double?;
+
+    test(
+      'each frame its own source, those kept unseen at no opacity',
+      () async {
+        await map.setWeatherLayers([
+          rain('a', <String>['b', 'c']),
+        ]);
+        expect(ops.callsNamed('addImageSource'), hasLength(3));
+        expect(opacityOf(0), radarSoftTone.opacity);
+        expect(opacityOf(1), 0);
+        expect(opacityOf(2), 0);
+        expect(map.weatherAttributions.value, ['Radar: radar_dwd']);
+      },
+    );
+
+    test('showing a frame kept unseen adds nothing: the new one up, then '
+        'the old one down', () async {
+      await map.setWeatherLayers([
+        rain('a', <String>['b', 'c']),
+      ]);
+      ops.clearCalls();
+      await map.setWeatherLayers([
+        rain('b', <String>['a', 'c']),
+      ]);
+      expect(ops.names, ['setLayerProperties', 'setLayerProperties']);
+      expect(ops.calls[0].id, MapLayerIds.weatherLayer('radar_dwd', 1));
+      expect(opacityOf(1), radarSoftTone.opacity);
+      expect(ops.calls[1].id, MapLayerIds.weatherLayer('radar_dwd', 0));
+      expect(opacityOf(0), 0);
+      // And on through the steps, still adding nothing.
+      ops.clearCalls();
+      await map.setWeatherLayers([
+        rain('c', <String>['a', 'b']),
+      ]);
+      await map.setWeatherLayers([
+        rain('a', <String>['b', 'c']),
+      ]);
+      expect(ops.callsNamed('addImageSource'), isEmpty);
+      expect(ops.callsNamed('addLayer'), isEmpty);
+      expect(ops.callsNamed('removeSource'), isEmpty);
+    });
+
+    test('a frame no longer kept goes at once; a new frame shown goes over '
+        'the old, which then goes', () async {
+      await map.setWeatherLayers([
+        rain('a', <String>['b', 'c']),
+      ]);
+      await map.setWeatherLayers([
+        rain('a', <String>['b']),
+      ]);
+      expect(
+        ops.sourceIds,
+        isNot(contains(MapLayerIds.weatherSource('radar_dwd', 2))),
+      );
+      ops.clearCalls();
+      await map.setWeatherLayers([rain('d', const <String>[])]);
+      expect(ops.callsNamed('addImageSource'), hasLength(1));
+      expect(ops.names.first, 'addImageSource');
+      expect(ops.sourceIds.where((id) => id.startsWith('velorki-weather-')), [
+        MapLayerIds.weatherSource('radar_dwd', 3),
+      ]);
+    });
+
+    test('a layer kept unseen altogether: no opacity, no credit', () async {
+      await map.setWeatherLayers([
+        rain('a', <String>['b'], visible: false),
+      ]);
+      expect(opacityOf(0), 0);
+      expect(opacityOf(1), 0);
+      expect(map.weatherAttributions.value, isEmpty);
+      await map.setWeatherLayers([
+        rain('b', <String>['a']),
+      ]);
+      expect(opacityOf(1), radarSoftTone.opacity);
+      expect(opacityOf(0), 0);
+      expect(map.weatherAttributions.value, ['Radar: radar_dwd']);
+    });
+
+    test(
+      'a kept frame MapLibre cannot draw is left out, the rest drawn',
+      () async {
+        await map.setWeatherLayers([
+          WeatherLayer.image(
+            id: 'radar_dwd',
+            kind: WeatherKind.radar,
+            image: Uint8List.fromList(<int>[1]),
+            imageBox: box,
+            frameKey: 'a',
+            attribution: 'Radar: radar_dwd',
+            preloaded: <WeatherImageFrame>[
+              frame('b'),
+              WeatherImageFrame(
+                frameKey: 'c',
+                image: Uint8List.fromList(<int>[3]),
+                box: const BoundingBox(
+                  south: 86,
+                  west: 13,
+                  north: 88,
+                  east: 14,
+                ),
+              ),
+            ],
+          ),
+        ]);
+        expect(ops.callsNamed('addImageSource'), hasLength(2));
+      },
+    );
+
+    test('a dark map repaints each frame, the unseen ones unseen', () async {
+      await map.setWeatherLayers([
+        rain('a', <String>['b']),
+      ]);
+      await map.setWeatherDark(true);
+      expect(opacityOf(0), radarSoftTone.opacity);
+      expect(opacityOf(1), 0);
+    });
+  });
+
   group('wind', () {
     WindArrows arrows(double ms) => WindArrows(
       arrows: <WindArrow>[
@@ -364,6 +506,7 @@ void main() {
         palette.windArrowStrong,
       ]);
       expect(props['icon-halo-color'], palette.windArrowHalo);
+      expect(props['icon-halo-width'], windArrowHaloWidth);
       expect(map.weatherAttributions.value, [
         'Wind: Deutscher Wetterdienst (CC BY 4.0)',
       ]);
@@ -445,11 +588,45 @@ void main() {
       final props = ops.lastPropertiesOf(MapLayerIds.windLayer)!.properties!;
       expect((props['icon-color'] as List)[6], night.windArrowModerate);
       expect(props['icon-halo-color'], night.windArrowHalo);
-      // The arrows turn over with the map: light on a dark one.
+      // A little lighter on a dark map.
       expect(
         night.windArrowModerate,
         isNot(MapPalette.classic().windArrowModerate),
       );
+    });
+
+    test('a cool ramp by strength, outlined in white on every look, apart '
+        'from the roads\' arrows and the rain', () {
+      for (final palette in <MapPalette>[
+        const MapPalette.classic(),
+        MapPalette.fromTheme(buildLightTheme(AccentPreset.ember)),
+        MapPalette.fromTheme(buildDarkTheme(AccentPreset.ember)),
+      ]) {
+        // White, at most a little see-through.
+        expect(palette.windArrowHalo, startsWith('#FFFFFF'));
+        final ramp = <String>[
+          palette.windArrowLight,
+          palette.windArrowModerate,
+          palette.windArrowFresh,
+          palette.windArrowStrong,
+        ].map(colorFromMapHex).map(HSVColor.fromColor).toList();
+        for (final c in ramp) {
+          // Coloured, not a grey or white like a road's arrow.
+          expect(c.saturation, greaterThan(0.5), reason: '$c');
+          // Blue to magenta: none of the rain's greens, yellows, oranges
+          // or reds.
+          expect(c.hue, inInclusiveRange(190, 330), reason: '$c');
+        }
+        // Each step on along the ramp, sky blue to magenta.
+        for (var i = 1; i < ramp.length; i++) {
+          expect(ramp[i].hue, greaterThan(ramp[i - 1].hue));
+        }
+        // Calm a neutral grey.
+        expect(
+          HSVColor.fromColor(colorFromMapHex(palette.windArrowCalm)).saturation,
+          lessThan(0.2),
+        );
+      }
     });
   });
 }

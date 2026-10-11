@@ -29,16 +29,18 @@ class _QuietFetcher implements WeatherFetcher {
     WeatherMapSource source,
     int region,
     WeatherFrame frame,
-    DateTime now,
-  ) async => null;
+    DateTime now, {
+    List<CloudFade> fades = const <CloudFade>[],
+  }) async => null;
 
   @override
   Future<Uint8List?> cloudDetailImage(
     WeatherMapSource source,
     BoundingBox box,
     WeatherFrame frame,
-    DateTime now,
-  ) async => null;
+    DateTime now, {
+    List<CloudFade> fades = const <CloudFade>[],
+  }) async => null;
 
   @override
   Future<Uint8List?> radarImage(

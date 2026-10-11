@@ -794,6 +794,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     return base.copyWith(bottom: bottom);
   }
 
+  /// Closes the not-downloaded hint for the area it speaks of; it comes
+  /// back over another area that is not downloaded.
+  void _closeAreaHint() {
+    final area = _areaHint.missingArea;
+    if (area == null) return;
+    ref.read(areaHintDismissalsProvider.notifier).dismiss(area);
+  }
+
   /// Opens the offline data screen for the area on screen, which is what the
   /// map's download button opens: "Download for the visible area" is then one
   /// tap away from a search that had nothing to answer with.
@@ -1175,6 +1183,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final cycleMapNeedsDownload = ref.watch(
       sharedCycleMapNeedsDownloadProvider,
     );
+    // The areas whose hint the rider closed this session.
+    final dismissedAreas = ref.watch(areaHintDismissalsProvider);
     // What the chrome shows under its first rows, now and then.
     final below = <Widget>[
       // The area is not downloaded, or stops are on and the map is too far
@@ -1186,7 +1196,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         builder: (context, _) =>
             _stops.needsDownload ||
                 cycleMapNeedsDownload ||
-                _areaHint.needed ||
+                _areaHint.shownDespite(dismissedAreas) ||
                 _stops.needsZoom
             ? Padding(
                 // Clear of the map's control column at the side: a long
@@ -1205,11 +1215,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                           message: AppLocalizations.of(context)
                               .mapCycleMapNotDownloaded,
                         )
-                      : _areaHint.needed
+                      : _areaHint.shownDespite(dismissedAreas)
                       ? StopsDownloadChip(
                           onDownload: _openOfflineData,
                           message: AppLocalizations.of(context)
                               .searchAreaNotDownloaded,
+                          onClose: _closeAreaHint,
                         )
                       : StopsZoomChip(
                           onZoomIn: () => unawaited(_stops.zoomIn()),

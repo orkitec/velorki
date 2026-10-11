@@ -124,19 +124,19 @@ class MapPalette {
     this.windCross = '#C77800',
     this.windTail = '#1C9A57',
     this.windCalm = '#7D8792',
-    this.windArrowCalm = '#8A939C',
-    this.windArrowLight = '#4F5A66',
-    this.windArrowModerate = '#14171A',
-    this.windArrowFresh = '#E07B00',
-    this.windArrowStrong = '#C62828',
-    this.windArrowHalo = '#FFFFFFD9',
+    this.windArrowCalm = windArrowCalmLight,
+    this.windArrowLight = windArrowLightLight,
+    this.windArrowModerate = windArrowModerateLight,
+    this.windArrowFresh = windArrowFreshLight,
+    this.windArrowStrong = windArrowStrongLight,
+    this.windArrowHalo = windArrowHaloLight,
   });
 
   /// The wind arrows over the map by the wind's speed (see
-  /// `windSpeedClasses`): calm, light, moderate, fresh and strong, the
-  /// first three from faint to the map's own text colour, the last two
-  /// warning colours; and the outline that keeps them off the map and the
-  /// rain under them.
+  /// `windSpeedClasses`): calm, light, moderate, fresh and strong, a cool
+  /// ramp from sky blue to magenta that no road arrow nor the rain uses;
+  /// and the white outline that keeps them off the map and the rain under
+  /// them.
   final String windArrowCalm;
   final String windArrowLight;
   final String windArrowModerate;
@@ -199,12 +199,30 @@ class MapPalette {
       windCross = '#C77800',
       windTail = '#1C9A57',
       windCalm = '#7D8792',
-      windArrowCalm = '#8A939C',
-      windArrowLight = '#4F5A66',
-      windArrowModerate = '#14171A',
-      windArrowFresh = '#E07B00',
-      windArrowStrong = '#C62828',
-      windArrowHalo = '#FFFFFFD9';
+      windArrowCalm = windArrowCalmLight,
+      windArrowLight = windArrowLightLight,
+      windArrowModerate = windArrowModerateLight,
+      windArrowFresh = windArrowFreshLight,
+      windArrowStrong = windArrowStrongLight,
+      windArrowHalo = windArrowHaloLight;
+
+  // The wind arrows' colours by strength: a cool ramp from sky blue through
+  // blue and violet to magenta, which neither the roads' grey and white
+  // one-way arrows nor the rain's greens, yellows and reds use; calm a
+  // small neutral grey. Each outlined in white. On a dark map a little
+  // lighter, so the ramp still reads against the dark ground.
+  static const String windArrowCalmLight = '#8F98A3';
+  static const String windArrowLightLight = '#4AAEEA';
+  static const String windArrowModerateLight = '#1C64DB';
+  static const String windArrowFreshLight = '#7438DB';
+  static const String windArrowStrongLight = '#C2179A';
+  static const String windArrowHaloLight = '#FFFFFF';
+  static const String windArrowCalmDark = '#9AA3AD';
+  static const String windArrowLightDark = '#6CC4F4';
+  static const String windArrowModerateDark = '#3F82F2';
+  static const String windArrowFreshDark = '#9A6CF2';
+  static const String windArrowStrongDark = '#DD3FB8';
+  static const String windArrowHaloDark = '#FFFFFFE6';
 
   /// The palette of [theme]'s [VelorkiColors].
   factory MapPalette.fromTheme(ThemeData theme) {
@@ -248,16 +266,14 @@ class MapPalette {
       windCross: VelorkiColors.hex(colors.windCross),
       windTail: VelorkiColors.hex(colors.windTail),
       windCalm: VelorkiColors.hex(colors.windCalm),
-      // The arrows turn over with the map, as a name on it does: from
-      // faint to the map's text colour, outlined in the other.
-      windArrowCalm: VelorkiColors.hex(colors.windCalm),
-      windArrowLight: VelorkiColors.hex(
-        Color.lerp(colorFromMapHex(label), colors.windCalm, 0.45)!,
-      ),
-      windArrowModerate: label,
-      windArrowFresh: VelorkiColors.hex(colors.warning),
-      windArrowStrong: VelorkiColors.hex(theme.colorScheme.error),
-      windArrowHalo: dark ? '#000000B3' : '#FFFFFFD9',
+      // The arrows' cool ramp, a little lighter on a dark map; outlined in
+      // white on both.
+      windArrowCalm: dark ? windArrowCalmDark : windArrowCalmLight,
+      windArrowLight: dark ? windArrowLightDark : windArrowLightLight,
+      windArrowModerate: dark ? windArrowModerateDark : windArrowModerateLight,
+      windArrowFresh: dark ? windArrowFreshDark : windArrowFreshLight,
+      windArrowStrong: dark ? windArrowStrongDark : windArrowStrongLight,
+      windArrowHalo: dark ? windArrowHaloDark : windArrowHaloLight,
     );
   }
 
@@ -405,6 +421,9 @@ const Duration puckInterpolationDuration = Duration(milliseconds: 800);
 /// How many steps that walk is drawn in. Twelve is smooth enough to read as
 /// motion and cheap enough to write twelve times a second.
 const int puckInterpolationSteps = 12;
+
+/// How wide the white outline around each wind arrow is, in pixels.
+const double windArrowHaloWidth = 2;
 
 /// How far apart, in logical pixels, stops are drawn as one bubble.
 const double stopsClusterRadiusPx = 50;
@@ -837,12 +856,14 @@ class MaplibreMapControllerAdapter implements MapController {
   bool _cycleAnchorKnown = false;
   bool _cycleImagesAdded = false;
   // The weather layers: the ones asked for, replayed after a style reload,
-  // and the generations the style holds of each, newest last. A new frame
-  // is a new source under a new layer, the old one going once the new one
-  // has had time to load; see [setWeatherLayers].
+  // and the generations the style holds of each, oldest first: one a
+  // frame, a source under a layer, shown or kept unseen. A new frame shown
+  // is a new generation over the old one, which goes once the new one has
+  // had time to load; a frame kept unseen is shown by its opacity alone;
+  // see [setWeatherLayers].
   List<WeatherLayer> _weatherWanted = const <WeatherLayer>[];
-  final Map<String, List<(int, WeatherLayer)>> _weatherDrawn =
-      <String, List<(int, WeatherLayer)>>{};
+  final Map<String, List<_WeatherGeneration>> _weatherDrawn =
+      <String, List<_WeatherGeneration>>{};
   // The weather layers in the style, bottom to top: each style layer's id
   // and the weather layer it draws.
   final List<(String, String)> _weatherStack = <(String, String)>[];
@@ -1123,7 +1144,9 @@ class MaplibreMapControllerAdapter implements MapController {
 
   /// Registers the glyph of every icon of [icons] the style has not got
   /// yet, so the symbol layers have a picture to draw by the time the
-  /// features naming it arrive.
+  /// features naming it arrive: two pictures, one at the chosen point's
+  /// size and one at an ordinary point's, as [MarkerLayers.glyphImage]
+  /// names them.
   ///
   /// A glyph that cannot be drawn is skipped: the marker then wears its
   /// plain disc, which is what it wore before there were icons at all.
@@ -1134,17 +1157,26 @@ class MaplibreMapControllerAdapter implements MapController {
       if (!_glyphImages.add(name)) continue;
       try {
         // Light on the disc's colour, with a faint dark outline so it still
-        // reads on a pale one. Drawn at the size the chosen point wants and
-        // scaled down by the style for the rest.
-        final bytes = await buildMarkerGlyphImage(
-          icon: icon,
-          color: colorFromMapHex(palette.waypointStroke),
-          haloColor: const Color(0x59000000),
-          devicePixelRatio: devicePixelRatio,
-          sizePx: markerGlyphOnDiscSizePx,
-        );
-        if (_disposed) return;
-        await _ops.addImage(name, bytes);
+        // reads on a pale one. Each size drawn as it is shown, never scaled.
+        for (final (imageName, sizePx, haloPx) in <(String, double, double)>[
+          (name, markerGlyphOnDiscSizePx, markerGlyphHaloPx),
+          (
+            markerGlyphUnselectedName(icon),
+            markerGlyphUnselectedSizePx,
+            markerGlyphUnselectedHaloPx,
+          ),
+        ]) {
+          final bytes = await buildMarkerGlyphImage(
+            icon: icon,
+            color: colorFromMapHex(palette.waypointStroke),
+            haloColor: const Color(0x59000000),
+            devicePixelRatio: devicePixelRatio,
+            sizePx: sizePx,
+            haloPx: haloPx,
+          );
+          if (_disposed) return;
+          await _ops.addImage(imageName, bytes);
+        }
       } on Object catch (error) {
         _glyphImages.remove(name);
         debugPrint('velorki: marker glyph failed: $error');
@@ -1199,8 +1231,8 @@ class MaplibreMapControllerAdapter implements MapController {
               ? MarkerLayers.stopDiscSelectedRadiusPx
               : MarkerLayers.stopDiscRadiusPx,
           strokePx: MarkerLayers.stopStrokePx,
-          // The glyph a stop's own glyph layer drew: the chosen point's,
-          // scaled down with its outline for the rest.
+          // The chosen point's glyph, or a smaller one with its outline
+          // shrunk alike, drawn at the size it is shown at.
           glyphPx: stop.selected
               ? markerGlyphOnDiscSizePx
               : markerGlyphOnDiscSizePx * MarkerLayers.stopGlyphScale,
@@ -1226,21 +1258,23 @@ class MaplibreMapControllerAdapter implements MapController {
     await _addStopImages(_stops);
   }
 
-  /// Registers the bubble of a cluster of stops: the accent with the stop
-  /// discs' rim, at the widest radius, scaled down by the style for the
-  /// smaller ones. Again on every palette change; `addImage` under the same
-  /// name replaces the bitmap.
+  /// Registers the bubbles of a cluster of stops: the accent with the stop
+  /// discs' rim, one picture per radius, each drawn at its own size. Again
+  /// on every palette change; `addImage` under the same name replaces the
+  /// bitmap.
   Future<void> _addStopClusterImage() async {
     try {
-      final bytes = await buildDiscMarkerImage(
-        fill: colorFromMapHex(palette.stopCluster),
-        stroke: colorFromMapHex(palette.waypointStroke),
-        radiusPx: MarkerLayers.clusterRadiiPx.last,
-        strokePx: MarkerLayers.stopStrokePx,
-        devicePixelRatio: devicePixelRatio,
-      );
-      if (_disposed) return;
-      await _ops.addImage(MarkerLayers.clusterImageName, bytes);
+      for (final radiusPx in MarkerLayers.clusterRadiiPx) {
+        final bytes = await buildDiscMarkerImage(
+          fill: colorFromMapHex(palette.stopCluster),
+          stroke: colorFromMapHex(palette.waypointStroke),
+          radiusPx: radiusPx,
+          strokePx: MarkerLayers.stopStrokePx,
+          devicePixelRatio: devicePixelRatio,
+        );
+        if (_disposed) return;
+        await _ops.addImage(MarkerLayers.clusterImageName(radiusPx), bytes);
+      }
     } on Object catch (error) {
       // Bubbles go missing until the next attach or palette change; the
       // single stops still draw.
@@ -2290,15 +2324,17 @@ class MaplibreMapControllerAdapter implements MapController {
 
   /// Puts the weather layers [layers] on the map and takes the others
   /// away. A layer whose frame changed gets a new source over the old one,
-  /// which goes [weatherSwapDelay] later, so the map never flashes bare.
-  /// One change at a time, the newest list winning. An image over a box
-  /// MapLibre cannot draw ([safeImageBox]) is left out, as if not asked
-  /// for: such a box crashes its renderer.
+  /// which goes [weatherSwapDelay] later, so the map never flashes bare;
+  /// a frame the map already holds unseen ([WeatherLayer.preloaded]) is
+  /// shown by its opacity alone, the one shown before then kept unseen or
+  /// taken away, so the time control can step through frames without a
+  /// source added. One change at a time, the newest list winning. An image
+  /// over a box MapLibre cannot draw ([safeImageBox]) is left out, as if
+  /// not asked for: such a box crashes its renderer.
   @override
   Future<void> setWeatherLayers(List<WeatherLayer> layers) {
     final wanted = List<WeatherLayer>.unmodifiable(<WeatherLayer>[
-      for (final layer in layers)
-        if (_drawable(layer)) layer,
+      for (final layer in layers) ?_drawable(layer),
     ]);
     _weatherWanted = wanted;
     _publishWeatherAttributions();
@@ -2316,12 +2352,33 @@ class MaplibreMapControllerAdapter implements MapController {
     });
   }
 
-  static bool _drawable(WeatherLayer layer) {
+  /// [layer] with only the frames MapLibre can draw; `null` where the one
+  /// it names is not one of them.
+  static WeatherLayer? _drawable(WeatherLayer layer) {
+    bool safe(BoundingBox box, String what) {
+      if (safeImageBox(box)) return true;
+      debugPrint('velorki: weather image $what not drawn, box $box');
+      return false;
+    }
+
     final box = layer.imageBox;
-    if (layer.image == null || box == null) return true;
-    if (safeImageBox(box)) return true;
-    debugPrint('velorki: weather image ${layer.id} not drawn, box $box');
-    return false;
+    if (layer.image == null || box == null) return layer;
+    if (!safe(box, layer.id)) return null;
+    if (layer.preloaded.every((f) => safeImageBox(f.box))) return layer;
+    return WeatherLayer.image(
+      id: layer.id,
+      kind: layer.kind,
+      image: layer.image!,
+      imageBox: box,
+      frameKey: layer.frameKey,
+      attribution: layer.attribution,
+      opacity: layer.opacity,
+      visible: layer.visible,
+      preloaded: <WeatherImageFrame>[
+        for (final frame in layer.preloaded)
+          if (safe(frame.box, '${layer.id} ${frame.frameKey}')) frame,
+      ],
+    );
   }
 
   Future<void> _drawWeather(List<WeatherLayer> wanted) async {
@@ -2329,29 +2386,66 @@ class MaplibreMapControllerAdapter implements MapController {
     // Gone from the list: away at once.
     for (final id in List<String>.of(_weatherDrawn.keys)) {
       if (!ids.contains(id)) {
-        await _removeWeatherGenerations(id, _weatherDrawn[id]!.length);
+        await _removeWeatherGenerations(id, _weatherDrawn[id]!);
       }
     }
     final order = <String, int>{
       for (final (i, layer) in wanted.indexed) layer.id: i,
     };
-    final stale = <String, int>{};
+    final stale = <String, List<_WeatherGeneration>>{};
     for (final layer in wanted) {
-      final drawn = _weatherDrawn[layer.id];
-      if (drawn != null && drawn.last.$2.frameKey == layer.frameKey) {
-        // The same frame: only the paint may have changed.
-        if (drawn.last.$2.opacity != layer.opacity) {
-          drawn[drawn.length - 1] = (drawn.last.$1, layer);
-          await _ops.setLayerProperties(
-            MapLayerIds.weatherLayer(layer.id, drawn.last.$1),
-            _weatherProperties(layer),
-          );
-        }
-        continue;
+      // The frames asked for: the one named, shown or not, and those kept
+      // unseen.
+      final frames = <String, (WeatherLayer, bool)>{
+        layer.frameKey: (layer, layer.visible),
+        for (final frame in layer.preloaded)
+          if (frame.frameKey != layer.frameKey)
+            frame.frameKey: (layer.showing(frame), false),
+      };
+      final drawn = _weatherDrawn[layer.id] ?? <_WeatherGeneration>[];
+      final have = <String, _WeatherGeneration>{
+        for (final generation in drawn) generation.layer.frameKey: generation,
+      };
+      // New frames first: a new one shown goes over the old ones.
+      var addedShown = false;
+      for (final MapEntry(key: key, value: (frame, shown)) in frames.entries) {
+        if (have.containsKey(key)) continue;
+        await _addWeatherGeneration(frame, order, shown: shown);
+        if (shown) addedShown = true;
       }
-      await _addWeatherGeneration(layer, order);
-      final now = _weatherDrawn[layer.id]!;
-      if (now.length > 1) stale[layer.id] = now.length - 1;
+      // Then the frames held: the one now shown up before the others go
+      // down, so no moment shows none.
+      final changed = <(_WeatherGeneration, WeatherLayer, bool)>[
+        for (final MapEntry(key: key, value: (frame, shown)) in frames.entries)
+          if (have[key] case final generation?)
+            if (generation.shown != shown ||
+                (shown && generation.layer.opacity != frame.opacity))
+              (generation, frame, shown),
+      ]..sort((a, b) => (b.$3 ? 1 : 0) - (a.$3 ? 1 : 0));
+      for (final (generation, frame, shown) in changed) {
+        generation
+          ..layer = frame
+          ..shown = shown;
+        await _ops.setLayerProperties(
+          MapLayerIds.weatherLayer(layer.id, generation.n),
+          _weatherProperties(frame, shown: shown),
+        );
+      }
+      // Frames no longer asked for: a shown one under a new frame stays
+      // until that has loaded; the rest go now.
+      final gone = <_WeatherGeneration>[
+        for (final generation in drawn)
+          if (!frames.containsKey(generation.layer.frameKey)) generation,
+      ];
+      final later = <_WeatherGeneration>[
+        for (final generation in gone)
+          if (generation.shown && addedShown) generation,
+      ];
+      await _removeWeatherGenerations(
+        layer.id,
+        gone.where((g) => !later.contains(g)),
+      );
+      if (later.isNotEmpty) stale[layer.id] = later;
     }
     if (stale.isEmpty) return;
     await Future<void>.delayed(weatherSwapDelay);
@@ -2361,15 +2455,16 @@ class MaplibreMapControllerAdapter implements MapController {
     }
   }
 
-  /// Adds [layer] as the newest generation of its id, in the style where
-  /// [order] (each layer's place in the list asked for, bottom to top) puts
-  /// it: over its own older generations and what comes before it (a
-  /// cloud's detail over its region, clouds under the rain), all under the
-  /// cycle map and the base map's labels.
+  /// Adds [layer]'s frame as the newest generation of its id, unseen
+  /// unless [shown], in the style where [order] (each layer's place in the
+  /// list asked for, bottom to top) puts it: over its own older generations
+  /// and what comes before it (a cloud's detail over its region, clouds
+  /// under the rain), all under the cycle map and the base map's labels.
   Future<void> _addWeatherGeneration(
     WeatherLayer layer,
-    Map<String, int> order,
-  ) async {
+    Map<String, int> order, {
+    bool shown = true,
+  }) async {
     await _findLabelAnchor();
     final n = _nextWeatherGeneration++;
     final source = MapLayerIds.weatherSource(layer.id, n);
@@ -2420,12 +2515,14 @@ class MaplibreMapControllerAdapter implements MapController {
     await _ops.addLayer(
       source,
       id,
-      _weatherProperties(layer),
+      _weatherProperties(layer, shown: shown),
       belowLayerId: below,
       enableInteraction: false,
     );
     _weatherStack.insert(at, (id, layer.id));
-    (_weatherDrawn[layer.id] ??= <(int, WeatherLayer)>[]).add((n, layer));
+    (_weatherDrawn[layer.id] ??= <_WeatherGeneration>[]).add(
+      _WeatherGeneration(n, layer, shown: shown),
+    );
   }
 
   /// The layer the weather goes under: the cycle map's lowest, else the
@@ -2439,7 +2536,8 @@ class MaplibreMapControllerAdapter implements MapController {
 
   void _publishWeatherAttributions() {
     _weatherAttributions.value = List<String>.unmodifiable(<String>{
-      for (final layer in _weatherWanted) layer.attribution,
+      for (final layer in _weatherWanted)
+        if (layer.visible) layer.attribution,
       ?_windWanted?.attribution,
     });
   }
@@ -2519,11 +2617,11 @@ class MaplibreMapControllerAdapter implements MapController {
         0,
         0.6,
         2,
-        0.75,
+        0.8,
         11,
-        1.1,
+        1.15,
         20,
-        1.3,
+        1.35,
       ],
       iconColor: <Object>[
         'step',
@@ -2535,7 +2633,7 @@ class MaplibreMapControllerAdapter implements MapController {
         ],
       ],
       iconHaloColor: p.windArrowHalo,
-      iconHaloWidth: 1.5,
+      iconHaloWidth: windArrowHaloWidth,
       iconOpacity: <Object>[
         'step',
         const <Object>['get', 'ms'],
@@ -2546,25 +2644,33 @@ class MaplibreMapControllerAdapter implements MapController {
     );
   }
 
-  /// Removes the oldest [count] generations of the weather layer [id].
-  Future<void> _removeWeatherGenerations(String id, int count) async {
+  /// Removes the generations [gone] of the weather layer [id], those it
+  /// still has.
+  Future<void> _removeWeatherGenerations(
+    String id,
+    Iterable<_WeatherGeneration> gone,
+  ) async {
     final drawn = _weatherDrawn[id];
     if (drawn == null) return;
-    for (final (n, _) in drawn.take(count).toList()) {
-      final layerId = MapLayerIds.weatherLayer(id, n);
+    for (final generation in gone.toList()) {
+      if (!drawn.remove(generation)) continue;
+      final layerId = MapLayerIds.weatherLayer(id, generation.n);
       _weatherStack.removeWhere((e) => e.$1 == layerId);
       await _ops.removeLayer(layerId);
-      await _ops.removeSource(MapLayerIds.weatherSource(id, n));
+      await _ops.removeSource(MapLayerIds.weatherSource(id, generation.n));
     }
-    drawn.removeRange(0, math.min(count, drawn.length));
     if (drawn.isEmpty) _weatherDrawn.remove(id);
   }
 
-  ml.LayerProperties _weatherProperties(WeatherLayer layer) {
+  /// The paint of [layer]'s frame, unseen (no opacity) unless [shown].
+  ml.LayerProperties _weatherProperties(
+    WeatherLayer layer, {
+    bool shown = true,
+  }) {
     final paint = weatherTone(
       layer.kind,
       dark: _weatherDark,
-      opacity: layer.opacity,
+      opacity: shown ? layer.opacity : 0,
       image: layer.image != null,
     ).layerProperties();
     // An image (the clouds, the soft radar) is blown up well past its
@@ -2584,10 +2690,10 @@ class MaplibreMapControllerAdapter implements MapController {
     if (!_attached || _disposed) return;
     try {
       for (final entry in _weatherDrawn.entries) {
-        for (final (n, layer) in entry.value) {
+        for (final generation in entry.value) {
           await _ops.setLayerProperties(
-            MapLayerIds.weatherLayer(entry.key, n),
-            _weatherProperties(layer),
+            MapLayerIds.weatherLayer(entry.key, generation.n),
+            _weatherProperties(generation.layer, shown: generation.shown),
           );
         }
       }
@@ -2946,4 +3052,14 @@ class MaplibreMapControllerAdapter implements MapController {
     southwest: ml.LatLng(b.south, b.west),
     northeast: ml.LatLng(b.north, b.east),
   );
+}
+
+/// One generation of a weather layer in the style: its number, the layer
+/// it draws (one frame) and whether that frame is shown.
+class _WeatherGeneration {
+  _WeatherGeneration(this.n, this.layer, {required this.shown});
+
+  final int n;
+  WeatherLayer layer;
+  bool shown;
 }

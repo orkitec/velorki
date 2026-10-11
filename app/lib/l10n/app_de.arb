@@ -897,6 +897,7 @@
   "mapStopsZoomIn": "Hineinzoomen, um Stopps zu sehen",
   "mapStopsNotDownloaded": "Keine Stopps hier – Gebiet nicht heruntergeladen",
   "mapStopsDownload": "Herunterladen",
+  "mapAreaHintHide": "Ausblenden",
   "mapLayersStopsPlanHint": "Sichtbar beim Hineinzoomen · antippen, um dorthin zu planen",
   "mapLayersStopsRideHint": "Antippen, um den Stopp auf der Karte zu sehen",
   "mapLayersAlongRoute": "Entlang der Route",

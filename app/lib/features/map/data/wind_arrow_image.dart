@@ -13,16 +13,18 @@ import 'weather_fetcher.dart' show encodePngRgba;
 // as far as a halo can reach. The colour channels are not read.
 
 /// The arrow's outline, pointing up (north, which `icon-rotate` turns),
-/// around its middle, in logical pixels: a head 12 wide over a shaft 3
-/// wide, 22 long in all.
+/// around its middle, in logical pixels: a solid triangular head 13 wide
+/// and 10 long on a long thin shaft 2.4 wide, 28 long in all. A shape the
+/// map's own one-way arrows and the cycle map's chevrons (open, short, on
+/// the line) do not have.
 const List<(double, double)> windArrowOutline = <(double, double)>[
-  (0, -11),
-  (6, -3),
-  (1.5, -3),
-  (1.5, 11),
-  (-1.5, 11),
-  (-1.5, -3),
-  (-6, -3),
+  (0, -14),
+  (6.5, -4),
+  (1.2, -4),
+  (1.2, 14),
+  (-1.2, 14),
+  (-1.2, -4),
+  (-6.5, -4),
 ];
 
 /// How far, in the image's pixels, the field reaches beyond the edge.

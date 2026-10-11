@@ -638,8 +638,7 @@ String mercatorBboxString(BoundingBox box) {
 // over the region's, which still covers a pan beyond it and the view
 // zoomed out.
 
-/// The zoom from which the clouds get a detail image; at or above
-/// [weatherImageMinZoom], below which no image of the view is drawn.
+/// The zoom from which the clouds get a detail image.
 const double cloudDetailMinZoom = 6;
 
 /// How far the detail image reaches beyond the view on each side, as a
@@ -818,14 +817,9 @@ BoundingBox _box(double west, double south, double east, double north) =>
 // is empty, has no width or height, or lies beyond the latitudes Web
 // Mercator reaches has none, and the renderer crashes on it (seen on iOS,
 // zoomed out to the whole world and panned). So no image reaches the map
-// unless [safeImageBox] passes it, and the view's images are not asked for
-// zoomed out that far, where the rain and the clouds of a view say little
-// anyway.
-
-/// The zoom below which no image of the view is drawn: the rain's (soft
-/// radar, satellite, models) and the clouds' detail. Further out the view's
-/// box runs past the world's edges, the cause of MapLibre's crash above.
-const double weatherImageMinZoom = 3;
+// unless [safeImageBox] passes it, and a view wider than half the world or
+// across the antimeridian is asked for in at most two boxes that each pass
+// ([weatherImageAreas]).
 
 /// The latitude an image's box is clipped to before it is asked for: just
 /// inside the ±85.0511° Web Mercator ends.
@@ -857,6 +851,92 @@ bool safeImageBox(BoundingBox b) {
   return width >= weatherImageMinSpan &&
       width <= weatherImageMaxLonSpan &&
       height >= weatherImageMinSpan;
+}
+
+/// The areas the rain's images of [view] at [zoom] are asked for: the
+/// view and [cloudDetailMargin] around it, on the grid of
+/// [cloudDetailArea], as at most two boxes each within ±180°, at most
+/// [weatherImageMaxLonSpan] wide and within ±[weatherImageMaxLat]: one
+/// box, or two split at the antimeridian where it runs across, or where it
+/// is wider than half the world (zoomed far out), the world's two halves.
+/// Empty where nothing of it is left.
+List<BoundingBox> weatherImageAreas(BoundingBox view, double zoom) {
+  final edges = <double>[view.west, view.south, view.east, view.north];
+  if (edges.any((v) => !v.isFinite)) return const <BoundingBox>[];
+  const origin = 20037508.342789244;
+  final west = view.west;
+  final east = view.west <= view.east ? view.east : view.east + 360;
+  final x0 = west * origin / 180;
+  final x1 = east * origin / 180;
+  final y0 = mercatorY(view.south);
+  final y1 = mercatorY(view.north);
+  final dx = (x1 - x0) * cloudDetailMargin;
+  final dy = (y1 - y0) * cloudDetailMargin;
+  final grid = 2 * origin / (1 << (zoom.floor() + 1).clamp(0, 22));
+  double down(double v) =>
+      ((v + origin) / grid).floorToDouble() * grid - origin;
+  double up(double v) => ((v + origin) / grid).ceilToDouble() * grid - origin;
+  final south = math.max(
+    -weatherImageMaxLat,
+    latOfMercatorY(down(y0 - dy).clamp(-origin, origin)),
+  );
+  final north = math.min(
+    weatherImageMaxLat,
+    latOfMercatorY(up(y1 + dy).clamp(-origin, origin)),
+  );
+  if (!(north - south >= weatherImageMinSpan)) return const <BoundingBox>[];
+  var w = down(x0 - dx) * 180 / origin;
+  var e = up(x1 + dx) * 180 / origin;
+  BoundingBox box(double w, double e) => _box(w, south, e, north);
+  if (e - w > weatherImageMaxLonSpan) {
+    return <BoundingBox>[box(-180, 0), box(0, 180)];
+  }
+  while (w < -180) {
+    w += 360;
+    e += 360;
+  }
+  while (w >= 180) {
+    w -= 360;
+    e -= 360;
+  }
+  if (e <= 180) return <BoundingBox>[box(w, e)];
+  return <BoundingBox>[
+    if (180 - w >= weatherImageMinSpan) box(w, 180),
+    if (e - 180 >= weatherImageMinSpan) box(-180, e - 360),
+  ];
+}
+
+/// Whether images asked for over [areas] (see [weatherImageAreas]) still
+/// serve [view]: its latitudes within theirs, and each longitude of it
+/// inside one of them, or theirs a whole turn of the globe.
+bool weatherAreasServe(List<BoundingBox> areas, BoundingBox view) {
+  if (areas.isEmpty) return false;
+  final edges = <double>[view.west, view.south, view.east, view.north];
+  if (edges.any((v) => !v.isFinite)) return false;
+  final south = math.max(view.south, -weatherImageMaxLat);
+  final north = math.min(view.north, weatherImageMaxLat);
+  for (final a in areas) {
+    if (south < a.south - 1e-9 || north > a.north + 1e-9) return false;
+  }
+  final width = areas.fold<double>(0, (sum, a) => sum + a.east - a.west);
+  if (width >= 360 - 1e-6) return true;
+  var w = view.west;
+  var e = view.west <= view.east ? view.east : view.east + 360;
+  if (e - w >= 360) return false;
+  while (w < -180) {
+    w += 360;
+    e += 360;
+  }
+  while (w >= 180) {
+    w -= 360;
+    e -= 360;
+  }
+  final pieces = e <= 180
+      ? <(double, double)>[(w, e)]
+      : <(double, double)>[(w, 180), (-180, e - 360)];
+  return pieces.every(
+    (p) => areas.any((a) => p.$1 >= a.west - 1e-9 && p.$2 <= a.east + 1e-9),
+  );
 }
 
 /// [b] clipped to the world an image can show, ±180° by
@@ -1210,13 +1290,30 @@ String _gibsGoes(String layer) =>
 /// GOES band 13 is sampled every 2 km at the sub-satellite point.
 const double goesNativeMetresPerPixel = 2000;
 
+// The cloud sources all reach from 70° south to 70° north, each split at a
+// latitude into a northern and a southern image, so a view of one asks for
+// one image half the size; neighbours overlap by [cloudSeamWidth] of
+// longitude, where each fades into the other ([cloudFadesOf]).
+
+/// How far north and south the satellites' clouds reach, in degrees: some
+/// way short of their discs' edges, where the view is too slanted to tell
+/// much.
+const double cloudMaxLat = 70;
+
+/// How wide the band is where two cloud sources overlap, and one fades
+/// into the other, in degrees of longitude.
+const double cloudSeamWidth = 10;
+
 /// Infrared clouds over the eastern Americas, GOES-East through NASA GIBS:
 /// the latest image only.
 final WeatherMapSource goesEastClouds = WeatherMapSource(
   id: 'clouds_goes_east',
   kind: WeatherKind.clouds,
   urlTemplate: _gibsGoes('GOES-East_ABI_Band13_Clean_Infrared'),
-  coverage: <BoundingBox>[_box(-115, -60, -20, 60)],
+  coverage: <BoundingBox>[
+    _box(-120, 0, -20, cloudMaxLat),
+    _box(-120, -cloudMaxLat, -20, 0),
+  ],
   maxZoom: 6,
   nativeMetresPerPixel: goesNativeMetresPerPixel,
   attribution: 'Clouds: NOAA GOES via NASA GIBS',
@@ -1227,7 +1324,12 @@ final WeatherMapSource goesWestClouds = WeatherMapSource(
   id: 'clouds_goes_west',
   kind: WeatherKind.clouds,
   urlTemplate: _gibsGoes('GOES-West_ABI_Band13_Clean_Infrared'),
-  coverage: <BoundingBox>[_box(-180, -60, -115, 60), _box(165, -60, 180, 60)],
+  coverage: <BoundingBox>[
+    _box(-180, 0, -110, cloudMaxLat),
+    _box(-180, -cloudMaxLat, -110, 0),
+    _box(165, 0, 180, cloudMaxLat),
+    _box(165, -cloudMaxLat, 180, 0),
+  ],
   maxZoom: 6,
   nativeMetresPerPixel: goesNativeMetresPerPixel,
   attribution: 'Clouds: NOAA GOES via NASA GIBS',
@@ -1251,7 +1353,10 @@ final WeatherMapSource eumetsatClouds = WeatherMapSource(
       '&request=GetMap&layers=mtg_fd:ir105_hrfi&styles=&crs=EPSG:3857'
       '&bbox={bbox-epsg-3857}&width={width}&height={height}'
       '&format=image/png&transparent=true&time={time}',
-  coverage: <BoundingBox>[_box(-30, 25, 45, 75)],
+  coverage: <BoundingBox>[
+    _box(-30, 25, 45, cloudMaxLat),
+    _box(-30, -cloudMaxLat, 45, 25),
+  ],
   maxZoom: 8,
   timeFormat: WeatherTimeFormat.iso,
   stepMinutes: 60,
@@ -1262,6 +1367,87 @@ final WeatherMapSource eumetsatClouds = WeatherMapSource(
   nativeMetresPerPixel: 1000,
   attribution: 'Clouds: Contains modified EUMETSAT Meteosat data {year}',
 );
+
+/// Where a cloud image fades into a neighbour's: over the band of
+/// longitude from [west] to [east], its alpha from none to full eastward
+/// ([rising]) or from full to none; beyond the band untouched.
+@immutable
+class CloudFade {
+  /// Creates the fade.
+  const CloudFade({
+    required this.west,
+    required this.east,
+    required this.rising,
+  });
+
+  final double west;
+  final double east;
+  final bool rising;
+
+  /// How much of its alpha the image keeps at [lon], 0..1: the ramp
+  /// across the band, all of it beyond (where the image is either in full
+  /// or, the band being at its box's edge, not at all; another box of the
+  /// same source may lie there).
+  double factorAt(double lon) {
+    if (east <= west || lon <= west || lon >= east) return 1;
+    final t = (lon - west) / (east - west);
+    return rising ? t : 1 - t;
+  }
+
+  /// What names the fade in an image's cache name.
+  String get key =>
+      '${rising ? 'r' : 'f'}${west.toStringAsFixed(1)}'
+      '_${east.toStringAsFixed(1)}';
+
+  @override
+  bool operator ==(Object other) =>
+      other is CloudFade &&
+      other.west == west &&
+      other.east == east &&
+      other.rising == rising;
+
+  @override
+  int get hashCode => Object.hash(west, east, rising);
+
+  @override
+  String toString() => 'CloudFade($key)';
+}
+
+/// Where [source]'s clouds fade into those of the other enabled cloud
+/// sources in [sources]: for each band of longitude where a coverage box of
+/// its overlaps one of theirs (at latitudes both reach) and neither holds
+/// the other, a ramp across the band, rising where its box begins inside
+/// theirs (it lies east of them), falling where it ends there. Two
+/// neighbours' ramps over a band add up to one.
+List<CloudFade> cloudFadesOf(
+  WeatherMapSource source,
+  Iterable<WeatherMapSource> sources,
+) {
+  final out = <CloudFade>{};
+  for (final other in sources) {
+    if (other.id == source.id ||
+        !other.enabled ||
+        other.kind != WeatherKind.clouds) {
+      continue;
+    }
+    for (final mine in source.coverage) {
+      for (final theirs in other.coverage) {
+        final south = math.max(mine.south, theirs.south);
+        final north = math.min(mine.north, theirs.north);
+        if (north <= south) continue;
+        final west = math.max(mine.west, theirs.west);
+        final east = math.min(mine.east, theirs.east);
+        if (east <= west) continue;
+        if (mine.west < theirs.west && mine.east < theirs.east) {
+          out.add(CloudFade(west: west, east: east, rising: false));
+        } else if (mine.west > theirs.west && mine.east > theirs.east) {
+          out.add(CloudFade(west: west, east: east, rising: true));
+        }
+      }
+    }
+  }
+  return out.toList();
+}
 
 /// The sources a build ships with, before the mirror's override.
 ///
@@ -1588,11 +1774,20 @@ List<RainPart> rainPartsAt(
   return out;
 }
 
+/// How wide the seam is where a source measuring by its frame (the DWD's
+/// radar and nowcast) hands over to the sources after it, in metres on the
+/// ground: inside its coverage, this far from its edge, it fades out as
+/// they fade in, so the two read as one; further in it alone draws.
+const double rainSeamMetres = 25000;
+
 /// Where a source with an [WeatherMapSource.extent] measures in one of its
-/// frames: a bitmap over the image of [box] (Web Mercator, [width] ×
-/// [height], rows from the north), 1 where it measures (rain or dry inside
-/// its grid), 0 where it does not (its "no data", beyond its grid). The
-/// sources after it are cut where it is 1.
+/// frames: a weight over the image of [box] (Web Mercator, [width] ×
+/// [height], rows from the north), one byte a pixel: 0 where it does not
+/// measure (its "no data", beyond its grid), 255 where it measures and is
+/// [rainSeamMetres] or more inside the edge of where it does, and in
+/// between in that seam, rising with the distance from the edge. The
+/// sources after it keep 1 − weight of their alpha there, and the source
+/// itself the weight (see `rainSeamWeights`).
 @immutable
 class RainCoverage {
   /// Creates the coverage.
@@ -1610,10 +1805,12 @@ class RainCoverage {
   final BoundingBox box;
   final int width;
   final int height;
+
+  /// The weight of each pixel, 0..255.
   final Uint8List covered;
 
-  /// The pixels around all those at 0 (left, top, right, bottom,
-  /// inclusive); `null` where there are none.
+  /// The pixels around all those under full weight (left, top, right,
+  /// bottom, inclusive); `null` where there are none.
   final (int, int, int, int)? _gap;
 
   /// The [box] in Web Mercator: its west, width, north and height.
@@ -1630,7 +1827,7 @@ class RainCoverage {
     for (var y = 0; y < height; y++) {
       final row = y * width;
       for (var x = 0; x < width; x++) {
-        if (c[row + x] != 0) continue;
+        if (c[row + x] == 255) continue;
         if (x < left) left = x;
         if (x > right) right = x;
         if (y < top) top = y;
@@ -1640,17 +1837,21 @@ class RainCoverage {
     return right < 0 ? null : (left, top, right, bottom);
   }
 
-  /// Whether the source measures at the Web Mercator point ([x], [y]):
-  /// inside the [box] and 1 there.
-  bool coversMercator(double x, double y) {
+  /// The weight at the Web Mercator point ([x], [y]), 0..1: of the pixel
+  /// there, 0 outside the [box].
+  double weightAtMercator(double x, double y) {
     final px = ((x - _x0) / _xSpan * width).floor();
     final py = ((_y1 - y) / _ySpan * height).floor();
-    if (px < 0 || py < 0 || px >= width || py >= height) return false;
-    return covered[py * width + px] != 0;
+    if (px < 0 || py < 0 || px >= width || py >= height) return 0;
+    return covered[py * width + px] / 255;
   }
 
-  /// Whether the source measures all over [view]: nothing after it shows
-  /// there.
+  /// Whether the source measures at the Web Mercator point ([x], [y]):
+  /// inside the [box] and over 0 there.
+  bool coversMercator(double x, double y) => weightAtMercator(x, y) > 0;
+
+  /// Whether the source alone draws all over [view], measuring and past
+  /// its seam everywhere: nothing after it shows there.
   bool coversAll(BoundingBox view) {
     if (view.west < box.west ||
         view.east > box.east ||
@@ -1763,9 +1964,13 @@ class WeatherLayer {
     this.opacity,
   }) : image = null,
        imageBox = null,
-       frameKey = tiles;
+       frameKey = tiles,
+       visible = true,
+       preloaded = const <WeatherImageFrame>[];
 
-  /// A layer of one image over [imageBox].
+  /// A layer of one image over [imageBox]; with [preloaded], more frames
+  /// kept on the map unseen, any of which a later list can show at once,
+  /// and with [visible] false none of them shown.
   const WeatherLayer.image({
     required this.id,
     required this.kind,
@@ -1774,6 +1979,8 @@ class WeatherLayer {
     required this.frameKey,
     required this.attribution,
     this.opacity,
+    this.visible = true,
+    this.preloaded = const <WeatherImageFrame>[],
   }) : tiles = null,
        tileSize = 256,
        minZoom = 0,
@@ -1827,10 +2034,42 @@ class WeatherLayer {
   /// The opacity, overriding the kind's default.
   final double? opacity;
 
+  /// Whether the frame named is shown; a layer that is not holds frames
+  /// for later only.
+  final bool visible;
+
+  /// The image's other frames the map keeps unseen, so a later list can
+  /// show one of them without loading anything (see
+  /// `WeatherMapDriver.preview`).
+  final List<WeatherImageFrame> preloaded;
+
+  /// The frame this layer names, as one of a layer's [preloaded]; `null`
+  /// for tiles.
+  WeatherImageFrame? get asFrame {
+    final image = this.image;
+    final box = imageBox;
+    if (image == null || box == null) return null;
+    return WeatherImageFrame(frameKey: frameKey, image: image, box: box);
+  }
+
+  /// This layer showing [frame] instead, nothing preloaded: one of its
+  /// frames as the map draws it.
+  WeatherLayer showing(WeatherImageFrame frame) => WeatherLayer.image(
+    id: id,
+    kind: kind,
+    image: frame.image,
+    imageBox: frame.box,
+    frameKey: frame.frameKey,
+    attribution: attribution,
+    opacity: opacity,
+  );
+
   @override
   bool operator ==(Object other) =>
       other is WeatherLayer &&
       other.id == id &&
+      other.visible == visible &&
+      listEquals(other.preloaded, preloaded) &&
       other.kind == kind &&
       other.frameKey == frameKey &&
       other.attribution == attribution &&
@@ -1853,8 +2092,40 @@ class WeatherLayer {
     imageBox,
     bounds == null ? null : Object.hashAll(bounds!),
     opacity,
+    visible,
+    Object.hashAll(preloaded),
   );
 
   @override
-  String toString() => 'WeatherLayer($id, $frameKey)';
+  String toString() =>
+      'WeatherLayer($id, $frameKey${visible ? '' : ', hidden'}'
+      '${preloaded.isEmpty ? '' : ', +${preloaded.length}'})';
+}
+
+/// One frame of an image layer: its image over its box, named by its
+/// frame key. Two are the same frame when their keys and boxes are.
+@immutable
+class WeatherImageFrame {
+  /// Creates the frame.
+  const WeatherImageFrame({
+    required this.frameKey,
+    required this.image,
+    required this.box,
+  });
+
+  final String frameKey;
+  final Uint8List image;
+  final BoundingBox box;
+
+  @override
+  bool operator ==(Object other) =>
+      other is WeatherImageFrame &&
+      other.frameKey == frameKey &&
+      other.box == box;
+
+  @override
+  int get hashCode => Object.hash(frameKey, box);
+
+  @override
+  String toString() => 'WeatherImageFrame($frameKey)';
 }

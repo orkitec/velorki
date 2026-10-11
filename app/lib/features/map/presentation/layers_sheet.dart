@@ -12,12 +12,14 @@ import '../../search/presentation/search_settings_screen.dart'
     show searchGroupLabel;
 import '../../shared/application/covering_sheets.dart';
 import '../../shared/presentation/stat_tile.dart';
+import '../application/weather_map_binding.dart';
 import '../data/cycle_map_layers.dart';
 import '../data/map_preferences.dart';
 import '../data/weather_map_preferences.dart';
 import '../domain/cycle_map.dart';
 import '../domain/weather_map.dart';
 import 'map_chrome.dart';
+import 'weather_time_row.dart' show weatherClockTime;
 
 /// The groups whose kinds the sheet offers as stops, in this order.
 const List<SearchGroup> stopGroups = <SearchGroup>[
@@ -148,7 +150,7 @@ class LayersSheet extends ConsumerWidget {
             SwitchListTile(
               secondary: const Icon(Icons.cloud_outlined),
               title: Text(l10n.mapLayersClouds),
-              subtitle: Text(l10n.mapLayersCloudsSubtitle),
+              subtitle: _CloudsSubtitle(on: weather.clouds),
               value: weather.clouds,
               onChanged: (value) => unawaited(weatherPrefs.setClouds(value)),
             ),
@@ -276,6 +278,37 @@ class LayersSheet extends ConsumerWidget {
     );
   }
 }
+
+/// The Clouds switch's subtitle: where the layer exists, and while it is on
+/// the moment of the cloud image in view, where the service names one.
+class _CloudsSubtitle extends ConsumerWidget {
+  const _CloudsSubtitle({required this.on});
+
+  final bool on;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final frame = on
+        ? ref.watch(sharedWeatherMapStatusProvider).cloudsFrame
+        : null;
+    if (frame == null) return Text(l10n.mapLayersCloudsSubtitle);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(l10n.mapLayersCloudsSubtitle),
+        Text(
+          l10n.mapWeatherCloudsAt(weatherClockTime(context, frame)),
+          key: cloudsImageTimeKey,
+        ),
+      ],
+    );
+  }
+}
+
+/// The key of the cloud image's time in the Layers sheet, for the tests.
+const Key cloudsImageTimeKey = ValueKey<String>('layers-clouds-time');
 
 /// What [part] is called in the Layers sheet.
 String cycleMapPartLabel(AppLocalizations l10n, CycleMapPart part) =>

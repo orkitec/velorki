@@ -4513,7 +4513,7 @@
   },
   "mapWeatherCloudsAt": "Cloud image {time}",
   "@mapWeatherCloudsAt": {
-    "description": "Small caption over the map: the time the satellite image of the clouds shows, e.g. 'Cloud image 14:00'.",
+    "description": "Second line under the Clouds switch in the Layers sheet while the clouds are on: the time the satellite image of the clouds shows, e.g. 'Cloud image 14:00'.",
     "placeholders": {
       "time": {
         "type": "String",
@@ -4608,6 +4608,10 @@
   "mapStopsDownload": "Download",
   "@mapStopsDownload": {
     "description": "Action at the end of the no-stops-here chip; opens the download for the area on screen"
+  },
+  "mapAreaHintHide": "Hide",
+  "@mapAreaHintHide": {
+    "description": "Tooltip and screen-reader label of the close button on the area-not-downloaded chip over the map; hides the chip for that area until the app restarts"
   },
   "mapLayersStopsPlanHint": "Shown when zoomed in · tap one to plan to it",
   "@mapLayersStopsPlanHint": {

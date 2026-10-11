@@ -5,6 +5,7 @@ import 'package:velorki/app/router.dart';
 import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/presentation/stops_ahead_line.dart';
+import 'package:velorki/features/map/presentation/stops_zoom_chip.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/offline/presentation/offline_screen.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
@@ -338,6 +339,72 @@ void main() {
     harness.stopsCoverage.changed((_) => true);
     await tester.pumpAndSettle();
     expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
+  });
+
+  testWidgets('Plan: the area hint closes for its area, stays closed while '
+      'the map is over it and comes back over another', (tester) async {
+    final harness = PlannerHarness();
+    harness.stopsCoverage.covered = (_) => false;
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+    );
+    Future<void> lookAt(double lon, double lat) async {
+      h.map
+        ..zoom = 13
+        ..center = LatLng(lat, lon)
+        ..visibleBounds = BoundingBox(
+          south: lat - 0.05,
+          west: lon - 0.05,
+          north: lat + 0.05,
+          east: lon + 0.05,
+        );
+      for (final listener in [...h.map.cameraIdleListeners]) {
+        listener();
+      }
+      await tester.pumpAndSettle();
+    }
+
+    await lookAt(11.05, 48.05);
+    expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
+    expect(find.byTooltip(l10n.mapAreaHintHide), findsOneWidget);
+    expectNoClippedText(tester);
+
+    // The download is still the rest of the chip.
+    await tester.tap(find.text(l10n.mapStopsDownload));
+    await tester.pumpAndSettle();
+    expect(find.byType(OfflineScreen), findsOneWidget);
+    await tapBack(tester);
+    expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
+
+    await tester.tap(find.byTooltip(l10n.mapAreaHintHide));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
+    expect(find.byType(OfflineScreen), findsNothing);
+
+    // Panned within the same downloadable area: still closed.
+    await lookAt(13.8, 46.2);
+    expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
+
+    // Into another area not downloaded: back.
+    await lookAt(16.4, 48.2);
+    expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
+  });
+
+  testWidgets('the download chips of the layers have no close button', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      testApp(
+        home: Scaffold(
+          body: Center(child: StopsDownloadChip(onDownload: () {})),
+        ),
+      ),
+    );
+    expect(find.text(l10n.mapStopsNotDownloaded), findsOneWidget);
+    expect(find.byTooltip(l10n.mapAreaHintHide), findsNothing);
   });
 
   testWidgets('Record: along a route with nothing ahead downloaded, the chip '

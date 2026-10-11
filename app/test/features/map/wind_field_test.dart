@@ -279,12 +279,67 @@ Band 1:
   });
 
   group('the request', () {
-    test('none below the least zoom', () {
-      expect(windRequestFor(_view(8, 46, 10, 50), 2.9), isNull);
-      expect(
-        windRequestFor(_view(8, 46, 10, 50), weatherImageMinZoom),
-        isNotNull,
+    test('at every zoom, zoomed out to the world thinned to a small grid '
+        'the service scales down to', () {
+      for (final zoom in <double>[0, 0.5, 1, 2, 2.9, 3]) {
+        // A phone's view at the zoom (some 420 by 900 logical pixels on
+        // 512-pixel tiles), the whole world and more at zoom 0.
+        final width = 420 / (512 * math.pow(2, zoom)) * 360;
+        final height = math.min(80.0, width);
+        final request = windRequestFor(
+          BoundingBox(
+            south: 10 - height,
+            west: 10 - width / 2,
+            north: 10 + height,
+            east: 10 + width / 2,
+          ),
+          zoom,
+        );
+        expect(request, isNotNull, reason: 'zoom $zoom');
+        // One turn of the globe at most, and a few hundred points.
+        expect(request!.box.east - request.box.west, lessThanOrEqualTo(360));
+        expect(
+          request.columns * request.rows,
+          lessThan(3000),
+          reason: 'zoom $zoom: ${request.columns} × ${request.rows}',
+        );
+        expect(request.thinning, greaterThan(1));
+        expect(
+          request.url(dwdWind, WeatherFrame(DateTime.utc(2026, 10, 10, 14))),
+          contains('&scalesize=i(${request.columns}),j(${request.rows})'),
+        );
+      }
+      expect(windRequestFor(_view(8, 46, 10, 50), 2.9), isNotNull);
+    });
+
+    test('the whole world\'s arrows: one turn, no place twice', () {
+      final world = windRequestFor(
+        const BoundingBox(south: -85, west: -540, north: 85, east: 540),
+        0,
+      )!;
+      final grid = WindGrid(
+        lon0: world.box.west,
+        lat0: world.box.north,
+        lonStep: world.step,
+        latStep: -world.step,
+        columns: world.columns,
+        rows: world.rows,
+        u: Float32List(world.columns * world.rows)
+          ..fillRange(0, world.columns * world.rows, 5),
+        v: Float32List(world.columns * world.rows),
       );
+      final arrows = windArrowsFor(
+        grid,
+        const BoundingBox(south: -85, west: -540, north: 85, east: 540),
+        0,
+      );
+      expect(arrows, isNotEmpty);
+      expect(arrows.length, lessThan(200));
+      final places = <String>{
+        for (final a in arrows)
+          '${a.at.lat.toStringAsFixed(2)},${a.at.lon.toStringAsFixed(2)}',
+      };
+      expect(places, hasLength(arrows.length));
     });
 
     test('the view and a quarter around it, on the grid, a step beyond', () {

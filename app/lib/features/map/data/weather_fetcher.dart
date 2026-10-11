@@ -97,6 +97,54 @@ Uint8List whitenCloudPixels(Uint8List rgba) {
   return out;
 }
 
+/// What a cloud image needs on the phone before the map draws it, besides
+/// being whitened: the [box] it shows (Web Mercator) and where it fades
+/// into a neighbour's ([fades], see `cloudFadesOf`).
+@immutable
+class CloudImageJob {
+  /// Creates the job.
+  const CloudImageJob({required this.box, this.fades = const <CloudFade>[]});
+
+  final BoundingBox box;
+  final List<CloudFade> fades;
+}
+
+/// Multiplies the alpha of each column of [rgba] ([width] × [height], an
+/// image of [box] in Web Mercator) by where the column's middle lies on
+/// each of [fades]' ramps.
+void fadeCloudPixels(
+  int width,
+  int height,
+  Uint8List rgba,
+  BoundingBox box,
+  List<CloudFade> fades,
+) {
+  if (fades.isEmpty || width <= 0 || height <= 0) return;
+  final x0 = mercatorX(box.west);
+  final xStep = (mercatorX(box.east) - x0) / width;
+  final factors = Float64List(width);
+  var any = false;
+  for (var x = 0; x < width; x++) {
+    final lon = lonOfMercatorX(x0 + (x + 0.5) * xStep);
+    var f = 1.0;
+    for (final fade in fades) {
+      f *= fade.factorAt(lon);
+    }
+    factors[x] = f;
+    if (f < 1) any = true;
+  }
+  if (!any) return;
+  for (var y = 0; y < height; y++) {
+    final row = y * width;
+    for (var x = 0; x < width; x++) {
+      final f = factors[x];
+      if (f >= 1) continue;
+      final o = (row + x) * 4 + 3;
+      rgba[o] = (rgba[o] * f).round();
+    }
+  }
+}
+
 /// How far, in pixels, the softening of edges reaches: 1 is a 3 × 3 box.
 const int radarBlurRadius = 1;
 
@@ -192,9 +240,10 @@ Uint8List measuredRainPixels(Uint8List rgba, RainPalette palette) {
 
 /// Where a frame of a source with an [extent] (lon/lat ring) measures:
 /// over its image [rgba] ([width] × [height], of [box] in Web Mercator),
-/// 1 inside the ring where the pixel is not the [palette]'s "no data", 0
-/// elsewhere (see [RainCoverage]). Read from the service's own pixels,
-/// before the soft look takes the grey away.
+/// inside the ring where the pixel is not the [palette]'s "no data", as
+/// the weights of [RainCoverage] ([rainSeamWeights]): 0 where it does not
+/// measure, rising to 255 [rainSeamMetres] inside the edge. Read from the
+/// service's own pixels, before the soft look takes the grey away.
 Uint8List rainCoverageOf(
   int width,
   int height,
@@ -215,7 +264,83 @@ Uint8List rainCoverageOf(
       inside[i] = 0;
     }
   }
-  return inside;
+  return rainSeamWeights(width, height, inside, box);
+}
+
+/// The weights of a coverage ([RainCoverage]) from where a frame measures,
+/// [inside] (over 0 where it does), over an image of [box] ([width] ×
+/// [height], Web Mercator): each measured pixel's distance on the ground to
+/// the nearest pixel not measured, over [rainSeamMetres], as 1..255; 0
+/// where not measured. Beyond the image's edges counts as measured, so the
+/// edge of the image is no edge of the coverage.
+///
+/// The distance by a two-pass chamfer over the pixel grid (steps across,
+/// up and down, and diagonal, in Web Mercator metres), scaled to the
+/// ground by each row's latitude.
+Uint8List rainSeamWeights(
+  int width,
+  int height,
+  Uint8List inside,
+  BoundingBox box,
+) {
+  final n = width * height;
+  final out = Uint8List(n);
+  if (n == 0) return out;
+  final xStep = (mercatorX(box.east) - mercatorX(box.west)) / width;
+  final y1 = mercatorY(box.north);
+  final yStep = (y1 - mercatorY(box.south)) / height;
+  final diagonal = math.sqrt(xStep * xStep + yStep * yStep);
+  const far = double.infinity;
+  final d = Float64List(n);
+  for (var i = 0; i < n; i++) {
+    d[i] = inside[i] == 0 ? 0 : far;
+  }
+  // Forward: from the north-west.
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      final i = y * width + x;
+      if (d[i] == 0) continue;
+      var v = d[i];
+      if (x > 0) v = math.min(v, d[i - 1] + xStep);
+      if (y > 0) {
+        final up = i - width;
+        v = math.min(v, d[up] + yStep);
+        if (x > 0) v = math.min(v, d[up - 1] + diagonal);
+        if (x + 1 < width) v = math.min(v, d[up + 1] + diagonal);
+      }
+      d[i] = v;
+    }
+  }
+  // Backward: from the south-east.
+  for (var y = height - 1; y >= 0; y--) {
+    for (var x = width - 1; x >= 0; x--) {
+      final i = y * width + x;
+      if (d[i] == 0) continue;
+      var v = d[i];
+      if (x + 1 < width) v = math.min(v, d[i + 1] + xStep);
+      if (y + 1 < height) {
+        final down = i + width;
+        v = math.min(v, d[down] + yStep);
+        if (x + 1 < width) v = math.min(v, d[down + 1] + diagonal);
+        if (x > 0) v = math.min(v, d[down - 1] + diagonal);
+      }
+      d[i] = v;
+    }
+  }
+  for (var y = 0; y < height; y++) {
+    // Web Mercator stretches the ground by 1 / cos(latitude).
+    final lat = latOfMercatorY(y1 - (y + 0.5) * yStep);
+    final ground = math.cos(lat * math.pi / 180);
+    for (var x = 0; x < width; x++) {
+      final i = y * width + x;
+      if (inside[i] == 0) continue;
+      final metres = d[i] * ground;
+      out[i] = metres.isInfinite
+          ? 255
+          : (metres / rainSeamMetres * 255).round().clamp(1, 255);
+    }
+  }
+  return out;
 }
 
 /// Calls [span] with each row of an image of [box] ([width] × [height])
@@ -279,10 +404,11 @@ void maskRainPixels(
   }
 }
 
-/// Makes every pixel of [rgba] ([width] × [height], an image of [box] in
-/// Web Mercator) transparent where one of [coverages] measures at its
-/// middle (nearest pixel of the coverage, by Web Mercator position): the
-/// places a source leaves to the frames of those before it.
+/// Leaves of each pixel of [rgba] ([width] × [height], an image of [box]
+/// in Web Mercator) 1 − the weight of [coverages] at its middle (the
+/// greatest, of the nearest pixel of each, by Web Mercator position): none
+/// where one of them alone draws, a ramp across its seam, all where none
+/// measures. The places a source leaves to the frames of those before it.
 void cutRainPixels(
   int width,
   int height,
@@ -301,12 +427,12 @@ void cutRainPixels(
       final o = (y * width + x) * 4 + 3;
       if (rgba[o] == 0) continue;
       final mx = x0 + (x + 0.5) * xStep;
+      var weight = 0.0;
       for (final coverage in coverages) {
-        if (coverage.coversMercator(mx, my)) {
-          rgba[o] = 0;
-          break;
-        }
+        weight = math.max(weight, coverage.weightAtMercator(mx, my));
+        if (weight >= 1) break;
       }
+      if (weight > 0) rgba[o] = (rgba[o] * (1 - weight)).round();
     }
   }
 }
@@ -355,16 +481,28 @@ class RainImageJob {
       palette == RainPalette.dwdModel6h;
 }
 
-/// [rgba] ([width] × [height]) as [job] wants it drawn.
+/// [rgba] ([width] × [height]) as [job] wants it drawn. A source cut by
+/// its own frame's coverage ([seam], the weights of [rainCoverageOf] over
+/// the same pixels) keeps only that weight of its alpha, so it fades out
+/// across its seam as the sources after it fade in.
 Uint8List prepareRainPixels(
   int width,
   int height,
   Uint8List rgba,
-  RainImageJob job,
-) {
+  RainImageJob job, {
+  Uint8List? seam,
+}) {
   final out = job.soft
       ? softenRainPixels(width, height, rgba, job.palette)
       : Uint8List.fromList(measuredRainPixels(rgba, job.palette));
+  if (seam != null && seam.length == width * height) {
+    for (var i = 0; i < seam.length; i++) {
+      final w = seam[i];
+      if (w == 255) continue;
+      final o = i * 4 + 3;
+      out[o] = (out[o] * w / 255).round();
+    }
+  }
   maskRainPixels(width, height, out, job.box, job.masks);
   cutRainPixels(width, height, out, job.box, job.coverages);
   if (job.forecast) {
@@ -382,12 +520,16 @@ const String rainCoverageChunk = 'vlCv';
 
 /// [rgba] (straight alpha, [width] × [height]) as a PNG: no filtering,
 /// zlib-deflated, which is all a decoder needs. [coverage] (one byte a
-/// pixel), where given, goes in a [rainCoverageChunk] of its own.
+/// pixel, [coverageWidth] × [coverageHeight], the image's own size unless
+/// said), where given, goes in a [rainCoverageChunk] of its own: its width
+/// and height, then the bytes deflated.
 Uint8List encodePngRgba(
   int width,
   int height,
   Uint8List rgba, {
   Uint8List? coverage,
+  int? coverageWidth,
+  int? coverageHeight,
 }) {
   final raw = BytesBuilder(copy: false);
   final stride = width * 4;
@@ -415,7 +557,11 @@ Uint8List encodePngRgba(
     0,
   ]);
   if (coverage != null) {
-    chunk(rainCoverageChunk, ZLibCodec(level: 6).encode(coverage));
+    chunk(rainCoverageChunk, <int>[
+      ..._uint32(coverageWidth ?? width),
+      ..._uint32(coverageHeight ?? height),
+      ...ZLibCodec(level: 6).encode(coverage),
+    ]);
   }
   chunk('IDAT', ZLibCodec(level: 6).encode(raw.takeBytes()));
   chunk('IEND', const <int>[]);
@@ -442,8 +588,6 @@ RainCoverage? readRainCoverage(Uint8List png, BoundingBox box) {
     if (png[i] != _pngSignature[i]) return null;
   }
   final data = ByteData.sublistView(png);
-  final width = data.getUint32(16);
-  final height = data.getUint32(20);
   var at = 8;
   while (at + 12 <= png.length) {
     final length = data.getUint32(at);
@@ -451,9 +595,12 @@ RainCoverage? readRainCoverage(Uint8List png, BoundingBox box) {
     final end = at + 12 + length;
     if (end > png.length) return null;
     if (type == rainCoverageChunk) {
+      if (length < 8) return null;
+      final width = data.getUint32(at + 8);
+      final height = data.getUint32(at + 12);
       try {
         final covered = Uint8List.fromList(
-          ZLibCodec().decode(Uint8List.sublistView(png, at + 8, end - 4)),
+          ZLibCodec().decode(Uint8List.sublistView(png, at + 16, end - 4)),
         );
         if (covered.length != width * height) return null;
         return RainCoverage(
@@ -495,13 +642,16 @@ int _crc32(Uint8List bytes) {
   return (c ^ 0xFFFFFFFF) & 0xFFFFFFFF;
 }
 
-/// Decodes the service's [png] on the engine, then whitens and re-encodes
-/// it on a background isolate.
-Future<Uint8List> processCloudImage(Uint8List png) async {
+/// Decodes the service's [png] on the engine, then whitens it, fades it
+/// as [job] says ([fadeCloudPixels]) and re-encodes it on a background
+/// isolate.
+Future<Uint8List> processCloudImage(Uint8List png, CloudImageJob job) async {
   final (width, height, pixels) = await _decode(png);
-  return Isolate.run(
-    () => encodePngRgba(width, height, whitenCloudPixels(pixels)),
-  );
+  return Isolate.run(() {
+    final out = whitenCloudPixels(pixels);
+    fadeCloudPixels(width, height, out, job.box, job.fades);
+    return encodePngRgba(width, height, out);
+  });
 }
 
 /// Decodes the rain's [png] on the engine, then prepares it as [job] says
@@ -510,17 +660,153 @@ Future<Uint8List> processCloudImage(Uint8List png) async {
 Future<Uint8List> processRainImage(Uint8List png, RainImageJob job) async {
   if (!job.needed) return png;
   final (width, height, pixels) = await _decode(png);
-  return Isolate.run(() {
-    final extent = job.extent;
-    return encodePngRgba(
-      width,
-      height,
-      prepareRainPixels(width, height, pixels, job),
-      coverage: extent == null
-          ? null
-          : rainCoverageOf(width, height, pixels, job.palette, job.box, extent),
-    );
-  });
+  return Isolate.run(() => prepareRainImage(width, height, pixels, job));
+}
+
+/// The rain image [rgba] ([width] × [height], straight RGBA, as the service
+/// drew it) prepared as [job] wants it ([prepareRainPixels]) and encoded:
+/// for a source with an extent its frame's coverage worked out first and
+/// carried along, and drawn soft, scaled up smoothly
+/// ([upsampleRainPixels]).
+Uint8List prepareRainImage(
+  int width,
+  int height,
+  Uint8List rgba,
+  RainImageJob job,
+) {
+  final extent = job.extent;
+  final coverage = extent == null
+      ? null
+      : rainCoverageOf(width, height, rgba, job.palette, job.box, extent);
+  final prepared = prepareRainPixels(
+    width,
+    height,
+    rgba,
+    job,
+    seam: job.soft ? coverage : null,
+  );
+  if (!job.soft) {
+    return encodePngRgba(width, height, prepared, coverage: coverage);
+  }
+  final (w, h, smooth) = upsampleRainPixels(width, height, prepared);
+  return encodePngRgba(
+    w,
+    h,
+    smooth,
+    coverage: coverage,
+    coverageWidth: width,
+    coverageHeight: height,
+  );
+}
+
+/// How much the soft look scales a rain image up before the map draws it:
+/// twice, within [radarSoftMaxSide].
+const double rainUpsample = 2;
+
+/// [rgba] ([width] × [height], straight RGBA) scaled up [rainUpsample]
+/// times, its long side at most [radarSoftMaxSide] (not at all where it
+/// is that long already), with the Catmull-Rom cubic on premultiplied
+/// alpha: the contours of the rain come out round instead of the cells'
+/// squares the map's linear smoothing leaves, and a cell's colour does not
+/// bleed into the clear ground around it. No detail is made up: a cell of
+/// one colour stays that colour, and a clear area clear.
+(int, int, Uint8List) upsampleRainPixels(
+  int width,
+  int height,
+  Uint8List rgba, {
+  double factor = rainUpsample,
+  int maxSide = radarSoftMaxSide,
+}) {
+  final long = math.max(width, height);
+  final scale = long <= 0 ? 1.0 : math.min(factor, maxSide / long);
+  if (scale <= 1.0 + 1e-9) return (width, height, rgba);
+  final w2 = math.max(1, (width * scale).round());
+  final h2 = math.max(1, (height * scale).round());
+  // Premultiplied, as floats.
+  final src = Float32List(width * height * 4);
+  for (var i = 0; i < width * height; i++) {
+    final o = i * 4;
+    final a = rgba[o + 3] / 255;
+    src[o] = rgba[o] * a;
+    src[o + 1] = rgba[o + 1] * a;
+    src[o + 2] = rgba[o + 2] * a;
+    src[o + 3] = rgba[o + 3].toDouble();
+  }
+  final (xi, xw) = _cubicTaps(width, w2);
+  final (yi, yw) = _cubicTaps(height, h2);
+  // Across, then down.
+  final mid = Float32List(w2 * height * 4);
+  for (var y = 0; y < height; y++) {
+    final row = y * width;
+    for (var x = 0; x < w2; x++) {
+      final o = (y * w2 + x) * 4;
+      for (var k = 0; k < 4; k++) {
+        final s = (row + xi[x * 4 + k]) * 4;
+        final wk = xw[x * 4 + k];
+        if (wk == 0) continue;
+        mid[o] += src[s] * wk;
+        mid[o + 1] += src[s + 1] * wk;
+        mid[o + 2] += src[s + 2] * wk;
+        mid[o + 3] += src[s + 3] * wk;
+      }
+    }
+  }
+  final out = Uint8List(w2 * h2 * 4);
+  for (var y = 0; y < h2; y++) {
+    for (var x = 0; x < w2; x++) {
+      var r = 0.0;
+      var g = 0.0;
+      var b = 0.0;
+      var a = 0.0;
+      for (var k = 0; k < 4; k++) {
+        final wk = yw[y * 4 + k];
+        if (wk == 0) continue;
+        final s = (yi[y * 4 + k] * w2 + x) * 4;
+        r += mid[s] * wk;
+        g += mid[s + 1] * wk;
+        b += mid[s + 2] * wk;
+        a += mid[s + 3] * wk;
+      }
+      final o = (y * w2 + x) * 4;
+      // The cubic overshoots a little at a hard edge: clamped, and the
+      // colour never more than the alpha holds.
+      final alpha = a.clamp(0.0, 255.0);
+      if (alpha < 0.5) continue;
+      final f = 255 / alpha;
+      out[o] = (r.clamp(0.0, alpha) * f).round().clamp(0, 255);
+      out[o + 1] = (g.clamp(0.0, alpha) * f).round().clamp(0, 255);
+      out[o + 2] = (b.clamp(0.0, alpha) * f).round().clamp(0, 255);
+      out[o + 3] = alpha.round();
+    }
+  }
+  return (w2, h2, out);
+}
+
+/// For each of the [to] pixels of a row scaled from [from]: the four
+/// source pixels the Catmull-Rom cubic reads (clamped to the row) and
+/// their weights, four a pixel.
+(Int32List, Float32List) _cubicTaps(int from, int to) {
+  final index = Int32List(to * 4);
+  final weight = Float32List(to * 4);
+  final scale = to / from;
+  for (var x = 0; x < to; x++) {
+    final at = (x + 0.5) / scale - 0.5;
+    final i = at.floor();
+    final t = at - i;
+    final t2 = t * t;
+    final t3 = t2 * t;
+    final w = <double>[
+      (-t3 + 2 * t2 - t) / 2,
+      (3 * t3 - 5 * t2 + 2) / 2,
+      (-3 * t3 + 4 * t2 + t) / 2,
+      (t3 - t2) / 2,
+    ];
+    for (var k = 0; k < 4; k++) {
+      index[x * 4 + k] = (i - 1 + k).clamp(0, from - 1);
+      weight[x * 4 + k] = w[k];
+    }
+  }
+  return (index, weight);
 }
 
 Future<(int, int, Uint8List)> _decode(Uint8List png) async {
@@ -538,6 +824,11 @@ Future<(int, int, Uint8List)> _decode(Uint8List png) async {
   return (width, height, data.buffer.asUint8List());
 }
 
+/// What tells the cloud images prepared now from those an older app left
+/// in the cache: raised with each change to the cloud sources' boxes or to
+/// how the images are prepared.
+const int cloudImageVersion = 2;
+
 /// How many soft radar images of one source the cache keeps: the boxes and
 /// moments of the last few views and steps of the time control.
 const int radarImageCacheKeep = 24;
@@ -545,7 +836,18 @@ const int radarImageCacheKeep = 24;
 /// What tells the rain images prepared now from those an older app left in
 /// the cache, which the age limit then clears: raised with each change to
 /// how they are prepared.
-const int rainImageVersion = 2;
+const int rainImageVersion = 3;
+
+/// The width and height of [png] from its header; `null` where it is not
+/// a PNG.
+(int, int)? pngSize(Uint8List png) {
+  if (png.length < 24) return null;
+  for (var i = 0; i < 8; i++) {
+    if (png[i] != _pngSignature[i]) return null;
+  }
+  final data = ByteData.sublistView(png);
+  return (data.getUint32(16), data.getUint32(20));
+}
 
 /// Whether the map's own decoder takes [image]: a PNG must carry its
 /// transparency as an alpha channel (colour type 6) or a palette (3). An
@@ -571,13 +873,15 @@ abstract class WeatherFetcher {
   Future<bool> probe(String url);
 
   /// The cloud image of [source]'s coverage box [region] at [frame], white
-  /// cloud on a clear ground as a PNG; `null` when it cannot be had.
+  /// cloud on a clear ground as a PNG, faded where [fades] say (into a
+  /// neighbouring source's); `null` when it cannot be had.
   Future<Uint8List?> cloudImage(
     WeatherMapSource source,
     int region,
     WeatherFrame frame,
-    DateTime now,
-  );
+    DateTime now, {
+    List<CloudFade> fades = const <CloudFade>[],
+  });
 
   /// The detail cloud image of [box] at [frame] (see `cloudDetailArea`),
   /// processed as [cloudImage]'s; `null` when it cannot be had.
@@ -585,8 +889,9 @@ abstract class WeatherFetcher {
     WeatherMapSource source,
     BoundingBox box,
     WeatherFrame frame,
-    DateTime now,
-  );
+    DateTime now, {
+    List<CloudFade> fades = const <CloudFade>[],
+  });
 
   /// A rain source's image of [box] at [frame] (see
   /// `WeatherMapSource.softImageUrl`): the soft radar, the satellite or a
@@ -654,7 +959,8 @@ class HttpWeatherFetcher implements WeatherFetcher {
   /// Where processed cloud images are kept; created as needed.
   final Future<Directory> Function() cacheDir;
 
-  final Future<Uint8List> Function(Uint8List png) process;
+  /// Turns a cloud image into the one drawn.
+  final Future<Uint8List> Function(Uint8List png, CloudImageJob job) process;
 
   /// Turns a rain image into the one drawn.
   final Future<Uint8List> Function(Uint8List png, RainImageJob job)
@@ -674,14 +980,17 @@ class HttpWeatherFetcher implements WeatherFetcher {
     WeatherMapSource source,
     int region,
     WeatherFrame frame,
-    DateTime now,
-  ) {
-    final prefix = '${source.id}_${region}_';
-    final name = '$prefix${cloudImageStamp(frame, now)}.png';
+    DateTime now, {
+    List<CloudFade> fades = const <CloudFade>[],
+  }) {
+    final prefix = '${source.id}_v${cloudImageVersion}_${region}_';
+    final name = '$prefix${cloudImageStamp(frame, now)}${_fadesKey(fades)}.png';
+    final job = CloudImageJob(box: source.coverage[region], fades: fades);
     return _cloud(
       source.regionImageUrl(frame, region),
       name,
       (dir) => _prune(dir, (file) => file.startsWith(prefix), name, now),
+      process: (png) => process(png, job),
     );
   }
 
@@ -690,11 +999,13 @@ class HttpWeatherFetcher implements WeatherFetcher {
     WeatherMapSource source,
     BoundingBox box,
     WeatherFrame frame,
-    DateTime now,
-  ) {
-    final prefix = '${source.id}_detail_';
-    final stamp = '_${cloudImageStamp(frame, now)}.png';
+    DateTime now, {
+    List<CloudFade> fades = const <CloudFade>[],
+  }) {
+    final prefix = '${source.id}_v${cloudImageVersion}_detail_';
+    final stamp = '_${cloudImageStamp(frame, now)}${_fadesKey(fades)}.png';
     final name = '$prefix${cloudDetailKey(box)}$stamp';
+    final job = CloudImageJob(box: box, fades: fades);
     return _cloud(
       source.detailImageUrl(frame, box),
       name,
@@ -707,6 +1018,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
         prefix: prefix,
         keep: cloudDetailCacheKeep,
       ),
+      process: (png) => process(png, job),
     );
   }
 
@@ -833,15 +1145,22 @@ class HttpWeatherFetcher implements WeatherFetcher {
     }
   }
 
+  /// What names [fades] in a cloud image's cache name.
+  static String _fadesKey(List<CloudFade> fades) {
+    if (fades.isEmpty) return '';
+    final keys = [for (final fade in fades) fade.key]..sort();
+    return '_${keys.join('-')}';
+  }
+
   /// The image cached as [name], else fetched from [url] within [timeout]
-  /// (the cloud images' by default), turned by [process] (the clouds') and
-  /// cached, [prune] then tidying the cache.
+  /// (the cloud images' by default), turned by [process] and cached,
+  /// [prune] then tidying the cache.
   Future<Uint8List?> _cloud(
     String url,
     String name,
     void Function(Directory dir) prune, {
+    required Future<Uint8List> Function(Uint8List png) process,
     Duration? timeout,
-    Future<Uint8List> Function(Uint8List png)? process,
   }) async {
     final Directory dir;
     try {
@@ -856,7 +1175,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
     if (body == null) return null;
     final Uint8List png;
     try {
-      png = await (process ?? this.process)(body);
+      png = await process(body);
     } on Object catch (error) {
       debugPrint('velorki: cloud image not processed: $error');
       return null;

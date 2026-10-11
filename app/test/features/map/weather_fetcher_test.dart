@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -144,17 +145,20 @@ void main() {
     late Directory dir;
     late HttpWeatherFetcher fetcher;
     var processed = 0;
+    final jobs = <CloudImageJob>[];
 
     setUp(() {
       adapter = _Adapter();
+      jobs.clear();
       dir = Directory.systemTemp.createTempSync('clouds');
       addTearDown(() => dir.deleteSync(recursive: true));
       processed = 0;
       fetcher = HttpWeatherFetcher(
         dio: Dio()..httpClientAdapter = adapter,
         cacheDir: () async => dir,
-        process: (png) async {
+        process: (png, job) async {
           processed++;
+          jobs.add(job);
           return Uint8List.fromList(<int>[9, ...png]);
         },
       );
@@ -272,6 +276,20 @@ void main() {
       expect(dir.listSync(), hasLength(1));
     });
 
+    test('a region\'s image is prepared over its box, faded as asked, and '
+        'its fades name it in the cache', () async {
+      final now = DateTime.utc(2026, 10, 10, 14, 25);
+      final frame = eumetsatClouds.frameAt(now)!;
+      final fades = cloudFadesOf(eumetsatClouds, defaultWeatherMapSources);
+      await fetcher.cloudImage(eumetsatClouds, 1, frame, now, fades: fades);
+      expect(jobs.single.box, eumetsatClouds.coverage[1]);
+      expect(jobs.single.fades, fades);
+      // Without the fades (GOES switched off) it is another image.
+      await fetcher.cloudImage(eumetsatClouds, 1, frame, now);
+      expect(adapter.requests, hasLength(2));
+      expect(jobs.last.fades, isEmpty);
+    });
+
     test('the latest GOES image is kept for one refresh slot', () {
       const latest = WeatherFrame(null);
       final a = cloudImageStamp(latest, DateTime.utc(2026, 10, 10, 14, 21));
@@ -279,6 +297,215 @@ void main() {
       final c = cloudImageStamp(latest, DateTime.utc(2026, 10, 10, 14, 31));
       expect(a, b);
       expect(c, isNot(a));
+    });
+  });
+
+  group('the clouds\' seams', () {
+    test('every cloud source reaches 70° south to 70° north', () {
+      for (final source in <WeatherMapSource>[
+        eumetsatClouds,
+        goesEastClouds,
+        goesWestClouds,
+      ]) {
+        expect(
+          source.coverage.map((b) => b.south).reduce(math.min),
+          -cloudMaxLat,
+          reason: source.id,
+        );
+        expect(
+          source.coverage.map((b) => b.north).reduce(math.max),
+          cloudMaxLat,
+          reason: source.id,
+        );
+        for (final box in source.coverage) {
+          expect(safeImageBox(box), isTrue, reason: '${source.id} $box');
+        }
+      }
+      expect(cloudMaxLat, 70);
+    });
+
+    test('neighbours overlap by a band ten degrees wide, over which one '
+        'fades into the other, the two adding up to one', () {
+      final eumetsat = cloudFadesOf(eumetsatClouds, defaultWeatherMapSources);
+      final east = cloudFadesOf(goesEastClouds, defaultWeatherMapSources);
+      final west = cloudFadesOf(goesWestClouds, defaultWeatherMapSources);
+      expect(eumetsat, [const CloudFade(west: -30, east: -20, rising: true)]);
+      expect(
+        east,
+        unorderedEquals(<CloudFade>[
+          const CloudFade(west: -30, east: -20, rising: false),
+          const CloudFade(west: -120, east: -110, rising: true),
+        ]),
+      );
+      expect(west, [const CloudFade(west: -120, east: -110, rising: false)]);
+      for (final fade in [...eumetsat, ...east, ...west]) {
+        expect(fade.east - fade.west, cloudSeamWidth);
+      }
+      double factor(List<CloudFade> fades, double lon) =>
+          fades.fold(1, (f, fade) => f * fade.factorAt(lon));
+      for (var lon = -29.75; lon < -20; lon += 0.5) {
+        expect(
+          factor(eumetsat, lon) + factor(east, lon),
+          closeTo(1, 1e-9),
+          reason: '$lon',
+        );
+      }
+      for (var lon = -119.75; lon < -110; lon += 0.5) {
+        expect(
+          factor(east, lon) + factor(west, lon),
+          closeTo(1, 1e-9),
+          reason: '$lon',
+        );
+      }
+      // Linear: half way across, half each.
+      expect(factor(eumetsat, -25), closeTo(0.5, 1e-9));
+      // Beyond the bands, each in full.
+      expect(factor(eumetsat, 0), 1);
+      expect(factor(east, -70), 1);
+      expect(factor(west, -150), 1);
+      expect(factor(west, 170), 1);
+    });
+
+    test('a neighbour switched off: no fade', () {
+      final sources = <WeatherMapSource>[
+        for (final s in defaultWeatherMapSources)
+          s.id == goesEastClouds.id ? s.copyWith(enabled: false) : s,
+      ];
+      expect(cloudFadesOf(eumetsatClouds, sources), isEmpty);
+      expect(cloudFadesOf(goesWestClouds, sources), isEmpty);
+    });
+
+    test('the pixel pass ramps each column\'s alpha by its longitude', () {
+      const box = BoundingBox(south: 0, west: -40, north: 10, east: 0);
+      const width = 40;
+      const height = 2;
+      final rgba = Uint8List(width * height * 4);
+      for (var i = 3; i < rgba.length; i += 4) {
+        rgba[i] = 200;
+      }
+      fadeCloudPixels(width, height, rgba, box, const <CloudFade>[
+        CloudFade(west: -30, east: -20, rising: true),
+      ]);
+      int alphaAtLon(double lon, [int row = 0]) {
+        final x = ((lon - box.west) / (box.east - box.west) * width).floor();
+        return rgba[(row * width + x) * 4 + 3];
+      }
+
+      // The middle of each column is half a degree east of its west edge.
+      expect(alphaAtLon(-29.9), closeTo(200 * 0.05, 1));
+      expect(alphaAtLon(-25.9), closeTo(200 * 0.45, 1));
+      expect(alphaAtLon(-25.9, 1), closeTo(200 * 0.45, 1));
+      expect(alphaAtLon(-10), 200);
+      // Monotone across the band.
+      for (var lon = -30.0; lon < -20; lon += 1) {
+        expect(alphaAtLon(lon + 1), greaterThanOrEqualTo(alphaAtLon(lon)));
+      }
+    });
+  });
+
+  group('the soft look scales up smoothly', () {
+    // Three cells of the DWD's legend, each 4 × 4 pixels, on clear ground.
+    const w = 20;
+    const h = 8;
+    const colours = <List<int>>[
+      <int>[0x01, 0x99, 0x34],
+      <int>[0xFF, 0xFF, 0x00],
+      <int>[0xFF, 0x00, 0x00],
+    ];
+    Uint8List cells() {
+      final out = Uint8List(w * h * 4);
+      for (final (k, colour) in colours.indexed) {
+        for (var y = 2; y < 6; y++) {
+          for (var x = 2 + 6 * k; x < 6 + 6 * k; x++) {
+            out.setAll((y * w + x) * 4, <int>[...colour, 255]);
+          }
+        }
+      }
+      return out;
+    }
+
+    test('twice the size, the cells\' colours at their middles, the clear '
+        'ground clear', () {
+      final (w2, h2, out) = upsampleRainPixels(w, h, cells());
+      expect((w2, h2), (40, 16));
+      List<int> at(int x, int y) =>
+          out.sublist((y * w2 + x) * 4, (y * w2 + x) * 4 + 4);
+      for (final (k, colour) in colours.indexed) {
+        // The middle of cell k: source pixels 3..4 of 2 + 6k on.
+        final cx = (4 + 6 * k) * 2;
+        expect(at(cx, 8), <int>[...colour, 255], reason: 'cell $k');
+        expect(at(cx - 1, 7), <int>[...colour, 255], reason: 'cell $k');
+      }
+      // Far from every cell: clear.
+      for (final (x, y) in <(int, int)>[(0, 0), (39, 15), (0, 15), (39, 0)]) {
+        expect(at(x, y)[3], 0, reason: '($x, $y)');
+      }
+      // Between two cells, a gap two pixels wide: no colour of its own,
+      // only the two cells' fading into it (premultiplied: no dark fringe).
+      final gap = at(12, 8);
+      expect(gap[3], lessThan(255));
+      if (gap[3] > 0) {
+        expect(gap[0], greaterThan(0));
+        expect(gap[2], lessThan(0x40));
+      }
+    });
+
+    test('the edge of a cell is rounded: a ramp, not a step', () {
+      final (w2, _, out) = upsampleRainPixels(w, h, cells());
+      final alphas = <int>[
+        for (var x = 0; x < 10; x++) out[(8 * w2 + x) * 4 + 3],
+      ];
+      // Clear, then rising over more than one pixel, then full.
+      expect(alphas.first, 0);
+      expect(alphas.last, 255);
+      expect(alphas.where((a) => a > 0 && a < 255), isNotEmpty);
+      for (var x = 1; x < alphas.length; x++) {
+        expect(alphas[x], greaterThanOrEqualTo(alphas[x - 1]));
+      }
+    });
+
+    test('never past the longest side a soft image has', () {
+      final (w2, h2, _) = upsampleRainPixels(1000, 10, Uint8List(1000 * 40));
+      expect(w2, radarSoftMaxSide);
+      expect(h2, 15);
+      final big = Uint8List(radarSoftMaxSide * 4 * 4);
+      final (w3, h3, same) = upsampleRainPixels(radarSoftMaxSide, 4, big);
+      expect((w3, h3), (radarSoftMaxSide, 4));
+      expect(identical(same, big), isTrue);
+    });
+
+    test('only the soft look is scaled; the coverage keeps the service\'s '
+        'size', () {
+      const box = BoundingBox(south: 50, west: 8, north: 51, east: 10);
+      final rgba = cells();
+      final soft = prepareRainImage(
+        w,
+        h,
+        rgba,
+        RainImageJob(
+          palette: RainPalette.dwd,
+          soft: true,
+          box: box,
+          extent: const <LatLng>[
+            LatLng(49, 7),
+            LatLng(49, 11),
+            LatLng(52, 11),
+            LatLng(52, 7),
+          ],
+        ),
+      );
+      final header = ByteData.sublistView(soft, 16, 24);
+      expect(header.getUint32(0), 2 * w);
+      expect(header.getUint32(4), 2 * h);
+      final coverage = readRainCoverage(soft, box)!;
+      expect((coverage.width, coverage.height), (w, h));
+      final measured = prepareRainImage(
+        w,
+        h,
+        rgba,
+        const RainImageJob(palette: RainPalette.hsaf, soft: false, box: box),
+      );
+      expect(ByteData.sublistView(measured, 16, 24).getUint32(0), w);
     });
   });
 
@@ -471,7 +698,7 @@ void main() {
         dio: Dio()..httpClientAdapter = adapter,
         cacheDir: () async => dir,
         probeTimeout: const Duration(milliseconds: 200),
-        process: (png) async => throw StateError('not the clouds'),
+        process: (png, _) async => throw StateError('not the clouds'),
         processRadar: (png, job) async {
           processed++;
           jobs.add(job);
@@ -925,7 +1152,7 @@ void main() {
       final coverage = coverageOf(frame(5));
       for (var x = 0; x < width; x++) {
         final lon = lonOf(x);
-        expect(coverage.covered[x] == 1, lon >= 5, reason: 'at $lon°');
+        expect(coverage.covered[x] > 0, lon >= 5, reason: 'at $lon°');
       }
       expect(coverage.coversAll(box), isFalse);
       // A view east of the grey: all measured.
@@ -1008,6 +1235,106 @@ void main() {
         // Shown only beyond the grid (transparent) or over the grey.
         expect(a == 0 && lon < 3 || grey, isTrue, reason: 'at $lon°');
       }
+    });
+
+    test('a seam 25 km wide inside the edge: the weight rises with the '
+        'distance from where it does not measure', () {
+      // At the equator, where Web Mercator metres are the ground's: 120
+      // pixels of a kilometre, the west 40 not measured.
+      const w = 120;
+      const h = 9;
+      final metres = 120000.0;
+      final equator = BoundingBox(
+        south: latOfMercatorY(-metres * h / w / 2),
+        west: 0,
+        north: latOfMercatorY(metres * h / w / 2),
+        east: lonOfMercatorX(metres),
+      );
+      final inside = Uint8List(w * h);
+      for (var y = 0; y < h; y++) {
+        for (var x = 40; x < w; x++) {
+          inside[y * w + x] = 1;
+        }
+      }
+      final weights = rainSeamWeights(w, h, inside, equator);
+      int at(int x) => weights[4 * w + x];
+      // Not measured: 0. One pixel in: a kilometre of 25.
+      expect(at(39), 0);
+      expect(at(40), closeTo(255 / 25, 1));
+      // Thirteen kilometres in, thirteen of 25.
+      expect(at(52), closeTo(255 * 13 / 25, 2));
+      // Past it, full: the source alone.
+      expect(at(65), 255);
+      expect(at(119), 255);
+      for (var x = 41; x < w; x++) {
+        expect(at(x), greaterThanOrEqualTo(at(x - 1)), reason: '$x');
+      }
+      // The image's own edges are no edge of the coverage: the top row is
+      // as deep in as the middle one.
+      expect(weights[100], 255);
+      expect(weights[45], at(45));
+    });
+
+    test('across the seam the source after it fades in as the frame\'s '
+        'own fades out, the two adding up to the whole', () {
+      const w = 60;
+      const h = 3;
+      const equator = BoundingBox(south: -0.1, west: 0, north: 0.1, east: 0.6);
+      final inside = Uint8List(w * h);
+      for (var i = 0; i < w * h; i++) {
+        if (i % w >= 20) inside[i] = 1;
+      }
+      final seam = rainSeamWeights(w, h, inside, equator);
+      final coverage = RainCoverage(
+        box: equator,
+        width: w,
+        height: h,
+        covered: seam,
+      );
+      Uint8List solid(List<int> colour) =>
+          Uint8List.fromList(<int>[for (var i = 0; i < w * h; i++) ...colour]);
+      final own = prepareRainPixels(
+        w,
+        h,
+        solid(<int>[0x01, 0x99, 0x34, 255]),
+        const RainImageJob(palette: RainPalette.dwd, soft: false, box: equator),
+        seam: seam,
+      );
+      final after = prepareRainPixels(
+        w,
+        h,
+        solid(<int>[0xCC, 0xFF, 0xCC, 255]),
+        RainImageJob(
+          palette: RainPalette.hsaf,
+          soft: false,
+          box: equator,
+          coverages: <RainCoverage>[coverage],
+        ),
+      );
+      for (var x = 0; x < w; x++) {
+        final o = (w + x) * 4 + 3;
+        expect(own[o] + after[o], closeTo(255, 1), reason: 'at $x');
+      }
+      // Outside the frame's reach the source after it alone; deep inside
+      // the frame alone; in the seam both.
+      expect(after[(w + 5) * 4 + 3], 255);
+      expect(own[(w + 5) * 4 + 3], 0);
+      expect(after[(w + 59) * 4 + 3], 0);
+      expect(own[(w + 59) * 4 + 3], 255);
+      expect(after[(w + 22) * 4 + 3], inExclusiveRange(0, 255));
+      // Where the frame alone draws, the view counts as covered.
+      expect(
+        coverage.coversAll(
+          const BoundingBox(south: -0.05, west: 0.5, north: 0.05, east: 0.58),
+        ),
+        isTrue,
+      );
+      expect(
+        coverage.coversAll(
+          const BoundingBox(south: -0.05, west: 0.25, north: 0.05, east: 0.58),
+        ),
+        isFalse,
+      );
     });
 
     test('travels with the image in a chunk every decoder skips', () async {

@@ -133,6 +133,21 @@ class WeatherRadarOffset extends _$WeatherRadarOffset {
   }
 }
 
+/// The step of the time control under the finger while its slider is
+/// dragged, `null` while it is not: the map shows that step at once where
+/// its frames are loaded (see `WeatherMapDriver.preview`), and the step is
+/// set ([WeatherRadarOffset]) only when the slider is let go.
+@Riverpod(keepAlive: true)
+class WeatherRadarPreview extends _$WeatherRadarPreview {
+  @override
+  int? build() => null;
+
+  /// The finger is on [minutes] (snapped to the nearest step), or with
+  /// `null` let go.
+  void set(int? minutes) =>
+      state = minutes == null ? null : snapWeatherOffset(minutes);
+}
+
 /// The weather sources in force: the built-in ones, as the tile mirror's
 /// `weatherLayers` last said (kept, so it holds offline).
 @Riverpod(keepAlive: true)

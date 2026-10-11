@@ -134,9 +134,9 @@ void main() {
     });
 
     test('a cloud region is one image about 3 km a pixel, at most 2048', () {
-      final box = eumetsatClouds.coverage.single;
+      final box = eumetsatClouds.coverage.first;
       final (w, h) = cloudImageSize(box);
-      expect(h, 2048);
+      expect(math.max(w, h), 2048);
       final mw = mercatorX(box.east) - mercatorX(box.west);
       final mh = mercatorY(box.north) - mercatorY(box.south);
       expect(w / h, closeTo(mw / mh, 0.01));
@@ -150,7 +150,7 @@ void main() {
         '${mercatorX(-30).toStringAsFixed(1)},'
         '${mercatorY(25).toStringAsFixed(1)},'
         '${mercatorX(45).toStringAsFixed(1)},'
-        '${mercatorY(75).toStringAsFixed(1)}',
+        '${mercatorY(70).toStringAsFixed(1)}',
       );
       final url = eumetsatClouds.regionImageUrl(
         eumetsatClouds.frameAt(utc(14, 30))!,
@@ -608,9 +608,10 @@ void main() {
       expect(cloudDetailImageSize(eumetsatClouds, tiny), (64, 64));
       final (w, h) = cloudDetailImageSize(
         eumetsatClouds,
-        eumetsatClouds.coverage.single,
+        eumetsatClouds.coverage.first,
       );
-      expect(h, cloudDetailMaxSide);
+      expect(math.max(w, h), cloudDetailMaxSide);
+      expect(h, lessThanOrEqualTo(cloudDetailMaxSide));
       expect(w, lessThanOrEqualTo(cloudDetailMaxSide));
       expect(w, greaterThanOrEqualTo(cloudDetailMinSide));
     });
@@ -1037,6 +1038,105 @@ void main() {
       expect(detail.west, greaterThanOrEqualTo(-180));
       expect(detail.east, lessThanOrEqualTo(180));
       expect(iconGlobalRain.softBox(box(190, 0, 200, 10)), isNull);
+    });
+  });
+
+  group('the areas of the rain\'s images at any zoom', () {
+    BoundingBox box(double w, double s, double e, double n) =>
+        BoundingBox(south: s, west: w, north: n, east: e);
+
+    test('an ordinary view: one area, the view and its margin', () {
+      final areas = weatherImageAreas(box(13, 52, 14, 53), 8);
+      expect(areas, hasLength(1));
+      final area = areas.single;
+      expect(area.west, lessThan(13));
+      expect(area.east, greaterThan(14));
+      expect(safeImageBox(area), isTrue);
+      // The same as the clouds' detail area.
+      expect(area, cloudDetailArea(box(13, 52, 14, 53), 8));
+    });
+
+    test('the whole world, or more than half of it: its two halves', () {
+      for (final view in <BoundingBox>[
+        box(-540, -85, 540, 85),
+        box(-180, -85.06, 180, 85.06),
+        box(-150, -60, 100, 60),
+      ]) {
+        for (final zoom in <double>[0, 0.5, 1, 2, 3]) {
+          final areas = weatherImageAreas(view, zoom);
+          expect(areas, hasLength(2), reason: '$view $zoom');
+          expect(areas.first.west, -180);
+          expect(areas.first.east, 0);
+          expect(areas.last.west, 0);
+          expect(areas.last.east, 180);
+          for (final area in areas) {
+            expect(safeImageBox(area), isTrue, reason: '$view $zoom $area');
+          }
+        }
+      }
+    });
+
+    test('across the antimeridian: an area each side, each within ±180°', () {
+      for (final view in <BoundingBox>[
+        box(170, 50, -170, 60),
+        box(160, -10, 200, 10),
+        box(-200, -10, -160, 10),
+      ]) {
+        final areas = weatherImageAreas(view, 4);
+        expect(areas, hasLength(2), reason: '$view');
+        expect(areas.map((a) => a.east), contains(180));
+        expect(areas.map((a) => a.west), contains(-180));
+        for (final area in areas) {
+          expect(safeImageBox(area), isTrue, reason: '$view $area');
+        }
+      }
+    });
+
+    test('never a box MapLibre cannot draw, whatever the view', () {
+      final random = math.Random(7);
+      for (var i = 0; i < 2000; i++) {
+        final west = random.nextDouble() * 1080 - 540;
+        final width = random.nextDouble() * 720;
+        final south = random.nextDouble() * 180 - 90;
+        final height = random.nextDouble() * (90 - south);
+        final zoom = random.nextDouble() * 12;
+        final view = box(west, south, west + width, south + height);
+        final areas = weatherImageAreas(view, zoom);
+        expect(areas.length, lessThanOrEqualTo(2));
+        for (final area in areas) {
+          expect(safeImageBox(area), isTrue, reason: '$view $zoom $area');
+          for (final source in defaultWeatherMapSources) {
+            if (source.kind != WeatherKind.radar) continue;
+            final soft = source.softBox(area);
+            if (soft == null) continue;
+            expect(safeImageBox(soft), isTrue, reason: '${source.id} $soft');
+          }
+        }
+      }
+      expect(weatherImageAreas(box(double.nan, 0, 10, 10), 3), isEmpty);
+      expect(weatherImageAreas(box(0, 86, 10, 89), 3), isEmpty);
+    });
+
+    test('the areas serve the view they were made for, and a pan inside '
+        'them; not a view beyond', () {
+      for (final view in <BoundingBox>[
+        box(13, 52, 14, 53),
+        box(170, 50, -170, 60),
+        box(-540, -85, 540, 85),
+      ]) {
+        final areas = weatherImageAreas(view, 4);
+        expect(weatherAreasServe(areas, view), isTrue, reason: '$view');
+      }
+      final berlin = weatherImageAreas(box(13, 52, 14, 53), 8);
+      expect(weatherAreasServe(berlin, box(13.1, 52.1, 14.1, 53.1)), isTrue);
+      expect(weatherAreasServe(berlin, box(2, 48, 3, 49)), isFalse);
+      // The two halves of the world serve any view.
+      final world = weatherImageAreas(box(-540, -85, 540, 85), 0);
+      expect(weatherAreasServe(world, box(170, 50, -170, 60)), isTrue);
+      expect(
+        weatherAreasServe(const <BoundingBox>[], box(13, 52, 14, 53)),
+        isFalse,
+      );
     });
   });
 }

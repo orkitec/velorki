@@ -429,6 +429,49 @@ void main() {
       );
     });
 
+    testWidgets('dragged, the map is told the step under the finger at once, '
+        'and the label says the step it shows', (tester) async {
+      final (_, container) = await _pump(
+        tester,
+        const WeatherTimeRow(),
+        prefs: <String, Object>{'map.weather.radar': true},
+      );
+      final status = container.read(sharedWeatherMapStatusProvider.notifier)
+        ..set(berlin);
+      await tester.pump();
+      final slider = tester.getRect(find.byType(Slider));
+      final step = (slider.width - 2 * 14) / (weatherRadarOffsets.length - 1);
+      final gesture = await tester.startGesture(
+        Offset(slider.left + 14, slider.center.dy),
+      );
+      await gesture.moveBy(Offset(step * 3, 0));
+      await tester.pump();
+      // The map is asked for +45 min before the finger lets go.
+      expect(container.read(weatherRadarPreviewProvider), 45);
+      expect(container.read(weatherRadarOffsetProvider), 0);
+      // It has only +15 min loaded so far: the label says so.
+      status.set(
+        WeatherMapStatus(centre: berlin.centre, at: berlin.at, shownOffset: 15),
+      );
+      await tester.pump();
+      expect(
+        label(tester),
+        '${l10n.mapWeatherMinutesAhead(15)} · '
+        '${clock(tester, DateTime.utc(2026, 10, 10, 14, 50))} · '
+        '${l10n.mapWeatherNowcast}',
+      );
+      // Then +45 is in.
+      status.set(
+        WeatherMapStatus(centre: berlin.centre, at: berlin.at, shownOffset: 45),
+      );
+      await tester.pump();
+      expect(label(tester), startsWith(l10n.mapWeatherMinutesAhead(45)));
+      await gesture.up();
+      await tester.pump();
+      expect(container.read(weatherRadarOffsetProvider), 45);
+      expect(container.read(weatherRadarPreviewProvider), isNull);
+    });
+
     testWidgets('a source that did not answer says so until it does', (
       tester,
     ) async {
@@ -464,29 +507,44 @@ void main() {
       expect(find.byType(WeatherMapChip), findsNothing);
     });
 
-    testWidgets('the clouds show their time, with the rain on or off', (
-      tester,
-    ) async {
+    testWidgets('the clouds\' time is in the Layers sheet, not over the '
+        'map, and only while they are on', (tester) async {
       final (_, container) = await _pump(
         tester,
-        const WeatherMapHints(),
+        const Column(
+          children: [
+            WeatherMapHints(),
+            Expanded(child: LayersSheet()),
+          ],
+        ),
         prefs: <String, Object>{'map.weather.clouds': true},
       );
-      expect(find.byType(WeatherMapChip), findsNothing);
+      expect(find.byKey(cloudsImageTimeKey), findsNothing);
       final frame = DateTime.utc(2026, 10, 10, 14);
       container
           .read(sharedWeatherMapStatusProvider.notifier)
           .set(WeatherMapStatus(cloudsFrame: frame));
       await tester.pump();
       final caption = l10n.mapWeatherCloudsAt(
-        weatherClockTime(tester.element(find.byType(WeatherMapHints)), frame),
+        weatherClockTime(tester.element(find.byType(LayersSheet)), frame),
       );
-      expect(find.text(caption), findsOneWidget);
+      // In the Clouds row, under its subtitle; no chip over the map.
+      expect(find.byType(WeatherMapChip), findsNothing);
+      expect(
+        find.descendant(
+          of: _switch(l10n.mapLayersClouds),
+          matching: find.text(caption),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(l10n.mapLayersCloudsSubtitle), findsOneWidget);
+      // Switched off: the time goes.
       await container
           .read(weatherMapPreferencesProvider.notifier)
-          .setRadar(true);
+          .setClouds(false);
       await tester.pump();
-      expect(find.text(caption), findsOneWidget);
+      expect(find.text(caption), findsNothing);
+      expect(find.text(l10n.mapLayersCloudsSubtitle), findsOneWidget);
     });
 
     testWidgets('the Library\'s chip: the rain\'s moment, no slider', (

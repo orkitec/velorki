@@ -897,6 +897,7 @@
   "mapStopsZoomIn": "Zoom in om stopplekken te zien",
   "mapStopsNotDownloaded": "Geen stopplekken hier – gebied niet gedownload",
   "mapStopsDownload": "Downloaden",
+  "mapAreaHintHide": "Verbergen",
   "mapLayersStopsPlanHint": "Zichtbaar als je inzoomt · tik erop om ernaartoe te plannen",
   "mapLayersStopsRideHint": "Tik erop om hem op de kaart te zien",
   "mapLayersAlongRoute": "Langs de route",

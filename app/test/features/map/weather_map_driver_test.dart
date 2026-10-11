@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:fake_async/fake_async.dart';
@@ -17,6 +18,9 @@ class _Fetcher implements WeatherFetcher {
   bool cloudsUp = true;
   final List<String> probes = <String>[];
   final List<String> images = <String>[];
+
+  /// The fades each cloud source's last region image was asked with.
+  final Map<String, List<CloudFade>> cloudFades = <String, List<CloudFade>>{};
 
   /// The detail images asked for, and the answers held back for them while
   /// [holdDetails] is set.
@@ -86,7 +90,11 @@ class _Fetcher implements WeatherFetcher {
       heldWind.add(answer);
       return answer.future;
     }
-    return Future<WindGrid?>.value(windUp ? windGridOver(request.box) : null);
+    // A little stronger each hour on from 14 UTC, so hours tell apart.
+    final hours = frame.time == null ? 0 : frame.time!.hour - 14;
+    return Future<WindGrid?>.value(
+      windUp ? windGridOver(request.box, u: 5 + 0.5 * hours) : null,
+    );
   }
 
   @override
@@ -100,9 +108,11 @@ class _Fetcher implements WeatherFetcher {
     WeatherMapSource source,
     int region,
     WeatherFrame frame,
-    DateTime now,
-  ) async {
+    DateTime now, {
+    List<CloudFade> fades = const <CloudFade>[],
+  }) async {
     images.add('${source.id}.$region@${frame.time}');
+    cloudFades[source.id] = fades;
     return cloudsUp ? Uint8List.fromList(<int>[1, 2, 3]) : null;
   }
 
@@ -111,8 +121,9 @@ class _Fetcher implements WeatherFetcher {
     WeatherMapSource source,
     BoundingBox box,
     WeatherFrame frame,
-    DateTime now,
-  ) {
+    DateTime now, {
+    List<CloudFade> fades = const <CloudFade>[],
+  }) {
     details.add(box);
     if (holdDetails) {
       final answer = Completer<Uint8List?>();
@@ -125,9 +136,9 @@ class _Fetcher implements WeatherFetcher {
   }
 }
 
-/// A steady west wind of 5 m/s (blowing east) over [box], on the model's
+/// A steady west wind of [u] m/s (blowing east) over [box], on the model's
 /// grid.
-WindGrid windGridOver(BoundingBox box) {
+WindGrid windGridOver(BoundingBox box, {double u = 5}) {
   final columns = ((box.east - box.west) / windGridStep).round() + 1;
   final rows = ((box.north - box.south) / windGridStep).round() + 1;
   return WindGrid(
@@ -137,7 +148,7 @@ WindGrid windGridOver(BoundingBox box) {
     latStep: -windGridStep,
     columns: columns,
     rows: rows,
-    u: Float32List(columns * rows)..fillRange(0, columns * rows, 5),
+    u: Float32List(columns * rows)..fillRange(0, columns * rows, u),
     v: Float32List(columns * rows),
   );
 }
@@ -160,7 +171,7 @@ Uint8List _dwdFrame(BoundingBox box, bool Function(double lon) measures) {
     final lon = box.west + (x + 0.5) / width * (box.east - box.west);
     if (!measures(lon)) continue;
     for (var y = 0; y < height; y++) {
-      covered[y * width + x] = 1;
+      covered[y * width + x] = 255;
     }
   }
   return encodePngRgba(
@@ -184,7 +195,11 @@ void main() {
     map = FakeMapController()..visibleBounds = berlin;
     fetcher = _Fetcher();
     now = DateTime.utc(2026, 10, 10, 14, 42);
-    driver = WeatherMapDriver(fetcher: fetcher, clock: () => now);
+    driver = WeatherMapDriver(
+      fetcher: fetcher,
+      clock: () => now,
+      prefetch: false,
+    );
   });
 
   void configure({
@@ -201,16 +216,21 @@ void main() {
     radarStyle: radarStyle,
   );
 
-  List<String> drawn() => <String>[
-    for (final layer in map.weatherLayers) layer.id,
+  /// The layers seen on the map: those kept unseen for the time control
+  /// left out.
+  List<WeatherLayer> shown() => <WeatherLayer>[
+    for (final layer in map.weatherLayers)
+      if (layer.visible) layer,
   ];
+
+  List<String> drawn() => <String>[for (final layer in shown()) layer.id];
 
   test('off, nothing is drawn or asked', () {
     fakeAsync((async) {
       configure();
       driver.attach(map);
       async.flushMicrotasks();
-      expect(map.weatherLayers, isEmpty);
+      expect(shown(), isEmpty);
       expect(fetcher.probes, isEmpty);
       driver.dispose();
     });
@@ -222,12 +242,9 @@ void main() {
       driver.attach(map);
       async.flushMicrotasks();
       expect(drawn(), <String>['radar_dwd']);
+      expect(shown().single.tiles, contains('time=2026-10-10T14:35:00.000Z'));
       expect(
-        map.weatherLayers.single.tiles,
-        contains('time=2026-10-10T14:35:00.000Z'),
-      );
-      expect(
-        map.weatherLayers.single.attribution,
+        shown().single.attribution,
         'Radar: Deutscher Wetterdienst (CC BY 4.0)',
       );
       expect(fetcher.probes, hasLength(1));
@@ -253,7 +270,7 @@ void main() {
       map.visibleBounds = _view(100, 10);
       map.emitCameraIdle();
       async.flushMicrotasks();
-      expect(map.weatherLayers, isEmpty);
+      expect(shown(), isEmpty);
       map.visibleBounds = berlin;
       map.emitCameraIdle();
       async.flushMicrotasks();
@@ -279,7 +296,7 @@ void main() {
       expect(fetcher.radarImages.single.$3, DateTime.utc(2026, 10, 10, 18));
       expect(drawn(), <String>['rain_icon']);
       expect(
-        map.weatherLayers.single.attribution,
+        shown().single.attribution,
         'Forecast: Deutscher Wetterdienst (CC BY 4.0)',
       );
       // Over Germany the nowcast, inside its reach alone.
@@ -287,10 +304,7 @@ void main() {
       map.emitCameraIdle();
       async.flushMicrotasks();
       expect(drawn(), <String>['radar_dwd']);
-      expect(
-        map.weatherLayers.single.tiles,
-        contains('time=2026-10-10T15:05:00.000Z'),
-      );
+      expect(shown().single.tiles, contains('time=2026-10-10T15:05:00.000Z'));
       // Three hours on, the nowcast is over: ICON-EU, for the hour 17 UTC.
       configure(radar: true, offset: 180);
       async.flushMicrotasks();
@@ -343,10 +357,7 @@ void main() {
       async.elapse(radarRefreshInterval);
       expect(fetcher.probes, hasLength(2));
       expect(driver.status.value.failed, isEmpty);
-      expect(
-        map.weatherLayers.single.tiles,
-        contains('time=2026-10-10T14:40:00.000Z'),
-      );
+      expect(shown().single.tiles, contains('time=2026-10-10T14:40:00.000Z'));
       driver.dispose();
     });
   });
@@ -372,9 +383,9 @@ void main() {
       driver.attach(map);
       async.flushMicrotasks();
       expect(drawn(), <String>['clouds_eumetsat.0', 'radar_dwd']);
-      final clouds = map.weatherLayers.first;
+      final clouds = shown().first;
       expect(clouds.image, isNotNull);
-      expect(clouds.imageBox, eumetsatClouds.coverage.single);
+      expect(clouds.imageBox, eumetsatClouds.coverage.first);
       expect(
         clouds.attribution,
         'Clouds: Contains modified EUMETSAT Meteosat data 2026',
@@ -397,7 +408,7 @@ void main() {
       configure(clouds: true);
       driver.attach(map);
       async.flushMicrotasks();
-      expect(map.weatherLayers, isEmpty);
+      expect(shown(), isEmpty);
       expect(driver.status.value.failed, <WeatherKind>{WeatherKind.clouds});
       // Not asked again with every move of the map.
       map.emitCameraIdle();
@@ -451,7 +462,7 @@ void main() {
       async.flushMicrotasks();
       configure();
       async.flushMicrotasks();
-      expect(map.weatherLayers, isEmpty);
+      expect(shown(), isEmpty);
       expect(driver.status.value.cloudsFrame, isNull);
       driver.dispose();
     });
@@ -467,9 +478,8 @@ void main() {
       async.flushMicrotasks();
     }
 
-    WeatherLayer? detailLayer() => map.weatherLayers
-        .where((l) => l.id == 'clouds_eumetsat.detail')
-        .firstOrNull;
+    WeatherLayer? detailLayer() =>
+        shown().where((l) => l.id == 'clouds_eumetsat.detail').firstOrNull;
 
     test('asked for once the camera rests at zoom 6, over the region', () {
       fakeAsync((async) {
@@ -529,7 +539,7 @@ void main() {
         expect(detailLayer(), isNotNull);
         configure();
         async.elapse(cloudDetailDebounce);
-        expect(map.weatherLayers, isEmpty);
+        expect(shown(), isEmpty);
         rest(async, _view(2.35, 48.85), 8);
         async.elapse(cloudDetailDebounce);
         expect(fetcher.details, hasLength(1));
@@ -783,7 +793,7 @@ void main() {
         expect(box.west, lessThan(berlin.west));
         expect(box.east, greaterThan(berlin.east));
         expect(fetcher.probes, isEmpty);
-        final layer = map.weatherLayers.single;
+        final layer = shown().single;
         expect(layer.id, 'radar_dwd');
         expect(layer.kind, WeatherKind.radar);
         expect(layer.image, <int>[7, 8, 9]);
@@ -817,7 +827,7 @@ void main() {
           isTrue,
         );
         // The new image replaces the old under the same layer.
-        expect(map.weatherLayers.single.imageBox, fetcher.radarImages.last.$2);
+        expect(shown().single.imageBox, fetcher.radarImages.last.$2);
         driver.dispose();
       });
     });
@@ -832,16 +842,16 @@ void main() {
         async.flushMicrotasks();
         fetcher.heldRadar.single.complete(Uint8List.fromList(<int>[1]));
         async.flushMicrotasks();
-        expect(map.weatherLayers.single.image, <int>[1]);
+        expect(shown().single.image, <int>[1]);
         soft(offset: 30);
         async.flushMicrotasks();
         expect(fetcher.radarImages, hasLength(2));
         expect(fetcher.radarImages.last.$3, DateTime.utc(2026, 10, 10, 15, 5));
         // Still the last one while the new one is out.
-        expect(map.weatherLayers.single.image, <int>[1]);
+        expect(shown().single.image, <int>[1]);
         fetcher.heldRadar.last.complete(Uint8List.fromList(<int>[2]));
         async.flushMicrotasks();
-        expect(map.weatherLayers.single.image, <int>[2]);
+        expect(shown().single.image, <int>[2]);
         driver.dispose();
       });
     });
@@ -879,11 +889,11 @@ void main() {
         fetcher.heldRadar.single.complete(Uint8List.fromList(<int>[1]));
         async.flushMicrotasks();
         // Berlin's is dropped, Munich's asked for.
-        expect(map.weatherLayers, isEmpty);
+        expect(shown(), isEmpty);
         expect(fetcher.radarImages, hasLength(2));
         fetcher.heldRadar.last.complete(Uint8List.fromList(<int>[2]));
         async.flushMicrotasks();
-        expect(map.weatherLayers.single.image, <int>[2]);
+        expect(shown().single.image, <int>[2]);
         driver.dispose();
       });
     });
@@ -896,7 +906,7 @@ void main() {
         driver.attach(map);
         async.flushMicrotasks();
         expect(driver.status.value.failed, {WeatherKind.radar});
-        expect(map.weatherLayers, isEmpty);
+        expect(shown(), isEmpty);
         // Not asked again for the same view before the refresh.
         map.emitCameraIdle();
         async.elapse(radarImageDebounce);
@@ -905,7 +915,7 @@ void main() {
         async.elapse(radarRefreshInterval);
         expect(fetcher.radarImages, hasLength(2));
         expect(driver.status.value.failed, isEmpty);
-        expect(map.weatherLayers.single.image, <int>[7, 8, 9]);
+        expect(shown().single.image, <int>[7, 8, 9]);
         driver.dispose();
       });
     });
@@ -953,7 +963,7 @@ void main() {
         driver.attach(map);
         async.flushMicrotasks();
         expect(fetcher.radarJobs.single, (RadarStyle.measured, ''));
-        final layer = map.weatherLayers.single;
+        final layer = shown().single;
         expect(layer.image, isNotNull);
         expect(layer.opacity, 0.75);
         driver.dispose();
@@ -967,7 +977,7 @@ void main() {
         driver.attach(map);
         async.flushMicrotasks();
         expect(drawn(), <String>['clouds_eumetsat.0', 'radar_dwd']);
-        expect(map.weatherLayers.last.image, <int>[7, 8, 9]);
+        expect(shown().last.image, <int>[7, 8, 9]);
         driver.dispose();
       });
     });
@@ -980,21 +990,21 @@ void main() {
         configure(radar: true);
         driver.attach(map);
         async.flushMicrotasks();
-        expect(map.weatherLayers.single.tiles, isNotNull);
+        expect(shown().single.tiles, isNotNull);
         expect(fetcher.probes, hasLength(1));
         soft();
         async.flushMicrotasks();
         expect(fetcher.radarImages, hasLength(1));
         // The tiles until the image comes.
-        expect(map.weatherLayers.single.tiles, isNotNull);
+        expect(shown().single.tiles, isNotNull);
         fetcher.heldRadar.single.complete(Uint8List.fromList(<int>[3]));
         async.flushMicrotasks();
-        expect(map.weatherLayers.single.image, <int>[3]);
-        expect(map.weatherLayers.single.tiles, isNull);
+        expect(shown().single.image, <int>[3]);
+        expect(shown().single.tiles, isNull);
         // And back: the tiles at once, probed afresh.
         configure(radar: true);
         async.flushMicrotasks();
-        expect(map.weatherLayers.single.tiles, isNotNull);
+        expect(shown().single.tiles, isNotNull);
         expect(fetcher.probes, hasLength(2));
         driver.dispose();
       });
@@ -1018,7 +1028,7 @@ void main() {
         driver.attach(map);
         async.flushMicrotasks();
         expect(fetcher.radarImages, isEmpty);
-        expect(map.weatherLayers.single.tiles, isNotNull);
+        expect(shown().single.tiles, isNotNull);
         expect(fetcher.probes, hasLength(1));
         driver.dispose();
       });
@@ -1040,19 +1050,23 @@ void main() {
         expect(fetcher.radarImages.last.$1, 'rain_icon');
         expect(drawn(), <String>['rain_icon']);
         final asked = fetcher.radarImages.length;
+        // Now's image is kept on the map unseen.
+        expect(
+          map.weatherLayers.where((l) => !l.visible).map((l) => l.id),
+          contains('radar_noaa'),
+        );
         soft();
         async.flushMicrotasks();
-        // Asked again (the fetcher's cache answers it) and drawn.
-        expect(fetcher.radarImages, hasLength(asked + 1));
-        expect(fetcher.radarImages.last, nowImage);
+        // Not asked again: still loaded, drawn at once.
+        expect(fetcher.radarImages, hasLength(asked));
         expect(drawn(), <String>['radar_noaa']);
-        expect(map.weatherLayers.single.imageBox, nowImage.$2);
+        expect(shown().single.imageBox, nowImage.$2);
         driver.dispose();
       });
     });
 
     test('an answer for Now that comes after the time control moved on is '
-        'asked for again back at Now', () {
+        'kept, and drawn at once back at Now', () {
       fakeAsync((async) {
         map.zoom = 8;
         fetcher.holdRadar = true;
@@ -1061,19 +1075,15 @@ void main() {
         async.flushMicrotasks();
         soft(offset: 60);
         async.flushMicrotasks();
-        // Now's comes while the hour ahead is shown: dropped.
+        // Now's comes while the hour ahead is shown: kept, not seen.
         fetcher.heldRadar.single.complete(Uint8List.fromList(<int>[1]));
         async.flushMicrotasks();
         expect(fetcher.radarImages, hasLength(2));
+        expect(shown(), isEmpty);
         soft();
         async.flushMicrotasks();
-        fetcher.heldRadar.last.complete(Uint8List.fromList(<int>[2]));
-        async.flushMicrotasks();
-        expect(fetcher.radarImages, hasLength(3));
-        expect(fetcher.radarImages.last, fetcher.radarImages.first);
-        fetcher.heldRadar.last.complete(Uint8List.fromList(<int>[3]));
-        async.flushMicrotasks();
-        expect(map.weatherLayers.single.image, <int>[3]);
+        expect(fetcher.radarImages, hasLength(2));
+        expect(shown().single.image, <int>[1]);
         driver.dispose();
       });
     });
@@ -1104,8 +1114,8 @@ void main() {
       });
     });
 
-    test('zoomed out below $weatherImageMinZoom no image of the view is '
-        'asked for, and those shown go', () {
+    test('zoomed far out the rain is still images of the view, coarser; '
+        'the clouds\' detail goes', () {
       fakeAsync((async) {
         map.zoom = 8;
         soft(clouds: true);
@@ -1113,25 +1123,98 @@ void main() {
         async.elapse(cloudDetailDebounce);
         expect(fetcher.radarImages, hasLength(1));
         expect(fetcher.details, hasLength(1));
-        expect(
-          map.weatherLayers.where((l) => l.kind == WeatherKind.radar),
-          isNotEmpty,
-        );
         rest(
           async,
           const BoundingBox(south: 25, west: -10, north: 70, east: 50),
           2.5,
         );
         async.elapse(cloudDetailDebounce);
-        expect(fetcher.radarImages, hasLength(1));
+        // Europe at zoom 2.5: the DWD's radar and the satellite around it,
+        // one image each, at most the longest side a soft image has.
+        final asked = fetcher.radarImages.skip(1).map((r) => r.$1).toSet();
+        expect(asked, containsAll(<String>['radar_dwd', 'rain_hsaf']));
+        for (final (id, box, _) in fetcher.radarImages) {
+          expect(safeImageBox(box), isTrue, reason: '$id $box');
+          final source = defaultWeatherMapSources.firstWhere((s) => s.id == id);
+          final (w, h) = radarSoftImageSize(source, box);
+          expect(math.max(w, h), lessThanOrEqualTo(radarSoftMaxSide));
+        }
         expect(fetcher.details, hasLength(1));
-        // The region's clouds stay; the rain's image and the detail go.
-        expect(drawn(), <String>['clouds_eumetsat.0']);
-        // The satellite and the model ahead neither.
+        expect(drawn(), containsAll(<String>['radar_dwd', 'rain_hsaf']));
+        // No detail of the clouds this far out.
+        expect(drawn(), isNot(contains('clouds_eumetsat.detail')));
+        // The models ahead too.
         soft(offset: 180, clouds: true);
         async.elapse(radarImageDebounce);
-        expect(fetcher.radarImages, hasLength(1));
-        expect(drawn(), <String>['clouds_eumetsat.0']);
+        expect(fetcher.radarImages.map((r) => r.$1), contains('rain_icon_eu'));
+        expect(drawn(), contains('rain_icon_eu'));
+        driver.dispose();
+      });
+    });
+
+    test('the whole world: two images of a half each, side by side, drawn '
+        'at every zoom from 0 to 3', () {
+      const world = BoundingBox(south: -85, west: -540, north: 85, east: 540);
+      for (final zoom in <double>[0, 1, 2, 3]) {
+        fakeAsync((async) {
+          map
+            ..visibleBounds = world
+            ..zoom = zoom;
+          soft(offset: 600);
+          driver.attach(map);
+          async.flushMicrotasks();
+          // Ten hours ahead the global model everywhere: one image of each
+          // half of the world.
+          final boxes = <BoundingBox>[
+            for (final (id, box, _) in fetcher.radarImages)
+              if (id == 'rain_icon') box,
+          ];
+          expect(boxes, hasLength(2), reason: 'zoom $zoom');
+          boxes.sort((a, b) => a.west.compareTo(b.west));
+          expect(boxes.first.west, -180);
+          expect(boxes.first.east, 0);
+          expect(boxes.last.west, 0);
+          expect(boxes.last.east, 180);
+          for (final box in boxes) {
+            expect(safeImageBox(box), isTrue, reason: '$box');
+          }
+          expect(drawn(), containsAll(<String>['rain_icon', 'rain_icon#1']));
+          for (final layer in map.weatherLayers) {
+            expect(safeImageBox(layer.imageBox!), isTrue, reason: '$layer');
+          }
+          driver.dispose();
+        });
+        fetcher = _Fetcher();
+        driver = WeatherMapDriver(
+          fetcher: fetcher,
+          clock: () => now,
+          prefetch: false,
+        );
+      }
+    });
+
+    test('a view across the antimeridian: an image each side of it', () {
+      fakeAsync((async) {
+        map
+          ..visibleBounds = const BoundingBox(
+            south: 50,
+            west: 170,
+            north: 60,
+            east: -170,
+          )
+          ..zoom = 4;
+        soft(offset: 600);
+        driver.attach(map);
+        async.flushMicrotasks();
+        final boxes = <BoundingBox>[
+          for (final (_, box, _) in fetcher.radarImages) box,
+        ]..sort((a, b) => a.west.compareTo(b.west));
+        expect(boxes, hasLength(2));
+        expect(boxes.first.west, -180);
+        expect(boxes.first.east, greaterThan(-170));
+        expect(boxes.last.east, 180);
+        expect(boxes.last.west, lessThan(170));
+        expect(drawn(), <String>['rain_icon', 'rain_icon#1']);
         driver.dispose();
       });
     });
@@ -1182,9 +1265,236 @@ void main() {
             driver.dispose();
           });
           fetcher = _Fetcher();
-          driver = WeatherMapDriver(fetcher: fetcher, clock: () => now);
+          driver = WeatherMapDriver(
+            fetcher: fetcher,
+            clock: () => now,
+            prefetch: false,
+          );
         }
       }
+    });
+  });
+
+  group('the other steps, in the background, and the slider', () {
+    late WeatherMapDriver live;
+
+    setUp(() {
+      live = WeatherMapDriver(fetcher: fetcher, clock: () => now);
+    });
+
+    void soft({int offset = 0, bool radar = true, bool wind = false}) =>
+        live.configure(
+          settings: WeatherMapSettings(radar: radar, wind: wind),
+          sources: defaultWeatherMapSources,
+          offsetMinutes: offset,
+          radarStyle: RadarStyle.soft,
+        );
+
+    /// Answers the held rain requests oldest first, the DWD's with a frame
+    /// measuring all over the view, each answer let in before the next;
+    /// checks no more than [weatherPrefetchConcurrency] are ever out
+    /// besides the step's own, and returns the moments asked for in order.
+    List<(String, DateTime?)> answerAll(FakeAsync async) {
+      var answered = 0;
+      while (answered < fetcher.heldRadar.length) {
+        final out = fetcher.heldRadar.length - answered;
+        expect(out, lessThanOrEqualTo(weatherPrefetchConcurrency + 1));
+        final (id, box, _) = fetcher.radarImages[answered];
+        fetcher.heldRadar[answered].complete(
+          id == 'radar_dwd'
+              ? _dwdFrame(box, (_) => true)
+              : Uint8List.fromList(<int>[answered]),
+        );
+        answered++;
+        async.flushMicrotasks();
+      }
+      return <(String, DateTime?)>[
+        for (final (id, _, time) in fetcher.radarImages) (id, time),
+      ];
+    }
+
+    test('once the step\'s own are in: the nowcast\'s steps first, then the '
+        'hours ahead, two at a time, each once', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        fetcher.holdRadar = true;
+        soft();
+        live.attach(map);
+        async.flushMicrotasks();
+        // The step's own first, alone.
+        expect(fetcher.radarImages, hasLength(1));
+        final asked = answerAll(async);
+        // Now, then the nowcast's eight quarter hours, nearest first.
+        expect(asked.first, ('radar_dwd', DateTime.utc(2026, 10, 10, 14, 35)));
+        final nowcast = asked.skip(1).take(8).toList();
+        expect(nowcast.every((a) => a.$1 == 'radar_dwd'), isTrue);
+        expect(nowcast.map((a) => a.$2), <DateTime>[
+          for (var m = 15; m <= 120; m += 15)
+            DateTime.utc(2026, 10, 10, 14, 35).add(Duration(minutes: m)),
+        ]);
+        // Then ICON-EU for the hours ahead, the nowcast's reach covering
+        // the view before.
+        final ahead = asked.skip(9).toList();
+        expect(ahead, isNotEmpty);
+        expect(ahead.every((a) => a.$1 == 'rain_icon_eu'), isTrue);
+        // Each image once.
+        expect(asked.toSet(), hasLength(asked.length));
+        // All kept on the map, one layer with its frames unseen but Now's.
+        final dwd = map.weatherLayers.firstWhere((l) => l.id == 'radar_dwd');
+        expect(dwd.visible, isTrue);
+        expect(dwd.preloaded, hasLength(8));
+        expect(dwd.preloaded.length, lessThan(weatherPreloadMaxFrames));
+        final icon = map.weatherLayers.firstWhere(
+          (l) => l.id == 'rain_icon_eu',
+        );
+        expect(icon.visible, isFalse);
+        expect(drawn(), <String>['radar_dwd']);
+        live.dispose();
+      });
+    });
+
+    test('dragged, the step under the finger at once from what is loaded, '
+        'nothing asked; let go, the step set', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        fetcher.holdRadar = true;
+        soft();
+        live.attach(map);
+        async.flushMicrotasks();
+        answerAll(async);
+        final asked = fetcher.radarImages.length;
+        final calls = map.weatherLayerCalls.length;
+        live.preview(45);
+        expect(live.status.value.shownOffset, 45);
+        final dwd = shown().single;
+        expect(dwd.id, 'radar_dwd');
+        // The frame 45 minutes on, which was kept unseen.
+        expect(
+          dwd.frameKey,
+          contains(
+            '${DateTime.utc(2026, 10, 10, 15, 20).millisecondsSinceEpoch}',
+          ),
+        );
+        expect(map.weatherLayerCalls, hasLength(calls + 1));
+        // The frame shown before kept unseen in its turn: the map adds no
+        // source, it only switches which frame is seen.
+        expect(dwd.preloaded, hasLength(8));
+        live.preview(300);
+        expect(live.status.value.shownOffset, 300);
+        expect(drawn(), <String>['rain_icon_eu']);
+        expect(fetcher.radarImages, hasLength(asked));
+        // Let go: the step set, still nothing asked.
+        soft(offset: 300);
+        live.preview(null);
+        async.flushMicrotasks();
+        expect(live.status.value.shownOffset, 300);
+        expect(drawn(), <String>['rain_icon_eu']);
+        expect(fetcher.radarImages, hasLength(asked));
+        live.dispose();
+      });
+    });
+
+    test('dragged to a step not loaded yet: the nearest that is, on the '
+        'side of the step set', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        fetcher.holdRadar = true;
+        soft();
+        live.attach(map);
+        async.flushMicrotasks();
+        // Now's, then 15 minutes on; 30 is still out.
+        for (var i = 0; i < 2; i++) {
+          final (_, box, _) = fetcher.radarImages[i];
+          fetcher.heldRadar[i].complete(_dwdFrame(box, (_) => true));
+          async.flushMicrotasks();
+        }
+        live.preview(45);
+        expect(live.status.value.shownOffset, 15);
+        live.preview(15);
+        expect(live.status.value.shownOffset, 15);
+        // Nothing loaded near three hours: back to the step set.
+        live.preview(180);
+        expect(live.status.value.shownOffset, 15);
+        live.preview(null);
+        expect(live.status.value.shownOffset, 0);
+        live.dispose();
+      });
+    });
+
+    test('the view moves on: what was loaded for it goes, answers for it '
+        'are dropped, the new view asked for', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        fetcher.holdRadar = true;
+        soft();
+        live.attach(map);
+        async.flushMicrotasks();
+        // Now's and the first two in the background.
+        final (_, nowBox, _) = fetcher.radarImages.single;
+        fetcher.heldRadar.single.complete(_dwdFrame(nowBox, (_) => true));
+        async.flushMicrotasks();
+        expect(fetcher.heldRadar, hasLength(3));
+        // Off to Munich while two are out.
+        map
+          ..visibleBounds = _view(11.6, 48.1)
+          ..zoom = 8;
+        map.emitCameraIdle();
+        async.elapse(radarImageDebounce);
+        expect(fetcher.radarImages, hasLength(4));
+        final munich = fetcher.radarImages.last.$2;
+        expect(munich.contains(const LatLng(48.1, 11.6)), isTrue);
+        // Berlin's answers come: dropped, nothing of Berlin kept but the
+        // frame seen until Munich's is in.
+        for (var i = 1; i < 3; i++) {
+          fetcher.heldRadar[i].complete(
+            _dwdFrame(fetcher.radarImages[i].$2, (_) => true),
+          );
+        }
+        async.flushMicrotasks();
+        bool overBerlin(BoundingBox box) =>
+            box.contains(const LatLng(52.5, 13.4));
+        expect(map.weatherLayers.single.preloaded, isEmpty);
+        // Munich's in, then its other steps.
+        fetcher.heldRadar[3].complete(_dwdFrame(munich, (_) => true));
+        async.flushMicrotasks();
+        for (final layer in map.weatherLayers) {
+          expect(overBerlin(layer.imageBox!), isFalse, reason: '$layer');
+          for (final frame in layer.preloaded) {
+            expect(overBerlin(frame.box), isFalse, reason: '$frame');
+          }
+        }
+        final after = fetcher.radarImages.skip(4).toList();
+        expect(after, hasLength(weatherPrefetchConcurrency));
+        for (final (_, box, _) in after) {
+          expect(box.contains(const LatLng(48.1, 11.6)), isTrue);
+        }
+        live.dispose();
+      });
+    });
+
+    test('the wind\'s hours too, and dragged with the rain off, the arrows '
+        'of the hour at once', () {
+      fakeAsync((async) {
+        map.zoom = 9;
+        soft(radar: false, wind: true);
+        live.attach(map);
+        async.flushMicrotasks();
+        // Every hour of the next 24 once, two at a time, the step's own
+        // first.
+        final hours = fetcher.winds.map((w) => w.$2).toList();
+        expect(hours.first, DateTime.utc(2026, 10, 10, 14));
+        expect(hours.toSet(), hasLength(hours.length));
+        expect(hours, hasLength(25));
+        final asked = fetcher.winds.length;
+        final before = map.windArrows;
+        live.preview(180);
+        expect(live.status.value.shownOffset, 180);
+        expect(map.windArrows, isNot(before));
+        // 17 UTC's wind.
+        expect(map.windArrows!.arrows.first.ms, 6.5);
+        expect(fetcher.winds, hasLength(asked));
+        live.dispose();
+      });
     });
   });
 
@@ -1214,7 +1524,7 @@ void main() {
         expect(arrows.arrows.every((a) => a.dir == 90 && a.ms == 5), isTrue);
         expect(arrows.attribution, 'Wind: Deutscher Wetterdienst (CC BY 4.0)');
         // No rain, no clouds, no probe.
-        expect(map.weatherLayers, isEmpty);
+        expect(shown(), isEmpty);
         expect(fetcher.probes, isEmpty);
         expect(driver.status.value.failed, isEmpty);
         // A pan inside the box asks nothing; the arrows follow the view.
@@ -1259,20 +1569,19 @@ void main() {
       });
     });
 
-    test('not below zoom 3: no request, the arrows go', () {
+    test('zoomed out to the whole world too, on a thinned grid', () {
       fakeAsync((async) {
-        map.zoom = 2;
-        configure(wind: true);
-        driver.attach(map);
-        async.elapse(windDebounce);
-        expect(fetcher.winds, isEmpty);
-        expect(map.windArrows, isNull);
-        rest(async, berlin, 9);
-        async.elapse(windDebounce);
-        expect(map.windArrows, isNotNull);
-        rest(async, berlin, 2.5);
-        expect(map.windArrows, isNull);
-        expect(fetcher.winds, hasLength(1));
+        const world = BoundingBox(south: -85, west: -540, north: 85, east: 540);
+        for (final zoom in <double>[0, 1, 2, 2.9]) {
+          rest(async, world, zoom);
+          configure(wind: true);
+          driver.attach(map);
+          async.elapse(windDebounce);
+          final (request, _) = fetcher.winds.last;
+          expect(request.thinning, greaterThan(1), reason: 'zoom $zoom');
+          expect(request.box.east - request.box.west, lessThanOrEqualTo(360));
+          expect(map.windArrows?.arrows, isNotEmpty, reason: 'zoom $zoom');
+        }
         driver.dispose();
       });
     });
@@ -1299,7 +1608,7 @@ void main() {
       });
     });
 
-    test('from the cache of the fetcher when the step comes back', () {
+    test('from memory when the step comes back', () {
       fakeAsync((async) {
         map.zoom = 9;
         configure(wind: true);
@@ -1309,12 +1618,14 @@ void main() {
         async.flushMicrotasks();
         configure(wind: true);
         async.flushMicrotasks();
-        // The driver asks; the fetcher answers from its files.
+        // Back at Now the grid is still in memory: nothing asked, and its
+        // arrows drawn.
         expect(fetcher.winds.map((w) => w.$2), <DateTime>[
           DateTime.utc(2026, 10, 10, 14),
           DateTime.utc(2026, 10, 10, 17),
-          DateTime.utc(2026, 10, 10, 14),
         ]);
+        expect(map.windArrows!.arrows, isNotEmpty);
+        expect(driver.status.value.shownOffset, 0);
         driver.dispose();
       });
     });
