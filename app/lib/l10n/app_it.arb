@@ -687,7 +687,6 @@
   "navCueNow": "Ora {instruction}",
   "navCueThen": "{instruction}, poi {next}",
   "navThenLabel": "poi",
-  "navThen": "poi {instruction}",
   "navOffRoute": "Fuori percorso",
   "navBackToRoute": "Torna sul percorso{direction, select, left{, a sinistra} right{, a destra} ahead{, davanti a te} behind{, dietro di te} other{}}",
   "navCueOffRoute": "Fuori percorso. {instruction}",

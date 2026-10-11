@@ -687,7 +687,6 @@
   "navCueNow": "Maintenant, {instruction}",
   "navCueThen": "{instruction}, puis {next}",
   "navThenLabel": "puis",
-  "navThen": "puis {instruction}",
   "navOffRoute": "Hors itinéraire",
   "navBackToRoute": "Retour à l’itinéraire{direction, select, left{, sur votre gauche} right{, sur votre droite} ahead{, devant vous} behind{, derrière vous} other{}}",
   "navCueOffRoute": "Hors itinéraire. {instruction}",

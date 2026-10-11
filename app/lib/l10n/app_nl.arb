@@ -687,7 +687,6 @@
   "navCueNow": "Nu {instruction}",
   "navCueThen": "{instruction}, dan {next}",
   "navThenLabel": "dan",
-  "navThen": "dan {instruction}",
   "navOffRoute": "Van de route af",
   "navBackToRoute": "Terug naar de route{direction, select, left{, links van je} right{, rechts van je} ahead{, recht vooruit} behind{, achter je} other{}}",
   "navCueOffRoute": "Van de route af. {instruction}",

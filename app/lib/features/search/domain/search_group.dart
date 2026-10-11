@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import 'search_result.dart';
-
 /// The eight buckets the rider can reorder and switch off in Settings →
 /// Search.
 ///
@@ -98,14 +96,6 @@ const Map<String, SearchGroup> searchGroupOfPoiKind = <String, SearchGroup>{
   'university': SearchGroup.services,
   'stadium': SearchGroup.services,
   'mall': SearchGroup.services,
-};
-
-/// The group [result] belongs to, or `null` when it has none.
-SearchGroup? searchGroupOf(SearchResult result) => switch (result.kind) {
-  SearchKind.place => SearchGroup.places,
-  SearchKind.street => SearchGroup.streets,
-  SearchKind.poi => searchGroupOfPoiKind[result.detail],
-  SearchKind.unknown => null,
 };
 
 /// Settings → Search: which groups the offline search shows, and in which

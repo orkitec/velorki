@@ -37,22 +37,9 @@ Locale _localeNamed(String name) {
       : Locale(parts.first, second);
 }
 
-/// Whether the suite runs in English, the locale the string expectations are
-/// written in.
-bool get isEnglishTestLocale => testLocaleName == 'en';
-
 /// The strings of the locale under test, for expectations that would
 /// otherwise hard-code English.
 final AppLocalizations l10n = lookupAppLocalizations(testLocale);
-
-/// A `skip:` value that runs the test in English and skips it in every other
-/// locale, naming [why].
-///
-/// Only for tests that really are about English — everything else should look
-/// its strings up through [l10n].
-Object? englishOnly(String why) => isEnglishTestLocale
-    ? false
-    : 'English-only ($why); VELORKI_TEST_LOCALE=$testLocaleName';
 
 /// The app's own builder (`VelorkiApp`) without the performance box: one
 /// backdrop group for the glass over the map, and the gesture zone's guard.

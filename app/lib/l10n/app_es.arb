@@ -687,7 +687,6 @@
   "navCueNow": "Ahora {instruction}",
   "navCueThen": "{instruction} y luego {next}",
   "navThenLabel": "luego",
-  "navThen": "luego {instruction}",
   "navOffRoute": "Fuera de la ruta",
   "navBackToRoute": "Vuelve a la ruta{direction, select, left{, a tu izquierda} right{, a tu derecha} ahead{, delante} behind{, detrás de ti} other{}}",
   "navCueOffRoute": "Fuera de la ruta. {instruction}",

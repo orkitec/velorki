@@ -204,7 +204,3 @@ String _midSentence(String label) {
   if (label.isEmpty) return label;
   return label[0].toLowerCase() + label.substring(1);
 }
-
-/// The banner's preview of the turn after the next one, e.g. "then keep right".
-String thenLabel(TurnHint hint, AppLocalizations l10n) =>
-    l10n.navThen(_midSentence(turnLabel(hint, l10n)));

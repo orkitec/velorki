@@ -32,7 +32,9 @@ changing structure.
 - **Before any commit**, from `app/`, over `lib test integration_test` as
   `app.yml` does: `dart format`, `flutter analyze --fatal-infos`,
   `dart analyze --fatal-infos` (riverpod_lint only runs through `dart analyze`),
-  `flutter test`, and `dart test` in any package you touched.
+  `flutter test` (and again with `--dart-define=VELORKI_TEST_LOCALE=de`, as
+  CI does), `bash tool/unused_code.sh` (public code and files nothing uses), and
+  `dart test` in any package you touched.
 - **In `web/`** (npm, Next.js 16): `npm run dev`, `npm run build`,
   `npm test`, `npm run lint`, `npm run typecheck`, `npm run check:deps`
   (no native addons, no install scripts — the rule that keeps a fork cheap to

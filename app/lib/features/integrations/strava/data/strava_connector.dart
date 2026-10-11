@@ -6,7 +6,6 @@ import '../../common/data/oauth_flow.dart';
 import '../../common/data/relay_client_provider.dart';
 import '../../common/domain/connected_account.dart';
 import 'strava_auth.dart';
-import 'strava_client.dart';
 
 final Logger _log = Logger('StravaConnector');
 
@@ -145,8 +144,3 @@ Future<ConnectedAccount> refreshStravaThroughRelay(
     throw integrationExceptionFor(e);
   }
 }
-
-/// Revokes [account] at Strava with [client], whose interceptor carries the
-/// account's token.
-Future<void> deauthorizeWith(StravaClient client, ConnectedAccount account) =>
-    client.deauthorize();

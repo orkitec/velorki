@@ -3631,16 +3631,6 @@
   "@navThenLabel": {
     "description": "Word in front of the small arrow that previews the turn after the next one on the banner"
   },
-  "navThen": "then {instruction}",
-  "@navThen": {
-    "description": "Banner row previewing the turn after the next one",
-    "placeholders": {
-      "instruction": {
-        "type": "String",
-        "example": "keep right"
-      }
-    }
-  },
   "navOffRoute": "Off route",
   "@navOffRoute": {
     "description": "Spoken and shown when the rider has left the planned route"
