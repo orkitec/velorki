@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/map/data/cycle_map_layers.dart';
 import 'package:velorki/features/map/data/maplibre_map_controller.dart';
+import 'package:velorki/features/map/data/weather_map_preferences.dart';
 import 'package:velorki/features/map/data/weather_paint.dart';
 import 'package:velorki/features/map/domain/weather_map.dart';
 import 'package:velorki/features/map/domain/wind_field.dart';
@@ -457,6 +458,78 @@ void main() {
       ]);
       await map.setWeatherDark(true);
       expect(opacityOf(0), radarSoftTone.opacity);
+      expect(opacityOf(1), 0);
+    });
+
+    test('the rider\'s opacity scales what is seen, live, the unseen frames '
+        'at none, nothing added', () async {
+      double? cloudsOpacity() =>
+          (ops.lastPropertiesOf(
+                        MapLayerIds.weatherLayer('clouds_eumetsat.0', 0),
+                      ) ??
+                      ops.addLayerOf(
+                        MapLayerIds.weatherLayer('clouds_eumetsat.0', 0),
+                      ))!
+                  .properties!['raster-opacity']
+              as double?;
+      await map.setWeatherLayers([
+        _clouds('clouds_eumetsat.0', 'x'),
+        rain('a', <String>['b']),
+      ]);
+      expect(cloudsOpacity(), cloudsLightTone.opacity);
+      final before = ops.calls.length;
+      await map.setWeatherOpacity(
+        const WeatherOpacity(radar: 0.5, clouds: 0.6),
+      );
+      // The clouds are generation 0, the rain's frames 1 and 2.
+      expect(opacityOf(1), closeTo(radarSoftTone.opacity * 0.5, 1e-9));
+      expect(opacityOf(2), 0);
+      expect(cloudsOpacity(), closeTo(cloudsLightTone.opacity * 0.6, 1e-9));
+      // Only the frames seen were repainted; nothing fetched or added.
+      final repainted = ops.calls.skip(before).toList();
+      expect(repainted, hasLength(2));
+      expect(repainted.map((c) => c.name), everyElement('setLayerProperties'));
+      // Stepping on, the frame shown takes the scaled opacity, the one
+      // before none.
+      await map.setWeatherLayers([
+        _clouds('clouds_eumetsat.0', 'x'),
+        rain('b', <String>['a']),
+      ]);
+      expect(opacityOf(2), closeTo(radarSoftTone.opacity * 0.5, 1e-9));
+      expect(opacityOf(1), 0);
+      // A new frame over the old: added at the scaled opacity.
+      await map.setWeatherLayers([
+        _clouds('clouds_eumetsat.0', 'x'),
+        rain('d', const <String>[]),
+      ]);
+      expect(opacityOf(3), closeTo(radarSoftTone.opacity * 0.5, 1e-9));
+      // A dark map keeps the share.
+      await map.setWeatherDark(true);
+      expect(cloudsOpacity(), closeTo(cloudsDarkTone.opacity * 0.6, 1e-9));
+      // A source's own opacity is scaled too.
+      await map.setWeatherLayers([_radar('radar_noaa', '1')]);
+      expect(
+        ops
+            .addLayerOf(MapLayerIds.weatherLayer('radar_noaa', 4))!
+            .properties!['raster-opacity'],
+        closeTo(radarTone.opacity * 0.5, 1e-9),
+      );
+    });
+
+    test('a map made with the rider\'s opacity draws with it', () async {
+      final scaled = MaplibreMapControllerAdapter.withOps(
+        ops,
+        weatherSwapDelay: Duration.zero,
+        weatherOpacity: const WeatherOpacity(),
+      );
+      await scaled.attachToStyle();
+      await scaled.setWeatherLayers([
+        rain('a', <String>['b']),
+      ]);
+      expect(
+        opacityOf(0),
+        closeTo(radarSoftTone.opacity * weatherOpacityDefault, 1e-9),
+      );
       expect(opacityOf(1), 0);
     });
   });

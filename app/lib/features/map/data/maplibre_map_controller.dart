@@ -26,6 +26,7 @@ import 'geojson.dart';
 import 'heading_cone.dart';
 import 'heading_smoother.dart';
 import 'tile_template.dart';
+import 'weather_map_preferences.dart' show WeatherOpacity;
 import 'weather_paint.dart';
 import 'wind_arrow_image.dart';
 
@@ -738,6 +739,7 @@ class MaplibreMapControllerAdapter implements MapController {
     MapPalette palette = const MapPalette.classic(),
     RasterTone cyclosmTone = lightCyclosmTone,
     bool weatherDark = false,
+    WeatherOpacity weatherOpacity = const WeatherOpacity(radar: 1, clouds: 1),
   }) : this.withOps(
          PluginMapLibreStyleOps(map),
          cyclosmTileUrl: cyclosmTileUrl,
@@ -745,6 +747,7 @@ class MaplibreMapControllerAdapter implements MapController {
          palette: palette,
          cyclosmTone: cyclosmTone,
          weatherDark: weatherDark,
+         weatherOpacity: weatherOpacity,
        );
 
   /// Drives [ops] instead of a plugin controller, so the layer work can be
@@ -756,11 +759,13 @@ class MaplibreMapControllerAdapter implements MapController {
     MapPalette palette = const MapPalette.classic(),
     RasterTone cyclosmTone = lightCyclosmTone,
     bool weatherDark = false,
+    WeatherOpacity weatherOpacity = const WeatherOpacity(radar: 1, clouds: 1),
     this.cycleMapSwapDelay = const Duration(milliseconds: 400),
     this.weatherSwapDelay = const Duration(seconds: 2),
   }) : _palette = palette, // ignore: prefer_initializing_formals
        _cyclosmTone = cyclosmTone, // ignore: prefer_initializing_formals
-       _weatherDark = weatherDark; // ignore: prefer_initializing_formals
+       _weatherDark = weatherDark, // ignore: prefer_initializing_formals
+       _weatherOpacity = weatherOpacity; // ignore: prefer_initializing_formals
 
   /// How long a weather layer's old frame stays under the new one: the new
   /// tiles come over the network, and taking the old away at once would
@@ -870,6 +875,9 @@ class MaplibreMapControllerAdapter implements MapController {
   int _nextWeatherGeneration = 0;
   Future<void> _weatherTurn = Future<void>.value();
   bool _weatherDark;
+  WeatherOpacity _weatherOpacity;
+  bool _weatherOpacityBusy = false;
+  bool _weatherOpacityAgain = false;
   final ValueNotifier<List<String>> _weatherAttributions =
       ValueNotifier<List<String>>(const <String>[]);
   // The wind arrows asked for, replayed after a style reload; whether this
@@ -2662,16 +2670,24 @@ class MaplibreMapControllerAdapter implements MapController {
     if (drawn.isEmpty) _weatherDrawn.remove(id);
   }
 
-  /// The paint of [layer]'s frame, unseen (no opacity) unless [shown].
+  /// The paint of [layer]'s frame, unseen (no opacity) unless [shown];
+  /// shown, its opacity scaled by the rider's share ([setWeatherOpacity]).
   ml.LayerProperties _weatherProperties(
     WeatherLayer layer, {
     bool shown = true,
   }) {
+    final image = layer.image != null;
+    final own = weatherTone(
+      layer.kind,
+      dark: _weatherDark,
+      opacity: layer.opacity,
+      image: image,
+    ).opacity;
     final paint = weatherTone(
       layer.kind,
       dark: _weatherDark,
-      opacity: shown ? layer.opacity : 0,
-      image: layer.image != null,
+      opacity: shown ? own * _weatherOpacity.of(layer.kind) : 0,
+      image: image,
     ).layerProperties();
     // An image (the clouds, the soft radar) is blown up well past its
     // pixels: smoothed between them, it reads as soft cloud and rain rather
@@ -2700,6 +2716,39 @@ class MaplibreMapControllerAdapter implements MapController {
     } on PlatformException {
       // The old style is on its way out; the next attach paints anew.
     }
+  }
+
+  /// Draws the rain and the clouds at the rider's share of their opacity:
+  /// the frames shown are re-painted, the ones kept unseen stay at none.
+  /// Called for every step of a slider's drag, it re-paints once more
+  /// after a re-paint under way rather than queueing each step.
+  Future<void> setWeatherOpacity(WeatherOpacity opacity) async {
+    if (opacity == _weatherOpacity) return;
+    _weatherOpacity = opacity;
+    if (!_attached || _disposed) return;
+    if (_weatherOpacityBusy) {
+      _weatherOpacityAgain = true;
+      return;
+    }
+    _weatherOpacityBusy = true;
+    do {
+      _weatherOpacityAgain = false;
+      for (final entry in _weatherDrawn.entries.toList()) {
+        for (final generation in entry.value.toList()) {
+          if (!generation.shown) continue;
+          try {
+            await _ops.setLayerProperties(
+              MapLayerIds.weatherLayer(entry.key, generation.n),
+              _weatherProperties(generation.layer),
+            );
+          } on PlatformException {
+            // Gone meanwhile, or the style is on its way out; the next
+            // attach paints anew.
+          }
+        }
+      }
+    } while (_weatherOpacityAgain && _attached && !_disposed);
+    _weatherOpacityBusy = false;
   }
 
   @override

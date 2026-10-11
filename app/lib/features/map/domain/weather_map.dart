@@ -1765,6 +1765,18 @@ int weatherOffsetOfSliderIndex(int index) =>
 int snapWeatherOffset(int minutes) =>
     weatherOffsetOfSliderIndex(weatherSliderIndexOf(minutes));
 
+/// Every step of the control from the one nearest [minutes] outwards,
+/// alternately one later and one earlier along the slider; on one end
+/// running on along the other side.
+List<int> weatherStepsOutwards(int minutes) {
+  final at = weatherSliderIndexOf(minutes);
+  return <int>[
+    for (var d = 0; d < weatherRadarOffsets.length; d++)
+      for (final i in d == 0 ? <int>[at] : <int>[at + d, at - d])
+        if (i >= 0 && i < weatherRadarOffsets.length) weatherRadarOffsets[i],
+  ];
+}
+
 /// One rain source's part of the map at a step: the moment it shows, and
 /// the places it leaves to the sources before it that show the same step
 /// ([masks], lon/lat rings, named by [maskedBy]), so a radar and a

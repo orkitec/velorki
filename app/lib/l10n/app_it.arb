@@ -863,6 +863,8 @@
   "mapLayersRainRadarSubtitle": "Ora: radar in Germania e negli Stati Uniti, altrove in Europa e Africa una stima da satellite. Dopo: previsione radar per 2 ore in Germania, previsione del modello fino a 24 ore (oraria in Europa, ogni 6 ore altrove)",
   "mapLayersClouds": "Nuvole",
   "mapLayersCloudsSubtitle": "Europa, Africa e Americhe · ogni ora in Europa",
+  "mapLayersOpacity": "Opacità",
+  "mapLayersOpacityValue": "{percent} %",
   "mapWeatherNow": "Ora",
   "mapWeatherMinutesAhead": "+{minutes} min",
   "mapWeatherHoursAhead": "+{hours} h",

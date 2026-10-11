@@ -104,6 +104,59 @@ void main() {
       );
     });
 
+    testWidgets('an opacity slider under the rain and the clouds while each '
+        'is on, at 75 % at first, remembered', (tester) async {
+      final (prefs, container) = await _pump(tester, const LayersSheet());
+      Finder slider(Key key) =>
+          find.descendant(of: find.byKey(key), matching: find.byType(Slider));
+      expect(find.byType(Slider), findsNothing);
+      expect(container.read(weatherMapOpacityProvider), const WeatherOpacity());
+      expect(const WeatherOpacity().radar, 0.75);
+      expect(const WeatherOpacity().clouds, 0.75);
+
+      await tester.tap(_switch(l10n.mapLayersRainRadar));
+      await tester.pumpAndSettle();
+      expect(slider(radarOpacityKey), findsOneWidget);
+      expect(slider(cloudsOpacityKey), findsNothing);
+      expect(tester.widget<Slider>(slider(radarOpacityKey)).value, 0.75);
+      expect(find.text(l10n.mapLayersOpacity), findsOneWidget);
+      expect(find.text(l10n.mapLayersOpacityValue(75)), findsOneWidget);
+      // Under the rain's switch, over the clouds'.
+      final rainY = tester.getCenter(_switch(l10n.mapLayersRainRadar)).dy;
+      final cloudsY = tester.getCenter(_switch(l10n.mapLayersClouds)).dy;
+      final sliderY = tester.getCenter(slider(radarOpacityKey)).dy;
+      expect(sliderY, greaterThan(rainY));
+      expect(sliderY, lessThan(cloudsY));
+
+      // All the way down: the least, live and then remembered.
+      await tester.drag(slider(radarOpacityKey), const Offset(-400, 0));
+      await tester.pumpAndSettle();
+      expect(container.read(weatherMapOpacityProvider).radar, 0.2);
+      expect(container.read(weatherMapOpacityProvider).clouds, 0.75);
+      expect(prefs.getDouble('map.weather.radarOpacity'), 0.2);
+      expect(find.text(l10n.mapLayersOpacityValue(20)), findsOneWidget);
+
+      await tester.tap(_switch(l10n.mapLayersClouds));
+      await tester.pumpAndSettle();
+      expect(slider(cloudsOpacityKey), findsOneWidget);
+      expect(tester.widget<Slider>(slider(cloudsOpacityKey)).value, 0.75);
+
+      // Off, its slider goes; the share is kept.
+      await tester.tap(_switch(l10n.mapLayersRainRadar));
+      await tester.pumpAndSettle();
+      expect(slider(radarOpacityKey), findsNothing);
+      expect(slider(cloudsOpacityKey), findsOneWidget);
+
+      final again = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(again.dispose);
+      expect(
+        again.read(weatherMapOpacityProvider),
+        const WeatherOpacity(radar: 0.2),
+      );
+    });
+
     testWidgets('a switch whose sources are all off is not offered', (
       tester,
     ) async {

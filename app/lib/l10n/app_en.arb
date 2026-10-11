@@ -4449,6 +4449,19 @@
   "@mapLayersCloudsSubtitle": {
     "description": "Under the Clouds switch: where the clouds layer exists, and that it is updated once an hour in Europe."
   },
+  "mapLayersOpacity": "Opacity",
+  "@mapLayersOpacity": {
+    "description": "Layers sheet: label of the slider under the Rain radar and the Clouds switches that sets how opaque (how little see-through) that layer is drawn over the map."
+  },
+  "mapLayersOpacityValue": "{percent} %",
+  "@mapLayersOpacityValue": {
+    "description": "Layers sheet: the opacity slider's value as a percentage, shown beside the slider and read out by screen readers, e.g. '75 %'.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "mapWeatherNow": "Now",
   "@mapWeatherNow": {
     "description": "The rain radar's time control at the present moment."

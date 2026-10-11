@@ -1610,6 +1610,41 @@ void main() {
       });
     });
 
+    test('from a step mid-slider: outwards, alternately later and '
+        'earlier', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        fetcher.holdRadar = true;
+        soft(offset: 120);
+        live.attach(map);
+        async.flushMicrotasks();
+        final asked = answerAll(async);
+        final base = DateTime.utc(2026, 10, 10, 14, 35);
+        DateTime dwd(int m) => base.add(Duration(minutes: m));
+        // The step's own, then from it outwards: three hours on and an hour
+        // and three quarters, four hours and an hour and a half, ...
+        expect(asked.take(9).toList(), <(String, DateTime)>[
+          ('radar_dwd', dwd(120)),
+          ('rain_icon_eu', DateTime.utc(2026, 10, 10, 18)),
+          ('radar_dwd', dwd(105)),
+          ('rain_icon_eu', DateTime.utc(2026, 10, 10, 19)),
+          ('radar_dwd', dwd(90)),
+          ('rain_icon_eu', DateTime.utc(2026, 10, 10, 20)),
+          ('radar_dwd', dwd(75)),
+          ('rain_icon_eu', DateTime.utc(2026, 10, 10, 21)),
+          ('radar_dwd', dwd(60)),
+        ]);
+        // Now last of the earlier side, then the rest of the day ahead.
+        final now = asked.indexOf(('radar_dwd', base));
+        expect(
+          asked.skip(now + 1).every((a) => a.$1 == 'rain_icon_eu'),
+          isTrue,
+        );
+        expect(asked.toSet(), hasLength(asked.length));
+        live.dispose();
+      });
+    });
+
     test('dragged, the step under the finger at once from what is loaded, '
         'nothing asked; let go, the step set', () {
       fakeAsync((async) {

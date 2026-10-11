@@ -75,6 +75,8 @@ class LayersSheet extends ConsumerWidget {
     final weather = ref.watch(weatherMapPreferencesProvider);
     final weatherPrefs = ref.read(weatherMapPreferencesProvider.notifier);
     final weatherSources = ref.watch(weatherMapSourcesProvider);
+    final opacity = ref.watch(weatherMapOpacityProvider);
+    final opacityPrefs = ref.read(weatherMapOpacityProvider.notifier);
     final stops = ref.watch(mapStopsPreferencesProvider);
     final preferences = ref.read(mapStopsPreferencesProvider.notifier);
     final guided =
@@ -146,6 +148,14 @@ class LayersSheet extends ConsumerWidget {
               value: weather.radar,
               onChanged: (value) => unawaited(weatherPrefs.setRadar(value)),
             ),
+          if (weatherKindAvailable(weatherSources, WeatherKind.radar))
+            _OpacitySlider(
+              key: radarOpacityKey,
+              shown: weather.radar,
+              value: opacity.radar,
+              onChanged: (value, {required save}) =>
+                  unawaited(opacityPrefs.setRadar(value, save: save)),
+            ),
           if (weatherKindAvailable(weatherSources, WeatherKind.clouds))
             SwitchListTile(
               secondary: const Icon(Icons.cloud_outlined),
@@ -153,6 +163,14 @@ class LayersSheet extends ConsumerWidget {
               subtitle: _CloudsSubtitle(on: weather.clouds),
               value: weather.clouds,
               onChanged: (value) => unawaited(weatherPrefs.setClouds(value)),
+            ),
+          if (weatherKindAvailable(weatherSources, WeatherKind.clouds))
+            _OpacitySlider(
+              key: cloudsOpacityKey,
+              shown: weather.clouds,
+              value: opacity.clouds,
+              onChanged: (value, {required save}) =>
+                  unawaited(opacityPrefs.setClouds(value, save: save)),
             ),
           if (weatherKindAvailable(weatherSources, WeatherKind.wind))
             SwitchListTile(
@@ -306,6 +324,80 @@ class _CloudsSubtitle extends ConsumerWidget {
     );
   }
 }
+
+/// How opaque a weather layer is drawn, under its switch while that is on:
+/// from [weatherOpacityMin] to all of its opacity in steps of 5 %, live
+/// while dragged and remembered when let go.
+class _OpacitySlider extends StatelessWidget {
+  const _OpacitySlider({
+    required this.shown,
+    required this.value,
+    required this.onChanged,
+    super.key,
+  });
+
+  final bool shown;
+  final double value;
+  final void Function(double value, {required bool save}) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    String percent(double v) => l10n.mapLayersOpacityValue((v * 100).round());
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 350),
+      reverseDuration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOutCubic,
+      alignment: Alignment.topCenter,
+      child: !shown
+          ? const SizedBox(width: double.infinity)
+          : Padding(
+              // Under the switch's title, past its icon.
+              padding: const EdgeInsets.fromLTRB(56, 0, 16, 4),
+              child: Row(
+                children: [
+                  ExcludeSemantics(
+                    child: Text(
+                      l10n.mapLayersOpacity,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Semantics(
+                      label: l10n.mapLayersOpacity,
+                      child: Slider(
+                        value: value,
+                        min: weatherOpacityMin,
+                        divisions: ((1 - weatherOpacityMin) / 0.05).round(),
+                        semanticFormatterCallback: percent,
+                        onChanged: (v) => onChanged(v, save: false),
+                        onChangeEnd: (v) => onChanged(v, save: true),
+                      ),
+                    ),
+                  ),
+                  ExcludeSemantics(
+                    child: Text(
+                      percent(value),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+/// The keys of the rain's and the clouds' opacity sliders in the Layers
+/// sheet, for the tests.
+const Key radarOpacityKey = ValueKey<String>('layers-radar-opacity');
+const Key cloudsOpacityKey = ValueKey<String>('layers-clouds-opacity');
 
 /// The key of the cloud image's time in the Layers sheet, for the tests.
 const Key cloudsImageTimeKey = ValueKey<String>('layers-clouds-time');

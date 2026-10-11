@@ -33,16 +33,14 @@ const Duration cloudCacheMaxAge = Duration(hours: 6);
 /// for again: each model run changes the forecast a little.
 const Duration windCacheMaxAge = Duration(hours: 1);
 
-/// How many wind grids of one source the cache keeps: the boxes and
-/// moments of the last few views and steps of the time control.
-const int windCacheKeep = 24;
-
 /// How long the wind of a box may take.
 const Duration windTimeout = Duration(seconds: 15);
 
-/// How many detail images of one source the cache keeps: the boxes of the
-/// last few views, for panning back.
-const int cloudDetailCacheKeep = 12;
+/// How many bytes the weather cache keeps on disk, all sources together:
+/// past it, the images and grids used longest ago go first. Enough for the
+/// views and steps of the time control a rider moves between, so panning
+/// back or dragging the slider back comes from the disk.
+const int weatherCacheBudget = 150 * 1024 * 1024;
 
 // The infrared images are bright where it is cold: high cloud tops are
 // white, the warm ground dark grey. A pixel's luminance between these two
@@ -829,10 +827,6 @@ Future<(int, int, Uint8List)> _decode(Uint8List png) async {
 /// how the images are prepared.
 const int cloudImageVersion = 2;
 
-/// How many soft radar images of one source the cache keeps: the boxes and
-/// moments of the last few views and steps of the time control.
-const int radarImageCacheKeep = 24;
-
 /// What tells the rain images prepared now from those an older app left in
 /// the cache, which the age limit then clears: raised with each change to
 /// how they are prepared.
@@ -950,7 +944,21 @@ class HttpWeatherFetcher implements WeatherFetcher {
     this.imageTimeout = cloudImageTimeout,
     this.windTimeLimit = windTimeout,
     this.parseWind = parseWindGridInBackground,
+    this.cacheBudget = weatherCacheBudget,
   });
+
+  /// How many bytes the cache keeps on disk ([weatherCacheBudget]).
+  final int cacheBudget;
+
+  /// What the cache holds, read off the disk once.
+  _WeatherCacheIndex? _index;
+
+  /// The index of [dir], scanning it the first time.
+  _WeatherCacheIndex _indexOf(Directory dir) {
+    final index = _index;
+    if (index != null && index.dir.path == dir.path) return index;
+    return _index = _WeatherCacheIndex.scan(dir, cacheBudget);
+  }
 
   /// How long the wind of a box may take.
   final Duration windTimeLimit;
@@ -1032,7 +1040,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
       source.regionImageUrl(frame, region),
       name,
       source: source.id,
-      (dir) => _prune(dir, (file) => file.startsWith(prefix), name, now),
+      now,
       process: (png) => process(png, job),
     );
   }
@@ -1053,15 +1061,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
       source.detailImageUrl(frame, box),
       name,
       source: source.id,
-      // Other moments go; of this one the last few boxes stay.
-      (dir) => _prune(
-        dir,
-        (file) => file.startsWith(prefix) && !file.endsWith(stamp),
-        name,
-        now,
-        prefix: prefix,
-        keep: cloudDetailCacheKeep,
-      ),
+      now,
       process: (png) => process(png, job),
     );
   }
@@ -1097,14 +1097,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
       url,
       name,
       source: source.id,
-      (dir) => _prune(
-        dir,
-        (_) => false,
-        name,
-        now,
-        prefix: prefix,
-        keep: radarImageCacheKeep,
-      ),
+      now,
       timeout: probeTimeout,
       process: (png) => processRadar(png, job),
     );
@@ -1128,7 +1121,10 @@ class HttpWeatherFetcher implements WeatherFetcher {
       if (cached.existsSync() &&
           now.difference(cached.lastModifiedSync()) < windCacheMaxAge) {
         final grid = await parseWind(await cached.readAsString());
-        if (grid != null) return grid;
+        if (grid != null) {
+          _indexOf(dir).used(name);
+          return grid;
+        }
       }
     } on Object catch (error) {
       debugPrint('velorki: wind cache unreadable: $error');
@@ -1146,16 +1142,11 @@ class HttpWeatherFetcher implements WeatherFetcher {
     if (dir != null) {
       try {
         if (!dir.existsSync()) dir.createSync(recursive: true);
-        await File(p.join(dir.path, name)).writeAsString(text);
-        _prune(
-          dir,
-          (_) => false,
-          name,
-          now,
-          prefix: prefix,
-          keep: windCacheKeep,
-          extension: '.txt',
-        );
+        final file = File(p.join(dir.path, name));
+        await file.writeAsString(text);
+        _indexOf(dir)
+          ..added(file)
+          ..prune(name, now);
       } on Object catch (error) {
         debugPrint('velorki: wind not cached: $error');
       }
@@ -1198,12 +1189,13 @@ class HttpWeatherFetcher implements WeatherFetcher {
   }
 
   /// The image cached as [name], else fetched from [url] within [timeout]
-  /// (the cloud images' by default), turned by [process] and cached,
-  /// [prune] then tidying the cache. A refusal is put down to [source].
+  /// (the cloud images' by default), turned by [process] and cached, the
+  /// cache then kept to its budget at [now] ([_WeatherCacheIndex.prune]).
+  /// A refusal is put down to [source].
   Future<Uint8List?> _cloud(
     String url,
     String name,
-    void Function(Directory dir) prune, {
+    DateTime now, {
     required Future<Uint8List> Function(Uint8List png) process,
     required String source,
     Duration? timeout,
@@ -1212,7 +1204,11 @@ class HttpWeatherFetcher implements WeatherFetcher {
     try {
       dir = await cacheDir();
       final cached = File(p.join(dir.path, name));
-      if (cached.existsSync()) return await cached.readAsBytes();
+      if (cached.existsSync()) {
+        final bytes = await cached.readAsBytes();
+        _indexOf(dir).used(name);
+        return bytes;
+      }
     } on Object catch (error) {
       debugPrint('velorki: cloud cache unreadable: $error');
       return null;
@@ -1228,8 +1224,11 @@ class HttpWeatherFetcher implements WeatherFetcher {
     }
     try {
       if (!dir.existsSync()) dir.createSync(recursive: true);
-      await File(p.join(dir.path, name)).writeAsBytes(png);
-      prune(dir);
+      final file = File(p.join(dir.path, name));
+      await file.writeAsBytes(png);
+      _indexOf(dir)
+        ..added(file)
+        ..prune(name, now);
     } on Object catch (error) {
       debugPrint('velorki: cloud image not cached: $error');
     }
@@ -1273,46 +1272,140 @@ class HttpWeatherFetcher implements WeatherFetcher {
       return null;
     }
   }
+}
 
-  /// Deletes the images [replaced] names, any image past
-  /// [cloudCacheMaxAge] and, with [prefix], all but the newest [keep]
-  /// under it; never [current].
-  static void _prune(
-    Directory dir,
-    bool Function(String name) replaced,
-    String current,
-    DateTime now, {
-    String? prefix,
-    int keep = 0,
-    String extension = '.png',
-  }) {
-    final kept = <(File, DateTime)>[];
-    for (final entry in dir.listSync()) {
-      if (entry is! File) continue;
-      final name = p.basename(entry.path);
-      if (name == current || !name.endsWith(extension)) continue;
-      try {
-        final modified = entry.lastModifiedSync();
-        if (replaced(name) || now.difference(modified) > cloudCacheMaxAge) {
-          entry.deleteSync();
-        } else if (prefix != null && name.startsWith(prefix)) {
-          kept.add((entry, modified));
+/// What the weather cache holds, read off its directory once
+/// ([_WeatherCacheIndex.scan]) and kept up to date as images and grids are
+/// read and written, so that keeping the cache tidy needs no scan of the
+/// directory: the files in the order they were last used, and their sizes
+/// and ages. Only the cache's own files count (`.png` images, `.txt` wind
+/// grids). The order outlives the app in each file's access time.
+class _WeatherCacheIndex {
+  _WeatherCacheIndex._(this.dir, this.budget);
+
+  /// The index of the files in [dir], kept to [budget] bytes and pruned
+  /// once; the order of use is each file's access time, or its
+  /// modification time where that is later.
+  factory _WeatherCacheIndex.scan(Directory dir, int budget) {
+    final index = _WeatherCacheIndex._(dir, budget);
+    final found = <(String, _CacheEntry, DateTime)>[];
+    try {
+      if (dir.existsSync()) {
+        for (final entity in dir.listSync()) {
+          if (entity is! File) continue;
+          final name = p.basename(entity.path);
+          if (!_counts(name)) continue;
+          final stat = entity.statSync();
+          if (stat.type != FileSystemEntityType.file) continue;
+          final used = stat.accessed.isAfter(stat.modified)
+              ? stat.accessed
+              : stat.modified;
+          found.add((name, _CacheEntry(stat.size, stat.modified), used));
         }
-      } on FileSystemException {
-        // Gone already, or busy: the next prune tries again.
       }
+    } on FileSystemException catch (error) {
+      debugPrint('velorki: weather cache not read: $error');
     }
-    // The current one counts towards [keep].
-    if (kept.length < keep) return;
-    kept.sort((a, b) => b.$2.compareTo(a.$2));
-    for (final (file, _) in kept.skip(math.max(0, keep - 1))) {
-      try {
-        file.deleteSync();
-      } on FileSystemException {
-        // As above.
-      }
+    found.sort((a, b) => a.$3.compareTo(b.$3));
+    for (final (name, entry, _) in found) {
+      index._entries[name] = entry;
+      index._bytes += entry.size;
+    }
+    return index..prune('', DateTime.now());
+  }
+
+  /// The cache's directory.
+  final Directory dir;
+
+  /// How many bytes it keeps.
+  final int budget;
+
+  /// The files, used longest ago first.
+  final Map<String, _CacheEntry> _entries = <String, _CacheEntry>{};
+
+  int _bytes = 0;
+
+  static final RegExp _cloudName = RegExp(r'^\w+?_v(\d+)_');
+  static final RegExp _rainName = RegExp(r'^\w+?_(?:soft|measured)(\d+)_');
+
+  /// Whether [name] is an image prepared otherwise than now: a cloud image
+  /// of another [cloudImageVersion], a rain image of another
+  /// [rainImageVersion].
+  static bool _stale(String name) {
+    if (!name.endsWith('.png')) return false;
+    final cloud = _cloudName.firstMatch(name);
+    if (cloud != null) return int.parse(cloud[1]!) != cloudImageVersion;
+    final rain = _rainName.firstMatch(name);
+    if (rain != null) return int.parse(rain[1]!) != rainImageVersion;
+    return false;
+  }
+
+  static bool _counts(String name) =>
+      name.endsWith('.png') || name.endsWith('.txt');
+
+  /// The file [name] was just read: it is the last to go.
+  void used(String name) {
+    final entry = _entries.remove(name);
+    if (entry == null) return;
+    _entries[name] = entry;
+    try {
+      File(p.join(dir.path, name)).setLastAccessedSync(DateTime.now());
+    } on FileSystemException {
+      // The order holds for this launch anyway.
     }
   }
+
+  /// [file] was just written.
+  void added(File file) {
+    final name = p.basename(file.path);
+    if (!_counts(name)) return;
+    final stat = file.statSync();
+    final old = _entries.remove(name);
+    if (old != null) _bytes -= old.size;
+    _entries[name] = _CacheEntry(stat.size, stat.modified);
+    _bytes += stat.size;
+  }
+
+  /// Deletes the images an older app prepared ([_stale]) and any file past
+  /// [cloudCacheMaxAge] at [now], then, while the cache is over its budget,
+  /// the file used longest ago; never [current]. Other moments of an image
+  /// stay, for the time control's slider dragged back.
+  void prune(String current, DateTime now) {
+    for (final name in _entries.keys.toList()) {
+      if (name == current) continue;
+      final entry = _entries[name]!;
+      if (_stale(name) || now.difference(entry.modified) > cloudCacheMaxAge) {
+        _delete(name);
+      }
+    }
+    while (_bytes > budget) {
+      final oldest = _entries.keys.firstWhere(
+        (name) => name != current,
+        orElse: () => current,
+      );
+      if (oldest == current) return;
+      _delete(oldest);
+    }
+  }
+
+  void _delete(String name) {
+    final entry = _entries.remove(name);
+    if (entry != null) _bytes -= entry.size;
+    try {
+      File(p.join(dir.path, name)).deleteSync();
+    } on FileSystemException {
+      // Gone already, or busy: the next launch's scan finds it again.
+    }
+  }
+}
+
+/// A file of the weather cache: its size and when it was written.
+@immutable
+class _CacheEntry {
+  const _CacheEntry(this.size, this.modified);
+
+  final int size;
+  final DateTime modified;
 }
 
 /// What tells one cloud image from the next in the cache: the moment it

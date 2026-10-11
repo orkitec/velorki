@@ -16,6 +16,15 @@ const String _prefsRadar = 'map.weather.radar';
 const String _prefsClouds = 'map.weather.clouds';
 const String _prefsWind = 'map.weather.wind';
 const String _prefsOverride = 'map.weather.override';
+const String _prefsRadarOpacity = 'map.weather.radarOpacity';
+const String _prefsCloudsOpacity = 'map.weather.cloudsOpacity';
+
+/// How opaque the rain and the clouds are drawn until the rider says
+/// otherwise, as a share of each layer's own opacity.
+const double weatherOpacityDefault = 0.75;
+
+/// The least share of its opacity a weather layer can be set to.
+const double weatherOpacityMin = 0.2;
 
 /// Which weather layers the rider switched on.
 @immutable
@@ -98,6 +107,78 @@ class WeatherMapPreferences extends _$WeatherMapPreferences {
   Future<void> setWind(bool value) async {
     state = state.copyWith(wind: value);
     await ref.read(sharedPreferencesProvider).setBool(_prefsWind, value);
+  }
+}
+
+/// How opaque the rider wants the rain and the clouds: each a share, from
+/// [weatherOpacityMin] to 1, of the layer's own opacity.
+@immutable
+class WeatherOpacity {
+  /// Creates the shares.
+  const WeatherOpacity({
+    this.radar = weatherOpacityDefault,
+    this.clouds = weatherOpacityDefault,
+  });
+
+  /// The rain's share.
+  final double radar;
+
+  /// The clouds' share.
+  final double clouds;
+
+  /// The share of [kind]; the wind's arrows keep theirs.
+  double of(WeatherKind kind) => switch (kind) {
+    WeatherKind.radar => radar,
+    WeatherKind.clouds => clouds,
+    WeatherKind.wind => 1,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is WeatherOpacity && other.radar == radar && other.clouds == clouds;
+
+  @override
+  int get hashCode => Object.hash(radar, clouds);
+
+  @override
+  String toString() => 'WeatherOpacity(radar: $radar, clouds: $clouds)';
+}
+
+/// How opaque the rain and the clouds are drawn, remembered across
+/// launches.
+@Riverpod(keepAlive: true)
+class WeatherMapOpacity extends _$WeatherMapOpacity {
+  @override
+  WeatherOpacity build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    double read(String key) => (prefs.getDouble(key) ?? weatherOpacityDefault)
+        .clamp(weatherOpacityMin, 1.0);
+    return WeatherOpacity(
+      radar: read(_prefsRadarOpacity),
+      clouds: read(_prefsCloudsOpacity),
+    );
+  }
+
+  /// Draws the rain at [value] of its opacity; remembered only with [save]
+  /// (a slider saves when let go).
+  Future<void> setRadar(double value, {bool save = true}) async {
+    final share = value.clamp(weatherOpacityMin, 1.0);
+    state = WeatherOpacity(radar: share, clouds: state.clouds);
+    if (!save) return;
+    await ref
+        .read(sharedPreferencesProvider)
+        .setDouble(_prefsRadarOpacity, share);
+  }
+
+  /// Draws the clouds at [value] of their opacity; remembered only with
+  /// [save].
+  Future<void> setClouds(double value, {bool save = true}) async {
+    final share = value.clamp(weatherOpacityMin, 1.0);
+    state = WeatherOpacity(radar: state.radar, clouds: share);
+    if (!save) return;
+    await ref
+        .read(sharedPreferencesProvider)
+        .setDouble(_prefsCloudsOpacity, share);
   }
 }
 

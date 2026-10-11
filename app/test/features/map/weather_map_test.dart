@@ -1341,4 +1341,21 @@ void main() {
       expect(clouds.timesUrl, eumetsatClouds.timesUrl);
     });
   });
+
+  test('the steps from one outwards, alternately later and earlier', () {
+    expect(weatherStepsOutwards(60).take(7), <int>[
+      60,
+      75,
+      45,
+      90,
+      30,
+      105,
+      15,
+    ]);
+    // Past an end, on along the other side.
+    expect(weatherStepsOutwards(0).take(4), <int>[0, 15, 30, 45]);
+    expect(weatherStepsOutwards(1440).take(3), <int>[1440, 1380, 1320]);
+    expect(weatherStepsOutwards(100).toSet(), weatherRadarOffsets.toSet());
+    expect(weatherStepsOutwards(100), hasLength(weatherRadarOffsets.length));
+  });
 }

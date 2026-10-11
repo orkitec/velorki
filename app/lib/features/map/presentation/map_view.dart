@@ -15,6 +15,7 @@ import '../data/cyclosm_tone.dart';
 import '../data/map_preferences.dart';
 import '../data/maplibre_map_controller.dart';
 import '../data/position_provider.dart';
+import '../data/weather_map_preferences.dart';
 import '../domain/map_controller.dart';
 import 'map_attribution.dart';
 import 'map_chrome.dart';
@@ -221,6 +222,7 @@ class _MapViewState extends ConsumerState<MapView> {
         palette: MapPalette.fromTheme(Theme.of(context)),
         cyclosmTone: _readCyclosmTone(),
         weatherDark: _readMapLook() != MapLook.light,
+        weatherOpacity: ref.read(weatherMapOpacityProvider),
       );
     } on StateError {
       // The style finished loading while the world around the map is being
@@ -297,6 +299,10 @@ class _MapViewState extends ConsumerState<MapView> {
       // A loading or errored stream leaves the last fix on the map; only a
       // real `null` (permission gone) takes the puck away.
       if (next.hasValue) _pushPosition(next.value);
+    });
+    // The rain's and the clouds' opacity, live while its slider is dragged.
+    ref.listen<WeatherOpacity>(weatherMapOpacityProvider, (_, next) {
+      unawaited(_adapter?.setWeatherOpacity(next));
     });
     final config = ref.watch(effectiveConfigProvider);
     final appearance = ref.watch(appearanceSettingProvider);

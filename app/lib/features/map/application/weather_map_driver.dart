@@ -184,8 +184,8 @@ class WeatherMapStatus {
 /// the wind's check.
 ///
 /// With the step's own frames in, the other steps' rain images and wind
-/// grids for the view are asked for in the background ([prefetch]): the
-/// nowcast's steps first, then the hours ahead, at most
+/// grids for the view are asked for in the background ([prefetch]): from
+/// the slider's position outwards, at most
 /// [weatherPrefetchConcurrency] at a time, through the fetcher's cache.
 /// They stay loaded on the map unseen ([WeatherLayer.preloaded]), at most
 /// [weatherPreloadMaxFrames] an image and [weatherPreloadMaxPixels] in
@@ -1449,22 +1449,14 @@ class WeatherMapDriver {
     if (back) _update();
   }
 
-  /// The order the other steps of the time control are asked for in: the
-  /// nowcast's quarter hours (and "Now"), nearest the step set first, then
-  /// the hours ahead.
-  List<int> _prefetchOrder() {
-    final set = weatherSliderIndexOf(_offset);
-    int distance(int step) => (weatherSliderIndexOf(step) - set).abs();
-    final near = <int>[
-      for (final step in weatherRadarOffsets)
-        if (step <= 120 && step != _offset) step,
-    ]..sort((a, b) => distance(a).compareTo(distance(b)));
-    return <int>[
-      ...near,
-      for (final step in weatherRadarOffsets)
-        if (step > 120 && step != _offset) step,
-    ];
-  }
+  /// The order the other steps of the time control are asked for in: from
+  /// the slider's position (the step under the finger while it is dragged,
+  /// else the step set) outwards, alternately later and earlier, so what
+  /// does not fit in memory is far from where the rider looks.
+  List<int> _prefetchOrder() => <int>[
+    for (final step in weatherStepsOutwards(_preview ?? _offset))
+      if (step != _offset) step,
+  ];
 
   /// Asks in the background for the other steps' rain images and wind
   /// grids of the view (see [_prefetchOrder]), once the step set has all

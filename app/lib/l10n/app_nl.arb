@@ -863,6 +863,8 @@
   "mapLayersRainRadarSubtitle": "Nu: radar in Duitsland en de VS, elders in Europa en Afrika een schatting via satelliet. Vooruit: radarverwachting voor 2 uur in Duitsland, modelverwachting tot 24 uur (per uur in Europa, elders elke 6 uur)",
   "mapLayersClouds": "Wolken",
   "mapLayersCloudsSubtitle": "Europa, Afrika en Amerika · elk uur bijgewerkt in Europa",
+  "mapLayersOpacity": "Dekking",
+  "mapLayersOpacityValue": "{percent} %",
   "mapWeatherNow": "Nu",
   "mapWeatherMinutesAhead": "+{minutes} min",
   "mapWeatherHoursAhead": "+{hours} u",

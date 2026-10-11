@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:velorki/features/map/data/rain_legend.dart';
 import 'package:velorki/features/map/data/weather_fetcher.dart';
 import 'package:velorki/features/map/domain/weather_map.dart';
@@ -186,7 +187,8 @@ void main() {
       expect(processed, 1);
     });
 
-    test('the next hour replaces the last one in the cache', () async {
+    test('the next hour is cached beside the last; dragged back, that one '
+        'comes from the disk', () async {
       final now = DateTime.utc(2026, 10, 10, 14, 25);
       await fetcher.cloudImage(
         eumetsatClouds,
@@ -202,7 +204,14 @@ void main() {
         later,
       );
       expect(adapter.requests, hasLength(2));
-      expect(dir.listSync(), hasLength(1));
+      expect(dir.listSync(), hasLength(2));
+      await fetcher.cloudImage(
+        eumetsatClouds,
+        0,
+        eumetsatClouds.frameAt(now)!,
+        later,
+      );
+      expect(adapter.requests, hasLength(2));
     });
 
     test('a failed image is null and not cached', () async {
@@ -252,11 +261,11 @@ void main() {
       expect(dir.listSync(), hasLength(2));
     });
 
-    test('the cache keeps the last few detail boxes of the hour; the next '
-        'hour replaces them', () async {
+    test('the cache keeps the detail boxes of each hour; dragged back to an '
+        'earlier hour, its boxes come from the disk', () async {
       final now = DateTime.utc(2026, 10, 10, 14, 25);
       final frame = eumetsatClouds.frameAt(now)!;
-      for (var i = 0; i < cloudDetailCacheKeep + 3; i++) {
+      for (var i = 0; i < 15; i++) {
         final box = BoundingBox(
           south: 50,
           west: 1.0 + i,
@@ -265,7 +274,7 @@ void main() {
         );
         await fetcher.cloudDetailImage(eumetsatClouds, box, frame, now);
       }
-      expect(dir.listSync(), hasLength(cloudDetailCacheKeep));
+      expect(dir.listSync(), hasLength(15));
       final later = now.add(const Duration(hours: 1));
       await fetcher.cloudDetailImage(
         eumetsatClouds,
@@ -273,7 +282,42 @@ void main() {
         eumetsatClouds.frameAt(later)!,
         later,
       );
-      expect(dir.listSync(), hasLength(1));
+      expect(dir.listSync(), hasLength(16));
+      expect(adapter.requests, hasLength(16));
+      await fetcher.cloudDetailImage(
+        eumetsatClouds,
+        const BoundingBox(south: 50, west: 1, north: 51, east: 1.5),
+        frame,
+        later,
+      );
+      expect(adapter.requests, hasLength(16));
+    });
+
+    test('images an older app prepared go; this version\'s stay', () async {
+      final young = DateTime.now().subtract(const Duration(minutes: 10));
+      final names = <String>[
+        'clouds_eumetsat_v${cloudImageVersion - 1}_0_1.png',
+        'clouds_eumetsat_v${cloudImageVersion - 1}_detail_1_2_3_4_5.png',
+        'radar_dwd_soft${rainImageVersion - 1}_1_2_3_4_5.png',
+        'clouds_goes_east_v${cloudImageVersion}_0_1.png',
+        'radar_dwd_measured${rainImageVersion}_1_2_3_4_5.png',
+        'wind_icon_1_2_3_4_5.txt',
+      ];
+      for (final name in names) {
+        File(p.join(dir.path, name))
+          ..writeAsBytesSync(<int>[1])
+          ..setLastModifiedSync(young);
+      }
+      final now = DateTime.now().toUtc();
+      await fetcher.cloudImage(
+        eumetsatClouds,
+        0,
+        eumetsatClouds.frameAt(now)!,
+        now,
+      );
+      final left = {for (final f in dir.listSync()) p.basename(f.path)};
+      expect(left, containsAll(names.skip(3)));
+      expect(left.intersection(names.take(3).toSet()), isEmpty);
     });
 
     test('a region\'s image is prepared over its box, faded as asked, and '
@@ -802,23 +846,102 @@ void main() {
       expect(await fetcher.newestFrame(hsafRain), isNull);
     });
 
-    test('the cache keeps the last few images of a source', () async {
+    group('the cache\'s budget', () {
+      // Each prepared image is four bytes: the budget holds three.
+      HttpWeatherFetcher budgeted() => HttpWeatherFetcher(
+        dio: Dio()..httpClientAdapter = adapter,
+        cacheDir: () async => dir,
+        probeTimeout: const Duration(milliseconds: 200),
+        cacheBudget: 12,
+        processRadar: (png, job) async => Uint8List.fromList(<int>[8, ...png]),
+      );
       final now = DateTime.utc(2026, 10, 10, 14, 42);
       final frame = dwdRadar.frameAt(now)!;
-      for (var i = 0; i < radarImageCacheKeep + 3; i++) {
-        await fetcher.radarImage(
-          dwdRadar,
-          BoundingBox(
-            south: 50,
-            west: 2.0 + i / 2,
-            north: 51,
-            east: 2.4 + i / 2,
-          ),
-          frame,
-          now,
-        );
-      }
-      expect(dir.listSync(), hasLength(radarImageCacheKeep));
+      BoundingBox boxAt(int i) => BoundingBox(
+        south: 50,
+        west: 2.0 + i / 2,
+        north: 51,
+        east: 2.4 + i / 2,
+      );
+      Future<void> fetch(HttpWeatherFetcher f, int i) =>
+          f.radarImage(dwdRadar, boxAt(i), frame, now);
+      String nameOf(int i) =>
+          '${dwdRadar.id}_soft${rainImageVersion}_${cloudDetailKey(boxAt(i))}_'
+          '${radarImageStamp(dwdRadar, frame, now)}.png';
+      Set<String> files() => {
+        for (final f in dir.listSync()) p.basename(f.path),
+      };
+
+      test(
+        'past it, the image used longest ago goes; a read keeps one',
+        () async {
+          final f = budgeted();
+          for (var i = 0; i < 3; i++) {
+            await fetch(f, i);
+          }
+          expect(dir.listSync(), hasLength(3));
+          // Image 0 read again: now 1 was used longest ago.
+          await fetch(f, 0);
+          expect(adapter.requests, hasLength(3));
+          await fetch(f, 3);
+          expect(files(), {nameOf(0), nameOf(2), nameOf(3)});
+          await fetch(f, 4);
+          expect(files(), {nameOf(0), nameOf(3), nameOf(4)});
+        },
+      );
+
+      test(
+        'the order of use outlives the launch, in the access times',
+        () async {
+          final first = budgeted();
+          for (var i = 0; i < 3; i++) {
+            await fetch(first, i);
+          }
+          final base = DateTime.now().subtract(const Duration(minutes: 10));
+          for (final (i, used) in <(int, int)>[(0, 9), (1, 2), (2, 5)]) {
+            File(p.join(dir.path, nameOf(i)))
+              ..setLastModifiedSync(base)
+              ..setLastAccessedSync(base.add(Duration(minutes: used)));
+          }
+          // The next launch: image 1 was used longest ago.
+          await fetch(budgeted(), 3);
+          expect(files(), {nameOf(0), nameOf(2), nameOf(3)});
+        },
+      );
+
+      test(
+        'the age limit still holds; older versions go, other files stay',
+        () async {
+          final old = DateTime.now().subtract(
+            cloudCacheMaxAge + const Duration(minutes: 1),
+          );
+          final young = DateTime.now().subtract(const Duration(hours: 1));
+          void place(String name, DateTime modified) {
+            File(p.join(dir.path, name))
+              ..writeAsBytesSync(<int>[1])
+              ..setLastModifiedSync(modified)
+              ..setLastAccessedSync(modified);
+          }
+
+          place('radar_dwd_soft1_old.png', old);
+          place('radar_dwd_soft1_young.png', young);
+          place('wind_icon_old.txt', old);
+          place('notes.json', old);
+          final f = HttpWeatherFetcher(
+            dio: Dio()..httpClientAdapter = adapter,
+            cacheDir: () async => dir,
+            probeTimeout: const Duration(milliseconds: 200),
+            processRadar: (png, job) async => png,
+          );
+          await f.radarImage(dwdRadar, boxAt(0), frame, DateTime.now());
+          // Images and grids past the age go, and an older version's young
+          // image too; a file not the cache's own stays.
+          expect(files(), isNot(contains('radar_dwd_soft1_young.png')));
+          expect(files(), contains('notes.json'));
+          expect(files(), isNot(contains('radar_dwd_soft1_old.png')));
+          expect(files(), isNot(contains('wind_icon_old.txt')));
+        },
+      );
     });
 
     test('the satellite: its own look and masks, each a cache entry of its '
@@ -1525,8 +1648,16 @@ void main() {
       },
     );
 
-    test('the cache keeps the last few boxes and moments', () async {
-      for (var h = 0; h < windCacheKeep + 4; h++) {
+    test('the grids share the budget, the oldest going first', () async {
+      final size = utf8.encode(text).length;
+      final fetcher = HttpWeatherFetcher(
+        dio: Dio()..httpClientAdapter = adapter,
+        cacheDir: () async => dir,
+        windTimeLimit: const Duration(milliseconds: 200),
+        cacheBudget: 3 * size,
+        parseWind: (text) async => parseWcsWindGrid(text),
+      );
+      for (var h = 0; h < 7; h++) {
         await fetcher.windGrid(
           dwdWind,
           request,
@@ -1536,7 +1667,12 @@ void main() {
           now,
         );
       }
-      expect(dir.listSync().length, windCacheKeep);
+      final names = [for (final f in dir.listSync()) p.basename(f.path)];
+      expect(names, hasLength(3));
+      for (var h = 4; h < 7; h++) {
+        final ms = DateTime.utc(2026, 10, 11, h).millisecondsSinceEpoch;
+        expect(names.where((n) => n.endsWith('_$ms.txt')), hasLength(1));
+      }
     });
   });
 }

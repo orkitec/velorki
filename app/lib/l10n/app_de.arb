@@ -863,6 +863,8 @@
   "mapLayersRainRadarSubtitle": "Jetzt: Radar in Deutschland und den USA, sonst in Europa und Afrika eine Schätzung aus Satellitendaten. Voraus: Radarprognose für 2 Stunden in Deutschland, Modellvorhersage bis 24 Stunden (in Europa stündlich, sonst alle 6 Stunden)",
   "mapLayersClouds": "Wolken",
   "mapLayersCloudsSubtitle": "Europa, Afrika und Amerika · in Europa stündlich aktualisiert",
+  "mapLayersOpacity": "Deckkraft",
+  "mapLayersOpacityValue": "{percent} %",
   "mapWeatherNow": "Jetzt",
   "mapWeatherMinutesAhead": "+{minutes} min",
   "mapWeatherHoursAhead": "+{hours} h",
