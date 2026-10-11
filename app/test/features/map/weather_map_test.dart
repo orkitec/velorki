@@ -338,8 +338,18 @@ void main() {
     ];
 
     test('now: the radars where they reach, the satellite around them', () {
-      // Inside the DWD's reach: the radar alone.
-      expect(ids(0, view(13.4, 52.5)), <String>['radar_dwd']);
+      // Inside the DWD's reach the satellite too, cut by the radar's frame
+      // (which the driver reads), or where that cannot be had, hidden by
+      // the radar's reach.
+      expect(ids(0, view(13.4, 52.5)), <String>['radar_dwd', 'rain_hsaf']);
+      final inside = rainPartsAt(
+        defaultWeatherMapSources,
+        now,
+        0,
+        view: view(13.4, 52.5),
+      ).last;
+      expect(inside.cutBy, <WeatherMapSource>[dwdRadar]);
+      expect(inside.hiddenByReach(view(13.4, 52.5)), isTrue);
       // At its edge: the satellite too, masked by the radar.
       expect(ids(0, strasbourg), <String>['radar_dwd', 'rain_hsaf']);
       final hsaf = rainPartsAt(
@@ -351,6 +361,8 @@ void main() {
       expect(hsaf.maskedBy, <String>['radar_dwd']);
       expect(hsaf.masks, <List<LatLng>>[dwdRadarReach]);
       expect(hsaf.maskKey, '-radar_dwd');
+      expect(hsaf.cutBy, <WeatherMapSource>[dwdRadar]);
+      expect(hsaf.hiddenByReach(strasbourg), isFalse);
       // Spain, Africa: the satellite alone.
       expect(ids(0, view(-3.7, 40.4)), <String>['rain_hsaf']);
       expect(ids(0, view(36.8, -1.3)), <String>['rain_hsaf']);
@@ -362,7 +374,9 @@ void main() {
 
     test('ahead: the nowcast in the DWD\'s reach for two hours, ICON-EU '
         'over Europe, the global ICON elsewhere', () {
-      expect(ids(30, view(13.4, 52.5)), <String>['radar_dwd']);
+      // The nowcast reaches less the further ahead: ICON-EU stays a part
+      // under it, cut by its frame.
+      expect(ids(30, view(13.4, 52.5)), <String>['radar_dwd', 'rain_icon_eu']);
       expect(ids(30, strasbourg), <String>['radar_dwd', 'rain_icon_eu']);
       expect(
         rainPartsAt(
@@ -392,6 +406,9 @@ void main() {
         'rain_icon',
       ]);
       expect(edge.last.maskedBy, <String>['rain_icon_eu']);
+      // ICON-EU's box is fixed: the global model is cut by it, not by a
+      // frame.
+      expect(edge.last.cutBy, isEmpty);
     });
 
     test('the satellite: the newest ten-minute frame at least 25 minutes '

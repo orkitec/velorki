@@ -32,8 +32,10 @@ class _Fetcher implements WeatherFetcher {
       <(String, BoundingBox, DateTime?)>[];
   final List<Completer<Uint8List?>> heldRadar = <Completer<Uint8List?>>[];
 
-  /// Of each rain image asked for: the look and what it is masked by.
+  /// Of each rain image asked for: the look and what it is masked by, and
+  /// the frames' coverages it is cut by.
   final List<(RadarStyle, String)> radarJobs = <(RadarStyle, String)>[];
+  final List<List<RainCoverage>> radarCoverages = <List<RainCoverage>>[];
 
   @override
   Future<Uint8List?> radarImage(
@@ -43,19 +45,26 @@ class _Fetcher implements WeatherFetcher {
     DateTime now, {
     RadarStyle style = RadarStyle.soft,
     List<List<LatLng>> masks = const <List<LatLng>>[],
+    List<RainCoverage> coverages = const <RainCoverage>[],
     String maskKey = '',
   }) {
     radarImages.add((source.id, box, frame.time));
     radarJobs.add((style, maskKey));
+    radarCoverages.add(coverages);
     if (holdRadar) {
       final answer = Completer<Uint8List?>();
       heldRadar.add(answer);
       return answer.future;
     }
+    final answer = radarAnswer;
+    if (answer != null) return Future<Uint8List?>.value(answer(source, box));
     return Future<Uint8List?>.value(
       radarImagesUp ? Uint8List.fromList(<int>[7, 8, 9]) : null,
     );
   }
+
+  /// What a rain image is answered with, where set, instead.
+  Uint8List? Function(WeatherMapSource source, BoundingBox box)? radarAnswer;
 
   /// The wind grids asked for (request, moment), whether the service
   /// answers, and the answers held back while [holdWind] is set.
@@ -139,6 +148,28 @@ BoundingBox _view(double lon, double lat) => BoundingBox(
   north: lat + 0.2,
   east: lon + 0.2,
 );
+
+/// A DWD frame of [box] drawn soft, as the fetcher hands it over: a PNG
+/// whose coverage says the radars measure where [measures] holds for a
+/// column's middle longitude.
+Uint8List _dwdFrame(BoundingBox box, bool Function(double lon) measures) {
+  const width = 32;
+  const height = 8;
+  final covered = Uint8List(width * height);
+  for (var x = 0; x < width; x++) {
+    final lon = box.west + (x + 0.5) / width * (box.east - box.west);
+    if (!measures(lon)) continue;
+    for (var y = 0; y < height; y++) {
+      covered[y * width + x] = 1;
+    }
+  }
+  return encodePngRgba(
+    width,
+    height,
+    Uint8List(width * height * 4),
+    coverage: covered,
+  );
+}
 
 final BoundingBox berlin = _view(13.4, 52.5);
 final BoundingBox newYork = _view(-74, 40.7);
@@ -616,6 +647,127 @@ void main() {
       map.emitCameraIdle();
       async.flushMicrotasks();
     }
+
+    group('cut by the DWD\'s frame', () {
+      // Strasbourg to Nancy: the DWD's reach ends in the view.
+      const edge = BoundingBox(south: 48.2, west: 6.0, north: 48.9, east: 7.8);
+      bool cutAt(List<RainCoverage> coverages, double lon) => coverages.any(
+        (c) => c.coversMercator(mercatorX(lon), mercatorY(48.5)),
+      );
+
+      test('the satellite waits for the frame of its step and is cut where '
+          'it measures; ahead, the model by the nowcast\'s own, which '
+          'reaches less', () {
+        fakeAsync((async) {
+          map
+            ..visibleBounds = edge
+            ..zoom = 8;
+          fetcher.holdRadar = true;
+          soft();
+          driver.attach(map);
+          async.flushMicrotasks();
+          // The DWD's frame first; the satellite waits for it.
+          expect(fetcher.radarImages.map((r) => r.$1), <String>['radar_dwd']);
+          final nowBox = fetcher.radarImages.single.$2;
+          fetcher.heldRadar.single.complete(
+            _dwdFrame(nowBox, (lon) => lon > 7),
+          );
+          async.flushMicrotasks();
+          expect(fetcher.radarImages.last.$1, 'rain_hsaf');
+          final hsafCut = fetcher.radarCoverages.last;
+          expect(cutAt(hsafCut, 7.4), isTrue);
+          expect(cutAt(hsafCut, 6.6), isFalse);
+          final hsafKey = fetcher.radarJobs.last.$2;
+          expect(hsafKey, startsWith('-radar_dwd~'));
+          fetcher.heldRadar.last.complete(Uint8List.fromList(<int>[5]));
+          async.flushMicrotasks();
+          expect(drawn(), <String>['radar_dwd', 'rain_hsaf']);
+
+          // Half an hour on: the nowcast's frame first, ICON-EU waits.
+          soft(offset: 30);
+          async.flushMicrotasks();
+          expect(fetcher.radarImages.last.$1, 'radar_dwd');
+          expect(
+            fetcher.radarImages.where((r) => r.$1 == 'rain_icon_eu'),
+            isEmpty,
+          );
+          final aheadBox = fetcher.radarImages.last.$2;
+          fetcher.heldRadar.last.complete(
+            _dwdFrame(aheadBox, (lon) => lon > 7.5),
+          );
+          async.flushMicrotasks();
+          expect(fetcher.radarImages.last.$1, 'rain_icon_eu');
+          final iconCut = fetcher.radarCoverages.last;
+          // Where the nowcast no longer reaches, the model fills in.
+          expect(cutAt(iconCut, 7.2), isFalse);
+          expect(cutAt(iconCut, 7.7), isTrue);
+          expect(fetcher.radarJobs.last.$2, startsWith('-radar_dwd~'));
+          expect(fetcher.radarJobs.last.$2, isNot(hsafKey));
+          fetcher.heldRadar.last.complete(Uint8List.fromList(<int>[6]));
+          async.flushMicrotasks();
+          expect(drawn(), <String>['radar_dwd', 'rain_icon_eu']);
+
+          // A new frame of the step (the refresh) cuts it anew.
+          now = now.add(radarRefreshInterval);
+          async.elapse(radarRefreshInterval);
+          expect(fetcher.radarImages.last.$1, 'radar_dwd');
+          fetcher.heldRadar.last.complete(
+            _dwdFrame(fetcher.radarImages.last.$2, (lon) => lon > 7.3),
+          );
+          async.flushMicrotasks();
+          expect(fetcher.radarImages.last.$1, 'rain_icon_eu');
+          expect(cutAt(fetcher.radarCoverages.last, 7.4), isTrue);
+          driver.dispose();
+        });
+      });
+
+      test('where the frame measures all over the view, nothing after it is '
+          'asked for or drawn', () {
+        fakeAsync((async) {
+          map.zoom = 8;
+          fetcher.radarAnswer = (source, box) => source.id == 'radar_dwd'
+              ? _dwdFrame(box, (_) => true)
+              : Uint8List.fromList(<int>[5]);
+          for (final offset in <int>[0, 30, 90]) {
+            soft(offset: offset);
+            driver.attach(map);
+            async.flushMicrotasks();
+          }
+          expect(fetcher.radarImages.map((r) => r.$1).toSet(), <String>{
+            'radar_dwd',
+          });
+          expect(drawn(), <String>['radar_dwd']);
+          driver.dispose();
+        });
+      });
+
+      test('a frame that does not come: its fixed reach stands in', () {
+        fakeAsync((async) {
+          map
+            ..visibleBounds = edge
+            ..zoom = 8;
+          fetcher.radarAnswer = (source, box) =>
+              source.id == 'radar_dwd' ? null : Uint8List.fromList(<int>[5]);
+          soft();
+          driver.attach(map);
+          async.flushMicrotasks();
+          expect(fetcher.radarImages.map((r) => r.$1), <String>[
+            'radar_dwd',
+            'rain_hsaf',
+          ]);
+          expect(fetcher.radarJobs.last.$2, '-radar_dwd');
+          expect(fetcher.radarCoverages.last, isEmpty);
+          // Inside the reach, nothing after it.
+          rest(async, berlin, 8);
+          async.elapse(radarImageDebounce);
+          expect(
+            fetcher.radarImages.where((r) => r.$1 == 'rain_hsaf'),
+            hasLength(1),
+          );
+          driver.dispose();
+        });
+      });
+    });
 
     test('one image of the view at once, drawn as an image, no probe', () {
       fakeAsync((async) {

@@ -23,19 +23,22 @@ enum RainRole {
   model,
 }
 
-/// How the colours of a rain image are read when it is drawn soft, and what
-/// of it is no rain at all.
+/// Which legend the colours of a rain image are read by when it is drawn
+/// soft (see `rainLegendOf`), and what of it is no rain at all.
 enum RainPalette {
-  /// A radar's palette, light blue and cyan through green, yellow and red to
-  /// purple: alpha by hue (see `radarIntensityAlpha`). The DWD's radar
-  /// palette serves the ICON-EU forecast too, asked for in that style.
-  radarHue,
+  /// The DWD radar's legend, mm an hour from cyan through green, yellow and
+  /// red to purple and blue, grey for no data. It serves the DWD's nowcast
+  /// and the ICON-EU forecast too, asked for in its style.
+  dwd,
+
+  /// NOAA's reflectivity ramp: grey-blue, cyan, green, yellow, red.
+  noaa,
 
   /// The H SAF satellite rain: light green, greens, blues, purples.
   hsaf,
 
   /// The DWD's six-hour precipitation scale for the global ICON forecast,
-  /// recoloured into the radar's palette at the mean rate per hour.
+  /// recoloured into the DWD radar's legend at the mean rate per hour.
   dwdModel6h,
 }
 
@@ -121,8 +124,9 @@ class WeatherMapSource {
     this.imageUrlTemplate,
     this.enabled = true,
     this.role = RainRole.radar,
-    this.palette = RainPalette.radarHue,
+    this.palette = RainPalette.dwd,
     this.reach,
+    this.extent,
   });
 
   /// Stable name, which the mirror's override refers to.
@@ -142,6 +146,15 @@ class WeatherMapSource {
   /// Where the source actually has data, as lon/lat rings, finer than its
   /// [coverage] boxes: a radar's reach. `null` for the coverage boxes.
   final List<List<LatLng>>? reach;
+
+  /// The ring the service's image is drawn in, where it has one inside its
+  /// [coverage] box: inside it a transparent pixel is measured dry, beyond
+  /// it nothing is measured. A source with one tells where it measures by
+  /// each frame it draws (its "no data" colour inside the ring), and the
+  /// sources after it are cut by that frame (see `RainCoverage`) instead of
+  /// by its fixed [reach], which stands in only where the frame cannot be
+  /// had. `null` for none.
+  final List<LatLng>? extent;
 
   /// [reach], or the [coverage] boxes as rings.
   List<List<LatLng>> get reachRings =>
@@ -472,6 +485,7 @@ class WeatherMapSource {
     role: role ?? this.role,
     palette: palette ?? this.palette,
     reach: reach,
+    extent: extent,
   );
 
   @override
@@ -496,7 +510,8 @@ class WeatherMapSource {
       other.enabled == enabled &&
       other.role == role &&
       other.palette == palette &&
-      identical(other.reach, reach);
+      identical(other.reach, reach) &&
+      identical(other.extent, extent);
 
   @override
   int get hashCode => Object.hash(
@@ -519,7 +534,7 @@ class WeatherMapSource {
     enabled,
     role,
     palette,
-    identityHashCode(reach),
+    Object.hash(identityHashCode(reach), identityHashCode(extent)),
   );
 
   @override
@@ -875,6 +890,7 @@ final WeatherMapSource dwdRadar = WeatherMapSource(
       '&format=image/png&transparent=true&time={time}',
   coverage: <BoundingBox>[_box(1.5, 45, 19, 56.5)],
   reach: const <List<LatLng>>[dwdRadarReach],
+  extent: dwdRadarExtent,
   maxZoom: 10,
   timeFormat: WeatherTimeFormat.iso,
   forecastMinutes: 120,
@@ -888,6 +904,12 @@ final WeatherMapSource dwdRadar = WeatherMapSource(
 /// coverage box (2 km a pixel) and simplified to within 6 km. Beyond it the
 /// composite is grey, "no data", inside its box; the satellite and the
 /// models draw there instead.
+///
+/// The reach of each frame differs (the nowcast's shrinks the further
+/// ahead it looks), so drawn soft the sources after the DWD are cut by the
+/// frame itself (see [WeatherMapSource.extent]); this ring stands in where
+/// that frame cannot be had, drawn as measured, and for what the time
+/// control says about the middle of the view.
 const List<LatLng> dwdRadarReach = <LatLng>[
   LatLng(51.34, 15.90),
   LatLng(51.59, 15.81),
@@ -963,14 +985,59 @@ const List<LatLng> dwdRadarReach = <LatLng>[
   LatLng(50.80, 15.84),
 ];
 
+/// The DWD composite's grid: the ring its images are drawn in (rain, dry
+/// and the grey of "no data" beyond the radars' reach), transparent beyond.
+/// Traced from an image of the layer's whole box (`dwd:Niederschlagsradar`,
+/// 1.4 km a pixel, 2026-10-11), kept some 3 km inside the grid's edge and
+/// simplified to within 1.5 km: next to the edge the composite is grey
+/// anyway. The grid is the same for every frame, the nowcast's too.
+const List<LatLng> dwdRadarExtent = <LatLng>[
+  LatLng(55.779, 1.500),
+  LatLng(55.834, 1.506),
+  LatLng(55.841, 1.531),
+  LatLng(55.945, 2.869),
+  LatLng(56.048, 4.538),
+  LatLng(56.144, 6.797),
+  LatLng(56.178, 8.209),
+  LatLng(56.191, 9.351),
+  LatLng(56.191, 10.652),
+  LatLng(56.178, 11.794),
+  LatLng(56.116, 13.979),
+  LatLng(56.048, 15.465),
+  LatLng(55.979, 16.619),
+  LatLng(55.821, 18.682),
+  LatLng(55.682, 18.682),
+  LatLng(53.360, 18.092),
+  LatLng(50.763, 17.515),
+  LatLng(48.522, 17.073),
+  LatLng(45.715, 16.582),
+  LatLng(45.809, 15.281),
+  LatLng(45.886, 13.906),
+  LatLng(45.937, 12.629),
+  LatLng(45.971, 11.131),
+  LatLng(45.971, 8.860),
+  LatLng(45.937, 7.374),
+  LatLng(45.860, 5.582),
+  LatLng(45.723, 3.569),
+  LatLng(48.578, 3.077),
+  LatLng(51.104, 2.586),
+  LatLng(53.557, 2.046),
+  LatLng(55.724, 1.506),
+];
+
 /// Base reflectivity over the US from the National Weather Service: the
 /// past two hours, no forecast.
 ///
 /// `format=png32`, not `png`: the plain PNG is RGB with a colour key for
-/// transparency, which MapLibre's Android decoder rejects.
+/// transparency, which MapLibre's Android decoder rejects. The soft look's
+/// image is asked for with `interpolation=RSP_NearestNeighbor`: the
+/// service resamples bilinearly by default, mixing its colours into ones
+/// its ramp does not hold ([RainPalette.noaa]), and the phone smooths it
+/// anyway.
 final WeatherMapSource noaaRadar = WeatherMapSource(
   id: 'radar_noaa',
   kind: WeatherKind.radar,
+  palette: RainPalette.noaa,
   urlTemplate:
       'https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/'
       'radar_base_reflectivity_time/ImageServer/exportImage'
@@ -981,7 +1048,7 @@ final WeatherMapSource noaaRadar = WeatherMapSource(
       'radar_base_reflectivity_time/ImageServer/exportImage'
       '?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857'
       '&size={width},{height}&format=png32&transparent=true&time={timeMs}'
-      '&f=image',
+      '&interpolation=RSP_NearestNeighbor&f=image',
   // The mosaic is gridded at about a kilometre.
   nativeMetresPerPixel: 1000,
   // Its newest frame is some 14 minutes old, and a moment it has no frame
@@ -1370,7 +1437,9 @@ RainRole? _role(Object? v) => switch (v) {
 };
 
 RainPalette? _palette(Object? v) => switch (v) {
-  'radarHue' => RainPalette.radarHue,
+  // `radarHue` is the older name of the DWD's legend.
+  'dwd' || 'radarHue' => RainPalette.dwd,
+  'noaa' => RainPalette.noaa,
   'hsaf' => RainPalette.hsaf,
   'dwdModel6h' => RainPalette.dwdModel6h,
   _ => null,
@@ -1431,6 +1500,11 @@ int snapWeatherOffset(int minutes) =>
 /// the places it leaves to the sources before it that show the same step
 /// ([masks], lon/lat rings, named by [maskedBy]), so a radar and a
 /// satellite or a model never draw over each other.
+///
+/// Of those before it, the ones with an [WeatherMapSource.extent] are
+/// listed in [cutBy] as well: drawn soft, the part is cut where their frame
+/// of the step measures (see `RainCoverage`), and their rings in [masks]
+/// only stand in where that frame cannot be had.
 @immutable
 class RainPart {
   /// Creates the part.
@@ -1439,15 +1513,24 @@ class RainPart {
     required this.frame,
     this.masks = const <List<LatLng>>[],
     this.maskedBy = const <String>[],
+    this.cutBy = const <WeatherMapSource>[],
   });
 
   final WeatherMapSource source;
   final WeatherFrame frame;
   final List<List<LatLng>> masks;
   final List<String> maskedBy;
+  final List<WeatherMapSource> cutBy;
 
   /// What tells this part's masks from another's, for an image's cache key.
   String get maskKey => maskedBy.isEmpty ? '' : '-${maskedBy.join('+')}';
+
+  /// Whether [view] lies wholly inside the fixed [masks] of [cutBy]'s
+  /// sources (their reach): where their frames cannot be had, nothing of
+  /// this part would show there.
+  bool hiddenByReach(BoundingBox view) => cutBy.any(
+    (before) => before.reachRings.any((ring) => _boxInsideRing(view, ring)),
+  );
 
   @override
   String toString() => 'RainPart(${source.id}, $frame, masked by $maskedBy)';
@@ -1461,6 +1544,11 @@ class RainPart {
 /// So at "Now" the radars draw where they reach and the satellite around
 /// them; ahead, the DWD's nowcast in its reach for two hours, ICON-EU over
 /// Europe around it and the global ICON everywhere else.
+///
+/// A source is left out where the view lies wholly inside the coverage of
+/// one before it without an [WeatherMapSource.extent]; one with an extent
+/// measures where its frame says, so what follows it stays a part (see
+/// [RainPart.cutBy]).
 List<RainPart> rainPartsAt(
   Iterable<WeatherMapSource> sources,
   DateTime now,
@@ -1477,6 +1565,7 @@ List<RainPart> rainPartsAt(
     // model): nothing to draw, nothing to ask.
     if (out.any(
       (before) =>
+          before.source.extent == null &&
           before.source.reachRings.any((ring) => _boxInsideRing(view, ring)),
     )) {
       continue;
@@ -1489,10 +1578,97 @@ List<RainPart> rainPartsAt(
           for (final before in out) ...before.source.reachRings,
         ],
         maskedBy: <String>[for (final before in out) before.source.id],
+        cutBy: <WeatherMapSource>[
+          for (final before in out)
+            if (before.source.extent != null) before.source,
+        ],
       ),
     );
   }
   return out;
+}
+
+/// Where a source with an [WeatherMapSource.extent] measures in one of its
+/// frames: a bitmap over the image of [box] (Web Mercator, [width] ×
+/// [height], rows from the north), 1 where it measures (rain or dry inside
+/// its grid), 0 where it does not (its "no data", beyond its grid). The
+/// sources after it are cut where it is 1.
+@immutable
+class RainCoverage {
+  /// Creates the coverage.
+  RainCoverage({
+    required this.box,
+    required this.width,
+    required this.height,
+    required this.covered,
+  }) : _gap = _gapOf(width, height, covered),
+       _x0 = mercatorX(box.west),
+       _xSpan = mercatorX(box.east) - mercatorX(box.west),
+       _y1 = mercatorY(box.north),
+       _ySpan = mercatorY(box.north) - mercatorY(box.south);
+
+  final BoundingBox box;
+  final int width;
+  final int height;
+  final Uint8List covered;
+
+  /// The pixels around all those at 0 (left, top, right, bottom,
+  /// inclusive); `null` where there are none.
+  final (int, int, int, int)? _gap;
+
+  /// The [box] in Web Mercator: its west, width, north and height.
+  final double _x0;
+  final double _xSpan;
+  final double _y1;
+  final double _ySpan;
+
+  static (int, int, int, int)? _gapOf(int width, int height, Uint8List c) {
+    var left = width;
+    var top = height;
+    var right = -1;
+    var bottom = -1;
+    for (var y = 0; y < height; y++) {
+      final row = y * width;
+      for (var x = 0; x < width; x++) {
+        if (c[row + x] != 0) continue;
+        if (x < left) left = x;
+        if (x > right) right = x;
+        if (y < top) top = y;
+        bottom = y;
+      }
+    }
+    return right < 0 ? null : (left, top, right, bottom);
+  }
+
+  /// Whether the source measures at the Web Mercator point ([x], [y]):
+  /// inside the [box] and 1 there.
+  bool coversMercator(double x, double y) {
+    final px = ((x - _x0) / _xSpan * width).floor();
+    final py = ((_y1 - y) / _ySpan * height).floor();
+    if (px < 0 || py < 0 || px >= width || py >= height) return false;
+    return covered[py * width + px] != 0;
+  }
+
+  /// Whether the source measures all over [view]: nothing after it shows
+  /// there.
+  bool coversAll(BoundingBox view) {
+    if (view.west < box.west ||
+        view.east > box.east ||
+        view.south < box.south ||
+        view.north > box.north) {
+      return false;
+    }
+    final gap = _gap;
+    if (gap == null) return true;
+    final left = ((mercatorX(view.west) - _x0) / _xSpan * width).floor();
+    final right = ((mercatorX(view.east) - _x0) / _xSpan * width).ceil() - 1;
+    final top = ((_y1 - mercatorY(view.north)) / _ySpan * height).floor();
+    final bottom = ((_y1 - mercatorY(view.south)) / _ySpan * height).ceil() - 1;
+    final (gl, gt, gr, gb) = gap;
+    // Around the gaps, not each: one gap in a corner beyond the view keeps
+    // its box from counting as covered, which only costs a request.
+    return right < gl || left > gr || bottom < gt || top > gb;
+  }
 }
 
 /// What the rain at [point] shows at [offsetMinutes] from [now]: the role

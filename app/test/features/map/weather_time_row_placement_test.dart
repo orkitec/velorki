@@ -48,6 +48,7 @@ class _QuietFetcher implements WeatherFetcher {
     DateTime now, {
     RadarStyle style = RadarStyle.soft,
     List<List<LatLng>> masks = const <List<LatLng>>[],
+    List<RainCoverage> coverages = const <RainCoverage>[],
     String maskKey = '',
   }) async => null;
 

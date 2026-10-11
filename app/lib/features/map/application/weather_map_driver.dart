@@ -107,7 +107,11 @@ class WeatherMapStatus {
 ///
 /// The rain is the sources [rainPartsAt] picks for the time control's step:
 /// the radars, the satellite around them at "Now", the DWD's nowcast and
-/// the models ahead, each masked where one before it shows the same step.
+/// the models ahead, each masked where one before it shows the same step:
+/// drawn soft, by where the DWD's image of that step and view measures
+/// ([RainCoverage]), so a source after it waits for that image and is cut
+/// anew with each; nothing after it is asked for where it measures all over
+/// the view.
 /// Radar drawn soft ([RadarStyle.soft]), the satellite and the models are
 /// one image of the view and its surroundings per source instead of tiles,
 /// fetched and prepared by this driver once the camera has rested
@@ -493,15 +497,19 @@ class WeatherMapDriver {
         _probed.remove(source.id);
         continue;
       }
+      final mask = _maskOf(part, parts, view!, zoom, now);
+      // Wholly left to those before it: nothing to draw, nothing to ask.
+      if (mask != null && mask.hides) continue;
       covering.add(source.id);
-      if (_imageBoxOf(source, view!, zoom) != null) {
+      if (_imageBoxOf(source, view, zoom) != null) {
         // An image: the one shown stays until the next is in, unless the
         // next failed and it shows another moment. No probe: the fetch
-        // checks.
+        // checks. While the frames it is cut by are still out, the one
+        // shown stays too.
         _probed.remove(source.id);
         imageShown.add(source.id);
         final shown = _radarImages[source.id];
-        final stamp = _stampOf(part, now);
+        final stamp = mask == null ? null : _stampOf(part, now, mask.key);
         if (shown != null &&
             (shown.stamp == stamp || !_failed.contains(source.id))) {
           layers.add(shown.layer);
@@ -822,10 +830,95 @@ class WeatherMapDriver {
   }
 
   /// What tells one image of [part] from the next, besides its box: its
-  /// moment, the look and the sources it is masked by.
-  String _stampOf(RainPart part, DateTime now) =>
+  /// moment, the look and what it is masked by ([maskKey], see [_maskOf]).
+  String _stampOf(RainPart part, DateTime now, String maskKey) =>
       '${radarImageStamp(part.source, part.frame, now)}'
-      '${_radarStyle == RadarStyle.soft ? '' : 'm'}${part.maskKey}';
+      '${_radarStyle == RadarStyle.soft ? '' : 'm'}$maskKey';
+
+  /// What [part] (one of [parts]) is masked by over [view]: the fixed rings
+  /// of those before it, and of those in [RainPart.cutBy] their frame's
+  /// coverage where it is drawn soft as an image. `null` while such a frame
+  /// for the step and the view is still to come: the part waits for it.
+  /// Where a frame cannot be had (it failed, it is drawn as tiles, or its
+  /// image carries no coverage), its fixed reach stands in.
+  _RainMask? _maskOf(
+    RainPart part,
+    List<RainPart> parts,
+    BoundingBox view,
+    double? zoom,
+    DateTime now,
+  ) {
+    if (part.cutBy.isEmpty) {
+      return _RainMask(rings: part.masks, key: part.maskKey);
+    }
+    final rings = <List<LatLng>>[];
+    final coverages = <RainCoverage>[];
+    final key = StringBuffer();
+    var hides = false;
+    var byReach = false;
+    final z = _zoomOf(view, zoom);
+    for (final beforePart in parts) {
+      if (identical(beforePart, part)) break;
+      final before = beforePart.source;
+      if (!part.cutBy.contains(before)) {
+        rings.addAll(before.reachRings);
+        key.write('-${before.id}');
+        continue;
+      }
+      final beforeArea = _imageAreaOf(before, view, z);
+      // An image that would not serve the view is never asked for: no
+      // frame to wait for.
+      final asked =
+          beforeArea != null &&
+          view.west <= view.east &&
+          view.west >= beforeArea.west &&
+          view.east <= beforeArea.east &&
+          view.south >= beforeArea.south &&
+          view.north <= beforeArea.north;
+      final beforeBox = asked ? _imageBoxOf(before, view, zoom) : null;
+      final beforeMask = beforeBox == null
+          ? null
+          : _maskOf(beforePart, parts, view, zoom, now);
+      if (beforeBox != null && beforeMask == null) return null;
+      if (beforeBox != null && beforeMask != null && !beforeMask.hides) {
+        final shown = _radarImages[before.id];
+        final stamp = _stampOf(beforePart, now, beforeMask.key);
+        final coverage = shown?.coverage;
+        if (shown != null && shown.stamp == stamp && shown.fits(view, z)) {
+          if (coverage != null) {
+            coverages.add(coverage);
+            key.write('-${before.id}~${_hashOf(shown.layer.frameKey)}');
+            if (coverage.coversAll(view)) hides = true;
+            continue;
+          }
+        } else if (_radarFailed[before.id] !=
+            '${before.id}@${cloudDetailKey(beforeBox)}@$stamp') {
+          // Its frame of this step and view is still to come.
+          return null;
+        }
+      }
+      // The frame cannot be had: its fixed reach instead.
+      rings.addAll(before.reachRings);
+      key.write('-${before.id}');
+      byReach = true;
+    }
+    if (byReach && part.hiddenByReach(view)) hides = true;
+    return _RainMask(
+      rings: rings,
+      coverages: coverages,
+      key: key.toString(),
+      hides: hides,
+    );
+  }
+
+  /// A short name for [text] in a cache key: its 32-bit FNV-1a hash.
+  static String _hashOf(String text) {
+    var h = 0x811C9DC5;
+    for (final unit in text.codeUnits) {
+      h = ((h ^ unit) * 0x01000193) & 0xFFFFFFFF;
+    }
+    return h.toRadixString(16).padLeft(8, '0');
+  }
 
   /// [zoom], or where the map does not say, about the zoom that shows
   /// [view] on a phone.
@@ -858,7 +951,10 @@ class WeatherMapDriver {
       final area = _imageAreaOf(source, view, zoom);
       final box = _imageBoxOf(source, view, zoom);
       if (area == null || box == null) continue;
-      final stamp = _stampOf(part, now);
+      // Waiting for the frames it is cut by, or wholly left to them.
+      final mask = _maskOf(part, parts, view, map.zoom, now);
+      if (mask == null || mask.hides) continue;
+      final stamp = _stampOf(part, now, mask.key);
       final shown = _radarImages[source.id];
       if (shown != null && shown.stamp == stamp && shown.fits(view, zoom)) {
         continue;
@@ -894,25 +990,28 @@ class WeatherMapDriver {
       // dropped and asked for again, over and over.
       if (!planned.fits(view, zoom)) continue;
       _radarInFlight[source.id] = key;
-      unawaited(_loadRadar(part, planned, now));
+      unawaited(_loadRadar(part, mask, planned, now));
     }
   }
 
   Future<void> _loadRadar(
     RainPart part,
+    _RainMask mask,
     _RadarImage planned,
     DateTime now,
   ) async {
     final source = part.source;
     final box = planned.layer.imageBox!;
+    final style = _radarStyle;
     final image = await _fetcher.radarImage(
       source,
       box,
       part.frame,
       now,
-      style: _radarStyle,
-      masks: part.masks,
-      maskKey: part.maskKey,
+      style: style,
+      masks: mask.rings,
+      coverages: mask.coverages,
+      maskKey: mask.key,
     );
     if (_disposed) return;
     _radarInFlight.remove(source.id);
@@ -927,7 +1026,11 @@ class WeatherMapDriver {
         _failed.add(source.id);
       } else {
         _failed.remove(source.id);
-        _radarImages[source.id] = planned.withImage(image);
+        // Where its frame measures, for the sources cut by it.
+        final coverage = style == RadarStyle.soft && source.extent != null
+            ? readRainCoverage(image, box)
+            : null;
+        _radarImages[source.id] = planned.withImage(image, coverage);
       }
       _update();
     }
@@ -944,15 +1047,18 @@ class WeatherMapDriver {
     final view = _map?.visibleBounds;
     if (view == null) return false;
     final now = _clock();
-    final part = rainPartsAt(
+    final parts = rainPartsAt(
       _enabled(WeatherKind.radar),
       now,
       _offset,
       view: view,
-    ).where((p) => p.source.id == source.id).firstOrNull;
+    );
+    final part = parts.where((p) => p.source.id == source.id).firstOrNull;
     if (part == null) return false;
     if (_imageBoxOf(part.source, view, _map?.zoom) == null) return false;
-    return _stampOf(part, now) == planned.stamp &&
+    final mask = _maskOf(part, parts, view, _map?.zoom, now);
+    if (mask == null || mask.hides) return false;
+    return _stampOf(part, now, mask.key) == planned.stamp &&
         planned.fits(view, _zoomOf(view, _map?.zoom));
   }
 
@@ -1052,6 +1158,7 @@ class _RadarImage {
     required this.zoom,
     required this.stamp,
     required this.capped,
+    this.coverage,
   });
 
   final WeatherLayer layer;
@@ -1059,6 +1166,9 @@ class _RadarImage {
   final double zoom;
   final String stamp;
   final bool capped;
+
+  /// Where the frame measures, for a source with an extent drawn soft.
+  final RainCoverage? coverage;
 
   /// Whether it still serves [view] at [zoom]: the view inside its area,
   /// and, where the image is coarser than the radar's own cells, the zoom
@@ -1072,7 +1182,7 @@ class _RadarImage {
       view.south >= area.south &&
       view.north <= area.north;
 
-  _RadarImage withImage(Uint8List image) => _RadarImage(
+  _RadarImage withImage(Uint8List image, RainCoverage? coverage) => _RadarImage(
     layer: WeatherLayer.image(
       id: layer.id,
       kind: layer.kind,
@@ -1086,5 +1196,24 @@ class _RadarImage {
     zoom: zoom,
     stamp: stamp,
     capped: capped,
+    coverage: coverage,
   );
+}
+
+/// What a rain part is masked by ([WeatherMapDriver._maskOf]): fixed
+/// [rings], the [coverages] of the frames before it, the [key] naming them
+/// in the cache, and whether they [hides] the whole view.
+@immutable
+class _RainMask {
+  const _RainMask({
+    required this.rings,
+    required this.key,
+    this.coverages = const <RainCoverage>[],
+    this.hides = false,
+  });
+
+  final List<List<LatLng>> rings;
+  final List<RainCoverage> coverages;
+  final String key;
+  final bool hides;
 }

@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/features/map/data/rain_legend.dart';
 import 'package:velorki/features/map/data/weather_fetcher.dart';
 import 'package:velorki/features/map/domain/weather_map.dart';
 import 'package:velorki/features/map/domain/wind_field.dart';
@@ -280,124 +282,168 @@ void main() {
     });
   });
 
-  group('softenRadarPixels', () {
-    int alphaOf(int r, int g, int b) =>
-        softenRadarPixels(1, 1, _pixel(r, g, b, 255))[3];
+  // Pixels as the services draw them, read from their GetMap images of
+  // 2026-10-11 (DWD `dwd:Niederschlagsradar`, EUMETSAT `mtg_fd:h40b`, NOAA
+  // `exportImage` nearest-neighbour, the DWD's ICON layers).
+  group('softenRadarPixels: the DWD legend', () {
+    int alphaOf(int r, int g, int b, [int a = 255]) =>
+        softenRadarPixels(1, 1, _pixel(r, g, b, a))[3];
 
     int level(double alpha) => (alpha * 255).round();
 
-    test('the alpha follows the palette from cyan to purple', () {
-      expect(alphaOf(0, 230, 230), level(radarAlphaCyan)); // cyan
-      expect(alphaOf(0, 0, 240), level(radarAlphaCyan)); // blue
-      expect(alphaOf(0, 200, 0), level(radarAlphaGreen));
-      expect(alphaOf(250, 250, 0), level(radarAlphaYellow));
-      expect(alphaOf(255, 128, 0), level(radarAlphaOrange));
-      expect(alphaOf(250, 0, 0), level(radarAlphaRed));
-      expect(alphaOf(250, 0, 250), level(radarAlphaMagenta));
-      expect(alphaOf(150, 80, 200), level(radarAlphaMagenta)); // purple
-      // Between two colours, between their alphas.
-      final lime = alphaOf(160, 255, 0); // hue 82
-      expect(lime, greaterThan(level(radarAlphaGreen)));
-      expect(lime, lessThan(level(radarAlphaYellow)));
+    test('each class at its rank, from the lightest to the heaviest, its '
+        'colour kept', () {
+      final legend = dwdRadarLegend;
+      expect(legend.classCount, 15);
+      var last = 0;
+      for (var k = 0; k < legend.colours.length; k++) {
+        final c = legend.colours[k];
+        final out = softenRadarPixels(
+          1,
+          1,
+          _pixel(c >> 16 & 0xFF, c >> 8 & 0xFF, c & 0xFF, 255),
+        );
+        expect(out.sublist(0, 3), <int>[
+          c >> 16 & 0xFF,
+          c >> 8 & 0xFF,
+          c & 0xFF,
+        ]);
+        expect(out[3], greaterThan(last), reason: c.toRadixString(16));
+        last = out[3];
+      }
+      // [0.1, 0.2) mm an hour, cyan: the lightest.
+      expect(alphaOf(0x33, 0xFF, 0xFF), level(rainAlphaLightest));
     });
 
-    test('grey is faint, its colour kept', () {
-      expect(softenRadarPixels(1, 1, _pixel(180, 180, 185, 255)), <int>[
-        180,
-        180,
-        185,
-        level(radarAlphaGrey),
-      ]);
+    test('pure blue, 150 mm an hour and more, is the heaviest', () {
+      expect(alphaOf(0x00, 0x00, 0xFE), level(rainAlphaHeaviest));
+      expect(dwdRadarLegend.classify(0x00, 0x00, 0xFE, 255), 14);
+      // Purple, 100 to 150, just below it.
+      expect(dwdRadarLegend.classify(0x66, 0x00, 0xCB, 255), 13);
     });
 
-    test('the DWD\'s see-through grey beyond its radars goes', () {
-      // As its composite draws it, from a real image.
-      expect(softenRadarPixels(1, 1, _pixel(126, 126, 126, 77))[3], 0);
+    test('the line around the radars\' reach is no rain', () {
+      for (final (r, g, b, a) in <(int, int, int, int)>[
+        (0xFB, 0x00, 0xFF, 255),
+        (0xFB, 0x00, 0xFF, 191),
+        (0xFC, 0x00, 0xFF, 223),
+        (0xF7, 0x00, 0xFF, 240),
+        (0xC0, 0x3D, 0xC2, 122),
+        (0xBB, 0x3F, 0xBE, 117),
+        (0x8A, 0x72, 0x8A, 83),
+      ]) {
+        expect(alphaOf(r, g, b, a), 0, reason: '$r $g $b $a');
+        expect(dwdRadarLegend.classify(r, g, b, a), rainNone);
+      }
+    });
+
+    test('the see-through grey beyond the radars is no data, and goes', () {
+      expect(dwdRadarLegend.classify(0x7E, 0x7E, 0x7E, 77), rainNoData);
+      expect(alphaOf(0x7E, 0x7E, 0x7E, 77), 0);
     });
 
     test('a transparent pixel stays transparent', () {
-      expect(softenRadarPixels(1, 1, _pixel(0, 200, 0, 0))[3], 0);
+      expect(alphaOf(0xFF, 0xFF, 0xFF, 0), 0);
+      expect(alphaOf(0x01, 0x99, 0x34, 0), 0);
     });
 
-    test('the service\'s own alpha is kept in the product', () {
-      expect(
-        softenRadarPixels(1, 1, _pixel(250, 0, 0, 128))[3],
-        (radarAlphaRed * 128).round(),
-      );
+    test('a pixel near a legend colour reads as it; one less opaque than '
+        'rain is drawn, not at all', () {
+      expect(dwdRadarLegend.classify(0x05, 0x9F, 0x30, 255), 2);
+      expect(dwdRadarLegend.classify(0x01, 0x99, 0x34, 150), rainNone);
+      // The service's own alpha is kept in the product.
+      expect(alphaOf(0x00, 0x00, 0xFE, 230), (rainAlphaHeaviest * 230).round());
     });
 
     // A 5 × 5 image, transparent but for [pixels] at (x, y).
-    Uint8List image(Map<(int, int), List<int>> pixels) {
+    Uint8List image(Map<(int, int), int> pixels) {
       final out = Uint8List(5 * 5 * 4);
-      for (final MapEntry(key: (x, y), value: rgba) in pixels.entries) {
-        out.setAll((y * 5 + x) * 4, rgba);
+      for (final MapEntry(key: (x, y), value: c) in pixels.entries) {
+        out.setAll((y * 5 + x) * 4, <int>[
+          c >> 16 & 0xFF,
+          c >> 8 & 0xFF,
+          c & 0xFF,
+          255,
+        ]);
       }
       return out;
     }
 
     int alphaAt(Uint8List rgba, int x, int y) => rgba[(y * 5 + x) * 4 + 3];
+    final legend = dwdRadarLegend;
 
     test('edges soften: the alpha alone, averaged over its 3 × 3 box', () {
-      // A green pixel beside a yellow one, the rest dry.
-      final input = image({
-        (2, 2): <int>[0, 200, 0, 255],
-        (3, 2): <int>[250, 250, 0, 255],
-      });
-      final out = softenRadarPixels(5, 5, input);
+      // Green, under a millimetre, beside yellow, 5 to 7.5; the rest dry.
+      final out = softenRadarPixels(
+        5,
+        5,
+        image({(2, 2): 0x019934, (3, 2): 0xFFFF01}),
+      );
       expect(
         alphaAt(out, 2, 2),
-        ((radarAlphaGreen + radarAlphaYellow) / 9 * 255).round(),
+        ((legend.alphaOf(2) + legend.alphaOf(6)) / 9 * 255).round(),
       );
       // The colour is untouched, and dry pixels stay dry.
       expect(out.sublist((2 * 5 + 2) * 4, (2 * 5 + 2) * 4 + 3), <int>[
-        0,
-        200,
-        0,
+        0x01,
+        0x99,
+        0x34,
       ]);
       expect(alphaAt(out, 1, 2), 0);
     });
 
     test('inside a field of rain the alpha stays', () {
-      final input = Uint8List(5 * 5 * 4);
-      for (var i = 0; i < 25; i++) {
-        input.setAll(i * 4, <int>[0, 200, 0, 255]);
-      }
-      final out = softenRadarPixels(5, 5, input);
-      expect(alphaAt(out, 2, 2), level(radarAlphaGreen));
+      final out = softenRadarPixels(
+        5,
+        5,
+        image({
+          for (var y = 0; y < 5; y++)
+            for (var x = 0; x < 5; x++) (x, y): 0x019934,
+        }),
+      );
+      expect(alphaAt(out, 2, 2), level(legend.alphaOf(2)));
       // At the image's border too: beyond it counts as the border.
-      expect(alphaAt(out, 0, 0), level(radarAlphaGreen));
+      expect(alphaAt(out, 0, 0), level(legend.alphaOf(2)));
     });
 
-    test('a small heavy cell keeps its strength', () {
-      final input = image({
-        (2, 2): <int>[250, 0, 0, 255],
-      });
+    test('a small heavy cell keeps its strength: the top quarter of the '
+        'classes', () {
+      expect(legend.alphaOf(11), greaterThanOrEqualTo(rainAlphaHeavy));
+      expect(legend.alphaOf(10), lessThan(rainAlphaHeavy));
       expect(
-        alphaAt(softenRadarPixels(5, 5, input), 2, 2),
-        level(radarAlphaRed),
+        alphaAt(softenRadarPixels(5, 5, image({(2, 2): 0xE5004C})), 2, 2),
+        level(legend.alphaOf(11)),
       );
-      final hail = image({
-        (2, 2): <int>[250, 0, 250, 255],
-        (2, 3): <int>[0, 200, 0, 255],
-      });
       expect(
-        alphaAt(softenRadarPixels(5, 5, hail), 2, 2),
-        level(radarAlphaMagenta),
+        alphaAt(
+          softenRadarPixels(5, 5, image({(2, 2): 0x0000FE, (2, 3): 0x019934})),
+          2,
+          2,
+        ),
+        level(rainAlphaHeaviest),
+      );
+      // 30 to 45 mm an hour is not heavy: it fades at the edge.
+      expect(
+        alphaAt(softenRadarPixels(5, 5, image({(2, 2): 0xFE0000})), 2, 2),
+        (legend.alphaOf(10) / 9 * 255).round(),
       );
     });
 
     test('light rain beside heavy is lifted, never the other way', () {
-      final input = image({
-        (2, 2): <int>[0, 230, 230, 255],
-        (1, 2): <int>[250, 0, 0, 255],
-        (3, 2): <int>[250, 0, 0, 255],
-        (2, 1): <int>[250, 0, 0, 255],
-      });
-      final out = softenRadarPixels(5, 5, input);
-      expect(alphaAt(out, 1, 2), level(radarAlphaRed));
+      final out = softenRadarPixels(
+        5,
+        5,
+        image({
+          (2, 2): 0x33FFFF,
+          (1, 2): 0xCC0098,
+          (3, 2): 0xCC0098,
+          (2, 1): 0xCC0098,
+        }),
+      );
+      expect(alphaAt(out, 1, 2), level(legend.alphaOf(12)));
       expect(
         alphaAt(out, 2, 2),
-        ((radarAlphaCyan + 3 * radarAlphaRed) / 9 * 255).round(),
+        ((legend.alphaOf(0) + 3 * legend.alphaOf(12)) / 9 * 255).round(),
       );
     });
   });
@@ -551,46 +597,95 @@ void main() {
     });
   });
 
-  group('rain palettes', () {
+  group('rain legends', () {
     int level(double alpha) => (alpha * 255).round();
 
-    test('H SAF: light green the faintest, as the radar\'s lightest; the '
-        'purples the strongest; the colours kept', () {
-      // Each class's colour as the service draws it.
+    test('H SAF: light green the faintest, the purples the strongest; the '
+        'colours kept', () {
       List<int> soft(int r, int g, int b) =>
           softenRainPixels(1, 1, _pixel(r, g, b, 255), RainPalette.hsaf);
-      expect(soft(204, 255, 204), <int>[204, 255, 204, level(radarAlphaCyan)]);
-      expect(soft(153, 230, 153)[3], level(0.68));
-      expect(soft(51, 179, 51)[3], level(0.82));
-      expect(soft(51, 102, 255)[3], level(radarAlphaRed));
-      expect(soft(153, 51, 204)[3], level(radarAlphaMagenta));
-      expect(soft(127, 0, 127)[3], level(radarAlphaMagenta));
-      // An edge pixel between two classes reads as the nearer.
-      expect(soft(199, 246, 199)[3], level(radarAlphaCyan));
-      // Every class at least as faint as the radar's lightest, at most its
-      // heaviest, and rising.
-      var last = 0.0;
-      for (final (_, (_, _, _, alpha)) in hsafClasses) {
-        expect(alpha, inInclusiveRange(radarAlphaCyan, radarAlphaMagenta));
-        expect(alpha, greaterThanOrEqualTo(last));
-        last = alpha;
+      expect(soft(0xCC, 0xFF, 0xCC), <int>[
+        0xCC,
+        0xFF,
+        0xCC,
+        level(rainAlphaLightest),
+      ]);
+      expect(soft(0x99, 0xE6, 0x99)[3], level(hsafLegend.alphaOf(1)));
+      expect(hsafLegend.classify(0x33, 0x66, 0xFF, 255), 5);
+      expect(hsafLegend.classify(0x00, 0x00, 0xFF, 255), 6);
+      expect(soft(0x80, 0x00, 0x80)[3], level(rainAlphaHeaviest));
+      // An edge pixel near a class reads as it; the transparent ground
+      // stays so.
+      expect(hsafLegend.classify(199, 246, 199, 255), 0);
+      expect(
+        softenRainPixels(1, 1, _pixel(0, 0, 0, 0), RainPalette.hsaf)[3],
+        0,
+      );
+      // A colour no class has is nothing.
+      expect(hsafLegend.classify(0xFF, 0x80, 0x00, 255), rainNone);
+    });
+
+    test('NOAA: its ramp from grey-blue to dark red, the colours it was not '
+        'seen to draw the heaviest', () {
+      final legend = noaaRadarLegend;
+      expect(legend.classify(0xA5, 0xAB, 0xB4, 255), 0); // grey-blue
+      expect(legend.classify(0x43, 0x5E, 0x9F, 255), 1);
+      expect(legend.classify(0x5E, 0xAD, 0xCF, 255), 2);
+      expect(legend.classify(0x0E, 0xD6, 0x14, 255), 4); // green
+      expect(legend.classify(0x09, 0x5E, 0x09, 255), 6); // dark green
+      expect(legend.classify(0xFF, 0xE2, 0x00, 255), 7); // yellow
+      expect(legend.classify(0xFF, 0xB1, 0x00, 255), 8);
+      expect(legend.classify(0xFF, 0x00, 0x00, 255), 9); // red
+      expect(legend.classify(0xB1, 0x00, 0x00, 255), 10);
+      // Mixed by the service's own resampling (a real pixel of a bilinear
+      // image): the class of the nearest colour, not the heaviest.
+      expect(legend.classify(0x48, 0xC8, 0x93, 255), inInclusiveRange(3, 4));
+      // Not seen on the day the ramp was read: the heaviest.
+      expect(legend.classify(0xFF, 0x00, 0xFF, 255), legend.classCount - 1);
+      expect(legend.alphaOf(legend.classCount - 1), rainAlphaHeaviest);
+      // Light rain faint, a storm's core heavy, the ground transparent.
+      List<int> soft(int r, int g, int b, [int a = 255]) =>
+          softenRainPixels(1, 1, _pixel(r, g, b, a), RainPalette.noaa);
+      expect(soft(0x8F, 0x97, 0xB4), <int>[
+        0x8F,
+        0x97,
+        0xB4,
+        level(rainAlphaLightest),
+      ]);
+      expect(soft(0xD8, 0x00, 0x00)[3], greaterThan(level(rainAlphaHeavy)));
+      expect(soft(0, 0, 0, 0)[3], 0);
+      // Every class rises.
+      for (var k = 1; k < legend.classCount; k++) {
+        expect(legend.alphaOf(k), greaterThan(legend.alphaOf(k - 1)));
       }
     });
 
-    test('the global model: recoloured into the radar\'s palette at the mean '
+    test('the global model: recoloured into the radar\'s legend at the mean '
         'rate an hour, its no-rain veil gone', () {
       List<int> soft(int r, int g, int b, [int a = 255]) =>
           softenRainPixels(1, 1, _pixel(r, g, b, a), RainPalette.dwdModel6h);
       // The veil over dry ground, as the service draws it.
       expect(soft(0, 0, 0, 20)[3], 0);
       // 0.1–0.5 mm in six hours: the radar's lightest cyan.
-      expect(soft(220, 247, 195), <int>[51, 255, 255, level(radarAlphaCyan)]);
+      expect(soft(0xDC, 0xF7, 0xC3), <int>[
+        0x33,
+        0xFF,
+        0xFF,
+        level(rainAlphaLightest),
+      ]);
       // 2–5 mm: under a millimetre an hour, the radar's dark green.
-      expect(soft(0, 191, 1).sublist(0, 3), <int>[1, 153, 52]);
+      expect(soft(0x00, 0xBF, 0x01).sublist(0, 3), <int>[0x01, 0x99, 0x34]);
       // 40–50 mm: 7.5–10 mm an hour, orange-yellow.
-      expect(soft(204, 0, 0).sublist(0, 3), <int>[255, 196, 1]);
+      expect(soft(0xCC, 0x00, 0x00).sublist(0, 3), <int>[0xFF, 0xC4, 0x01]);
       // 200–300 mm: red, at the radar's red.
-      expect(soft(142, 102, 255), <int>[254, 0, 0, level(radarAlphaRed)]);
+      expect(soft(0x8E, 0x66, 0xFF), <int>[
+        0xFE,
+        0x00,
+        0x00,
+        level(dwdRadarLegend.alphaOf(10)),
+      ]);
+      // More than 300: the radar's 45 to 75, heavy.
+      expect(soft(0xFF, 0xFF, 0xFF).sublist(0, 3), <int>[0xE5, 0x00, 0x4C]);
       // As measured: the colours as they are, only the veil away.
       expect(
         measuredRainPixels(_pixel(0, 0, 0, 20), RainPalette.dwdModel6h)[3],
@@ -603,14 +698,14 @@ void main() {
     });
 
     test('ICON-EU in the radar\'s style reads as the radar', () {
+      expect(iconEuRain.palette, RainPalette.dwd);
+      expect(dwdRadar.palette, RainPalette.dwd);
+      expect(noaaRadar.palette, RainPalette.noaa);
+      expect(rainLegendOf(RainPalette.dwd), same(dwdRadarLegend));
       // The DWD radar style's colours, from a real ICON-EU image.
       expect(
-        softenRainPixels(1, 1, _pixel(51, 255, 255, 255), RainPalette.radarHue),
-        softenRadarPixels(1, 1, _pixel(51, 255, 255, 255)),
-      );
-      expect(
-        softenRainPixels(1, 1, _pixel(254, 0, 0, 255), RainPalette.radarHue)[3],
-        level(radarAlphaRed),
+        softenRainPixels(1, 1, _pixel(0xCC, 0x00, 0x98, 255), RainPalette.dwd),
+        softenRadarPixels(1, 1, _pixel(0xCC, 0x00, 0x98, 255)),
       );
     });
 
@@ -649,8 +744,8 @@ void main() {
   group('forecast alpha', () {
     const box = BoundingBox(south: 0, west: 0, north: 1, east: 1);
     final cases = <(RainPalette, Uint8List)>[
-      (RainPalette.radarHue, _pixel(0, 200, 0, 255)),
-      (RainPalette.dwdModel6h, _pixel(0, 0, 255, 255)),
+      (RainPalette.dwd, _pixel(0x01, 0x99, 0x34, 255)),
+      (RainPalette.dwdModel6h, _pixel(0x00, 0xBF, 0x01, 255)),
     ];
 
     for (final soft in <bool>[true, false]) {
@@ -688,7 +783,7 @@ void main() {
     test('a forecast job is always needed', () {
       expect(
         const RainImageJob(
-          palette: RainPalette.radarHue,
+          palette: RainPalette.dwd,
           soft: false,
           box: box,
           forecast: true,
@@ -774,6 +869,181 @@ void main() {
         0,
         255,
       ]);
+    });
+  });
+
+  group('the DWD frame\'s coverage', () {
+    // A strip from the Paris basin to the Black Forest, 40 × 4 pixels, a
+    // quarter degree each: west of 3° beyond the DWD's grid, then the
+    // grey of "no data", the line around the reach, and inside it dry
+    // ground and rain, as the DWD draws them (real pixels).
+    const box = BoundingBox(south: 48, west: 0, north: 49, east: 10);
+    const width = 40;
+    const height = 4;
+    double lonOf(int x) => (x + 0.5) / width * 10;
+
+    // The frame whose radars reach east from [reachFrom]° on.
+    Uint8List frame(double reachFrom) {
+      final out = Uint8List(width * height * 4);
+      for (var y = 0; y < height; y++) {
+        for (var x = 0; x < width; x++) {
+          final lon = lonOf(x);
+          final List<int> pixel;
+          if (lon < 3) {
+            pixel = <int>[255, 255, 255, 0]; // beyond the grid
+          } else if (lon < reachFrom) {
+            pixel = <int>[0x7E, 0x7E, 0x7E, 77]; // no data
+          } else if (lon < reachFrom + 0.25) {
+            pixel = <int>[0xFB, 0x00, 0xFF, 191]; // the line
+          } else if (x.isEven) {
+            pixel = <int>[0x01, 0x99, 0x34, 255]; // rain
+          } else {
+            pixel = <int>[255, 255, 255, 0]; // dry
+          }
+          out.setAll((y * width + x) * 4, pixel);
+        }
+      }
+      return out;
+    }
+
+    RainCoverage coverageOf(Uint8List rgba) => RainCoverage(
+      box: box,
+      width: width,
+      height: height,
+      covered: rainCoverageOf(
+        width,
+        height,
+        rgba,
+        RainPalette.dwd,
+        box,
+        dwdRadarExtent,
+      ),
+    );
+
+    test('measured where it rains or is dry inside the reach and on its '
+        'line; not in the grey, nor beyond the grid', () {
+      final coverage = coverageOf(frame(5));
+      for (var x = 0; x < width; x++) {
+        final lon = lonOf(x);
+        expect(coverage.covered[x] == 1, lon >= 5, reason: 'at $lon°');
+      }
+      expect(coverage.coversAll(box), isFalse);
+      // A view east of the grey: all measured.
+      expect(
+        coverage.coversAll(
+          const BoundingBox(south: 48.2, west: 6, north: 48.8, east: 9),
+        ),
+        isTrue,
+      );
+    });
+
+    // The satellite's image of the same box, coarser, all rain.
+    const lowerWidth = 20;
+    const lowerHeight = 3;
+    Uint8List lower() {
+      final out = Uint8List(lowerWidth * lowerHeight * 4);
+      for (var i = 0; i < lowerWidth * lowerHeight; i++) {
+        out.setAll(i * 4, <int>[0xCC, 0xFF, 0xCC, 255]);
+      }
+      return out;
+    }
+
+    Set<int> shownColumns(Uint8List rgba) => <int>{
+      for (var y = 0; y < lowerHeight; y++)
+        for (var x = 0; x < lowerWidth; x++)
+          if (rgba[(y * lowerWidth + x) * 4 + 3] > 0) x,
+    };
+
+    test('the source after it fills exactly where the frame does not '
+        'measure; a nowcast reaching less leaves it more', () {
+      Uint8List cut(RainCoverage coverage) => prepareRainPixels(
+        lowerWidth,
+        lowerHeight,
+        lower(),
+        RainImageJob(
+          palette: RainPalette.hsaf,
+          soft: false,
+          box: box,
+          coverages: <RainCoverage>[coverage],
+        ),
+      );
+      final now = cut(coverageOf(frame(5)));
+      final ahead = cut(coverageOf(frame(7)));
+      double lowerLon(int x) => (x + 0.5) / lowerWidth * 10;
+      expect(shownColumns(now), <int>{
+        for (var x = 0; x < lowerWidth; x++)
+          if (lowerLon(x) < 5) x,
+      });
+      expect(shownColumns(ahead), <int>{
+        for (var x = 0; x < lowerWidth; x++)
+          if (lowerLon(x) < 7) x,
+      });
+      // The difference: where the nowcast no longer reaches.
+      expect(shownColumns(ahead).difference(shownColumns(now)), <int>{
+        for (var x = 0; x < lowerWidth; x++)
+          if (lowerLon(x) >= 5 && lowerLon(x) < 7) x,
+      });
+    });
+
+    test('no pixel of the source after it where the frame has rain or dry '
+        'ground inside the reach', () {
+      final rgba = frame(5);
+      final coverage = coverageOf(rgba);
+      final out = prepareRainPixels(
+        lowerWidth,
+        lowerHeight,
+        lower(),
+        RainImageJob(
+          palette: RainPalette.hsaf,
+          soft: true,
+          box: box,
+          coverages: <RainCoverage>[coverage],
+        ),
+      );
+      for (final x in shownColumns(out)) {
+        final lon = (x + 0.5) / lowerWidth * 10;
+        final dwdX = (lon / 10 * width).floor();
+        final a = rgba[dwdX * 4 + 3];
+        final grey = rgba[dwdX * 4] == 0x7E;
+        // Shown only beyond the grid (transparent) or over the grey.
+        expect(a == 0 && lon < 3 || grey, isTrue, reason: 'at $lon°');
+      }
+    });
+
+    test('travels with the image in a chunk every decoder skips', () async {
+      final rgba = frame(5);
+      final covered = coverageOf(rgba).covered;
+      final png = encodePngRgba(width, height, rgba, coverage: covered);
+      final read = readRainCoverage(png, box)!;
+      expect(read.width, width);
+      expect(read.height, height);
+      expect(read.covered, covered);
+      expect(read.box, box);
+      expect(readRainCoverage(encodePngRgba(width, height, rgba), box), isNull);
+      expect(readRainCoverage(Uint8List.fromList(<int>[7, 8, 9]), box), isNull);
+      expect(mapCanDecode(png), isTrue);
+      // The engine's decoder takes it, pixels unchanged.
+      final codec = await ui.instantiateImageCodec(png);
+      final image = (await codec.getNextFrame()).image;
+      final bytes = await image.toByteData(
+        format: ui.ImageByteFormat.rawStraightRgba,
+      );
+      expect(image.width, width);
+      final decoded = bytes!.buffer.asUint8List();
+      for (var i = 3; i < rgba.length; i += 4) {
+        expect(decoded[i], rgba[i]);
+      }
+    });
+
+    test('the soft look of the DWD keeps its frame\'s coverage', () {
+      // The fetcher asks for it, drawn soft only.
+      const job = RainImageJob(
+        palette: RainPalette.dwd,
+        soft: true,
+        box: box,
+        extent: dwdRadarExtent,
+      );
+      expect(job.needed, isTrue);
     });
   });
 
