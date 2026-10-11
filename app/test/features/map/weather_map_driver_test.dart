@@ -829,5 +829,168 @@ void main() {
         driver.dispose();
       });
     });
+    test('Now, an hour on and back to Now draws Now\'s image again, also '
+        'of a source the hour ahead does not use', () {
+      fakeAsync((async) {
+        // Over New York: NOAA's radar now, the global model ahead.
+        map
+          ..visibleBounds = newYork
+          ..zoom = 8;
+        soft();
+        driver.attach(map);
+        async.flushMicrotasks();
+        final nowImage = fetcher.radarImages.single;
+        expect(nowImage.$1, 'radar_noaa');
+        soft(offset: 60);
+        async.flushMicrotasks();
+        expect(fetcher.radarImages.last.$1, 'rain_icon');
+        expect(drawn(), <String>['rain_icon']);
+        final asked = fetcher.radarImages.length;
+        soft();
+        async.flushMicrotasks();
+        // Asked again (the fetcher's cache answers it) and drawn.
+        expect(fetcher.radarImages, hasLength(asked + 1));
+        expect(fetcher.radarImages.last, nowImage);
+        expect(drawn(), <String>['radar_noaa']);
+        expect(map.weatherLayers.single.imageBox, nowImage.$2);
+        driver.dispose();
+      });
+    });
+
+    test('an answer for Now that comes after the time control moved on is '
+        'asked for again back at Now', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        fetcher.holdRadar = true;
+        soft();
+        driver.attach(map);
+        async.flushMicrotasks();
+        soft(offset: 60);
+        async.flushMicrotasks();
+        // Now's comes while the hour ahead is shown: dropped.
+        fetcher.heldRadar.single.complete(Uint8List.fromList(<int>[1]));
+        async.flushMicrotasks();
+        expect(fetcher.radarImages, hasLength(2));
+        soft();
+        async.flushMicrotasks();
+        fetcher.heldRadar.last.complete(Uint8List.fromList(<int>[2]));
+        async.flushMicrotasks();
+        expect(fetcher.radarImages, hasLength(3));
+        expect(fetcher.radarImages.last, fetcher.radarImages.first);
+        fetcher.heldRadar.last.complete(Uint8List.fromList(<int>[3]));
+        async.flushMicrotasks();
+        expect(map.weatherLayers.single.image, <int>[3]);
+        driver.dispose();
+      });
+    });
+
+    test('a failed image is not asked again for the same view and step '
+        'until the refresh, another step asks', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        fetcher.radarImagesUp = false;
+        soft();
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(fetcher.radarImages, hasLength(1));
+        map.emitCameraIdle();
+        async.elapse(radarImageDebounce);
+        expect(fetcher.radarImages, hasLength(1));
+        // Another step is asked for, and back at Now so is Now again.
+        soft(offset: 60);
+        async.flushMicrotasks();
+        expect(fetcher.radarImages, hasLength(2));
+        soft();
+        async.flushMicrotasks();
+        expect(fetcher.radarImages, hasLength(3));
+        map.emitCameraIdle();
+        async.elapse(radarImageDebounce);
+        expect(fetcher.radarImages, hasLength(3));
+        driver.dispose();
+      });
+    });
+
+    test('zoomed out below $weatherImageMinZoom no image of the view is '
+        'asked for, and those shown go', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        soft(clouds: true);
+        driver.attach(map);
+        async.elapse(cloudDetailDebounce);
+        expect(fetcher.radarImages, hasLength(1));
+        expect(fetcher.details, hasLength(1));
+        expect(
+          map.weatherLayers.where((l) => l.kind == WeatherKind.radar),
+          isNotEmpty,
+        );
+        rest(
+          async,
+          const BoundingBox(south: 25, west: -10, north: 70, east: 50),
+          2.5,
+        );
+        async.elapse(cloudDetailDebounce);
+        expect(fetcher.radarImages, hasLength(1));
+        expect(fetcher.details, hasLength(1));
+        // The region's clouds stay; the rain's image and the detail go.
+        expect(drawn(), <String>['clouds_eumetsat.0']);
+        // The satellite and the model ahead neither.
+        soft(offset: 180, clouds: true);
+        async.elapse(radarImageDebounce);
+        expect(fetcher.radarImages, hasLength(1));
+        expect(drawn(), <String>['clouds_eumetsat.0']);
+        driver.dispose();
+      });
+    });
+
+    test('the whole world, wider than the map\'s 360°: no box MapLibre '
+        'cannot draw is asked for or drawn', () {
+      for (final zoom in <double?>[null, 0, 1, 2.9, 3, 4]) {
+        for (final offset in <int>[0, 60, 600]) {
+          fakeAsync((async) {
+            final world = const BoundingBox(
+              south: -85,
+              west: -540,
+              north: 85,
+              east: 540,
+            );
+            map
+              ..visibleBounds = world
+              ..zoom = zoom;
+            soft(offset: offset, clouds: true);
+            driver.attach(map);
+            async.elapse(cloudDetailDebounce);
+            for (final (id, box, _) in fetcher.radarImages) {
+              expect(safeImageBox(box), isTrue, reason: '$id $box');
+            }
+            for (final box in fetcher.details) {
+              expect(safeImageBox(box), isTrue, reason: '$box');
+            }
+            for (final layer in map.weatherLayers) {
+              final box = layer.imageBox;
+              if (box == null) continue;
+              expect(safeImageBox(box), isTrue, reason: '${layer.id} $box');
+            }
+            // A view of a wide screen at zoom 3, past the antimeridian.
+            rest(
+              async,
+              const BoundingBox(south: -60, west: -260, north: 60, east: -60),
+              3,
+            );
+            async.elapse(cloudDetailDebounce);
+            for (final (id, box, _) in fetcher.radarImages) {
+              expect(safeImageBox(box), isTrue, reason: '$id $box');
+            }
+            for (final layer in map.weatherLayers) {
+              final box = layer.imageBox;
+              if (box == null) continue;
+              expect(safeImageBox(box), isTrue, reason: '${layer.id} $box');
+            }
+            driver.dispose();
+          });
+          fetcher = _Fetcher();
+          driver = WeatherMapDriver(fetcher: fetcher, clock: () => now);
+        }
+      }
+    });
   });
 }

@@ -77,9 +77,13 @@ bool weatherRainOn(WidgetRef ref) =>
       WeatherKind.radar,
     );
 
-/// The rain's time control, for the Plan and Record sheets: one line, the
-/// drop, the label and the slider in the room that is left, while the rain
-/// is on; nothing while it is off. The step is the one all tabs share
+/// The rain's time control, for the Plan and Record sheets while the rain
+/// is on, nothing while it is off: the drop, the label and the slider in
+/// one line, the label as wide as the widest it can get
+/// ([weatherTimeLabelWidth]) and the slider in all the room that is left;
+/// where that would leave the slider less than [weatherSliderMinShare] of
+/// the row, the label on a small line of its own over a slider as wide as
+/// the row ([weatherTimeRowStacks]). The step is the one all tabs share
 /// ([weatherRadarOffsetProvider]); the map follows when the slider is let
 /// go.
 class WeatherTimeRow extends ConsumerStatefulWidget {
@@ -92,11 +96,103 @@ class WeatherTimeRow extends ConsumerStatefulWidget {
   ConsumerState<WeatherTimeRow> createState() => _WeatherTimeRowState();
 }
 
-/// How tall [WeatherTimeRow] is, without its padding.
+/// How tall [WeatherTimeRow] is in one line, without its padding.
 const double weatherTimeRowHeight = 36;
+
+/// How tall the label's own line is when the row stacks.
+const double weatherTimeLabelLineHeight = 18;
+
+/// How tall [WeatherTimeRow] is stacked, the label over the slider.
+const double weatherTimeRowStackedHeight =
+    weatherTimeLabelLineHeight + weatherTimeRowHeight;
+
+/// The least share of the row the slider gets beside the label; with less
+/// the row stacks.
+const double weatherSliderMinShare = 0.55;
+
+/// The drop and the room after it, before the label.
+const double _weatherTimeLead = 18 + 8;
 
 /// The key of the time control's label, for the tests.
 const Key weatherTimeLabelKey = ValueKey<String>('weather-time-label');
+
+/// The style of the time control's label in one line.
+TextStyle? weatherTimeLabelStyle(ThemeData theme) =>
+    theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurface);
+
+/// The widest the time control's label can get here, so the slider keeps
+/// its length, and its steps their places, while the label changes under
+/// the finger: of every step, the label with the frame over the view's
+/// middle now and each tag a moment ahead can carry, measured at the
+/// label's style and the phone's text scale. Measured again only when one
+/// of those changes.
+double weatherTimeLabelWidth(
+  BuildContext context,
+  List<WeatherMapSource> sources,
+  WeatherMapStatus status,
+) {
+  final l10n = AppLocalizations.of(context);
+  final labels = <String>{};
+  for (final offset in weatherRadarOffsets) {
+    final rain = weatherRainAt(sources, status, offset);
+    final parts = <String>[
+      weatherStepText(l10n, offset),
+      if (rain != null) weatherClockTime(context, rain.time),
+    ];
+    labels.add(parts.join(' · '));
+    if (rain == null || offset <= 0) continue;
+    for (final role in RainRole.values) {
+      final tag = weatherSourceTag(l10n, role);
+      if (tag != null) labels.add(<String>[...parts, tag].join(' · '));
+    }
+  }
+  final style = weatherTimeLabelStyle(Theme.of(context));
+  final scaler = MediaQuery.textScalerOf(context);
+  final direction = Directionality.of(context);
+  final key = Object.hash(Object.hashAll(labels), style, scaler, direction);
+  final cached = _labelWidths[key];
+  if (cached != null) return cached;
+  var widest = 0.0;
+  for (final label in labels) {
+    final painter = TextPainter(
+      text: TextSpan(text: label, style: style),
+      textDirection: direction,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    widest = math.max(widest, painter.width);
+    painter.dispose();
+  }
+  if (_labelWidths.length >= 8) _labelWidths.remove(_labelWidths.keys.first);
+  return _labelWidths[key] = widest.ceilToDouble() + 1;
+}
+
+/// The last few widths [weatherTimeLabelWidth] measured.
+final Map<int, double> _labelWidths = <int, double>{};
+
+/// Whether a time control [rowWidth] wide puts its label on a line of its
+/// own: beside a label [labelWidth] wide the slider would get less than
+/// [weatherSliderMinShare] of the row.
+bool weatherTimeRowStacks(double rowWidth, double labelWidth) =>
+    rowWidth - _weatherTimeLead - labelWidth < rowWidth * weatherSliderMinShare;
+
+/// How tall [WeatherTimeRow] is [rowWidth] wide, without its padding: 0
+/// while the rain is off.
+double weatherTimeRowHeightFor(
+  BuildContext context,
+  WidgetRef ref,
+  double rowWidth,
+) {
+  if (!weatherRainOn(ref)) return 0;
+  final width = weatherTimeLabelWidth(
+    context,
+    ref.watch(weatherMapSourcesProvider),
+    ref.watch(sharedWeatherMapStatusProvider),
+  );
+  return weatherTimeRowStacks(rowWidth, width)
+      ? weatherTimeRowStackedHeight
+      : weatherTimeRowHeight;
+}
 
 class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
   /// The slider's step while a finger moves it.
@@ -105,7 +201,6 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
   @override
   Widget build(BuildContext context) {
     if (!weatherRainOn(ref)) return const SizedBox.shrink();
-    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final sources = ref.watch(weatherMapSourcesProvider);
     final status = ref.watch(sharedWeatherMapStatusProvider);
@@ -116,75 +211,97 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
       offset,
       weatherRainAt(sources, status, offset),
     );
+    final labelWidth = weatherTimeLabelWidth(context, sources, status);
+    final drop = Icon(
+      Icons.water_drop_outlined,
+      size: 18,
+      color: theme.colorScheme.primary,
+    );
+    // A label longer than measured (another font) is scaled down to fit.
+    Widget text(TextStyle? style) => FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: AlignmentDirectional.centerStart,
+      child: Text(label, key: weatherTimeLabelKey, maxLines: 1, style: style),
+    );
     return Padding(
       padding: widget.padding,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // The label's room is fixed, so the slider keeps its length, and
-          // its steps their places, while the label changes under the
-          // finger; a long label is scaled down to fit.
-          final labelWidth = math.min(constraints.maxWidth * 0.5, 210.0);
+          final slider = _slider(context, offset, label);
+          if (weatherTimeRowStacks(constraints.maxWidth, labelWidth)) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  height: weatherTimeLabelLineHeight,
+                  child: Row(
+                    children: [
+                      drop,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: text(
+                            theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                slider,
+              ],
+            );
+          }
           return Row(
             children: [
-              Icon(
-                Icons.water_drop_outlined,
-                size: 18,
-                color: theme.colorScheme.primary,
-              ),
+              drop,
               const SizedBox(width: 8),
               SizedBox(
                 width: labelWidth,
+                height: weatherTimeRowHeight,
                 child: Align(
                   alignment: AlignmentDirectional.centerStart,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: AlignmentDirectional.centerStart,
-                    child: Text(
-                      label,
-                      key: weatherTimeLabelKey,
-                      maxLines: 1,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
+                  child: text(weatherTimeLabelStyle(theme)),
                 ),
               ),
-              Expanded(
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    overlayShape: const RoundSliderOverlayShape(
-                      overlayRadius: 14,
-                    ),
-                  ),
-                  child: SizedBox(
-                    height: weatherTimeRowHeight,
-                    child: Semantics(
-                      label: l10n.mapWeatherRadarTime,
-                      child: Slider(
-                        value: weatherSliderIndexOf(offset).toDouble(),
-                        max: (weatherRadarOffsets.length - 1).toDouble(),
-                        divisions: weatherRadarOffsets.length - 1,
-                        semanticFormatterCallback: (_) => label,
-                        onChanged: (value) => setState(
-                          () => _dragging = weatherOffsetOfSliderIndex(
-                            value.round(),
-                          ),
-                        ),
-                        onChangeEnd: (value) {
-                          setState(() => _dragging = null);
-                          ref
-                              .read(weatherRadarOffsetProvider.notifier)
-                              .set(weatherOffsetOfSliderIndex(value.round()));
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              Expanded(child: slider),
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _slider(BuildContext context, int offset, String label) {
+    final l10n = AppLocalizations.of(context);
+    return SliderTheme(
+      data: SliderTheme.of(context).copyWith(
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+      ),
+      child: SizedBox(
+        height: weatherTimeRowHeight,
+        child: Semantics(
+          label: l10n.mapWeatherRadarTime,
+          child: Slider(
+            value: weatherSliderIndexOf(offset).toDouble(),
+            max: (weatherRadarOffsets.length - 1).toDouble(),
+            divisions: weatherRadarOffsets.length - 1,
+            semanticFormatterCallback: (_) => label,
+            onChanged: (value) => setState(
+              () => _dragging = weatherOffsetOfSliderIndex(value.round()),
+            ),
+            onChangeEnd: (value) {
+              setState(() => _dragging = null);
+              ref
+                  .read(weatherRadarOffsetProvider.notifier)
+                  .set(weatherOffsetOfSliderIndex(value.round()));
+            },
+          ),
+        ),
       ),
     );
   }

@@ -146,18 +146,18 @@ class WeatherMapDriver {
   final Map<String, String> _attempted = <String, String>{};
 
   /// Each cloud source's detail image, the request in flight for it (its
-  /// key) and the last one asked for, which a failure is not asked again
-  /// for until the next refresh.
+  /// key) and the last one that failed, which is not asked again for until
+  /// the next refresh.
   final Map<String, _CloudDetail> _details = <String, _CloudDetail>{};
   final Map<String, String> _detailInFlight = <String, String>{};
-  final Map<String, String> _detailAttempted = <String, String>{};
+  final Map<String, String> _detailFailed = <String, String>{};
 
   /// Each radar source's soft image, the request in flight for it (its
-  /// key) and the last one asked for, which a failure is not asked again
-  /// for until the next refresh or a new view.
+  /// key) and the last one that failed, which is not asked again for until
+  /// the next refresh, step or look.
   final Map<String, _RadarImage> _radarImages = <String, _RadarImage>{};
   final Map<String, String> _radarInFlight = <String, String>{};
-  final Map<String, String> _radarAttempted = <String, String>{};
+  final Map<String, String> _radarFailed = <String, String>{};
 
   /// The radar sources switched to soft while drawn as tiles: their tiles
   /// stay until the first soft image is in or fails, so the switch leaves
@@ -237,13 +237,16 @@ class WeatherMapDriver {
                 layer.id,
         });
       // The images shown stay until those in the new look replace them.
-      _radarAttempted.clear();
+      _radarFailed.clear();
       _radarStyle = radarStyle;
     }
     final turnedOn = <WeatherKind>{
       for (final kind in WeatherKind.values)
         if (settings.shows(kind) && !_settings.shows(kind)) kind,
     };
+    // Another step of the time control: what failed for the last one is
+    // asked again.
+    if (offsetMinutes != _offset) _radarFailed.clear();
     _settings = settings;
     _sources = sources;
     _offset = offsetMinutes;
@@ -256,9 +259,9 @@ class WeatherMapDriver {
     }
     if (turnedOn.contains(WeatherKind.clouds)) {
       _attempted.clear();
-      _detailAttempted.clear();
+      _detailFailed.clear();
     }
-    if (turnedOn.contains(WeatherKind.radar)) _radarAttempted.clear();
+    if (turnedOn.contains(WeatherKind.radar)) _radarFailed.clear();
     // Clouds switched off let their images go, and so does the radar.
     if (!settings.clouds) {
       _images.clear();
@@ -281,8 +284,8 @@ class WeatherMapDriver {
     _foreground = foreground;
     if (foreground) {
       _attempted.clear();
-      _detailAttempted.clear();
-      _radarAttempted.clear();
+      _detailFailed.clear();
+      _radarFailed.clear();
       _update(recheck: true);
     }
     _resetTimers();
@@ -335,7 +338,7 @@ class WeatherMapDriver {
     if (_disposed || _map == null || !_foreground) return;
     if (_settings.radar) {
       _radarTimer = Timer.periodic(radarRefreshInterval, (_) {
-        _radarAttempted.clear();
+        _radarFailed.clear();
         _update(recheck: true);
         _planRadar();
       });
@@ -343,7 +346,7 @@ class WeatherMapDriver {
     if (_settings.clouds) {
       _cloudsTimer = Timer.periodic(cloudsRefreshInterval, (_) {
         _attempted.clear();
-        _detailAttempted.clear();
+        _detailFailed.clear();
         _update();
         _planDetails();
       });
@@ -379,6 +382,8 @@ class WeatherMapDriver {
       final stamp = cloudImageStamp(frame, now);
       for (var region = 0; region < source.coverage.length; region++) {
         if (!_regionMeets(source.coverage[region], view)) continue;
+        // A box MapLibre cannot draw (a mirror's override) is not fetched.
+        if (!safeImageBox(source.coverage[region])) continue;
         final key = '${source.id}.$region';
         final frameKey = '$key@$stamp';
         // The last image of the region stays until the next one is in.
@@ -413,9 +418,16 @@ class WeatherMapDriver {
       if (!shownParts.contains(source.id)) _probed.remove(source.id);
     }
     final imageShown = <String>{};
+    final imagesTooFar =
+        view != null && _zoomOf(view, zoom) < weatherImageMinZoom;
     for (final part in parts) {
       final source = part.source;
       final frame = part.frame;
+      if (imagesTooFar && _drawnAsImage(source)) {
+        // Zoomed out too far for an image of the view: none, and no probe.
+        _probed.remove(source.id);
+        continue;
+      }
       covering.add(source.id);
       if (_imageBoxOf(source, view!, zoom) != null) {
         // An image: the one shown stays until the next is in, unless the
@@ -530,31 +542,29 @@ class WeatherMapDriver {
       final area = cloudDetailArea(view, zoom);
       final box = area == null ? null : source.detailBox(area);
       if (area == null || box == null) continue;
+      // Never an image MapLibre cannot draw.
+      if (!safeImageBox(box)) continue;
       final key = '${source.id}.detail@${cloudDetailKey(box)}@$stamp';
-      if (_detailAttempted[source.id] == key) continue;
-      _detailAttempted[source.id] = key;
-      _detailInFlight[source.id] = key;
-      unawaited(
-        _loadDetail(
-          source,
-          _CloudDetail(
-            layer: WeatherLayer.image(
-              id: '${source.id}.detail',
-              kind: WeatherKind.clouds,
-              image: Uint8List(0),
-              imageBox: box,
-              frameKey: key,
-              attribution: source.attributionFor(frame, now),
-              opacity: source.opacity,
-            ),
-            area: area,
-            zoom: zoom,
-            stamp: stamp,
-          ),
-          frame,
-          now,
+      // Only a request that failed waits for the refresh.
+      if (_detailFailed[source.id] == key) continue;
+      final planned = _CloudDetail(
+        layer: WeatherLayer.image(
+          id: '${source.id}.detail',
+          kind: WeatherKind.clouds,
+          image: Uint8List(0),
+          imageBox: box,
+          frameKey: key,
+          attribution: source.attributionFor(frame, now),
+          opacity: source.opacity,
         ),
+        area: area,
+        zoom: zoom,
+        stamp: stamp,
       );
+      // One that would be dropped when it comes is not asked for.
+      if (!planned.fits(view, zoom)) continue;
+      _detailInFlight[source.id] = key;
+      unawaited(_loadDetail(source, planned, frame, now));
     }
   }
 
@@ -569,9 +579,11 @@ class WeatherMapDriver {
     if (_disposed) return;
     _detailInFlight.remove(source.id);
     if (image == null) {
+      _detailFailed[source.id] = planned.layer.frameKey;
       _failed.add(source.id);
       _publish();
     } else {
+      _detailFailed.remove(source.id);
       _failed.remove(source.id);
       // Kept only while it still fits what the map shows: zoomed out, the
       // clouds off or the view moved on, it is dropped.
@@ -596,19 +608,28 @@ class WeatherMapDriver {
 
   /// The box [source]'s image of [view] shows, `null` where the source is
   /// drawn as tiles: a radar as measured, or one without an image request,
-  /// or a view across the antimeridian. The satellite and the models are
+  /// or a view across the antimeridian; also `null` zoomed out below
+  /// [weatherImageMinZoom] or for a box MapLibre cannot draw
+  /// ([safeImageBox]). The satellite and the models are
   /// always an image, as measured too, since their images are masked.
   BoundingBox? _imageBoxOf(
     WeatherMapSource source,
     BoundingBox view,
     double? zoom,
   ) {
-    if (source.imageUrlTemplate == null) return null;
-    if (source.role == RainRole.radar && _radarStyle != RadarStyle.soft) {
-      return null;
-    }
-    final area = _imageAreaOf(source, view, _zoomOf(view, zoom));
-    return area == null ? null : source.softBox(area);
+    if (!_drawnAsImage(source)) return null;
+    final z = _zoomOf(view, zoom);
+    if (z < weatherImageMinZoom) return null;
+    final area = _imageAreaOf(source, view, z);
+    final box = area == null ? null : source.softBox(area);
+    return box != null && safeImageBox(box) ? box : null;
+  }
+
+  /// Whether [source] is drawn as an image of the view rather than tiles:
+  /// one with an image request, a radar only when drawn soft.
+  bool _drawnAsImage(WeatherMapSource source) {
+    if (source.imageUrlTemplate == null) return false;
+    return source.role != RainRole.radar || _radarStyle == RadarStyle.soft;
   }
 
   /// The area [source]'s image of [view] at [zoom] is asked for, before
@@ -669,34 +690,35 @@ class WeatherMapDriver {
       // One request per source: the next is planned when it is back.
       if (_radarInFlight.containsKey(source.id)) continue;
       final key = '${source.id}@${cloudDetailKey(box)}@$stamp';
-      if (_radarAttempted[source.id] == key) continue;
-      _radarAttempted[source.id] = key;
-      _radarInFlight[source.id] = key;
-      unawaited(
-        _loadRadar(
-          part,
-          _RadarImage(
-            layer: WeatherLayer.image(
-              id: source.id,
-              kind: WeatherKind.radar,
-              image: Uint8List(0),
-              imageBox: box,
-              frameKey: key,
-              attribution: source.attributionFor(frame, now),
-              // As measured, as see-through as the radar's tiles; soft, the
-              // image's alpha says it all.
-              opacity: _radarStyle == RadarStyle.soft
-                  ? null
-                  : source.opacity ?? radarTone.opacity,
-            ),
-            area: area,
-            zoom: zoom,
-            stamp: stamp,
-            capped: radarSoftCapped(source, box),
-          ),
-          now,
+      // Only a request that failed waits for the refresh; one that came
+      // and was replaced (another step, another view) is asked again, and
+      // comes from the cache.
+      if (_radarFailed[source.id] == key) continue;
+      final planned = _RadarImage(
+        layer: WeatherLayer.image(
+          id: source.id,
+          kind: WeatherKind.radar,
+          image: Uint8List(0),
+          imageBox: box,
+          frameKey: key,
+          attribution: source.attributionFor(frame, now),
+          // As measured, as see-through as the radar's tiles; soft, the
+          // image's alpha says it all.
+          opacity: _radarStyle == RadarStyle.soft
+              ? null
+              : source.opacity ?? radarTone.opacity,
         ),
+        area: area,
+        zoom: zoom,
+        stamp: stamp,
+        capped: radarSoftCapped(source, box),
       );
+      // An image that would not serve the view even when it comes (a view
+      // beyond the world's edges) is not asked for: its answer would be
+      // dropped and asked for again, over and over.
+      if (!planned.fits(view, zoom)) continue;
+      _radarInFlight[source.id] = key;
+      unawaited(_loadRadar(part, planned, now));
     }
   }
 
@@ -718,6 +740,11 @@ class WeatherMapDriver {
     );
     if (_disposed) return;
     _radarInFlight.remove(source.id);
+    if (image == null) {
+      _radarFailed[source.id] = planned.layer.frameKey;
+    } else {
+      _radarFailed.remove(source.id);
+    }
     if (_stillWanted(source, planned)) {
       _tilesUntilSoft.remove(source.id);
       if (image == null) {

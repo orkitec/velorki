@@ -16,7 +16,7 @@ L'onglet Réglages est une page défilante avec une section par sujet. Cette pag
 
 **Verre** : la part de la carte qui transparaît à travers la barre d’onglets et les commandes sur la carte : **Opaque**, **Transparente**, **Verre léger** ou **Verre clair**, le réglage par défaut.
 
-**Radar de pluie** : comment le radar de pluie des **Calques** est dessiné : **Doux**, le réglage par défaut, aux bords adoucis et à la pluie faible plus pâle que la forte, ou **Tel que mesuré**, les cellules de 1 km du radar telles que le service météo les livre.
+**Radar de pluie** : comment le radar de pluie des **Calques** est dessiné : **Doux**, le réglage par défaut, aux bords adoucis et à la pluie faible plus pâle que la forte, ou **Tel que mesuré**, chaque image de pluie (radar, satellite, prévision) telle que les services météo la livrent, le radar en cellules de 1 km.
 
 **Couleur** : cinq couleurs d'accent prédéfinies : **Volt**, **Braise**, **Glace**, **Baie** et **Forêt**. La couleur d'accent colore les boutons, les graphiques et la ligne d'itinéraire sur la carte.
 

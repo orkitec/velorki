@@ -16,7 +16,7 @@ The Settings tab is one scrolling page with a section per subject. This page wal
 
 **Glass**: how much of the map shows through the tab bar and the controls over the map: **Solid**, **Transparent**, **Subtle glass** or **Clear glass**, the default.
 
-**Rain radar**: how the rain radar from **Layers** is drawn: **Soft**, the default, with smooth edges and light rain fainter than heavy rain, or **As measured**, the radar's 1 km cells as the weather service delivers them.
+**Rain radar**: how the rain radar from **Layers** is drawn: **Soft**, the default, with smooth edges and light rain fainter than heavy rain, or **As measured**, every rain image (radar, satellite, forecast) as the weather services deliver it, the radar in its 1 km cells.
 
 **Accent**: five colour presets: **Volt**, **Ember**, **Glacier**, **Berry** and **Forest**. The accent colours the buttons, the charts and the route line on the map.
 

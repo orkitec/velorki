@@ -2598,9 +2598,9 @@
   "@appearanceRadarMeasured": {
     "description": "Rain radar choice in Settings → Appearance: the radar's own tiles exactly as the weather service delivers them, its 1 km cells sharp."
   },
-  "appearanceRadarHint": "Soft: smooth edges, light rain fainter than heavy rain. As measured: the radar's 1 km cells as delivered.",
+  "appearanceRadarHint": "Soft: smooth edges, light rain fainter than heavy rain. As measured: the images as the services deliver them.",
   "@appearanceRadarHint": {
-    "description": "Small text under the Rain radar choice in Settings → Appearance explaining the two options, Soft and As measured (use the same words as those two options)."
+    "description": "Small text under the Rain radar choice in Settings → Appearance explaining the two options, Soft and As measured (use the same words as those two options). As measured applies to every rain image (radar, satellite, model), shown as the weather services deliver them."
   },
   "appearanceBarSolid": "Solid",
   "@appearanceBarSolid": {
@@ -4447,9 +4447,9 @@
   "@mapLayersRainRadar": {
     "description": "Layers sheet: switch for the rain radar layer over the map."
   },
-  "mapLayersRainRadarSubtitle": "Radar in Germany and the US, a satellite estimate elsewhere in Europe and Africa · forecast up to 24 hours",
+  "mapLayersRainRadarSubtitle": "Now: radar in Germany and the US, a satellite estimate elsewhere in Europe and Africa. Ahead: radar forecast for 2 hours in Germany, model forecast up to 24 hours (hourly in Europe, every 6 hours elsewhere)",
   "@mapLayersRainRadarSubtitle": {
-    "description": "Under the Rain radar switch: radar where it exists (Germany, the US), elsewhere in Europe and Africa an estimate of the rain from satellite data (less exact than radar), and a forecast for the next 24 hours."
+    "description": "Under the Rain radar switch, where the rain shown comes from. Now: radar where it exists (Germany, the US), elsewhere in Europe and Africa an estimate of the rain from satellite data (less exact than radar). Ahead (the time slider moved into the future): in Germany the radar's own 2-hour forecast, beyond that and elsewhere a weather model's forecast up to 24 hours, in steps of one hour in Europe and of six hours elsewhere. Start with the word used for Now (mapWeatherNow)."
   },
   "mapLayersClouds": "Clouds",
   "@mapLayersClouds": {

@@ -298,11 +298,15 @@ class WeatherMapSource {
         .replaceAll('{height}', '$height');
   }
 
-  /// The part of [area] the soft radar's image shows: the box around its
-  /// overlaps with every coverage box, `null` where it meets none. Unlike
+  /// The part of [wanted] the soft radar's image shows: the box around its
+  /// overlaps with every coverage box, clipped to the world an image can
+  /// show ([clipToImageWorld]) before its size is worked out; `null` where
+  /// it meets none. Unlike
   /// [detailBox] it keeps them all, so a view of the US zoomed out still
   /// shows Alaska's radar beside the contiguous states'.
-  BoundingBox? softBox(BoundingBox area) {
+  BoundingBox? softBox(BoundingBox wanted) {
+    final area = clipToImageWorld(wanted);
+    if (area == null) return null;
     BoundingBox? out;
     for (final box in coverage) {
       final south = math.max(box.south, area.south);
@@ -352,9 +356,12 @@ class WeatherMapSource {
           .replaceAll('{width}', '$width')
           .replaceAll('{height}', '$height');
 
-  /// The part of [area] the detail image shows: its overlap with the
-  /// coverage box it overlaps most, `null` where it meets none.
-  BoundingBox? detailBox(BoundingBox area) {
+  /// The part of [wanted] the detail image shows: its overlap with the
+  /// coverage box it overlaps most, clipped to the world an image can show
+  /// ([clipToImageWorld]); `null` where it meets none.
+  BoundingBox? detailBox(BoundingBox wanted) {
+    final area = clipToImageWorld(wanted);
+    if (area == null) return null;
     BoundingBox? best;
     var bestSize = 0.0;
     for (final box in coverage) {
@@ -606,7 +613,8 @@ String mercatorBboxString(BoundingBox box) {
 // over the region's, which still covers a pan beyond it and the view
 // zoomed out.
 
-/// The zoom from which the clouds get a detail image.
+/// The zoom from which the clouds get a detail image; at or above
+/// [weatherImageMinZoom], below which no image of the view is drawn.
 const double cloudDetailMinZoom = 6;
 
 /// How far the detail image reaches beyond the view on each side, as a
@@ -779,6 +787,65 @@ String radarImageStamp(
 
 BoundingBox _box(double west, double south, double east, double north) =>
     BoundingBox(south: south, west: west, north: north, east: east);
+
+// MapLibre draws an image source by covering its corners with tiles and
+// takes the first of them without asking whether there is one: a box that
+// is empty, has no width or height, or lies beyond the latitudes Web
+// Mercator reaches has none, and the renderer crashes on it (seen on iOS,
+// zoomed out to the whole world and panned). So no image reaches the map
+// unless [safeImageBox] passes it, and the view's images are not asked for
+// zoomed out that far, where the rain and the clouds of a view say little
+// anyway.
+
+/// The zoom below which no image of the view is drawn: the rain's (soft
+/// radar, satellite, models) and the clouds' detail. Further out the view's
+/// box runs past the world's edges, the cause of MapLibre's crash above.
+const double weatherImageMinZoom = 3;
+
+/// The latitude an image's box is clipped to before it is asked for: just
+/// inside the ±85.0511° Web Mercator ends.
+const double weatherImageMaxLat = 85.05;
+
+/// The latitude beyond which MapLibre has no tiles to cover an image with.
+const double weatherImageLatLimit = 85.0511;
+
+/// The narrowest an image's box may be, either way, in degrees.
+const double weatherImageMinSpan = 0.01;
+
+/// The widest an image's box may be, in degrees of longitude: a wider image
+/// shows nothing worth the risk.
+const double weatherImageMaxLonSpan = 180;
+
+/// Whether MapLibre can draw an image over [b] without crashing (see
+/// above): finite edges, west before east within ±180°, south before north
+/// within ±[weatherImageLatLimit], each side at least [weatherImageMinSpan]
+/// and at most [weatherImageMaxLonSpan] wide.
+bool safeImageBox(BoundingBox b) {
+  final edges = <double>[b.west, b.south, b.east, b.north];
+  if (edges.any((v) => !v.isFinite)) return false;
+  if (b.west < -180 || b.east > 180) return false;
+  if (b.south < -weatherImageLatLimit || b.north > weatherImageLatLimit) {
+    return false;
+  }
+  final width = b.east - b.west;
+  final height = b.north - b.south;
+  return width >= weatherImageMinSpan &&
+      width <= weatherImageMaxLonSpan &&
+      height >= weatherImageMinSpan;
+}
+
+/// [b] clipped to the world an image can show, ±180° by
+/// ±[weatherImageMaxLat]; `null` where nothing of it is left.
+BoundingBox? clipToImageWorld(BoundingBox b) {
+  final edges = <double>[b.west, b.south, b.east, b.north];
+  if (edges.any((v) => v.isNaN)) return null;
+  final west = math.max(b.west, -180.0);
+  final east = math.min(b.east, 180.0);
+  final south = math.max(b.south, -weatherImageMaxLat);
+  final north = math.min(b.north, weatherImageMaxLat);
+  if (west >= east || south >= north) return null;
+  return _box(west, south, east, north);
+}
 
 /// Rain radar over Germany and its borders, from the Deutscher
 /// Wetterdienst: five-minute frames from about three days back to two

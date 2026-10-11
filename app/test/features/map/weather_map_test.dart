@@ -941,4 +941,85 @@ void main() {
       expect(Uri.parse(url).queryParameters['format'], 'png32');
     }
   });
+  group('image boxes MapLibre can draw', () {
+    BoundingBox box(double w, double s, double e, double n) =>
+        BoundingBox(south: s, west: w, north: n, east: e);
+
+    test('an ordinary box passes', () {
+      expect(safeImageBox(box(13, 52, 14, 53)), isTrue);
+      expect(safeImageBox(box(-180, -85.05, 0, 85.05)), isTrue);
+      expect(safeImageBox(box(0, 0, 180, 1)), isTrue);
+    });
+
+    test('no width or no height fails, and too little of either', () {
+      expect(safeImageBox(box(13, 52, 13, 53)), isFalse);
+      expect(safeImageBox(box(13, 52, 14, 52)), isFalse);
+      expect(safeImageBox(box(13, 52, 13.005, 53)), isFalse);
+      expect(safeImageBox(box(13, 52, 14, 52.005)), isFalse);
+      expect(safeImageBox(box(13, 52, 13.02, 52.02)), isTrue);
+    });
+
+    test('inverted fails', () {
+      expect(safeImageBox(box(14, 52, 13, 53)), isFalse);
+      expect(safeImageBox(box(13, 53, 14, 52)), isFalse);
+      // Across the antimeridian, as a view can be.
+      expect(safeImageBox(box(170, 52, -170, 53)), isFalse);
+    });
+
+    test('beyond the Web Mercator latitudes fails', () {
+      expect(safeImageBox(box(0, 80, 10, 85.0511)), isTrue);
+      expect(safeImageBox(box(0, -85.0511, 10, -80)), isTrue);
+      expect(safeImageBox(box(0, 80, 10, 85.06)), isFalse);
+      expect(safeImageBox(box(0, -85.06, 10, -80)), isFalse);
+      expect(safeImageBox(box(0, 86, 10, 89)), isFalse);
+      expect(safeImageBox(box(0, -90, 10, 90)), isFalse);
+    });
+
+    test('beyond ±180° or wider than 180° fails', () {
+      expect(safeImageBox(box(-181, 0, -170, 10)), isFalse);
+      expect(safeImageBox(box(170, 0, 181, 10)), isFalse);
+      expect(safeImageBox(box(-540, -85, 540, 85)), isFalse);
+      expect(safeImageBox(box(-90, 0, 90.5, 10)), isFalse);
+      expect(safeImageBox(box(-180, -85, 180, 85)), isFalse);
+    });
+
+    test('a number that is not one fails', () {
+      expect(safeImageBox(box(double.nan, 0, 10, 10)), isFalse);
+      expect(safeImageBox(box(0, double.nan, 10, 10)), isFalse);
+      expect(safeImageBox(box(0, 0, double.infinity, 10)), isFalse);
+      expect(safeImageBox(box(0, 0, 10, double.nan)), isFalse);
+    });
+
+    test('clipped to the world an image can show', () {
+      final world = clipToImageWorld(box(-540, -90, 540, 90))!;
+      expect(world.west, -180);
+      expect(world.east, 180);
+      expect(world.south, -weatherImageMaxLat);
+      expect(world.north, weatherImageMaxLat);
+      expect(clipToImageWorld(box(190, 0, 200, 10)), isNull);
+      expect(clipToImageWorld(box(0, 86, 10, 89)), isNull);
+      expect(clipToImageWorld(box(double.nan, 0, 10, 10)), isNull);
+    });
+
+    test('every region image of the clouds passes', () {
+      for (final source in defaultWeatherMapSources) {
+        if (source.kind != WeatherKind.clouds) continue;
+        for (final region in source.coverage) {
+          expect(safeImageBox(region), isTrue, reason: '${source.id} $region');
+        }
+      }
+    });
+
+    test('an image asked for beyond the world is clipped before it is '
+        'sized', () {
+      final soft = iconGlobalRain.softBox(box(-540, -90, -100, 90))!;
+      expect(soft.west, -180);
+      expect(soft.south, greaterThanOrEqualTo(-weatherImageMaxLat));
+      expect(soft.north, lessThanOrEqualTo(weatherImageMaxLat));
+      final detail = eumetsatClouds.detailBox(box(-540, -90, 540, 90))!;
+      expect(detail.west, greaterThanOrEqualTo(-180));
+      expect(detail.east, lessThanOrEqualTo(180));
+      expect(iconGlobalRain.softBox(box(190, 0, 200, 10)), isNull);
+    });
+  });
 }

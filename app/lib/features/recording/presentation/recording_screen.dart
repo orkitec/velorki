@@ -1808,7 +1808,12 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // figures would otherwise ask for.
     // The rain's time control under the figures, while the rain is on,
     // is in view at rest too.
-    final rainRow = weatherRainOn(ref) ? weatherTimeRowHeight + 4 : 0.0;
+    final rainHeight = weatherTimeRowHeightFor(
+      context,
+      ref,
+      MediaQuery.sizeOf(context).width - 40,
+    );
+    final rainRow = rainHeight > 0 ? rainHeight + 4 : 0.0;
     final initial = math.min(
       state.isRecording && !geometry.sideways
           ? fraction(292.0 + 76 * extraRows + rainRow)

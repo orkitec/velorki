@@ -157,26 +157,100 @@ void main() {
       expect(find.byType(Slider), findsNothing);
     });
 
-    testWidgets('one line: the label and the slider side by side', (
-      tester,
-    ) async {
-      await tester.binding.setSurfaceSize(const Size(360, 800));
+    /// The time control in a sheet [width] wide, its sides padded as the
+    /// sheets pad them, over Berlin at [offset].
+    Future<ProviderContainer> sheetRow(
+      WidgetTester tester,
+      double width, {
+      int offset = 105,
+    }) async {
       final (_, container) = await _pump(
         tester,
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: WeatherTimeRow(),
+        const Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: WeatherTimeRow(),
+          ),
         ),
         prefs: <String, Object>{'map.weather.radar': true},
       );
+      await tester.binding.setSurfaceSize(Size(width, 1400));
       container.read(sharedWeatherMapStatusProvider.notifier).set(berlin);
-      container.read(weatherRadarOffsetProvider.notifier).set(105);
+      container.read(weatherRadarOffsetProvider.notifier).set(offset);
       await tester.pump();
-      final text = tester.getRect(find.byKey(weatherTimeLabelKey));
+      return container;
+    }
+
+    double measured(WidgetTester tester, ProviderContainer container) =>
+        weatherTimeLabelWidth(
+          tester.element(find.byType(Slider)),
+          container.read(weatherMapSourcesProvider),
+          berlin,
+        );
+
+    for (final width in <double>[360, 430]) {
+      testWidgets('$width dp wide: the slider gets most of the row, and '
+          'keeps its place whatever the step', (tester) async {
+        final container = await sheetRow(tester, width);
+        final row = width - 40;
+        final labelWidth = measured(tester, container);
+        final slider = tester.getRect(find.byType(Slider));
+        final text = tester.getRect(find.byKey(weatherTimeLabelKey));
+        if (weatherTimeRowStacks(row, labelWidth)) {
+          // The label on its own line, over a slider as wide as the row.
+          expect(slider.width, moreOrLessEquals(row, epsilon: 0.5));
+          expect(text.bottom, lessThanOrEqualTo(slider.top + 1));
+          expect(
+            tester.getSize(find.byType(WeatherTimeRow)).height,
+            weatherTimeRowStackedHeight,
+          );
+        } else {
+          expect(text.right, lessThanOrEqualTo(slider.left + 1));
+          expect((text.center.dy - slider.center.dy).abs(), lessThan(2));
+          expect(slider.width, greaterThanOrEqualTo(row * 0.55));
+          expect(slider.right, moreOrLessEquals(width - 20, epsilon: 0.5));
+        }
+        expect(slider.width, greaterThanOrEqualTo(row * 0.55));
+        // Every step's label fits the room measured for the widest; the
+        // slider does not move.
+        for (final offset in weatherRadarOffsets) {
+          container.read(weatherRadarOffsetProvider.notifier).set(offset);
+          await tester.pump();
+          expect(tester.getRect(find.byType(Slider)), slider);
+          expect(
+            tester.getSize(find.byKey(weatherTimeLabelKey)).width,
+            lessThanOrEqualTo(labelWidth),
+          );
+        }
+      });
+    }
+
+    testWidgets('with room, one line: the label as wide as the widest it '
+        'gets, the slider all the rest', (tester) async {
+      const width = 1400.0;
+      final container = await sheetRow(tester, width);
+      final labelWidth = measured(tester, container);
+      expect(weatherTimeRowStacks(width - 40, labelWidth), isFalse);
       final slider = tester.getRect(find.byType(Slider));
+      final text = tester.getRect(find.byKey(weatherTimeLabelKey));
       expect(text.right, lessThanOrEqualTo(slider.left + 1));
       expect((text.center.dy - slider.center.dy).abs(), lessThan(2));
-      expect(slider.width, greaterThan(120));
+      expect(slider.left, moreOrLessEquals(20 + 26 + labelWidth, epsilon: 1));
+      expect(slider.right, moreOrLessEquals(width - 20, epsilon: 0.5));
+      expect(
+        tester.getSize(find.byType(WeatherTimeRow)).height,
+        weatherTimeRowHeight,
+      );
+      // Dragged from Now to the last step, the slider stays put.
+      container.read(weatherRadarOffsetProvider.notifier).set(0);
+      await tester.pump();
+      expect(tester.getRect(find.byType(Slider)), slider);
+      container
+          .read(weatherRadarOffsetProvider.notifier)
+          .set(weatherRadarOffsets.last);
+      await tester.pump();
+      expect(tester.getRect(find.byType(Slider)), slider);
     });
 
     testWidgets('the label says the step, the frame over the view\'s middle '

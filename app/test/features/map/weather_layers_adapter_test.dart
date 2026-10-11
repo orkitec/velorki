@@ -279,4 +279,41 @@ void main() {
       radarTone.opacity,
     );
   });
+  test('an image MapLibre cannot draw adds no source, and the next update '
+      'and removal still work', () async {
+    WeatherLayer soft(String frame, BoundingBox box) => WeatherLayer.image(
+      id: 'radar_dwd',
+      kind: WeatherKind.radar,
+      image: Uint8List.fromList(<int>[7]),
+      imageBox: box,
+      frameKey: 'radar_dwd@$frame',
+      attribution: 'Radar: radar_dwd',
+    );
+    const good = BoundingBox(south: 52, west: 13, north: 53, east: 14);
+    for (final bad in const <BoundingBox>[
+      BoundingBox(south: 52, west: 13, north: 53, east: 13), // no width
+      BoundingBox(south: 52, west: 14, north: 53, east: 13), // inverted
+      BoundingBox(south: 86, west: 13, north: 88, east: 14), // past 85.05
+      BoundingBox(south: -85, west: -540, north: 85, east: 540), // world
+    ]) {
+      await map.setWeatherLayers([soft('a', good)]);
+      ops.clearCalls();
+      // The unsafe box: the safe one shown goes, nothing is added.
+      await map.setWeatherLayers([soft('b', bad), _radar('radar_noaa', '1')]);
+      expect(ops.callsNamed('addImageSource'), isEmpty, reason: '$bad');
+      expect(
+        ops.sourceIds.where((id) => id.startsWith('velorki-weather-radar_dwd')),
+        isEmpty,
+      );
+      expect(map.weatherAttributions.value, ['Radar: radar_noaa']);
+      // The next safe image is drawn, and goes again when asked.
+      await map.setWeatherLayers([soft('c', good)]);
+      expect(ops.callsNamed('addImageSource'), hasLength(1));
+      await map.setWeatherLayers(const <WeatherLayer>[]);
+      expect(
+        ops.sourceIds.where((id) => id.startsWith('velorki-weather-')),
+        isEmpty,
+      );
+    }
+  });
 }

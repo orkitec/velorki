@@ -2222,13 +2222,18 @@ class MaplibreMapControllerAdapter implements MapController {
   /// Puts the weather layers [layers] on the map and takes the others
   /// away. A layer whose frame changed gets a new source over the old one,
   /// which goes [weatherSwapDelay] later, so the map never flashes bare.
-  /// One change at a time, the newest list winning.
+  /// One change at a time, the newest list winning. An image over a box
+  /// MapLibre cannot draw ([safeImageBox]) is left out, as if not asked
+  /// for: such a box crashes its renderer.
   @override
   Future<void> setWeatherLayers(List<WeatherLayer> layers) {
-    final wanted = List<WeatherLayer>.unmodifiable(layers);
+    final wanted = List<WeatherLayer>.unmodifiable(<WeatherLayer>[
+      for (final layer in layers)
+        if (_drawable(layer)) layer,
+    ]);
     _weatherWanted = wanted;
     _weatherAttributions.value = List<String>.unmodifiable(<String>{
-      for (final layer in layers) layer.attribution,
+      for (final layer in wanted) layer.attribution,
     });
     if (!_attached || _disposed) return Future<void>.value();
     return _weatherTurn = _weatherTurn.then((_) async {
@@ -2242,6 +2247,14 @@ class MaplibreMapControllerAdapter implements MapController {
         debugPrint('velorki: weather not drawn: $error');
       }
     });
+  }
+
+  static bool _drawable(WeatherLayer layer) {
+    final box = layer.imageBox;
+    if (layer.image == null || box == null) return true;
+    if (safeImageBox(box)) return true;
+    debugPrint('velorki: weather image ${layer.id} not drawn, box $box');
+    return false;
   }
 
   Future<void> _drawWeather(List<WeatherLayer> wanted) async {
@@ -2297,6 +2310,9 @@ class MaplibreMapControllerAdapter implements MapController {
     final image = layer.image;
     final box = layer.imageBox;
     if (image != null && box != null) {
+      // Never an image MapLibre cannot draw; setWeatherLayers left those
+      // out already.
+      assert(safeImageBox(box), 'unsafe weather image box $box');
       await _ops.addImageSource(
         source,
         image,

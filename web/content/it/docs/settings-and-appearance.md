@@ -16,7 +16,7 @@ Il tab Opzioni è un'unica pagina scorrevole con una sezione per argomento. Ques
 
 **Vetro**: quanta mappa si vede attraverso la barra delle schede e i comandi sulla mappa: **Opaca**, **Trasparente**, **Vetro leggero** o **Vetro chiaro**, quella predefinita.
 
-**Radar pioggia**: come viene disegnato il radar pioggia dei **Livelli**: **Morbido**, quello predefinito, con bordi sfumati e la pioggia debole più tenue di quella forte, o **Come misurato**, le celle di 1 km del radar così come le fornisce il servizio meteo.
+**Radar pioggia**: come viene disegnato il radar pioggia dei **Livelli**: **Morbido**, quello predefinito, con bordi sfumati e la pioggia debole più tenue di quella forte, o **Come misurato**, ogni immagine della pioggia (radar, satellite, previsione) così come la forniscono i servizi meteo, il radar nelle sue celle di 1 km.
 
 **Accento**: cinque combinazioni di colore: **Volt**, **Brace**, **Ghiacciaio**, **Lampone** e **Foresta**. L'accento colora i pulsanti, i grafici e la linea del percorso sulla mappa.
 
