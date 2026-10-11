@@ -861,17 +861,19 @@ void main() {
     });
 
     test('a source without one, or without a frame for the step, is not '
-        'asked', () {
+        'asked; a model named by its run is, over its coverage', () {
       fakeAsync((async) {
         map.visibleBounds = newYork;
         configure(radar: true, offset: 45);
         driver.attach(map);
         async.flushMicrotasks();
+        // Over New York the HRRR's run, which it has no frame without.
+        expect(fetcher.newestAsked, <String>['rain_hrrr']);
         // Over Paris ahead, the satellite has no frame: not asked either.
         map.visibleBounds = paris;
         map.emitCameraIdle();
         async.flushMicrotasks();
-        expect(fetcher.newestAsked, isEmpty);
+        expect(fetcher.newestAsked, <String>['rain_hrrr']);
         expect(driver.status.value.newest, isEmpty);
         driver.dispose();
       });
@@ -893,6 +895,111 @@ void main() {
         map.emitCameraIdle();
         async.flushMicrotasks();
         expect(fetcher.images, hasLength(2));
+        driver.dispose();
+      });
+    });
+  });
+
+  group('the HRRR over the contiguous US', () {
+    final run = DateTime.utc(2026, 10, 10, 12);
+
+    test('ahead over New York, its frame of the newest run nearest the '
+        'moment, the global model left out', () {
+      fakeAsync((async) {
+        fetcher.newest['rain_hrrr'] = run;
+        map.visibleBounds = newYork;
+        configure(radar: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        // "Now" is the radar's, never the model's.
+        expect(drawn(), <String>['radar_noaa']);
+        expect(fetcher.radarImages, isEmpty);
+        configure(radar: true, offset: 30);
+        async.flushMicrotasks();
+        // 15:12 is 192 minutes from the run: its frame of 195, 15:15.
+        expect(fetcher.radarImages.map((i) => (i.$1, i.$3)), <Object>[
+          ('rain_hrrr', DateTime.utc(2026, 10, 10, 15, 15)),
+        ]);
+        expect(drawn(), <String>['rain_hrrr']);
+        expect(
+          shown().single.attribution,
+          'Forecast: NOAA HRRR via Iowa Environmental Mesonet',
+        );
+        expect(driver.status.value.newest, <String, DateTime>{
+          'rain_hrrr': run,
+        });
+        driver.dispose();
+      });
+    });
+
+    test('past the run\'s end, and while its run is not known, the global '
+        'model', () {
+      fakeAsync((async) {
+        fetcher.newest['rain_hrrr'] = run;
+        map.visibleBounds = newYork;
+        // 14:42 and 18 hours is past the run's 18 hours from 12 UTC.
+        configure(radar: true, offset: 1080);
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(fetcher.radarImages.map((i) => i.$1), <String>['rain_icon']);
+        expect(drawn(), <String>['rain_icon']);
+        driver.dispose();
+      });
+      fakeAsync((async) {
+        final unknown = WeatherMapDriver(
+          fetcher: fetcher..radarImages.clear(),
+          clock: () => now,
+          prefetch: false,
+        );
+        fetcher.newest.remove('rain_hrrr');
+        map.visibleBounds = newYork;
+        unknown
+          ..configure(
+            settings: const WeatherMapSettings(radar: true),
+            sources: defaultWeatherMapSources,
+            offsetMinutes: 30,
+          )
+          ..attach(map);
+        async.flushMicrotasks();
+        expect(fetcher.newestAsked, contains('rain_hrrr'));
+        expect(fetcher.radarImages.map((i) => i.$1), <String>['rain_icon']);
+        unknown.dispose();
+      });
+    });
+
+    test('its image failed: the global model in its place', () {
+      fakeAsync((async) {
+        fetcher
+          ..newest['rain_hrrr'] = run
+          ..radarAnswer = (source, _) => source.id == 'rain_hrrr'
+              ? null
+              : Uint8List.fromList(<int>[7, 8, 9]);
+        map.visibleBounds = newYork;
+        configure(radar: true, offset: 30, radarStyle: RadarStyle.soft);
+        driver.attach(map);
+        async.flushMicrotasks();
+        // Before the run is known the global model alone; then the HRRR,
+        // which fails, and the global model again, not left to it.
+        expect(fetcher.radarImages.map((i) => i.$1), <String>[
+          'rain_icon',
+          'rain_hrrr',
+          'rain_icon',
+        ]);
+        expect(drawn(), <String>['rain_icon']);
+        expect(fetcher.radarJobs.last.$2, '-rain_hrrr!');
+        driver.dispose();
+      });
+    });
+
+    test('over Europe ahead, ICON-EU as before', () {
+      fakeAsync((async) {
+        fetcher.newest['rain_hrrr'] = run;
+        map.visibleBounds = _view(2.35, 48.85);
+        configure(radar: true, offset: 180);
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(drawn(), <String>['rain_icon_eu']);
+        expect(fetcher.newestAsked, isNot(contains('rain_hrrr')));
         driver.dispose();
       });
     });

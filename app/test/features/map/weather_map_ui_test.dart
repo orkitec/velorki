@@ -169,6 +169,7 @@ void main() {
             {'id': 'radar_noaa', 'enabled': false},
             {'id': 'rain_hsaf', 'enabled': false},
             {'id': 'rain_icon_eu', 'enabled': false},
+            {'id': 'rain_hrrr', 'enabled': false},
             {'id': 'rain_icon', 'enabled': false},
           ])!,
         },

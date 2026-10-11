@@ -244,11 +244,23 @@ Uint8List _recolouredPixels(Uint8List rgba) {
 }
 
 /// The as-measured look of a rain image of [palette]: the service's
-/// colours as they are, only the global model's no-rain veil taken away;
-/// ICON-EU's hourly rain, whose colours stand for other rates than their
-/// own, in the colours of the rates they stand for.
+/// colours as they are, only the global model's no-rain veil and the N0Q
+/// ramp's echoes too weak to be rain taken away; ICON-EU's hourly rain,
+/// whose colours stand for other rates than their own, in the colours of
+/// the rates they stand for.
 Uint8List measuredRainPixels(Uint8List rgba, RainPalette palette) {
   if (palette == RainPalette.dwdModel1h) return _recolouredPixels(rgba);
+  if (palette == RainPalette.n0q) {
+    final legend = rainLegendOf(palette);
+    final out = Uint8List.fromList(rgba);
+    for (var o = 0; o + 3 < out.length; o += 4) {
+      if (out[o + 3] == 0) continue;
+      if (legend.classify(out[o], out[o + 1], out[o + 2], out[o + 3]) < 0) {
+        out[o + 3] = 0;
+      }
+    }
+    return out;
+  }
   if (palette != RainPalette.dwdModel6h) return rgba;
   final out = Uint8List.fromList(rgba);
   for (var o = 0; o + 3 < out.length; o += 4) {
@@ -473,7 +485,6 @@ class RainImageJob {
     required this.box,
     this.masks = const <List<LatLng>>[],
     this.coverages = const <RainCoverage>[],
-    this.forecast = false,
     this.extent,
   });
 
@@ -483,25 +494,20 @@ class RainImageJob {
   final List<List<LatLng>> masks;
   final List<RainCoverage> coverages;
 
-  /// Whether the image is a model's forecast, drawn lighter
-  /// ([forecastAlphaScale]).
-  final bool forecast;
-
   /// The source's [WeatherMapSource.extent]: where set, where the frame
   /// measures ([rainCoverageOf]) goes with the image ([readRainCoverage]).
   final List<LatLng>? extent;
 
-  /// Whether the image is to be touched at all: as measured, unmasked, no
-  /// forecast and in a palette drawn as it comes, it is drawn as the
-  /// service sent it.
+  /// Whether the image is to be touched at all: as measured, unmasked and
+  /// in a palette drawn as it comes, it is drawn as the service sent it.
   bool get needed =>
       soft ||
-      forecast ||
       masks.isNotEmpty ||
       coverages.isNotEmpty ||
       extent != null ||
       palette == RainPalette.dwdModel6h ||
-      palette == RainPalette.dwdModel1h;
+      palette == RainPalette.dwdModel1h ||
+      palette == RainPalette.n0q;
 }
 
 /// [rgba] ([width] × [height]) as [job] wants it drawn. A source cut by
@@ -528,11 +534,6 @@ Uint8List prepareRainPixels(
   }
   maskRainPixels(width, height, out, job.box, job.masks);
   cutRainPixels(width, height, out, job.box, job.coverages);
-  if (job.forecast) {
-    for (var o = 3; o < out.length; o += 4) {
-      out[o] = (out[o] * forecastAlphaScale).round();
-    }
-  }
   return out;
 }
 
@@ -553,6 +554,7 @@ Uint8List encodePngRgba(
   Uint8List? coverage,
   int? coverageWidth,
   int? coverageHeight,
+  int level = 6,
 }) {
   final raw = BytesBuilder(copy: false);
   final stride = width * 4;
@@ -586,7 +588,7 @@ Uint8List encodePngRgba(
       ...ZLibCodec(level: 6).encode(coverage),
     ]);
   }
-  chunk('IDAT', ZLibCodec(level: 6).encode(raw.takeBytes()));
+  chunk('IDAT', ZLibCodec(level: level).encode(raw.takeBytes()));
   chunk('IEND', const <int>[]);
   return out.takeBytes();
 }
@@ -832,6 +834,50 @@ const double rainUpsample = 2;
   return (index, weight);
 }
 
+/// The image [mosaic] describes, straight RGBA, from its [tiles] decoded
+/// (width, height, pixels), in the order of [TileMosaic.tiles]; a `null`
+/// tile is transparent. Each pixel takes the tile pixel under its middle.
+Uint8List composeTileMosaic(
+  TileMosaic mosaic,
+  List<(int, int, Uint8List)?> tiles,
+) {
+  final width = mosaic.width;
+  final height = mosaic.height;
+  final size = mosaic.tileSize;
+  final out = Uint8List(width * height * 4);
+  final xScale = (mosaic.right - mosaic.left) / width;
+  final yScale = (mosaic.bottom - mosaic.top) / height;
+  final maxX = mosaic.columns * size - 1;
+  final maxY = mosaic.rows * size - 1;
+  final columns = Int32List(width);
+  for (var i = 0; i < width; i++) {
+    columns[i] = (mosaic.left + (i + 0.5) * xScale).floor().clamp(0, maxX);
+  }
+  for (var j = 0; j < height; j++) {
+    final sy = (mosaic.top + (j + 0.5) * yScale).floor().clamp(0, maxY);
+    final row = sy ~/ size;
+    final inY = sy - row * size;
+    for (var i = 0; i < width; i++) {
+      final sx = columns[i];
+      final column = sx ~/ size;
+      final tile = tiles[row * mosaic.columns + column];
+      if (tile == null) continue;
+      final (tw, th, pixels) = tile;
+      // A tile of another size than said: scaled to it.
+      final tx = (sx - column * size) * tw ~/ size;
+      final ty = inY * th ~/ size;
+      final s = (ty * tw + tx) * 4;
+      if (s + 3 >= pixels.length) continue;
+      final o = (j * width + i) * 4;
+      out[o] = pixels[s];
+      out[o + 1] = pixels[s + 1];
+      out[o + 2] = pixels[s + 2];
+      out[o + 3] = pixels[s + 3];
+    }
+  }
+  return out;
+}
+
 Future<(int, int, Uint8List)> _decode(Uint8List png) async {
   final codec = await ui.instantiateImageCodec(png);
   final frame = await codec.getNextFrame();
@@ -855,7 +901,7 @@ const int cloudImageVersion = 2;
 /// What tells the rain images prepared now from those an older app left in
 /// the cache, which the age limit then clears: raised with each change to
 /// how they are prepared.
-const int rainImageVersion = 5;
+const int rainImageVersion = 6;
 
 /// The width and height of [png] from its header; `null` where it is not
 /// a PNG.
@@ -913,7 +959,8 @@ abstract class WeatherFetcher {
   });
 
   /// A rain source's image of [box] at [frame] (see
-  /// `WeatherMapSource.softImageUrl`): the soft radar, the satellite or a
+  /// `WeatherMapSource.softImageUrl`, or put together from its tiles,
+  /// `tileMosaicOf`): the soft radar, the satellite or a
   /// model, prepared for [style] with [masks] and [coverages] left out as
   /// [processRainImage] does; `null` when the service does not answer with
   /// an image within [weatherProbeTimeout], which is the source's check.
@@ -970,7 +1017,12 @@ class HttpWeatherFetcher implements WeatherFetcher {
     this.windTimeLimit = windTimeout,
     this.parseWind = parseWindGridInBackground,
     this.cacheBudget = weatherCacheBudget,
+    this.decodeTile = _decode,
   });
+
+  /// Decodes a tile of an image put together from tiles into straight
+  /// RGBA (the engine's decoder by default).
+  final Future<(int, int, Uint8List)> Function(Uint8List png) decodeTile;
 
   /// How many bytes the cache keeps on disk ([weatherCacheBudget]).
   final int cacheBudget;
@@ -1038,7 +1090,10 @@ class HttpWeatherFetcher implements WeatherFetcher {
       final status = response.statusCode ?? 0;
       final data = response.data;
       if (status < 200 || status >= 300 || data == null) return null;
-      return parseWmsNewestTime(data);
+      // A model named by its run says its newest run; a WMS its frames.
+      return source.timeFormat == WeatherTimeFormat.modelRun
+          ? parseModelRunTime(data)
+          : parseWmsNewestTime(data);
     } on Object {
       return null;
     }
@@ -1102,7 +1157,10 @@ class HttpWeatherFetcher implements WeatherFetcher {
     List<RainCoverage> coverages = const <RainCoverage>[],
     String maskKey = '',
   }) async {
-    final url = source.softImageUrl(frame, box);
+    final mosaic = source.imageFromTiles ? tileMosaicOf(source, box) : null;
+    final url = mosaic == null
+        ? source.softImageUrl(frame, box)
+        : source.imageTileUrl(frame, mosaic.zoom, mosaic.x0, mosaic.y0);
     if (url == null) return null;
     final prefix = '${source.id}_${style.name}${rainImageVersion}_';
     final name =
@@ -1115,7 +1173,6 @@ class HttpWeatherFetcher implements WeatherFetcher {
       box: box,
       masks: masks,
       coverages: coverages,
-      forecast: source.role == RainRole.model,
       extent: soft ? source.extent : null,
     );
     return _cloud(
@@ -1124,7 +1181,45 @@ class HttpWeatherFetcher implements WeatherFetcher {
       source: source.id,
       now,
       timeout: probeTimeout,
+      fetch: mosaic == null ? null : () => _mosaicImage(source, frame, mosaic),
       process: (png) => processRadar(png, job),
+    );
+  }
+
+  /// The image [mosaic] describes of [source] at [frame], put together
+  /// from its tiles, all asked for at once, as a PNG; `null` where one of
+  /// them cannot be had within [probeTimeout].
+  Future<Uint8List?> _mosaicImage(
+    WeatherMapSource source,
+    WeatherFrame frame,
+    TileMosaic mosaic,
+  ) async {
+    final bodies = await Future.wait(<Future<Uint8List?>>[
+      for (final (x, y) in mosaic.tiles)
+        _getImage(
+          source.imageTileUrl(frame, mosaic.zoom, x, y),
+          probeTimeout,
+          source: source.id,
+        ),
+    ]);
+    if (bodies.any((body) => body == null)) return null;
+    final tiles = <(int, int, Uint8List)?>[];
+    for (final body in bodies) {
+      try {
+        tiles.add(await decodeTile(body!));
+      } on Object catch (error) {
+        debugPrint('velorki: weather tile not decoded: $error');
+        return null;
+      }
+    }
+    return Isolate.run(
+      () => encodePngRgba(
+        mosaic.width,
+        mosaic.height,
+        composeTileMosaic(mosaic, tiles),
+        // Decoded again at once: speed over size.
+        level: 1,
+      ),
     );
   }
 
@@ -1214,9 +1309,9 @@ class HttpWeatherFetcher implements WeatherFetcher {
   }
 
   /// The image cached as [name], else fetched from [url] within [timeout]
-  /// (the cloud images' by default), turned by [process] and cached, the
-  /// cache then kept to its budget at [now] ([_WeatherCacheIndex.prune]).
-  /// A refusal is put down to [source].
+  /// (the cloud images' by default), or by [fetch] where given, turned by
+  /// [process] and cached, the cache then kept to its budget at [now]
+  /// ([_WeatherCacheIndex.prune]). A refusal is put down to [source].
   Future<Uint8List?> _cloud(
     String url,
     String name,
@@ -1224,6 +1319,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
     required Future<Uint8List> Function(Uint8List png) process,
     required String source,
     Duration? timeout,
+    Future<Uint8List?> Function()? fetch,
   }) async {
     final Directory dir;
     try {
@@ -1238,7 +1334,9 @@ class HttpWeatherFetcher implements WeatherFetcher {
       debugPrint('velorki: cloud cache unreadable: $error');
       return null;
     }
-    final body = await _getImage(url, timeout ?? imageTimeout, source: source);
+    final body = fetch != null
+        ? await fetch()
+        : await _getImage(url, timeout ?? imageTimeout, source: source);
     if (body == null) return null;
     final Uint8List png;
     try {

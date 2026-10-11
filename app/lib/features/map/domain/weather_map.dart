@@ -44,6 +44,10 @@ enum RainPalette {
   /// are mm in ten minutes, recoloured into the radar's legend at the rate
   /// the model actually gives.
   dwdModel1h,
+
+  /// The Iowa Environmental Mesonet's NEXRAD reflectivity ramp (N0Q), half
+  /// a dBZ a colour, which its HRRR forecast is drawn in.
+  n0q,
 }
 
 /// How the rain radar is drawn, chosen under Settings → Appearance.
@@ -70,26 +74,39 @@ enum WeatherTimeFormat {
 
   /// `{timeMs}` as milliseconds since the epoch.
   epochMs,
+
+  /// A model's run and the minutes from it: `{run}` as `YYYYMMDDHHMI` and
+  /// `{runMinute}` as four digits, in UTC. The run is the newest the
+  /// service names ([WeatherMapSource.timesUrl], [parseModelRunTime]);
+  /// without it the source has no frame.
+  modelRun,
 }
 
 /// A frame the map can ask a source for: [time] in UTC, or `null` for the
-/// service's latest image, which names no moment.
+/// service's latest image, which names no moment; for a model named by its
+/// run ([WeatherTimeFormat.modelRun]) also the [run] it comes from.
 @immutable
 class WeatherFrame {
   /// Creates the frame.
-  const WeatherFrame(this.time);
+  const WeatherFrame(this.time, {this.run});
 
   /// The moment shown, UTC; `null` for "the latest".
   final DateTime? time;
 
-  @override
-  bool operator ==(Object other) => other is WeatherFrame && other.time == time;
+  /// The model run the frame is from, UTC; `null` where the URL names none.
+  final DateTime? run;
 
   @override
-  int get hashCode => time.hashCode;
+  bool operator ==(Object other) =>
+      other is WeatherFrame && other.time == time && other.run == run;
 
   @override
-  String toString() => 'WeatherFrame(${time?.toIso8601String() ?? 'latest'})';
+  int get hashCode => Object.hash(time, run);
+
+  @override
+  String toString() =>
+      'WeatherFrame(${time?.toIso8601String() ?? 'latest'}'
+      '${run == null ? '' : ', run ${run!.toIso8601String()}'})';
 }
 
 /// One public service the map loads radar or cloud tiles from, straight
@@ -106,6 +123,8 @@ class WeatherFrame {
 ///
 /// A radar drawn soft ([RadarStyle.soft]) is one image of the view as
 /// well, from [imageUrlTemplate]; a radar without one stays on its tiles.
+/// Where that names `{z}`, `{x}` and `{y}` ([imageFromTiles]) the image is
+/// put together on the phone from the service's tiles ([tileMosaicOf]).
 @immutable
 class WeatherMapSource {
   /// Creates a source.
@@ -214,7 +233,8 @@ class WeatherMapSource {
   /// How far back the service keeps images, in minutes.
   final int historyMinutes;
 
-  /// How far ahead it forecasts, in minutes; 0 for none.
+  /// How far ahead it forecasts, in minutes; 0 for none. For a model named
+  /// by its run ([WeatherTimeFormat.modelRun]), from the run.
   final int forecastMinutes;
 
   /// The credit shown while the layer is drawn; `{year}` is the year of the
@@ -232,8 +252,20 @@ class WeatherMapSource {
 
   /// A radar's request for one image of a box, for the soft look: like
   /// [urlTemplate], with `{bbox-epsg-3857}`, `{width}` and `{height}` to
-  /// fill; `null` where the service only serves tiles.
+  /// fill, or a tile template (`{z}`, `{x}`, `{y}`) the image is put
+  /// together from ([imageFromTiles]); `null` where the service only serves
+  /// tiles to the map.
   final String? imageUrlTemplate;
+
+  /// Whether the image of a box is put together from tiles: an
+  /// [imageUrlTemplate] with `{z}`, `{x}` and `{y}` (see [tileMosaicOf]).
+  bool get imageFromTiles {
+    final template = imageUrlTemplate;
+    return template != null &&
+        template.contains('{z}') &&
+        template.contains('{x}') &&
+        template.contains('{y}');
+  }
 
   /// Whether the source is used at all; a fork or the mirror can switch one
   /// off.
@@ -251,7 +283,9 @@ class WeatherMapSource {
   /// [newest] is the newest frame the service has, where it said
   /// ([timesUrl]): no frame is asked for past it, moved back onto the
   /// source's grid (for the Meteosat images the full hour). Without it the
-  /// clock alone decides.
+  /// clock alone decides. For a model named by its run
+  /// ([WeatherTimeFormat.modelRun]) it is the run, without which there is
+  /// no frame ([runFrameAt]).
   WeatherFrame? frameAt(
     DateTime now, {
     int offsetMinutes = 0,
@@ -262,6 +296,16 @@ class WeatherMapSource {
       if (offsetMinutes < 0 || offsetMinutes > forecastMinutes) return null;
       return WeatherFrame(
         windFrameTime(now, offsetMinutes, forecastMinutes: forecastMinutes),
+      );
+    }
+    if (timeFormat == WeatherTimeFormat.modelRun) {
+      if (role == RainRole.model && offsetMinutes <= 0) return null;
+      if (newest == null) return null;
+      return runFrameAt(
+        newest,
+        now.add(Duration(minutes: offsetMinutes)),
+        stepMinutes: stepMinutes,
+        lastMinute: forecastMinutes,
       );
     }
     if (kind == WeatherKind.radar && role == RainRole.model) {
@@ -325,10 +369,25 @@ class WeatherMapSource {
   static String _withTime(String template, WeatherFrame frame) {
     final time = frame.time;
     if (time == null) return template;
+    final run = frame.run;
     return template
         .replaceAll('{time}', formatWeatherTime(time))
-        .replaceAll('{timeMs}', '${time.toUtc().millisecondsSinceEpoch}');
+        .replaceAll('{timeMs}', '${time.toUtc().millisecondsSinceEpoch}')
+        .replaceAll('{run}', run == null ? '' : formatModelRun(run))
+        .replaceAll(
+          '{runMinute}',
+          run == null
+              ? ''
+              : '${time.difference(run).inMinutes}'.padLeft(4, '0'),
+        );
   }
+
+  /// The URL of tile [x]/[y] at [zoom] of the image at [frame], for an
+  /// image put together from tiles ([imageFromTiles]).
+  String imageTileUrl(WeatherFrame frame, int zoom, int x, int y) => _withTime(
+    imageUrlTemplate ?? urlTemplate,
+    frame,
+  ).replaceAll('{z}', '$zoom').replaceAll('{x}', '$x').replaceAll('{y}', '$y');
 
   /// The request for the soft radar's image of [box] at [frame]: the
   /// service's own [nativeMetresPerPixel], each side within
@@ -627,6 +686,48 @@ DateTime? parseWmsNewestTime(String xml) {
   return newest ?? fallback;
 }
 
+/// The frame of a model's [run] for [moment] ([WeatherTimeFormat.modelRun]):
+/// the moment's minutes from the run, rounded to its [stepMinutes] grid;
+/// `null` where that falls before the run or past its [lastMinute].
+WeatherFrame? runFrameAt(
+  DateTime run,
+  DateTime moment, {
+  required int stepMinutes,
+  required int lastMinute,
+}) {
+  final step = math.max(1, stepMinutes);
+  final minutes =
+      moment.difference(run).inMilliseconds / Duration.millisecondsPerMinute;
+  final minute = (minutes / step).round() * step;
+  if (minute < 0 || minute > lastMinute) return null;
+  final start = run.toUtc();
+  return WeatherFrame(start.add(Duration(minutes: minute)), run: start);
+}
+
+/// The run a model's latest-run document names, UTC: the
+/// `model_init_utc` of the Iowa Environmental Mesonet's JSON, e.g.
+/// `{"model_init_utc": "2026-10-11T17:00:00Z", ...}`; `null` where [json]
+/// does not read as one.
+DateTime? parseModelRunTime(String json) {
+  try {
+    final data = jsonDecode(json);
+    if (data is! Map) return null;
+    final value = data['model_init_utc'];
+    if (value is! String) return null;
+    return DateTime.tryParse(value)?.toUtc();
+  } on FormatException {
+    return null;
+  }
+}
+
+/// [run] as a model's run is named in a URL: `YYYYMMDDHHMI`, UTC.
+String formatModelRun(DateTime run) {
+  final t = run.toUtc();
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${t.year.toString().padLeft(4, '0')}${two(t.month)}${two(t.day)}'
+      '${two(t.hour)}${two(t.minute)}';
+}
+
 /// [time] as the services want it: `YYYY-MM-DDTHH:MM:00.000Z`.
 String formatWeatherTime(DateTime time) {
   final t = time.toUtc();
@@ -794,14 +895,117 @@ const int radarSoftMaxSide = 1536;
 /// own resolution, each side within [radarSoftMinSide] and
 /// [radarSoftMaxSide]. A model's has no minimum: its box is already at
 /// least [modelMinCells] of its cells a side ([modelImageArea]), and one
-/// pixel a cell is what lets the map blend the cells into each other.
-(int, int) radarSoftImageSize(WeatherMapSource source, BoundingBox box) =>
-    cloudImageSize(
-      box,
-      metresPerPixel: source.nativeMetresPerPixel,
-      maxSide: radarSoftMaxSide,
-      minSide: source.role == RainRole.model ? 1 : radarSoftMinSide,
-    );
+/// pixel a cell is what lets the map blend the cells into each other. An
+/// image put together from tiles is the size of its mosaic
+/// ([tileMosaicOf]).
+(int, int) radarSoftImageSize(WeatherMapSource source, BoundingBox box) {
+  if (source.imageFromTiles) {
+    final mosaic = tileMosaicOf(source, box);
+    return (mosaic.width, mosaic.height);
+  }
+  return cloudImageSize(
+    box,
+    metresPerPixel: source.nativeMetresPerPixel,
+    maxSide: radarSoftMaxSide,
+    minSide: source.role == RainRole.model ? 1 : radarSoftMinSide,
+  );
+}
+
+/// How many tiles one image put together from tiles takes at most.
+const int weatherMosaicMaxTiles = 16;
+
+/// The tiles an image of a box is put together from ([tileMosaicOf]): a
+/// [columns] × [rows] block from tile [x0]/[y0] at [zoom], and where the
+/// box lies on it, in its pixels from the block's north-west corner
+/// ([left], [top], [right], [bottom]); the image is [width] × [height].
+@immutable
+class TileMosaic {
+  /// Creates the mosaic.
+  const TileMosaic({
+    required this.zoom,
+    required this.tileSize,
+    required this.x0,
+    required this.y0,
+    required this.columns,
+    required this.rows,
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+    required this.width,
+    required this.height,
+  });
+
+  final int zoom;
+  final int tileSize;
+  final int x0;
+  final int y0;
+  final int columns;
+  final int rows;
+  final double left;
+  final double top;
+  final double right;
+  final double bottom;
+  final int width;
+  final int height;
+
+  /// The tiles, row by row from the north-west: (x, y).
+  List<(int, int)> get tiles => <(int, int)>[
+    for (var y = y0; y < y0 + rows; y++)
+      for (var x = x0; x < x0 + columns; x++) (x, y),
+  ];
+
+  @override
+  String toString() =>
+      'TileMosaic(z$zoom, $x0/$y0 ${columns}x$rows, ${width}x$height)';
+}
+
+/// The tiles [source]'s image of [box] is put together from: at the
+/// finest zoom from its `maxZoom` down whose block of tiles is at most
+/// [weatherMosaicMaxTiles] and whose image is at most [radarSoftMaxSide]
+/// a side, never under its `minZoom`. The image is [box] at that zoom's
+/// resolution.
+TileMosaic tileMosaicOf(WeatherMapSource source, BoundingBox box) {
+  const origin = 20037508.342789244;
+  final size = source.tileSize;
+  final lowest = math.max(0, math.min(source.minZoom, source.maxZoom));
+  for (var zoom = math.max(lowest, source.maxZoom); ; zoom--) {
+    final n = 1 << zoom;
+    final world = n * size.toDouble();
+    double px(double mx) => (mx + origin) / (2 * origin) * world;
+    double py(double my) => (origin - my) / (2 * origin) * world;
+    final left = px(mercatorX(box.west));
+    final right = px(mercatorX(box.east));
+    final top = py(mercatorY(box.north));
+    final bottom = py(mercatorY(box.south));
+    final x0 = (left / size).floor().clamp(0, n - 1);
+    final x1 = math.max(x0, ((right / size).ceil() - 1).clamp(0, n - 1));
+    final y0 = (top / size).floor().clamp(0, n - 1);
+    final y1 = math.max(y0, ((bottom / size).ceil() - 1).clamp(0, n - 1));
+    final width = math.max(1, (right - left).round());
+    final height = math.max(1, (bottom - top).round());
+    final columns = x1 - x0 + 1;
+    final rows = y1 - y0 + 1;
+    if (zoom <= lowest ||
+        (columns * rows <= weatherMosaicMaxTiles &&
+            math.max(width, height) <= radarSoftMaxSide)) {
+      return TileMosaic(
+        zoom: zoom,
+        tileSize: size,
+        x0: x0,
+        y0: y0,
+        columns: columns,
+        rows: rows,
+        left: left - x0 * size,
+        top: top - y0 * size,
+        right: right - x0 * size,
+        bottom: bottom - y0 * size,
+        width: width,
+        height: height,
+      );
+    }
+  }
+}
 
 // A model's cells are kilometres wide (7 for ICON-EU, 28 for the global
 // ICON). An image of a city's view at the model's own resolution would be
@@ -812,11 +1016,6 @@ const int radarSoftMaxSide = 1536;
 
 /// The fewest of a model's own cells each side of its image spans.
 const int modelMinCells = 24;
-
-/// How much of its alpha a model's rain keeps, in either look: a model
-/// forecast is less certain than a measurement and should read lighter
-/// than the radar.
-const double forecastAlphaScale = 0.6;
 
 /// The area [source]'s (a model's) image of [area] covers: [area] grown
 /// to at least [modelMinCells] of the model's cells a side, about its
@@ -858,13 +1057,18 @@ bool radarSoftCapped(WeatherMapSource source, BoundingBox box) {
 
 /// What tells one soft radar image of [frame] from the next, besides its
 /// box: the moment, and for a moment still ahead also the newest frame
-/// measured, since each new measurement makes a new forecast of it.
+/// measured, since each new measurement makes a new forecast of it; for a
+/// model named by its run, the run.
 String radarImageStamp(
   WeatherMapSource source,
   WeatherFrame frame,
   DateTime now,
 ) {
   final time = frame.time;
+  final run = frame.run;
+  if (time != null && run != null) {
+    return '${time.millisecondsSinceEpoch}r${run.millisecondsSinceEpoch}';
+  }
   if (time == null) {
     // The latest image, which the URL cannot name: one per step.
     final step = math.max(1, source.stepMinutes) * 60000;
@@ -1336,6 +1540,91 @@ final WeatherMapSource iconGlobalRain = WeatherMapSource(
   attribution: 'Forecast: Deutscher Wetterdienst (CC BY 4.0)',
 );
 
+/// The forecast over the contiguous US from NOAA's HRRR model (3 km,
+/// hourly runs to 18 hours ahead), as the Iowa Environmental Mesonet draws
+/// its simulated reflectivity (`REFD`) in tiles, every 15 minutes of a run
+/// (public domain; attribution appreciated).
+///
+/// A tile names its run and the minutes from it (`F0015`, …, `F1080`), so
+/// the tiles of one run never mix with the next's: the newest run is read
+/// off the latest-run document ([parseModelRunTime]), two to three hours
+/// behind the clock, and each step shows the frame of that run nearest its
+/// moment ([runFrameAt]); a moment past the run's end is left to the
+/// global model, and so is everything while the run is not known. Drawn as
+/// the radar's classes from IEM's N0Q ramp ([RainPalette.n0q]). The image
+/// of a view is put together from the tiles on the phone (z7, some 1.2 km a
+/// pixel, at most [weatherMosaicMaxTiles] of them; [tileMosaicOf]).
+///
+/// The model's grid is a Lambert conformal one, so its edge is no box:
+/// [hrrrDomain] is that edge, and the global model after it fades in
+/// across the seam inside it, as beside the DWD's radar (see
+/// [WeatherMapSource.extent]).
+final WeatherMapSource hrrrRain = WeatherMapSource(
+  id: 'rain_hrrr',
+  kind: WeatherKind.radar,
+  role: RainRole.model,
+  palette: RainPalette.n0q,
+  urlTemplate: _hrrrTiles,
+  imageUrlTemplate: _hrrrTiles,
+  coverage: <BoundingBox>[_box(-134, 21, -61, 53)],
+  reach: const <List<LatLng>>[hrrrDomain],
+  extent: hrrrDomain,
+  maxZoom: 7,
+  timeFormat: WeatherTimeFormat.modelRun,
+  stepMinutes: 15,
+  delayMinutes: 0,
+  historyMinutes: 0,
+  forecastMinutes: 18 * 60,
+  // 3 km on the ground is about 3.8 km of Web Mercator at 38° N.
+  nativeMetresPerPixel: 3800,
+  attribution: 'Forecast: NOAA HRRR via Iowa Environmental Mesonet',
+  timesUrl:
+      'https://mesonet.agron.iastate.edu/data/gis/images/4326/hrrr/'
+      'refd_0000.json',
+);
+
+const String _hrrrTiles =
+    'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/'
+    'hrrr::REFD-F{runMinute}-{run}/{z}/{x}/{y}.png';
+
+/// The edge of the HRRR's grid (Lambert conformal, 38.5° N, 97.5° W,
+/// 1799 × 1059 cells of 3 km from 21.138° N, 122.720° W), 30 km inside it,
+/// eight points an edge.
+const List<LatLng> hrrrDomain = <LatLng>[
+  LatLng(21.46, -122.53),
+  LatLng(22.82, -116.47),
+  LatLng(23.82, -110.25),
+  LatLng(24.42, -103.91),
+  LatLng(24.63, -97.51),
+  LatLng(24.42, -91.10),
+  LatLng(23.82, -84.76),
+  LatLng(22.83, -78.53),
+  LatLng(21.46, -72.48),
+  LatLng(24.71, -71.48),
+  LatLng(28.00, -70.39),
+  LatLng(31.30, -69.21),
+  LatLng(34.61, -67.92),
+  LatLng(37.92, -66.52),
+  LatLng(41.22, -64.99),
+  LatLng(44.48, -63.30),
+  LatLng(47.70, -61.43),
+  LatLng(49.70, -69.84),
+  LatLng(51.16, -78.75),
+  LatLng(52.06, -88.03),
+  LatLng(52.35, -97.51),
+  LatLng(52.05, -106.98),
+  LatLng(51.16, -116.26),
+  LatLng(49.70, -125.17),
+  LatLng(47.70, -133.58),
+  LatLng(44.48, -131.71),
+  LatLng(41.21, -130.03),
+  LatLng(37.92, -128.49),
+  LatLng(34.61, -127.09),
+  LatLng(31.30, -125.80),
+  LatLng(27.99, -124.62),
+  LatLng(24.71, -123.53),
+];
+
 /// The wind 10 m above the ground everywhere, from the DWD's global ICON
 /// model on its 0.25° grid: the u and v components of one box at one
 /// moment as a plain-text grid from the DWD's WCS (`format=text/plain`;
@@ -1548,6 +1837,7 @@ final List<WeatherMapSource> defaultWeatherMapSources = <WeatherMapSource>[
   noaaRadar,
   hsafRain,
   iconEuRain,
+  hrrrRain,
   iconGlobalRain,
   goesEastClouds,
   goesWestClouds,
@@ -1722,6 +2012,7 @@ RainPalette? _palette(Object? v) => switch (v) {
   'hsaf' => RainPalette.hsaf,
   'dwdModel6h' => RainPalette.dwdModel6h,
   'dwdModel1h' => RainPalette.dwdModel1h,
+  'n0q' => RainPalette.n0q,
   _ => null,
 };
 
@@ -1729,6 +2020,7 @@ WeatherTimeFormat? _timeFormat(Object? v) => switch (v) {
   'none' => WeatherTimeFormat.none,
   'iso' => WeatherTimeFormat.iso,
   'epochMs' => WeatherTimeFormat.epochMs,
+  'modelRun' => WeatherTimeFormat.modelRun,
   _ => null,
 };
 
@@ -1835,7 +2127,8 @@ class RainPart {
 ///
 /// So at "Now" the radars draw where they reach and the satellite around
 /// them; ahead, the DWD's nowcast in its reach for two hours, ICON-EU over
-/// Europe around it and the global ICON everywhere else.
+/// Europe around it, the HRRR over the contiguous US and the global ICON
+/// everywhere else.
 ///
 /// A source is left out where the view lies wholly inside the coverage of
 /// one before it without an [WeatherMapSource.extent]; one with an extent
@@ -2048,7 +2341,7 @@ class RainCoverage {
 /// What the rain at [point] shows at [offsetMinutes] from [now]: the role
 /// of the first source in [sources] with a frame whose reach holds the
 /// point, and the moment it shows (for a model, the hour the step falls
-/// in). `null` where none does, or the source names no moment. [newest]
+/// in; for one named by its run, its frame's moment). `null` where none does, or the source names no moment. [newest]
 /// and [missing] as for [rainPartsAt]: where a model stands in at "Now",
 /// the model and the hour "Now" falls in.
 ({RainRole role, DateTime time})? rainAtPoint(
@@ -2076,7 +2369,11 @@ class RainCoverage {
     if (frame == null) continue;
     final time = frame.time;
     if (time == null) return null;
-    if (source.role != RainRole.model) return (role: source.role, time: time);
+    // A measurement, or a model's frame of its own moment (named by its
+    // run): that moment.
+    if (source.role != RainRole.model || frame.run != null) {
+      return (role: source.role, time: time);
+    }
     // The hour the step falls in, or where the model's frames end before
     // it, the last hour of the last frame.
     final moment = now

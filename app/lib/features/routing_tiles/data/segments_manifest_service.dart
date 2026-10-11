@@ -83,16 +83,19 @@ class _Shard {
 /// pointer hands it to [onPointer]. Each entry names an `id` and any of
 /// `enabled` (bool), `kind` (`radar`/`clouds`/`wind`), `url` (https, the
 /// tile or GetMap template with `{bbox-epsg-3857}`, `{z}/{x}/{y}`,
-/// `{width}`, `{height}`, `{time}`, `{timeMs}`; for the wind's WCS
-/// `{west}`, `{south}`, `{east}`, `{north}` and `{time}`), `time` (`none`/`iso`/`epochMs`),
+/// `{width}`, `{height}`, `{time}`, `{timeMs}`, a model's `{run}` and
+/// `{runMinute}`; for the wind's WCS `{west}`, `{south}`, `{east}`,
+/// `{north}` and `{time}`), `time` (`none`/`iso`/`epochMs`/`modelRun`),
 /// `stepMinutes`, `delayMinutes`, `historyMinutes`, `forecastMinutes`,
 /// `tileSize`, `minzoom`, `maxzoom`, `coverage` (`[[west, south, east,
 /// north], ...]`), `attribution` (`{year}` is the image's year),
 /// `opacity`, `metresPerPixel` (the service's native resolution, which a
 /// cloud detail and the soft radar's image are asked at) and `imageUrl`
 /// (https, a radar's GetMap or exportImage template for the soft radar,
-/// with `{bbox-epsg-3857}`, `{width}`, `{height}` and the time; without
-/// one the radar stays on tiles). An unknown `id` with `kind`, `url`,
+/// with `{bbox-epsg-3857}`, `{width}`, `{height}` and the time, or a tile
+/// template with `{z}/{x}/{y}` the image is put together from; without
+/// one the radar stays on tiles), `role`, `palette` and `timesUrl` (https,
+/// a WMS's capabilities, or for `modelRun` the latest-run JSON). An unknown `id` with `kind`, `url`,
 /// `coverage` and `attribution` adds a source. Anything unreadable falls back to the
 /// built-in sources; it is never an error.
 class SegmentsManifestService {

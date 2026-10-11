@@ -589,6 +589,13 @@ class WeatherMapDriver {
       )) {
         _askNewest(part.source, now);
       }
+      // A model named by its run has no frame before its run is known.
+      for (final source in _enabled(WeatherKind.radar)) {
+        if (source.timeFormat == WeatherTimeFormat.modelRun &&
+            source.covers(view)) {
+          _askNewest(source, now);
+        }
+      }
     }
 
     // Clouds first, which is under the rain.
@@ -1311,6 +1318,12 @@ class WeatherMapDriver {
             (s) => !_frames.containsKey(s.key) && !_rainFailed.contains(s.key),
           )) {
             return null;
+          }
+          // A model whose frame failed leaves its place to those after it.
+          if (source.role == RainRole.model &&
+              prior.slots.every((s) => _rainFailed.contains(s.key))) {
+            key.write('-${source.id}!');
+            continue;
           }
         }
       }

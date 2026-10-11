@@ -1342,6 +1342,201 @@ void main() {
     });
   });
 
+  group('the HRRR', () {
+    final run = DateTime.utc(2026, 10, 10, 12);
+    final nyc = view(-74, 40.7);
+
+    test('the frame of a moment: its minutes from the run, rounded to the '
+        'quarter hour, none before the run or past its 18 hours', () {
+      WeatherFrame? at(DateTime moment) =>
+          runFrameAt(run, moment, stepMinutes: 15, lastMinute: 1080);
+      expect(at(utc(12, 0)), WeatherFrame(utc(12, 0), run: run));
+      expect(at(utc(15, 7))!.time, utc(15, 0));
+      // Half way rounds up.
+      expect(at(utc(15, 7, 30))!.time, utc(15, 15));
+      expect(at(utc(15, 12))!.time, utc(15, 15));
+      // Just before the run still rounds onto it; further, none.
+      expect(at(utc(11, 53))!.time, utc(12, 0));
+      expect(at(utc(11, 52)), isNull);
+      // The run's last frame, 18 hours on; then none.
+      final end = run.add(const Duration(hours: 18));
+      expect(at(end.add(const Duration(minutes: 7)))!.time, end);
+      expect(at(end.add(const Duration(minutes: 8))), isNull);
+    });
+
+    test('ahead only, and only with the run known; its tiles name the run '
+        'and the minutes from it', () {
+      expect(hrrrRain.frameAt(utc(14, 42), offsetMinutes: 30), isNull);
+      expect(
+        hrrrRain.frameAt(utc(14, 42), newest: run),
+        isNull,
+        reason: '"Now" is the radar\'s',
+      );
+      final frame = hrrrRain.frameAt(
+        utc(14, 42),
+        offsetMinutes: 30,
+        newest: run,
+      )!;
+      expect(frame, WeatherFrame(utc(15, 15), run: run));
+      expect(
+        hrrrRain.imageTileUrl(frame, 6, 18, 24),
+        'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/'
+        'hrrr::REFD-F0195-202610101200/6/18/24.png',
+      );
+      // 14:42 and 18 hours is past 06:00, the run's end.
+      expect(
+        hrrrRain.frameAt(utc(14, 42), offsetMinutes: 1080, newest: run),
+        isNull,
+      );
+      // A run's frames are images of their own, the next run's apart.
+      final next = hrrrRain.frameAt(
+        utc(14, 42),
+        offsetMinutes: 30,
+        newest: run.add(const Duration(hours: 1)),
+      )!;
+      expect(next.time, frame.time);
+      expect(
+        radarImageStamp(hrrrRain, next, utc(14, 42)),
+        isNot(radarImageStamp(hrrrRain, frame, utc(14, 42))),
+      );
+    });
+
+    test('the latest run off its JSON; anything else none', () {
+      expect(
+        parseModelRunTime(
+          '{"model_init_utc": "2026-10-11T17:00:00Z", "forecast_minute": 0.0,'
+          ' "model_forecast_utc": "2026-10-11T17:00:00Z"}',
+        ),
+        DateTime.utc(2026, 10, 11, 17),
+      );
+      expect(parseModelRunTime(''), isNull);
+      expect(parseModelRunTime('<html>busy</html>'), isNull);
+      expect(parseModelRunTime('[]'), isNull);
+      expect(parseModelRunTime('{"model_init_utc": 17}'), isNull);
+      expect(parseModelRunTime('{"model_init_utc": "soon"}'), isNull);
+    });
+
+    List<String> partsAt(
+      BoundingBox where,
+      int offset, {
+      Map<String, DateTime>? newest,
+    }) => <String>[
+      for (final part in rainPartsAt(
+        defaultWeatherMapSources,
+        utc(14, 42),
+        offset,
+        view: where,
+        newest: newest ?? <String, DateTime>{'rain_hrrr': run},
+      ))
+        part.source.id,
+    ];
+
+    test('ahead over the US the HRRR, the global model after it cut by its '
+        'frame; elsewhere as before', () {
+      expect(partsAt(nyc, 0), <String>['radar_noaa']);
+      expect(partsAt(nyc, 30), <String>['rain_hrrr', 'rain_icon']);
+      final cut = rainPartsAt(
+        defaultWeatherMapSources,
+        utc(14, 42),
+        30,
+        view: nyc,
+        newest: <String, DateTime>{'rain_hrrr': run},
+      ).last;
+      expect(cut.cutBy, <WeatherMapSource>[hrrrRain]);
+      // Past the run, or before it is known: the global model alone.
+      expect(partsAt(nyc, 1080), <String>['rain_icon']);
+      expect(partsAt(nyc, 30, newest: const {}), <String>['rain_icon']);
+      // Outside its domain: the global model; over Europe ICON-EU.
+      expect(partsAt(view(-150, 20), 30), <String>['rain_icon']);
+      expect(partsAt(view(2.35, 48.85), 180), <String>['rain_icon_eu']);
+      expect(partsAt(view(13.4, 52.5), 30), <String>[
+        'radar_dwd',
+        'rain_icon_eu',
+      ]);
+    });
+
+    test(
+      'its domain: the contiguous US, not Alaska, Hawaii or Mexico City',
+      () {
+        expect(hrrrRain.reaches(const LatLng(40.7, -74)), isTrue);
+        expect(hrrrRain.reaches(const LatLng(47.6, -122.3)), isTrue);
+        expect(hrrrRain.reaches(const LatLng(25.8, -80.2)), isTrue);
+        expect(hrrrRain.reaches(const LatLng(61.2, -149.9)), isFalse);
+        expect(hrrrRain.reaches(const LatLng(21.3, -157.9)), isFalse);
+        expect(hrrrRain.reaches(const LatLng(19.4, -99.1)), isFalse);
+        for (final p in hrrrDomain) {
+          expect(hrrrRain.coverage.single.contains(p), isTrue, reason: '$p');
+        }
+      },
+    );
+
+    test('the label: its frame\'s own moment, a forecast', () {
+      final rain = rainAtPoint(
+        defaultWeatherMapSources,
+        const LatLng(40.7, -74),
+        utc(14, 42),
+        30,
+        newest: <String, DateTime>{'rain_hrrr': run},
+      );
+      expect(rain, (role: RainRole.model, time: utc(15, 15)));
+    });
+
+    test('its image of a box put together from at most 16 tiles, at z7 '
+        'where that is enough', () {
+      final city = hrrrRain.softBox(modelImageArea(hrrrRain, nyc))!;
+      final near = tileMosaicOf(hrrrRain, city);
+      expect(near.zoom, 7);
+      expect(near.columns * near.rows, lessThanOrEqualTo(4));
+      expect(radarSoftImageSize(hrrrRain, city), (near.width, near.height));
+      // The box at z7's resolution: some 1.2 km a pixel.
+      final metres = mercatorX(city.east) - mercatorX(city.west);
+      expect(metres / near.width, closeTo(2 * 20037508.34 / (256 << 7), 30));
+      // Its pixels lie on the tiles: the box's edges inside the block.
+      expect(near.left, inInclusiveRange(0, 256));
+      expect(near.right, inInclusiveRange(near.left, near.columns * 256));
+      expect(near.tiles.first, (near.x0, near.y0));
+      // The whole domain: coarser, still within 16 tiles and the side.
+      final all = hrrrRain.softBox(view(-97, 37, 40))!;
+      final far = tileMosaicOf(hrrrRain, all);
+      expect(far.zoom, lessThan(7));
+      expect(far.columns * far.rows, lessThanOrEqualTo(weatherMosaicMaxTiles));
+      expect(
+        math.max(far.width, far.height),
+        lessThanOrEqualTo(radarSoftMaxSide),
+      );
+      expect(radarSoftCapped(hrrrRain, all), isTrue);
+      expect(radarSoftCapped(hrrrRain, city), isFalse);
+    });
+
+    test('the mirror can override it, by its run\'s format and its ramp', () {
+      final sources = applyWeatherOverride(defaultWeatherMapSources, [
+        {'id': 'rain_hrrr', 'enabled': false},
+        {
+          'id': 'rain_other',
+          'kind': 'radar',
+          'role': 'model',
+          'url': 'https://example.org/F{runMinute}-{run}/{z}/{x}/{y}.png',
+          'imageUrl': 'https://example.org/F{runMinute}-{run}/{z}/{x}/{y}.png',
+          'coverage': [
+            [-100, 30, -90, 40],
+          ],
+          'attribution': 'Forecast: elsewhere',
+          'time': 'modelRun',
+          'palette': 'n0q',
+          'timesUrl': 'https://example.org/latest.json',
+        },
+      ]);
+      expect(sources.firstWhere((s) => s.id == 'rain_hrrr').enabled, isFalse);
+      final other = sources.firstWhere((s) => s.id == 'rain_other');
+      expect(other.timeFormat, WeatherTimeFormat.modelRun);
+      expect(other.palette, RainPalette.n0q);
+      expect(other.imageFromTiles, isTrue);
+      expect(other.timesUrl, 'https://example.org/latest.json');
+      expect(hrrrRain.imageFromTiles, isTrue);
+      expect(iconEuRain.imageFromTiles, isFalse);
+    });
+  });
+
   test('the steps from one outwards, alternately later and earlier', () {
     expect(weatherStepsOutwards(60).take(7), <int>[
       60,

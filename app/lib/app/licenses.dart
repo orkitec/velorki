@@ -113,6 +113,8 @@ EUMETSAT H SAF data, CC BY 4.0 under the EUMETSAT Data Policy, which makes
 every SAF product Core data.
 Rain forecast: the ICON-EU and ICON models of the Deutscher Wetterdienst
 (DWD), CC BY 4.0.
+Rain forecast over the contiguous US: NOAA's HRRR model via the Iowa
+Environmental Mesonet (Iowa State University), public domain.
 Clouds over the Americas: NOAA GOES imagery via NASA GIBS (Global Imagery
 Browse Services), public domain.
 Clouds over Europe and Africa: contains modified EUMETSAT Meteosat data,
@@ -121,6 +123,7 @@ makes freely available are used.
 
 https://www.dwd.de/
 https://www.weather.gov/
+https://mesonet.agron.iastate.edu/
 https://www.earthdata.nasa.gov/gibs
 https://www.eumetsat.int/
 https://hsaf.meteoam.it/'''),

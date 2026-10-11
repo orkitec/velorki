@@ -47,6 +47,12 @@ class _Adapter implements HttpClientAdapter {
 Uint8List _pixel(int r, int g, int b, int a) =>
     Uint8List.fromList(<int>[r, g, b, a]);
 
+/// The pixel of the N0Q ramp for [dbz].
+Uint8List _n0qPixel(double dbz) {
+  final c = n0qColours[((dbz + 32) * 2).round()];
+  return _pixel(c >> 16 & 0xFF, c >> 8 & 0xFF, c & 0xFF, 255);
+}
+
 void main() {
   group('whitenCloudPixels', () {
     test('dark ground is clear, the coldest cloud at the most alpha', () {
@@ -846,6 +852,79 @@ void main() {
       expect(await fetcher.newestFrame(hsafRain), isNull);
     });
 
+    test('the HRRR\'s run off its latest-run JSON', () async {
+      adapter
+        ..contentType = 'application/json'
+        ..body = Uint8List.fromList(
+          utf8.encode(
+            '{"model_init_utc": "2026-10-11T17:00:00Z", '
+            '"forecast_minute": 0.0}',
+          ),
+        );
+      expect(
+        await fetcher.newestFrame(hrrrRain),
+        DateTime.utc(2026, 10, 11, 17),
+      );
+      expect(adapter.requests.single.toString(), hrrrRain.timesUrl);
+      // Not JSON, or not there: none, and the global model stays.
+      adapter.body = Uint8List.fromList(utf8.encode('<html>busy</html>'));
+      expect(await fetcher.newestFrame(hrrrRain), isNull);
+      adapter.status = 503;
+      expect(await fetcher.newestFrame(hrrrRain), isNull);
+    });
+
+    test('the HRRR\'s image: its tiles of the run asked for, put together '
+        'and prepared once, then from the cache', () async {
+      final decoded = <int>[];
+      final tiled = HttpWeatherFetcher(
+        dio: Dio()..httpClientAdapter = adapter,
+        cacheDir: () async => dir,
+        probeTimeout: const Duration(milliseconds: 200),
+        processRadar: (png, job) async {
+          processed++;
+          jobs.add(job);
+          return png;
+        },
+        // Each tile one colour, its order among those asked.
+        decodeTile: (png) async {
+          decoded.add(decoded.length);
+          return (
+            256,
+            256,
+            Uint8List(256 * 256 * 4)..fillRange(0, 256 * 256 * 4, 10),
+          );
+        },
+      );
+      final now = DateTime.utc(2026, 10, 10, 14, 42);
+      final run = DateTime.utc(2026, 10, 10, 12);
+      final frame = hrrrRain.frameAt(now, offsetMinutes: 30, newest: run)!;
+      final nyc = hrrrRain.softBox(
+        modelImageArea(
+          hrrrRain,
+          const BoundingBox(south: 40.5, west: -74.2, north: 40.9, east: -73.8),
+        ),
+      )!;
+      final mosaic = tileMosaicOf(hrrrRain, nyc);
+      final image = await tiled.radarImage(hrrrRain, nyc, frame, now);
+      expect(image, isNotNull);
+      expect(adapter.requests, hasLength(mosaic.columns * mosaic.rows));
+      expect(adapter.requests.map((u) => u.toString()).toSet(), <String>{
+        for (final (x, y) in mosaic.tiles)
+          'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/'
+              'hrrr::REFD-F0195-202610101200/7/$x/$y.png',
+      });
+      expect(pngSize(image!), (mosaic.width, mosaic.height));
+      expect(jobs.single.palette, RainPalette.n0q);
+      expect(jobs.single.extent, hrrrDomain);
+      expect(await tiled.radarImage(hrrrRain, nyc, frame, now), image);
+      expect(adapter.requests, hasLength(mosaic.columns * mosaic.rows));
+      // One tile not there (past the run's end, a 503): no image.
+      adapter.status = 503;
+      final later = hrrrRain.frameAt(now, offsetMinutes: 60, newest: run)!;
+      expect(await tiled.radarImage(hrrrRain, nyc, later, now), isNull);
+      expect(processed, 1);
+    });
+
     group('the cache\'s budget', () {
       // Each prepared image is four bytes: the budget holds three.
       HttpWeatherFetcher budgeted() => HttpWeatherFetcher(
@@ -980,22 +1059,6 @@ void main() {
       expect(adapter.requests, hasLength(3));
       expect(jobs[1].soft, isFalse);
       expect(jobs[2].masks, isEmpty);
-      // The satellite measures: not drawn lighter.
-      expect(jobs.any((job) => job.forecast), isFalse);
-    });
-
-    test('a model\'s image is a forecast, a radar\'s is not', () async {
-      final now = DateTime.utc(2026, 10, 10, 14, 42);
-      for (final source in <WeatherMapSource>[iconEuRain, iconGlobalRain]) {
-        await fetcher.radarImage(
-          source,
-          source.softBox(box)!,
-          source.frameAt(now, offsetMinutes: 60)!,
-          now,
-        );
-      }
-      await fetcher.radarImage(dwdRadar, box, dwdRadar.frameAt(now)!, now);
-      expect(jobs.map((job) => job.forecast), <bool>[true, true, false]);
     });
   });
 
@@ -1123,6 +1186,75 @@ void main() {
       );
     });
 
+    test('the HRRR\'s N0Q ramp: each colour its dBZ, drawn as the radar\'s '
+        'class for its rate by Marshall–Palmer; under 5 dBZ no rain', () {
+      final legend = n0qLegend;
+      int at(double dbz) {
+        final c = n0qColours[((dbz + 32) * 2).round()];
+        return legend.classify(c >> 16 & 0xFF, c >> 8 & 0xFF, c & 0xFF, 255);
+      }
+
+      expect(n0qColours, hasLength(255));
+      expect(n0qDbzOf(0), -32);
+      expect(n0qDbzOf(254), 95);
+      // The table's own rows: 5 dBZ #6376A8, 40 dBZ #FFE200 (index 145).
+      expect(n0qColours[74], 0x6376A8);
+      expect(n0qColours[144], 0xFFE200);
+      // Under 5 dBZ, the clear-air echoes the model draws: no rain.
+      for (final dbz in <double>[-32, -10, 0, 4.5]) {
+        expect(at(dbz), rainNone, reason: '$dbz dBZ');
+      }
+      // From 5 dBZ (0.08 mm an hour) the radar's lightest at least.
+      expect(at(5), 0);
+      expect(at(10), 0); // 0.15 mm/h
+      expect(at(15), 1); // 0.31
+      expect(at(20), 2); // 0.65
+      expect(at(25), 3); // 1.3
+      expect(at(30), 4); // 2.7
+      expect(at(35), 6); // 5.6
+      expect(at(40), 8); // 11.5
+      expect(at(45), 9); // 24 mm/h: 15–30
+      expect(at(50), 11); // 49
+      expect(at(55), 12); // 99.9
+      expect(at(60), 14); // 205
+      expect(at(95), 14);
+      // Every colour of the ramp reads as its own class.
+      for (var i = 0; i < n0qColours.length; i++) {
+        final c = n0qColours[i];
+        final dbz = n0qDbzOf(i);
+        final expected = dbz < n0qMinRainDbz
+            ? rainNone
+            : math.max(0, dwdRadarClassOf(marshallPalmerRate(dbz)));
+        expect(
+          legend.classify(c >> 16 & 0xFF, c >> 8 & 0xFF, c & 0xFF, 255),
+          expected,
+          reason: '$dbz dBZ',
+        );
+      }
+      expect(marshallPalmerRate(40), closeTo(11.53, 0.01));
+      // Drawn soft in the radar's colours; as measured in its own, the
+      // echoes under 5 dBZ gone.
+      final green = n0qColours[((25 + 32) * 2)];
+      final pixel = _pixel(green >> 16, green >> 8 & 0xFF, green & 0xFF, 255);
+      expect(softenRainPixels(1, 1, pixel, RainPalette.n0q), <int>[
+        0x4D,
+        0xB3,
+        0x1B,
+        level(dwdRadarLegend.alphaOf(3)),
+      ]);
+      expect(measuredRainPixels(pixel, RainPalette.n0q), pixel);
+      final weak = n0qColours[((0 + 32) * 2)];
+      expect(
+        measuredRainPixels(
+          _pixel(weak >> 16, weak >> 8 & 0xFF, weak & 0xFF, 255),
+          RainPalette.n0q,
+        )[3],
+        0,
+      );
+      expect(rainLegendOf(RainPalette.n0q), same(n0qLegend));
+      expect(hrrrRain.palette, RainPalette.n0q);
+    });
+
     test('the radars keep their own legends', () {
       expect(dwdRadar.palette, RainPalette.dwd);
       expect(noaaRadar.palette, RainPalette.noaa);
@@ -1162,54 +1294,86 @@ void main() {
     });
   });
 
-  group('forecast alpha', () {
+  group('no forecast fade', () {
     const box = BoundingBox(south: 0, west: 0, north: 1, east: 1);
-    final cases = <(RainPalette, Uint8List)>[
-      (RainPalette.dwd, _pixel(0x01, 0x99, 0x34, 255)),
-      (RainPalette.dwdModel6h, _pixel(0x00, 0xBF, 0x01, 255)),
-    ];
 
     for (final soft in <bool>[true, false]) {
-      test('a model\'s pixels keep $forecastAlphaScale of their alpha '
-          '(soft: $soft), a measurement\'s all', () {
-        for (final (palette, pixel) in cases) {
-          final measured = prepareRainPixels(
-            1,
-            1,
-            pixel,
-            RainImageJob(palette: palette, soft: soft, box: box),
-          );
-          final forecast = prepareRainPixels(
-            1,
-            1,
-            pixel,
-            RainImageJob(
-              palette: palette,
-              soft: soft,
-              box: box,
-              forecast: true,
-            ),
-          );
-          expect(measured[3], greaterThan(0), reason: '$palette');
-          expect(
-            forecast[3],
-            (measured[3] * forecastAlphaScale).round(),
-            reason: '$palette',
-          );
-          expect(forecast.sublist(0, 3), measured.sublist(0, 3));
+      test('a model\'s rain is as opaque as measured rain of its class '
+          '(soft: $soft)', () {
+        // The radar's 1–2 mm green, measured; ICON-EU's orange and the
+        // global model's 5–10 mm, which stand for the same class; and the
+        // HRRR's 25 dBZ (1.3 mm an hour).
+        final cases = <(RainPalette, Uint8List)>[
+          (RainPalette.dwd, _pixel(0x4D, 0xB3, 0x1B, 255)),
+          (RainPalette.dwdModel1h, _pixel(0xFF, 0x89, 0x01, 255)),
+          (RainPalette.n0q, _n0qPixel(25)),
+        ];
+        final alphas = <int>[
+          for (final (palette, pixel) in cases)
+            prepareRainPixels(
+              1,
+              1,
+              pixel,
+              RainImageJob(palette: palette, soft: soft, box: box),
+            )[3],
+        ];
+        expect(alphas.first, greaterThan(0));
+        expect(alphas.toSet(), hasLength(1), reason: '$alphas');
+        if (soft) {
+          expect(alphas.first, (dwdRadarLegend.alphaOf(3) * 255).round());
+        } else {
+          expect(alphas.first, 255);
         }
       });
     }
+  });
 
-    test('a forecast job is always needed', () {
+  group('a mosaic of tiles', () {
+    test('each pixel takes the tile pixel under its middle, across the '
+        'tiles\' seams; a missing tile is transparent', () {
+      // Two tiles of 4 pixels side by side, the box from the middle of the
+      // first to the middle of the second: 4 pixels wide, one high.
+      const mosaic = TileMosaic(
+        zoom: 1,
+        tileSize: 4,
+        x0: 0,
+        y0: 0,
+        columns: 2,
+        rows: 1,
+        left: 2,
+        top: 1,
+        right: 6,
+        bottom: 2,
+        width: 4,
+        height: 1,
+      );
+      (int, int, Uint8List) tile(int Function(int x) shade) {
+        final out = Uint8List(4 * 4 * 4);
+        for (var y = 0; y < 4; y++) {
+          for (var x = 0; x < 4; x++) {
+            final o = (y * 4 + x) * 4;
+            out[o] = shade(x);
+            out[o + 3] = 255;
+          }
+        }
+        return (4, 4, out);
+      }
+
+      final out = composeTileMosaic(mosaic, <(int, int, Uint8List)?>[
+        tile((x) => 10 + x),
+        tile((x) => 20 + x),
+      ]);
       expect(
-        const RainImageJob(
-          palette: RainPalette.dwd,
-          soft: false,
-          box: box,
-          forecast: true,
-        ).needed,
-        isTrue,
+        <int>[for (var i = 0; i < 4; i++) out[i * 4]],
+        <int>[12, 13, 20, 21],
+      );
+      final gap = composeTileMosaic(mosaic, <(int, int, Uint8List)?>[
+        tile((x) => 10 + x),
+        null,
+      ]);
+      expect(
+        <int>[for (var i = 0; i < 4; i++) gap[i * 4 + 3]],
+        <int>[255, 255, 0, 0],
       );
     });
   });
