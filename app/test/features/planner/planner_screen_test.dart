@@ -16,10 +16,13 @@ import 'package:velorki/features/planner/presentation/waypoint_edit_sheet.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
+import 'package:velorki/features/planner/domain/routing_options.dart';
+import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
 import 'package:velorki/features/search/presentation/place_card.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
+import 'package:velorki/features/weather/presentation/route_weather_section.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/shared/application/nav_bar_docking.dart';
@@ -89,6 +92,38 @@ void main() {
     await tester.tap(save);
     await tester.pumpAndSettle();
     expect(find.text(l10n.plannerSaveDialogTitle), findsOneWidget);
+  });
+
+  testWidgets('a round trip with its start alone shows its profile and '
+      'surfaces', (tester) async {
+    await pumpScreen(tester, const PlannerScreen());
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    const start = LatLng(32.65, -16.91);
+    container
+        .read(plannerControllerProvider.notifier)
+        .loadComputedRoute(
+          result: RouteResult(
+            geometry: [
+              TrackPoint(start, ele: 10),
+              TrackPoint(LatLng(32.66, -16.90), ele: 60),
+              TrackPoint(LatLng(32.67, -16.92), ele: 40),
+              TrackPoint(start, ele: 10),
+            ],
+            lengthM: 5000,
+            ascentM: 50,
+            descentM: 50,
+            messages: [],
+            raw: <String, dynamic>{},
+          ),
+          waypoints: [Waypoint(pos: start)],
+          options: RoutingOptions(),
+        );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ElevationProfileChart), findsOneWidget);
+    expect(find.byType(RouteWeatherSection), findsOneWidget);
   });
 
   testWidgets('tapping the map twice plots a route with stats', (tester) async {

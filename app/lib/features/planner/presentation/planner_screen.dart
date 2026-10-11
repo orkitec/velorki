@@ -1561,7 +1561,9 @@ class _SheetBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final route = state.result;
-    if (route == null || !state.isRoutable) return const SizedBox.shrink();
+    // A round trip comes with its start alone and is still a route: the
+    // plan drops its route when the waypoints go under two by hand.
+    if (route == null) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
