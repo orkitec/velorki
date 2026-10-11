@@ -68,8 +68,7 @@ String weatherRainLabel(
   ].join(' · ');
 }
 
-/// Whether the rain is on and some source of it in use: whether the
-/// sheets show [WeatherTimeRow].
+/// Whether the rain is on and some source of it in use.
 bool weatherRainOn(WidgetRef ref) =>
     ref.watch(weatherMapPreferencesProvider).radar &&
     weatherKindAvailable(
@@ -77,8 +76,52 @@ bool weatherRainOn(WidgetRef ref) =>
       WeatherKind.radar,
     );
 
-/// The rain's time control, for the Plan and Record sheets while the rain
-/// is on, nothing while it is off: the drop, the label and the slider in
+/// Whether the wind is on and some source of it in use.
+bool weatherWindOn(WidgetRef ref) =>
+    ref.watch(weatherMapPreferencesProvider).wind &&
+    weatherKindAvailable(
+      ref.watch(weatherMapSourcesProvider),
+      WeatherKind.wind,
+    );
+
+/// Whether the rain or the wind is on: whether the sheets show
+/// [WeatherTimeRow], which both follow.
+bool weatherTimeOn(WidgetRef ref) => weatherRainOn(ref) || weatherWindOn(ref);
+
+/// The hour the wind shows at [offsetMinutes], by the sources in force and
+/// the map's [status]; `null` without a wind source.
+DateTime? weatherWindAt(
+  List<WeatherMapSource> sources,
+  WeatherMapStatus status,
+  int offsetMinutes,
+) {
+  final source = sources
+      .where((s) => s.enabled && s.kind == WeatherKind.wind)
+      .firstOrNull;
+  return source
+      ?.frameAt(status.at ?? DateTime.now(), offsetMinutes: offsetMinutes)
+      ?.time;
+}
+
+/// The time control's label with the wind alone on: the step, the hour
+/// the wind shows and, ahead, that it is a forecast. "Now · 20:00",
+/// "+3 h · 23:00 · Forecast".
+String weatherWindLabel(
+  BuildContext context,
+  int offsetMinutes,
+  DateTime? wind,
+) {
+  final l10n = AppLocalizations.of(context);
+  return <String>[
+    weatherStepText(l10n, offsetMinutes),
+    if (wind != null) weatherClockTime(context, wind),
+    if (wind != null && offsetMinutes > 0) l10n.mapWeatherForecast,
+  ].join(' · ');
+}
+
+/// The rain's and the wind's time control, for the Plan and Record sheets
+/// while either is on, nothing while both are off (with the rain off, its
+/// label tells the wind's hour): the drop, the label and the slider in
 /// one line, the label as wide as the widest it can get
 /// ([weatherTimeLabelWidth]) and the slider in all the room that is left;
 /// where that would leave the slider less than [weatherSliderMinShare] of
@@ -129,11 +172,21 @@ TextStyle? weatherTimeLabelStyle(ThemeData theme) =>
 double weatherTimeLabelWidth(
   BuildContext context,
   List<WeatherMapSource> sources,
-  WeatherMapStatus status,
-) {
+  WeatherMapStatus status, {
+  bool wind = false,
+}) {
   final l10n = AppLocalizations.of(context);
   final labels = <String>{};
   for (final offset in weatherRadarOffsets) {
+    if (wind) {
+      labels.add(
+        weatherWindLabel(
+          context,
+          offset,
+          weatherWindAt(sources, status, offset),
+        ),
+      );
+    }
     final rain = weatherRainAt(sources, status, offset);
     final parts = <String>[
       weatherStepText(l10n, offset),
@@ -177,17 +230,18 @@ bool weatherTimeRowStacks(double rowWidth, double labelWidth) =>
     rowWidth - _weatherTimeLead - labelWidth < rowWidth * weatherSliderMinShare;
 
 /// How tall [WeatherTimeRow] is [rowWidth] wide, without its padding: 0
-/// while the rain is off.
+/// while the rain and the wind are off.
 double weatherTimeRowHeightFor(
   BuildContext context,
   WidgetRef ref,
   double rowWidth,
 ) {
-  if (!weatherRainOn(ref)) return 0;
+  if (!weatherTimeOn(ref)) return 0;
   final width = weatherTimeLabelWidth(
     context,
     ref.watch(weatherMapSourcesProvider),
     ref.watch(sharedWeatherMapStatusProvider),
+    wind: !weatherRainOn(ref),
   );
   return weatherTimeRowStacks(rowWidth, width)
       ? weatherTimeRowStackedHeight
@@ -200,20 +254,33 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
 
   @override
   Widget build(BuildContext context) {
-    if (!weatherRainOn(ref)) return const SizedBox.shrink();
+    if (!weatherTimeOn(ref)) return const SizedBox.shrink();
     final theme = Theme.of(context);
     final sources = ref.watch(weatherMapSourcesProvider);
     final status = ref.watch(sharedWeatherMapStatusProvider);
     final committed = ref.watch(weatherRadarOffsetProvider);
     final offset = _dragging ?? committed;
-    final label = weatherRainLabel(
+    // With the rain on the label tells the rain's moment, else the wind's.
+    final rainOn = weatherRainOn(ref);
+    final label = rainOn
+        ? weatherRainLabel(
+            context,
+            offset,
+            weatherRainAt(sources, status, offset),
+          )
+        : weatherWindLabel(
+            context,
+            offset,
+            weatherWindAt(sources, status, offset),
+          );
+    final labelWidth = weatherTimeLabelWidth(
       context,
-      offset,
-      weatherRainAt(sources, status, offset),
+      sources,
+      status,
+      wind: !rainOn,
     );
-    final labelWidth = weatherTimeLabelWidth(context, sources, status);
     final drop = Icon(
-      Icons.water_drop_outlined,
+      rainOn ? Icons.water_drop_outlined : Icons.air,
       size: 18,
       color: theme.colorScheme.primary,
     );
@@ -227,7 +294,7 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
       padding: widget.padding,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final slider = _slider(context, offset, label);
+          final slider = _slider(context, offset, label, rainOn: rainOn);
           if (weatherTimeRowStacks(constraints.maxWidth, labelWidth)) {
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -276,7 +343,12 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
     );
   }
 
-  Widget _slider(BuildContext context, int offset, String label) {
+  Widget _slider(
+    BuildContext context,
+    int offset,
+    String label, {
+    required bool rainOn,
+  }) {
     final l10n = AppLocalizations.of(context);
     return SliderTheme(
       data: SliderTheme.of(context).copyWith(
@@ -285,7 +357,7 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
       child: SizedBox(
         height: weatherTimeRowHeight,
         child: Semantics(
-          label: l10n.mapWeatherRadarTime,
+          label: rainOn ? l10n.mapWeatherRadarTime : l10n.mapWeatherWindTime,
           child: Slider(
             value: weatherSliderIndexOf(offset).toDouble(),
             max: (weatherRadarOffsets.length - 1).toDouble(),
@@ -308,7 +380,7 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
 }
 
 /// The weather's short lines over the map: the clouds' time while they are
-/// on, and that a layer is unavailable where its service did not answer,
+/// on, and that a layer (the rain, the clouds, the wind) is unavailable where its service did not answer,
 /// which would otherwise look like a dry, clear day. With [rainTime], also
 /// the rain's moment, for the Library tab, which has no time control.
 /// Nothing when there is nothing to say.
@@ -328,9 +400,10 @@ class WeatherMapHints extends ConsumerWidget {
     final settings = ref.watch(weatherMapPreferencesProvider);
     final sources = ref.watch(weatherMapSourcesProvider);
     final rain = weatherRainOn(ref);
+    final wind = weatherWindOn(ref);
     final clouds =
         settings.clouds && weatherKindAvailable(sources, WeatherKind.clouds);
-    if (!rain && !clouds) return const SizedBox.shrink();
+    if (!rain && !clouds && !wind) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
     final status = ref.watch(sharedWeatherMapStatusProvider);
     final cloudsFrame = clouds ? status.cloudsFrame : null;
@@ -357,6 +430,12 @@ class WeatherMapHints extends ConsumerWidget {
         WeatherMapChip(
           text: l10n.mapWeatherCloudsUnavailable,
           icon: Icons.cloud_off_outlined,
+          warning: true,
+        ),
+      if (wind && status.failed.contains(WeatherKind.wind))
+        WeatherMapChip(
+          text: l10n.mapWeatherWindUnavailable,
+          icon: Icons.air,
           warning: true,
         ),
     ];

@@ -4511,15 +4511,31 @@
   "@mapWeatherCloudsUnavailable": {
     "description": "Hint over the map when the clouds' service did not answer."
   },
-  "mapWeatherCloudsAt": "Clouds {time}",
+  "mapWeatherCloudsAt": "Cloud image {time}",
   "@mapWeatherCloudsAt": {
-    "description": "Small caption over the map: the time the clouds image shows, e.g. 'Clouds 14:00'.",
+    "description": "Small caption over the map: the time the satellite image of the clouds shows, e.g. 'Cloud image 14:00'.",
     "placeholders": {
       "time": {
         "type": "String",
         "example": "14:00"
       }
     }
+  },
+  "mapLayersWind": "Wind",
+  "@mapLayersWind": {
+    "description": "Layers sheet: switch for the wind layer, arrows over the map showing where the wind blows and how strong it is."
+  },
+  "mapLayersWindSubtitle": "Arrows by strength, worldwide · now and up to 24 hours ahead (model, about 28 km)",
+  "@mapLayersWindSubtitle": {
+    "description": "Under the Wind switch: the arrows are coloured and sized by the wind's strength, cover the whole world, follow the time slider from now to 24 hours ahead, and come from a weather model whose grid is about 28 km wide."
+  },
+  "mapWeatherWindUnavailable": "Wind unavailable right now",
+  "@mapWeatherWindUnavailable": {
+    "description": "Hint over the map when the wind's service did not answer: no arrows does not mean no wind."
+  },
+  "mapWeatherWindTime": "Wind time",
+  "@mapWeatherWindTime": {
+    "description": "Screen-reader label of the weather time slider while only the wind layer is on (the rain radar off)."
   },
   "mapCyclePartInfrastructure": "Bike lanes & tracks",
   "@mapCyclePartInfrastructure": {

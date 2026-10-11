@@ -4,9 +4,12 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import 'wind_field.dart';
+
 /// What a weather layer shows: the rain (measured, estimated or
-/// forecast; the "Rain radar" switch), or the clouds.
-enum WeatherKind { radar, clouds }
+/// forecast; the "Rain radar" switch), the clouds, or the wind (a model's,
+/// drawn as arrows; see `wind_field.dart`).
+enum WeatherKind { radar, clouds, wind }
 
 /// Where a rain source's picture of the rain comes from.
 enum RainRole {
@@ -219,6 +222,13 @@ class WeatherMapSource {
   /// satellite shows the present only, and a model only the moments ahead
   /// ([modelFrameTime]).
   WeatherFrame? frameAt(DateTime now, {int offsetMinutes = 0}) {
+    if (kind == WeatherKind.wind) {
+      // The model's hourly frames: the hour the step falls in.
+      if (offsetMinutes < 0 || offsetMinutes > forecastMinutes) return null;
+      return WeatherFrame(
+        windFrameTime(now, offsetMinutes, forecastMinutes: forecastMinutes),
+      );
+    }
     if (kind == WeatherKind.radar && role == RainRole.model) {
       if (offsetMinutes <= 0) return null;
       final time = modelFrameTime(now, offsetMinutes);
@@ -1090,6 +1100,37 @@ final WeatherMapSource iconGlobalRain = WeatherMapSource(
   attribution: 'Forecast: Deutscher Wetterdienst (CC BY 4.0)',
 );
 
+/// The wind 10 m above the ground everywhere, from the DWD's global ICON
+/// model on its 0.25° grid: the u and v components of one box at one
+/// moment as a plain-text grid from the DWD's WCS (`format=text/plain`;
+/// see `parseWcsWindGrid`), drawn as arrows on the phone.
+///
+/// The coverage's frames are hourly for some three days from each run
+/// (then three-hourly), the runs four a day: so every hour of the next 24
+/// is there, the hour of "Now" among them. A moment past the newest frame
+/// answers with the newest; one before the oldest with an error.
+/// `{west}`, `{south}`, `{east}` and `{north}` are the box in degrees, its
+/// east past 180° for a box across the antimeridian, which the service
+/// wraps.
+final WeatherMapSource dwdWind = WeatherMapSource(
+  id: 'wind_icon',
+  kind: WeatherKind.wind,
+  urlTemplate:
+      'https://maps.dwd.de/geoserver/ows?service=WCS&version=2.0.1'
+      '&request=GetCoverage&coverageId=dwd__Icon_reg025_fd_sl_UV10M'
+      '&format=text/plain&subset=Lat({south},{north})'
+      '&subset=Long({west},{east})&subset=time(%22{time}%22)',
+  coverage: <BoundingBox>[_box(-180, -85, 180, 85)],
+  timeFormat: WeatherTimeFormat.iso,
+  stepMinutes: 60,
+  delayMinutes: 0,
+  historyMinutes: 0,
+  forecastMinutes: 24 * 60,
+  // 0.25° is about 28 km.
+  nativeMetresPerPixel: 28000,
+  attribution: 'Wind: Deutscher Wetterdienst (CC BY 4.0)',
+);
+
 /// The NASA GIBS map service the GOES clouds come from: one GetMap for a
 /// whole region. `TIME=default` is the latest image, which the URL cannot
 /// name, so a region is fetched again with every refresh.
@@ -1168,6 +1209,7 @@ final List<WeatherMapSource> defaultWeatherMapSources = <WeatherMapSource>[
   goesEastClouds,
   goesWestClouds,
   eumetsatClouds,
+  dwdWind,
 ];
 
 /// The host whose images may only be taken on the full hour; see
@@ -1316,6 +1358,7 @@ double? _positive(Object? v) => v is num && v > 0 ? v.toDouble() : null;
 WeatherKind? _kind(Object? v) => switch (v) {
   'radar' => WeatherKind.radar,
   'clouds' => WeatherKind.clouds,
+  'wind' => WeatherKind.wind,
   _ => null,
 };
 

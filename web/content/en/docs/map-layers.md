@@ -1,10 +1,10 @@
 ---
 title: Map layers
-description: The offline cycle map and its parts, the online cycle map, rain radar, clouds and the stops, all in the Layers sheet.
+description: The offline cycle map and its parts, the online cycle map, rain radar, clouds, wind and the stops, all in the Layers sheet.
 order: 6
 ---
 
-**Layers** sits in the button column on the right of the map, on the Plan and the Record tab. Its sheet holds the cycle map, the online cycle map, the rain radar, the clouds and the stops. The button is highlighted while one of them is on.
+**Layers** sits in the button column on the right of the map, on the Plan and the Record tab. Its sheet holds the cycle map, the online cycle map, the rain radar, the clouds, the wind and the stops. The button is highlighted while one of them is on.
 
 <!-- screenshot: layers -->
 
@@ -47,6 +47,14 @@ With the rain radar on, its time control sits at the top of the Plan sheet and o
 The clouds are satellite images drawn in white over the map: Meteosat from EUMETSAT over Europe, Africa and around, a new image every full hour, and the GOES satellites through NASA over the Americas. They always show their latest image, whatever the rain's slider says, and a small label on the map says its time. The thickest, coldest clouds are brightest; fog and low cloud show faintly or not at all.
 
 If a service does not answer, the map says **Rain radar unavailable right now**, **Satellite rain unavailable right now**, **Rain forecast unavailable right now** or **Clouds unavailable right now**, so an empty map is not taken for a dry, clear day. The app loads the images straight from the Deutscher Wetterdienst, NOAA, NASA and EUMETSAT, not through Velorki, so those services see the map area requested. Their credits are in the line at the bottom of the map while a layer is drawn.
+
+## Wind
+
+**Wind**: "Arrows by strength, worldwide · now and up to 24 hours ahead (model, about 28 km)". Free, off until you turn it on, and needs a connection.
+
+Arrows over the map point where the wind blows to. Their colour and size grow with its strength: faint grey when calm (under 2 m/s, 7 km/h), then darker up to the map's own text colour at 5–8 m/s (18–29 km/h), orange from 8 m/s (29 km/h) and red from 11 m/s (40 km/h). The wind 10 m above the ground comes from the Deutscher Wetterdienst's global ICON weather model, on a grid of about 28 km, so it shows the wind of the region, not the gust round a corner or behind a hedge. The arrows are drawn from zoom 3, about a finger's width apart at every zoom, over the rain and the clouds.
+
+The rain radar's time control moves the wind too, hour by hour: **Now** is the current hour. With only the wind on, the control shows by itself and its label gives the wind's hour, such as **Now · 20:00** or **+3 h · 23:00 · Forecast**. If the service does not answer, the map says **Wind unavailable right now**. The app loads the wind straight from the Deutscher Wetterdienst, like the rain, and its credit is in the line at the bottom of the map while the arrows are drawn.
 
 ## Stops
 

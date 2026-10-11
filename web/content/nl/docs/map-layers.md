@@ -1,10 +1,10 @@
 ---
 title: Kaartlagen
-description: De offline fietskaart en zijn onderdelen, de online fietskaart, de regenradar, de wolken en de stopplekken, alles in het paneel Kaartlagen.
+description: De offline fietskaart en zijn onderdelen, de online fietskaart, de regenradar, de wolken, de wind en de stopplekken, alles in het paneel Kaartlagen.
 order: 6
 ---
 
-**Kaartlagen** staat in de kolom knoppen rechts op de kaart, op het tabblad Plannen en Opnemen. Het paneel bevat de fietskaart, de online fietskaart, de regenradar, de wolken en de stopplekken. De knop is gemarkeerd zolang een van die aan staat.
+**Kaartlagen** staat in de kolom knoppen rechts op de kaart, op het tabblad Plannen en Opnemen. Het paneel bevat de fietskaart, de online fietskaart, de regenradar, de wolken, de wind en de stopplekken. De knop is gemarkeerd zolang een van die aan staat.
 
 <!-- screenshot: layers -->
 
@@ -47,6 +47,14 @@ Staat de regenradar aan, dan staat zijn tijdregelaar bovenaan het paneel van Pla
 De wolken zijn satellietbeelden, wit over de kaart getekend: Meteosat van EUMETSAT boven Europa, Afrika en omgeving, elk heel uur een nieuw beeld, en de GOES-satellieten via NASA boven Amerika. Ze tonen altijd hun nieuwste beeld, waar de schuifregelaar van de regen ook staat, en een klein label op de kaart noemt het tijdstip. De dikste, koudste wolken zijn het lichtst; mist en lage bewolking zijn zwak of niet te zien.
 
 Antwoordt een dienst niet, dan zegt de kaart **Regenradar is nu niet beschikbaar**, **Regen via satelliet is nu niet beschikbaar**, **Regenverwachting is nu niet beschikbaar** of **Wolken zijn nu niet beschikbaar**, zodat een lege kaart niet voor een droge, heldere dag wordt aangezien. De app laadt de beelden rechtstreeks bij de Deutscher Wetterdienst, NOAA, NASA en EUMETSAT, niet via Velorki; die diensten zien dus het opgevraagde kaartgebied. Hun bronvermeldingen staan in de regel onderaan de kaart zolang een laag getekend is.
+
+## Wind
+
+**Wind**: "Pijlen naar sterkte, wereldwijd · nu en tot 24 uur vooruit (model, ongeveer 28 km)". Gratis, staat uit tot je hem aanzet, en heeft een verbinding nodig.
+
+Pijlen op de kaart wijzen waar de wind naartoe waait. Hun kleur en grootte groeien met zijn sterkte: lichtgrijs bij windstilte (onder 2 m/s, 7 km/h), dan donkerder tot de tekstkleur van de kaart bij 5–8 m/s (18–29 km/h), oranje vanaf 8 m/s (29 km/h) en rood vanaf 11 m/s (40 km/h). De wind op 10 m boven de grond komt uit het wereldwijde weermodel ICON van de Deutscher Wetterdienst, op een raster van ongeveer 28 km; hij toont dus de wind van de streek, niet de windstoot om een hoek of achter een heg. De pijlen staan er vanaf zoomniveau 3, bij elk zoomniveau ongeveer een vingerbreedte uit elkaar, boven de regen en de wolken.
+
+De tijdregelaar van de regenradar verschuift ook de wind, uur voor uur: **Nu** is het lopende uur. Staat alleen de wind aan, dan verschijnt de regelaar alleen en noemt zijn label het uur van de wind, zoals **Nu · 20:00** of **+3 u · 23:00 · Verwachting**. Antwoordt de dienst niet, dan zegt de kaart **Wind is nu niet beschikbaar**. De app laadt de wind rechtstreeks bij de Deutscher Wetterdienst, net als de regen, en de bronvermelding staat in de regel onderaan de kaart zolang de pijlen getekend zijn.
 
 ## Stopplekken
 

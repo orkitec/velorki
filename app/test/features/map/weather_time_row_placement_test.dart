@@ -8,6 +8,7 @@ import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/features/map/data/weather_fetcher.dart';
 import 'package:velorki/features/map/data/weather_map_preferences.dart';
 import 'package:velorki/features/map/domain/weather_map.dart';
+import 'package:velorki/features/map/domain/wind_field.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/weather_time_row.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
@@ -49,6 +50,14 @@ class _QuietFetcher implements WeatherFetcher {
     List<List<LatLng>> masks = const <List<LatLng>>[],
     String maskKey = '',
   }) async => null;
+
+  @override
+  Future<WindGrid?> windGrid(
+    WeatherMapSource source,
+    WindRequest request,
+    WeatherFrame frame,
+    DateTime now,
+  ) async => null;
 }
 
 final List<Override> _quiet = <Override>[

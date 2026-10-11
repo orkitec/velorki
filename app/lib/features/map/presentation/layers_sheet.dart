@@ -152,6 +152,14 @@ class LayersSheet extends ConsumerWidget {
               value: weather.clouds,
               onChanged: (value) => unawaited(weatherPrefs.setClouds(value)),
             ),
+          if (weatherKindAvailable(weatherSources, WeatherKind.wind))
+            SwitchListTile(
+              secondary: const Icon(Icons.air),
+              title: Text(l10n.mapLayersWind),
+              subtitle: Text(l10n.mapLayersWindSubtitle),
+              value: weather.wind,
+              onChanged: (value) => unawaited(weatherPrefs.setWind(value)),
+            ),
           if (offer != MapStopsOffer.none) ...[
             SwitchListTile(
               secondary: const Icon(Icons.local_cafe_outlined),

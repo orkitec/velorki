@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -6,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/map/data/weather_fetcher.dart';
 import 'package:velorki/features/map/domain/weather_map.dart';
+import 'package:velorki/features/map/domain/wind_field.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 /// Answers every request with [body] under [contentType] and [status], or
@@ -786,5 +788,106 @@ void main() {
     expect(await fetcher.probe('https://radar.example/1'), isFalse);
     adapter.body = encodePngRgba(1, 1, Uint8List(4));
     expect(await fetcher.probe('https://radar.example/1'), isTrue);
+  });
+
+  group('wind', () {
+    late _Adapter adapter;
+    late Directory dir;
+    late HttpWeatherFetcher fetcher;
+    var parsed = 0;
+    final text = File('test/fixtures/weather/dwd_wind_uv10m.txt')
+        .readAsStringSync();
+    final request = windRequestFor(
+      const BoundingBox(south: 49, west: 7, north: 51, east: 8),
+      8,
+    )!;
+    final now = DateTime.now().toUtc();
+    final frame = dwdWind.frameAt(now)!;
+
+    setUp(() {
+      adapter = _Adapter()
+        ..contentType = 'text/plain'
+        ..body = Uint8List.fromList(utf8.encode(text));
+      dir = Directory.systemTemp.createTempSync('wind');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      parsed = 0;
+      fetcher = HttpWeatherFetcher(
+        dio: Dio()..httpClientAdapter = adapter,
+        cacheDir: () async => dir,
+        windTimeLimit: const Duration(milliseconds: 200),
+        parseWind: (text) async {
+          parsed++;
+          return parseWcsWindGrid(text);
+        },
+      );
+    });
+
+    test('asks for the box at the hour, reads the grid, then comes from the '
+        'cache for an hour', () async {
+      final grid = await fetcher.windGrid(dwdWind, request, frame, now);
+      expect(grid!.columns, 20);
+      expect(adapter.requests, hasLength(1));
+      final url = adapter.requests.single.toString();
+      expect(url, contains('coverageId=dwd__Icon_reg025_fd_sl_UV10M'));
+      expect(
+        url,
+        contains('subset=Long(${request.box.west.toStringAsFixed(3)}'),
+      );
+      expect(url, contains(formatWeatherTime(frame.time!)));
+      final again = await fetcher.windGrid(dwdWind, request, frame, now);
+      expect(again!.columns, 20);
+      expect(adapter.requests, hasLength(1));
+      expect(parsed, 2);
+      // An hour on, asked again.
+      await fetcher.windGrid(
+        dwdWind,
+        request,
+        frame,
+        now.add(windCacheMaxAge + const Duration(minutes: 1)),
+      );
+      expect(adapter.requests, hasLength(2));
+    });
+
+    test(
+      'the service error, an answer not text or a hang is no grid',
+      () async {
+        adapter
+          ..contentType = 'application/xml'
+          ..body = Uint8List.fromList(
+            utf8.encode(
+              '<ows:ExceptionReport>Cannot find</ows:ExceptionReport>',
+            ),
+          );
+        expect(await fetcher.windGrid(dwdWind, request, frame, now), isNull);
+        adapter
+          ..contentType = 'text/plain'
+          ..body = Uint8List.fromList(utf8.encode('Grid range: nothing'));
+        expect(await fetcher.windGrid(dwdWind, request, frame, now), isNull);
+        adapter
+          ..status = 500
+          ..body = Uint8List.fromList(utf8.encode(text));
+        expect(await fetcher.windGrid(dwdWind, request, frame, now), isNull);
+        adapter
+          ..status = 200
+          ..hang = true;
+        expect(await fetcher.windGrid(dwdWind, request, frame, now), isNull);
+        // Nothing that failed was kept.
+        expect(dir.listSync(), isEmpty);
+      },
+    );
+
+    test('the cache keeps the last few boxes and moments', () async {
+      for (var h = 0; h < windCacheKeep + 4; h++) {
+        await fetcher.windGrid(
+          dwdWind,
+          request,
+          WeatherFrame(
+            DateTime.utc(2026, 10, 11, h % 24, 0).add(Duration(days: h ~/ 24)),
+          ),
+          now,
+        );
+      }
+      expect(dir.listSync().length, windCacheKeep);
+    });
   });
 }

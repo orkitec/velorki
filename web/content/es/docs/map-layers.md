@@ -1,10 +1,10 @@
 ---
 title: Capas del mapa
-description: El mapa ciclista sin conexión y sus partes, el mapa ciclista en línea, el radar de lluvia, las nubes y las paradas, todo en el panel Capas.
+description: El mapa ciclista sin conexión y sus partes, el mapa ciclista en línea, el radar de lluvia, las nubes, el viento y las paradas, todo en el panel Capas.
 order: 6
 ---
 
-**Capas** está en la columna de botones a la derecha del mapa, en las pestañas Planificar y Grabar. Su panel contiene el mapa ciclista, el mapa ciclista en línea, el radar de lluvia, las nubes y las paradas. El botón se resalta mientras uno de ellos está activo.
+**Capas** está en la columna de botones a la derecha del mapa, en las pestañas Planificar y Grabar. Su panel contiene el mapa ciclista, el mapa ciclista en línea, el radar de lluvia, las nubes, el viento y las paradas. El botón se resalta mientras uno de ellos está activo.
 
 <!-- screenshot: layers -->
 
@@ -47,6 +47,14 @@ Con el radar de lluvia activo, su control de tiempo está arriba en el panel de 
 Las nubes son imágenes de satélite dibujadas en blanco sobre el mapa: Meteosat de EUMETSAT sobre Europa, África y alrededores, con una imagen nueva cada hora en punto, y los satélites GOES a través de la NASA sobre América. Siempre muestran su imagen más reciente, diga lo que diga el control de la lluvia, y una pequeña etiqueta sobre el mapa dice su hora. Las nubes más gruesas y frías se ven más claras; la niebla y las nubes bajas se ven débiles o nada.
 
 Si un servicio no responde, el mapa dice **Radar de lluvia no disponible ahora mismo**, **Lluvia por satélite no disponible ahora mismo**, **Previsión de lluvia no disponible ahora mismo** o **Nubes no disponibles ahora mismo**, para que un mapa vacío no se tome por un día seco y despejado. La app carga las imágenes directamente del Deutscher Wetterdienst, la NOAA, la NASA y EUMETSAT, no a través de Velorki, así que esos servicios ven la zona del mapa pedida. Sus créditos aparecen en la línea al pie del mapa mientras una capa está dibujada.
+
+## Viento
+
+**Viento**: "Flechas según su fuerza, en todo el mundo · ahora y hasta 24 horas después (modelo, unos 28 km)". Gratis, desactivado hasta que lo activas, y necesita conexión.
+
+Las flechas sobre el mapa apuntan hacia donde sopla el viento. Su color y su tamaño crecen con su fuerza: gris pálido con calma (menos de 2 m/s, 7 km/h), luego más oscuro hasta el color del texto del mapa a 5–8 m/s (18–29 km/h), naranja desde 8 m/s (29 km/h) y rojo desde 11 m/s (40 km/h). El viento a 10 m del suelo viene del modelo meteorológico global ICON del Deutscher Wetterdienst, en una malla de unos 28 km, así que muestra el viento de la zona, no la ráfaga al doblar una esquina o tras un seto. Las flechas se dibujan desde el zoom 3, a un dedo de distancia más o menos en cualquier zoom, sobre la lluvia y las nubes.
+
+El control de tiempo del radar de lluvia mueve también el viento, hora a hora: **Ahora** es la hora en curso. Con solo el viento activo, el control aparece solo y su etiqueta da la hora del viento, por ejemplo **Ahora · 20:00** o **+3 h · 23:00 · Previsión**. Si el servicio no responde, el mapa dice **Viento no disponible ahora mismo**. La app carga el viento directamente del Deutscher Wetterdienst, como la lluvia, y su crédito aparece en la línea al pie del mapa mientras se dibujan las flechas.
 
 ## Paradas
 

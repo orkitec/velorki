@@ -16,6 +16,7 @@ import '../domain/cycle_map.dart';
 import '../domain/map_controller.dart';
 import '../domain/visible_map.dart';
 import '../domain/weather_map.dart';
+import '../domain/wind_field.dart';
 import 'cycle_map_images.dart';
 import 'cycle_map_layers.dart';
 import 'cyclosm_tone.dart';
@@ -26,6 +27,7 @@ import 'heading_cone.dart';
 import 'heading_smoother.dart';
 import 'tile_template.dart';
 import 'weather_paint.dart';
+import 'wind_arrow_image.dart';
 
 /// Source and layer ids. Everything Velorki adds to the style is prefixed so
 /// it can never collide with a layer of the base style.
@@ -60,6 +62,11 @@ abstract final class MapLayerIds {
   static const String turnsLayer = 'velorki-turns-dot';
   static const String routeWindSource = 'velorki-route-wind';
   static const String routeWindLayer = 'velorki-route-wind-line';
+
+  /// The wind arrows over the map, and the arrow they are drawn with.
+  static const String windSource = 'velorki-weather-wind';
+  static const String windLayer = 'velorki-weather-wind-arrows';
+  static const String windArrowImage = 'velorki-wind-arrow';
 
   /// Generation [n] of the weather layer [id]: its source and its layer.
   static String weatherSource(String id, int n) =>
@@ -117,7 +124,25 @@ class MapPalette {
     this.windCross = '#C77800',
     this.windTail = '#1C9A57',
     this.windCalm = '#7D8792',
+    this.windArrowCalm = '#8A939C',
+    this.windArrowLight = '#4F5A66',
+    this.windArrowModerate = '#14171A',
+    this.windArrowFresh = '#E07B00',
+    this.windArrowStrong = '#C62828',
+    this.windArrowHalo = '#FFFFFFD9',
   });
+
+  /// The wind arrows over the map by the wind's speed (see
+  /// `windSpeedClasses`): calm, light, moderate, fresh and strong, the
+  /// first three from faint to the map's own text colour, the last two
+  /// warning colours; and the outline that keeps them off the map and the
+  /// rain under them.
+  final String windArrowCalm;
+  final String windArrowLight;
+  final String windArrowModerate;
+  final String windArrowFresh;
+  final String windArrowStrong;
+  final String windArrowHalo;
 
   /// The wind on the route: from ahead, from the side, from behind, calm.
   final String windHead;
@@ -173,12 +198,19 @@ class MapPalette {
       windHead = '#D62C45',
       windCross = '#C77800',
       windTail = '#1C9A57',
-      windCalm = '#7D8792';
+      windCalm = '#7D8792',
+      windArrowCalm = '#8A939C',
+      windArrowLight = '#4F5A66',
+      windArrowModerate = '#14171A',
+      windArrowFresh = '#E07B00',
+      windArrowStrong = '#C62828',
+      windArrowHalo = '#FFFFFFD9';
 
   /// The palette of [theme]'s [VelorkiColors].
   factory MapPalette.fromTheme(ThemeData theme) {
     final colors = theme.velorki;
     final dark = theme.brightness == Brightness.dark;
+    final label = dark ? '#F2F5F7' : '#14171A';
     return MapPalette(
       routeMain: VelorkiColors.hex(colors.routeMain),
       routeMainCasing: VelorkiColors.hex(colors.routeMainCasing),
@@ -200,7 +232,7 @@ class MapPalette {
       // A name beside a marker sits on the map, not on a disc, so it has
       // to turn over with the map: dark on a day style, light on a night
       // one, each outlined in the other.
-      mapLabel: dark ? '#F2F5F7' : '#14171A',
+      mapLabel: label,
       mapLabelHalo: dark ? '#000000A6' : '#FFFFFFCC',
       positionDot: VelorkiColors.hex(colors.position),
       positionAccuracy: VelorkiColors.hex(colors.position),
@@ -216,6 +248,16 @@ class MapPalette {
       windCross: VelorkiColors.hex(colors.windCross),
       windTail: VelorkiColors.hex(colors.windTail),
       windCalm: VelorkiColors.hex(colors.windCalm),
+      // The arrows turn over with the map, as a name on it does: from
+      // faint to the map's text colour, outlined in the other.
+      windArrowCalm: VelorkiColors.hex(colors.windCalm),
+      windArrowLight: VelorkiColors.hex(
+        Color.lerp(colorFromMapHex(label), colors.windCalm, 0.45)!,
+      ),
+      windArrowModerate: label,
+      windArrowFresh: VelorkiColors.hex(colors.warning),
+      windArrowStrong: VelorkiColors.hex(theme.colorScheme.error),
+      windArrowHalo: dark ? '#000000B3' : '#FFFFFFD9',
     );
   }
 
@@ -275,7 +317,13 @@ class MapPalette {
       other.windHead == windHead &&
       other.windCross == windCross &&
       other.windTail == windTail &&
-      other.windCalm == windCalm;
+      other.windCalm == windCalm &&
+      other.windArrowCalm == windArrowCalm &&
+      other.windArrowLight == windArrowLight &&
+      other.windArrowModerate == windArrowModerate &&
+      other.windArrowFresh == windArrowFresh &&
+      other.windArrowStrong == windArrowStrong &&
+      other.windArrowHalo == windArrowHalo;
 
   @override
   int get hashCode => Object.hash(
@@ -306,6 +354,12 @@ class MapPalette {
       windCross,
       windTail,
       windCalm,
+      windArrowCalm,
+      windArrowLight,
+      windArrowModerate,
+      windArrowFresh,
+      windArrowStrong,
+      windArrowHalo,
     ),
   );
 }
@@ -441,7 +495,10 @@ abstract class MapLibreStyleOps {
 
   /// Registers [bytes] as the style image [name], replacing any image already
   /// under that name. The heading cone is a bitmap we paint ourselves.
-  Future<void> addImage(String name, Uint8List bytes);
+  ///
+  /// With [sdf] the image is a signed distance field the style colours
+  /// itself (`icon-color`, `icon-halo-color`).
+  Future<void> addImage(String name, Uint8List bytes, {bool sdf = false});
 
   /// Flies the camera to [update], over [duration] when one is given.
   Future<void> animateCamera(ml.CameraUpdate update, {Duration? duration});
@@ -597,8 +654,8 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
   Future<List<String>> getSourceIds() => map.getSourceIds();
 
   @override
-  Future<void> addImage(String name, Uint8List bytes) =>
-      tolerateMapGone(() => map.addImage(name, bytes));
+  Future<void> addImage(String name, Uint8List bytes, {bool sdf = false}) =>
+      tolerateMapGone(() => map.addImage(name, bytes, sdf));
 
   @override
   Future<void> animateCamera(ml.CameraUpdate update, {Duration? duration}) =>
@@ -794,6 +851,12 @@ class MaplibreMapControllerAdapter implements MapController {
   bool _weatherDark;
   final ValueNotifier<List<String>> _weatherAttributions =
       ValueNotifier<List<String>>(const <String>[]);
+  // The wind arrows asked for, replayed after a style reload; whether this
+  // style has their source and layer, and their image.
+  WindArrows? _windWanted;
+  bool _windAdded = false;
+  bool _windImageAdded = false;
+  Future<void> _windTurn = Future<void>.value();
   bool _attached = false;
   bool _disposed = false;
 
@@ -854,6 +917,8 @@ class MaplibreMapControllerAdapter implements MapController {
     // Nor any weather; the replay adds what is wanted.
     _weatherDrawn.clear();
     _weatherStack.clear();
+    _windAdded = false;
+    _windImageAdded = false;
     // A fresh style holds none of our bitmaps; the replay registers the
     // ones the markers still need.
     _glyphImages.clear();
@@ -1018,6 +1083,7 @@ class MaplibreMapControllerAdapter implements MapController {
     if (_weatherWanted.isNotEmpty) {
       unawaited(setWeatherLayers(_weatherWanted));
     }
+    if (_windWanted != null) unawaited(setWindArrows(_windWanted));
     if (_cycleMapPath != null) await setCycleMap(_cycleMapPath);
     if (_waypoints.isNotEmpty) await setWaypoints(_waypoints);
     if (_pois.isNotEmpty) await setPois(_pois);
@@ -1658,6 +1724,9 @@ class MaplibreMapControllerAdapter implements MapController {
     await _redrawMarkerGlyphs();
     await _redrawStopImages();
     await _recolourCycleMap();
+    if (_windAdded) {
+      await _ops.setLayerProperties(MapLayerIds.windLayer, _windProperties());
+    }
     for (final entry in _routeLines.entries) {
       await _ops.setLayerProperties(
         MapLayerIds.routeCasingLayer(entry.key),
@@ -2232,9 +2301,7 @@ class MaplibreMapControllerAdapter implements MapController {
         if (_drawable(layer)) layer,
     ]);
     _weatherWanted = wanted;
-    _weatherAttributions.value = List<String>.unmodifiable(<String>{
-      for (final layer in wanted) layer.attribution,
-    });
+    _publishWeatherAttributions();
     if (!_attached || _disposed) return Future<void>.value();
     return _weatherTurn = _weatherTurn.then((_) async {
       if (!_attached || _disposed || !identical(wanted, _weatherWanted)) {
@@ -2348,12 +2415,8 @@ class MaplibreMapControllerAdapter implements MapController {
     } else {
       at = _weatherStack.length;
     }
-    below ??= _cycleGenerations.isEmpty
-        ? _cycleAnchor
-        : CycleMapLayers.layerId(
-            _cycleGenerations.first,
-            CycleMapLayers(palette.cycle).layers.first,
-          );
+    // Under the wind's arrows where they are drawn.
+    below ??= _windAdded ? MapLayerIds.windLayer : _underCycleMap();
     await _ops.addLayer(
       source,
       id,
@@ -2363,6 +2426,124 @@ class MaplibreMapControllerAdapter implements MapController {
     );
     _weatherStack.insert(at, (id, layer.id));
     (_weatherDrawn[layer.id] ??= <(int, WeatherLayer)>[]).add((n, layer));
+  }
+
+  /// The layer the weather goes under: the cycle map's lowest, else the
+  /// base map's first label.
+  String? _underCycleMap() => _cycleGenerations.isEmpty
+      ? _cycleAnchor
+      : CycleMapLayers.layerId(
+          _cycleGenerations.first,
+          CycleMapLayers(palette.cycle).layers.first,
+        );
+
+  void _publishWeatherAttributions() {
+    _weatherAttributions.value = List<String>.unmodifiable(<String>{
+      for (final layer in _weatherWanted) layer.attribution,
+      ?_windWanted?.attribution,
+    });
+  }
+
+  /// Draws the wind's arrows, or with `null` takes them away: one GeoJSON
+  /// source of points under a symbol layer of one arrow image, turned and
+  /// coloured by the style. Over the rain and the clouds, which go under
+  /// it, and under the cycle map and the labels. One change at a time, the
+  /// newest winning.
+  @override
+  Future<void> setWindArrows(WindArrows? arrows) {
+    _windWanted = arrows;
+    _publishWeatherAttributions();
+    if (!_attached || _disposed) return Future<void>.value();
+    return _windTurn = _windTurn.then((_) async {
+      if (!_attached || _disposed || !identical(arrows, _windWanted)) return;
+      try {
+        await _drawWind(arrows);
+      } on PlatformException catch (error) {
+        // The style is going; the next attach puts the arrows back.
+        debugPrint('velorki: wind not drawn: $error');
+      }
+    });
+  }
+
+  Future<void> _drawWind(WindArrows? arrows) async {
+    final data = windArrowsFeatureCollection(
+      arrows?.arrows ?? const <WindArrow>[],
+    );
+    if (_windAdded) {
+      await _ops.setGeoJsonSource(MapLayerIds.windSource, data);
+      return;
+    }
+    if (arrows == null) return;
+    await _findLabelAnchor();
+    if (!_windImageAdded) {
+      await _ops.addImage(
+        MapLayerIds.windArrowImage,
+        buildWindArrowImage(devicePixelRatio: devicePixelRatio),
+        sdf: true,
+      );
+      _windImageAdded = true;
+    }
+    await _ops.addGeoJsonSource(MapLayerIds.windSource, data);
+    await _ops.addLayer(
+      MapLayerIds.windSource,
+      MapLayerIds.windLayer,
+      _windProperties(),
+      belowLayerId: _underCycleMap(),
+      enableInteraction: false,
+    );
+    _windAdded = true;
+  }
+
+  /// The arrows' paint: turned to where the wind blows, flat on the map,
+  /// coloured by the speed's class and a little larger the stronger it is;
+  /// never hiding a label or each other.
+  ml.SymbolLayerProperties _windProperties() {
+    final p = palette;
+    final colours = <String>[
+      p.windArrowCalm,
+      p.windArrowLight,
+      p.windArrowModerate,
+      p.windArrowFresh,
+      p.windArrowStrong,
+    ];
+    return ml.SymbolLayerProperties(
+      iconImage: MapLayerIds.windArrowImage,
+      iconRotate: const <Object>['get', 'dir'],
+      iconRotationAlignment: 'map',
+      iconAllowOverlap: true,
+      iconIgnorePlacement: true,
+      iconSize: const <Object>[
+        'interpolate',
+        <Object>['linear'],
+        <Object>['get', 'ms'],
+        0,
+        0.6,
+        2,
+        0.75,
+        11,
+        1.1,
+        20,
+        1.3,
+      ],
+      iconColor: <Object>[
+        'step',
+        const <Object>['get', 'ms'],
+        colours.first,
+        for (final (i, speed) in windSpeedClasses.indexed) ...<Object>[
+          speed,
+          colours[i + 1],
+        ],
+      ],
+      iconHaloColor: p.windArrowHalo,
+      iconHaloWidth: 1.5,
+      iconOpacity: <Object>[
+        'step',
+        const <Object>['get', 'ms'],
+        0.75,
+        windSpeedClasses.first,
+        0.95,
+      ],
+    );
   }
 
   /// Removes the oldest [count] generations of the weather layer [id].

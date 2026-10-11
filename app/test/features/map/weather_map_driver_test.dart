@@ -7,6 +7,7 @@ import 'package:velorki/features/map/application/weather_map_driver.dart';
 import 'package:velorki/features/map/data/weather_fetcher.dart';
 import 'package:velorki/features/map/data/weather_map_preferences.dart';
 import 'package:velorki/features/map/domain/weather_map.dart';
+import 'package:velorki/features/map/domain/wind_field.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -56,6 +57,29 @@ class _Fetcher implements WeatherFetcher {
     );
   }
 
+  /// The wind grids asked for (request, moment), whether the service
+  /// answers, and the answers held back while [holdWind] is set.
+  bool windUp = true;
+  bool holdWind = false;
+  final List<(WindRequest, DateTime?)> winds = <(WindRequest, DateTime?)>[];
+  final List<Completer<WindGrid?>> heldWind = <Completer<WindGrid?>>[];
+
+  @override
+  Future<WindGrid?> windGrid(
+    WeatherMapSource source,
+    WindRequest request,
+    WeatherFrame frame,
+    DateTime now,
+  ) {
+    winds.add((request, frame.time));
+    if (holdWind) {
+      final answer = Completer<WindGrid?>();
+      heldWind.add(answer);
+      return answer.future;
+    }
+    return Future<WindGrid?>.value(windUp ? windGridOver(request.box) : null);
+  }
+
   @override
   Future<bool> probe(String url) async {
     probes.add(url);
@@ -92,6 +116,23 @@ class _Fetcher implements WeatherFetcher {
   }
 }
 
+/// A steady west wind of 5 m/s (blowing east) over [box], on the model's
+/// grid.
+WindGrid windGridOver(BoundingBox box) {
+  final columns = ((box.east - box.west) / windGridStep).round() + 1;
+  final rows = ((box.north - box.south) / windGridStep).round() + 1;
+  return WindGrid(
+    lon0: box.west,
+    lat0: box.north,
+    lonStep: windGridStep,
+    latStep: -windGridStep,
+    columns: columns,
+    rows: rows,
+    u: Float32List(columns * rows)..fillRange(0, columns * rows, 5),
+    v: Float32List(columns * rows),
+  );
+}
+
 BoundingBox _view(double lon, double lat) => BoundingBox(
   south: lat - 0.2,
   west: lon - 0.2,
@@ -118,11 +159,12 @@ void main() {
   void configure({
     bool radar = false,
     bool clouds = false,
+    bool wind = false,
     int offset = 0,
     List<WeatherMapSource>? sources,
     RadarStyle radarStyle = RadarStyle.measured,
   }) => driver.configure(
-    settings: WeatherMapSettings(radar: radar, clouds: clouds),
+    settings: WeatherMapSettings(radar: radar, clouds: clouds, wind: wind),
     sources: sources ?? defaultWeatherMapSources,
     offsetMinutes: offset,
     radarStyle: radarStyle,
@@ -991,6 +1033,224 @@ void main() {
           driver = WeatherMapDriver(fetcher: fetcher, clock: () => now);
         }
       }
+    });
+  });
+
+  group('wind', () {
+    void rest(FakeAsync async, BoundingBox box, double zoom) {
+      map
+        ..visibleBounds = box
+        ..zoom = zoom;
+      map.emitCameraIdle();
+      async.flushMicrotasks();
+    }
+
+    test('one grid of the view at the hour, its arrows over the view', () {
+      fakeAsync((async) {
+        map.zoom = 9;
+        configure(wind: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(fetcher.winds, hasLength(1));
+        final (request, time) = fetcher.winds.single;
+        // Now is the hour now falls in.
+        expect(time, DateTime.utc(2026, 10, 10, 14));
+        expect(request.fits(berlin, 9), isTrue);
+        final arrows = map.windArrows!;
+        expect(arrows.arrows, isNotEmpty);
+        // The test grid's west wind blows east.
+        expect(arrows.arrows.every((a) => a.dir == 90 && a.ms == 5), isTrue);
+        expect(arrows.attribution, 'Wind: Deutscher Wetterdienst (CC BY 4.0)');
+        // No rain, no clouds, no probe.
+        expect(map.weatherLayers, isEmpty);
+        expect(fetcher.probes, isEmpty);
+        expect(driver.status.value.failed, isEmpty);
+        // A pan inside the box asks nothing; the arrows follow the view.
+        rest(async, _view(13.45, 52.52), 9);
+        async.elapse(windDebounce);
+        expect(fetcher.winds, hasLength(1));
+        expect(map.windArrows, isNot(arrows));
+        driver.dispose();
+      });
+    });
+
+    test('debounced on the camera, one in flight, an answer since left '
+        'dropped', () {
+      fakeAsync((async) {
+        map.zoom = 9;
+        fetcher.holdWind = true;
+        configure(wind: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(fetcher.winds, hasLength(1));
+        // Off to Paris while Berlin's is out: nothing more yet.
+        rest(async, _view(2.35, 48.85), 9);
+        async.elapse(windDebounce);
+        expect(fetcher.winds, hasLength(1));
+        // Berlin's comes, and is dropped; Paris's is asked for.
+        fetcher.heldWind.first.complete(windGridOver(fetcher.winds[0].$1.box));
+        async.flushMicrotasks();
+        expect(map.windArrows, isNull);
+        expect(fetcher.winds, hasLength(2));
+        expect(fetcher.winds[1].$1.fits(_view(2.35, 48.85), 9), isTrue);
+        fetcher.heldWind[1].complete(windGridOver(fetcher.winds[1].$1.box));
+        async.flushMicrotasks();
+        expect(map.windArrows!.arrows, isNotEmpty);
+        // Several rests close together ask once, at the end.
+        rest(async, berlin, 9);
+        rest(async, _view(13.6, 52.6), 9);
+        async.elapse(windDebounce ~/ 2);
+        expect(fetcher.winds, hasLength(2));
+        async.elapse(windDebounce);
+        expect(fetcher.winds, hasLength(3));
+        driver.dispose();
+      });
+    });
+
+    test('not below zoom 3: no request, the arrows go', () {
+      fakeAsync((async) {
+        map.zoom = 2;
+        configure(wind: true);
+        driver.attach(map);
+        async.elapse(windDebounce);
+        expect(fetcher.winds, isEmpty);
+        expect(map.windArrows, isNull);
+        rest(async, berlin, 9);
+        async.elapse(windDebounce);
+        expect(map.windArrows, isNotNull);
+        rest(async, berlin, 2.5);
+        expect(map.windArrows, isNull);
+        expect(fetcher.winds, hasLength(1));
+        driver.dispose();
+      });
+    });
+
+    test('the time control: another hour is another grid, the old arrows '
+        'until it is in', () {
+      fakeAsync((async) {
+        map.zoom = 9;
+        configure(wind: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        final before = map.windArrows;
+        fetcher.holdWind = true;
+        // +15 min is still the same hour: nothing new.
+        configure(wind: true, offset: 15);
+        async.flushMicrotasks();
+        expect(fetcher.winds, hasLength(1));
+        configure(wind: true, offset: 180);
+        async.flushMicrotasks();
+        expect(fetcher.winds, hasLength(2));
+        expect(fetcher.winds.last.$2, DateTime.utc(2026, 10, 10, 17));
+        expect(map.windArrows, before);
+        driver.dispose();
+      });
+    });
+
+    test('from the cache of the fetcher when the step comes back', () {
+      fakeAsync((async) {
+        map.zoom = 9;
+        configure(wind: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        configure(wind: true, offset: 180);
+        async.flushMicrotasks();
+        configure(wind: true);
+        async.flushMicrotasks();
+        // The driver asks; the fetcher answers from its files.
+        expect(fetcher.winds.map((w) => w.$2), <DateTime>[
+          DateTime.utc(2026, 10, 10, 14),
+          DateTime.utc(2026, 10, 10, 17),
+          DateTime.utc(2026, 10, 10, 14),
+        ]);
+        driver.dispose();
+      });
+    });
+
+    test('a service that does not answer says so, and is asked again with '
+        'the refresh', () {
+      fakeAsync((async) {
+        map.zoom = 9;
+        fetcher.windUp = false;
+        configure(wind: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(driver.status.value.failed, <WeatherKind>{WeatherKind.wind});
+        expect(map.windArrows, isNull);
+        // Not asked again on every rest.
+        rest(async, _view(13.45, 52.52), 9);
+        async.elapse(windDebounce);
+        expect(fetcher.winds, hasLength(1));
+        // The refresh asks again, and it answers.
+        fetcher.windUp = true;
+        async.elapse(windRefreshInterval);
+        expect(fetcher.winds, hasLength(2));
+        expect(driver.status.value.failed, isEmpty);
+        expect(map.windArrows!.arrows, isNotEmpty);
+        driver.dispose();
+      });
+    });
+
+    test('a new hour or an hour old: asked again with the refresh', () {
+      fakeAsync((async) {
+        map.zoom = 9;
+        configure(wind: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        now = now.add(const Duration(minutes: 20));
+        async.elapse(windRefreshInterval);
+        // 15:02: the next hour.
+        expect(fetcher.winds.last.$2, DateTime.utc(2026, 10, 10, 15));
+        expect(fetcher.winds, hasLength(2));
+        driver.dispose();
+      });
+    });
+
+    test('switched off, the arrows go and nothing is asked', () {
+      fakeAsync((async) {
+        map.zoom = 9;
+        configure(wind: true, radar: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(map.windArrows, isNotNull);
+        expect(drawn(), contains('radar_dwd'));
+        configure(radar: true);
+        async.flushMicrotasks();
+        expect(map.windArrows, isNull);
+        expect(drawn(), contains('radar_dwd'));
+        rest(async, _view(2.35, 48.85), 9);
+        async.elapse(windRefreshInterval);
+        expect(fetcher.winds, hasLength(1));
+        driver.dispose();
+      });
+    });
+
+    test('a source the mirror turned off is not asked', () {
+      fakeAsync((async) {
+        map.zoom = 9;
+        configure(
+          wind: true,
+          sources: <WeatherMapSource>[dwdWind.copyWith(enabled: false)],
+        );
+        driver.attach(map);
+        async.elapse(windDebounce);
+        expect(fetcher.winds, isEmpty);
+        expect(map.windArrows, isNull);
+        driver.dispose();
+      });
+    });
+
+    test('detached, the arrows are taken off the map', () {
+      fakeAsync((async) {
+        map.zoom = 9;
+        configure(wind: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        driver.detach();
+        async.flushMicrotasks();
+        expect(map.windArrows, isNull);
+        driver.dispose();
+      });
     });
   });
 }

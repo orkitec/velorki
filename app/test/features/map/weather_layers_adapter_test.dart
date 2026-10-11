@@ -1,10 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/map/data/cycle_map_layers.dart';
 import 'package:velorki/features/map/data/maplibre_map_controller.dart';
 import 'package:velorki/features/map/data/weather_paint.dart';
 import 'package:velorki/features/map/domain/weather_map.dart';
+import 'package:velorki/features/map/domain/wind_field.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/maplibre_style_ops_fake.dart';
@@ -315,5 +317,139 @@ void main() {
         isEmpty,
       );
     }
+  });
+
+  group('wind', () {
+    WindArrows arrows(double ms) => WindArrows(
+      arrows: <WindArrow>[
+        WindArrow(at: const LatLng(47.5, 8.5), dir: 180, ms: ms),
+        WindArrow(at: const LatLng(47.6, 8.6), dir: 90, ms: ms),
+      ],
+      attribution: 'Wind: Deutscher Wetterdienst (CC BY 4.0)',
+    );
+
+    test('arrows are a symbol layer of one SDF arrow under the labels, '
+        'credited', () async {
+      await map.setWindArrows(arrows(6));
+      final image = ops.lastCall('addImage')!;
+      expect(image.id, MapLayerIds.windArrowImage);
+      expect(image.sdf, isTrue);
+      final data = ops.lastGeoJsonOf(MapLayerIds.windSource)!;
+      final features = data['features'] as List;
+      expect(features, hasLength(2));
+      final first = features.first as Map<String, dynamic>;
+      expect(first['properties'], <String, dynamic>{'dir': 180.0, 'ms': 6.0});
+      expect((first['geometry'] as Map)['coordinates'], <double>[8.5, 47.5]);
+      final layer = ops.addLayerOf(MapLayerIds.windLayer)!;
+      expect(layer.belowLayerId, 'waterway_line_label');
+      expect(layer.enableInteraction, isFalse);
+      final props = layer.properties!;
+      expect(props['icon-image'], MapLayerIds.windArrowImage);
+      expect(props['icon-rotate'], <Object>['get', 'dir']);
+      expect(props['icon-rotation-alignment'], 'map');
+      expect(props['icon-allow-overlap'], isTrue);
+      expect(props['icon-ignore-placement'], isTrue);
+      const palette = MapPalette.classic();
+      expect(props['icon-color'], <Object>[
+        'step',
+        <Object>['get', 'ms'],
+        palette.windArrowCalm,
+        2.0,
+        palette.windArrowLight,
+        5.0,
+        palette.windArrowModerate,
+        8.0,
+        palette.windArrowFresh,
+        11.0,
+        palette.windArrowStrong,
+      ]);
+      expect(props['icon-halo-color'], palette.windArrowHalo);
+      expect(map.weatherAttributions.value, [
+        'Wind: Deutscher Wetterdienst (CC BY 4.0)',
+      ]);
+    });
+
+    test('over the rain and the clouds, whichever comes first', () async {
+      // The rain first: the arrows go over it.
+      await map.setWeatherLayers([_radar('radar_dwd', '1')]);
+      await map.setWindArrows(arrows(3));
+      expect(
+        ops.addLayerOf(MapLayerIds.windLayer)!.belowLayerId,
+        'waterway_line_label',
+      );
+      // The clouds after: under the rain, so under the arrows.
+      await map.setWeatherLayers([
+        _clouds('clouds_eumetsat.0', 'a'),
+        _radar('radar_dwd', '1'),
+      ]);
+      expect(
+        ops
+            .addLayerOf(MapLayerIds.weatherLayer('clouds_eumetsat.0', 1))!
+            .belowLayerId,
+        MapLayerIds.weatherLayer('radar_dwd', 0),
+      );
+      // A new rain frame: under the arrows.
+      await map.setWeatherLayers([
+        _clouds('clouds_eumetsat.0', 'a'),
+        _radar('radar_dwd', '2'),
+      ]);
+      expect(
+        ops.addLayerOf(MapLayerIds.weatherLayer('radar_dwd', 2))!.belowLayerId,
+        MapLayerIds.windLayer,
+      );
+      expect(map.weatherAttributions.value, [
+        'Clouds: clouds_eumetsat.0',
+        'Radar: radar_dwd',
+        'Wind: Deutscher Wetterdienst (CC BY 4.0)',
+      ]);
+    });
+
+    test('under the cycle map', () async {
+      await map.setCycleMap('/cycle.geojson');
+      await map.setWindArrows(arrows(3));
+      expect(
+        ops.addLayerOf(MapLayerIds.windLayer)!.belowLayerId,
+        CycleMapLayers.layerId(
+          0,
+          const CycleMapLayers(CycleMapColors.light).layers.first,
+        ),
+      );
+    });
+
+    test('new arrows replace the data; none empties it, uncredited', () async {
+      await map.setWindArrows(arrows(3));
+      ops.clearCalls();
+      await map.setWindArrows(arrows(12));
+      expect(ops.names, ['setGeoJsonSource']);
+      await map.setWindArrows(null);
+      expect(ops.lastGeoJsonOf(MapLayerIds.windSource)!['features'], isEmpty);
+      expect(map.weatherAttributions.value, isEmpty);
+    });
+
+    test('back after a style reload, image and all', () async {
+      await map.setWindArrows(arrows(3));
+      ops.clearCalls();
+      await map.attachToStyle();
+      await pumpEventQueue();
+      expect(
+        ops.callsNamed('addImage').map((c) => c.id),
+        contains(MapLayerIds.windArrowImage),
+      );
+      expect(ops.addLayerOf(MapLayerIds.windLayer), isNotNull);
+    });
+
+    test('a new palette recolours the arrows', () async {
+      await map.setWindArrows(arrows(3));
+      final night = MapPalette.fromTheme(buildDarkTheme(AccentPreset.ember));
+      await map.setPalette(night);
+      final props = ops.lastPropertiesOf(MapLayerIds.windLayer)!.properties!;
+      expect((props['icon-color'] as List)[6], night.windArrowModerate);
+      expect(props['icon-halo-color'], night.windArrowHalo);
+      // The arrows turn over with the map: light on a dark one.
+      expect(
+        night.windArrowModerate,
+        isNot(MapPalette.classic().windArrowModerate),
+      );
+    });
   });
 }

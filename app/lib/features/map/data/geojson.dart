@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../domain/map_controller.dart';
+import '../domain/wind_field.dart';
 import 'marker_glyph.dart';
 
 /// Pure builders for the GeoJSON the map layers are fed with.
@@ -139,6 +140,26 @@ Map<String, dynamic> windSegmentsFeatureCollection(List<WindSegment> segments) {
   ];
   if (features.isEmpty) return emptyFeatureCollection();
   return <String, dynamic>{'type': 'FeatureCollection', 'features': features};
+}
+
+/// The wind arrows, one point feature each: where the wind blows to in
+/// `dir` (degrees clockwise from north) and its speed in `ms` (m/s).
+Map<String, dynamic> windArrowsFeatureCollection(List<WindArrow> arrows) {
+  if (arrows.isEmpty) return emptyFeatureCollection();
+  return <String, dynamic>{
+    'type': 'FeatureCollection',
+    'features': <Map<String, dynamic>>[
+      for (final arrow in arrows)
+        <String, dynamic>{
+          'type': 'Feature',
+          'properties': <String, dynamic>{'dir': arrow.dir, 'ms': arrow.ms},
+          'geometry': <String, dynamic>{
+            'type': 'Point',
+            'coordinates': lngLat(arrow.at),
+          },
+        },
+    ],
+  };
 }
 
 /// A `line-color` expression ramping from [slow] to [fast] over the `t` of

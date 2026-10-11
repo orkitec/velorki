@@ -5,6 +5,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import 'cycle_map.dart';
 import 'weather_map.dart';
+import 'wind_field.dart';
 
 /// The planner, recorder and library talk to the map only through this
 /// contract. The production implementation wraps maplibre_gl; tests use a
@@ -136,6 +137,11 @@ abstract class MapController {
   /// A layer already drawn with the same frame stays as it is; a new frame
   /// is swapped in without the map going bare.
   Future<void> setWeatherLayers(List<WeatherLayer> layers);
+
+  /// The wind arrows drawn, over the rain and the clouds and under the
+  /// labels and everything Velorki draws, credited while drawn; `null`
+  /// takes them away.
+  Future<void> setWindArrows(WindArrows? arrows);
 
   /// A pin for a searched place the rider has not decided about yet, with
   /// its name; `null` removes it.

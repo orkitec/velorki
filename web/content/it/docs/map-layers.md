@@ -1,10 +1,10 @@
 ---
 title: Livelli della mappa
-description: La mappa ciclabile offline e le sue parti, la mappa ciclabile online, il radar pioggia, le nuvole e le soste, tutto nel foglio Livelli.
+description: La mappa ciclabile offline e le sue parti, la mappa ciclabile online, il radar pioggia, le nuvole, il vento e le soste, tutto nel foglio Livelli.
 order: 6
 ---
 
-**Livelli** sta nella colonna di pulsanti a destra della mappa, nei tab Pianifica e Registra. Il suo foglio contiene la mappa ciclabile, la mappa ciclabile online, il radar pioggia, le nuvole e le soste. Il pulsante è evidenziato finché una di esse è attiva.
+**Livelli** sta nella colonna di pulsanti a destra della mappa, nei tab Pianifica e Registra. Il suo foglio contiene la mappa ciclabile, la mappa ciclabile online, il radar pioggia, le nuvole, il vento e le soste. Il pulsante è evidenziato finché una di esse è attiva.
 
 <!-- screenshot: layers -->
 
@@ -47,6 +47,14 @@ Con il radar pioggia attivo, il suo controllo del tempo sta in cima al foglio di
 Le nuvole sono immagini satellitari disegnate in bianco sulla mappa: Meteosat di EUMETSAT sopra Europa, Africa e dintorni, con una nuova immagine a ogni ora esatta, e i satelliti GOES tramite la NASA sopra le Americhe. Mostrano sempre la loro immagine più recente, qualunque cosa dica il cursore della pioggia, e una piccola etichetta sulla mappa ne dice l'ora. Le nuvole più spesse e fredde sono le più chiare; nebbia e nuvole basse appaiono deboli o per niente.
 
 Se un servizio non risponde, la mappa dice **Radar pioggia non disponibile al momento**, **Pioggia da satellite non disponibile al momento**, **Previsione di pioggia non disponibile al momento** o **Nuvole non disponibili al momento**, così una mappa vuota non viene scambiata per una giornata asciutta e serena. L'app carica le immagini direttamente da Deutscher Wetterdienst, NOAA, NASA ed EUMETSAT, non tramite Velorki, quindi questi servizi vedono l'area di mappa richiesta. I loro crediti sono nella riga in fondo alla mappa finché un livello è disegnato.
+
+## Vento
+
+**Vento**: "Frecce secondo l'intensità, in tutto il mondo · ora e fino a 24 ore dopo (modello, circa 28 km)". Gratuito, disattivato finché non lo attivi, e serve una connessione.
+
+Le frecce sulla mappa puntano dove soffia il vento. Colore e dimensione crescono con la sua intensità: grigio chiaro con la calma (sotto 2 m/s, 7 km/h), poi più scuro fino al colore del testo della mappa a 5–8 m/s (18–29 km/h), arancione da 8 m/s (29 km/h) e rosso da 11 m/s (40 km/h). Il vento a 10 m dal suolo viene dal modello meteorologico globale ICON del Deutscher Wetterdienst, su una griglia di circa 28 km: mostra quindi il vento della zona, non la raffica dietro un angolo o una siepe. Le frecce sono disegnate dallo zoom 3, a circa un dito di distanza a ogni zoom, sopra la pioggia e le nuvole.
+
+Il controllo del tempo del radar pioggia sposta anche il vento, ora per ora: **Ora** è l'ora in corso. Con solo il vento attivo, il controllo compare da solo e la sua etichetta dà l'ora del vento, per esempio **Ora · 20:00** o **+3 h · 23:00 · Previsione**. Se il servizio non risponde, la mappa dice **Vento non disponibile al momento**. L'app carica il vento direttamente dal Deutscher Wetterdienst, come la pioggia, e il suo credito è nella riga in fondo alla mappa finché le frecce sono disegnate.
 
 ## Soste
 

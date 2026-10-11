@@ -81,9 +81,10 @@ class _Shard {
 /// The pointer may also carry `weatherLayers`, which overrides the weather
 /// map's built-in sources by `id` (see `applyWeatherOverride`); every read
 /// pointer hands it to [onPointer]. Each entry names an `id` and any of
-/// `enabled` (bool), `kind` (`radar`/`clouds`), `url` (https, the tile or
-/// GetMap template with `{bbox-epsg-3857}`, `{z}/{x}/{y}`, `{width}`,
-/// `{height}`, `{time}`, `{timeMs}`), `time` (`none`/`iso`/`epochMs`),
+/// `enabled` (bool), `kind` (`radar`/`clouds`/`wind`), `url` (https, the
+/// tile or GetMap template with `{bbox-epsg-3857}`, `{z}/{x}/{y}`,
+/// `{width}`, `{height}`, `{time}`, `{timeMs}`; for the wind's WCS
+/// `{west}`, `{south}`, `{east}`, `{north}` and `{time}`), `time` (`none`/`iso`/`epochMs`),
 /// `stepMinutes`, `delayMinutes`, `historyMinutes`, `forecastMinutes`,
 /// `tileSize`, `minzoom`, `maxzoom`, `coverage` (`[[west, south, east,
 /// north], ...]`), `attribution` (`{year}` is the image's year),

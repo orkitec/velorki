@@ -61,6 +61,8 @@ RasterTone weatherTone(
   final tone = switch (kind) {
     WeatherKind.radar => image ? radarSoftTone : radarTone,
     WeatherKind.clouds => dark ? cloudsDarkTone : cloudsLightTone,
+    // The wind is arrows, not a raster; never painted with a tone.
+    WeatherKind.wind => radarSoftTone,
   };
   if (opacity == null) return tone;
   return (

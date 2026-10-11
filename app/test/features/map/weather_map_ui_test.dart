@@ -125,6 +125,49 @@ void main() {
     });
   });
 
+  group('Layers sheet, wind', () {
+    testWidgets('off at first and remembered', (tester) async {
+      final (prefs, container) = await _pump(tester, const LayersSheet());
+      expect(_switch(l10n.mapLayersWind), findsOneWidget);
+      expect(find.text(l10n.mapLayersWindSubtitle), findsOneWidget);
+      expect(container.read(weatherMapPreferencesProvider).wind, isFalse);
+      expect(
+        tester.widget<SwitchListTile>(_switch(l10n.mapLayersWind)).value,
+        isFalse,
+      );
+      await tester.tap(_switch(l10n.mapLayersWind));
+      await tester.pumpAndSettle();
+      expect(container.read(weatherMapPreferencesProvider).wind, isTrue);
+      expect(prefs.getBool('map.weather.wind'), isTrue);
+      // The rain and the clouds stay as they were.
+      expect(container.read(weatherMapPreferencesProvider).radar, isFalse);
+      final again = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(again.dispose);
+      expect(
+        again.read(weatherMapPreferencesProvider),
+        const WeatherMapSettings(wind: true),
+      );
+    });
+
+    testWidgets('not offered when the mirror turns its source off', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        const LayersSheet(),
+        prefs: <String, Object>{
+          'map.weather.override': encodeWeatherOverride([
+            {'id': 'wind_icon', 'enabled': false},
+          ])!,
+        },
+      );
+      expect(_switch(l10n.mapLayersWind), findsNothing);
+      expect(_switch(l10n.mapLayersRainRadar), findsOneWidget);
+    });
+  });
+
   group('time control', () {
     // 14:42 UTC, the view over Berlin.
     final at = DateTime.utc(2026, 10, 10, 14, 42);
@@ -155,6 +198,72 @@ void main() {
           .setRadar(false);
       await tester.pump();
       expect(find.byType(Slider), findsNothing);
+    });
+
+    testWidgets('with the wind alone too: its hour, a forecast ahead', (
+      tester,
+    ) async {
+      final (_, container) = await _pump(
+        tester,
+        const WeatherTimeRow(),
+        prefs: <String, Object>{'map.weather.wind': true},
+      );
+      expect(find.byType(Slider), findsOneWidget);
+      expect(find.byIcon(Icons.air), findsOneWidget);
+      expect(find.byIcon(Icons.water_drop_outlined), findsNothing);
+      expect(
+        tester.getSemantics(find.byType(Slider)).label,
+        contains(l10n.mapWeatherWindTime),
+      );
+      container.read(sharedWeatherMapStatusProvider.notifier).set(berlin);
+      await tester.pump();
+      // Now: the hour now falls in.
+      expect(
+        label(tester),
+        '${l10n.mapWeatherNow} · '
+        '${clock(tester, DateTime.utc(2026, 10, 10, 14))}',
+      );
+      container.read(weatherRadarOffsetProvider.notifier).set(180);
+      await tester.pump();
+      expect(
+        label(tester),
+        '${l10n.mapWeatherHoursAhead(3)} · '
+        '${clock(tester, DateTime.utc(2026, 10, 10, 17))} · '
+        '${l10n.mapWeatherForecast}',
+      );
+      // With the rain on as well, the label tells the rain's.
+      await container
+          .read(weatherMapPreferencesProvider.notifier)
+          .setRadar(true);
+      await tester.pump();
+      expect(find.byIcon(Icons.water_drop_outlined), findsOneWidget);
+      expect(find.byType(Slider), findsOneWidget);
+      // Both off: no control.
+      final prefs = container.read(weatherMapPreferencesProvider.notifier);
+      await prefs.setRadar(false);
+      await prefs.setWind(false);
+      await tester.pump();
+      expect(find.byType(Slider), findsNothing);
+    });
+
+    testWidgets('the wind that did not answer says so', (tester) async {
+      final (_, container) = await _pump(
+        tester,
+        const WeatherMapHints(),
+        prefs: <String, Object>{'map.weather.wind': true},
+      );
+      expect(find.byType(WeatherMapChip), findsNothing);
+      container
+          .read(sharedWeatherMapStatusProvider.notifier)
+          .set(const WeatherMapStatus(failed: <WeatherKind>{WeatherKind.wind}));
+      await tester.pump();
+      expect(find.text(l10n.mapWeatherWindUnavailable), findsOneWidget);
+      // Switched off, no word of it.
+      await container
+          .read(weatherMapPreferencesProvider.notifier)
+          .setWind(false);
+      await tester.pump();
+      expect(find.text(l10n.mapWeatherWindUnavailable), findsNothing);
     });
 
     /// The time control in a sheet [width] wide, its sides padded as the

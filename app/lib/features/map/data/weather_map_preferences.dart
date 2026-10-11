@@ -14,13 +14,18 @@ part 'weather_map_preferences.g.dart';
 
 const String _prefsRadar = 'map.weather.radar';
 const String _prefsClouds = 'map.weather.clouds';
+const String _prefsWind = 'map.weather.wind';
 const String _prefsOverride = 'map.weather.override';
 
 /// Which weather layers the rider switched on.
 @immutable
 class WeatherMapSettings {
   /// Creates the settings.
-  const WeatherMapSettings({this.radar = false, this.clouds = false});
+  const WeatherMapSettings({
+    this.radar = false,
+    this.clouds = false,
+    this.wind = false,
+  });
 
   /// The rain radar.
   final bool radar;
@@ -28,26 +33,40 @@ class WeatherMapSettings {
   /// The clouds.
   final bool clouds;
 
+  /// The wind arrows.
+  final bool wind;
+
   /// Whether [kind] is on.
   bool shows(WeatherKind kind) => switch (kind) {
     WeatherKind.radar => radar,
     WeatherKind.clouds => clouds,
+    WeatherKind.wind => wind,
   };
 
-  /// Whether either is on.
-  bool get any => radar || clouds;
+  /// Whether any is on.
+  bool get any => radar || clouds || wind;
+
+  /// A copy with the layers named switched.
+  WeatherMapSettings copyWith({bool? radar, bool? clouds, bool? wind}) =>
+      WeatherMapSettings(
+        radar: radar ?? this.radar,
+        clouds: clouds ?? this.clouds,
+        wind: wind ?? this.wind,
+      );
 
   @override
   bool operator ==(Object other) =>
       other is WeatherMapSettings &&
       other.radar == radar &&
-      other.clouds == clouds;
+      other.clouds == clouds &&
+      other.wind == wind;
 
   @override
-  int get hashCode => Object.hash(radar, clouds);
+  int get hashCode => Object.hash(radar, clouds, wind);
 
   @override
-  String toString() => 'WeatherMapSettings(radar: $radar, clouds: $clouds)';
+  String toString() =>
+      'WeatherMapSettings(radar: $radar, clouds: $clouds, wind: $wind)';
 }
 
 /// The weather layers switched on, remembered across launches.
@@ -59,19 +78,26 @@ class WeatherMapPreferences extends _$WeatherMapPreferences {
     return WeatherMapSettings(
       radar: prefs.getBool(_prefsRadar) ?? false,
       clouds: prefs.getBool(_prefsClouds) ?? false,
+      wind: prefs.getBool(_prefsWind) ?? false,
     );
   }
 
   /// Shows the rain radar or takes it away.
   Future<void> setRadar(bool value) async {
-    state = WeatherMapSettings(radar: value, clouds: state.clouds);
+    state = state.copyWith(radar: value);
     await ref.read(sharedPreferencesProvider).setBool(_prefsRadar, value);
   }
 
   /// Shows the clouds or takes them away.
   Future<void> setClouds(bool value) async {
-    state = WeatherMapSettings(radar: state.radar, clouds: value);
+    state = state.copyWith(clouds: value);
     await ref.read(sharedPreferencesProvider).setBool(_prefsClouds, value);
+  }
+
+  /// Shows the wind arrows or takes them away.
+  Future<void> setWind(bool value) async {
+    state = state.copyWith(wind: value);
+    await ref.read(sharedPreferencesProvider).setBool(_prefsWind, value);
   }
 }
 

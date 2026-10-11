@@ -1,10 +1,10 @@
 ---
 title: Calques de la carte
-description: La carte vélo hors ligne et ses parties, la carte vélo en ligne, le radar de pluie, les nuages et les haltes, tout dans la feuille Calques.
+description: La carte vélo hors ligne et ses parties, la carte vélo en ligne, le radar de pluie, les nuages, le vent et les haltes, tout dans la feuille Calques.
 order: 6
 ---
 
-**Calques** se trouve dans la colonne de boutons à droite de la carte, dans l’onglet Planifier comme dans l’onglet Rouler. Sa feuille contient la carte vélo, la carte vélo en ligne, le radar de pluie, les nuages et les haltes. Le bouton est mis en évidence tant que l’une d’elles est activée.
+**Calques** se trouve dans la colonne de boutons à droite de la carte, dans l’onglet Planifier comme dans l’onglet Rouler. Sa feuille contient la carte vélo, la carte vélo en ligne, le radar de pluie, les nuages, le vent et les haltes. Le bouton est mis en évidence tant que l’une d’elles est activée.
 
 <!-- screenshot: layers -->
 
@@ -47,6 +47,14 @@ Avec le radar de pluie activé, sa commande de temps se trouve en haut de la feu
 Les nuages sont des images satellite dessinées en blanc sur la carte : Meteosat d’EUMETSAT au-dessus de l’Europe, de l’Afrique et des environs, une nouvelle image à chaque heure pile, et les satellites GOES via la NASA au-dessus des Amériques. Ils montrent toujours leur image la plus récente, quel que soit le curseur de la pluie, et un petit libellé sur la carte indique son heure. Les nuages les plus épais et les plus froids sont les plus clairs ; le brouillard et les nuages bas apparaissent à peine ou pas du tout.
 
 Si un service ne répond pas, la carte affiche **Radar de pluie indisponible pour le moment**, **Pluie par satellite indisponible pour le moment**, **Prévision de pluie indisponible pour le moment** ou **Nuages indisponibles pour le moment**, pour qu’une carte vide ne passe pas pour une journée sèche et dégagée. L’app charge les images directement auprès du Deutscher Wetterdienst, de la NOAA, de la NASA et d’EUMETSAT, pas via Velorki : ces services voient donc la zone de carte demandée. Leurs crédits figurent dans la ligne au bas de la carte tant qu’un calque est dessiné.
+
+## Vent
+
+**Vent** : « Flèches selon la force, dans le monde entier · maintenant et jusqu’à 24 heures à venir (modèle, environ 28 km) ». Gratuit, désactivé tant que vous ne l’activez pas, et il faut une connexion.
+
+Des flèches sur la carte indiquent où souffle le vent. Leur couleur et leur taille croissent avec sa force : gris pâle par temps calme (moins de 2 m/s, 7 km/h), puis plus foncé jusqu’à la couleur du texte de la carte à 5–8 m/s (18–29 km/h), orange dès 8 m/s (29 km/h) et rouge dès 11 m/s (40 km/h). Le vent à 10 m du sol vient du modèle météo mondial ICON du Deutscher Wetterdienst, sur une grille d’environ 28 km : il montre donc le vent de la région, pas la rafale au coin d’une rue ou derrière une haie. Les flèches sont dessinées à partir du zoom 3, à environ un doigt d’écart à tous les zooms, par-dessus la pluie et les nuages.
+
+Le curseur de temps du radar de pluie fait aussi avancer le vent, heure par heure : **Maintenant** est l’heure en cours. Avec le vent seul activé, le curseur apparaît seul et son libellé donne l’heure du vent, par exemple **Maintenant · 20:00** ou **+3 h · 23:00 · Prévision**. Si le service ne répond pas, la carte affiche **Vent indisponible pour le moment**. L’app charge le vent directement auprès du Deutscher Wetterdienst, comme la pluie, et son crédit figure dans la ligne en bas de la carte tant que les flèches sont dessinées.
 
 ## Haltes
 

@@ -236,6 +236,7 @@ const Map<String, String> sameAsEnglish = <String, String>{
   'settingsNavigation': 'same word',
   'gpsPrecisionNormal': 'same word',
   'navTurnIn': '"in" is the same word',
+  'mapLayersWind': 'same word in German and Dutch',
   // Spelled the same in Italian.
   'searchKindFastFood': 'borrowed (Italian)',
   'regionRO': 'same name (Italian)',

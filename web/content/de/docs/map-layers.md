@@ -1,10 +1,10 @@
 ---
 title: Ebenen auf der Karte
-description: Die Radkarte offline und ihre Teile, die Online-Radkarte, Regenradar, Wolken und die Stopps, alles im Fenster Ebenen.
+description: Die Radkarte offline und ihre Teile, die Online-Radkarte, Regenradar, Wolken, Wind und die Stopps, alles im Fenster Ebenen.
 order: 6
 ---
 
-**Ebenen** sitzt in der Spalte rechts neben der Karte, im Tab Planen und im Tab Aufnahme. Das Fenster enthält die Radkarte, die Online-Radkarte, das Regenradar, die Wolken und die Stopps. Die Schaltfläche ist hervorgehoben, solange eine davon an ist.
+**Ebenen** sitzt in der Spalte rechts neben der Karte, im Tab Planen und im Tab Aufnahme. Das Fenster enthält die Radkarte, die Online-Radkarte, das Regenradar, die Wolken, den Wind und die Stopps. Die Schaltfläche ist hervorgehoben, solange eine davon an ist.
 
 <!-- screenshot: layers -->
 
@@ -47,6 +47,14 @@ Ist das Regenradar an, sitzt sein Zeitregler oben im Fenster von Planen und auf 
 Die Wolken sind Satellitenbilder, weiß über die Karte gezeichnet: Meteosat von EUMETSAT über Europa, Afrika und Umgebung, ein neues Bild zu jeder vollen Stunde, und die GOES-Satelliten über die NASA für Amerika. Sie zeigen immer ihr neuestes Bild, wo auch immer der Regler des Regens steht, und eine kleine Beschriftung auf der Karte nennt seine Uhrzeit. Die dicksten, kältesten Wolken sind am hellsten; Nebel und tiefe Wolken erscheinen schwach oder gar nicht.
 
 Antwortet ein Dienst nicht, sagt die Karte **Regenradar gerade nicht verfügbar**, **Regen vom Satelliten gerade nicht verfügbar**, **Regenvorhersage gerade nicht verfügbar** oder **Wolken gerade nicht verfügbar**, damit eine leere Karte nicht für einen trockenen, klaren Tag gehalten wird. Die App lädt die Bilder direkt beim Deutschen Wetterdienst, bei NOAA, NASA und EUMETSAT, nicht über Velorki; diese Dienste sehen also den angefragten Kartenausschnitt. Ihre Quellenangaben stehen in der Zeile unten auf der Karte, solange eine Ebene gezeichnet ist.
+
+## Wind
+
+**Wind**: "Pfeile nach Stärke, weltweit · jetzt und bis 24 Stunden voraus (Modell, etwa 28 km)". Kostenlos, aus, bis du ihn einschaltest, und braucht eine Verbindung.
+
+Pfeile über der Karte zeigen, wohin der Wind weht. Farbe und Größe wachsen mit seiner Stärke: blassgrau bei Flaute (unter 2 m/s, 7 km/h), dann dunkler bis zur Schriftfarbe der Karte bei 5–8 m/s (18–29 km/h), orange ab 8 m/s (29 km/h) und rot ab 11 m/s (40 km/h). Der Wind 10 m über dem Boden kommt aus dem globalen Wettermodell ICON des Deutschen Wetterdienstes, auf einem Gitter von etwa 28 km; er zeigt also den Wind der Gegend, nicht die Böe um eine Ecke oder hinter einer Hecke. Die Pfeile erscheinen ab Zoomstufe 3, bei jedem Zoom etwa eine Fingerbreite auseinander, über Regen und Wolken.
+
+Der Zeitregler des Regenradars bewegt auch den Wind, Stunde für Stunde: **Jetzt** ist die laufende Stunde. Ist nur der Wind an, erscheint der Regler allein, und seine Beschriftung nennt die Stunde des Winds, etwa **Jetzt · 20:00** oder **+3 h · 23:00 · Vorhersage**. Antwortet der Dienst nicht, sagt die Karte **Wind gerade nicht verfügbar**. Die App lädt den Wind wie den Regen direkt beim Deutschen Wetterdienst; seine Quellenangabe steht in der Zeile unten auf der Karte, solange die Pfeile gezeichnet sind.
 
 ## Stopps
 

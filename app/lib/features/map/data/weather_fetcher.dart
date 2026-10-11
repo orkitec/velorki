@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../domain/weather_map.dart';
+import '../domain/wind_field.dart';
 
 /// How long a probe of one radar tile may take before the radar counts as
 /// unavailable.
@@ -26,6 +27,17 @@ const Duration latestCloudSlot = Duration(minutes: 10);
 
 /// How long a cloud image stays in the cache at most.
 const Duration cloudCacheMaxAge = Duration(hours: 6);
+
+/// How long the wind of a box and a moment is reused before it is asked
+/// for again: each model run changes the forecast a little.
+const Duration windCacheMaxAge = Duration(hours: 1);
+
+/// How many wind grids of one source the cache keeps: the boxes and
+/// moments of the last few views and steps of the time control.
+const int windCacheKeep = 24;
+
+/// How long the wind of a box may take.
+const Duration windTimeout = Duration(seconds: 15);
 
 /// How many detail images of one source the cache keeps: the boxes of the
 /// last few views, for panning back.
@@ -602,7 +614,21 @@ abstract class WeatherFetcher {
     List<List<LatLng>> masks = const <List<LatLng>>[],
     String maskKey = '',
   });
+
+  /// The wind of [request]'s box at [frame] from [source] (see
+  /// `WindRequest.url`); `null` when the service does not answer with a
+  /// grid within [windTimeout], which is the source's check.
+  Future<WindGrid?> windGrid(
+    WeatherMapSource source,
+    WindRequest request,
+    WeatherFrame frame,
+    DateTime now,
+  );
 }
+
+/// Reads a wind grid off the main isolate.
+Future<WindGrid?> parseWindGridInBackground(String text) =>
+    Isolate.run(() => parseWcsWindGrid(text));
 
 /// [WeatherFetcher] over HTTP, cloud images cached in [cacheDir].
 class HttpWeatherFetcher implements WeatherFetcher {
@@ -615,7 +641,15 @@ class HttpWeatherFetcher implements WeatherFetcher {
     this.processRadar = processRainImage,
     this.probeTimeout = weatherProbeTimeout,
     this.imageTimeout = cloudImageTimeout,
+    this.windTimeLimit = windTimeout,
+    this.parseWind = parseWindGridInBackground,
   });
+
+  /// How long the wind of a box may take.
+  final Duration windTimeLimit;
+
+  /// Reads the service's text into a grid.
+  final Future<WindGrid?> Function(String text) parseWind;
 
   /// How long a probe may take.
   final Duration probeTimeout;
@@ -723,6 +757,86 @@ class HttpWeatherFetcher implements WeatherFetcher {
     );
   }
 
+  @override
+  Future<WindGrid?> windGrid(
+    WeatherMapSource source,
+    WindRequest request,
+    WeatherFrame frame,
+    DateTime now,
+  ) async {
+    final time = frame.time;
+    if (time == null) return null;
+    final prefix = '${source.id}_';
+    final name = '$prefix${request.key}_${time.millisecondsSinceEpoch}.txt';
+    Directory? dir;
+    try {
+      dir = await cacheDir();
+      final cached = File(p.join(dir.path, name));
+      if (cached.existsSync() &&
+          now.difference(cached.lastModifiedSync()) < windCacheMaxAge) {
+        final grid = await parseWind(await cached.readAsString());
+        if (grid != null) return grid;
+      }
+    } on Object catch (error) {
+      debugPrint('velorki: wind cache unreadable: $error');
+    }
+    final text = await _getText(request.url(source, frame), windTimeLimit);
+    if (text == null) return null;
+    final WindGrid? grid;
+    try {
+      grid = await parseWind(text);
+    } on Object catch (error) {
+      debugPrint('velorki: wind not read: $error');
+      return null;
+    }
+    if (grid == null) return null;
+    if (dir != null) {
+      try {
+        if (!dir.existsSync()) dir.createSync(recursive: true);
+        await File(p.join(dir.path, name)).writeAsString(text);
+        _prune(
+          dir,
+          (_) => false,
+          name,
+          now,
+          prefix: prefix,
+          keep: windCacheKeep,
+          extension: '.txt',
+        );
+      } on Object catch (error) {
+        debugPrint('velorki: wind not cached: $error');
+      }
+    }
+    return grid;
+  }
+
+  /// The body of [url] when it is plain text, else `null`: the service
+  /// answers a request it cannot serve with an XML error, status 200.
+  Future<String?> _getText(String url, Duration timeout) async {
+    requests.add(url);
+    try {
+      final response = await dio
+          .get<String>(
+            url,
+            options: Options(
+              responseType: ResponseType.plain,
+              sendTimeout: timeout,
+              receiveTimeout: timeout,
+            ),
+          )
+          .timeout(timeout);
+      final status = response.statusCode ?? 0;
+      final type = response.headers.value(Headers.contentTypeHeader) ?? '';
+      final data = response.data;
+      if (status < 200 || status >= 300) return null;
+      if (!type.toLowerCase().startsWith('text/plain')) return null;
+      if (data == null || data.isEmpty) return null;
+      return data;
+    } on Object {
+      return null;
+    }
+  }
+
   /// The image cached as [name], else fetched from [url] within [timeout]
   /// (the cloud images' by default), turned by [process] (the clouds') and
   /// cached, [prune] then tidying the cache.
@@ -799,12 +913,13 @@ class HttpWeatherFetcher implements WeatherFetcher {
     DateTime now, {
     String? prefix,
     int keep = 0,
+    String extension = '.png',
   }) {
     final kept = <(File, DateTime)>[];
     for (final entry in dir.listSync()) {
       if (entry is! File) continue;
       final name = p.basename(entry.path);
-      if (name == current || !name.endsWith('.png')) continue;
+      if (name == current || !name.endsWith(extension)) continue;
       try {
         final modified = entry.lastModifiedSync();
         if (replaced(name) || now.difference(modified) > cloudCacheMaxAge) {

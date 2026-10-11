@@ -27,7 +27,11 @@ class RecordedStyleCall {
     this.cameraUpdate,
     this.cameraDuration,
     this.filter,
+    this.sdf,
   });
+
+  /// Whether an `addImage` call registered a signed distance field.
+  final bool? sdf;
 
   /// The filter an `addLayer` call limited the layer with.
   final Object? filter;
@@ -363,7 +367,11 @@ class RecordingStyleOps implements MapLibreStyleOps {
   }
 
   @override
-  Future<void> addImage(String name, Uint8List bytes) async {
+  Future<void> addImage(
+    String name,
+    Uint8List bytes, {
+    bool sdf = false,
+  }) async {
     await addImageGate?.future;
     final error = addImageError;
     if (error != null &&
@@ -372,7 +380,9 @@ class RecordingStyleOps implements MapLibreStyleOps {
       throw error;
     }
     images.add(name);
-    calls.add(RecordedStyleCall('addImage', id: name, imageBytes: bytes));
+    calls.add(
+      RecordedStyleCall('addImage', id: name, imageBytes: bytes, sdf: sdf),
+    );
   }
 
   @override

@@ -9,6 +9,7 @@ import '../data/weather_map_preferences.dart';
 import '../data/weather_paint.dart';
 import '../domain/map_controller.dart';
 import '../domain/weather_map.dart';
+import '../domain/wind_field.dart';
 
 /// How often the radar looks for a newer frame while it is on.
 const Duration radarRefreshInterval = Duration(minutes: 5);
@@ -23,6 +24,13 @@ const Duration cloudDetailDebounce = Duration(milliseconds: 600);
 /// How long the camera rests before the soft radar's image of the view is
 /// asked for.
 const Duration radarImageDebounce = Duration(milliseconds: 400);
+
+/// How often the wind looks for a newer grid while it is on: the hour may
+/// have turned, or the grid shown be older than [windCacheMaxAge].
+const Duration windRefreshInterval = Duration(minutes: 15);
+
+/// How long the camera rests before the wind of the view is asked for.
+const Duration windDebounce = Duration(milliseconds: 400);
 
 /// The zoom the radar's probe tile is asked at: low, so it is one cheap
 /// tile around the middle of the view.
@@ -109,6 +117,15 @@ class WeatherMapStatus {
 /// mask since left dropped. That fetch is the source's check, in place of
 /// the probe.
 ///
+/// The wind is one grid of the view and its margin ([windRequestFor]) at
+/// the time control's hour, fetched once the camera has rested
+/// ([windDebounce]), at once when the step changes, and again when the
+/// hour turns or the grid is older than [windCacheMaxAge]; from it the
+/// arrows over the view are worked out on the phone ([windArrowsFor]) at
+/// every rest of the camera. One request at a time, an answer for a view
+/// or moment since left dropped; the grid shown stays until the next is
+/// in. Not below [weatherImageMinZoom]. That fetch is the wind's check.
+///
 /// A source that does not answer is reported in [status], so the map can
 /// say so instead of looking like a dry, clear day.
 class WeatherMapDriver {
@@ -129,6 +146,18 @@ class WeatherMapDriver {
   Timer? _cloudsTimer;
   Timer? _detailTimer;
   Timer? _radarImageTimer;
+  Timer? _windTimer;
+  Timer? _windRefreshTimer;
+
+  /// The wind grid shown, the request in flight (its key) and the last
+  /// one that failed, which is not asked again for until the next
+  /// refresh, step or switch.
+  _WindShown? _wind;
+  String? _windInFlight;
+  String? _windFailed;
+
+  /// The arrows last handed to the map.
+  WindArrows? _windDrawn;
 
   /// The probe URL each radar source was last checked with.
   final Map<String, String> _probed = <String, String>{};
@@ -182,11 +211,13 @@ class WeatherMapDriver {
     detach(clear: false);
     _map = map;
     _drawn = const <WeatherLayer>[];
+    _windDrawn = null;
     map.addCameraIdleListener(_onCameraIdle);
     _update();
     _resetTimers();
     _scheduleDetails();
     _planRadar();
+    _planWind();
   }
 
   /// Lets the map go, taking the layers off it when [clear] is true.
@@ -197,12 +228,16 @@ class WeatherMapDriver {
     if (clear && _drawn.isNotEmpty) {
       unawaited(map.setWeatherLayers(const <WeatherLayer>[]));
     }
+    if (clear && _windDrawn != null) unawaited(map.setWindArrows(null));
     _drawn = const <WeatherLayer>[];
+    _windDrawn = null;
     _map = null;
     _detailTimer?.cancel();
     _detailTimer = null;
     _radarImageTimer?.cancel();
     _radarImageTimer = null;
+    _windTimer?.cancel();
+    _windTimer = null;
     _resetTimers();
   }
 
@@ -262,6 +297,8 @@ class WeatherMapDriver {
       _detailFailed.clear();
     }
     if (turnedOn.contains(WeatherKind.radar)) _radarFailed.clear();
+    if (turnedOn.contains(WeatherKind.wind)) _windFailed = null;
+    if (offsetMinutes != _offset) _windFailed = null;
     // Clouds switched off let their images go, and so does the radar.
     if (!settings.clouds) {
       _images.clear();
@@ -271,10 +308,15 @@ class WeatherMapDriver {
       _radarImages.clear();
       _tilesUntilSoft.clear();
     }
+    if (!settings.wind) {
+      _wind = null;
+      _windFailed = null;
+    }
     _update();
     _resetTimers();
     _scheduleDetails();
     _planRadar();
+    _planWind();
   }
 
   /// Whether the app is in the foreground: refreshes run only then, and
@@ -286,11 +328,13 @@ class WeatherMapDriver {
       _attempted.clear();
       _detailFailed.clear();
       _radarFailed.clear();
+      _windFailed = null;
       _update(recheck: true);
     }
     _resetTimers();
     _scheduleDetails();
     _planRadar();
+    _planWind();
   }
 
   /// Stops for good.
@@ -301,6 +345,8 @@ class WeatherMapDriver {
     _cloudsTimer?.cancel();
     _detailTimer?.cancel();
     _radarImageTimer?.cancel();
+    _windTimer?.cancel();
+    _windRefreshTimer?.cancel();
     _status.dispose();
   }
 
@@ -308,6 +354,16 @@ class WeatherMapDriver {
     _update();
     _scheduleDetails();
     _scheduleRadar();
+    _scheduleWind();
+  }
+
+  /// Asks for the wind of the view once the camera has rested; only while
+  /// the wind is on, on a map, in the foreground.
+  void _scheduleWind() {
+    _windTimer?.cancel();
+    _windTimer = null;
+    if (_disposed || _map == null || !_foreground || !_settings.wind) return;
+    _windTimer = Timer(windDebounce, _planWind);
   }
 
   /// Asks for the rain's images once the camera has rested; only while
@@ -333,9 +389,18 @@ class WeatherMapDriver {
   void _resetTimers() {
     _radarTimer?.cancel();
     _cloudsTimer?.cancel();
+    _windRefreshTimer?.cancel();
     _radarTimer = null;
     _cloudsTimer = null;
+    _windRefreshTimer = null;
     if (_disposed || _map == null || !_foreground) return;
+    if (_settings.wind) {
+      _windRefreshTimer = Timer.periodic(windRefreshInterval, (_) {
+        _windFailed = null;
+        _update();
+        _planWind();
+      });
+    }
     if (_settings.radar) {
       _radarTimer = Timer.periodic(radarRefreshInterval, (_) {
         _radarFailed.clear();
@@ -458,13 +523,124 @@ class WeatherMapDriver {
     // go.
     _radarImages.removeWhere((id, _) => !imageShown.contains(id));
     _tilesUntilSoft.removeWhere((id) => !imageShown.contains(id));
+
+    // The wind, over the rest: the arrows of the grid shown over the view.
+    final wind = _windSource();
+    WindArrows? arrows;
+    if (wind != null && view != null) {
+      final z = _zoomOf(view, zoom);
+      if (windRequestFor(view, z) != null) {
+        covering.add(wind.id);
+        final shown = _wind;
+        if (shown != null && shown.source == wind.id) {
+          arrows = WindArrows(
+            arrows: windArrowsFor(shown.grid, view, z),
+            attribution: shown.attribution,
+          );
+        }
+      }
+    }
     _covering = covering;
 
     if (!listEquals(layers, _drawn)) {
       _drawn = List<WeatherLayer>.unmodifiable(layers);
       unawaited(map.setWeatherLayers(_drawn));
     }
+    if (arrows != _windDrawn) {
+      _windDrawn = arrows;
+      unawaited(map.setWindArrows(arrows));
+    }
     _publish();
+  }
+
+  /// The wind source in use: the first enabled one, while the wind is on.
+  WeatherMapSource? _windSource() => _enabled(WeatherKind.wind).firstOrNull;
+
+  /// Asks for the wind of the view where the grid shown is missing, of
+  /// another hour, older than [windCacheMaxAge], or no longer serves the
+  /// view ([WindRequest.fits]).
+  void _planWind() {
+    _windTimer?.cancel();
+    _windTimer = null;
+    if (_disposed || !_foreground || !_settings.wind) return;
+    final map = _map;
+    final view = map?.visibleBounds;
+    final source = _windSource();
+    if (map == null || view == null || source == null) return;
+    final zoom = _zoomOf(view, map.zoom);
+    final now = _clock();
+    final request = windRequestFor(view, zoom);
+    final frame = source.frameAt(now, offsetMinutes: _offset);
+    final time = frame?.time;
+    if (request == null || frame == null || time == null) return;
+    final shown = _wind;
+    if (shown != null &&
+        shown.source == source.id &&
+        shown.time == time &&
+        now.difference(shown.fetchedAt) < windCacheMaxAge &&
+        shown.request.fits(view, zoom)) {
+      return;
+    }
+    // One request at a time: the next is planned when it is back.
+    if (_windInFlight != null) return;
+    final key = '${source.id}@${request.key}@${time.millisecondsSinceEpoch}';
+    // Only a request that failed waits for the refresh.
+    if (_windFailed == key) return;
+    _windInFlight = key;
+    unawaited(_loadWind(source, request, frame, key, now));
+  }
+
+  Future<void> _loadWind(
+    WeatherMapSource source,
+    WindRequest request,
+    WeatherFrame frame,
+    String key,
+    DateTime now,
+  ) async {
+    final grid = await _fetcher.windGrid(source, request, frame, now);
+    if (_disposed) return;
+    _windInFlight = null;
+    if (grid == null) {
+      _windFailed = key;
+      _failed.add(source.id);
+      // A grid of another hour does not stand in for this one.
+      if (_wind != null && _wind!.time != frame.time) _wind = null;
+    } else {
+      _windFailed = null;
+      _failed.remove(source.id);
+      if (_windStillWanted(source, request, frame)) {
+        _wind = _WindShown(
+          source: source.id,
+          request: request,
+          time: frame.time!,
+          grid: grid,
+          fetchedAt: now,
+          attribution: source.attributionFor(frame, now),
+        );
+      }
+    }
+    _update();
+    // An answer for a view or moment since left is dropped; what the view
+    // wants now is asked for.
+    _planWind();
+  }
+
+  /// Whether a grid of [request] at [frame] still serves the map: the wind
+  /// on with [source] in use, the step's hour the same and the view inside
+  /// the request's area at its thinning.
+  bool _windStillWanted(
+    WeatherMapSource source,
+    WindRequest request,
+    WeatherFrame frame,
+  ) {
+    if (!_settings.wind || _windSource()?.id != source.id) return false;
+    final map = _map;
+    final view = map?.visibleBounds;
+    if (map == null || view == null) return false;
+    if (source.frameAt(_clock(), offsetMinutes: _offset) != frame) {
+      return false;
+    }
+    return request.fits(view, _zoomOf(view, map.zoom));
   }
 
   static bool _regionMeets(BoundingBox region, BoundingBox view) =>
@@ -798,6 +974,27 @@ class WeatherMapDriver {
       },
     );
   }
+}
+
+/// The wind grid shown: the source and the request it came from, the hour
+/// it shows, when it was fetched and its credit.
+@immutable
+class _WindShown {
+  const _WindShown({
+    required this.source,
+    required this.request,
+    required this.time,
+    required this.grid,
+    required this.fetchedAt,
+    required this.attribution,
+  });
+
+  final String source;
+  final WindRequest request;
+  final DateTime time;
+  final WindGrid grid;
+  final DateTime fetchedAt;
+  final String attribution;
 }
 
 /// A cloud source's detail image: the layer drawn, the [area] it was asked
