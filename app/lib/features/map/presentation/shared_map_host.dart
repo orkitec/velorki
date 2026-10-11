@@ -81,9 +81,9 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
     super.initState();
     _shared = ref.read(sharedMapControllerProvider.notifier);
     _cycleMap = CycleMapBinding(ref);
-    final hint = ref.read(sharedCycleMapNeedsDownloadProvider.notifier);
-    _cycleMap.driver.needsDownload.addListener(
-      () => hint.set(_cycleMap.driver.needsDownload.value),
+    final hint = ref.read(sharedCycleMapMissingAreaProvider.notifier);
+    _cycleMap.driver.missingArea.addListener(
+      () => hint.set(_cycleMap.driver.missingArea.value),
     );
     _weather = WeatherMapBinding(ref);
     final weatherStatus = ref.read(sharedWeatherMapStatusProvider.notifier);

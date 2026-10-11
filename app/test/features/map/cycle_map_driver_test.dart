@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/map/application/cycle_map_driver.dart';
 import 'package:velorki/features/map/domain/cycle_map.dart';
 import 'package:velorki/features/map/testing/testing.dart';
+import 'package:velorki_brouter/velorki_brouter.dart' show TileName;
 import 'package:velorki_cycle_map/velorki_cycle_map.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -178,19 +179,36 @@ void main() {
     driver
       ..attach(map)
       ..configure(shown);
-    expect(driver.needsDownload.value, isTrue);
+    expect(driver.missingArea.value, const TileName(-20, 30));
     await renderer.answerAll();
     driver.tilesChanged((_) => true);
     expect(renderer.tilesChangedCalls, 1);
     expect(renderer.requests, hasLength(2));
-    expect(driver.needsDownload.value, isFalse);
+    expect(driver.missingArea.value, isNull);
+  });
+
+  test('the hint names the tile under the middle of the view', () async {
+    covered = false;
+    driver
+      ..attach(map)
+      ..configure(shown);
+    expect(driver.missingArea.value, const TileName(-20, 30));
+    // Panned within the same tile.
+    map.visibleBounds = box(-16.2, 33.1);
+    map.emitCameraIdle();
+    expect(driver.missingArea.value, const TileName(-20, 30));
+    // Into another one.
+    map.visibleBounds = box(-13.6, 28.1);
+    map.emitCameraIdle();
+    expect(driver.missingArea.value, const TileName(-15, 25));
+    await renderer.answerAll();
   });
 
   test('no hint while the cycle map is off', () {
     covered = false;
     driver.attach(map);
     map.emitCameraIdle();
-    expect(driver.needsDownload.value, isFalse);
+    expect(driver.missingArea.value, isNull);
   });
 
   test('detach takes the map away and stops listening', () async {

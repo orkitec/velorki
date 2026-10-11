@@ -86,15 +86,17 @@ class AreaDownloadHint extends ChangeNotifier {
   }
 }
 
-/// The areas whose not-downloaded hint the rider closed, for as long as the
-/// app runs: the hint stays away over them and comes back over any other
-/// area that is not downloaded, and over these after a restart.
+/// The areas whose not-downloaded chip the rider closed, for as long as the
+/// app runs: one dismissal per area, shared by every such chip (the area's,
+/// the stops' and the cycle map's), since they all say the same of it.
+/// They stay away over these areas and come back over any other area that
+/// is not downloaded, and over these after a restart.
 @Riverpod(keepAlive: true)
 class AreaHintDismissals extends _$AreaHintDismissals {
   @override
   Set<TileName> build() => const {};
 
-  /// Closes the hint over [area].
+  /// Closes the chips over [area].
   void dismiss(TileName area) {
     if (state.contains(area)) return;
     state = {...state, area};

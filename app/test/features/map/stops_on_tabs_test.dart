@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
+import 'package:velorki/features/map/application/area_download_hint.dart';
+import 'package:velorki/features/map/application/cycle_map_binding.dart';
 import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/presentation/stops_ahead_line.dart';
-import 'package:velorki/features/map/presentation/stops_zoom_chip.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/offline/presentation/offline_screen.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
@@ -15,6 +16,7 @@ import 'package:velorki/features/search/presentation/place_card.dart';
 import 'package:velorki/features/search/presentation/search_field.dart'
     show gazetteerPoiKindLabel;
 import 'package:velorki/features/shared/application/active_tab.dart';
+import 'package:velorki_brouter/velorki_brouter.dart' show TileName;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
@@ -393,18 +395,124 @@ void main() {
     expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
   });
 
-  testWidgets('the download chips of the layers have no close button', (
+  testWidgets('Plan: the stops chip closes for its area with the area hint, '
+      'stays closed while the map is over it and comes back over another', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      testApp(
-        home: Scaffold(
-          body: Center(child: StopsDownloadChip(onDownload: () {})),
+    final harness = PlannerHarness();
+    harness.stopsCoverage.covered = (_) => false;
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+      extraOverrides: [
+        mapStopsFinderProvider.overrideWithValue(
+          (box, kinds, limit, {near}) async => const <SearchResult>[],
         ),
-      ),
+      ],
     );
+    await ProviderScope.containerOf(tester.element(find.byType(PlannerScreen)))
+        .read(mapStopsPreferencesProvider.notifier)
+        .setShown(true);
+    Future<void> lookAt(double lon, double lat) async {
+      h.map
+        ..zoom = 13
+        ..center = LatLng(lat, lon)
+        ..visibleBounds = BoundingBox(
+          south: lat - 0.05,
+          west: lon - 0.05,
+          north: lat + 0.05,
+          east: lon + 0.05,
+        );
+      for (final listener in [...h.map.cameraIdleListeners]) {
+        listener();
+      }
+      await tester.pump(stopsDebounce * 2);
+      await tester.pumpAndSettle();
+    }
+
+    await lookAt(11.05, 48.05);
     expect(find.text(l10n.mapStopsNotDownloaded), findsOneWidget);
-    expect(find.byTooltip(l10n.mapAreaHintHide), findsNothing);
+    expect(find.byTooltip(l10n.mapAreaHintHide), findsOneWidget);
+    expectNoClippedText(tester);
+
+    await tester.tap(find.text(l10n.mapStopsDownload));
+    await tester.pumpAndSettle();
+    expect(find.byType(OfflineScreen), findsOneWidget);
+    await tapBack(tester);
+
+    await tester.tap(find.byTooltip(l10n.mapAreaHintHide));
+    await tester.pumpAndSettle();
+    expect(find.byType(OfflineScreen), findsNothing);
+    // No other chip about the same area takes its place.
+    expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
+    expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
+    expect(find.text(l10n.mapStopsZoomIn), findsNothing);
+
+    // Panned within the same downloadable area: still closed.
+    await lookAt(13.8, 46.2);
+    expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
+
+    // Into another area not downloaded: back.
+    await lookAt(16.4, 48.2);
+    expect(find.text(l10n.mapStopsNotDownloaded), findsOneWidget);
+    expect(find.byTooltip(l10n.mapAreaHintHide), findsOneWidget);
+
+    // Downloaded: gone as before.
+    harness.stopsCoverage.changed((_) => true);
+    await tester.pump(stopsDebounce * 2);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
+  });
+
+  testWidgets('Plan: the cycle map chip closes for its area and comes back '
+      'over another', (tester) async {
+    await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      surfaceSize: const Size(360, 780),
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    final missing = container.read(sharedCycleMapMissingAreaProvider.notifier);
+    Future<void> over(TileName? area) async {
+      missing.set(area);
+      await tester.pumpAndSettle();
+    }
+
+    await over(const TileName(10, 45));
+    expect(find.text(l10n.mapCycleMapNotDownloaded), findsOneWidget);
+    expect(find.byTooltip(l10n.mapAreaHintHide), findsOneWidget);
+    expectNoClippedText(tester);
+
+    await tester.tap(find.text(l10n.mapStopsDownload));
+    await tester.pumpAndSettle();
+    expect(find.byType(OfflineScreen), findsOneWidget);
+    await tapBack(tester);
+
+    await tester.tap(find.byTooltip(l10n.mapAreaHintHide));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapCycleMapNotDownloaded), findsNothing);
+    expect(
+      container.read(areaHintDismissalsProvider),
+      contains(const TileName(10, 45)),
+    );
+
+    // Out of the area and back into it: still closed.
+    await over(null);
+    await over(const TileName(10, 45));
+    expect(find.text(l10n.mapCycleMapNotDownloaded), findsNothing);
+
+    // Over another area not downloaded: back.
+    await over(const TileName(15, 45));
+    expect(find.text(l10n.mapCycleMapNotDownloaded), findsOneWidget);
+    expect(find.byTooltip(l10n.mapAreaHintHide), findsOneWidget);
+
+    // Downloaded: gone.
+    await over(null);
+    expect(find.text(l10n.mapCycleMapNotDownloaded), findsNothing);
   });
 
   testWidgets('Record: along a route with nothing ahead downloaded, the chip '
@@ -447,5 +555,53 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
     expect(find.byType(StopsAheadLine), findsOneWidget);
+  });
+
+  testWidgets('Record: the stops chip closes for the area the rider is in, '
+      'and is not closed by closing another', (tester) async {
+    const mPerLon = 111195 * 0.66913;
+    final line = <LatLng>[
+      for (var m = 0.0; m <= 20000; m += 500) LatLng(48, 11 + m / mPerLon),
+    ];
+    final harness = RecordingHarness();
+    harness.planner.stopsCoverage.covered = (_) => false;
+    await pumpRecordingScreen(
+      tester,
+      const RecordingScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+      preferences: const <String, Object>{'map.stops.shown': true},
+      extraOverrides: [
+        activeGuidedRouteProvider.overrideWithValue(
+          GuidedRoute(key: 'r1', line: line, turns: const []),
+        ),
+        mapStopsFinderProvider.overrideWithValue(
+          (box, kinds, limit, {near}) async => const <SearchResult>[],
+        ),
+      ],
+    );
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordingScreen)),
+    );
+
+    // Closed over another area: still here.
+    container
+        .read(areaHintDismissalsProvider.notifier)
+        .dismiss(const TileName(15, 45));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapStopsNotDownloaded), findsOneWidget);
+    expect(find.byTooltip(l10n.mapAreaHintHide), findsOneWidget);
+    expectNoClippedText(tester);
+
+    await tester.tap(find.byTooltip(l10n.mapAreaHintHide));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
+    expect(find.byType(StopsAheadLine), findsNothing);
+    expect(find.byType(OfflineScreen), findsNothing);
+    expect(
+      container.read(areaHintDismissalsProvider),
+      contains(const TileName(10, 45)),
+    );
   });
 }

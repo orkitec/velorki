@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:velorki_brouter/velorki_brouter.dart' show TileName;
 import 'package:velorki_cycle_map/velorki_cycle_map.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -24,8 +25,8 @@ const double cycleMapMargin = 0.5;
 /// show at once, before the new map arrives, by showing and hiding the
 /// map's layers.
 ///
-/// [needsDownload] says when the middle of the view has no downloaded
-/// tile, for the screen's hint.
+/// [missingArea] says when the middle of the view has no downloaded tile,
+/// and which, for the screen's hint.
 class CycleMapDriver {
   /// A driver asking [renderer] for maps, which [covers] says whether a
   /// point lies in a downloaded tile.
@@ -42,11 +43,11 @@ class CycleMapDriver {
   int _serial = 0;
   bool _disposed = false;
 
-  final ValueNotifier<bool> _needsDownload = ValueNotifier<bool>(false);
+  final ValueNotifier<TileName?> _missingArea = ValueNotifier<TileName?>(null);
 
-  /// Whether the cycle map is on and the middle of the view has no
-  /// downloaded tile.
-  ValueListenable<bool> get needsDownload => _needsDownload;
+  /// The 5° area under the middle of the view while the cycle map is on and
+  /// that area is not downloaded; `null` otherwise.
+  ValueListenable<TileName?> get missingArea => _missingArea;
 
   /// The step of [zoom] at which lines are drawn differently.
   static int zoomStep(double zoom) => math.min(16, zoom.floor());
@@ -94,11 +95,22 @@ class CycleMapDriver {
     _update();
   }
 
+  /// The tile at [middle] unless it is downloaded.
+  TileName? _missingAt(LatLng middle) {
+    if (_covers(middle)) return null;
+    try {
+      return TileName.fromLatLng(middle);
+    } on ArgumentError {
+      // A map that is not ready yet can answer with a non-finite centre.
+      return null;
+    }
+  }
+
   void _update() {
     final map = _map;
     if (map == null || _disposed) return;
     if (!_settings.shown) {
-      _needsDownload.value = false;
+      _missingArea.value = null;
       _renderer.release(this);
       _serial++;
       if (_drawn != null) {
@@ -114,7 +126,7 @@ class CycleMapDriver {
     // step before [cycleMapMinZoom] by themselves. Halfway through that
     // fade a new area is drawn already, so it fades in with something.
     if (zoom < cycleMapMinZoom - 0.51) return;
-    _needsDownload.value = !_covers(bounds.center);
+    _missingArea.value = _missingAt(bounds.center);
     final step = zoomStep(zoom);
     final content = cycleContentOf(_settings.parts);
     final drawn = _drawn;
@@ -170,7 +182,7 @@ class CycleMapDriver {
   void dispose() {
     detach(clear: false);
     _disposed = true;
-    _needsDownload.dispose();
+    _missingArea.dispose();
   }
 
   static bool _within(BoundingBox inner, BoundingBox outer) =>

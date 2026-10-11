@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/map/application/map_stops_controller.dart';
+import 'package:velorki_brouter/velorki_brouter.dart' show TileName;
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -583,6 +584,8 @@ void main() {
         stops.addListener(() => told++);
         async.elapse(stopsDebounce * 2);
         expect(stops.needsDownload, isTrue);
+        // The chip speaks of the tile under the middle.
+        expect(stops.missingArea, const TileName(10, 45));
         expect(stops.needsZoom, isFalse);
         final asked = store.asks.length;
 
@@ -590,6 +593,7 @@ void main() {
         coverage.changed((_) => true);
         async.flushMicrotasks();
         expect(stops.needsDownload, isFalse);
+        expect(stops.missingArea, isNull);
         expect(told, greaterThan(0));
         async.elapse(stopsDebounce * 2);
         expect(store.asks.length, asked + 1);
@@ -675,6 +679,7 @@ void main() {
         expect(stops.needsDownload, isTrue);
         stops.update(shown: false, kinds: const {'cafe'});
         expect(stops.needsDownload, isFalse);
+        expect(stops.missingArea, isNull);
         stops.dispose();
       });
     });
@@ -702,6 +707,8 @@ void main() {
         async.flushMicrotasks();
         expect(stops.mode, MapStopsMode.alongRoute);
         expect(stops.needsDownload, isTrue);
+        // The area is the one the rider is in.
+        expect(stops.missingArea, const TileName(10, 45));
 
         // Ridden on until the downloaded part is within the stretch ahead.
         stops.update(

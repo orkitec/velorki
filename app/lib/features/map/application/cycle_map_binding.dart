@@ -14,15 +14,16 @@ import 'cycle_map_driver.dart';
 
 part 'cycle_map_binding.g.dart';
 
-/// Whether the shell's map shows the cycle map over an area that is not
-/// downloaded: the planner offers the download then.
+/// The 5° area under the middle of the shell's map while it shows the
+/// cycle map there and that area is not downloaded, `null` otherwise: the
+/// planner offers the download then.
 @Riverpod(keepAlive: true)
-class SharedCycleMapNeedsDownload extends _$SharedCycleMapNeedsDownload {
+class SharedCycleMapMissingArea extends _$SharedCycleMapMissingArea {
   @override
-  bool build() => false;
+  TileName? build() => null;
 
   /// Sets it; the shell's map host does.
-  void set(bool value) => state = value;
+  void set(TileName? value) => state = value;
 }
 
 /// Puts the offline cycle map on a map host's map as the settings say: one
@@ -45,7 +46,7 @@ class CycleMapBinding {
 
   final WidgetRef _ref;
 
-  /// The driver, whose `needsDownload` a screen can show.
+  /// The driver, whose `missingArea` a screen can show.
   final CycleMapDriver driver;
 
   /// Draws on [map] from now on: a new map, or the same after a style

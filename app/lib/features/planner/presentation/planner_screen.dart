@@ -794,10 +794,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     return base.copyWith(bottom: bottom);
   }
 
-  /// Closes the not-downloaded hint for the area it speaks of; it comes
-  /// back over another area that is not downloaded.
-  void _closeAreaHint() {
-    final area = _areaHint.missingArea;
+  /// Closes the not-downloaded chip for [area], the one it speaks of, with
+  /// every other not-downloaded chip over it; they come back over another
+  /// area that is not downloaded.
+  void _closeAreaHint(TileName? area) {
     if (area == null) return;
     ref.read(areaHintDismissalsProvider.notifier).dismiss(area);
   }
@@ -1180,54 +1180,60 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           : null,
     );
 
-    final cycleMapNeedsDownload = ref.watch(
-      sharedCycleMapNeedsDownloadProvider,
-    );
-    // The areas whose hint the rider closed this session.
+    final cycleMapMissing = ref.watch(sharedCycleMapMissingAreaProvider);
+    // The areas whose not-downloaded chips the rider closed this session.
     final dismissedAreas = ref.watch(areaHintDismissalsProvider);
     // What the chrome shows under its first rows, now and then.
     final below = <Widget>[
       // The area is not downloaded, or stops are on and the map is too far
       // out for them. The download first, since zooming in would show
       // nothing either; said for the stops or the cycle map where those
-      // are on, for the area where neither is.
+      // are on, for the area where neither is. Closed over an area, none of
+      // them shows there again this session.
       ListenableBuilder(
         listenable: Listenable.merge(<Listenable>[_stops, _areaHint]),
-        builder: (context, _) =>
-            _stops.needsDownload ||
-                cycleMapNeedsDownload ||
-                _areaHint.shownDespite(dismissedAreas) ||
-                _stops.needsZoom
-            ? Padding(
-                // Clear of the map's control column at the side: a long
-                // message wraps rather than run over its top button.
-                padding: const EdgeInsetsDirectional.only(
-                  top: 10,
-                  end: mapControlButtonSize + 14,
-                ),
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: _stops.needsDownload
-                      ? StopsDownloadChip(onDownload: _openOfflineData)
-                      : cycleMapNeedsDownload
-                      ? StopsDownloadChip(
-                          onDownload: _openOfflineData,
-                          message: AppLocalizations.of(context)
-                              .mapCycleMapNotDownloaded,
-                        )
-                      : _areaHint.shownDespite(dismissedAreas)
-                      ? StopsDownloadChip(
-                          onDownload: _openOfflineData,
-                          message: AppLocalizations.of(context)
-                              .searchAreaNotDownloaded,
-                          onClose: _closeAreaHint,
-                        )
-                      : StopsZoomChip(
-                          onZoomIn: () => unawaited(_stops.zoomIn()),
-                        ),
-                ),
-              )
-            : const SizedBox.shrink(),
+        builder: (context, _) {
+          final l10n = AppLocalizations.of(context);
+          final stopsMissing = _stops.missingArea;
+          final Widget? chip =
+              stopsMissing != null && !dismissedAreas.contains(stopsMissing)
+              ? StopsDownloadChip(
+                  onDownload: _openOfflineData,
+                  onClose: () => _closeAreaHint(stopsMissing),
+                )
+              : cycleMapMissing != null &&
+                    !dismissedAreas.contains(cycleMapMissing)
+              ? StopsDownloadChip(
+                  onDownload: _openOfflineData,
+                  message: l10n.mapCycleMapNotDownloaded,
+                  onClose: () => _closeAreaHint(cycleMapMissing),
+                )
+              : _areaHint.shownDespite(dismissedAreas)
+              ? StopsDownloadChip(
+                  onDownload: _openOfflineData,
+                  message: l10n.searchAreaNotDownloaded,
+                  onClose: () => _closeAreaHint(_areaHint.missingArea),
+                )
+              // Not after the stops' own chip was closed: zooming in would
+              // show none either.
+              : _stops.needsZoom && stopsMissing == null
+              ? StopsZoomChip(onZoomIn: () => unawaited(_stops.zoomIn()))
+              : null;
+          return chip == null
+              ? const SizedBox.shrink()
+              : Padding(
+                  // Clear of the map's control column at the side: a long
+                  // message wraps rather than run over its top button.
+                  padding: const EdgeInsetsDirectional.only(
+                    top: 10,
+                    end: mapControlButtonSize + 14,
+                  ),
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: chip,
+                  ),
+                );
+        },
       ),
       // Shown with the faint line of the file's route,
       // and gone with it.

@@ -4,6 +4,7 @@ import 'dart:ui' show Rect;
 
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:velorki_brouter/velorki_brouter.dart' show TileName;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../navigation/application/route_geometry.dart';
@@ -280,44 +281,62 @@ class MapStopsController extends ChangeNotifier {
   /// area on screen) or any of the route ahead (along a route): the rider is
   /// offered the download. Wins over [needsZoom], since zooming in would
   /// show nothing either.
-  bool get needsDownload => mode != MapStopsMode.off && _uncovered;
-  bool _uncovered = false;
+  bool get needsDownload => missingArea != null;
 
-  /// Notes whether the stops wanted lie outside every downloaded area,
-  /// telling the listeners when that changes.
+  /// The 5° area [needsDownload] speaks of: the tile under the middle of
+  /// the visible map (in the area on screen) or under the rider's stretch
+  /// of the route (along a route); `null` while nothing is missing. The
+  /// rider can close the chip for it.
+  TileName? get missingArea => mode == MapStopsMode.off ? null : _missingArea;
+  TileName? _missingArea;
+
+  /// Notes whether the stops wanted lie outside every downloaded area, and
+  /// which area, telling the listeners when that changes.
   void _checkCoverage() {
-    final uncovered = switch (mode) {
-      MapStopsMode.off => false,
+    final missing = switch (mode) {
+      MapStopsMode.off => null,
       MapStopsMode.area => _areaUncovered(),
       MapStopsMode.alongRoute => _routeUncovered(),
     };
-    if (uncovered == _uncovered) return;
-    _uncovered = uncovered;
+    if (missing == _missingArea) return;
+    _missingArea = missing;
     _changed();
   }
 
-  bool _areaUncovered() {
+  TileName? _areaUncovered() {
     final check = coverage;
     final map = _map;
-    if (check == null || map == null) return false;
+    if (check == null || map == null) return null;
     final bounds = map.visibleBounds;
     final middle = bounds == null
         ? map.center
         : visiblePart(bounds, visibleShare?.call()).center;
-    return middle != null && !check.covers(middle);
+    if (middle == null || check.covers(middle)) return null;
+    return _tileOf(middle);
   }
 
-  bool _routeUncovered() {
+  TileName? _routeUncovered() {
     final check = coverage;
-    if (check == null || _map == null || _line.length < 2) return false;
+    if (check == null || _map == null || _line.length < 2) return null;
     // Every point of the line from the stretch the rider is on to the end
-    // of the stretch the stops are listed for.
+    // of the stretch the stops are listed for; the area is the first one's.
+    LatLng? first;
     for (var i = 0; i < _line.length; i++) {
       if (_cumulative[i] > _alongM + stopsAheadMaxM) break;
       if (i + 1 < _line.length && _cumulative[i + 1] < _alongM) continue;
-      if (check.covers(_line[i])) return false;
+      if (check.covers(_line[i])) return null;
+      first ??= _line[i];
     }
-    return true;
+    return _tileOf(first ?? _line.last);
+  }
+
+  static TileName? _tileOf(LatLng point) {
+    try {
+      return TileName.fromLatLng(point);
+    } on ArgumentError {
+      // A map that is not ready yet can answer with a non-finite centre.
+      return null;
+    }
   }
 
   /// A gazetteer came or went: whether the stops are missing is judged
@@ -481,7 +500,7 @@ class MapStopsController extends ChangeNotifier {
     }
     _map = null;
     _zoomedOut = false;
-    _uncovered = false;
+    _missingArea = null;
     _forget();
     _changed();
   }

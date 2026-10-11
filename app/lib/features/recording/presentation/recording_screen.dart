@@ -12,6 +12,7 @@ import '../../../core/geo/ride_stats.dart';
 import '../../../core/permissions/location_permission.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../map/application/area_download_hint.dart';
 import '../../map/application/map_stops_controller.dart';
 import '../../map/presentation/weather_time_row.dart';
 import '../../map/presentation/stops_zoom_chip.dart';
@@ -278,6 +279,15 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         ),
       ),
     );
+  }
+
+  /// Closes the stops' not-downloaded chip for the area it speaks of, with
+  /// every other not-downloaded chip over it; it comes back over another
+  /// area that is not downloaded.
+  void _closeStopsHint() {
+    final area = _stops.missingArea;
+    if (area == null) return;
+    ref.read(areaHintDismissalsProvider.notifier).dismiss(area);
   }
 
   /// A stop tapped on the map is picked out, and its card says what and
@@ -1756,6 +1766,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // The stops of the Layers sheet: along the route still ahead while one
     // is followed and the rider wants them so, else in the area on screen.
     final stopsWanted = ref.watch(mapStopsPreferencesProvider);
+    // The areas whose not-downloaded chip the rider closed this session.
+    final dismissedAreas = ref.watch(areaHintDismissalsProvider);
     final guided = ref.watch(activeGuidedRouteProvider);
     final stopsAlong = guided != null && stopsWanted.alongRoute;
     _stops.update(
@@ -1990,9 +2002,14 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                                   // too far: told to zoom in. Both where the
                                   // line would be.
                                   builder: (context, _) => _stops.needsDownload
-                                      ? StopsDownloadChip(
-                                          onDownload: _openOfflineData,
-                                        )
+                                      ? dismissedAreas.contains(
+                                              _stops.missingArea,
+                                            )
+                                            ? const SizedBox.shrink()
+                                            : StopsDownloadChip(
+                                                onDownload: _openOfflineData,
+                                                onClose: _closeStopsHint,
+                                              )
                                       : _stops.needsZoom
                                       ? StopsZoomChip(
                                           onZoomIn: () =>
