@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -17,6 +18,10 @@ const Duration cloudsRefreshInterval = Duration(minutes: 10);
 /// How long the camera rests before the clouds' detail image is asked
 /// for: a pan of a few flicks asks once, at its end.
 const Duration cloudDetailDebounce = Duration(milliseconds: 600);
+
+/// How long the camera rests before the soft radar's image of the view is
+/// asked for.
+const Duration radarImageDebounce = Duration(milliseconds: 400);
 
 /// The zoom the radar's probe tile is asked at: low, so it is one cheap
 /// tile around the middle of the view.
@@ -82,8 +87,18 @@ class WeatherMapStatus {
 /// source also gets a finer image of the view's surroundings once the
 /// camera has rested ([cloudDetailDebounce]), drawn over the region's and
 /// replaced when the view leaves it or the zoom moves on; one request per
-/// source at a time, an answer for a view since left dropped. A source that does not answer is reported in [status],
-/// so the map can say so instead of looking like a dry, clear day.
+/// source at a time, an answer for a view since left dropped.
+///
+/// Radar drawn soft ([RadarStyle.soft]) is one image of the view and its
+/// surroundings per source instead of tiles, fetched and softened by this
+/// driver once the camera has rested ([radarImageDebounce]), at once when
+/// the time control or the style changes, and with each refresh; the
+/// image shown stays until the next is in, one request per source at a
+/// time, an answer for a view or moment since left dropped. That fetch is
+/// the soft radar's check, in place of the probe.
+///
+/// A source that does not answer is reported in [status], so the map can
+/// say so instead of looking like a dry, clear day.
 class WeatherMapDriver {
   /// A driver fetching through [fetcher], telling the time by [clock].
   WeatherMapDriver({required this._fetcher, DateTime Function()? clock})
@@ -95,11 +110,13 @@ class WeatherMapDriver {
   WeatherMapSettings _settings = const WeatherMapSettings();
   List<WeatherMapSource> _sources = const <WeatherMapSource>[];
   int _offset = 0;
+  RadarStyle _radarStyle = RadarStyle.soft;
   bool _foreground = true;
   bool _disposed = false;
   Timer? _radarTimer;
   Timer? _cloudsTimer;
   Timer? _detailTimer;
+  Timer? _radarImageTimer;
 
   /// The probe URL each radar source was last checked with.
   final Map<String, String> _probed = <String, String>{};
@@ -123,6 +140,18 @@ class WeatherMapDriver {
   final Map<String, String> _detailInFlight = <String, String>{};
   final Map<String, String> _detailAttempted = <String, String>{};
 
+  /// Each radar source's soft image, the request in flight for it (its
+  /// key) and the last one asked for, which a failure is not asked again
+  /// for until the next refresh or a new view.
+  final Map<String, _RadarImage> _radarImages = <String, _RadarImage>{};
+  final Map<String, String> _radarInFlight = <String, String>{};
+  final Map<String, String> _radarAttempted = <String, String>{};
+
+  /// The radar sources switched to soft while drawn as tiles: their tiles
+  /// stay until the first soft image is in or fails, so the switch leaves
+  /// no gap.
+  final Set<String> _tilesUntilSoft = <String>{};
+
   List<WeatherLayer> _drawn = const <WeatherLayer>[];
   DateTime? _radarFrame;
   DateTime? _cloudsFrame;
@@ -145,6 +174,7 @@ class WeatherMapDriver {
     _update();
     _resetTimers();
     _scheduleDetails();
+    _planRadar();
   }
 
   /// Lets the map go, taking the layers off it when [clear] is true.
@@ -159,19 +189,44 @@ class WeatherMapDriver {
     _map = null;
     _detailTimer?.cancel();
     _detailTimer = null;
+    _radarImageTimer?.cancel();
+    _radarImageTimer = null;
     _resetTimers();
   }
 
-  /// Follows new settings, sources and the time control's [offsetMinutes].
+  /// Follows new settings, sources, the time control's [offsetMinutes] and
+  /// the [radarStyle].
   void configure({
     required WeatherMapSettings settings,
     required List<WeatherMapSource> sources,
     required int offsetMinutes,
+    RadarStyle radarStyle = RadarStyle.soft,
   }) {
     if (settings == _settings &&
         listEquals(sources, _sources) &&
-        offsetMinutes == _offset) {
+        offsetMinutes == _offset &&
+        radarStyle == _radarStyle) {
       return;
+    }
+    if (radarStyle != _radarStyle) {
+      // The other look is checked afresh; tiles drawn now stay until the
+      // soft image replaces them.
+      for (final source in _sources) {
+        if (source.kind != WeatherKind.radar) continue;
+        _probed.remove(source.id);
+        _failed.remove(source.id);
+      }
+      _tilesUntilSoft
+        ..clear()
+        ..addAll(<String>{
+          if (radarStyle == RadarStyle.soft)
+            for (final layer in _drawn)
+              if (layer.kind == WeatherKind.radar && layer.tiles != null)
+                layer.id,
+        });
+      _radarImages.clear();
+      _radarAttempted.clear();
+      _radarStyle = radarStyle;
     }
     final turnedOn = <WeatherKind>{
       for (final kind in WeatherKind.values)
@@ -191,14 +246,20 @@ class WeatherMapDriver {
       _attempted.clear();
       _detailAttempted.clear();
     }
-    // Clouds switched off let their images go.
+    if (turnedOn.contains(WeatherKind.radar)) _radarAttempted.clear();
+    // Clouds switched off let their images go, and so does the radar.
     if (!settings.clouds) {
       _images.clear();
       _details.clear();
     }
+    if (!settings.radar) {
+      _radarImages.clear();
+      _tilesUntilSoft.clear();
+    }
     _update();
     _resetTimers();
     _scheduleDetails();
+    _planRadar();
   }
 
   /// Whether the app is in the foreground: refreshes run only then, and
@@ -209,10 +270,12 @@ class WeatherMapDriver {
     if (foreground) {
       _attempted.clear();
       _detailAttempted.clear();
+      _radarAttempted.clear();
       _update(recheck: true);
     }
     _resetTimers();
     _scheduleDetails();
+    _planRadar();
   }
 
   /// Stops for good.
@@ -222,12 +285,24 @@ class WeatherMapDriver {
     _radarTimer?.cancel();
     _cloudsTimer?.cancel();
     _detailTimer?.cancel();
+    _radarImageTimer?.cancel();
     _status.dispose();
   }
 
   void _onCameraIdle() {
     _update();
     _scheduleDetails();
+    _scheduleRadar();
+  }
+
+  /// Asks for the soft radar's images once the camera has rested; only
+  /// while the radar is on and soft, on a map, in the foreground.
+  void _scheduleRadar() {
+    _radarImageTimer?.cancel();
+    _radarImageTimer = null;
+    if (_disposed || _map == null || !_foreground || !_settings.radar) return;
+    if (_radarStyle != RadarStyle.soft) return;
+    _radarImageTimer = Timer(radarImageDebounce, _planRadar);
   }
 
   /// Asks for the detail images once the camera has rested; only while
@@ -248,10 +323,11 @@ class WeatherMapDriver {
     _cloudsTimer = null;
     if (_disposed || _map == null || !_foreground) return;
     if (_settings.radar) {
-      _radarTimer = Timer.periodic(
-        radarRefreshInterval,
-        (_) => _update(recheck: true),
-      );
+      _radarTimer = Timer.periodic(radarRefreshInterval, (_) {
+        _radarAttempted.clear();
+        _update(recheck: true);
+        _planRadar();
+      });
     }
     if (_settings.clouds) {
       _cloudsTimer = Timer.periodic(cloudsRefreshInterval, (_) {
@@ -315,6 +391,7 @@ class WeatherMapDriver {
 
     _radarFrame = null;
     var forecastCovered = false;
+    final softShown = <String>{};
     for (final source in _enabled(WeatherKind.radar)) {
       if (source.timeFormat != WeatherTimeFormat.none) {
         _radarFrame ??= latestFrameTime(
@@ -332,6 +409,24 @@ class WeatherMapDriver {
       if (frame == null) continue;
       covering.add(source.id);
       if (_offset > 0) forecastCovered = true;
+      if (_softBoxOf(source, view, zoom) != null) {
+        // Soft: the image shown stays until the next is in, unless the
+        // next failed and it shows another moment. No probe: the fetch
+        // checks.
+        _probed.remove(source.id);
+        softShown.add(source.id);
+        final shown = _radarImages[source.id];
+        final stamp = radarImageStamp(source, frame, now);
+        if (shown != null &&
+            (shown.stamp == stamp || !_failed.contains(source.id))) {
+          layers.add(shown.layer);
+          continue;
+        }
+        if (!_tilesUntilSoft.contains(source.id)) continue;
+        // Just switched to soft: the tiles until the image is in.
+        layers.add(WeatherLayer.ofRadar(source, frame, now));
+        continue;
+      }
       layers.add(WeatherLayer.ofRadar(source, frame, now));
       final probe = source.probeUrl(frame, view.center, weatherProbeZoom);
       if (recheck || _probed[source.id] != probe) {
@@ -339,6 +434,9 @@ class WeatherMapDriver {
         unawaited(_probe(source.id, probe));
       }
     }
+    // Out of view, off or back on tiles: the soft images go.
+    _radarImages.removeWhere((id, _) => !softShown.contains(id));
+    _tilesUntilSoft.removeWhere((id) => !softShown.contains(id));
     _forecastElsewhere =
         _settings.radar && _offset > 0 && view != null && !forecastCovered;
     _covering = covering;
@@ -489,6 +587,125 @@ class WeatherMapDriver {
     _planDetails();
   }
 
+  /// The box [source]'s soft image of [view] shows, `null` where the radar
+  /// is drawn as tiles: the style says so, the source has no image request,
+  /// or the view crosses the antimeridian.
+  BoundingBox? _softBoxOf(
+    WeatherMapSource source,
+    BoundingBox view,
+    double? zoom,
+  ) {
+    if (_radarStyle != RadarStyle.soft || source.imageUrlTemplate == null) {
+      return null;
+    }
+    final area = cloudDetailArea(view, _zoomOf(view, zoom));
+    return area == null ? null : source.softBox(area);
+  }
+
+  /// [zoom], or where the map does not say, about the zoom that shows
+  /// [view] on a phone.
+  static double _zoomOf(BoundingBox view, double? zoom) {
+    if (zoom != null) return zoom;
+    final span = view.lonSpan <= 0 ? 360.0 : view.lonSpan;
+    return (math.log(360 / span) / math.ln2 + 2).clamp(0.0, 22.0);
+  }
+
+  /// Asks for each soft radar source's image of the view where the one
+  /// shown is missing, of another moment, or no longer fits.
+  void _planRadar() {
+    _radarImageTimer?.cancel();
+    _radarImageTimer = null;
+    if (_disposed || !_foreground || !_settings.radar) return;
+    if (_radarStyle != RadarStyle.soft) return;
+    final map = _map;
+    final view = map?.visibleBounds;
+    if (map == null || view == null) return;
+    final zoom = _zoomOf(view, map.zoom);
+    final now = _clock();
+    for (final source in _enabled(WeatherKind.radar)) {
+      if (!source.covers(view)) continue;
+      final frame = source.frameAt(now, offsetMinutes: _offset);
+      if (frame == null) continue;
+      final area = cloudDetailArea(view, zoom);
+      final box = _softBoxOf(source, view, zoom);
+      if (area == null || box == null) continue;
+      final stamp = radarImageStamp(source, frame, now);
+      final shown = _radarImages[source.id];
+      if (shown != null && shown.stamp == stamp && shown.fits(view, zoom)) {
+        continue;
+      }
+      // One request per source: the next is planned when it is back.
+      if (_radarInFlight.containsKey(source.id)) continue;
+      final key = '${source.id}@${cloudDetailKey(box)}@$stamp';
+      if (_radarAttempted[source.id] == key) continue;
+      _radarAttempted[source.id] = key;
+      _radarInFlight[source.id] = key;
+      unawaited(
+        _loadRadar(
+          source,
+          _RadarImage(
+            layer: WeatherLayer.image(
+              id: source.id,
+              kind: WeatherKind.radar,
+              image: Uint8List(0),
+              imageBox: box,
+              frameKey: key,
+              attribution: source.attributionFor(frame, now),
+            ),
+            area: area,
+            zoom: zoom,
+            stamp: stamp,
+            capped: radarSoftCapped(source, box),
+          ),
+          frame,
+          now,
+        ),
+      );
+    }
+  }
+
+  Future<void> _loadRadar(
+    WeatherMapSource source,
+    _RadarImage planned,
+    WeatherFrame frame,
+    DateTime now,
+  ) async {
+    final box = planned.layer.imageBox!;
+    final image = await _fetcher.radarImage(source, box, frame, now);
+    if (_disposed) return;
+    _radarInFlight.remove(source.id);
+    if (_stillWanted(source, planned)) {
+      _tilesUntilSoft.remove(source.id);
+      if (image == null) {
+        _failed.add(source.id);
+      } else {
+        _failed.remove(source.id);
+        _radarImages[source.id] = planned.withImage(image);
+      }
+      _update();
+    }
+    // An answer for a view, moment or look since left is dropped; what
+    // the view wants now is asked for.
+    _planRadar();
+  }
+
+  /// Whether [planned] still serves the map: the radar on and soft, the
+  /// source in use, the view inside its area and the moment the same.
+  bool _stillWanted(WeatherMapSource source, _RadarImage planned) {
+    if (!_settings.radar || _radarStyle != RadarStyle.soft) return false;
+    final current = _enabled(WeatherKind.radar)
+        .where((s) => s.id == source.id)
+        .firstOrNull;
+    if (current == null || current.imageUrlTemplate == null) return false;
+    final view = _map?.visibleBounds;
+    if (view == null) return false;
+    final now = _clock();
+    final frame = current.frameAt(now, offsetMinutes: _offset);
+    if (frame == null) return false;
+    return radarImageStamp(current, frame, now) == planned.stamp &&
+        planned.fits(view, _zoomOf(view, _map?.zoom));
+  }
+
   void _publish() {
     if (_disposed) return;
     _status.value = WeatherMapStatus(
@@ -544,5 +761,53 @@ class _CloudDetail {
     area: area,
     zoom: zoom,
     stamp: stamp,
+  );
+}
+
+/// A radar source's soft image: the layer drawn, the [area] it was asked
+/// for (the view and its margin, before the coverage clips it), the zoom it
+/// was asked at, the moment it shows and whether it is [capped] coarser
+/// than the radar's own resolution.
+@immutable
+class _RadarImage {
+  const _RadarImage({
+    required this.layer,
+    required this.area,
+    required this.zoom,
+    required this.stamp,
+    required this.capped,
+  });
+
+  final WeatherLayer layer;
+  final BoundingBox area;
+  final double zoom;
+  final String stamp;
+  final bool capped;
+
+  /// Whether it still serves [view] at [zoom]: the view inside its area,
+  /// and, where the image is coarser than the radar's own cells, the zoom
+  /// less than [cloudDetailRezoom] further in. At the radar's own
+  /// resolution zooming in brings nothing finer.
+  bool fits(BoundingBox view, double zoom) =>
+      (!capped || zoom - this.zoom < cloudDetailRezoom) &&
+      view.west <= view.east &&
+      view.west >= area.west &&
+      view.east <= area.east &&
+      view.south >= area.south &&
+      view.north <= area.north;
+
+  _RadarImage withImage(Uint8List image) => _RadarImage(
+    layer: WeatherLayer.image(
+      id: layer.id,
+      kind: layer.kind,
+      image: image,
+      imageBox: layer.imageBox!,
+      frameKey: layer.frameKey,
+      attribution: layer.attribution,
+    ),
+    area: area,
+    zoom: zoom,
+    stamp: stamp,
+    capped: capped,
   );
 }

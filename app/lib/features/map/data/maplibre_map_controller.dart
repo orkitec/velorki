@@ -2368,11 +2368,13 @@ class MaplibreMapControllerAdapter implements MapController {
       layer.kind,
       dark: _weatherDark,
       opacity: layer.opacity,
+      image: layer.image != null,
     ).layerProperties();
-    // A cloud image is blown up well past its pixels: smoothed between
-    // them, it reads as soft cloud rather than squares. Linear is the
-    // default, said here so a style or platform default cannot change it.
-    if (layer.kind != WeatherKind.clouds) return paint;
+    // An image (the clouds, the soft radar) is blown up well past its
+    // pixels: smoothed between them, it reads as soft cloud and rain rather
+    // than squares. Linear is the default, said here so a style or platform
+    // default cannot change it. Radar tiles stay as the service draws them.
+    if (layer.image == null) return paint;
     return paint.copyWith(
       const ml.RasterLayerProperties(rasterResampling: 'linear'),
     );

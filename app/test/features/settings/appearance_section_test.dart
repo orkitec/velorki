@@ -31,7 +31,12 @@ Future<ProviderContainer> _pump(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: testApp(home: const Scaffold(body: AppearanceSection())),
+      // Scrolling, as on the Settings page.
+      child: testApp(
+        home: const Scaffold(
+          body: SingleChildScrollView(child: AppearanceSection()),
+        ),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -205,6 +210,7 @@ void main() {
     final container = await _pump(tester);
     expect(container.read(appearanceSettingProvider).accent, AccentPreset.volt);
 
+    await tester.ensureVisible(_swatch(l10n.accentEmber));
     await tester.tap(_swatch(l10n.accentEmber));
     await tester.pumpAndSettle();
 
@@ -343,6 +349,59 @@ void main() {
           )
           .selected,
       {BarStyle.solid},
+    );
+  });
+
+  testWidgets('the rain radar is soft until As measured is chosen, which is '
+      'stored', (tester) async {
+    final container = await _pump(tester);
+    SegmentedButton<RadarStyle> segmented() =>
+        tester.widget<SegmentedButton<RadarStyle>>(
+          find.byType(SegmentedButton<RadarStyle>),
+        );
+    expect(find.text(l10n.appearanceRadarStyle), findsOneWidget);
+    expect(find.text(l10n.appearanceRadarHint), findsOneWidget);
+    expect(segmented().selected, {RadarStyle.soft});
+    expect(
+      container.read(appearanceSettingProvider).radarStyle,
+      RadarStyle.soft,
+    );
+
+    await tester.ensureVisible(find.text(l10n.appearanceRadarMeasured));
+    await tester.tap(find.text(l10n.appearanceRadarMeasured));
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(appearanceSettingProvider).radarStyle,
+      RadarStyle.measured,
+    );
+    expect(segmented().selected, {RadarStyle.measured});
+    final prefs = container.read(sharedPreferencesProvider);
+    expect(prefs.getString('map.weather.radar_style'), 'measured');
+
+    // Back to Soft, the default, which is stored as no choice at all.
+    await tester.tap(find.text(l10n.appearanceRadarSoft));
+    await tester.pumpAndSettle();
+    expect(
+      container.read(appearanceSettingProvider).radarStyle,
+      RadarStyle.soft,
+    );
+    expect(prefs.getString('map.weather.radar_style'), isNull);
+  });
+
+  testWidgets('the stored radar look is the one shown', (tester) async {
+    await _pump(
+      tester,
+      initial: <String, Object>{'map.weather.radar_style': 'measured'},
+    );
+
+    expect(
+      tester
+          .widget<SegmentedButton<RadarStyle>>(
+            find.byType(SegmentedButton<RadarStyle>),
+          )
+          .selected,
+      {RadarStyle.measured},
     );
   });
 }

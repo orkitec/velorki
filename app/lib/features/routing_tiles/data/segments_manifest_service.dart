@@ -87,9 +87,12 @@ class _Shard {
 /// `stepMinutes`, `delayMinutes`, `historyMinutes`, `forecastMinutes`,
 /// `tileSize`, `minzoom`, `maxzoom`, `coverage` (`[[west, south, east,
 /// north], ...]`), `attribution` (`{year}` is the image's year),
-/// `opacity` and `metresPerPixel` (the clouds' native resolution, which
-/// their detail image is asked at). An unknown `id` with `kind`, `url`, `coverage` and
-/// `attribution` adds a source. Anything unreadable falls back to the
+/// `opacity`, `metresPerPixel` (the service's native resolution, which a
+/// cloud detail and the soft radar's image are asked at) and `imageUrl`
+/// (https, a radar's GetMap or exportImage template for the soft radar,
+/// with `{bbox-epsg-3857}`, `{width}`, `{height}` and the time; without
+/// one the radar stays on tiles). An unknown `id` with `kind`, `url`,
+/// `coverage` and `attribution` adds a source. Anything unreadable falls back to the
 /// built-in sources; it is never an error.
 class SegmentsManifestService {
   /// Creates the service. An empty [segmentsUrl] selects the brouter.de

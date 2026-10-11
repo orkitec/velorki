@@ -7,6 +7,20 @@ import 'package:velorki_geo/velorki_geo.dart';
 /// What a weather layer shows: where it rains now, or the clouds.
 enum WeatherKind { radar, clouds }
 
+/// How the rain radar is drawn, chosen under Settings → Appearance.
+enum RadarStyle {
+  /// One image of the view, smoothed on the phone: soft edges, light rain
+  /// fainter than heavy (see `softenRadarPixels`).
+  soft,
+
+  /// The service's tiles as delivered, its cells sharp.
+  measured;
+
+  /// The style named [name], or [soft] when the name is unknown.
+  static RadarStyle fromName(String? name) =>
+      RadarStyle.values.firstWhere((s) => s.name == name, orElse: () => soft);
+}
+
 /// How a source's tile URL names the moment it shows.
 enum WeatherTimeFormat {
   /// The URL names no moment: the service serves its latest image.
@@ -50,6 +64,9 @@ class WeatherFrame {
 /// `{width}` and `{height}`, which the app fetches itself and turns into
 /// white cloud on a clear ground (see `weather_fetcher.dart`). Either names
 /// its moment with `{time}` or `{timeMs}` ([timeFormat]).
+///
+/// A radar drawn soft ([RadarStyle.soft]) is one image of the view as
+/// well, from [imageUrlTemplate]; a radar without one stays on its tiles.
 @immutable
 class WeatherMapSource {
   /// Creates a source.
@@ -69,6 +86,7 @@ class WeatherMapSource {
     this.forecastMinutes = 0,
     this.opacity,
     this.nativeMetresPerPixel = 2000,
+    this.imageUrlTemplate,
     this.enabled = true,
   });
 
@@ -122,6 +140,11 @@ class WeatherMapSource {
   /// smooths it, instead of the service blowing its pixels up into blocks.
   final double nativeMetresPerPixel;
 
+  /// A radar's request for one image of a box, for the soft look: like
+  /// [urlTemplate], with `{bbox-epsg-3857}`, `{width}` and `{height}` to
+  /// fill; `null` where the service only serves tiles.
+  final String? imageUrlTemplate;
+
   /// Whether the source is used at all; a fork or the mirror can switch one
   /// off.
   final bool enabled;
@@ -149,12 +172,46 @@ class WeatherMapSource {
 
   /// The tile URL template with [frame]'s moment filled in; `{z}`, `{x}`,
   /// `{y}` and `{bbox-epsg-3857}` stay for MapLibre.
-  String tileUrl(WeatherFrame frame) {
+  String tileUrl(WeatherFrame frame) => _withTime(urlTemplate, frame);
+
+  static String _withTime(String template, WeatherFrame frame) {
     final time = frame.time;
-    if (time == null) return urlTemplate;
-    return urlTemplate
+    if (time == null) return template;
+    return template
         .replaceAll('{time}', formatWeatherTime(time))
         .replaceAll('{timeMs}', '${time.toUtc().millisecondsSinceEpoch}');
+  }
+
+  /// The request for the soft radar's image of [box] at [frame]: the
+  /// service's own [nativeMetresPerPixel], each side within
+  /// [radarSoftMinSide] and [radarSoftMaxSide] pixels (see
+  /// [radarSoftImageSize]); `null` without an [imageUrlTemplate].
+  String? softImageUrl(WeatherFrame frame, BoundingBox box) {
+    final template = imageUrlTemplate;
+    if (template == null) return null;
+    final (width, height) = radarSoftImageSize(this, box);
+    return _withTime(template, frame)
+        .replaceAll('{bbox-epsg-3857}', mercatorBboxString(box))
+        .replaceAll('{width}', '$width')
+        .replaceAll('{height}', '$height');
+  }
+
+  /// The part of [area] the soft radar's image shows: the box around its
+  /// overlaps with every coverage box, `null` where it meets none. Unlike
+  /// [detailBox] it keeps them all, so a view of the US zoomed out still
+  /// shows Alaska's radar beside the contiguous states'.
+  BoundingBox? softBox(BoundingBox area) {
+    BoundingBox? out;
+    for (final box in coverage) {
+      final south = math.max(box.south, area.south);
+      final north = math.min(box.north, area.north);
+      final west = math.max(box.west, area.west);
+      final east = math.min(box.east, area.east);
+      if (south >= north || west >= east) continue;
+      final part = _box(west, south, east, north);
+      out = out == null ? part : out.union(part);
+    }
+    return out;
   }
 
   /// One concrete tile URL: the tile at [zoom] holding [point], for a probe
@@ -271,6 +328,7 @@ class WeatherMapSource {
     String? attribution,
     double? opacity,
     double? nativeMetresPerPixel,
+    String? imageUrlTemplate,
     bool? enabled,
   }) => WeatherMapSource(
     id: id,
@@ -288,6 +346,7 @@ class WeatherMapSource {
     attribution: attribution ?? this.attribution,
     opacity: opacity ?? this.opacity,
     nativeMetresPerPixel: nativeMetresPerPixel ?? this.nativeMetresPerPixel,
+    imageUrlTemplate: imageUrlTemplate ?? this.imageUrlTemplate,
     enabled: enabled ?? this.enabled,
   );
 
@@ -309,6 +368,7 @@ class WeatherMapSource {
       other.attribution == attribution &&
       other.opacity == opacity &&
       other.nativeMetresPerPixel == nativeMetresPerPixel &&
+      other.imageUrlTemplate == imageUrlTemplate &&
       other.enabled == enabled;
 
   @override
@@ -328,6 +388,7 @@ class WeatherMapSource {
     attribution,
     opacity,
     nativeMetresPerPixel,
+    imageUrlTemplate,
     enabled,
   );
 
@@ -500,6 +561,63 @@ String cloudDetailKey(BoundingBox box) => <double>[
   mercatorY(box.north),
 ].map((v) => (v / 1000).round()).join('_');
 
+// The soft radar: one image of the view and the same margin as a cloud
+// detail ([cloudDetailArea]), at the radar's own resolution, at every zoom.
+// Zoomed out the box grows and the image coarsens at [radarSoftMaxSide],
+// still finer than the screen's pixels there; there is no region-wide
+// image under it, since rain is local and a coverage box is large.
+
+/// The fewest pixels a side of a soft radar image has.
+const int radarSoftMinSide = 64;
+
+/// The most pixels a side of a soft radar image has.
+const int radarSoftMaxSide = 1536;
+
+/// The pixel size of [source]'s soft radar image of [box]: the radar's
+/// own resolution, each side within [radarSoftMinSide] and
+/// [radarSoftMaxSide].
+(int, int) radarSoftImageSize(WeatherMapSource source, BoundingBox box) =>
+    cloudImageSize(
+      box,
+      metresPerPixel: source.nativeMetresPerPixel,
+      maxSide: radarSoftMaxSide,
+      minSide: radarSoftMinSide,
+    );
+
+/// Whether the soft image of [box] is coarser than [source]'s own
+/// resolution: capped at [radarSoftMaxSide], so zooming in is worth a new,
+/// finer one.
+bool radarSoftCapped(WeatherMapSource source, BoundingBox box) {
+  final (width, _) = radarSoftImageSize(source, box);
+  final metres = mercatorX(box.east) - mercatorX(box.west);
+  return metres / width > source.nativeMetresPerPixel * 1.01;
+}
+
+/// What tells one soft radar image of [frame] from the next, besides its
+/// box: the moment, and for a moment still ahead also the newest frame
+/// measured, since each new measurement makes a new forecast of it.
+String radarImageStamp(
+  WeatherMapSource source,
+  WeatherFrame frame,
+  DateTime now,
+) {
+  final time = frame.time;
+  if (time == null) {
+    // The latest image, which the URL cannot name: one per step.
+    final step = math.max(1, source.stepMinutes) * 60000;
+    final ms = now.millisecondsSinceEpoch;
+    return 'latest${ms - ms % step}';
+  }
+  final latest = latestFrameTime(
+    now,
+    stepMinutes: source.stepMinutes,
+    delayMinutes: source.delayMinutes,
+  );
+  final ms = time.millisecondsSinceEpoch;
+  if (!time.isAfter(latest)) return '$ms';
+  return '${ms}f${latest.millisecondsSinceEpoch}';
+}
+
 BoundingBox _box(double west, double south, double east, double north) =>
     BoundingBox(south: south, west: west, north: north, east: east);
 
@@ -514,15 +632,25 @@ final WeatherMapSource dwdRadar = WeatherMapSource(
       '&request=GetMap&layers=dwd:Niederschlagsradar&styles=&crs=EPSG:3857'
       '&bbox={bbox-epsg-3857}&width=256&height=256&format=image/png'
       '&transparent=true&time={time}',
+  imageUrlTemplate:
+      'https://maps.dwd.de/geoserver/dwd/wms?service=WMS&version=1.3.0'
+      '&request=GetMap&layers=dwd:Niederschlagsradar&styles=&crs=EPSG:3857'
+      '&bbox={bbox-epsg-3857}&width={width}&height={height}'
+      '&format=image/png&transparent=true&time={time}',
   coverage: <BoundingBox>[_box(1.5, 45, 19, 56.5)],
   maxZoom: 10,
   timeFormat: WeatherTimeFormat.iso,
   forecastMinutes: 120,
+  // The radar composite's cells are a kilometre square.
+  nativeMetresPerPixel: 1000,
   attribution: 'Radar: Deutscher Wetterdienst (CC BY 4.0)',
 );
 
 /// Base reflectivity over the US from the National Weather Service: the
 /// past two hours, no forecast.
+///
+/// `format=png32`, not `png`: the plain PNG is RGB with a colour key for
+/// transparency, which MapLibre's Android decoder rejects.
 final WeatherMapSource noaaRadar = WeatherMapSource(
   id: 'radar_noaa',
   kind: WeatherKind.radar,
@@ -530,7 +658,18 @@ final WeatherMapSource noaaRadar = WeatherMapSource(
       'https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/'
       'radar_base_reflectivity_time/ImageServer/exportImage'
       '?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256'
-      '&format=png&transparent=true&time={timeMs}&f=image',
+      '&format=png32&transparent=true&time={timeMs}&f=image',
+  imageUrlTemplate:
+      'https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/'
+      'radar_base_reflectivity_time/ImageServer/exportImage'
+      '?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857'
+      '&size={width},{height}&format=png32&transparent=true&time={timeMs}'
+      '&f=image',
+  // The mosaic is gridded at about a kilometre.
+  nativeMetresPerPixel: 1000,
+  // Its newest frame is some 14 minutes old, and a moment it has no frame
+  // for yet comes back as an empty image, not an error: dry, not missing.
+  delayMinutes: 20,
   coverage: <BoundingBox>[
     _box(-126, 24, -66, 50), // the contiguous US
     _box(-170, 51, -129, 72), // Alaska
@@ -620,15 +759,21 @@ final List<WeatherMapSource> defaultWeatherMapSources = <WeatherMapSource>[
 /// [eumetsatClouds].
 const String _eumetsatHost = 'view.eumetsat.int';
 
+bool _onEumetsat(WeatherMapSource source) =>
+    Uri.tryParse(source.urlTemplate)?.host == _eumetsatHost ||
+    (source.imageUrlTemplate != null &&
+        Uri.tryParse(source.imageUrlTemplate!)?.host == _eumetsatHost);
+
 /// [sources] with every source on the EUMETSAT host held to full hours at
 /// least 20 minutes old with the moment in the URL; one whose URL names no
 /// moment is switched off.
 List<WeatherMapSource> enforceWeatherLicences(List<WeatherMapSource> sources) =>
     <WeatherMapSource>[
       for (final source in sources)
-        if (Uri.tryParse(source.urlTemplate)?.host != _eumetsatHost)
+        if (!_onEumetsat(source))
           source
-        else if (!source.urlTemplate.contains('{time}'))
+        else if (!source.urlTemplate.contains('{time}') ||
+            !(source.imageUrlTemplate?.contains('{time}') ?? true))
           source.copyWith(enabled: false)
         else
           source.copyWith(
@@ -708,6 +853,8 @@ WeatherMapSource? _parseNew(String id, Map<Object?, Object?> row) {
 WeatherMapSource? _parseOver(WeatherMapSource base, Map<Object?, Object?> row) {
   final url = _str(row['url']);
   if (url != null && !url.startsWith('https://')) return null;
+  final imageUrl = _str(row['imageUrl']);
+  if (imageUrl != null && !imageUrl.startsWith('https://')) return null;
   return base.copyWith(
     kind: _kind(row['kind']),
     urlTemplate: url,
@@ -723,6 +870,7 @@ WeatherMapSource? _parseOver(WeatherMapSource base, Map<Object?, Object?> row) {
     attribution: _str(row['attribution']),
     opacity: _num(row['opacity'])?.clamp(0.0, 1.0),
     nativeMetresPerPixel: _positive(row['metresPerPixel']),
+    imageUrlTemplate: imageUrl,
     enabled: row['enabled'] is bool ? row['enabled']! as bool : null,
   );
 }

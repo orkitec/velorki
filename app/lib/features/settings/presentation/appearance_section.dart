@@ -7,8 +7,8 @@ import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/appearance_controller.dart';
 
-/// Settings → Appearance: light/dark/system, the map, the bar's glass and
-/// the accent colour.
+/// Settings → Appearance: light/dark/system, the map, the bar's glass, the
+/// rain radar's look and the accent colour.
 class AppearanceSection extends ConsumerWidget {
   /// Creates the section.
   const AppearanceSection({super.key});
@@ -105,6 +105,24 @@ class AppearanceSection extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(l10n.appearanceGlassHint, style: theme.textTheme.bodySmall),
           const SizedBox(height: 20),
+          Text(l10n.appearanceRadarStyle, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 10),
+          SegmentedButton<RadarStyle>(
+            showSelectedIcon: false,
+            segments: [
+              for (final style in RadarStyle.values)
+                ButtonSegment(
+                  value: style,
+                  label: _SegmentLabel(radarStyleLabel(l10n, style)),
+                ),
+            ],
+            selected: {appearance.radarStyle},
+            onSelectionChanged: (selection) =>
+                unawaited(controller.setRadarStyle(selection.single)),
+          ),
+          const SizedBox(height: 8),
+          Text(l10n.appearanceRadarHint, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 20),
           Text(l10n.appearanceAccent, style: theme.textTheme.titleSmall),
           const SizedBox(height: 10),
           Row(
@@ -152,6 +170,13 @@ String barStyleLabel(AppLocalizations l10n, BarStyle style) => switch (style) {
   BarStyle.subtle => l10n.appearanceBarSubtle,
   BarStyle.clear => l10n.appearanceBarClear,
 };
+
+/// The localised name of a look of the rain radar.
+String radarStyleLabel(AppLocalizations l10n, RadarStyle style) =>
+    switch (style) {
+      RadarStyle.soft => l10n.appearanceRadarSoft,
+      RadarStyle.measured => l10n.appearanceRadarMeasured,
+    };
 
 /// The localised name of an accent preset.
 String accentLabel(AppLocalizations l10n, AccentPreset preset) =>

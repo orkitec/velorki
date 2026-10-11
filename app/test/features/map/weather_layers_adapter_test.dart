@@ -231,4 +231,52 @@ void main() {
       'linear',
     );
   });
+
+  test('the soft radar is an image over the clouds, opaque as a layer, '
+      'smoothed linearly', () async {
+    final soft = WeatherLayer.image(
+      id: 'radar_dwd',
+      kind: WeatherKind.radar,
+      image: Uint8List.fromList(<int>[7]),
+      imageBox: const BoundingBox(south: 52, west: 13, north: 53, east: 14),
+      frameKey: 'radar_dwd@a',
+      attribution: 'Radar: radar_dwd',
+    );
+    await map.setWeatherLayers([_clouds('clouds_eumetsat.0', 'a'), soft]);
+    final image = ops.lastCall('addImageSource')!;
+    expect(image.id, MapLayerIds.weatherSource('radar_dwd', 1));
+    final layer = ops.addLayerOf(MapLayerIds.weatherLayer('radar_dwd', 1))!;
+    expect(layer.properties!['raster-resampling'], 'linear');
+    expect(layer.properties!['raster-opacity'], radarSoftTone.opacity);
+    expect(radarSoftTone.opacity, 1.0);
+    // Over the clouds, under the labels.
+    expect(layer.belowLayerId, 'waterway_line_label');
+    expect(
+      ops
+          .addLayerOf(MapLayerIds.weatherLayer('clouds_eumetsat.0', 0))!
+          .belowLayerId,
+      'waterway_line_label',
+    );
+    final ids = ops.layerIds.toList();
+    expect(
+      ids.indexOf(MapLayerIds.weatherLayer('clouds_eumetsat.0', 0)),
+      lessThan(ids.indexOf(MapLayerIds.weatherLayer('radar_dwd', 1))),
+    );
+    // Switched to As measured: the tiles over the image, which then goes.
+    await map.setWeatherLayers([
+      _clouds('clouds_eumetsat.0', 'a'),
+      _radar('radar_dwd', '1'),
+    ]);
+    expect(ops.sourceIds, contains(MapLayerIds.weatherSource('radar_dwd', 2)));
+    expect(
+      ops.sourceIds,
+      isNot(contains(MapLayerIds.weatherSource('radar_dwd', 1))),
+    );
+    expect(
+      ops
+          .addLayerOf(MapLayerIds.weatherLayer('radar_dwd', 2))!
+          .properties!['raster-opacity'],
+      radarTone.opacity,
+    );
+  });
 }

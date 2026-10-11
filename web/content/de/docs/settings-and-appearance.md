@@ -16,6 +16,8 @@ Der Tab Einstellungen ist eine einzige scrollende Seite mit einem Abschnitt je T
 
 **Glas**: wie viel von der Karte durch die Tab-Leiste und die Bedienelemente über der Karte scheint: **Deckend**, **Transparent**, **Leichtes Glas** oder **Klares Glas**, die Voreinstellung.
 
+**Regenradar**: wie das Regenradar aus **Ebenen** gezeichnet wird: **Weich**, die Voreinstellung, mit sanften Rändern und leichtem Regen blasser als starkem, oder **Wie gemessen**, die 1-km-Zellen des Radars so, wie der Wetterdienst sie liefert.
+
 **Akzent**: fünf Farbvoreinstellungen: **Volt**, **Glut**, **Gletscher**, **Beere** und **Wald**. Der Akzent färbt die Schaltflächen, die Diagramme und die Routenlinie auf der Karte.
 
 **Einheiten**: **Metrisch** oder **Imperial**, verwendet von jeder Zahl, jedem Schieberegler, jeder Diagrammachse, dem Abbiegeband und jeder Sprachansage in der App. Bis du wählst, folgt Velorki dem Land des Handys.

@@ -46,7 +46,9 @@ void main() {
     test('the NOAA radar is epoch milliseconds, the past only', () {
       final frame = noaaRadar.frameAt(utc(14, 40), offsetMinutes: -15)!;
       final url = noaaRadar.tileUrl(frame);
-      expect(url, contains('time=${utc(14, 20).millisecondsSinceEpoch}&'));
+      // Twenty minutes behind (NOAA's newest frame is some 14 old), then
+      // fifteen back.
+      expect(url, contains('time=${utc(14, 5).millisecondsSinceEpoch}&'));
       expect(noaaRadar.frameAt(utc(14, 40), offsetMinutes: 15), isNull);
       expect(noaaRadar.frameAt(utc(14, 40), offsetMinutes: -120), isNotNull);
     });
@@ -435,5 +437,130 @@ void main() {
         2000,
       );
     });
+  });
+
+  group('soft radar', () {
+    double mercatorWidth(BoundingBox b) =>
+        mercatorX(b.east) - mercatorX(b.west);
+
+    BoundingBox berlinBox() =>
+        dwdRadar.softBox(cloudDetailArea(view(13.4, 52.5), 8)!)!;
+
+    test('the DWD: a GetMap of the box at its size and the frame, the tile '
+        'template kept for As measured', () {
+      final box = berlinBox();
+      final frame = dwdRadar.frameAt(utc(14, 42))!;
+      final url = dwdRadar.softImageUrl(frame, box)!;
+      final query = Uri.parse(url).queryParameters;
+      final (w, h) = radarSoftImageSize(dwdRadar, box);
+      expect(query['request'], 'GetMap');
+      expect(query['layers'], 'dwd:Niederschlagsradar');
+      expect(query['bbox'], mercatorBboxString(box));
+      expect(query['width'], '$w');
+      expect(query['height'], '$h');
+      expect(query['time'], '2026-10-10T14:35:00.000Z');
+      expect(dwdRadar.tileUrl(frame), contains('width=256&height=256'));
+      expect(dwdRadar.tileUrl(frame), contains('{bbox-epsg-3857}'));
+    });
+
+    test('NOAA: exportImage of the box at its size, the time in epoch '
+        'milliseconds', () {
+      final box = noaaRadar.softBox(cloudDetailArea(view(-74, 40.7), 8)!)!;
+      final frame = noaaRadar.frameAt(utc(14, 42), offsetMinutes: -30)!;
+      final url = noaaRadar.softImageUrl(frame, box)!;
+      final query = Uri.parse(url).queryParameters;
+      final (w, h) = radarSoftImageSize(noaaRadar, box);
+      expect(url, contains('/exportImage?'));
+      expect(query['bbox'], mercatorBboxString(box));
+      expect(query['bboxSR'], '3857');
+      expect(query['imageSR'], '3857');
+      expect(query['size'], '$w,$h');
+      expect(query['time'], '${utc(13, 50).millisecondsSinceEpoch}');
+      expect(query['f'], 'image');
+    });
+
+    test('at the radar\'s own kilometre, each side between 64 and 1536', () {
+      expect(dwdRadar.nativeMetresPerPixel, 1000);
+      expect(noaaRadar.nativeMetresPerPixel, 1000);
+      const box = BoundingBox(south: 50, west: 10, north: 52, east: 13);
+      final (w, _) = radarSoftImageSize(dwdRadar, box);
+      expect(w, (mercatorWidth(box) / 1000).round());
+      expect(radarSoftCapped(dwdRadar, box), isFalse);
+      const tiny = BoundingBox(south: 50, west: 10, north: 50.05, east: 10.1);
+      expect(radarSoftImageSize(dwdRadar, tiny), (64, 64));
+      final (cw, ch) = radarSoftImageSize(dwdRadar, dwdRadar.coverage.single);
+      expect(ch, radarSoftMaxSide);
+      expect(cw, lessThanOrEqualTo(radarSoftMaxSide));
+      expect(radarSoftCapped(dwdRadar, dwdRadar.coverage.single), isTrue);
+    });
+
+    test('the box: every coverage box the area meets, clipped', () {
+      // Zoomed out over North America: the contiguous US and Alaska.
+      const area = BoundingBox(south: 10, west: -175, north: 75, east: -60);
+      final box = noaaRadar.softBox(area)!;
+      expect(box.west, -170);
+      expect(box.east, -65.2);
+      expect(box.south, 17.8);
+      expect(box.north, 72);
+      // Over Germany, the view's own area.
+      final berlin = cloudDetailArea(view(13.4, 52.5), 8)!;
+      expect(dwdRadar.softBox(berlin), berlin);
+      expect(noaaRadar.softBox(berlin), isNull);
+    });
+
+    test('the cache stamp: the moment, and for one ahead also the newest '
+        'measured', () {
+      final now = utc(14, 42);
+      final past = dwdRadar.frameAt(now, offsetMinutes: -15)!;
+      expect(
+        radarImageStamp(dwdRadar, past, now),
+        '${utc(14, 20).millisecondsSinceEpoch}',
+      );
+      final ahead = dwdRadar.frameAt(now, offsetMinutes: 30)!;
+      final stamp = radarImageStamp(dwdRadar, ahead, now);
+      expect(
+        stamp,
+        '${utc(15, 5).millisecondsSinceEpoch}f'
+        '${utc(14, 35).millisecondsSinceEpoch}',
+      );
+      // Five minutes on, the same moment ahead is a new forecast.
+      final later = utc(14, 47);
+      expect(radarImageStamp(dwdRadar, ahead, later), isNot(stamp));
+      // The past stays the same moment.
+      expect(
+        radarImageStamp(dwdRadar, past, later),
+        radarImageStamp(dwdRadar, past, now),
+      );
+    });
+
+    test('the mirror can set the image request, https only', () {
+      final sources = applyWeatherOverride(defaultWeatherMapSources, [
+        {
+          'id': 'radar_dwd',
+          'imageUrl':
+              'https://radar.example/wms?bbox={bbox-epsg-3857}'
+              '&width={width}&height={height}&time={time}',
+          'metresPerPixel': 500,
+        },
+        {'id': 'radar_noaa', 'imageUrl': 'http://radar.example/x'},
+      ]);
+      final dwd = sources.firstWhere((s) => s.id == 'radar_dwd');
+      expect(dwd.imageUrlTemplate, startsWith('https://radar.example/'));
+      expect(dwd.nativeMetresPerPixel, 500);
+      // Not https: the entry is left out, the built-in source stays.
+      expect(sources.firstWhere((s) => s.id == 'radar_noaa'), noaaRadar);
+    });
+  });
+
+  test('NOAA asks for png32: its plain png is RGB with a colour key, which '
+      'the map cannot decode', () {
+    final frame = noaaRadar.frameAt(utc(14, 42))!;
+    final box = noaaRadar.coverage.first;
+    for (final url in <String>[
+      noaaRadar.tileUrl(frame),
+      noaaRadar.softImageUrl(frame, box)!,
+    ]) {
+      expect(Uri.parse(url).queryParameters['format'], 'png32');
+    }
   });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../settings/data/appearance_controller.dart';
 import '../data/weather_map_preferences.dart';
 import '../domain/map_controller.dart';
 import 'weather_map_driver.dart';
@@ -21,8 +22,8 @@ class SharedWeatherMapStatus extends _$SharedWeatherMapStatus {
 
 /// Puts the weather layers on a map host's map as the settings say: one
 /// [WeatherMapDriver] per host, attached to whatever map the host has now,
-/// fed the settings, the sources, the time control and whether the app is
-/// in the foreground.
+/// fed the settings, the sources, the time control, the radar's look and
+/// whether the app is in the foreground.
 ///
 /// A host makes one in `initState`, calls [listen] from `build`, [attach]
 /// with each map it is handed and [dispose] when it goes.
@@ -54,13 +55,18 @@ class WeatherMapBinding {
     _ref
       ..listen(weatherMapPreferencesProvider, (_, _) => _configure())
       ..listen(weatherMapSourcesProvider, (_, _) => _configure())
-      ..listen(weatherRadarOffsetProvider, (_, _) => _configure());
+      ..listen(weatherRadarOffsetProvider, (_, _) => _configure())
+      ..listen(
+        appearanceSettingProvider.select((a) => a.radarStyle),
+        (_, _) => _configure(),
+      );
   }
 
   void _configure() => driver.configure(
     settings: _ref.read(weatherMapPreferencesProvider),
     sources: _ref.read(weatherMapSourcesProvider),
     offsetMinutes: _ref.read(weatherRadarOffsetProvider),
+    radarStyle: _ref.read(appearanceSettingProvider).radarStyle,
   );
 
   /// Stops for good.

@@ -16,6 +16,8 @@ La pestaña Ajustes es una única página que se desplaza, con una sección por 
 
 **Cristal**: cuánto del mapa se ve a través de la barra de pestañas y de los controles sobre el mapa: **Opaca**, **Transparente**, **Cristal suave** o **Cristal claro**, el valor por defecto.
 
+**Radar de lluvia**: cómo se dibuja el radar de lluvia de **Capas**: **Suave**, el valor por defecto, con bordes difuminados y la lluvia débil más tenue que la fuerte, o **Tal como se mide**, las celdas de 1 km del radar tal como las entrega el servicio meteorológico.
+
 **Color de acento**: cinco colores predefinidos: **Volt**, **Brasa**, **Glaciar**, **Baya** y **Bosque**. El acento colorea los botones, los gráficos y la línea de la ruta en el mapa.
 
 **Unidades**: **Métrico** o **Imperial**, que usan todas las cifras, deslizadores, ejes de gráficos, avisos de giro e indicaciones habladas de la app. Hasta que elijas, Velorki sigue el país del teléfono.

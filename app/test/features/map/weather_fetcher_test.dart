@@ -14,6 +14,7 @@ class _Adapter implements HttpClientAdapter {
   int status = 200;
   String contentType = 'image/png';
   bool hang = false;
+  Uint8List body = Uint8List.fromList(<int>[1, 2, 3]);
   final List<Uri> requests = <Uri>[];
 
   @override
@@ -25,7 +26,7 @@ class _Adapter implements HttpClientAdapter {
     requests.add(options.uri);
     if (hang) await Completer<void>().future;
     return ResponseBody.fromBytes(
-      Uint8List.fromList(<int>[1, 2, 3]),
+      body,
       status,
       headers: {
         Headers.contentTypeHeader: [contentType],
@@ -86,6 +87,19 @@ void main() {
       String.fromCharCodes(png.sublist(png.length - 8, png.length - 4)),
       'IEND',
     );
+  });
+
+  group('mapCanDecode', () {
+    test('a PNG with alpha or a palette, not RGB with a colour key', () {
+      expect(mapCanDecode(encodePngRgba(1, 1, Uint8List(4))), isTrue);
+      Uint8List withColourType(int type) =>
+          Uint8List.fromList(encodePngRgba(1, 1, Uint8List(4)))..[25] = type;
+      expect(mapCanDecode(withColourType(3)), isTrue);
+      expect(mapCanDecode(withColourType(2)), isFalse);
+      expect(mapCanDecode(withColourType(0)), isFalse);
+      // Not a PNG: left to the map.
+      expect(mapCanDecode(Uint8List.fromList(<int>[0xFF, 0xD8, 0xFF])), isTrue);
+    });
   });
 
   group('probe', () {
@@ -262,5 +276,227 @@ void main() {
       expect(a, b);
       expect(c, isNot(a));
     });
+  });
+
+  group('softenRadarPixels', () {
+    int alphaOf(int r, int g, int b) =>
+        softenRadarPixels(1, 1, _pixel(r, g, b, 255))[3];
+
+    int level(double alpha) => (alpha * 255).round();
+
+    test('the alpha follows the palette from cyan to purple', () {
+      expect(alphaOf(0, 230, 230), level(radarAlphaCyan)); // cyan
+      expect(alphaOf(0, 0, 240), level(radarAlphaCyan)); // blue
+      expect(alphaOf(0, 200, 0), level(radarAlphaGreen));
+      expect(alphaOf(250, 250, 0), level(radarAlphaYellow));
+      expect(alphaOf(255, 128, 0), level(radarAlphaOrange));
+      expect(alphaOf(250, 0, 0), level(radarAlphaRed));
+      expect(alphaOf(250, 0, 250), level(radarAlphaMagenta));
+      expect(alphaOf(150, 80, 200), level(radarAlphaMagenta)); // purple
+      // Between two colours, between their alphas.
+      final lime = alphaOf(160, 255, 0); // hue 82
+      expect(lime, greaterThan(level(radarAlphaGreen)));
+      expect(lime, lessThan(level(radarAlphaYellow)));
+    });
+
+    test('grey is faint, its colour kept', () {
+      expect(softenRadarPixels(1, 1, _pixel(180, 180, 185, 255)), <int>[
+        180,
+        180,
+        185,
+        level(radarAlphaGrey),
+      ]);
+    });
+
+    test('a transparent pixel stays transparent', () {
+      expect(softenRadarPixels(1, 1, _pixel(0, 200, 0, 0))[3], 0);
+    });
+
+    test('the service\'s own alpha is kept in the product', () {
+      expect(
+        softenRadarPixels(1, 1, _pixel(250, 0, 0, 128))[3],
+        (radarAlphaRed * 128).round(),
+      );
+    });
+
+    // A 5 × 5 image, transparent but for [pixels] at (x, y).
+    Uint8List image(Map<(int, int), List<int>> pixels) {
+      final out = Uint8List(5 * 5 * 4);
+      for (final MapEntry(key: (x, y), value: rgba) in pixels.entries) {
+        out.setAll((y * 5 + x) * 4, rgba);
+      }
+      return out;
+    }
+
+    int alphaAt(Uint8List rgba, int x, int y) => rgba[(y * 5 + x) * 4 + 3];
+
+    test('edges soften: the alpha alone, averaged over its 3 × 3 box', () {
+      // A green pixel beside a yellow one, the rest dry.
+      final input = image({
+        (2, 2): <int>[0, 200, 0, 255],
+        (3, 2): <int>[250, 250, 0, 255],
+      });
+      final out = softenRadarPixels(5, 5, input);
+      expect(
+        alphaAt(out, 2, 2),
+        ((radarAlphaGreen + radarAlphaYellow) / 9 * 255).round(),
+      );
+      // The colour is untouched, and dry pixels stay dry.
+      expect(out.sublist((2 * 5 + 2) * 4, (2 * 5 + 2) * 4 + 3), <int>[
+        0,
+        200,
+        0,
+      ]);
+      expect(alphaAt(out, 1, 2), 0);
+    });
+
+    test('inside a field of rain the alpha stays', () {
+      final input = Uint8List(5 * 5 * 4);
+      for (var i = 0; i < 25; i++) {
+        input.setAll(i * 4, <int>[0, 200, 0, 255]);
+      }
+      final out = softenRadarPixels(5, 5, input);
+      expect(alphaAt(out, 2, 2), level(radarAlphaGreen));
+      // At the image's border too: beyond it counts as the border.
+      expect(alphaAt(out, 0, 0), level(radarAlphaGreen));
+    });
+
+    test('a small heavy cell keeps its strength', () {
+      final input = image({
+        (2, 2): <int>[250, 0, 0, 255],
+      });
+      expect(
+        alphaAt(softenRadarPixels(5, 5, input), 2, 2),
+        level(radarAlphaRed),
+      );
+      final hail = image({
+        (2, 2): <int>[250, 0, 250, 255],
+        (2, 3): <int>[0, 200, 0, 255],
+      });
+      expect(
+        alphaAt(softenRadarPixels(5, 5, hail), 2, 2),
+        level(radarAlphaMagenta),
+      );
+    });
+
+    test('light rain beside heavy is lifted, never the other way', () {
+      final input = image({
+        (2, 2): <int>[0, 230, 230, 255],
+        (1, 2): <int>[250, 0, 0, 255],
+        (3, 2): <int>[250, 0, 0, 255],
+        (2, 1): <int>[250, 0, 0, 255],
+      });
+      final out = softenRadarPixels(5, 5, input);
+      expect(alphaAt(out, 1, 2), level(radarAlphaRed));
+      expect(
+        alphaAt(out, 2, 2),
+        ((radarAlphaCyan + 3 * radarAlphaRed) / 9 * 255).round(),
+      );
+    });
+  });
+
+  group('soft radar images', () {
+    late _Adapter adapter;
+    late Directory dir;
+    late HttpWeatherFetcher fetcher;
+    var processed = 0;
+    final box = dwdRadar.softBox(
+      cloudDetailArea(
+        const BoundingBox(south: 52.3, west: 13.2, north: 52.7, east: 13.6),
+        8,
+      )!,
+    )!;
+
+    setUp(() {
+      adapter = _Adapter();
+      dir = Directory.systemTemp.createTempSync('radar');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      processed = 0;
+      fetcher = HttpWeatherFetcher(
+        dio: Dio()..httpClientAdapter = adapter,
+        cacheDir: () async => dir,
+        probeTimeout: const Duration(milliseconds: 200),
+        process: (png) async => throw StateError('not the clouds'),
+        processRadar: (png) async {
+          processed++;
+          return Uint8List.fromList(<int>[8, ...png]);
+        },
+      );
+    });
+
+    test('asks for the box at its size and moment, softens it, then comes '
+        'from the cache', () async {
+      final now = DateTime.utc(2026, 10, 10, 14, 42);
+      final frame = dwdRadar.frameAt(now)!;
+      final first = await fetcher.radarImage(dwdRadar, box, frame, now);
+      expect(first, <int>[8, 1, 2, 3]);
+      final query = adapter.requests.single.queryParameters;
+      final (w, h) = radarSoftImageSize(dwdRadar, box);
+      expect(query['bbox'], mercatorBboxString(box));
+      expect(query['width'], '$w');
+      expect(query['height'], '$h');
+      expect(query['time'], '2026-10-10T14:35:00.000Z');
+      expect(await fetcher.radarImage(dwdRadar, box, frame, now), first);
+      expect(adapter.requests, hasLength(1));
+      expect(processed, 1);
+      // Another moment is an image of its own.
+      await fetcher.radarImage(
+        dwdRadar,
+        box,
+        dwdRadar.frameAt(now, offsetMinutes: -15)!,
+        now,
+      );
+      expect(adapter.requests, hasLength(2));
+      expect(dir.listSync(), hasLength(2));
+    });
+
+    test('not an image, or too slow: null and not cached', () async {
+      final now = DateTime.utc(2026, 10, 10, 14, 42);
+      final frame = dwdRadar.frameAt(now)!;
+      adapter.contentType = 'application/vnd.ogc.se_xml';
+      expect(await fetcher.radarImage(dwdRadar, box, frame, now), isNull);
+      adapter
+        ..contentType = 'image/png'
+        ..status = 503;
+      expect(await fetcher.radarImage(dwdRadar, box, frame, now), isNull);
+      adapter
+        ..status = 200
+        ..hang = true;
+      expect(await fetcher.radarImage(dwdRadar, box, frame, now), isNull);
+      expect(dir.listSync(), isEmpty);
+      expect(processed, 0);
+    });
+
+    test('the cache keeps the last few images of a source', () async {
+      final now = DateTime.utc(2026, 10, 10, 14, 42);
+      final frame = dwdRadar.frameAt(now)!;
+      for (var i = 0; i < radarImageCacheKeep + 3; i++) {
+        await fetcher.radarImage(
+          dwdRadar,
+          BoundingBox(
+            south: 50,
+            west: 2.0 + i / 2,
+            north: 51,
+            east: 2.4 + i / 2,
+          ),
+          frame,
+          now,
+        );
+      }
+      expect(dir.listSync(), hasLength(radarImageCacheKeep));
+    });
+  });
+
+  test('an RGB PNG with a colour key fails the probe', () async {
+    final adapter = _Adapter()
+      ..body = (Uint8List.fromList(encodePngRgba(1, 1, Uint8List(4)))
+        ..[25] = 2);
+    final fetcher = HttpWeatherFetcher(
+      dio: Dio()..httpClientAdapter = adapter,
+      cacheDir: () async => Directory.systemTemp,
+    );
+    expect(await fetcher.probe('https://radar.example/1'), isFalse);
+    adapter.body = encodePngRgba(1, 1, Uint8List(4));
+    expect(await fetcher.probe('https://radar.example/1'), isTrue);
   });
 }

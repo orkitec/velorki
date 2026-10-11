@@ -16,6 +16,8 @@ Het tabblad Instellingen is één scrollende pagina met een sectie per onderwerp
 
 **Glas**: hoeveel van de kaart doorschijnt door de tabbalk en de knoppen over de kaart: **Dekkend**, **Transparant**, **Licht glas** of **Helder glas**, de standaard.
 
+**Regenradar**: hoe de regenradar uit **Kaartlagen** wordt getekend: **Zacht**, de standaard, met vloeiende randen en lichte regen vager dan zware, of **Zoals gemeten**, de cellen van 1 km van de radar zoals de weerdienst ze levert.
+
 **Accentkleur**: vijf kleurvoorinstellingen: **Volt**, **Gloed**, **Gletsjer**, **Bes** en **Bos**. De accentkleur kleurt de knoppen, de grafieken en de routelijn op de kaart.
 
 **Eenheden**: **Metrisch** of **Imperiaal**, gebruikt door elke waarde, schuifregelaar, grafiekas, afslagbanner en gesproken aanwijzing in de app. Tot je kiest, volgt Velorki het land van de telefoon.

@@ -42,8 +42,9 @@ const double cloudLuminanceLow = 110;
 /// Luminance at and above which a pixel is full cloud.
 const double cloudLuminanceHigh = 220;
 
-/// How opaque the thickest cloud is drawn, 0..1.
-const double cloudMaxAlpha = 0.85;
+/// How opaque the thickest cloud is drawn, 0..1: a sky wholly overcast
+/// stays a veil the map and the rain show through.
+const double cloudMaxAlpha = 0.45;
 
 /// How far apart a pixel's strongest and weakest channel have to be for it
 /// to count as coloured. The GOES images paint the coldest cloud tops in an
@@ -79,6 +80,136 @@ Uint8List whitenCloudPixels(Uint8List rgba) {
       cloud = ((v - cloudLuminanceLow) / span).clamp(0.0, 1.0);
     }
     out[i + 3] = (cloud * full * a / 255).round();
+  }
+  return out;
+}
+
+// The soft rain radar keeps each service's colours and sets every pixel's
+// alpha by how heavy the rain is, read along the palette's hue: both the
+// DWD and NOAA run from light blue and cyan through green, yellow, orange
+// and red to magenta and purple as the rain gets heavier. So light rain is
+// a lighter wash than a downpour, but always stronger than the clouds
+// under it: on a dark map at a third, NOAA's slate blue all but vanished.
+
+/// The alpha of light blue and cyan, the lightest rain.
+const double radarAlphaCyan = 0.6;
+
+/// The alpha of green.
+const double radarAlphaGreen = 0.7;
+
+/// The alpha of yellow.
+const double radarAlphaYellow = 0.8;
+
+/// The alpha of orange.
+const double radarAlphaOrange = 0.85;
+
+/// The alpha of red, heavy rain: a pixel this heavy or heavier is never
+/// made fainter by the softening of edges, so a small storm cell keeps its
+/// strength.
+const double radarAlphaRed = 0.9;
+
+/// The alpha of magenta and purple, the heaviest rain and hail.
+const double radarAlphaMagenta = 0.95;
+
+/// The alpha of grey: the DWD's area beyond the radars' reach, kept in
+/// view but faint.
+const double radarAlphaGrey = 0.25;
+
+/// How far apart a pixel's strongest and weakest channel have to be for its
+/// hue to count; below it the pixel is grey.
+const int radarGreySpread = 24;
+
+/// How far, in pixels, the softening of edges reaches: 1 is a 3 × 3 box.
+const int radarBlurRadius = 1;
+
+// Each colour's hue, in degrees, and its alpha. Hues above 255 (purple,
+// magenta, the reds just under 360) are read as below 0, so the path runs
+// on downwards from red: cyan 180 → green 120 → yellow 60 → orange 30 →
+// red 0 → magenta −60 → purple −90. Blue, up to 255, is light rain as cyan.
+const List<(double, double)> _radarHueAlpha = <(double, double)>[
+  (180, radarAlphaCyan),
+  (120, radarAlphaGreen),
+  (60, radarAlphaYellow),
+  (30, radarAlphaOrange),
+  (0, radarAlphaRed),
+  (-60, radarAlphaMagenta),
+];
+
+/// The hue above which a colour is read as purple or magenta rather than
+/// blue.
+const double _radarBlueTop = 255;
+
+/// The alpha one radar colour gets: by its hue along the palette, grey at
+/// [radarAlphaGrey]. Without the service's own alpha.
+double radarIntensityAlpha(int r, int g, int b) {
+  final hi = math.max(r, math.max(g, b));
+  final lo = math.min(r, math.min(g, b));
+  final spread = hi - lo;
+  if (spread < radarGreySpread) return radarAlphaGrey;
+  double hue;
+  if (hi == r) {
+    hue = 60 * ((g - b) / spread % 6);
+  } else if (hi == g) {
+    hue = 60 * ((b - r) / spread + 2);
+  } else {
+    hue = 60 * ((r - g) / spread + 4);
+  }
+  if (hue > _radarBlueTop) hue -= 360;
+  final first = _radarHueAlpha.first;
+  if (hue >= first.$1) return first.$2;
+  for (var i = 1; i < _radarHueAlpha.length; i++) {
+    final (h1, a1) = _radarHueAlpha[i];
+    if (hue >= h1) {
+      final (h0, a0) = _radarHueAlpha[i - 1];
+      return a1 + (a0 - a1) * (hue - h1) / (h0 - h1);
+    }
+  }
+  return _radarHueAlpha.last.$2;
+}
+
+/// Turns the straight RGBA pixels of a radar image ([width] × [height])
+/// into the soft radar: each pixel keeps its colour, its alpha becomes
+/// [radarIntensityAlpha] times its own, and then the alpha alone is
+/// averaged over a box of [radarBlurRadius], so the edges of the rain fade
+/// out instead of stepping. A pixel the service left transparent stays so,
+/// and one as heavy as [radarAlphaRed] or more is never made fainter.
+Uint8List softenRadarPixels(int width, int height, Uint8List rgba) {
+  final n = width * height;
+  final alpha = Float64List(n);
+  final heavy = Uint8List(n);
+  for (var i = 0; i < n; i++) {
+    final o = i * 4;
+    final a = rgba[o + 3];
+    if (a == 0) continue;
+    final intensity = radarIntensityAlpha(rgba[o], rgba[o + 1], rgba[o + 2]);
+    alpha[i] = intensity * a / 255;
+    if (intensity >= radarAlphaRed) heavy[i] = 1;
+  }
+  final out = Uint8List.fromList(rgba);
+  const r = radarBlurRadius;
+  const box = (2 * r + 1) * (2 * r + 1);
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      final i = y * width + x;
+      final o = i * 4;
+      if (rgba[o + 3] == 0) {
+        out[o + 3] = 0;
+        continue;
+      }
+      // Beyond the image's edge counts as the edge's own pixel, so the
+      // border of the box is not taken for the border of the rain.
+      var sum = 0.0;
+      for (var dy = -r; dy <= r; dy++) {
+        final yy = (y + dy).clamp(0, height - 1);
+        for (var dx = -r; dx <= r; dx++) {
+          final xx = (x + dx).clamp(0, width - 1);
+          sum += alpha[yy * width + xx];
+        }
+      }
+      var value = sum / box;
+      if (heavy[i] == 1 && value < alpha[i]) value = alpha[i];
+      out[o + 3] = (value * 255).round().clamp(0, 255);
+    }
   }
   return out;
 }
@@ -143,6 +274,23 @@ int _crc32(Uint8List bytes) {
 /// Decodes the service's [png] on the engine, then whitens and re-encodes
 /// it on a background isolate.
 Future<Uint8List> processCloudImage(Uint8List png) async {
+  final (width, height, pixels) = await _decode(png);
+  return Isolate.run(
+    () => encodePngRgba(width, height, whitenCloudPixels(pixels)),
+  );
+}
+
+/// Decodes the radar's [png] on the engine, then softens it
+/// ([softenRadarPixels]) and re-encodes it on a background isolate.
+Future<Uint8List> processRadarImage(Uint8List png) async {
+  final (width, height, pixels) = await _decode(png);
+  return Isolate.run(
+    () =>
+        encodePngRgba(width, height, softenRadarPixels(width, height, pixels)),
+  );
+}
+
+Future<(int, int, Uint8List)> _decode(Uint8List png) async {
   final codec = await ui.instantiateImageCodec(png);
   final frame = await codec.getNextFrame();
   final image = frame.image;
@@ -153,11 +301,29 @@ Future<Uint8List> processCloudImage(Uint8List png) async {
   final height = image.height;
   image.dispose();
   codec.dispose();
-  if (data == null) throw StateError('cloud image not decoded');
-  final pixels = data.buffer.asUint8List();
-  return Isolate.run(
-    () => encodePngRgba(width, height, whitenCloudPixels(pixels)),
-  );
+  if (data == null) throw StateError('weather image not decoded');
+  return (width, height, data.buffer.asUint8List());
+}
+
+/// How many soft radar images of one source the cache keeps: the boxes and
+/// moments of the last few views and steps of the time control.
+const int radarImageCacheKeep = 24;
+
+/// Whether the map's own decoder takes [image]: a PNG must carry its
+/// transparency as an alpha channel (colour type 6) or a palette (3). An
+/// RGB PNG with a colour key (`tRNS`), as ArcGIS sends for `format=png`,
+/// fails on Android, its tiles silently empty; other formats pass.
+bool mapCanDecode(Uint8List image) {
+  const signature = <int>[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+  if (image.length < 8) return true;
+  for (var i = 0; i < 8; i++) {
+    if (image[i] != signature[i]) return true;
+  }
+  // The IHDR chunk comes first: length, type, width, height, bit depth,
+  // then the colour type at byte 25.
+  if (image.length < 26) return false;
+  final colourType = image[25];
+  return colourType == 6 || colourType == 3;
 }
 
 /// What the weather layers ask of the network: whether a radar tile
@@ -183,6 +349,17 @@ abstract class WeatherFetcher {
     WeatherFrame frame,
     DateTime now,
   );
+
+  /// The soft radar's image of [box] at [frame] (see
+  /// `WeatherMapSource.softImageUrl`), softened as [processRadarImage]
+  /// does; `null` when the service does not answer with an image within
+  /// [weatherProbeTimeout], which is the radar's check.
+  Future<Uint8List?> radarImage(
+    WeatherMapSource source,
+    BoundingBox box,
+    WeatherFrame frame,
+    DateTime now,
+  );
 }
 
 /// [WeatherFetcher] over HTTP, cloud images cached in [cacheDir].
@@ -193,6 +370,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
     required this.dio,
     required this.cacheDir,
     this.process = processCloudImage,
+    this.processRadar = processRadarImage,
     this.probeTimeout = weatherProbeTimeout,
     this.imageTimeout = cloudImageTimeout,
   });
@@ -210,12 +388,17 @@ class HttpWeatherFetcher implements WeatherFetcher {
 
   final Future<Uint8List> Function(Uint8List png) process;
 
+  /// Turns a radar image into the soft one drawn.
+  final Future<Uint8List> Function(Uint8List png) processRadar;
+
   /// The requests made, newest last; for tests and the log.
   final List<String> requests = <String>[];
 
   @override
-  Future<bool> probe(String url) async =>
-      await _getImage(url, probeTimeout) != null;
+  Future<bool> probe(String url) async {
+    final body = await _getImage(url, probeTimeout);
+    return body != null && mapCanDecode(body);
+  }
 
   @override
   Future<Uint8List?> cloudImage(
@@ -258,13 +441,45 @@ class HttpWeatherFetcher implements WeatherFetcher {
     );
   }
 
-  /// The cloud image cached as [name], else fetched from [url], processed
-  /// and cached, [prune] then tidying the cache.
+  @override
+  Future<Uint8List?> radarImage(
+    WeatherMapSource source,
+    BoundingBox box,
+    WeatherFrame frame,
+    DateTime now,
+  ) async {
+    final url = source.softImageUrl(frame, box);
+    if (url == null) return null;
+    final prefix = '${source.id}_soft_';
+    final name =
+        '$prefix${cloudDetailKey(box)}_${radarImageStamp(source, frame, now)}'
+        '.png';
+    return _cloud(
+      url,
+      name,
+      (dir) => _prune(
+        dir,
+        (_) => false,
+        name,
+        now,
+        prefix: prefix,
+        keep: radarImageCacheKeep,
+      ),
+      timeout: probeTimeout,
+      process: processRadar,
+    );
+  }
+
+  /// The image cached as [name], else fetched from [url] within [timeout]
+  /// (the cloud images' by default), turned by [process] (the clouds') and
+  /// cached, [prune] then tidying the cache.
   Future<Uint8List?> _cloud(
     String url,
     String name,
-    void Function(Directory dir) prune,
-  ) async {
+    void Function(Directory dir) prune, {
+    Duration? timeout,
+    Future<Uint8List> Function(Uint8List png)? process,
+  }) async {
     final Directory dir;
     try {
       dir = await cacheDir();
@@ -274,11 +489,11 @@ class HttpWeatherFetcher implements WeatherFetcher {
       debugPrint('velorki: cloud cache unreadable: $error');
       return null;
     }
-    final body = await _getImage(url, imageTimeout);
+    final body = await _getImage(url, timeout ?? imageTimeout);
     if (body == null) return null;
     final Uint8List png;
     try {
-      png = await process(body);
+      png = await (process ?? this.process)(body);
     } on Object catch (error) {
       debugPrint('velorki: cloud image not processed: $error');
       return null;

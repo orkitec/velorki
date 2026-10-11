@@ -15,6 +15,17 @@ const RasterTone radarTone = (
   opacity: 0.75,
 );
 
+/// The soft rain radar: opaque as a layer, since its image's alpha already
+/// carries how see-through each shower is (see `softenRadarPixels`).
+const RasterTone radarSoftTone = (
+  brightnessMin: 0.0,
+  brightnessMax: 1.0,
+  hueRotate: 0.0,
+  saturation: 0.0,
+  contrast: 0.0,
+  opacity: 1.0,
+);
+
 /// The clouds on the light map. The image is already white cloud on a clear
 /// ground (see `whitenCloudPixels`); pulling its white down to a very light
 /// grey keeps clouds visible over the light map's white areas.
@@ -39,14 +50,16 @@ const RasterTone cloudsDarkTone = (
 );
 
 /// The paint of a weather layer of [kind] on a light or a [dark] map look,
-/// with the source's own [opacity] where it names one.
+/// with the source's own [opacity] where it names one; a radar drawn as one
+/// processed [image] is the soft radar.
 RasterTone weatherTone(
   WeatherKind kind, {
   required bool dark,
   double? opacity,
+  bool image = false,
 }) {
   final tone = switch (kind) {
-    WeatherKind.radar => radarTone,
+    WeatherKind.radar => image ? radarSoftTone : radarTone,
     WeatherKind.clouds => dark ? cloudsDarkTone : cloudsLightTone,
   };
   if (opacity == null) return tone;

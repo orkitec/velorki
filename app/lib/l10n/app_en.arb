@@ -2586,6 +2586,22 @@
   "@appearanceGlassHint": {
     "description": "Small text under the Glass choice in Settings → Appearance: the choice changes the tab bar and the buttons, search field and chips floating over the map. The second sentence: the glass turns solid (the Solid choice) while the phone is in its power-saving mode (iOS Low Power Mode, Android Battery Saver) and while a ride is recorded with the app's own Battery saver setting on"
   },
+  "appearanceRadarStyle": "Rain radar",
+  "@appearanceRadarStyle": {
+    "description": "Settings → Appearance: title of the choice of how the rain radar layer on the map is drawn."
+  },
+  "appearanceRadarSoft": "Soft",
+  "@appearanceRadarSoft": {
+    "description": "Rain radar choice in Settings → Appearance: one smoothed image, soft edges, light rain more see-through than heavy rain. The default."
+  },
+  "appearanceRadarMeasured": "As measured",
+  "@appearanceRadarMeasured": {
+    "description": "Rain radar choice in Settings → Appearance: the radar's own tiles exactly as the weather service delivers them, its 1 km cells sharp."
+  },
+  "appearanceRadarHint": "Soft: smooth edges, light rain fainter than heavy rain. As measured: the radar's 1 km cells as delivered.",
+  "@appearanceRadarHint": {
+    "description": "Small text under the Rain radar choice in Settings → Appearance explaining the two options, Soft and As measured (use the same words as those two options)."
+  },
   "appearanceBarSolid": "Solid",
   "@appearanceBarSolid": {
     "description": "Bar style option: the tab bar is not see-through"
