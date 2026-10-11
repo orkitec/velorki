@@ -102,6 +102,10 @@ const double markerGlyphSizePx = 13;
 /// to read a dark glyph against a dark wood or a motorway.
 const double markerGlyphHaloPx = 1.6;
 
+/// How much a glyph on a disc is thickened on each side, in logical pixels:
+/// about one device pixel more stroke in all on a phone.
+const double markerDiscGlyphBoldPx = 0.2;
+
 /// The glyph of [icon], stroked in [haloColor] and filled with [color], laid
 /// out at [sizePx] with an outline of [haloPx]: the halo first, then the
 /// fill.
@@ -254,10 +258,11 @@ const double markerDiscBitmapPadPx = 1;
 /// One picture rather than a circle layer under a glyph: a symbol fades in
 /// and out with the map's placement, a circle only pops.
 ///
-/// The glyph is [glyphPx] high, filled with [glyphColor], and placed as
-/// [buildMarkerGlyphImage] places it with an outline of [glyphHaloPx]; the
-/// outline itself is left out on a disc, where the disc sets the glyph off
-/// and a translucent outline would only blur its edges.
+/// The glyph is [glyphPx] high in [glyphColor], its strokes thickened by
+/// [glyphBoldPx] on each side with an edge of its own colour: no
+/// translucent outline as on a bare glyph, where the disc sets it off and
+/// that would only blur its edges, but the icon font's thin lines made a
+/// little more solid.
 Future<Uint8List> buildDiscMarkerImage({
   required Color fill,
   required Color stroke,
@@ -266,7 +271,7 @@ Future<Uint8List> buildDiscMarkerImage({
   required double devicePixelRatio,
   IconData? icon,
   double glyphPx = markerGlyphOnDiscSizePx,
-  double glyphHaloPx = markerGlyphHaloPx,
+  double glyphBoldPx = markerDiscGlyphBoldPx,
   Color glyphColor = const Color(0xFFFFFFFF),
 }) async {
   final glyph = icon == null
@@ -274,9 +279,9 @@ Future<Uint8List> buildDiscMarkerImage({
       : _glyphPainters(
           icon: icon,
           color: glyphColor,
-          haloColor: const Color(0x00000000),
+          haloColor: glyphColor,
           sizePx: glyphPx,
-          haloPx: glyphHaloPx,
+          haloPx: glyphBoldPx,
         );
   try {
     final side = (radiusPx + strokePx + markerDiscBitmapPadPx) * 2;
@@ -311,6 +316,7 @@ Future<Uint8List> buildDiscMarkerImage({
           center - Offset(glyph.halo.width / 2, glyph.halo.height / 2),
           ratio,
         );
+        glyph.halo.paint(canvas, origin);
         glyph.fill.paint(canvas, origin);
       }
     });

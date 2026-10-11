@@ -1239,14 +1239,14 @@ class MaplibreMapControllerAdapter implements MapController {
               ? MarkerLayers.stopDiscSelectedRadiusPx
               : MarkerLayers.stopDiscRadiusPx,
           strokePx: MarkerLayers.stopStrokePx,
-          // The chosen point's glyph, or a smaller one with its outline
+          // The chosen point's glyph, or a smaller one with its thickening
           // shrunk alike, drawn at the size it is shown at.
           glyphPx: stop.selected
               ? markerGlyphOnDiscSizePx
               : markerGlyphOnDiscSizePx * MarkerLayers.stopGlyphScale,
-          glyphHaloPx: stop.selected
-              ? markerGlyphHaloPx
-              : markerGlyphHaloPx * MarkerLayers.stopGlyphScale,
+          glyphBoldPx: stop.selected
+              ? markerDiscGlyphBoldPx
+              : markerDiscGlyphBoldPx * MarkerLayers.stopGlyphScale,
           glyphColor: colorFromMapHex(palette.waypointStroke),
           devicePixelRatio: devicePixelRatio,
         );
