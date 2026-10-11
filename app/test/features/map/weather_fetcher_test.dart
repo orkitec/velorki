@@ -1002,29 +1002,53 @@ void main() {
   group('rain legends', () {
     int level(double alpha) => (alpha * 255).round();
 
-    test('H SAF: light green the faintest, the purples the strongest; the '
-        'colours kept', () {
+    test('H SAF: drawn in the DWD radar\'s colours, each class as the '
+        'radar\'s for its rate', () {
       List<int> soft(int r, int g, int b) =>
           softenRainPixels(1, 1, _pixel(r, g, b, 255), RainPalette.hsaf);
+      // Under 2 mm an hour: the radar's 0.4–1 mm green.
       expect(soft(0xCC, 0xFF, 0xCC), <int>[
-        0xCC,
-        0xFF,
-        0xCC,
-        level(rainAlphaLightest),
+        0x01,
+        0x99,
+        0x34,
+        level(dwdRadarLegend.alphaOf(2)),
       ]);
-      expect(soft(0x99, 0xE6, 0x99)[3], level(hsafLegend.alphaOf(1)));
-      expect(hsafLegend.classify(0x33, 0x66, 0xFF, 255), 5);
-      expect(hsafLegend.classify(0x00, 0x00, 0xFF, 255), 6);
-      expect(soft(0x80, 0x00, 0x80)[3], level(rainAlphaHeaviest));
+      expect(soft(0x99, 0xE6, 0x99)[3], level(dwdRadarLegend.alphaOf(4)));
+      expect(hsafLegend.classify(0x33, 0x66, 0xFF, 255), 9);
+      expect(hsafLegend.classify(0x00, 0x00, 0xFF, 255), 9);
+      expect(soft(0x80, 0x00, 0x80)[3], level(dwdRadarLegend.alphaOf(11)));
       // An edge pixel near a class reads as it; the transparent ground
       // stays so.
-      expect(hsafLegend.classify(199, 246, 199, 255), 0);
+      expect(hsafLegend.classify(199, 246, 199, 255), 2);
       expect(
         softenRainPixels(1, 1, _pixel(0, 0, 0, 0), RainPalette.hsaf)[3],
         0,
       );
       // A colour no class has is nothing.
       expect(hsafLegend.classify(0xFF, 0x80, 0x00, 255), rainNone);
+    });
+
+    test('ICON-EU hourly: the radar style\'s colours read as the rates they '
+        'stand for, a sixth of their labels', () {
+      List<int> soft(int r, int g, int b) =>
+          softenRainPixels(1, 1, _pixel(r, g, b, 255), RainPalette.dwdModel1h);
+      // Orange, "10–15 mm/h" in the style, is 1.25–2.5 mm an hour: the
+      // radar's 1–2 mm green.
+      expect(soft(0xFF, 0x89, 0x01).sublist(0, 3), <int>[0x4D, 0xB3, 0x1B]);
+      expect(dwdModel1hLegend.classify(0xFF, 0x45, 0x01, 255), 4);
+      expect(dwdModel1hLegend.classify(0x00, 0x00, 0xFE, 255), 10);
+      // Its two lightest, under 0.08 mm an hour, are no rain.
+      expect(dwdModel1hLegend.classify(0x33, 0xFF, 0xFF, 255), rainNone);
+      expect(soft(0x1A, 0xCC, 0x9A)[3], 0);
+      // As measured, the same colours are drawn as their rates too.
+      expect(
+        measuredRainPixels(
+          _pixel(0xFF, 0x89, 0x01, 255),
+          RainPalette.dwdModel1h,
+        ),
+        <int>[0x4D, 0xB3, 0x1B, 255],
+      );
+      expect(iconEuRain.palette, RainPalette.dwdModel1h);
     });
 
     test('NOAA: its ramp from grey-blue to dark red, the colours it was not '
@@ -1099,16 +1123,11 @@ void main() {
       );
     });
 
-    test('ICON-EU in the radar\'s style reads as the radar', () {
-      expect(iconEuRain.palette, RainPalette.dwd);
+    test('the radars keep their own legends', () {
       expect(dwdRadar.palette, RainPalette.dwd);
       expect(noaaRadar.palette, RainPalette.noaa);
       expect(rainLegendOf(RainPalette.dwd), same(dwdRadarLegend));
-      // The DWD radar style's colours, from a real ICON-EU image.
-      expect(
-        softenRainPixels(1, 1, _pixel(0xCC, 0x00, 0x98, 255), RainPalette.dwd),
-        softenRadarPixels(1, 1, _pixel(0xCC, 0x00, 0x98, 255)),
-      );
+      expect(rainLegendOf(RainPalette.dwdModel1h), same(dwdModel1hLegend));
     });
 
     test('the job does nothing to an image that needs nothing', () {

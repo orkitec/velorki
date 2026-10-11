@@ -27,8 +27,7 @@ enum RainRole {
 /// soft (see `rainLegendOf`), and what of it is no rain at all.
 enum RainPalette {
   /// The DWD radar's legend, mm an hour from cyan through green, yellow and
-  /// red to purple and blue, grey for no data. It serves the DWD's nowcast
-  /// and the ICON-EU forecast too, asked for in its style.
+  /// red to purple and blue, grey for no data. It serves the DWD's nowcast.
   dwd,
 
   /// NOAA's reflectivity ramp: grey-blue, cyan, green, yellow, red.
@@ -40,6 +39,11 @@ enum RainPalette {
   /// The DWD's six-hour precipitation scale for the global ICON forecast,
   /// recoloured into the DWD radar's legend at the mean rate per hour.
   dwdModel6h,
+
+  /// ICON-EU's hourly rain drawn in the radar's style, whose thresholds
+  /// are mm in ten minutes, recoloured into the radar's legend at the rate
+  /// the model actually gives.
+  dwdModel1h,
 }
 
 /// How the rain radar is drawn, chosen under Settings → Appearance.
@@ -1271,9 +1275,14 @@ String _dwdModelUrl(String layer, String style) =>
 /// 06, 12 and 18 UTC). The service serves the latest run, an hour after it
 /// to its end; a moment outside answers with an error.
 ///
-/// Asked for in the radar's own style (`niederschlagsradar`, mm/h), not the
-/// layer's, which paints all rain under 2 mm an hour one grey: so the
-/// forecast reads like the radar beside it, and softens the same way.
+/// Asked for in the radar's own style (`niederschlagsradar`), not the
+/// layer's, which paints all rain under 2 mm an hour one grey. That style's
+/// thresholds are mm in ten minutes, about a sixth of its labels, while the
+/// model's values are mm in an hour: drawn as it comes, the forecast would
+/// look six times as heavy. So its colours are read back as the rates they
+/// stand for here and drawn in the radar's class for each
+/// ([RainPalette.dwdModel1h]), and the forecast reads like the radar beside
+/// it.
 final WeatherMapSource iconEuRain = WeatherMapSource(
   id: 'rain_icon_eu',
   kind: WeatherKind.radar,
@@ -1286,6 +1295,7 @@ final WeatherMapSource iconEuRain = WeatherMapSource(
     'Icon-eu_reg00625_fd_sl_TOTPREC01H',
     'niederschlagsradar',
   ),
+  palette: RainPalette.dwdModel1h,
   coverage: <BoundingBox>[_box(-23.5, 29.5, 62.5, 70.5)],
   timeFormat: WeatherTimeFormat.iso,
   stepMinutes: 60,
@@ -1711,6 +1721,7 @@ RainPalette? _palette(Object? v) => switch (v) {
   'noaa' => RainPalette.noaa,
   'hsaf' => RainPalette.hsaf,
   'dwdModel6h' => RainPalette.dwdModel6h,
+  'dwdModel1h' => RainPalette.dwdModel1h,
   _ => null,
 };
 

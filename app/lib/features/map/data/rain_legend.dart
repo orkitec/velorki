@@ -165,6 +165,7 @@ RainLegend rainLegendOf(RainPalette palette) => switch (palette) {
   RainPalette.noaa => noaaRadarLegend,
   RainPalette.hsaf => hsafLegend,
   RainPalette.dwdModel6h => dwdModel6hLegend,
+  RainPalette.dwdModel1h => dwdModel1hLegend,
 };
 
 /// The DWD radar's legend (`dwd:Niederschlagsradar`), the same for its
@@ -193,23 +194,63 @@ final RainLegend dwdRadarLegend = RainLegend(const <List<int>>[
   <int>[0x0000FE], // 150 and more
 ], noData: 0x7D7D7D);
 
+/// ICON-EU's hourly rain (`dwd:Icon-eu_reg00625_fd_sl_TOTPREC01H`) as the
+/// service draws it in the radar's style `niederschlagsradar`: the radar's
+/// colours, but at thresholds in mm in ten minutes (0.017 for "0.1 mm/h",
+/// 2.5 for "15", 25 for "150"), read 2026-10-11 from
+/// `…&request=GetLegendGraphic&layer=dwd:Icon-eu_reg00625_fd_sl_TOTPREC01H&style=niederschlagsradar&format=application/json`,
+/// while the model's values are mm in an hour. Each colour is drawn as the
+/// radar's class for the middle of the hourly rate it stands for; the two
+/// lightest, under 0.08 mm an hour, as no rain.
+final RainLegend dwdModel1hLegend = RainLegend.recoloured(
+  const <int>[
+    0x33FFFF, // 0.017–0.033 mm/h
+    0x1ACC9A, // 0.033–0.083
+    0x019934, // 0.083–0.167
+    0x4DB31B, // 0.167–0.25
+    0x99CC01, // 0.25–0.417
+    0xCCE601, // 0.417–0.625
+    0xFFFF01, // 0.625–0.833
+    0xFFC401, // 0.833–1.25
+    0xFF8901, // 1.25–2.5
+    0xFF4501, // 2.5–3.75
+    0xFE0000, // 3.75–6.25
+    0xE5004C, // 6.25–8.33
+    0xCC0098, // 8.33–12.5
+    0x6600CB, // 12.5–25
+    0x0000FE, // 25 and more
+  ],
+  const <int>[
+    rainNone, rainNone, 0, 1, 1, 2, 2, 3, 3, 4, 5, 6, 8, 9, 10, //
+  ],
+  drawnIn: dwdRadarLegend,
+  noData: 0x7D7D7D,
+);
+
 /// The H SAF rain's legend (`mtg_fd:h40b`):
 /// `https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&layer=mtg_fd:h40b&format=application/json`,
 /// read 2026-10-11. Classes in mm an hour, up to the upper bound named;
-/// under 0.001 transparent.
-final RainLegend hsafLegend = RainLegend(const <List<int>>[
-  <int>[0xCCFFCC], // < 2
-  <int>[0x99E699], // < 4
-  <int>[0x66CC66], // < 7
-  <int>[0x33B333], // < 10
-  <int>[0x3399CC], // < 15
-  <int>[0x3366FF], // < 20
-  <int>[0x0000FF], // < 25
-  <int>[0x6600CC], // < 30
-  <int>[0x9933CC], // < 40
-  <int>[0xCC0099], // < 50
-  <int>[0x800080], // 50 and more
-]);
+/// under 0.001 transparent. Each class is drawn as the DWD radar's class
+/// for its rate, so "now" outside the radars reads like the forecast that
+/// follows it: under 2 mm as the radar's 0.4–1 mm, where most of the
+/// satellite's light rain lies, the rest by the middle of its range.
+final RainLegend hsafLegend = RainLegend.recoloured(
+  const <int>[
+    0xCCFFCC, // < 2
+    0x99E699, // < 4
+    0x66CC66, // < 7
+    0x33B333, // < 10
+    0x3399CC, // < 15
+    0x3366FF, // < 20
+    0x0000FF, // < 25
+    0x6600CC, // < 30
+    0x9933CC, // < 40
+    0xCC0099, // < 50
+    0x800080, // 50 and more
+  ],
+  const <int>[2, 4, 6, 7, 8, 9, 9, 9, 10, 11, 11],
+  drawnIn: dwdRadarLegend,
+);
 
 /// The global ICON's six-hour legend (`dwd:Icon_reg025_fd_sl_TOTPREC06H`):
 /// `https://maps.dwd.de/geoserver/dwd/wms?service=WMS&version=1.3.0&request=GetLegendGraphic&layer=dwd:Icon_reg025_fd_sl_TOTPREC06H&format=application/json`,

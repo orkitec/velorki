@@ -222,9 +222,33 @@ Uint8List softenRainPixels(
 bool _modelNoData(int r, int g, int b, int a) =>
     a < rainLegendMinAlpha && math.max(r, math.max(g, b)) < 40;
 
+/// [rgba] of ICON-EU's hourly rain with each pixel in the radar colour of
+/// the rate it stands for ([dwdModel1hLegend]), its alpha kept; no rain
+/// and no data transparent.
+Uint8List _recolouredPixels(Uint8List rgba) {
+  final legend = dwdModel1hLegend;
+  final out = Uint8List.fromList(rgba);
+  for (var o = 0; o + 3 < out.length; o += 4) {
+    if (out[o + 3] == 0) continue;
+    final k = legend.classify(out[o], out[o + 1], out[o + 2], out[o + 3]);
+    if (k < 0) {
+      out[o + 3] = 0;
+      continue;
+    }
+    final c = legend.colourOf(k, out[o], out[o + 1], out[o + 2]);
+    out[o] = c >> 16 & 0xFF;
+    out[o + 1] = c >> 8 & 0xFF;
+    out[o + 2] = c & 0xFF;
+  }
+  return out;
+}
+
 /// The as-measured look of a rain image of [palette]: the service's
-/// colours as they are, only the global model's no-rain veil taken away.
+/// colours as they are, only the global model's no-rain veil taken away;
+/// ICON-EU's hourly rain, whose colours stand for other rates than their
+/// own, in the colours of the rates they stand for.
 Uint8List measuredRainPixels(Uint8List rgba, RainPalette palette) {
+  if (palette == RainPalette.dwdModel1h) return _recolouredPixels(rgba);
   if (palette != RainPalette.dwdModel6h) return rgba;
   final out = Uint8List.fromList(rgba);
   for (var o = 0; o + 3 < out.length; o += 4) {
@@ -476,7 +500,8 @@ class RainImageJob {
       masks.isNotEmpty ||
       coverages.isNotEmpty ||
       extent != null ||
-      palette == RainPalette.dwdModel6h;
+      palette == RainPalette.dwdModel6h ||
+      palette == RainPalette.dwdModel1h;
 }
 
 /// [rgba] ([width] × [height]) as [job] wants it drawn. A source cut by
@@ -830,7 +855,7 @@ const int cloudImageVersion = 2;
 /// What tells the rain images prepared now from those an older app left in
 /// the cache, which the age limit then clears: raised with each change to
 /// how they are prepared.
-const int rainImageVersion = 3;
+const int rainImageVersion = 4;
 
 /// The width and height of [png] from its header; `null` where it is not
 /// a PNG.
