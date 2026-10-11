@@ -620,15 +620,32 @@ void main() {
       ]);
     });
 
-    test('under the cycle map', () async {
+    test('over the cycle map, whichever comes first', () async {
+      // The cycle map first: the arrows go over it, under the labels.
       await map.setCycleMap('/cycle.geojson');
       await map.setWindArrows(arrows(3));
       expect(
         ops.addLayerOf(MapLayerIds.windLayer)!.belowLayerId,
-        CycleMapLayers.layerId(
-          0,
-          const CycleMapLayers(CycleMapColors.light).layers.first,
-        ),
+        'waterway_line_label',
+      );
+      // A new cycle map after: under the arrows.
+      await map.setCycleMap('/cycle2.geojson');
+      expect(
+        ops
+            .addLayerOf(
+              CycleMapLayers.layerId(
+                1,
+                const CycleMapLayers(CycleMapColors.light).layers.first,
+              ),
+            )!
+            .belowLayerId,
+        MapLayerIds.windLayer,
+      );
+      // The rain under the cycle map, and so under the arrows.
+      await map.setWeatherLayers([_radar('radar_dwd', '1')]);
+      expect(
+        ops.addLayerOf(MapLayerIds.weatherLayer('radar_dwd', 0))!.belowLayerId,
+        startsWith('velorki-cycle'),
       );
     });
 

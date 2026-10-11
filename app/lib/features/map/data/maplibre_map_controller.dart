@@ -2285,7 +2285,9 @@ class MaplibreMapControllerAdapter implements MapController {
         source,
         id,
         layer.properties,
-        belowLayerId: _cycleAnchor,
+        // Under the wind's arrows where they are drawn, else under the
+        // labels.
+        belowLayerId: _windAdded ? MapLayerIds.windLayer : _cycleAnchor,
         enableInteraction: false,
         filter: layer.filter,
         minzoom: layer.minZoom,
@@ -2518,8 +2520,11 @@ class MaplibreMapControllerAdapter implements MapController {
     } else {
       at = _weatherStack.length;
     }
-    // Under the wind's arrows where they are drawn.
-    below ??= _windAdded ? MapLayerIds.windLayer : _underCycleMap();
+    // Under the cycle map, and so under the wind's arrows over it; with no
+    // cycle map, under the arrows where they are drawn.
+    below ??= _cycleGenerations.isEmpty && _windAdded
+        ? MapLayerIds.windLayer
+        : _underCycleMap();
     await _ops.addLayer(
       source,
       id,
@@ -2594,7 +2599,8 @@ class MaplibreMapControllerAdapter implements MapController {
       MapLayerIds.windSource,
       MapLayerIds.windLayer,
       _windProperties(),
-      belowLayerId: _underCycleMap(),
+      // Over the cycle map's lines, which would hide them, under the labels.
+      belowLayerId: _cycleAnchor,
       enableInteraction: false,
     );
     _windAdded = true;
