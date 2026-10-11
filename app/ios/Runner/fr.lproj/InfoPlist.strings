@@ -1,0 +1,4 @@
+"NSLocationWhenInUseUsageDescription" = "Velorki affiche votre position sur la carte et enregistre vos sorties, y compris écran éteint pendant un enregistrement.";
+"NSHealthShareUsageDescription" = "Velorki lit votre fréquence cardiaque dans Apple Santé pour l’afficher et l’enregistrer avec vos sorties.";
+"NSHealthUpdateUsageDescription" = "Velorki enregistre vos sorties terminées dans Apple Santé en tant qu’entraînements vélo.";
+"NSBluetoothAlwaysUsageDescription" = "Velorki se connecte en Bluetooth à votre ceinture cardio et à vos capteurs de vitesse, de cadence et de puissance.";

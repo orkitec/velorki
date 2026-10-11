@@ -82,11 +82,144 @@ class MarkerLayers {
   /// The name beside a disc.
   static List<Object> nameTextSize() => whenSelected(nameSelectedPx, namePx);
 
-  /// The glyph on a disc: drawn at the size the chosen point wants and
-  /// scaled down for the rest, so it keeps its share of whichever disc it
-  /// sits on.
-  static List<Object> glyphScale() =>
-      whenSelected(1.0, markerGlyphUnselectedScale);
+  /// The glyph on a disc, as the name of its picture: the feature's `icon`
+  /// for the chosen point, the smaller picture of the same glyph
+  /// ([markerGlyphUnselectedName]) for the rest, so it keeps its share of
+  /// whichever disc it sits on.
+  ///
+  /// Two pictures, each drawn at the size it is shown at, rather than one
+  /// scaled by `icon-size`: MapLibre filters a scaled icon, and that blurs
+  /// a glyph's thin strokes. Unscaled, a picture registered at the screen's
+  /// pixel ratio is drawn pixel for pixel.
+  ///
+  /// A feature with no `icon` names no picture.
+  static List<Object> glyphImage() => <Object>[
+    'case',
+    <Object>['has', 'icon'],
+    whenSelected(
+      <Object>['get', 'icon'],
+      <Object>[
+        'concat',
+        <Object>['get', 'icon'],
+        markerGlyphUnselectedSuffix,
+      ],
+    ),
+    '',
+  ];
+
+  /// How much smaller a stop's glyph is than the chosen point's: smaller
+  /// than a route's own places, which matter more than any tap nearby.
+  static const double stopGlyphScale = 0.62;
+
+  /// A stop's disc, and the chosen stop's, which is as wide as any chosen
+  /// point's.
+  static final double stopDiscRadiusPx = markerDiscRadiusFor(
+    markerGlyphOnDiscSizePx * stopGlyphScale,
+  );
+  static final double stopDiscSelectedRadiusPx = markerDiscSelectedRadiusPx;
+
+  /// The rim round a stop's disc and round a bubble of stops.
+  static const double stopStrokePx = 1.5;
+
+  /// What a stop's picture is called in the style: one per colour it is
+  /// drawn in — its kind's, or `selected` for the chosen stop — and glyph,
+  /// [glyphName] being the stop's `icon` property, `null` for none.
+  ///
+  /// [stopImage] asks each feature for the same name.
+  static String stopImageName(String state, String? glyphName) =>
+      'velorki-stop-$state-${glyphName ?? 'none'}';
+
+  /// The picture of a single stop, disc and glyph in one, named from the
+  /// feature's `selected`, `kind` and `icon` as [stopImageName] names it.
+  static List<Object> stopImage() => <Object>[
+    'concat',
+    'velorki-stop-',
+    whenSelected('selected', <Object>['get', 'kind']),
+    '-',
+    <Object>[
+      'coalesce',
+      <Object>['get', 'icon'],
+      'none',
+    ],
+  ];
+
+  /// A single stop: its disc with its glyph on it, as one symbol so it
+  /// fades in and out with the map's placement rather than popping.
+  ///
+  /// Forced, never placed: every stop shows, however close the next.
+  ml.SymbolLayerProperties stop() => ml.SymbolLayerProperties(
+    iconImage: stopImage(),
+    iconOpacity: opacity(),
+    iconAnchor: 'center',
+    iconAllowOverlap: true,
+    iconIgnorePlacement: true,
+  );
+
+  /// Whether a feature of a clustered source is a bubble standing for
+  /// several points, and the opposite: the stop layers draw the single
+  /// stops, the cluster layers the bubbles.
+  static const List<Object> isCluster = <Object>['has', 'point_count'];
+  static const List<Object> isNotCluster = <Object>['!', isCluster];
+
+  /// The radius of the bubble of a cluster, stepping up with how many stops
+  /// it holds: under [clusterRadiusSteps]' first count, under its second,
+  /// and beyond.
+  static const List<double> clusterRadiiPx = <double>[14, 17, 20];
+  static const List<int> clusterRadiusSteps = <int>[10, 50];
+
+  /// What the picture of a bubble of [radiusPx] is called in the style.
+  ///
+  /// One picture per radius, each drawn at its own size with the stops'
+  /// rim round it, rather than one scaled by `icon-size`, which MapLibre
+  /// filters and so blurs.
+  static String clusterImageName(double radiusPx) =>
+      'velorki-stop-cluster-${radiusPx.round()}';
+
+  /// The picture of a cluster bubble, stepping up with how many stops it
+  /// holds.
+  static List<Object> clusterImage() => <Object>[
+    'step',
+    <Object>['get', 'point_count'],
+    clusterImageName(clusterRadiiPx[0]),
+    clusterRadiusSteps[0],
+    clusterImageName(clusterRadiiPx[1]),
+    clusterRadiusSteps[1],
+    clusterImageName(clusterRadiiPx[2]),
+  ];
+
+  /// What a cluster bubble says: how many stops it holds, "99+" beyond.
+  static List<Object> clusterCount() => <Object>[
+    'case',
+    <Object>[
+      '>',
+      <Object>['get', 'point_count'],
+      99,
+    ],
+    '99+',
+    <Object>[
+      'to-string',
+      <Object>['get', 'point_count'],
+    ],
+  ];
+
+  /// The bubble of a cluster of stops, in the accent with the stop discs'
+  /// rim, and the count on it: one symbol, so it fades in and out with the
+  /// map's placement and crossfades as the clusters change with the zoom.
+  /// Forced, like a waypoint's number: every bubble shows, and its count is
+  /// inside it, where nothing else is.
+  ml.SymbolLayerProperties clusterBubble() => ml.SymbolLayerProperties(
+    iconImage: clusterImage(),
+    iconAnchor: 'center',
+    iconAllowOverlap: true,
+    iconIgnorePlacement: true,
+    textField: clusterCount(),
+    textFont: waypointLabelFont,
+    textSize: discTextPx,
+    textColor: palette.stopClusterLabel,
+    textAllowOverlap: true,
+    textIgnorePlacement: true,
+    textAnchor: 'center',
+  );
 
   /// The disc itself. [color] is the colour of what the point is; the
   /// chosen point takes the chosen colour instead.
@@ -105,8 +238,7 @@ class MarkerLayers {
   /// The glyph on a marker's disc. A feature with no `icon` keeps the plain
   /// disc.
   ml.SymbolLayerProperties glyph() => ml.SymbolLayerProperties(
-    iconImage: <Object>['get', 'icon'],
-    iconSize: glyphScale(),
+    iconImage: glyphImage(),
     iconOpacity: opacity(),
     iconAnchor: 'center',
     iconAllowOverlap: true,
@@ -140,21 +272,28 @@ class MarkerLayers {
   /// Placed rather than forced: a plan with points on top of one another is
   /// better read with a name missing than with two over each other. The
   /// chosen point sorts first, so its name is the one that survives.
-  ml.SymbolLayerProperties name({required String field}) =>
-      ml.SymbolLayerProperties(
-        textField: <Object>['get', field],
-        textFont: waypointLabelFont,
-        textSize: nameTextSize(),
-        // On the map, not on a disc: the colour that reads against the
-        // style the rider is looking at, outlined in its opposite. The disc
-        // under it carries what the point is and whether it is chosen.
-        textColor: palette.mapLabel,
-        textHaloColor: palette.mapLabelHalo,
-        textHaloWidth: 1.2,
-        textOpacity: opacity(),
-        textAnchor: nameAnchor,
-        // Ems of the text's own size, so the gap grows with it.
-        textOffset: <Object>[0, nameOffsetEm],
-        symbolSortKey: whenSelected(0.0, 1.0),
-      );
+  ///
+  /// [chosenOnly] writes the name of the chosen point alone: the stops are
+  /// many and mostly unnamed, and a name for each would bury the map.
+  ml.SymbolLayerProperties name({
+    required String field,
+    bool chosenOnly = false,
+  }) => ml.SymbolLayerProperties(
+    textField: chosenOnly
+        ? whenSelected(<Object>['get', field], '')
+        : <Object>['get', field],
+    textFont: waypointLabelFont,
+    textSize: nameTextSize(),
+    // On the map, not on a disc: the colour that reads against the
+    // style the rider is looking at, outlined in its opposite. The disc
+    // under it carries what the point is and whether it is chosen.
+    textColor: palette.mapLabel,
+    textHaloColor: palette.mapLabelHalo,
+    textHaloWidth: 1.2,
+    textOpacity: opacity(),
+    textAnchor: nameAnchor,
+    // Ems of the text's own size, so the gap grows with it.
+    textOffset: <Object>[0, nameOffsetEm],
+    symbolSortKey: whenSelected(0.0, 1.0),
+  );
 }

@@ -35,8 +35,14 @@ files:
   # The website's Markdown content: the user guide and the legal pages. The
   # tree under content/en is mirrored per language — `**` carries the
   # sub-directories (docs/, legal/), %original_file_name% the file name.
+  # The imprint is left out: it is one bilingual text (German and English
+  # both, in every language's copy), not a translation, and Crowdin would line
+  # up its two halves by position. A language without its own copy falls back
+  # to the English page, which holds the German too.
   - source: /web/content/en/**/*.md
     translation: /web/content/%two_letters_code%/**/%original_file_name%
+    ignore:
+      - /web/content/en/legal/imprint.md
 
   # The App Store listing (fastlane metadata). en-US is the source; Crowdin
   # writes every other locale into its own folder beside it, named the way

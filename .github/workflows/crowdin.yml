@@ -1,7 +1,9 @@
 name: crowdin
 
-# English sources go up when they change on main; finished translations come
-# back once a week as a pull request on `l10n/crowdin`. Both need the
+# Translations are written in the repository, in the commit that changes the
+# English (see CLAUDE.md), and go up to Crowdin as approved with the sources on
+# every push to main; what people improve in Crowdin comes back once a week as
+# a pull request on `l10n/crowdin`. Both need the
 # CROWDIN_PROJECT_ID and CROWDIN_PERSONAL_TOKEN secrets; without them the jobs
 # are skipped rather than shown green for doing nothing. Forks never talk to
 # our project. What is translated is in `crowdin.yml`; the day-to-day is in
@@ -10,21 +12,21 @@ on:
   push:
     branches: [main]
     paths:
-      - "app/lib/l10n/app_en.arb"
-      - "web/messages/en.json"
-      - "web/content/en/**/*.md"
-      - "app/fastlane/metadata/ios/en-US/*.txt"
-      - "app/fastlane/metadata/android/en-US/*.txt"
-      - "app/store/slides_en.json"
+      - "app/lib/l10n/app_*.arb"
+      - "web/messages/*.json"
+      - "web/content/**/*.md"
+      - "app/fastlane/metadata/ios/*/*.txt"
+      - "app/fastlane/metadata/android/*/*.txt"
+      - "app/store/slides_*.json"
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
     inputs:
       upload_translations:
         description: >-
-          Push the translations already in the repository to Crowdin and
-          approve them. Needed once, before the first download, so the
-          hand-made German is not overwritten by empty strings.
+          Push the translations in the repository to Crowdin and approve
+          them, also while a Crowdin pull request is open (its newer text is
+          then overwritten).
         type: boolean
         default: false
 
@@ -63,16 +65,38 @@ jobs:
     needs: token
     if: ${{ needs.token.outputs.present == 'true' && github.event_name != 'schedule' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # The repository's translations become the approved ones in Crowdin on
+      # every push, and on a manual run with the box ticked. Not while a
+      # Crowdin pull request is open: it holds newer text from Crowdin, which
+      # the repository's older copy would overwrite. Merge it, and the next
+      # push uploads.
+      - id: mode
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          ASKED: ${{ inputs.upload_translations || false }}
+        run: |
+          translations=false
+          if [ "$EVENT" = push ] || [ "$ASKED" = true ]; then
+            translations=true
+          fi
+          if [ "$translations" = true ] && [ "$EVENT" = push ] &&
+            [ -n "$(gh pr list --repo "$GITHUB_REPOSITORY" --head l10n/crowdin --state open --json number --jq '.[].number')" ]; then
+            echo "::warning::A Crowdin pull request is open; translations are not uploaded until it is merged."
+            translations=false
+          fi
+          echo "translations=$translations" >> "$GITHUB_OUTPUT"
       - uses: crowdin/github-action@9c23991700c0ec5256fd41089b9d9d7d540e424e # v3.3.0
         with:
           upload_sources: true
-          # Only on a manual run with the box ticked: the translations in the
-          # repository become the approved ones in Crowdin.
-          upload_translations: ${{ inputs.upload_translations || false }}
-          auto_approve_imported: ${{ inputs.upload_translations || false }}
-          import_eq_suggestions: ${{ inputs.upload_translations || false }}
+          upload_translations: ${{ steps.mode.outputs.translations }}
+          auto_approve_imported: ${{ steps.mode.outputs.translations }}
+          import_eq_suggestions: ${{ steps.mode.outputs.translations }}
           download_translations: false
         env:
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
@@ -92,14 +116,16 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # Crowdin only downloads here; the pull request is opened below, after
+      # the translated ARB files lose the "@key" metadata Crowdin copies into
+      # them from app_en.arb (it has no setting against it, and gen-l10n
+      # reads metadata from the English template only).
       - uses: crowdin/github-action@9c23991700c0ec5256fd41089b9d9d7d540e424e # v3.3.0
         with:
           upload_sources: false
           download_translations: true
-          localization_branch_name: l10n/crowdin
-          create_pull_request: true
-          pull_request_title: "Update translations"
-          pull_request_base_branch_name: main
+          push_translations: false
+          create_pull_request: false
           # A language nobody has started yet brings no half-empty file.
           skip_untranslated_files: true
           # Proofreading is not set up; a translated string is good enough.
@@ -107,4 +133,31 @@ jobs:
         env:
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Strip ARB metadata from the translations
+        run: |
+          # The action runs in a container and leaves root-owned files.
+          sudo chown -R "$(id -u):$(id -g)" .
+          for f in app/lib/l10n/app_*.arb; do
+            [ "$f" = app/lib/l10n/app_en.arb ] && continue
+            jq --indent 2 'with_entries(select(.key | test("^@[^@]") | not))' "$f" > "$f.tmp"
+            mv "$f.tmp" "$f"
+          done
+      - name: Open or update the pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B l10n/crowdin
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No translation changes."
+            exit 0
+          fi
+          git commit -m "Update translations from Crowdin"
+          git push --force origin l10n/crowdin
+          if [ -z "$(gh pr list --head l10n/crowdin --state open --json number --jq '.[].number')" ]; then
+            gh pr create --base main --head l10n/crowdin \
+              --title "Update translations" \
+              --body "Translations downloaded from Crowdin."
+          fi

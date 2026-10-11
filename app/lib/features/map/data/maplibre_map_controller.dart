@@ -12,8 +12,13 @@ import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/theme.dart';
+import '../domain/cycle_map.dart';
 import '../domain/map_controller.dart';
 import '../domain/visible_map.dart';
+import '../domain/weather_map.dart';
+import '../domain/wind_field.dart';
+import 'cycle_map_images.dart';
+import 'cycle_map_layers.dart';
 import 'cyclosm_tone.dart';
 import 'marker_glyph.dart';
 import 'marker_layers.dart';
@@ -21,6 +26,9 @@ import 'geojson.dart';
 import 'heading_cone.dart';
 import 'heading_smoother.dart';
 import 'tile_template.dart';
+import 'weather_map_preferences.dart' show WeatherOpacity;
+import 'weather_paint.dart';
+import 'wind_arrow_image.dart';
 
 /// Source and layer ids. Everything Velorki adds to the style is prefixed so
 /// it can never collide with a layer of the base style.
@@ -47,8 +55,25 @@ abstract final class MapLayerIds {
   static const String poisIconLayer = 'velorki-pois-icon';
   static const String poisLabelLayer = 'velorki-pois-label';
   static const String waypointsIconLayer = 'velorki-waypoints-icon';
+  static const String stopsSource = 'velorki-stops';
+  static const String stopsLayer = 'velorki-stops-marker';
+  static const String stopsLabelLayer = 'velorki-stops-label';
+  static const String stopsClusterLayer = 'velorki-stops-cluster';
   static const String turnsSource = 'velorki-turns';
   static const String turnsLayer = 'velorki-turns-dot';
+  static const String routeWindSource = 'velorki-route-wind';
+  static const String routeWindLayer = 'velorki-route-wind-line';
+
+  /// The wind arrows over the map, and the arrow they are drawn with.
+  static const String windSource = 'velorki-weather-wind';
+  static const String windLayer = 'velorki-weather-wind-arrows';
+  static const String windArrowImage = 'velorki-wind-arrow';
+
+  /// Generation [n] of the weather layer [id]: its source and its layer.
+  static String weatherSource(String id, int n) =>
+      'velorki-weather-${_slug(id)}-$n';
+  static String weatherLayer(String id, int n) =>
+      'velorki-weather-${_slug(id)}-$n-raster';
 
   static String routeSource(String id) => 'velorki-route-${_slug(id)}';
   static String routeLayer(String id) => 'velorki-route-${_slug(id)}-line';
@@ -93,7 +118,46 @@ class MapPalette {
     this.poiFood = '#8E24AA',
     this.poiGeneric = '#78909C',
     this.routeOriginal = '#607D8B',
+    this.stopCluster = '#1565C0',
+    this.stopClusterLabel = '#FFFFFF',
+    this.cycle = CycleMapColors.light,
+    this.windHead = '#D62C45',
+    this.windCross = '#C77800',
+    this.windTail = '#1C9A57',
+    this.windCalm = '#7D8792',
+    this.windArrowCalm = windArrowCalmLight,
+    this.windArrowLight = windArrowLightLight,
+    this.windArrowModerate = windArrowModerateLight,
+    this.windArrowFresh = windArrowFreshLight,
+    this.windArrowStrong = windArrowStrongLight,
+    this.windArrowHalo = windArrowHaloLight,
   });
+
+  /// The wind arrows over the map by the wind's speed (see
+  /// `windSpeedClasses`): calm, light, moderate, fresh and strong, a cool
+  /// ramp from sky blue to magenta that no road arrow nor the rain uses;
+  /// and the white outline that keeps them off the map and the rain under
+  /// them.
+  final String windArrowCalm;
+  final String windArrowLight;
+  final String windArrowModerate;
+  final String windArrowFresh;
+  final String windArrowStrong;
+  final String windArrowHalo;
+
+  /// The wind on the route: from ahead, from the side, from behind, calm.
+  final String windHead;
+  final String windCross;
+  final String windTail;
+  final String windCalm;
+
+  /// The offline cycle map's colours.
+  final CycleMapColors cycle;
+
+  /// A bubble standing for several stops close together, in the accent,
+  /// and the count written on it.
+  final String stopCluster;
+  final String stopClusterLabel;
 
   /// The line a route was imported with, drawn faint under an edited one.
   final String routeOriginal;
@@ -128,12 +192,44 @@ class MapPalette {
       poiWater = '#1E88E5',
       poiFood = '#8E24AA',
       poiGeneric = '#78909C',
-      routeOriginal = '#607D8B';
+      routeOriginal = '#607D8B',
+      stopCluster = '#1565C0',
+      stopClusterLabel = '#FFFFFF',
+      cycle = CycleMapColors.light,
+      windHead = '#D62C45',
+      windCross = '#C77800',
+      windTail = '#1C9A57',
+      windCalm = '#7D8792',
+      windArrowCalm = windArrowCalmLight,
+      windArrowLight = windArrowLightLight,
+      windArrowModerate = windArrowModerateLight,
+      windArrowFresh = windArrowFreshLight,
+      windArrowStrong = windArrowStrongLight,
+      windArrowHalo = windArrowHaloLight;
+
+  // The wind arrows' colours by strength: a cool ramp from sky blue through
+  // blue and violet to magenta, which neither the roads' grey and white
+  // one-way arrows nor the rain's greens, yellows and reds use; calm a
+  // small neutral grey. Each outlined in white. On a dark map a little
+  // lighter, so the ramp still reads against the dark ground.
+  static const String windArrowCalmLight = '#8F98A3';
+  static const String windArrowLightLight = '#4AAEEA';
+  static const String windArrowModerateLight = '#1C64DB';
+  static const String windArrowFreshLight = '#7438DB';
+  static const String windArrowStrongLight = '#C2179A';
+  static const String windArrowHaloLight = '#FFFFFF';
+  static const String windArrowCalmDark = '#9AA3AD';
+  static const String windArrowLightDark = '#6CC4F4';
+  static const String windArrowModerateDark = '#3F82F2';
+  static const String windArrowFreshDark = '#9A6CF2';
+  static const String windArrowStrongDark = '#DD3FB8';
+  static const String windArrowHaloDark = '#FFFFFFE6';
 
   /// The palette of [theme]'s [VelorkiColors].
   factory MapPalette.fromTheme(ThemeData theme) {
     final colors = theme.velorki;
     final dark = theme.brightness == Brightness.dark;
+    final label = dark ? '#F2F5F7' : '#14171A';
     return MapPalette(
       routeMain: VelorkiColors.hex(colors.routeMain),
       routeMainCasing: VelorkiColors.hex(colors.routeMainCasing),
@@ -155,7 +251,7 @@ class MapPalette {
       // A name beside a marker sits on the map, not on a disc, so it has
       // to turn over with the map: dark on a day style, light on a night
       // one, each outlined in the other.
-      mapLabel: dark ? '#F2F5F7' : '#14171A',
+      mapLabel: label,
       mapLabelHalo: dark ? '#000000A6' : '#FFFFFFCC',
       positionDot: VelorkiColors.hex(colors.position),
       positionAccuracy: VelorkiColors.hex(colors.position),
@@ -164,6 +260,21 @@ class MapPalette {
       poiFood: VelorkiColors.hex(theme.colorScheme.tertiary),
       poiGeneric: VelorkiColors.hex(colors.routeAlternative),
       routeOriginal: VelorkiColors.hex(theme.colorScheme.onSurfaceVariant),
+      stopCluster: VelorkiColors.hex(colors.accent),
+      stopClusterLabel: VelorkiColors.hex(theme.colorScheme.onPrimary),
+      cycle: dark ? CycleMapColors.dark : CycleMapColors.light,
+      windHead: VelorkiColors.hex(colors.windHead),
+      windCross: VelorkiColors.hex(colors.windCross),
+      windTail: VelorkiColors.hex(colors.windTail),
+      windCalm: VelorkiColors.hex(colors.windCalm),
+      // The arrows' cool ramp, a little lighter on a dark map; outlined in
+      // white on both.
+      windArrowCalm: dark ? windArrowCalmDark : windArrowCalmLight,
+      windArrowLight: dark ? windArrowLightDark : windArrowLightLight,
+      windArrowModerate: dark ? windArrowModerateDark : windArrowModerateLight,
+      windArrowFresh: dark ? windArrowFreshDark : windArrowFreshLight,
+      windArrowStrong: dark ? windArrowStrongDark : windArrowStrongLight,
+      windArrowHalo: dark ? windArrowHaloDark : windArrowHaloLight,
     );
   }
 
@@ -216,7 +327,20 @@ class MapPalette {
       other.waypointLabelHalo == waypointLabelHalo &&
       other.positionDot == positionDot &&
       other.positionAccuracy == positionAccuracy &&
-      other.routeOriginal == routeOriginal;
+      other.routeOriginal == routeOriginal &&
+      other.stopCluster == stopCluster &&
+      other.stopClusterLabel == stopClusterLabel &&
+      other.cycle == cycle &&
+      other.windHead == windHead &&
+      other.windCross == windCross &&
+      other.windTail == windTail &&
+      other.windCalm == windCalm &&
+      other.windArrowCalm == windArrowCalm &&
+      other.windArrowLight == windArrowLight &&
+      other.windArrowModerate == windArrowModerate &&
+      other.windArrowFresh == windArrowFresh &&
+      other.windArrowStrong == windArrowStrong &&
+      other.windArrowHalo == windArrowHalo;
 
   @override
   int get hashCode => Object.hash(
@@ -239,6 +363,21 @@ class MapPalette {
     positionDot,
     positionAccuracy,
     routeOriginal,
+    Object.hash(
+      stopCluster,
+      stopClusterLabel,
+      cycle,
+      windHead,
+      windCross,
+      windTail,
+      windCalm,
+      windArrowCalm,
+      windArrowLight,
+      windArrowModerate,
+      windArrowFresh,
+      windArrowStrong,
+      windArrowHalo,
+    ),
   );
 }
 
@@ -284,6 +423,23 @@ const Duration puckInterpolationDuration = Duration(milliseconds: 800);
 /// motion and cheap enough to write twelve times a second.
 const int puckInterpolationSteps = 12;
 
+/// How wide the white outline around each wind arrow is, in pixels.
+const double windArrowHaloWidth = 2;
+
+/// How far apart, in logical pixels, stops are drawn as one bubble.
+const double stopsClusterRadiusPx = 50;
+
+/// The last zoom at which stops are gathered into bubbles; from the next
+/// zoom on every stop is its own pin.
+const double stopsClusterMaxZoom = 14;
+
+/// How close to a tap, in logical pixels, the bubble tapped is looked for:
+/// as wide as the widest bubble.
+const double stopsClusterHitPx = 24;
+
+/// A tap on a bubble of stops zooms in no further than this.
+const double stopsClusterTapMaxZoom = 16;
+
 /// A jump longer than this is not riding.
 ///
 /// The first fix after a tunnel, a cold start or an OS cache comes from far
@@ -310,18 +466,32 @@ abstract class MapLibreStyleOps {
   /// raster tiles.
   Future<void> addSource(String sourceId, ml.SourceProperties properties);
 
+  /// Creates an image source called [sourceId]: one picture, [bytes],
+  /// stretched over [corners]. The clouds are such pictures.
+  Future<void> addImageSource(
+    String sourceId,
+    Uint8List bytes,
+    ml.LatLngQuad corners,
+  );
+
   /// Adds the style layer [layerId] drawing [sourceId].
   ///
   /// [belowLayerId] is what keeps the route lines under the puck, and
   /// [enableInteraction] decides whether a layer's features can be dragged —
-  /// only the waypoint circles want that.
+  /// only the waypoint circles want that. [filter] limits the layer to the
+  /// features it matches, [minzoom] to the zooms from it on.
   Future<void> addLayer(
     String sourceId,
     String layerId,
     ml.LayerProperties properties, {
     String? belowLayerId,
     bool enableInteraction = true,
+    Object? filter,
+    double? minzoom,
   });
+
+  /// Every layer id of the style, bottom to top: the base map's and ours.
+  Future<List<String>> getLayerIds();
 
   /// Removes the layer [layerId]; a source can only go once nothing draws it.
   Future<void> removeLayer(String layerId);
@@ -345,7 +515,10 @@ abstract class MapLibreStyleOps {
 
   /// Registers [bytes] as the style image [name], replacing any image already
   /// under that name. The heading cone is a bitmap we paint ourselves.
-  Future<void> addImage(String name, Uint8List bytes);
+  ///
+  /// With [sdf] the image is a signed distance field the style colours
+  /// itself (`icon-color`, `icon-halo-color`).
+  Future<void> addImage(String name, Uint8List bytes, {bool sdf = false});
 
   /// Flies the camera to [update], over [duration] when one is given.
   Future<void> animateCamera(ml.CameraUpdate update, {Duration? duration});
@@ -367,6 +540,10 @@ abstract class MapLibreStyleOps {
     double radiusPx,
     List<String> layerIds,
   );
+
+  /// The zoom at which the cluster [clusterId] of the clustered GeoJSON
+  /// source [sourceId] splits into its children; 0 when it is not one.
+  Future<int> clusterExpansionZoom(String sourceId, int clusterId);
 
   /// The plugin's own list of feature drag listeners. It is a plain list, so
   /// the adapter registers and unregisters by adding to and removing from it
@@ -443,12 +620,21 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       tolerateMapGone(() => map.addSource(sourceId, properties));
 
   @override
+  Future<void> addImageSource(
+    String sourceId,
+    Uint8List bytes,
+    ml.LatLngQuad corners,
+  ) => tolerateMapGone(() => map.addImageSource(sourceId, bytes, corners));
+
+  @override
   Future<void> addLayer(
     String sourceId,
     String layerId,
     ml.LayerProperties properties, {
     String? belowLayerId,
     bool enableInteraction = true,
+    Object? filter,
+    double? minzoom,
   }) => tolerateMapGone(
     () => map.addLayer(
       sourceId,
@@ -456,8 +642,15 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       properties,
       belowLayerId: belowLayerId,
       enableInteraction: enableInteraction,
+      filter: filter,
+      minzoom: minzoom,
     ),
   );
+
+  @override
+  Future<List<String>> getLayerIds() async => <String>[
+    for (final id in await map.getLayerIds()) id as String,
+  ];
 
   @override
   Future<void> removeLayer(String layerId) =>
@@ -481,8 +674,8 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
   Future<List<String>> getSourceIds() => map.getSourceIds();
 
   @override
-  Future<void> addImage(String name, Uint8List bytes) =>
-      tolerateMapGone(() => map.addImage(name, bytes));
+  Future<void> addImage(String name, Uint8List bytes, {bool sdf = false}) =>
+      tolerateMapGone(() => map.addImage(name, bytes, sdf));
 
   @override
   Future<void> animateCamera(ml.CameraUpdate update, {Duration? duration}) =>
@@ -521,6 +714,10 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
   }
 
   @override
+  Future<int> clusterExpansionZoom(String sourceId, int clusterId) =>
+      map.getClusterExpansionZoom(sourceId, clusterId);
+
+  @override
   List<ml.OnFeatureDragCallback> get onFeatureDrag => map.onFeatureDrag;
 
   @override
@@ -541,12 +738,16 @@ class MaplibreMapControllerAdapter implements MapController {
     double devicePixelRatio = 1.0,
     MapPalette palette = const MapPalette.classic(),
     RasterTone cyclosmTone = lightCyclosmTone,
+    bool weatherDark = false,
+    WeatherOpacity weatherOpacity = const WeatherOpacity(radar: 1, clouds: 1),
   }) : this.withOps(
          PluginMapLibreStyleOps(map),
          cyclosmTileUrl: cyclosmTileUrl,
          devicePixelRatio: devicePixelRatio,
          palette: palette,
          cyclosmTone: cyclosmTone,
+         weatherDark: weatherDark,
+         weatherOpacity: weatherOpacity,
        );
 
   /// Drives [ops] instead of a plugin controller, so the layer work can be
@@ -557,8 +758,24 @@ class MaplibreMapControllerAdapter implements MapController {
     this.devicePixelRatio = 1.0,
     MapPalette palette = const MapPalette.classic(),
     RasterTone cyclosmTone = lightCyclosmTone,
+    bool weatherDark = false,
+    WeatherOpacity weatherOpacity = const WeatherOpacity(radar: 1, clouds: 1),
+    this.cycleMapSwapDelay = const Duration(milliseconds: 400),
+    this.weatherSwapDelay = const Duration(seconds: 2),
   }) : _palette = palette, // ignore: prefer_initializing_formals
-       _cyclosmTone = cyclosmTone; // ignore: prefer_initializing_formals
+       _cyclosmTone = cyclosmTone, // ignore: prefer_initializing_formals
+       _weatherDark = weatherDark, // ignore: prefer_initializing_formals
+       _weatherOpacity = weatherOpacity; // ignore: prefer_initializing_formals
+
+  /// How long a weather layer's old frame stays under the new one: the new
+  /// tiles come over the network, and taking the old away at once would
+  /// leave the map bare until they arrive.
+  final Duration weatherSwapDelay;
+
+  /// How long an old cycle map stays under a new one: the map loads the new
+  /// file on a thread of its own, and taking the old away at once would
+  /// leave the ways bare for a frame or two.
+  final Duration cycleMapSwapDelay;
 
   final MapLibreStyleOps _ops;
   MapPalette _palette;
@@ -592,6 +809,7 @@ class MaplibreMapControllerAdapter implements MapController {
   List<MapWaypoint> _waypoints = const <MapWaypoint>[];
   List<MapPoi> _pois = const <MapPoi>[];
   List<MapTurnMarker> _turns = const <MapTurnMarker>[];
+  List<MapPoi> _stops = const <MapPoi>[];
 
   /// Counts the calls to [setWaypoints], [setPois] and [setTurnMarkers], so
   /// a call that finds a newer one made while it awaited the platform
@@ -601,6 +819,10 @@ class MaplibreMapControllerAdapter implements MapController {
   int _waypointsCall = 0;
   int _poisCall = 0;
   int _turnsCall = 0;
+  int _stopsCall = 0;
+
+  @override
+  void Function(int index)? onStopTapped;
 
   @override
   void Function(int index)? onPoiTapped;
@@ -615,6 +837,8 @@ class MaplibreMapControllerAdapter implements MapController {
   // paints with, so a recording does not rewrite the paint on every fix.
   List<TrackSegment> _trackSegments = const <TrackSegment>[];
   bool _trackColoured = false;
+  // The wind on the planned route, replayed after a style reload.
+  List<WindSegment> _routeWind = const <WindSegment>[];
   // Hysteresis and circular averaging for the heading cone, so it neither
   // blinks nor spins while the rider rolls along at walking pace.
   final HeadingSmoother _headingSmoother = HeadingSmoother();
@@ -624,6 +848,44 @@ class MaplibreMapControllerAdapter implements MapController {
   Timer? _puckWalk;
   BoundingBox? _visibleBounds;
   bool _cyclosmVisible = false;
+  // The cycle map: the file on the map, the parts shown, and the
+  // generations of its source the style holds, newest last. A new file is
+  // a new source under new layer ids, the old one going once the new one
+  // has drawn; see [setCycleMap].
+  String? _cycleMapPath;
+  Set<CycleMapPart> _cycleMapParts = defaultCycleMapParts;
+  final List<int> _cycleGenerations = <int>[];
+  int _nextCycleGeneration = 0;
+  Future<void> _cycleMapTurn = Future<void>.value();
+  String? _cycleAnchor;
+  bool _cycleAnchorKnown = false;
+  bool _cycleImagesAdded = false;
+  // The weather layers: the ones asked for, replayed after a style reload,
+  // and the generations the style holds of each, oldest first: one a
+  // frame, a source under a layer, shown or kept unseen. A new frame shown
+  // is a new generation over the old one, which goes once the new one has
+  // had time to load; a frame kept unseen is shown by its opacity alone;
+  // see [setWeatherLayers].
+  List<WeatherLayer> _weatherWanted = const <WeatherLayer>[];
+  final Map<String, List<_WeatherGeneration>> _weatherDrawn =
+      <String, List<_WeatherGeneration>>{};
+  // The weather layers in the style, bottom to top: each style layer's id
+  // and the weather layer it draws.
+  final List<(String, String)> _weatherStack = <(String, String)>[];
+  int _nextWeatherGeneration = 0;
+  Future<void> _weatherTurn = Future<void>.value();
+  bool _weatherDark;
+  WeatherOpacity _weatherOpacity;
+  bool _weatherOpacityBusy = false;
+  bool _weatherOpacityAgain = false;
+  final ValueNotifier<List<String>> _weatherAttributions =
+      ValueNotifier<List<String>>(const <String>[]);
+  // The wind arrows asked for, replayed after a style reload; whether this
+  // style has their source and layer, and their image.
+  WindArrows? _windWanted;
+  bool _windAdded = false;
+  bool _windImageAdded = false;
+  Future<void> _windTurn = Future<void>.value();
   bool _attached = false;
   bool _disposed = false;
 
@@ -649,6 +911,16 @@ class MaplibreMapControllerAdapter implements MapController {
   @override
   VoidCallback? onCameraIdle;
 
+  final List<VoidCallback> _cameraIdleListeners = <VoidCallback>[];
+
+  @override
+  void addCameraIdleListener(VoidCallback listener) =>
+      _cameraIdleListeners.add(listener);
+
+  @override
+  void removeCameraIdleListener(VoidCallback listener) =>
+      _cameraIdleListeners.remove(listener);
+
   /// Whether [attachToStyle] has run and the layers exist.
   bool get isAttached => _attached;
 
@@ -667,9 +939,19 @@ class MaplibreMapControllerAdapter implements MapController {
     _attached = false;
     _coneRegistered = false;
     _routeLines.clear();
+    // A fresh style holds no cycle map; the replay adds the last one.
+    _cycleGenerations.clear();
+    _cycleAnchorKnown = false;
+    _cycleImagesAdded = false;
+    // Nor any weather; the replay adds what is wanted.
+    _weatherDrawn.clear();
+    _weatherStack.clear();
+    _windAdded = false;
+    _windImageAdded = false;
     // A fresh style holds none of our bitmaps; the replay registers the
     // ones the markers still need.
     _glyphImages.clear();
+    _stopImages.clear();
     // A fresh style draws the track in the plain colour until something asks
     // for the speed ramp again.
     _trackColoured = false;
@@ -690,11 +972,13 @@ class MaplibreMapControllerAdapter implements MapController {
       String sourceId,
       String layerId, {
       bool enableInteraction = false,
+      Object? filter,
     }) => _ops.addLayer(
       sourceId,
       layerId,
       layers[layerId]!,
       enableInteraction: enableInteraction,
+      filter: filter,
     );
 
     await _ops.addGeoJsonSource(
@@ -702,6 +986,49 @@ class MaplibreMapControllerAdapter implements MapController {
       emptyFeatureCollection(),
     );
     await add(MapLayerIds.trackSource, MapLayerIds.trackLayer);
+
+    // Stops around the map or along the route: under the puck, the route's
+    // own points and its places, which all matter more than a tap nearby.
+    // Clustered: zoomed out over a town, stops close together are one
+    // counted bubble; from [stopsClusterMaxZoom] + 1 every stop is its own.
+    await _ops.addSource(
+      MapLayerIds.stopsSource,
+      ml.GeojsonSourceProperties(
+        data: emptyFeatureCollection(),
+        cluster: true,
+        clusterRadius: stopsClusterRadiusPx,
+        clusterMaxZoom: stopsClusterMaxZoom,
+      ),
+    );
+    // Stops and bubbles are symbols, disc and all, so they fade in and out
+    // with the map's placement instead of popping. Each stop's picture is
+    // registered as the stops arrive; the bubble's, one for all, here.
+    await add(
+      MapLayerIds.stopsSource,
+      MapLayerIds.stopsLayer,
+      enableInteraction: true,
+      filter: MarkerLayers.isNotCluster,
+    );
+    await add(
+      MapLayerIds.stopsSource,
+      MapLayerIds.stopsLabelLayer,
+      filter: MarkerLayers.isNotCluster,
+    );
+    await _addStopClusterImage();
+    await add(
+      MapLayerIds.stopsSource,
+      MapLayerIds.stopsClusterLayer,
+      enableInteraction: true,
+      filter: MarkerLayers.isCluster,
+    );
+
+    // The wind on the planned route: over every route line, which is
+    // inserted under it, and under the puck and the markers.
+    await _ops.addGeoJsonSource(
+      MapLayerIds.routeWindSource,
+      emptyFeatureCollection(),
+    );
+    await add(MapLayerIds.routeWindSource, MapLayerIds.routeWindLayer);
 
     await _ops.addGeoJsonSource(
       MapLayerIds.positionSource,
@@ -781,14 +1108,22 @@ class MaplibreMapControllerAdapter implements MapController {
   /// Re-applies the cached waypoints, track and route lines after a style
   /// load dropped every source.
   Future<void> _replay() async {
+    // Not waited for: an old frame's swap may still hold the weather's turn.
+    if (_weatherWanted.isNotEmpty) {
+      unawaited(setWeatherLayers(_weatherWanted));
+    }
+    if (_windWanted != null) unawaited(setWindArrows(_windWanted));
+    if (_cycleMapPath != null) await setCycleMap(_cycleMapPath);
     if (_waypoints.isNotEmpty) await setWaypoints(_waypoints);
     if (_pois.isNotEmpty) await setPois(_pois);
     if (_turns.isNotEmpty) await setTurnMarkers(_turns);
+    if (_stops.isNotEmpty) await setStops(_stops);
     if (_searchPin != null) {
       await setSearchPin(_searchPin, label: _searchPinLabel);
     }
     if (_track.isNotEmpty) await setTrackLine(_track);
     if (_trackSegments.isNotEmpty) await setTrackSegments(_trackSegments);
+    if (_routeWind.isNotEmpty) await setRouteWind(_routeWind);
     final lines = Map<String, List<LatLng>>.of(_routePoints);
     for (final entry in lines.entries) {
       await setRouteLine(
@@ -817,7 +1152,9 @@ class MaplibreMapControllerAdapter implements MapController {
 
   /// Registers the glyph of every icon of [icons] the style has not got
   /// yet, so the symbol layers have a picture to draw by the time the
-  /// features naming it arrive.
+  /// features naming it arrive: two pictures, one at the chosen point's
+  /// size and one at an ordinary point's, as [MarkerLayers.glyphImage]
+  /// names them.
   ///
   /// A glyph that cannot be drawn is skipped: the marker then wears its
   /// plain disc, which is what it wore before there were icons at all.
@@ -828,17 +1165,26 @@ class MaplibreMapControllerAdapter implements MapController {
       if (!_glyphImages.add(name)) continue;
       try {
         // Light on the disc's colour, with a faint dark outline so it still
-        // reads on a pale one. Drawn at the size the chosen point wants and
-        // scaled down by the style for the rest.
-        final bytes = await buildMarkerGlyphImage(
-          icon: icon,
-          color: colorFromMapHex(palette.waypointStroke),
-          haloColor: const Color(0x59000000),
-          devicePixelRatio: devicePixelRatio,
-          sizePx: markerGlyphOnDiscSizePx,
-        );
-        if (_disposed) return;
-        await _ops.addImage(name, bytes);
+        // reads on a pale one. Each size drawn as it is shown, never scaled.
+        for (final (imageName, sizePx, haloPx) in <(String, double, double)>[
+          (name, markerGlyphOnDiscSizePx, markerGlyphHaloPx),
+          (
+            markerGlyphUnselectedName(icon),
+            markerGlyphUnselectedSizePx,
+            markerGlyphUnselectedHaloPx,
+          ),
+        ]) {
+          final bytes = await buildMarkerGlyphImage(
+            icon: icon,
+            color: colorFromMapHex(palette.waypointStroke),
+            haloColor: const Color(0x59000000),
+            devicePixelRatio: devicePixelRatio,
+            sizePx: sizePx,
+            haloPx: haloPx,
+          );
+          if (_disposed) return;
+          await _ops.addImage(imageName, bytes);
+        }
       } on Object catch (error) {
         _glyphImages.remove(name);
         debugPrint('velorki: marker glyph failed: $error');
@@ -854,6 +1200,94 @@ class MaplibreMapControllerAdapter implements MapController {
     };
     _glyphImages.clear();
     await _addMarkerGlyphs(icons);
+  }
+
+  /// Names of the stop pictures registered with the style so far.
+  final Set<String> _stopImages = <String>{};
+
+  /// The colour of a stop of [kind], as the points of interest wear it.
+  String _poiColor(MapPoiKind kind) => switch (kind) {
+    MapPoiKind.danger => palette.poiDanger,
+    MapPoiKind.water => palette.poiWater,
+    MapPoiKind.food => palette.poiFood,
+    MapPoiKind.generic => palette.poiGeneric,
+  };
+
+  /// Registers the picture of every stop of [stops] the style has not got
+  /// yet: its disc in its kind's colour, or the chosen colour and size for
+  /// the chosen stop, with its glyph on it, named as
+  /// [MarkerLayers.stopImageName] names it.
+  ///
+  /// A picture that cannot be drawn is skipped and tried again with the
+  /// next write of the stops.
+  Future<void> _addStopImages(Iterable<MapPoi> stops) async {
+    for (final stop in stops) {
+      final icon = stop.icon;
+      final name = MarkerLayers.stopImageName(
+        stop.selected ? 'selected' : stop.kind.name,
+        icon == null ? null : markerGlyphName(icon),
+      );
+      if (!_stopImages.add(name)) continue;
+      try {
+        final bytes = await buildDiscMarkerImage(
+          icon: icon,
+          fill: colorFromMapHex(
+            stop.selected ? palette.routePreview : _poiColor(stop.kind),
+          ),
+          stroke: colorFromMapHex(palette.waypointStroke),
+          radiusPx: stop.selected
+              ? MarkerLayers.stopDiscSelectedRadiusPx
+              : MarkerLayers.stopDiscRadiusPx,
+          strokePx: MarkerLayers.stopStrokePx,
+          // The chosen point's glyph, or a smaller one with its thickening
+          // shrunk alike, drawn at the size it is shown at.
+          glyphPx: stop.selected
+              ? markerGlyphOnDiscSizePx
+              : markerGlyphOnDiscSizePx * MarkerLayers.stopGlyphScale,
+          glyphBoldPx: stop.selected
+              ? markerDiscGlyphBoldPx
+              : markerDiscGlyphBoldPx * MarkerLayers.stopGlyphScale,
+          glyphColor: colorFromMapHex(palette.waypointStroke),
+          devicePixelRatio: devicePixelRatio,
+        );
+        if (_disposed) return;
+        await _ops.addImage(name, bytes);
+      } on Object catch (error) {
+        _stopImages.remove(name);
+        debugPrint('velorki: stop marker failed: $error');
+      }
+    }
+  }
+
+  /// Draws every registered stop picture again in the new palette's
+  /// colours.
+  Future<void> _redrawStopImages() async {
+    _stopImages.clear();
+    await _addStopImages(_stops);
+  }
+
+  /// Registers the bubbles of a cluster of stops: the accent with the stop
+  /// discs' rim, one picture per radius, each drawn at its own size. Again
+  /// on every palette change; `addImage` under the same name replaces the
+  /// bitmap.
+  Future<void> _addStopClusterImage() async {
+    try {
+      for (final radiusPx in MarkerLayers.clusterRadiiPx) {
+        final bytes = await buildDiscMarkerImage(
+          fill: colorFromMapHex(palette.stopCluster),
+          stroke: colorFromMapHex(palette.waypointStroke),
+          radiusPx: radiusPx,
+          strokePx: MarkerLayers.stopStrokePx,
+          devicePixelRatio: devicePixelRatio,
+        );
+        if (_disposed) return;
+        await _ops.addImage(MarkerLayers.clusterImageName(radiusPx), bytes);
+      }
+    } on Object catch (error) {
+      // Bubbles go missing until the next attach or palette change; the
+      // single stops still draw.
+      debugPrint('velorki: stop cluster bubble failed: $error');
+    }
   }
 
   /// Rasterises the heading cone in the palette's position colour and hands
@@ -1136,14 +1570,15 @@ class MaplibreMapControllerAdapter implements MapController {
     RouteLineStyle style,
   ) async {
     await _ops.addGeoJsonSource(sourceId, data);
-    // Under the puck and the markers; an alternative also under the track
-    // and, since every chosen route sits above the track, under the chosen
-    // route, whatever order they arrive in. A ride page draws the route it
-    // followed that way, so the ridden track stays the subject.
+    // Under the wind on the route, the puck and the markers; an alternative
+    // also under the track and, since every chosen route sits above the
+    // track, under the chosen route, whatever order they arrive in. A ride
+    // page draws the route it followed that way, so the ridden track stays
+    // the subject.
     final below =
         style == RouteLineStyle.alternative || style == RouteLineStyle.original
         ? MapLayerIds.trackLayer
-        : MapLayerIds.positionAccuracyLayer;
+        : MapLayerIds.routeWindLayer;
     // A dark casing under the line keeps any accent readable on any map
     // style: lime on a green park, orange on a yellow road.
     await _ops.addLayer(
@@ -1324,10 +1759,16 @@ class MaplibreMapControllerAdapter implements MapController {
     for (final entry in _baseLayerProperties().entries) {
       await _ops.setLayerProperties(entry.key, entry.value);
     }
-    // The cone and the marker glyphs are bitmaps, not style colours, so
-    // they have to be drawn again.
+    // The cone, the marker glyphs and the stops are bitmaps, not style
+    // colours, so they have to be drawn again.
+    await _addStopClusterImage();
     await _addHeadingConeImage();
     await _redrawMarkerGlyphs();
+    await _redrawStopImages();
+    await _recolourCycleMap();
+    if (_windAdded) {
+      await _ops.setLayerProperties(MapLayerIds.windLayer, _windProperties());
+    }
     for (final entry in _routeLines.entries) {
       await _ops.setLayerProperties(
         MapLayerIds.routeCasingLayer(entry.key),
@@ -1352,6 +1793,24 @@ class MaplibreMapControllerAdapter implements MapController {
     final markers = _markers;
     return <String, ml.LayerProperties>{
       MapLayerIds.trackLayer: _trackProperties(),
+      // As wide as the main route, which it lies on.
+      MapLayerIds.routeWindLayer: ml.LineLayerProperties(
+        lineColor: <Object>[
+          'match',
+          <Object>['get', 'w'],
+          'head',
+          palette.windHead,
+          'cross',
+          palette.windCross,
+          'tail',
+          palette.windTail,
+          palette.windCalm,
+        ],
+        lineWidth: 5.0,
+        lineOpacity: 1.0,
+        lineCap: 'round',
+        lineJoin: 'round',
+      ),
       MapLayerIds.positionAccuracyLayer: _accuracyProperties(),
       MapLayerIds.positionHeadingLayer: ml.SymbolLayerProperties(
         iconImage: headingConeImageName,
@@ -1404,6 +1863,12 @@ class MaplibreMapControllerAdapter implements MapController {
         strokeWidth: 2,
       ),
       MapLayerIds.poisIconLayer: markers.glyph(),
+      MapLayerIds.stopsLayer: markers.stop(),
+      MapLayerIds.stopsLabelLayer: markers.name(
+        field: 'name',
+        chosenOnly: true,
+      ),
+      MapLayerIds.stopsClusterLayer: markers.clusterBubble(),
       MapLayerIds.poisLabelLayer: markers.name(field: 'name'),
       MapLayerIds.searchPinLayer: ml.CircleLayerProperties(
         circleRadius: 9.0,
@@ -1517,6 +1982,24 @@ class MaplibreMapControllerAdapter implements MapController {
     await _writeBaseSource(MapLayerIds.poisSource, poisFeatureCollection(pois));
   }
 
+  @override
+  Future<void> setStops(List<MapPoi> stops) async {
+    _stops = List<MapPoi>.unmodifiable(stops);
+    final call = ++_stopsCall;
+    if (!_attached) return;
+    if (await _hasSource(MapLayerIds.stopsSource) == false) {
+      await attachToStyle();
+      return;
+    }
+    if (call != _stopsCall) return;
+    await _addStopImages(stops);
+    if (call != _stopsCall) return;
+    await _writeBaseSource(
+      MapLayerIds.stopsSource,
+      poisFeatureCollection(stops, featureId: stopFeatureId),
+    );
+  }
+
   /// Whether [attachToStyle] is running because a write found the style
   /// gone; stops a write during that rebuild from asking for another.
   bool _reattaching = false;
@@ -1577,6 +2060,23 @@ class MaplibreMapControllerAdapter implements MapController {
       trackSegmentsFeatureCollection(segments),
     );
   }
+
+  @override
+  Future<void> setRouteWind(List<WindSegment> segments) async {
+    _routeWind = List<WindSegment>.unmodifiable(segments);
+    if (!_attached) return;
+    if (await _hasSource(MapLayerIds.routeWindSource) == false) {
+      await attachToStyle();
+      return;
+    }
+    await _writeBaseSource(
+      MapLayerIds.routeWindSource,
+      windSegmentsFeatureCollection(segments),
+    );
+  }
+
+  @override
+  Future<void> clearRouteWind() => setRouteWind(const <WindSegment>[]);
 
   /// Switches the track layer between the flat colour and the speed ramp,
   /// writing the paint only when it actually changes.
@@ -1747,6 +2247,577 @@ class MaplibreMapControllerAdapter implements MapController {
     await _ops.setLayerVisibility(MapLayerIds.cyclosmLayer, visible);
   }
 
+  /// Puts a new cycle map on the map: a new source loading [path] under
+  /// layers of its own, added under the base map's labels; the ones before
+  /// go [cycleMapSwapDelay] later. One change at a time, the newest file
+  /// winning: a call that finds a newer one waiting does nothing.
+  @override
+  Future<void> setCycleMap(String? path) {
+    _cycleMapPath = path;
+    if (!_attached || _disposed) return Future<void>.value();
+    return _cycleMapTurn = _cycleMapTurn.then((_) async {
+      if (!_attached || _disposed || path != _cycleMapPath) return;
+      try {
+        await _drawCycleMap(path);
+      } on PlatformException catch (error) {
+        // The style is going; the next attach puts the map back.
+        debugPrint('velorki: cycle map not drawn: $error');
+      }
+    });
+  }
+
+  Future<void> _drawCycleMap(String? path) async {
+    if (path == null) {
+      await _removeCycleGenerations(List<int>.of(_cycleGenerations));
+      return;
+    }
+    await _findLabelAnchor();
+    if (!_cycleImagesAdded) await _addCycleMapImages();
+    final generation = _nextCycleGeneration++;
+    final source = CycleMapLayers.sourceId(generation);
+    await _ops.addSource(
+      source,
+      ml.GeojsonSourceProperties(data: Uri.file(path).toString()),
+    );
+    for (final layer in CycleMapLayers(palette.cycle).layers) {
+      final id = CycleMapLayers.layerId(generation, layer);
+      await _ops.addLayer(
+        source,
+        id,
+        layer.properties,
+        // Under the wind's arrows where they are drawn, else under the
+        // labels.
+        belowLayerId: _windAdded ? MapLayerIds.windLayer : _cycleAnchor,
+        enableInteraction: false,
+        filter: layer.filter,
+        minzoom: layer.minZoom,
+      );
+      if (!_cycleMapParts.contains(layer.part)) {
+        await _ops.setLayerVisibility(id, false);
+      }
+    }
+    final old = List<int>.of(_cycleGenerations);
+    _cycleGenerations.add(generation);
+    if (old.isEmpty) return;
+    await Future<void>.delayed(cycleMapSwapDelay);
+    if (!_attached || _disposed) return;
+    await _removeCycleGenerations(old);
+  }
+
+  /// Finds the base map's first label layer, under which the cycle map and
+  /// the weather go, once per style.
+  Future<void> _findLabelAnchor() async {
+    if (_cycleAnchorKnown) return;
+    final ids = await _ops.getLayerIds();
+    _cycleAnchor = CycleMapLayers.anchors.firstWhere(
+      ids.contains,
+      // A style of unknown layers: under everything Velorki draws.
+      orElse: () => MapLayerIds.trackLayer,
+    );
+    _cycleAnchorKnown = true;
+  }
+
+  Future<void> _removeCycleGenerations(List<int> generations) async {
+    final layers = CycleMapLayers(palette.cycle).layers;
+    for (final generation in generations) {
+      if (!_cycleGenerations.remove(generation)) continue;
+      for (final layer in layers.reversed) {
+        await _ops.removeLayer(CycleMapLayers.layerId(generation, layer));
+      }
+      await _ops.removeSource(CycleMapLayers.sourceId(generation));
+    }
+  }
+
+  /// The credits of the weather layers on this map, for its attribution
+  /// line: each one for as long as its layer is drawn.
+  ValueListenable<List<String>> get weatherAttributions => _weatherAttributions;
+
+  /// Puts the weather layers [layers] on the map and takes the others
+  /// away. A layer whose frame changed gets a new source over the old one,
+  /// which goes [weatherSwapDelay] later, so the map never flashes bare;
+  /// a frame the map already holds unseen ([WeatherLayer.preloaded]) is
+  /// shown by its opacity alone, the one shown before then kept unseen or
+  /// taken away, so the time control can step through frames without a
+  /// source added. One change at a time, the newest list winning. An image
+  /// over a box MapLibre cannot draw ([safeImageBox]) is left out, as if
+  /// not asked for: such a box crashes its renderer.
+  @override
+  Future<void> setWeatherLayers(List<WeatherLayer> layers) {
+    final wanted = List<WeatherLayer>.unmodifiable(<WeatherLayer>[
+      for (final layer in layers) ?_drawable(layer),
+    ]);
+    _weatherWanted = wanted;
+    _publishWeatherAttributions();
+    if (!_attached || _disposed) return Future<void>.value();
+    return _weatherTurn = _weatherTurn.then((_) async {
+      if (!_attached || _disposed || !identical(wanted, _weatherWanted)) {
+        return;
+      }
+      try {
+        await _drawWeather(wanted);
+      } on PlatformException catch (error) {
+        // The style is going; the next attach puts the layers back.
+        debugPrint('velorki: weather not drawn: $error');
+      }
+    });
+  }
+
+  /// [layer] with only the frames MapLibre can draw; `null` where the one
+  /// it names is not one of them.
+  static WeatherLayer? _drawable(WeatherLayer layer) {
+    bool safe(BoundingBox box, String what) {
+      if (safeImageBox(box)) return true;
+      debugPrint('velorki: weather image $what not drawn, box $box');
+      return false;
+    }
+
+    final box = layer.imageBox;
+    if (layer.image == null || box == null) return layer;
+    if (!safe(box, layer.id)) return null;
+    if (layer.preloaded.every((f) => safeImageBox(f.box))) return layer;
+    return WeatherLayer.image(
+      id: layer.id,
+      kind: layer.kind,
+      image: layer.image!,
+      imageBox: box,
+      frameKey: layer.frameKey,
+      attribution: layer.attribution,
+      opacity: layer.opacity,
+      visible: layer.visible,
+      preloaded: <WeatherImageFrame>[
+        for (final frame in layer.preloaded)
+          if (safe(frame.box, '${layer.id} ${frame.frameKey}')) frame,
+      ],
+    );
+  }
+
+  Future<void> _drawWeather(List<WeatherLayer> wanted) async {
+    final ids = <String>{for (final layer in wanted) layer.id};
+    // Gone from the list: away at once.
+    for (final id in List<String>.of(_weatherDrawn.keys)) {
+      if (!ids.contains(id)) {
+        await _removeWeatherGenerations(id, _weatherDrawn[id]!);
+      }
+    }
+    final order = <String, int>{
+      for (final (i, layer) in wanted.indexed) layer.id: i,
+    };
+    final stale = <String, List<_WeatherGeneration>>{};
+    for (final layer in wanted) {
+      // The frames asked for: the one named, shown or not, and those kept
+      // unseen.
+      final frames = <String, (WeatherLayer, bool)>{
+        layer.frameKey: (layer, layer.visible),
+        for (final frame in layer.preloaded)
+          if (frame.frameKey != layer.frameKey)
+            frame.frameKey: (layer.showing(frame), false),
+      };
+      final drawn = _weatherDrawn[layer.id] ?? <_WeatherGeneration>[];
+      final have = <String, _WeatherGeneration>{
+        for (final generation in drawn) generation.layer.frameKey: generation,
+      };
+      // New frames first: a new one shown goes over the old ones.
+      var addedShown = false;
+      for (final MapEntry(key: key, value: (frame, shown)) in frames.entries) {
+        if (have.containsKey(key)) continue;
+        await _addWeatherGeneration(frame, order, shown: shown);
+        if (shown) addedShown = true;
+      }
+      // Then the frames held: the one now shown up before the others go
+      // down, so no moment shows none.
+      final changed = <(_WeatherGeneration, WeatherLayer, bool)>[
+        for (final MapEntry(key: key, value: (frame, shown)) in frames.entries)
+          if (have[key] case final generation?)
+            if (generation.shown != shown ||
+                (shown && generation.layer.opacity != frame.opacity))
+              (generation, frame, shown),
+      ]..sort((a, b) => (b.$3 ? 1 : 0) - (a.$3 ? 1 : 0));
+      for (final (generation, frame, shown) in changed) {
+        generation
+          ..layer = frame
+          ..shown = shown;
+        await _ops.setLayerProperties(
+          MapLayerIds.weatherLayer(layer.id, generation.n),
+          _weatherProperties(frame, shown: shown),
+        );
+      }
+      // Frames no longer asked for: a shown one under a new frame stays
+      // until that has loaded; the rest go now.
+      final gone = <_WeatherGeneration>[
+        for (final generation in drawn)
+          if (!frames.containsKey(generation.layer.frameKey)) generation,
+      ];
+      final later = <_WeatherGeneration>[
+        for (final generation in gone)
+          if (generation.shown && addedShown) generation,
+      ];
+      await _removeWeatherGenerations(
+        layer.id,
+        gone.where((g) => !later.contains(g)),
+      );
+      if (later.isNotEmpty) stale[layer.id] = later;
+    }
+    if (stale.isEmpty) return;
+    await Future<void>.delayed(weatherSwapDelay);
+    if (!_attached || _disposed) return;
+    for (final entry in stale.entries) {
+      await _removeWeatherGenerations(entry.key, entry.value);
+    }
+  }
+
+  /// Adds [layer]'s frame as the newest generation of its id, unseen
+  /// unless [shown], in the style where [order] (each layer's place in the
+  /// list asked for, bottom to top) puts it: over its own older generations
+  /// and what comes before it (a cloud's detail over its region, clouds
+  /// under the rain), all under the cycle map and the base map's labels.
+  Future<void> _addWeatherGeneration(
+    WeatherLayer layer,
+    Map<String, int> order, {
+    bool shown = true,
+  }) async {
+    await _findLabelAnchor();
+    final n = _nextWeatherGeneration++;
+    final source = MapLayerIds.weatherSource(layer.id, n);
+    final id = MapLayerIds.weatherLayer(layer.id, n);
+    final image = layer.image;
+    final box = layer.imageBox;
+    if (image != null && box != null) {
+      // Never an image MapLibre cannot draw; setWeatherLayers left those
+      // out already.
+      assert(safeImageBox(box), 'unsafe weather image box $box');
+      await _ops.addImageSource(
+        source,
+        image,
+        ml.LatLngQuad(
+          topLeft: ml.LatLng(box.north, box.west),
+          topRight: ml.LatLng(box.north, box.east),
+          bottomRight: ml.LatLng(box.south, box.east),
+          bottomLeft: ml.LatLng(box.south, box.west),
+        ),
+      );
+    } else {
+      await _ops.addSource(
+        source,
+        ml.RasterSourceProperties(
+          tiles: <String>[layer.tiles ?? ''],
+          tileSize: layer.tileSize.toDouble(),
+          minzoom: layer.minZoom.toDouble(),
+          maxzoom: layer.maxZoom.toDouble(),
+          bounds: layer.bounds,
+          attribution: layer.attribution,
+        ),
+      );
+    }
+    // Under the lowest layer that comes after it in the list, else under
+    // the cycle map's lowest layer, else under the labels.
+    final mine = order[layer.id] ?? order.length;
+    var at = _weatherStack.indexWhere(
+      (e) => (order[e.$2] ?? order.length) > mine,
+    );
+    String? below;
+    if (at >= 0) {
+      below = _weatherStack[at].$1;
+    } else {
+      at = _weatherStack.length;
+    }
+    // Under the cycle map, and so under the wind's arrows over it; with no
+    // cycle map, under the arrows where they are drawn.
+    below ??= _cycleGenerations.isEmpty && _windAdded
+        ? MapLayerIds.windLayer
+        : _underCycleMap();
+    await _ops.addLayer(
+      source,
+      id,
+      _weatherProperties(layer, shown: shown),
+      belowLayerId: below,
+      enableInteraction: false,
+    );
+    _weatherStack.insert(at, (id, layer.id));
+    (_weatherDrawn[layer.id] ??= <_WeatherGeneration>[]).add(
+      _WeatherGeneration(n, layer, shown: shown),
+    );
+  }
+
+  /// The layer the weather goes under: the cycle map's lowest, else the
+  /// base map's first label.
+  String? _underCycleMap() => _cycleGenerations.isEmpty
+      ? _cycleAnchor
+      : CycleMapLayers.layerId(
+          _cycleGenerations.first,
+          CycleMapLayers(palette.cycle).layers.first,
+        );
+
+  void _publishWeatherAttributions() {
+    _weatherAttributions.value = List<String>.unmodifiable(<String>{
+      for (final layer in _weatherWanted)
+        if (layer.visible) layer.attribution,
+      ?_windWanted?.attribution,
+    });
+  }
+
+  /// Draws the wind's arrows, or with `null` takes them away: one GeoJSON
+  /// source of points under a symbol layer of one arrow image, turned and
+  /// coloured by the style. Over the rain and the clouds, which go under
+  /// it, and under the cycle map and the labels. One change at a time, the
+  /// newest winning.
+  @override
+  Future<void> setWindArrows(WindArrows? arrows) {
+    _windWanted = arrows;
+    _publishWeatherAttributions();
+    if (!_attached || _disposed) return Future<void>.value();
+    return _windTurn = _windTurn.then((_) async {
+      if (!_attached || _disposed || !identical(arrows, _windWanted)) return;
+      try {
+        await _drawWind(arrows);
+      } on PlatformException catch (error) {
+        // The style is going; the next attach puts the arrows back.
+        debugPrint('velorki: wind not drawn: $error');
+      }
+    });
+  }
+
+  Future<void> _drawWind(WindArrows? arrows) async {
+    final data = windArrowsFeatureCollection(
+      arrows?.arrows ?? const <WindArrow>[],
+    );
+    if (_windAdded) {
+      await _ops.setGeoJsonSource(MapLayerIds.windSource, data);
+      return;
+    }
+    if (arrows == null) return;
+    await _findLabelAnchor();
+    if (!_windImageAdded) {
+      await _ops.addImage(
+        MapLayerIds.windArrowImage,
+        buildWindArrowImage(devicePixelRatio: devicePixelRatio),
+        sdf: true,
+      );
+      _windImageAdded = true;
+    }
+    await _ops.addGeoJsonSource(MapLayerIds.windSource, data);
+    await _ops.addLayer(
+      MapLayerIds.windSource,
+      MapLayerIds.windLayer,
+      _windProperties(),
+      // Over the cycle map's lines, which would hide them, under the labels.
+      belowLayerId: _cycleAnchor,
+      enableInteraction: false,
+    );
+    _windAdded = true;
+  }
+
+  /// The arrows' paint: turned to where the wind blows, flat on the map,
+  /// coloured by the speed's class and a little larger the stronger it is;
+  /// never hiding a label or each other.
+  ml.SymbolLayerProperties _windProperties() {
+    final p = palette;
+    final colours = <String>[
+      p.windArrowCalm,
+      p.windArrowLight,
+      p.windArrowModerate,
+      p.windArrowFresh,
+      p.windArrowStrong,
+    ];
+    return ml.SymbolLayerProperties(
+      iconImage: MapLayerIds.windArrowImage,
+      iconRotate: const <Object>['get', 'dir'],
+      iconRotationAlignment: 'map',
+      iconAllowOverlap: true,
+      iconIgnorePlacement: true,
+      iconSize: const <Object>[
+        'interpolate',
+        <Object>['linear'],
+        <Object>['get', 'ms'],
+        0,
+        0.6,
+        2,
+        0.8,
+        11,
+        1.15,
+        20,
+        1.35,
+      ],
+      iconColor: <Object>[
+        'step',
+        const <Object>['get', 'ms'],
+        colours.first,
+        for (final (i, speed) in windSpeedClasses.indexed) ...<Object>[
+          speed,
+          colours[i + 1],
+        ],
+      ],
+      iconHaloColor: p.windArrowHalo,
+      iconHaloWidth: windArrowHaloWidth,
+      iconOpacity: <Object>[
+        'step',
+        const <Object>['get', 'ms'],
+        0.75,
+        windSpeedClasses.first,
+        0.95,
+      ],
+    );
+  }
+
+  /// Removes the generations [gone] of the weather layer [id], those it
+  /// still has.
+  Future<void> _removeWeatherGenerations(
+    String id,
+    Iterable<_WeatherGeneration> gone,
+  ) async {
+    final drawn = _weatherDrawn[id];
+    if (drawn == null) return;
+    for (final generation in gone.toList()) {
+      if (!drawn.remove(generation)) continue;
+      final layerId = MapLayerIds.weatherLayer(id, generation.n);
+      _weatherStack.removeWhere((e) => e.$1 == layerId);
+      await _ops.removeLayer(layerId);
+      await _ops.removeSource(MapLayerIds.weatherSource(id, generation.n));
+    }
+    if (drawn.isEmpty) _weatherDrawn.remove(id);
+  }
+
+  /// The paint of [layer]'s frame, unseen (no opacity) unless [shown];
+  /// shown, its opacity scaled by the rider's share ([setWeatherOpacity]).
+  ml.LayerProperties _weatherProperties(
+    WeatherLayer layer, {
+    bool shown = true,
+  }) {
+    final image = layer.image != null;
+    final own = weatherTone(
+      layer.kind,
+      dark: _weatherDark,
+      opacity: layer.opacity,
+      image: image,
+    ).opacity;
+    final paint = weatherTone(
+      layer.kind,
+      dark: _weatherDark,
+      opacity: shown ? own * _weatherOpacity.of(layer.kind) : 0,
+      image: image,
+    ).layerProperties();
+    // An image (the clouds, the soft radar) is blown up well past its
+    // pixels: smoothed between them, it reads as soft cloud and rain rather
+    // than squares. Linear is the default, said here so a style or platform
+    // default cannot change it. Radar tiles stay as the service draws them.
+    if (layer.image == null) return paint;
+    return paint.copyWith(
+      const ml.RasterLayerProperties(rasterResampling: 'linear'),
+    );
+  }
+
+  /// Paints the weather for a dark map look or a light one.
+  Future<void> setWeatherDark(bool dark) async {
+    if (dark == _weatherDark) return;
+    _weatherDark = dark;
+    if (!_attached || _disposed) return;
+    try {
+      for (final entry in _weatherDrawn.entries) {
+        for (final generation in entry.value) {
+          await _ops.setLayerProperties(
+            MapLayerIds.weatherLayer(entry.key, generation.n),
+            _weatherProperties(generation.layer, shown: generation.shown),
+          );
+        }
+      }
+    } on PlatformException {
+      // The old style is on its way out; the next attach paints anew.
+    }
+  }
+
+  /// Draws the rain and the clouds at the rider's share of their opacity:
+  /// the frames shown are re-painted, the ones kept unseen stay at none.
+  /// Called for every step of a slider's drag, it re-paints once more
+  /// after a re-paint under way rather than queueing each step.
+  Future<void> setWeatherOpacity(WeatherOpacity opacity) async {
+    if (opacity == _weatherOpacity) return;
+    _weatherOpacity = opacity;
+    if (!_attached || _disposed) return;
+    if (_weatherOpacityBusy) {
+      _weatherOpacityAgain = true;
+      return;
+    }
+    _weatherOpacityBusy = true;
+    do {
+      _weatherOpacityAgain = false;
+      for (final entry in _weatherDrawn.entries.toList()) {
+        for (final generation in entry.value.toList()) {
+          if (!generation.shown) continue;
+          try {
+            await _ops.setLayerProperties(
+              MapLayerIds.weatherLayer(entry.key, generation.n),
+              _weatherProperties(generation.layer),
+            );
+          } on PlatformException {
+            // Gone meanwhile, or the style is on its way out; the next
+            // attach paints anew.
+          }
+        }
+      }
+    } while (_weatherOpacityAgain && _attached && !_disposed);
+    _weatherOpacityBusy = false;
+  }
+
+  @override
+  Future<void> setCycleMapParts(Set<CycleMapPart> parts) async {
+    _cycleMapParts = Set<CycleMapPart>.unmodifiable(parts);
+    if (!_attached || _disposed) return;
+    for (final generation in List<int>.of(_cycleGenerations)) {
+      for (final layer in CycleMapLayers(palette.cycle).layers) {
+        await _ops.setLayerVisibility(
+          CycleMapLayers.layerId(generation, layer),
+          parts.contains(layer.part),
+        );
+      }
+    }
+  }
+
+  /// The cycle map's arrows, in its colours.
+  Future<void> _addCycleMapImages() async {
+    final colors = palette.cycle;
+    try {
+      final images = <String, Uint8List>{
+        CycleMapLayers.arrowImage: await buildChevronImage(
+          color: colorFromMapHex(colors.infrastructure),
+          devicePixelRatio: devicePixelRatio,
+        ),
+        CycleMapLayers.climbImage: await buildChevronImage(
+          color: colorFromMapHex(colors.outline),
+          devicePixelRatio: devicePixelRatio,
+        ),
+        CycleMapLayers.onewayStreetImage: await buildChevronImage(
+          color: colorFromMapHex(colors.trafficArrow),
+          devicePixelRatio: devicePixelRatio,
+        ),
+        CycleMapLayers.contraflowImage: await buildContraflowImage(
+          traffic: colorFromMapHex(colors.trafficArrow),
+          bikes: colorFromMapHex(colors.infrastructure),
+          devicePixelRatio: devicePixelRatio,
+        ),
+      };
+      for (final entry in images.entries) {
+        await _ops.addImage(entry.key, entry.value);
+      }
+      _cycleImagesAdded = true;
+    } on Object catch (error) {
+      // The arrows are missing until the next cycle map tries again.
+      debugPrint('velorki: cycle map arrows not registered: $error');
+    }
+  }
+
+  Future<void> _recolourCycleMap() async {
+    if (_cycleGenerations.isEmpty) return;
+    await _addCycleMapImages();
+    for (final generation in List<int>.of(_cycleGenerations)) {
+      for (final layer in CycleMapLayers(palette.cycle).layers) {
+        final id = CycleMapLayers.layerId(generation, layer);
+        await _ops.setLayerProperties(id, layer.properties);
+        // iOS sets what a call leaves out back to the default, the
+        // visibility among it.
+        await _ops.setLayerVisibility(id, _cycleMapParts.contains(layer.part));
+      }
+    }
+  }
+
   @override
   Future<void> setSearchPin(LatLng? position, {String? label}) async {
     _searchPin = position;
@@ -1800,9 +2871,26 @@ class MaplibreMapControllerAdapter implements MapController {
   }
 
   /// Forwarded from `MapLibreMap.onCameraIdle`.
+  ///
+  /// The screen's own handler hears at once, as it always has: it only
+  /// reads the camera. The listeners hear once [visibleBounds] has been
+  /// asked of the platform, so a listener that reads the bounds reads the
+  /// ones of the camera that just came to rest, not of the one before.
   void handleCameraIdle() {
-    unawaited(_refreshVisibleBounds());
+    final bounds = _refreshVisibleBounds();
     onCameraIdle?.call();
+    if (_cameraIdleListeners.isEmpty) {
+      unawaited(bounds);
+      return;
+    }
+    unawaited(
+      bounds.then((_) {
+        if (_disposed) return;
+        for (final listener in List<VoidCallback>.of(_cameraIdleListeners)) {
+          listener();
+        }
+      }),
+    );
   }
 
   void _handleFeatureDrag(
@@ -1909,8 +2997,72 @@ class MaplibreMapControllerAdapter implements MapController {
       onPoiTapped?.call(poi);
       return;
     }
+    // A bubble of stops has no id of ours: it is known by its layer.
+    if (layerId == MapLayerIds.stopsClusterLayer) {
+      unawaited(_zoomIntoStopCluster(_fromMl(coordinates)));
+      return;
+    }
+    final stop = stopIndexFromFeatureId(id);
+    if (stop != null) {
+      onStopTapped?.call(stop);
+      return;
+    }
     final turn = turnIndexFromFeatureId(id);
     if (turn != null) onTurnTapped?.call(turn);
+  }
+
+  /// Zooms in on the bubble of stops tapped at [tapped]: centred on the
+  /// bubble, to the zoom where it splits, or two steps in when the map
+  /// will not say, never past [stopsClusterTapMaxZoom].
+  Future<void> _zoomIntoStopCluster(LatLng tapped) async {
+    final zoom = _ops.cameraPosition?.zoom;
+    if (zoom == null || _disposed) return;
+    var center = tapped;
+    var target = zoom + 2;
+    try {
+      final features = await _ops.renderedFeaturesNear(
+        _toMl(tapped),
+        stopsClusterHitPx,
+        const <String>[MapLayerIds.stopsClusterLayer],
+      );
+      double? nearestM;
+      int? clusterId;
+      for (final feature in features) {
+        final at = _pointOf(feature);
+        if (at == null) continue;
+        final d = haversineMeters(at, tapped);
+        if (nearestM != null && d >= nearestM) continue;
+        nearestM = d;
+        center = at;
+        final properties = feature['properties'];
+        final id = properties is Map ? properties['cluster_id'] : null;
+        clusterId = id is num ? id.toInt() : null;
+      }
+      if (clusterId != null) {
+        final split = await _ops.clusterExpansionZoom(
+          MapLayerIds.stopsSource,
+          clusterId,
+        );
+        if (split > zoom) target = split.toDouble();
+      }
+    } on Object catch (e) {
+      // The bubble is zoomed in on where it was tapped all the same.
+      debugPrint('velorki: stop cluster lookup failed: $e');
+    }
+    if (_disposed) return;
+    await moveTo(center, zoom: math.min(target, stopsClusterTapMaxZoom));
+  }
+
+  /// The position of a GeoJSON point feature, `null` for anything else.
+  static LatLng? _pointOf(Map<String, dynamic> feature) {
+    final geometry = feature['geometry'];
+    if (geometry is! Map) return null;
+    final coordinates = geometry['coordinates'];
+    if (coordinates is! List || coordinates.length < 2) return null;
+    final lng = coordinates[0];
+    final lat = coordinates[1];
+    if (lng is! num || lat is! num) return null;
+    return LatLng(lat.toDouble(), lng.toDouble());
   }
 
   Future<void> _refreshVisibleBounds() async {
@@ -1940,7 +3092,11 @@ class MaplibreMapControllerAdapter implements MapController {
     onLongPress = null;
     onWaypointDragged = null;
     onWaypointTapped = null;
+    onStopTapped = null;
     onCameraIdle = null;
+    _cameraIdleListeners.clear();
+    // The weather credits stay readable: the map view's line may still be
+    // listening until it is rebuilt with the next adapter.
   }
 
   static ml.LatLng _toMl(LatLng p) => ml.LatLng(p.lat, p.lon);
@@ -1951,4 +3107,14 @@ class MaplibreMapControllerAdapter implements MapController {
     southwest: ml.LatLng(b.south, b.west),
     northeast: ml.LatLng(b.north, b.east),
   );
+}
+
+/// One generation of a weather layer in the style: its number, the layer
+/// it draws (one frame) and whether that frame is shown.
+class _WeatherGeneration {
+  _WeatherGeneration(this.n, this.layer, {required this.shown});
+
+  final int n;
+  WeatherLayer layer;
+  bool shown;
 }

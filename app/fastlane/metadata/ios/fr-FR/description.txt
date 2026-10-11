@@ -1,0 +1,48 @@
+Velorki planifie vos itinéraires vélo, vous guide le long du parcours et enregistre vos sorties. Son calcul d’itinéraire est pensé pour le vélo et tourne sur votre iPhone, et toute l’app est open source.
+
+PLANIFICATION
+• Touchez des points sur la carte et obtenez un itinéraire adapté à votre vélo : randonnée, route, gravel, VTT, ou au plus direct.
+• Des variantes, un profil altimétrique et le détail des revêtements que vous allez rencontrer.
+• Boucles : indiquez la distance voulue et, si vous le souhaitez, un lieu de passage, et Velorki propose des boucles qui reviennent à votre point de départ.
+• Recherchez des lieux et enregistrez vos itinéraires dans votre bibliothèque.
+• Téléchargez une région une fois, puis planifiez, cherchez et naviguez sans connexion.
+
+NAVIGATION
+• Navigation guidée avec annonces vocales, même écran verrouillé.
+• Si vous quittez l’itinéraire, vous choisissez : un chemin pour le rejoindre, un nouvel itinéraire vers l’arrivée, ou rien du tout.
+• La carte vous suit dans le sens de la marche, avec la prochaine direction toujours en vue.
+
+ENREGISTREMENT
+• Enregistre écran éteint, avec pause automatique, et affiche la sortie sur l’écran verrouillé et dans la Dynamic Island.
+• Choisissez et ordonnez les données en roulant : distance, vitesse, temps, montée, fréquence cardiaque, cadence, puissance, ce qui reste de l’itinéraire.
+• Un mode économie de batterie pour les longues journées : carte sombre, écran atténué et une page sobre avec les chiffres.
+• Fréquence cardiaque depuis l’Apple Watch, des capteurs Bluetooth et Apple Santé. Les capteurs de vitesse, de cadence et de puissance fonctionnent aussi.
+• L’app Velorki sur Apple Watch affiche la sortie et permet de la démarrer, la mettre en pause et la terminer depuis votre poignet.
+• Chaque sortie a sa page avec sa carte, ses courbes d’altitude, de vitesse et de fréquence cardiaque, et ses tronçons.
+
+FICHIERS
+• Ouvrez des fichiers GPX, FIT et TCX depuis Fichiers, Mail, Safari ou la feuille de partage.
+• Exportez itinéraires et sorties en GPX ou FIT pour les utiliser ailleurs.
+
+GRATUIT, ET VELORKI PLUS
+Tout ce qui fonctionne sur le téléphone est gratuit : planification, boucles, navigation, enregistrement, bibliothèque, régions hors ligne, capteurs, import et export de fichiers.
+
+Velorki Plus est un abonnement pour ce qui a besoin d’un serveur :
+• L’assistant : décrivez en une phrase la sortie que vous voulez et recevez un itinéraire. Posez-lui des questions sur l’itinéraire affiché, demandez-lui de décrire la sortie, ou laissez-le ajouter une halte café ou éviter un tronçon.
+• Liens de partage : transformez un itinéraire ou une sortie en lien que chacun peut ouvrir dans un navigateur.
+• Connexions à deux plateformes populaires d’itinéraires et de sorties, pour y envoyer vos sorties et importer vos itinéraires.
+
+Velorki Plus est proposé en abonnement mensuel et annuel à renouvellement automatique ; l’abonnement annuel commence par un essai gratuit. Le paiement est débité de votre compte Apple à la confirmation de l’achat. L’abonnement se renouvelle automatiquement sauf s’il est désactivé au moins 24 heures avant la fin de la période en cours ; il peut être géré et résilié dans les réglages de votre compte Apple. La part inutilisée d’un essai gratuit est perdue à l’achat d’un abonnement.
+
+Conditions d’utilisation : https://velorki.com/fr/terms
+Politique de confidentialité : https://velorki.com/fr/privacy
+
+CONFIDENTIALITÉ
+Pas de compte, pas d’inscription. Itinéraires, sorties et réglages restent sur votre iPhone. L’assistant demande votre accord avant qu’un texte ne quitte l’appareil, et la position qu’il envoie est arrondie à environ un kilomètre.
+
+UTILISATION CONTINUE DU GPS
+L’utilisation continue du GPS en arrière-plan peut réduire considérablement l’autonomie de la batterie. Velorki ne garde le GPS actif que pendant l’enregistrement ou la navigation.
+
+Données cartographiques © contributeurs OpenStreetMap.
+
+Code source : https://github.com/orkitec/velorki

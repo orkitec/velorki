@@ -47,6 +47,23 @@ class OpenApi {
   Map<String, Object?> get planRequestExamples =>
       _at(aiPlan, ['requestBody', 'content', 'application/json', 'examples']);
 
+  /// What `paths./weather.post` says.
+  Map<String, Object?> get weather =>
+      _at(document, ['paths', '/weather', 'post']);
+
+  /// The named request body examples of `/weather`.
+  Map<String, Object?> get weatherRequestExamples =>
+      _at(weather, ['requestBody', 'content', 'application/json', 'examples']);
+
+  /// The named examples of `/weather`'s 200 response.
+  Map<String, Object?> get weatherAnswerExamples => _at(weather, [
+    'responses',
+    '200',
+    'content',
+    'application/json',
+    'examples',
+  ]);
+
   /// `components.responses[name]`.
   Map<String, Object?> response(String name) =>
       _at(document, ['components', 'responses', name]);

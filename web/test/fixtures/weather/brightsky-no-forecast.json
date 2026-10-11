@@ -1,0 +1,40 @@
+{
+  "weather": [
+    {
+      "timestamp": "2026-10-10T19:00:00+00:00",
+      "source_id": 6150,
+      "precipitation": 0.0,
+      "pressure_msl": 1007.8,
+      "sunshine": 0.0,
+      "temperature": 10.9,
+      "wind_direction": 240,
+      "wind_speed": 9.0,
+      "cloud_cover": 63,
+      "dew_point": 6.8,
+      "relative_humidity": null,
+      "visibility": 60000,
+      "wind_gust_direction": null,
+      "wind_gust_speed": 22.0,
+      "condition": "dry",
+      "precipitation_probability": null,
+      "precipitation_probability_6h": null,
+      "solar": 0.0,
+      "icon": "clear-night"
+    }
+  ],
+  "sources": [
+    {
+      "id": 6150,
+      "dwd_station_id": "00433",
+      "observation_type": "current",
+      "lat": 52.47,
+      "lon": 13.4,
+      "height": 50.0,
+      "station_name": "BERLIN-TEMPELHOF",
+      "wmo_station_id": "10384",
+      "first_record": "2026-10-08T22:00:00+00:00",
+      "last_record": "2026-10-10T20:00:00+00:00",
+      "distance": 6122.0
+    }
+  ]
+}

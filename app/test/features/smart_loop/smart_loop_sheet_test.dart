@@ -649,7 +649,10 @@ void main() {
 
       await _make(tester);
 
-      expect(find.text(l10n.loopFailed('connection refused')), findsOneWidget);
+      expect(
+        find.text(l10n.loopFailed(l10n.routingErrorNetwork)),
+        findsOneWidget,
+      );
     });
 
     testWidgets('without a position it asks for one', (tester) async {
@@ -741,6 +744,66 @@ void main() {
       expect(after.index, 1);
       expect(after.running, isTrue);
       expect(enabled(tester, another()), isFalse);
+
+      backend.open = true;
+      backend.releaseAll();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('a line under the bar says what is checked, and why the '
+        'search goes on once a loop is shown', (tester) async {
+      final backend = await start(tester);
+      final planned = _container(tester)
+          .read(smartLoopControllerProvider)
+          .planned;
+      expect(planned, greaterThan(1));
+      expect(
+        _inSheet(find.text(l10n.loopChecking(0, planned))),
+        findsOneWidget,
+      );
+
+      backend.releaseNext();
+      await tester.pump();
+      await tester.pump();
+      expect(_inSheet(find.text(l10n.loopCheckingBetter(1))), findsOneWidget);
+      // The light keeps sweeping the part still to fill.
+      expect(tester.binding.hasScheduledFrame, isTrue);
+
+      backend.releaseNext();
+      await tester.pump();
+      await tester.pump();
+      expect(_inSheet(find.text(l10n.loopCheckingBetter(2))), findsOneWidget);
+
+      backend.open = true;
+      backend.releaseAll();
+      await tester.pumpAndSettle();
+      final count = _container(tester)
+          .read(smartLoopControllerProvider)
+          .candidates
+          .length;
+      expect(_inSheet(find.text(l10n.loopBestOf(count))), findsOneWidget);
+      expect(_inSheet(find.text(l10n.loopCheckingBetter(count))), findsNothing);
+      expect(_inSheet(find.byType(LinearProgressIndicator)), findsNothing);
+    });
+
+    testWidgets('with less motion asked for, the bar only fills', (
+      tester,
+    ) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      final backend = await start(tester);
+      backend.releaseNext();
+      await tester.pump();
+      await tester.pump();
+      expect(
+        _container(tester).read(smartLoopControllerProvider).running,
+        isTrue,
+      );
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.binding.hasScheduledFrame, isFalse);
 
       backend.open = true;
       backend.releaseAll();

@@ -165,6 +165,11 @@ class GazetteerStore {
   /// Whether at least one readable gazetteer is open.
   bool get hasTiles => _open.isNotEmpty;
 
+  /// Counts up whenever a gazetteer was opened or closed, so what [covers]
+  /// answers may have changed: a download finished, a tile was deleted.
+  ValueListenable<int> get revision => _revision;
+  final ValueNotifier<int> _revision = ValueNotifier<int>(0);
+
   /// The tiles that can be searched offline, sorted, for tests and logs.
   List<String> get tiles => _open.keys.toList()..sort();
 
@@ -242,6 +247,7 @@ class GazetteerStore {
     List<String> placeKinds = const <String>[],
     List<String> poiKinds = const <String>[],
     int limit = _kindFetchLimit,
+    LatLng? near,
   }) async {
     if (_closed || _open.isEmpty) return const <SearchResult>[];
     final worker = await _workerOrNull();
@@ -251,23 +257,25 @@ class GazetteerStore {
         placeKinds,
         poiKinds,
         limit,
+        near,
       ));
       if (answer case _Answered(:final List<SearchResult> value)) return value;
     }
-    return _inBoxHere(box, placeKinds, poiKinds, limit);
+    return _inBoxHere(box, placeKinds, poiKinds, limit, near);
   }
 
   List<SearchResult> _inBoxHere(
     BoundingBox box,
     List<String> placeKinds,
     List<String> poiKinds,
-    int limit,
-  ) {
+    int limit, [
+    LatLng? near,
+  ]) {
     if (_closed || _open.isEmpty) return const <SearchResult>[];
     final found = <SearchResult>[];
     for (final file in _open.values) {
       try {
-        found.addAll(file.inBox(box, placeKinds, poiKinds, limit));
+        found.addAll(file.inBox(box, placeKinds, poiKinds, limit, near: near));
       } on Object catch (e) {
         debugPrint('velorki: gazetteer ${file.tile} has no position index: $e');
       }
@@ -291,9 +299,13 @@ class GazetteerStore {
   /// already open is left alone.
   Future<void> refresh() async {
     if (_closed) return;
+    final before = _open.keys.toSet();
     await _refreshHere();
     final worker = _worker == null ? null : await _worker;
     await worker?.ask(_Ask.refresh, null);
+    // Told once the worker has the same files open, so whoever asks again
+    // on hearing it is answered from them.
+    if (!_closed && !setEquals(before, _open.keys.toSet())) _revision.value++;
   }
 
   Future<void> _refreshHere() async {
@@ -427,7 +439,7 @@ class GazetteerStore {
         ? const <SearchResult>[]
         : _nearestOfKind(text, keywords, near);
 
-    final query = gazetteerMatchExpression(text);
+    final query = _readNumber(text, near);
     final pool = _Pool(query: query, near: near, preferences: preferences);
     String? corrected;
     if (query != null) {
@@ -493,6 +505,50 @@ class GazetteerStore {
       spots.add(spot);
     }
     return GazetteerSearch(results: results, correctedQuery: corrected);
+  }
+
+  /// [text] as a query, its number read as part of a name ("Straße 70",
+  /// "Route 66") when a name holds that number with the words typed before
+  /// it, and as a house number otherwise.
+  GazetteerQuery? _readNumber(String text, LatLng? near) {
+    final address = gazetteerMatchExpression(text);
+    final number = address?.houseNumber;
+    if (number == null || !RegExp(r'^\d+$').hasMatch(number)) return address;
+    final named = gazetteerMatchExpression(text, numberAsName: true);
+    if (named == null) return address;
+    final at = named.tokens.indexOf(number);
+    if (at < 0) return address;
+    // A name ends with its number ("Straße 70", "Route 66"), so every word
+    // before the number has to be in it; the words after it may be a town.
+    // A number typed first is a house number ("15 Rue …").
+    if (at == 0) return address;
+    final probe = <String>[
+      ...named.tokens.sublist(0, at).map(_firstLookTerm),
+      _firstLookTerm(number, exact: true),
+    ].join(' AND ');
+    final typedBefore = foldForMatch(named.tokens[at - 1]);
+    // Only a street counts, with the number right after the word typed
+    // before it: a building or a stop named after its own address
+    // ("Hauptstraße 12") is the address, not a name.
+    bool numbered(_Row row) {
+      if (row.table != _Table.street) return false;
+      final words = indexWords(row.name).map(foldForMatch).toList();
+      for (var i = 1; i < words.length; i++) {
+        if (words[i] == number && words[i - 1].startsWith(typedBefore)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    for (final file in _open.values) {
+      try {
+        if (file.candidates(probe, near).any(numbered)) return named;
+      } on Object catch (e) {
+        debugPrint('velorki: gazetteer ${file.tile} could not answer: $e');
+      }
+    }
+    return address;
   }
 
   /// Every file's rows for each of [expressions], scored into [pool].
@@ -990,6 +1046,7 @@ class GazetteerStore {
     for (final file in _open.values) {
       file.close();
     }
+    if (_open.isNotEmpty) _revision.value++;
     _open.clear();
   }
 
@@ -1090,12 +1147,15 @@ class GazetteerQuery {
 /// [gazetteerMinChars] characters long — the floor applies to the text that
 /// is actually matched, not to what the number made of it.
 @visibleForTesting
-GazetteerQuery? gazetteerMatchExpression(String text) {
+GazetteerQuery? gazetteerMatchExpression(
+  String text, {
+  bool numberAsName = false,
+}) {
   final normalized = PhotonClient.normalizeQuery(text);
   final capped = normalized.length > _maxQueryChars
       ? normalized.substring(0, _maxQueryChars)
       : normalized;
-  final parsed = parseQuery(capped);
+  final parsed = parseQuery(capped, numberAsName: numberAsName);
   final words = parsed.words;
   if (words.isEmpty) return null;
   if (words.join(' ').length < gazetteerMinChars) return null;
@@ -1159,7 +1219,7 @@ class _GazetteerFile {
       ),
       _places = _db.prepare(
         'SELECT id, name, kind, lat, lon, population, admin_id, '
-        '${_fame(_db, 'places')} FROM places '
+        '${_fame(_db, 'places')}, ${_osm(_db, 'places')} FROM places '
         'WHERE id IN (SELECT value FROM json_each(?))',
       ),
       _streets = _prepareOrNull(
@@ -1169,7 +1229,8 @@ class _GazetteerFile {
       ),
       _pois = _prepareOrNull(
         _db,
-        'SELECT id, name, kind, lat, lon, place_id, ${_fame(_db, 'pois')} '
+        'SELECT id, name, kind, lat, lon, place_id, ${_fame(_db, 'pois')}, '
+        '${_osm(_db, 'pois')} '
         'FROM pois WHERE id IN (SELECT value FROM json_each(?))',
       ),
       _aliases = _prepareOrNull(
@@ -1293,7 +1354,8 @@ class _GazetteerFile {
 
     read(
       'SELECT id, name, kind, lat, lon, population, admin_id, '
-      '${_fame(_db, 'places')} FROM places WHERE $matching $order',
+      '${_fame(_db, 'places')}, $_osmPlaces FROM places '
+      'WHERE $matching $order',
       _Table.place,
     );
     read(
@@ -1301,8 +1363,8 @@ class _GazetteerFile {
       _Table.street,
     );
     read(
-      'SELECT id, name, kind, lat, lon, place_id, ${_fame(_db, 'pois')} '
-      'FROM pois WHERE $matching $order',
+      'SELECT id, name, kind, lat, lon, place_id, ${_fame(_db, 'pois')}, '
+      '$_osmPois FROM pois WHERE $matching $order',
       _Table.poi,
     );
     return rows;
@@ -1326,6 +1388,8 @@ class _GazetteerFile {
       placeId: _asInt(
         table == _Table.place ? row['admin_id'] : row['place_id'],
       ),
+      osmType: table == _Table.street ? null : _osmTypeOf(row),
+      osmId: table == _Table.street ? null : _osmIdOf(row),
     );
   }
 
@@ -1405,8 +1469,23 @@ class _GazetteerFile {
       detail: row.kind,
       houseNumber: number == null ? null : query?.houseNumber,
       approximate: located.approximate,
+      osmType: row.osmType,
+      osmId: row.osmType == null ? null : row.osmId,
     );
     return (result: result, spot: located.spot);
+  }
+
+  /// An `ORDER BY` putting the rows nearest [near] first, on the stored
+  /// 1e-7 degree integers, a degree of longitude shortened by the cosine of
+  /// the latitude; with the values it binds.
+  static ({String sql, List<Object?> args}) _nearestFirst(LatLng near) {
+    final lat = (near.lat * 1e7).round();
+    final lon = (near.lon * 1e7).round();
+    final squeeze = math.max(math.cos(near.lat * math.pi / 180).abs(), 0.01);
+    return (
+      sql: 'ORDER BY (lat - ?) * (lat - ?) + (lon - ?) * (lon - ?) * ?',
+      args: <Object?>[lat, lat, lon, lon, squeeze * squeeze],
+    );
   }
 
   /// The rows of any of [kinds] inside a [radius]-metre box around [near],
@@ -1428,16 +1507,20 @@ class _GazetteerFile {
         (_metersPerDegree *
             math.max(math.cos(near.lat * math.pi / 180).abs(), 0.01));
     final placeholders = List<String>.filled(kinds.length, '?').join(', ');
+    // Nearest first, so that a town with more of the kind than the limit
+    // keeps the ones nearby, not the southernmost.
+    final order = _nearestFirst(near);
     final rows = _db.select(
-      'SELECT name, kind, lat, lon, place_id FROM pois '
+      'SELECT name, kind, lat, lon, place_id, $_osmPois FROM pois '
       'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? '
-      'AND kind IN ($placeholders) LIMIT ?',
+      'AND kind IN ($placeholders) ${order.sql} LIMIT ?',
       <Object?>[
         ((near.lat - dLat) * 1e7).round(),
         ((near.lat + dLat) * 1e7).round(),
         ((near.lon - dLon) * 1e7).round(),
         ((near.lon + dLon) * 1e7).round(),
         ...kinds,
+        ...order.args,
         _kindFetchLimit,
       ],
     );
@@ -1456,6 +1539,8 @@ class _GazetteerFile {
           kind: SearchKind.poi,
           detail: row['kind']?.toString(),
           distanceMeters: meters,
+          osmType: _osmTypeOf(row),
+          osmId: _osmIdOf(row),
         ),
       );
     }
@@ -1468,28 +1553,36 @@ class _GazetteerFile {
   }
 
   /// The rows of [placeKinds] in `places` and of [poiKinds] in `pois` inside
-  /// [box], at most [limit] from each table.
+  /// [box], at most [limit] from each table, the nearest to [near] (the
+  /// box's middle when `null`) first.
+  ///
+  /// The order is what the limit keeps: without it the position index hands
+  /// the rows back south to north, and a full box kept its southern part —
+  /// on a phone, the part under the sheet.
   List<SearchResult> inBox(
     BoundingBox box,
     List<String> placeKinds,
     List<String> poiKinds,
-    int limit,
-  ) {
+    int limit, {
+    LatLng? near,
+  }) {
     final bounds = <Object?>[
       (box.south * 1e7).round(),
       (box.north * 1e7).round(),
       (box.west * 1e7).round(),
       (box.east * 1e7).round(),
     ];
+    final order = _nearestFirst(near ?? box.center);
     final found = <SearchResult>[];
     void query(String table, SearchKind kind, List<String> kinds) {
       if (kinds.isEmpty) return;
       final placeholders = List<String>.filled(kinds.length, '?').join(', ');
+      final osm = table == 'pois' ? _osmPois : _osmPlaces;
       final rows = _db.select(
-        'SELECT name, kind, lat, lon FROM $table '
+        'SELECT name, kind, lat, lon, $osm FROM $table '
         'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? '
-        'AND kind IN ($placeholders) LIMIT ?',
-        <Object?>[...bounds, ...kinds, limit],
+        'AND kind IN ($placeholders) ${order.sql} LIMIT ?',
+        <Object?>[...bounds, ...kinds, ...order.args, limit],
       );
       for (final row in rows) {
         final position = _position(row);
@@ -1501,6 +1594,8 @@ class _GazetteerFile {
             source: SearchSource.local,
             kind: kind,
             detail: row['kind']?.toString(),
+            osmType: _osmTypeOf(row),
+            osmId: _osmIdOf(row),
           ),
         );
       }
@@ -1532,7 +1627,7 @@ class _GazetteerFile {
       '?',
     ).join(', ');
     final rows = _db.select(
-      'SELECT name, kind, lat, lon, admin_id FROM places '
+      'SELECT name, kind, lat, lon, admin_id, $_osmPlaces FROM places '
       'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? '
       'AND kind IN ($placeholders) LIMIT ?',
       <Object?>[
@@ -1574,6 +1669,8 @@ class _GazetteerFile {
         kind: SearchKind.place,
         detail: kind,
         distanceMeters: meters,
+        osmType: _osmTypeOf(row),
+        osmId: _osmIdOf(row),
       );
     }
     return best;
@@ -1788,6 +1885,28 @@ class _GazetteerFile {
         : '0 AS importance';
   }
 
+  /// The `osm_type` and `osm_id` columns of [table], or NULLs in their place
+  /// for a file without them.
+  static String _osm(Database db, String table) {
+    final columns = db.select('PRAGMA table_info($table)');
+    bool has(String name) => columns.any((c) => c['name'] == name);
+    return has('osm_type') && has('osm_id')
+        ? 'osm_type, osm_id'
+        : 'NULL AS osm_type, NULL AS osm_id';
+  }
+
+  late final String _osmPlaces = _osm(_db, 'places');
+  late final String _osmPois = _osm(_db, 'pois');
+
+  /// The element type of [row], as the OpenStreetMap API spells it, when
+  /// its id is there too.
+  static String? _osmTypeOf(Row row) =>
+      _asInt(row['osm_id']) == null ? null : osmElementType(row['osm_type']);
+
+  /// The element id of [row], when its type is there too.
+  static int? _osmIdOf(Row row) =>
+      _osmTypeOf(row) == null ? null : _asInt(row['osm_id']);
+
   static PreparedStatement? _prepareOrNull(Database db, String sql) {
     // A file from an older builder has no aliases and house_numbers instead
     // of street_numbers, a newer one the other way round: a table that is
@@ -1841,6 +1960,8 @@ class _Row {
     required this.population,
     required this.importance,
     required this.placeId,
+    this.osmType,
+    this.osmId,
   });
 
   final int id;
@@ -1859,6 +1980,10 @@ class _Row {
 
   /// The place a street or a POI lies in, or the place a place belongs to.
   final int? placeId;
+
+  /// The OpenStreetMap element of a place or a POI, when the file has it.
+  final String? osmType;
+  final int? osmId;
 
   /// The alternative names that matched, for the scoring.
   final List<String> aliases = <String>[];
@@ -2314,9 +2439,9 @@ class _GazetteerWorker {
           keywords: keywords,
         );
       case _Ask.inBox:
-        final (box, placeKinds, poiKinds, limit) =
-            args! as (BoundingBox, List<String>, List<String>, int);
-        return store._inBoxHere(box, placeKinds, poiKinds, limit);
+        final (box, placeKinds, poiKinds, limit, near) =
+            args! as (BoundingBox, List<String>, List<String>, int, LatLng?);
+        return store._inBoxHere(box, placeKinds, poiKinds, limit, near);
       case _Ask.nearestSettlement:
         final (point, maxKm) = args! as (LatLng, double);
         return store._nearestSettlementHere(point, maxKm);

@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../core/l10n/localized_text.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../map/data/position_provider.dart';
 import '../../sensors/application/sensor_hub.dart';
 import '../../sensors/domain/sensor_snapshot.dart';
@@ -19,13 +21,16 @@ import 'recording_positions.dart';
 import 'recording_task_handler.dart';
 import 'ride_repository.dart';
 
-/// Starting a recording failed; the message is meant for a snack bar.
-class RecordingException implements Exception {
+/// Starting a recording failed.
+class RecordingException implements LocalizedException {
   /// Creates the exception.
   const RecordingException(this.message);
 
-  /// What went wrong, already readable.
+  /// What the platform said, in English, for the log.
   final String message;
+
+  @override
+  String describe(AppLocalizations l10n) => l10n.recordingServiceFailed;
 
   @override
   String toString() => 'RecordingException: $message';

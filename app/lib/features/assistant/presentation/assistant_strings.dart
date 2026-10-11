@@ -1,3 +1,4 @@
+import '../../../core/l10n/relay_error_text.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/ai_consent.dart';
 import '../domain/assistant_state.dart';
@@ -20,9 +21,14 @@ String assistantProblemText(AppLocalizations l10n, AssistantProblem problem) =>
         problem.retryAfterS == null
             ? l10n.assistantRateLimitedSoon
             : l10n.assistantRateLimited(problem.retryAfterS!),
-      AssistantFailure.relay => l10n.assistantFailed(
-        problem.message ?? l10n.assistantRateLimitedSoon,
-      ),
+      AssistantFailure.relay => l10n.assistantFailed(switch (problem) {
+        AssistantProblem(:final String relayCode) => relayCodeText(
+          l10n,
+          relayCode,
+        ),
+        AssistantProblem(message: null) => l10n.assistantRateLimitedSoon,
+        _ => l10n.errorUnexpected,
+      }),
       AssistantFailure.lowConfidence =>
         problem.notes == null || problem.notes!.isEmpty
             ? l10n.assistantLowConfidenceNoNotes

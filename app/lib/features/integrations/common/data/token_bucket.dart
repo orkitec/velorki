@@ -74,9 +74,12 @@ class TokenBucket {
     final wait = retryAfter;
     throw IntegrationException(
       IntegrationFailure.rateLimited,
-      'Too many $what requests. $what allows $capacity reads every '
-      '${window.inMinutes} minutes — try again in '
-      '${_minutes(wait)}.',
+      (l10n) => l10n.integrationTooManyRequests(
+        what,
+        capacity,
+        window.inMinutes,
+        _minutes(wait),
+      ),
       retryAfter: wait,
     );
   }
@@ -91,10 +94,8 @@ class TokenBucket {
     }
   }
 
-  static String _minutes(Duration wait) {
-    final minutes = wait.inSeconds <= 60 ? 1 : (wait.inSeconds / 60).ceil();
-    return minutes == 1 ? 'a minute' : '$minutes minutes';
-  }
+  static int _minutes(Duration wait) =>
+      wait.inSeconds <= 60 ? 1 : (wait.inSeconds / 60).ceil();
 }
 
 /// The app-wide Strava read bucket. Kept alive so it survives screen changes.

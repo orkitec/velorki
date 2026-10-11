@@ -1,7 +1,4 @@
 import 'package:dio/dio.dart';
-
-import '../../../core/http/user_agent.dart';
-
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
@@ -10,21 +7,31 @@ import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
 
+import '../../../core/http/user_agent.dart';
+import '../../../core/l10n/localized_text.dart';
+import '../../../core/l10n/relay_error_text.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
 import '../../planner/domain/route_poi.dart';
 
 final Logger _log = Logger('ShareService');
 
 /// A share link that could not be created.
-class ShareException implements Exception {
+class ShareException implements LocalizedException {
   /// Creates the exception.
-  const ShareException(this.message, {this.cause});
+  const ShareException(this.text, {this.cause});
 
   /// What to tell the rider.
-  final String message;
+  final LocalizedText text;
 
   /// The underlying error, for the log.
   final Object? cause;
+
+  /// What went wrong in English, for the log.
+  String get message => text(englishLocalizations);
+
+  @override
+  String describe(AppLocalizations l10n) => text(l10n);
 
   @override
   String toString() => 'ShareException: $message';
@@ -57,7 +64,7 @@ class ShareService {
     List<RoutePoi> pois = const <RoutePoi>[],
   }) async {
     if (points.isEmpty) {
-      throw const ShareException('There is nothing to share.');
+      throw const ShareException(_nothingToShare);
     }
     // The track, its heights and its times, and nothing a sensor measured:
     // a link is public, and heart rate is health data, often read from the
@@ -84,7 +91,7 @@ class ShareService {
         ),
       );
     } on RelayException catch (e) {
-      throw ShareException(e.error.message, cause: e);
+      throw ShareException((l10n) => relayErrorText(l10n, e.error), cause: e);
     }
   }
 }
@@ -111,7 +118,7 @@ final shareGpxFetcherProvider = Provider<ShareGpxFetcher>((ref) {
     );
     final data = response.data;
     if (data == null || data.isEmpty) {
-      throw const ShareException('The shared file was empty.');
+      throw const ShareException(_sharedFileEmpty);
     }
     return Uint8List.fromList(data);
   };
@@ -152,3 +159,7 @@ final clipboardWriterProvider = Provider<ClipboardWriter>(
     }
   },
 );
+
+String _nothingToShare(AppLocalizations l10n) => l10n.shareNothing;
+
+String _sharedFileEmpty(AppLocalizations l10n) => l10n.shareFileEmpty;

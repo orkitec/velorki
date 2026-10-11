@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/domain/search_group.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
@@ -33,6 +34,30 @@ void main() {
     await store.refresh();
     return store;
   }
+
+  test('a download that adds a tile is told to the stops on the map', () async {
+    final store = await openStore();
+    final coverage = GazetteerStopsCoverage();
+    addTearDown(coverage.dispose);
+    expect(
+      coverage.covers(const LatLng(47.14, 9.52)),
+      isTrue,
+      reason: 'nothing is claimed missing before the store is open',
+    );
+    coverage.follow(store);
+    expect(coverage.covers(const LatLng(47.14, 9.52)), isFalse);
+    var told = 0;
+    coverage.addListener(() => told++);
+
+    await store.refresh();
+    expect(told, 0, reason: 'nothing came or went');
+
+    buildGazetteer(dir, 'E5_N45');
+    await store.refresh();
+    expect(told, 1);
+    expect(coverage.covers(const LatLng(47.14, 9.52)), isTrue);
+    expect(coverage.covers(const LatLng(48.14, 11.58)), isFalse);
+  });
 
   Future<GazetteerStore> storeWithFixture() async {
     buildGazetteer(
@@ -398,6 +423,37 @@ void main() {
     expect(names[1], 'Monte Tea House');
   });
 
+  test('a full box keeps the rows nearest its middle, not its south', () async {
+    buildGazetteer(
+      dir,
+      'W20_N30',
+      pois: <GazPoi>[
+        for (var i = 0; i < 10; i++)
+          GazPoi(100 + i, 'Café $i', 'cafe', 32.60 + i * 0.01, -16.90),
+      ],
+    );
+    final store = await openStore();
+    const box = BoundingBox(
+      south: 32.59,
+      west: -16.95,
+      north: 32.70,
+      east: -16.85,
+    );
+
+    final middle = await store.inBox(box, poiKinds: const ['cafe'], limit: 2);
+    expect(
+      middle.map((r) => r.name),
+      unorderedEquals(<String>['Café 4', 'Café 5']),
+    );
+    final north = await store.inBox(
+      box,
+      poiKinds: const ['cafe'],
+      limit: 3,
+      near: const LatLng(32.69, -16.90),
+    );
+    expect(north.map((r) => r.name), <String>['Café 9', 'Café 8', 'Café 7']);
+  });
+
   test('the limit is honoured', () async {
     buildGazetteer(
       dir,
@@ -684,6 +740,44 @@ void main() {
         hits.firstWhere((r) => r.kind == SearchKind.street).position.lat,
         closeTo(40.7570, 1e-7),
         reason: 'the street itself, not one of its numbers',
+      );
+    });
+
+    test('a number that is part of a name is read as the name', () async {
+      buildGazetteer(
+        dir,
+        'W20_N30',
+        places: const <GazPlace>[
+          GazPlace(1, 'Rosenthal', 'suburb', 52.6000, 13.3800),
+        ],
+        streets: const <GazStreet>[
+          GazStreet(10, 'Straße 70', 52.6010, 13.3810, placeId: 1),
+          GazStreet(11, 'Straße 71', 52.6020, 13.3820, placeId: 1),
+          GazStreet(12, 'Breite Straße', 52.6030, 13.3830, placeId: 1),
+          GazStreet(13, 'Route 66', 52.6040, 13.3840, placeId: 1),
+        ],
+        houseNumbers: const <GazHouseNumber>[
+          GazHouseNumber(12, 70, 52.6031, 13.3831),
+          GazHouseNumber(10, 12, 52.6011, 13.3811),
+        ],
+      );
+      final store = await openStore();
+
+      final named = await store.search('Straße 70');
+      expect(named.first.name, 'Straße 70');
+      expect(named.first.houseNumber, isNull);
+      expect((await store.search('route 66')).first.name, 'Route 66');
+
+      final address = await store.search('Straße 70 12');
+      expect(address.first.name, 'Straße 70');
+      expect(address.first.houseNumber, '12');
+
+      final breite = await store.search('Breite Straße 70');
+      expect(breite.first.name, 'Breite Straße');
+      expect(
+        breite.first.houseNumber,
+        '70',
+        reason: 'no name holds "70" beside "Breite"',
       );
     });
 

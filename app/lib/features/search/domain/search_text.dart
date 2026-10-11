@@ -86,7 +86,11 @@ const int maxQueryWords = 8;
 /// that number. An ordinal ("42nd", "1.", "2º", "5e") is a name. A postcode
 /// — five or more digits, or four digits and two letters — in a query that
 /// has words is dropped: no name in the index carries one.
-ParsedQuery parseQuery(String text) {
+///
+/// With [numberAsName] the first plain number ("70", not "70a") is a word of
+/// the name instead ("Straße 70", "Route 66"), and a number after it can
+/// still be the house number.
+ParsedQuery parseQuery(String text, {bool numberAsName = false}) {
   final tokens = <String>[
     for (final t in text.trim().split(_tokenSeparator))
       if (t.isNotEmpty) t,
@@ -115,10 +119,16 @@ ParsedQuery parseQuery(String text) {
   }
   String? houseNumber;
   int? number;
+  var nameNumber = numberAsName;
   final words = <String>[];
   for (var i = 0; i < tokens.length; i++) {
     final token = tokens[i];
     if (hasWord && postcodes.contains(i)) continue;
+    if (nameNumber && _plainNumber.hasMatch(token)) {
+      nameNumber = false;
+      words.add(token);
+      continue;
+    }
     if (hasWord && houseNumber == null && !_isOrdinal(token)) {
       final m = _houseNumber.firstMatch(token);
       if (m != null) {
@@ -162,6 +172,7 @@ final RegExp _houseNumber = RegExp(
 );
 final RegExp _numberSuffix = RegExp(r'^(?:[a-dA-Dа-гА-Г]|bis|ter|quater)$');
 final RegExp _postcode = RegExp(r'^\d{5,}$');
+final RegExp _plainNumber = RegExp(r'^\d{1,4}$');
 final RegExp _fourDigits = RegExp(r'^\d{4}$');
 final RegExp _twoLetters = RegExp(r'^[A-Za-z]{2}$');
 final RegExp _ordinal = RegExp(

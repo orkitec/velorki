@@ -7,8 +7,9 @@ describe('content loader', () => {
   it('serves a known docs slug and falls back to English', () => {
     expect(docSlugs()).toContain('getting-started');
     expect(loadDoc('en', 'getting-started')?.translated).toBe(true);
-    // A locale without content falls back to the English file.
-    expect(loadDoc('fr', 'getting-started')?.translated).toBe(false);
+    // A locale without content (no site language is "xx") falls back to the
+    // English file.
+    expect(loadDoc('xx', 'getting-started')?.translated).toBe(false);
   });
 
   it('refuses anything that is not a plain slug', () => {

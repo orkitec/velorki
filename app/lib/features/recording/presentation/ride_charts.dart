@@ -336,15 +336,16 @@ class RideTemperatureChart extends ConsumerWidget {
       onWindow: rideWindowCallback(system, onWindow),
       readoutAt: (index) => l10n.rideChartPoint(
         formatDistance(l10n, system, measured[index].distanceM),
-        formatTemperature(l10n, measured[index].temperatureC!),
+        // In Celsius whatever the units, as the chart's axis is.
+        formatTemperature(
+          l10n,
+          units.UnitSystem.metric,
+          measured[index].temperatureC!,
+        ),
       ),
     );
   }
 }
-
-/// A temperature as the ride's page shows it: whole degrees Celsius.
-String formatTemperature(AppLocalizations l10n, double celsius) =>
-    l10n.unitCelsius('${celsius.round()}');
 
 class RideSpeedLegend extends StatelessWidget {
   /// Creates the legend.

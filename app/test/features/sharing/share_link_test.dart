@@ -160,7 +160,7 @@ void main() {
           isA<ShareException>().having(
             (e) => e.message,
             'message',
-            'too many shares today',
+            'Too many requests. Try again in a few minutes.',
           ),
         ),
       );
@@ -232,7 +232,7 @@ void main() {
           ),
           incomingFileServiceProvider.overrideWithValue(service),
           shareGpxFetcherProvider.overrideWithValue(
-            (url) async => throw const ShareException('404'),
+            (url) async => throw ShareException((l10n) => l10n.relayNotFound),
           ),
         ],
       );
@@ -355,7 +355,7 @@ void main() {
       await tester.tap(find.text(l10n.shareLinkAction));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('the server is down'), findsOneWidget);
+      expect(find.text(l10n.shareLinkFailed(l10n.relayBusy)), findsOneWidget);
     });
   });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/app_config.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../integrations/rwgps/data/rwgps_providers.dart';
 import '../../integrations/strava/data/strava_providers.dart';
@@ -18,6 +19,8 @@ final offeredPlusFeaturesProvider = Provider<List<PlusFeature>>((ref) {
     PlusFeature.stravaConnection => ref.watch(stravaConfiguredProvider),
     PlusFeature.rwgpsConnection => ref.watch(rwgpsConfiguredProvider),
     PlusFeature.aiAssistant || PlusFeature.linkSharing => true,
+    // Forecasts come through the relay; a build without one has none.
+    PlusFeature.weather => ref.watch(effectiveConfigProvider).hasApi,
   };
   return [
     for (final feature in PlusFeature.values)

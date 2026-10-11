@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
+import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/shared/presentation/adaptive_docking_sheet.dart';
@@ -38,9 +39,8 @@ void main() {
     expect(h.photonAdapter.requests, isEmpty);
   });
 
-  testWidgets('three characters search after the debounce, once', (
-    tester,
-  ) async {
+  testWidgets('three characters ask where to search after the debounce, and '
+      'once picked online Photon is asked once', (tester) async {
     final selected = <SearchResult>[];
     final h = await pumpScreen(
       tester,
@@ -58,11 +58,20 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pumpAndSettle();
 
+    // Nothing downloaded and no map centre: the list asks, and nothing has
+    // left the phone yet.
+    expect(h.photonAdapter.requests, isEmpty);
+    expect(find.text(l10n.searchOnlineFor('munich')), findsOneWidget);
+    expect(find.text(l10n.searchInDownloaded), findsNothing);
+    expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
+
+    await pickOnlineSearch(tester, 'munich');
+
     expect(h.photonAdapter.requests, hasLength(1));
     expect(h.photonAdapter.lastUri.queryParameters['q'], 'munich');
     expect(
       h.photonAdapter.lastUri.queryParameters['lang'],
-      testLocale.languageCode,
+      PhotonClient.photonLanguage(testLocale.toLanguageTag()),
     );
     expect(find.text('Munich'), findsOneWidget);
     expect(find.text('Cafe Kosmos'), findsOneWidget);
@@ -94,9 +103,7 @@ void main() {
         surfaceSize: const Size(874, 402),
       );
 
-      await tester.enterText(find.byType(TextField), 'munich');
-      await tester.pump(const Duration(milliseconds: 400));
-      await tester.pumpAndSettle();
+      await searchOnlineFor(tester, 'munich');
       expect(find.text('Munich'), findsOneWidget);
 
       final field = tester.getRect(find.byType(SearchField));
@@ -135,9 +142,8 @@ void main() {
       ),
     );
 
-    await tester.enterText(find.byType(TextField), 'munich');
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.pumpAndSettle();
+    await searchOnlineFor(tester, 'munich');
+    expect(find.text('Munich'), findsOneWidget);
 
     final field = tester.getRect(find.byType(SearchField));
     final list = tester.getRect(
@@ -163,9 +169,7 @@ void main() {
       ),
     );
 
-    await tester.enterText(find.byType(TextField), 'nowhere');
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.pumpAndSettle();
+    await searchOnlineFor(tester, 'nowhere');
 
     expect(find.text(l10n.searchNoResults), findsOneWidget);
 
@@ -241,6 +245,7 @@ void main() {
       List<GazPoi> extraPois = const <GazPoi>[],
       VoidCallback? onDownloadArea,
       String photonBody = photonFixture,
+      Size surfaceSize = const Size(1000, 2000),
     }) async {
       final h = await pumpScreen(
         tester,
@@ -256,6 +261,7 @@ void main() {
           photonBody: photonBody,
         ),
         extraOverrides: storeOverride(empty: empty, extraPois: extraPois),
+        surfaceSize: surfaceSize,
       );
       // The store is opened while the app starts; a frame stands in for that.
       await tester.pump();
@@ -437,79 +443,134 @@ void main() {
       );
     });
 
-    testWidgets('a centre outside the downloaded area offers the download', (
-      tester,
-    ) async {
+    testWidgets('a centre outside the downloaded area says so, asks where '
+        'to search and sends nothing until asked; online, the results come '
+        'under the notice', (tester) async {
       var taps = 0;
       final h = await pumpField(
         tester,
         text: 'munich',
         bias: outsideTheTile,
         onDownloadArea: () => taps++,
+        // A small phone's width, where the notice has to fit in every
+        // language.
+        surfaceSize: const Size(360, 780),
       );
+      expectNoClippedText(tester);
 
+      final title = find.text(l10n.searchAreaNotDownloaded);
+      expect(title, findsOneWidget);
+      expect(find.text(l10n.searchAreaNotDownloadedHint), findsOneWidget);
+      expect(find.text(l10n.searchInDownloaded), findsOneWidget);
       expect(
         h.photonAdapter.requests,
-        hasLength(1),
-        reason: 'the gazetteer knows nothing about this area',
-      );
-      expect(find.text('Munich'), findsOneWidget);
-      final row = find.text(l10n.searchDownloadAreaOffline);
-      expect(row, findsOneWidget);
-      expect(find.byIcon(Icons.download_outlined), findsOneWidget);
-      expect(
-        find.text(l10n.searchShowOffline),
-        findsNothing,
-        reason: 'there is nothing offline to show here',
+        isEmpty,
+        reason: 'nothing leaves the phone before the rider says so',
       );
 
-      await tester.tap(row);
+      await tester.tap(find.text(l10n.searchOnlineFor('munich')));
+      await tester.pumpAndSettle();
+
+      expect(h.photonAdapter.requests, hasLength(1));
+      final caption = find.text(l10n.searchOnlineResults.toUpperCase());
+      expect(caption, findsOneWidget);
+      expect(find.text('Munich'), findsOneWidget);
+      // The notice on top, then the caption, then the online rows.
+      expect(
+        tester.getTopLeft(title).dy,
+        lessThan(tester.getTopLeft(caption).dy),
+      );
+      expect(
+        tester.getTopLeft(caption).dy,
+        lessThan(tester.getTopLeft(find.text('Munich')).dy),
+      );
+      // The downloaded areas stay a tap away.
+      expect(find.text(l10n.searchShowOffline), findsOneWidget);
+
+      await tester.tap(find.text(l10n.searchAreaDownload));
       await tester.pumpAndSettle();
 
       expect(taps, 1);
     });
 
-    testWidgets('over a downloaded area there is nothing to download', (
-      tester,
-    ) async {
+    testWidgets('outside the downloaded area, the downloaded areas answer '
+        'when picked', (tester) async {
+      final h = await pumpField(
+        tester,
+        bias: outsideTheTile,
+        onDownloadArea: () {},
+        surfaceSize: const Size(360, 780),
+      );
+      await tester.tap(find.text(l10n.searchInDownloaded));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vaduz'), findsOneWidget);
+      expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
+      expect(h.photonAdapter.requests, isEmpty);
+      expectNoClippedText(tester);
+    });
+
+    testWidgets('over a downloaded area there is no notice', (tester) async {
       await pumpField(tester, onDownloadArea: () {});
 
       expect(find.text('Vaduz'), findsOneWidget);
-      expect(find.text(l10n.searchDownloadAreaOffline), findsNothing);
+      expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
+      expect(find.text(l10n.searchOnlineResults.toUpperCase()), findsNothing);
       expect(find.text(l10n.searchOnlineFor('vaduz')), findsOneWidget);
     });
 
-    testWidgets('without a map centre the download row stays away', (
-      tester,
-    ) async {
-      await pumpField(
+    testWidgets('without a map centre the search asks where, without the '
+        'notice', (tester) async {
+      final h = await pumpField(
         tester,
         text: 'munich',
         bias: null,
         onDownloadArea: () {},
       );
 
+      expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
+      expect(find.text(l10n.searchOnlineFor('munich')), findsOneWidget);
+      expect(find.text(l10n.searchInDownloaded), findsOneWidget);
+      expect(h.photonAdapter.requests, isEmpty);
+
+      await pickOnlineSearch(tester, 'munich');
+
+      expect(h.photonAdapter.requests, hasLength(1));
       expect(find.text('Munich'), findsOneWidget);
-      expect(find.text(l10n.searchDownloadAreaOffline), findsNothing);
+      expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
     });
 
-    testWidgets('a search that failed still offers the download', (
-      tester,
-    ) async {
+    testWidgets('a search that failed still says so and offers the download, '
+        'above the error', (tester) async {
+      var taps = 0;
       await pumpField(
         tester,
         text: 'munich',
         bias: outsideTheTile,
         photonBody: 'not json at all',
-        onDownloadArea: () {},
+        onDownloadArea: () => taps++,
+        surfaceSize: const Size(360, 780),
       );
+      await tester.tap(find.text(l10n.searchOnlineFor('munich')));
+      await tester.pumpAndSettle();
 
-      expect(find.text(l10n.searchFailed), findsOneWidget);
+      final title = find.text(l10n.searchAreaNotDownloaded);
       expect(
-        find.text(l10n.searchDownloadAreaOffline),
+        title,
         findsOneWidget,
         reason: 'no network is when the download matters most',
       );
+      final error = find.text(l10n.searchFailed);
+      expect(error, findsOneWidget);
+      expect(
+        tester.getTopLeft(title).dy,
+        lessThan(tester.getTopLeft(error).dy),
+      );
+      expect(find.text(l10n.searchOnlineResults.toUpperCase()), findsNothing);
+
+      await tester.tap(find.text(l10n.searchAreaDownload));
+      await tester.pumpAndSettle();
+      expect(taps, 1);
     });
 
     testWidgets('the online results offer the way back to the local ones', (
@@ -526,7 +587,7 @@ void main() {
       final back = find.text(l10n.searchShowOffline);
       expect(back, findsOneWidget);
       expect(find.byIcon(Icons.offline_pin_outlined), findsOneWidget);
-      expect(find.text(l10n.searchDownloadAreaOffline), findsNothing);
+      expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
 
       await tester.tap(back);
       await tester.pumpAndSettle();
@@ -541,10 +602,21 @@ void main() {
       );
     });
 
-    testWidgets('an empty gazetteer directory goes online as before', (
-      tester,
-    ) async {
-      final h = await pumpField(tester, empty: true, text: 'munich');
+    testWidgets('an empty gazetteer directory asks before going online, with '
+        'the notice and no downloaded areas to offer', (tester) async {
+      final h = await pumpField(
+        tester,
+        empty: true,
+        text: 'munich',
+        onDownloadArea: () {},
+      );
+
+      expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
+      expect(find.text(l10n.searchOnlineFor('munich')), findsOneWidget);
+      expect(find.text(l10n.searchInDownloaded), findsNothing);
+      expect(h.photonAdapter.requests, isEmpty);
+
+      await pickOnlineSearch(tester, 'munich');
 
       expect(h.photonAdapter.requests, hasLength(1));
       expect(find.text('Munich'), findsOneWidget);

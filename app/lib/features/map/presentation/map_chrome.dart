@@ -4,6 +4,11 @@ import 'package:flutter/widgets.dart';
 /// chrome above it, in dp below the safe-area top.
 const double defaultMapControlsTop = 12;
 
+/// What the map's Layers sheet offers about stops: nothing beyond the cycle
+/// map on a map that is not the shared one, the stops to plan to on the Plan
+/// tab, the stops to see on the Record tab.
+enum MapStopsOffer { none, plan, ride }
+
 /// Tells the map how much of its top edge the owning screen covers with its
 /// own chrome (search field, profile chips, a title), so the control column
 /// starts below it instead of underneath it.
@@ -28,12 +33,25 @@ class MapChromeInsets extends InheritedWidget {
     this.onToggleRoute,
     this.visiblePadding,
     this.attributionInsets = EdgeInsets.zero,
+    this.attributionFloor,
+    this.stopsOffer = MapStopsOffer.none,
   });
 
-  /// What covers the map's sides at the bottom, so the attribution chip and
-  /// the (i) button stay on the map beside it: the rail and the side panel
+  /// What the Layers sheet offers about stops on this map.
+  final MapStopsOffer stopsOffer;
+
+  /// What covers the map's sides at the bottom, so the attribution chip
+  /// stays on the map beside it: the rail and the side panel
   /// of a phone turned sideways. Nothing upright.
   final EdgeInsets attributionInsets;
+
+  /// How far above the map's bottom edge the attribution chip stands, its
+  /// gap not included; `null` for the band under the
+  /// floating bar, the view's bottom padding. The shell's map, whose view
+  /// padding is taken off, puts it on the safe area's edge on a phone with
+  /// no gesture zone at the bottom, under the raised bar
+  /// (`shellAttributionFloor`).
+  final double? attributionFloor;
 
   /// What covers the map's edges right now, for the locate button's move:
   /// the tab's chrome, the sheet where it is, the column. The shell reads
@@ -102,5 +120,7 @@ class MapChromeInsets extends InheritedWidget {
       oldWidget.routeShown != routeShown ||
       oldWidget.onToggleRoute != onToggleRoute ||
       oldWidget.visiblePadding != visiblePadding ||
-      oldWidget.attributionInsets != attributionInsets;
+      oldWidget.attributionInsets != attributionInsets ||
+      oldWidget.attributionFloor != attributionFloor ||
+      oldWidget.stopsOffer != stopsOffer;
 }

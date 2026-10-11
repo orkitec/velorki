@@ -1,0 +1,6 @@
+• Stopplekken op de kaart: water, cafés, bakkers, toiletten, fietsreparatie en meer. Uitgezoomd komen ze samen in bolletjes met een aantal; tijdens het rijden de stopplekken langs je route verderop en hoe ver elk ervan is.
+• Tik op een plek voor de kaart ervan: wat het is, hoe ver weg, en Route hierheen, Hier starten, Als tussenstop of Als bestemming. Details toont openingstijden, website en telefoon uit OpenStreetMap, en Openen in geeft de plek door aan een andere kaartapp.
+• Zoeken vindt offline veel meer: adressen met huisnummers, typefouten en afkortingen, namen in een ander alfabet, bekende plaatsen in je eigen taal, en restaurants, ijs, tankstations en fietspompen.
+• Plekken uit andere apps: deel een plek of een kaartlink met Velorki, of plak coördinaten in de zoekbalk.
+• Rondjes zoeken toont het beste rondje tot nu toe en zegt wat het nog controleert.
+• Opgelost: omhoog vegen naar de appkiezer verschuift geen paneel meer, de telefoon draaien geeft geen grijze flits meer, en het pauzelabel past op kleine telefoons.

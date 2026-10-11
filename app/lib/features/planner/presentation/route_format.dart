@@ -31,6 +31,18 @@ String formatMeasure(AppLocalizations l10n, units.Measure measure) {
   };
 }
 
+/// A temperature in whole degrees, Celsius or Fahrenheit by [system].
+String formatTemperature(
+  AppLocalizations l10n,
+  units.UnitSystem system,
+  double celsius,
+) {
+  final value = '${units.temperatureIn(system, celsius).round()}';
+  return system == units.UnitSystem.metric
+      ? l10n.unitCelsius(value)
+      : l10n.unitFahrenheit(value);
+}
+
 /// A riding time, in hours and minutes.
 String formatDuration(AppLocalizations l10n, Duration duration) {
   final minutes = duration.inMinutes;

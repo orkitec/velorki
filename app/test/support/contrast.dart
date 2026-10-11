@@ -48,10 +48,18 @@ Color fillBehind(WidgetTester tester, Finder label) {
   };
 }
 
-/// Asserts that the text at [label] reads against what it is painted on.
-void expectReadable(WidgetTester tester, Finder label, {String? reason}) {
+/// Asserts that the text at [label] reads against what it is painted on;
+/// a translucent fill is blended [over] what shows through it, a map's
+/// darkest or lightest, as glass floating over the map is.
+void expectReadable(
+  WidgetTester tester,
+  Finder label, {
+  String? reason,
+  Color? over,
+}) {
   final text = textColorOf(tester, label);
-  final fill = fillBehind(tester, label);
+  final painted = fillBehind(tester, label);
+  final fill = over == null ? painted : Color.alphaBlend(painted, over);
   expect(text.a, 1.0, reason: 'translucent text at $label');
   expect(fill.a, 1.0, reason: 'translucent fill at $label');
   expect(
@@ -62,3 +70,18 @@ void expectReadable(WidgetTester tester, Finder label, {String? reason}) {
         '${contrastRatio(text, fill).toStringAsFixed(2)}:1',
   );
 }
+
+/// What sits behind the glass over the map in a theme of [brightness]: the
+/// map of that theme as the glass's blur leaves it, about its average
+/// colour. Light maps are mostly the land's cream (#F2EFE9), the dark and
+/// night maps a blue-grey (#2B3240).
+///
+/// Glass contrast is checked over this rather than over a pure black or
+/// white: the blur averages the few dp of map behind a label, so a stray
+/// black road or white label of the map never sits alone behind it, and the
+/// tint is thin (`glassTint`) because the blurred map does part of its job.
+/// A light theme sits over a light map and a dark one over a dark map
+/// unless the rider picks otherwise.
+Color blurredMapBehind(Brightness brightness) => brightness == Brightness.light
+    ? const Color(0xFFF2EFE9)
+    : const Color(0xFF2B3240);

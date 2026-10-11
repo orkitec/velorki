@@ -30,7 +30,7 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 |---|---|---|
 | `places` | one per settlement | `place=city\|town\|village\|hamlet\|suburb\|neighbourhood\|locality\|island` nodes and areas, with population where OSM has it |
 | `pois` | one per feature and kind | what a rider needs on the road and what a rider searches for as a destination: the 38 kinds below, named — or unnamed for the eight utility kinds |
-| `streets` | one per street name per place | every named `highway=*` way, the many ways of one street merged into one row |
+| `streets` | one per street name per place | every named `highway=*` way but a platform, a bus stop, a planned road, a corridor, a lift or a service area; the many ways of one street merged into one row |
 | `aliases` | one per extra name | `name:en`, `int_name`, `alt_name`, `old_name`, `official_name`, `short_name` of a row above; for a place with `importance` and a POI with `importance` ≥ 10 also every `name:<lang>`, at most 80 |
 | `street_numbers` | one per street with addresses | its house numbers, odd and even side, thinned to the points that keep interpolation within 20 m, in one blob |
 | `search` | one per place, street, **named** poi and alias | the FTS5 index the search box queries, over the transliterated names |

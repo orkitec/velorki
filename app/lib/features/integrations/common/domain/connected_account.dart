@@ -11,6 +11,12 @@ enum IntegrationService {
   /// The stable string used in storage keys, JSON and deep-link paths.
   String get id => name;
 
+  /// The service's name as it writes it, a brand in every language.
+  String get brand => switch (this) {
+    IntegrationService.strava => 'Strava',
+    IntegrationService.rwgps => 'Ride with GPS',
+  };
+
   /// The service whose [id] is [value], or `null`.
   static IntegrationService? fromId(String value) {
     for (final service in IntegrationService.values) {

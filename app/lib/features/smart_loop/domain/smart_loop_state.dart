@@ -35,8 +35,15 @@ abstract class SmartLoopState with _$SmartLoopState {
     /// Routing requests finished divided by requests planned, `0`..`1`.
     @Default(0.0) double progress,
 
-    /// Why the search failed, in the routing server's own words.
-    String? error,
+    /// How many directions have been routed, successfully or not.
+    @Default(0) int checked,
+
+    /// How many directions this search set out to try; retries come on top.
+    @Default(0) int planned,
+
+    /// Why the search failed: a `RoutingException`, `noRoutingBackendError`
+    /// or whatever else the router threw. The sheet words it.
+    Object? error,
 
     /// The routing tiles a search that found nothing was missing: with no
     /// routing server, the first loop in a new area needs its tiles

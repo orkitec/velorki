@@ -11,6 +11,8 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../import_export/presentation/import_file_action.dart';
 import '../../integrations/presentation/import_from_service_menu.dart';
 import '../../map/presentation/map_chrome.dart';
+import '../../map/presentation/visible_map_padding.dart';
+import '../../map/presentation/weather_time_row.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/route_format.dart';
@@ -33,6 +35,7 @@ import '../application/library_card.dart';
 import '../data/library_section.dart';
 import 'rename_route_dialog.dart';
 import 'route_detail_screen.dart';
+import '../../shared/presentation/error_text.dart';
 
 /// The Library tab: a card over the map the tabs share, holding the saved
 /// routes and the recorded rides, or the one route or ride the rider opened.
@@ -436,6 +439,36 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         ref.read(rideHighlightProvider.notifier).set(null),
                   ),
                 ),
+              // The rain's moment (this tab has no time control) and the
+              // weather's hints, at the side away from the control column,
+              // under the highlight when one is named.
+              Positioned(
+                top:
+                    topInset +
+                    (geometry.sideways
+                        ? sidewaysTopRowTop + sidewaysTopRowHeight
+                        : defaultMapControlsTop) +
+                    (highlight != null ? 52 : 0),
+                left: 0,
+                right: 0,
+                child: TabChromeSlide(
+                  active: active,
+                  child: BesideSheet(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: 12,
+                        right: geometry.sideways
+                            ? 12
+                            : mapControlsWidth(context) + 8,
+                      ),
+                      child: const Align(
+                        alignment: Alignment.topLeft,
+                        child: WeatherMapHints(rainTime: true),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               AdaptiveDockingSheet(
                 controller: _sheet,
                 initialExtent: initialSheetSize,
@@ -551,7 +584,7 @@ class _RoutesSection extends ConsumerWidget {
         hasScrollBody: false,
         child: PlaceholderBody(
           icon: Icons.error_outline,
-          message: error.toString(),
+          message: errorText(AppLocalizations.of(context), error),
         ),
       ),
       data: (items) => items.isEmpty

@@ -244,7 +244,7 @@ void main() {
           ),
         );
         expect(e.failure, IntegrationFailure.serviceError);
-        expect(e.message, contains('strava'));
+        expect(e.message, contains('Strava'));
       },
     );
 

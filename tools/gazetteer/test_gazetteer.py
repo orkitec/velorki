@@ -820,6 +820,42 @@ class GazetteerTest(unittest.TestCase):
             handle.write(xml)
         return build.read_pbf(path, True, "flex_mem")
 
+    def test_a_platform_or_a_planned_road_is_no_street(self) -> None:
+        ways = "".join(
+            f""" <way id="{30 + i}" version="1">
+  <nd ref="11"/><nd ref="12"/>
+  <tag k="highway" v="{highway}"/><tag k="name" v="{name}"/>
+ </way>
+"""
+            for i, (highway, name) in enumerate(
+                [
+                    ("residential", "Hauptstrasse"),
+                    ("platform", "S Suedkreuz"),
+                    ("proposed", "Neue Strasse"),
+                    ("corridor", "Ladenpassage"),
+                    ("construction", "Baustrasse"),
+                ]
+            )
+        )
+        xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="test">
+ <node id="11" lat="47.150" lon="9.550" version="1"/>
+ <node id="12" lat="47.151" lon="9.551" version="1"/>
+{ways}</osm>
+"""
+        out = tempfile.mkdtemp(prefix="gaz-streets-", dir=self.tmp)
+        self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+        path = os.path.join(out, "streets.osm")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(xml)
+        extract = build.read_pbf(path, True, "flex_mem")
+        self.assertEqual(
+            sorted(w.name for w in extract.street_ways),
+            ["Baustrasse", "Hauptstrasse"],
+            "a platform, a planned road and a corridor are no street; "
+            "a road being built is",
+        )
+
     def language_alias_file(self) -> str:
         extract = self.language_alias_extract()
         out = tempfile.mkdtemp(prefix="gaz-lang-out-", dir=self.tmp)

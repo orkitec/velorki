@@ -1,6 +1,11 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/shell_layout.dart';
+import '../application/covering_sheets.dart';
 import 'docking_sheet.dart';
 import 'floating_bar.dart';
 
@@ -101,6 +106,7 @@ class SheetGeometry {
     required this.length,
     required this.endInset,
     required this.viewEndInset,
+    required this.barGap,
   });
 
   /// The geometry for the screen at [context]: a tab's, whose padding counts
@@ -116,6 +122,7 @@ class SheetGeometry {
         length: size.height,
         endInset: padding.bottom,
         viewEndInset: viewPadding.bottom,
+        barGap: floatingBarBottomGapOf(context),
       );
     }
     final left = layout.side == RailSide.left;
@@ -124,6 +131,7 @@ class SheetGeometry {
       length: size.width,
       endInset: left ? padding.left : padding.right,
       viewEndInset: left ? viewPadding.left : viewPadding.right,
+      barGap: floatingBarBottomGap,
     );
   }
 
@@ -134,11 +142,13 @@ class SheetGeometry {
   factory SheetGeometry.overShell(MediaQueryData media, ShellLayout layout) {
     final viewPadding = media.viewPadding;
     if (!layout.sideRail) {
+      final gap = floatingBarBottomGapFor(media, defaultTargetPlatform);
       return SheetGeometry._(
         layout: layout,
         length: media.size.height,
-        endInset: viewPadding.bottom + floatingBarBottomGap + floatingBarHeight,
+        endInset: viewPadding.bottom + gap + floatingBarHeight,
         viewEndInset: viewPadding.bottom,
+        barGap: gap,
       );
     }
     final left = layout.side == RailSide.left;
@@ -147,6 +157,7 @@ class SheetGeometry {
       length: media.size.width,
       endInset: floatingRailInset(viewPadding, layout.side),
       viewEndInset: left ? viewPadding.left : viewPadding.right,
+      barGap: floatingBarBottomGap,
     );
   }
 
@@ -169,10 +180,13 @@ class SheetGeometry {
   /// The safe area alone at the sheet's end, without bar or rail.
   final double viewEndInset;
 
+  /// The air between the safe area and the bar or the rail
+  /// ([floatingBarBottomGapFor] upright).
+  final double barGap;
+
   /// What the bar covers while a ride hides the navigation and the figures
   /// bar takes its place: the same shape.
-  double get figuresBarInset =>
-      viewEndInset + floatingBarBottomGap + floatingBarHeight;
+  double get figuresBarInset => viewEndInset + barGap + floatingBarHeight;
 
   /// [dp] above the sheet's end inset as a fraction of [length].
   double fraction(double dp) =>
@@ -241,6 +255,10 @@ double mapSheetExtent(
   return mapped.clamp(to.collapsed, to.max);
 }
 
+/// How long a tab's sheet takes to go down out from behind a modal sheet
+/// opening over it, and to come back once the modal sheet has closed.
+const Duration coveredSheetDuration = Duration(milliseconds: 250);
+
 /// A tab's sheet: the bottom sheet that docks in the bar, built as it always
 /// was; on a phone turned sideways the same sheet turned a quarter with the
 /// bar, coming out from the rail's side, its content turned back upright.
@@ -254,7 +272,12 @@ double mapSheetExtent(
 /// sheet snaps to with it. The sheet keeps where the rider left it instead:
 /// docked stays docked, at rest stays at rest, pulled open stays as far
 /// open; see [mapSheetExtent].
-class AdaptiveDockingSheet extends StatefulWidget {
+///
+/// With [collapseWhenCovered], upright, the sheet goes down to
+/// [coveredExtent] while a modal sheet is open over the tab (counted by
+/// [coveringSheetsProvider]), so it does not peek out behind it, and comes
+/// back to exactly where it was once the last one has closed.
+class AdaptiveDockingSheet extends ConsumerStatefulWidget {
   /// Creates the sheet.
   const AdaptiveDockingSheet({
     required this.controller,
@@ -272,6 +295,9 @@ class AdaptiveDockingSheet extends StatefulWidget {
     this.onExtent,
     this.sheetKey,
     this.boxKey,
+    this.collapseWhenCovered = false,
+    this.coveredExtent,
+    this.coveredReturnExtent,
     super.key,
   });
 
@@ -323,14 +349,30 @@ class AdaptiveDockingSheet extends StatefulWidget {
   /// The content; it reads its scroll controller from [SheetContentScroll].
   final Widget child;
 
+  /// Whether the sheet goes down while a modal sheet covers the tab: the
+  /// tab on screen's sheet does, a tab's away does not. Sideways nothing
+  /// moves, whatever this says.
+  final bool collapseWhenCovered;
+
+  /// Where the sheet goes down to while covered: [collapsedExtent] by
+  /// default. A sheet already lower stays where it is.
+  final double? coveredExtent;
+
+  /// Where the sheet comes back to once uncovered, asked as the cover
+  /// begins: its size then by default. A screen that has moved the sheet
+  /// out of the way for a while of its own (under the keyboard) names the
+  /// place it would have brought it back to.
+  final ValueGetter<double>? coveredReturnExtent;
+
   /// Where the sheet rests: its snap point, or where it starts without one.
   double get restingExtent => snapSizes?.firstOrNull ?? initialExtent;
 
   @override
-  State<AdaptiveDockingSheet> createState() => _AdaptiveDockingSheetState();
+  ConsumerState<AdaptiveDockingSheet> createState() =>
+      _AdaptiveDockingSheetState();
 }
 
-class _AdaptiveDockingSheetState extends State<AdaptiveDockingSheet> {
+class _AdaptiveDockingSheetState extends ConsumerState<AdaptiveDockingSheet> {
   /// The screen, its safe areas and the turn the sheet was last built for,
   /// with its stops. The safe areas move with a turn too, a frame or two
   /// after the size; the keyboard moves neither. The phone's own, not the
@@ -370,11 +412,76 @@ class _AdaptiveDockingSheetState extends State<AdaptiveDockingSheet> {
     if (oldWidget.controller != widget.controller ||
         oldWidget.sheetKey != widget.sheetKey) {
       _stops = null;
+      _beforeCover = null;
+    }
+  }
+
+  /// Where the sheet was before a modal sheet covered the tab, among the
+  /// stops it had then; `null` while it has not been lowered for one.
+  (double, SheetStops)? _beforeCover;
+
+  void _onCovering(int? previous, int next) {
+    final before = previous ?? 0;
+    if (before == 0 && next > 0) {
+      _lower();
+    } else if (before > 0 && next == 0) {
+      _raise();
+    }
+  }
+
+  /// A modal sheet opens over the tab: the sheet goes down out from behind
+  /// it, remembering where it was.
+  void _lower() {
+    final controller = widget.controller;
+    final stops = _stops;
+    if (!mounted ||
+        !widget.collapseWhenCovered ||
+        !controller.isAttached ||
+        stops == null ||
+        _beforeCover != null ||
+        ShellLayout.of(context).sideRail) {
+      return;
+    }
+    const near = 0.005;
+    final target = widget.coveredExtent ?? widget.collapsedExtent;
+    final size = controller.size;
+    final back = widget.coveredReturnExtent?.call() ?? size;
+    // Down already, and to stay there.
+    if (size <= target + near && back <= target + near) return;
+    _beforeCover = (back, stops);
+    if (size > target + near) _move(target);
+  }
+
+  /// The last modal sheet has closed: the sheet comes back to where it
+  /// was, wherever the rider may have pulled it meanwhile, and to the same
+  /// place among its stops should the phone have turned.
+  void _raise() {
+    final before = _beforeCover;
+    _beforeCover = null;
+    if (before == null || !mounted || !widget.controller.isAttached) return;
+    final (extent, stops) = before;
+    _move(mapSheetExtent(extent, from: stops, to: _stops ?? stops));
+  }
+
+  void _move(double extent) {
+    final controller = widget.controller;
+    if ((controller.size - extent).abs() < 0.001) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      controller.jumpTo(extent);
+    } else {
+      unawaited(
+        controller.animateTo(
+          extent,
+          duration: coveredSheetDuration,
+          curve: Curves.easeOutCubic,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(coveringSheetsProvider, _onCovering);
     final layout = ShellLayout.of(context);
     final turns = shellQuarterTurns(layout);
     final screen = MediaQuery.sizeOf(context);

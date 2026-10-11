@@ -2,7 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../domain/cycle_map.dart';
 import '../domain/map_controller.dart';
+import '../domain/weather_map.dart';
+import '../domain/wind_field.dart';
 
 /// One recorded [MapController.moveTo] call.
 @immutable
@@ -179,6 +182,12 @@ class FakeMapController implements MapController {
   /// Every [setPois] call, in order.
   final List<List<MapPoi>> poiCalls = <List<MapPoi>>[];
 
+  /// The stops of the last [setStops] call.
+  List<MapPoi> stops = const <MapPoi>[];
+
+  /// Every [setStops] call, in order.
+  final List<List<MapPoi>> stopCalls = <List<MapPoi>>[];
+
   /// The turn markers of the last [setTurnMarkers] call.
   List<MapTurnMarker> turnMarkers = const <MapTurnMarker>[];
 
@@ -194,6 +203,13 @@ class FakeMapController implements MapController {
   /// Every [setTrackSegments] call, in order.
   final List<List<TrackSegment>> trackSegmentCalls = <List<TrackSegment>>[];
 
+  /// The wind drawn on the route; empty when there is none.
+  List<WindSegment> routeWind = const <WindSegment>[];
+
+  /// Every [setRouteWind] call, in order; a [clearRouteWind] records an
+  /// empty list.
+  final List<List<WindSegment>> routeWindCalls = <List<WindSegment>>[];
+
   /// The last [setPosition] call, `null` until one happens.
   RecordedPosition? position;
 
@@ -205,6 +221,27 @@ class FakeMapController implements MapController {
 
   /// Every [setCyclosmOverlay] call, in order.
   final List<bool> cyclosmOverlayCalls = <bool>[];
+
+  /// The cycle map file drawn, if any.
+  String? cycleMap;
+
+  /// Every [setCycleMap] call, in order.
+  final List<String?> cycleMapCalls = <String?>[];
+
+  /// The cycle map parts drawn.
+  Set<CycleMapPart> cycleMapParts = const <CycleMapPart>{};
+
+  /// The weather layers of the last [setWeatherLayers] call.
+  List<WeatherLayer> weatherLayers = const <WeatherLayer>[];
+
+  /// Every [setWeatherLayers] call, in order.
+  final List<List<WeatherLayer>> weatherLayerCalls = <List<WeatherLayer>>[];
+
+  /// The wind arrows of the last [setWindArrows] call.
+  WindArrows? windArrows;
+
+  /// Every [setWindArrows] call, in order.
+  final List<WindArrows?> windArrowCalls = <WindArrows?>[];
 
   @override
   LatLng? center;
@@ -237,7 +274,21 @@ class FakeMapController implements MapController {
   void Function(int index)? onTurnTapped;
 
   @override
+  void Function(int index)? onStopTapped;
+
+  @override
   VoidCallback? onCameraIdle;
+
+  /// The listeners [addCameraIdleListener] added and nothing removed since.
+  final List<VoidCallback> cameraIdleListeners = <VoidCallback>[];
+
+  @override
+  void addCameraIdleListener(VoidCallback listener) =>
+      cameraIdleListeners.add(listener);
+
+  @override
+  void removeCameraIdleListener(VoidCallback listener) =>
+      cameraIdleListeners.remove(listener);
 
   /// Forgets every recorded call; the handlers and the camera stay.
   void reset() {
@@ -251,6 +302,8 @@ class FakeMapController implements MapController {
     waypointCalls.clear();
     pois = const <MapPoi>[];
     poiCalls.clear();
+    stops = const <MapPoi>[];
+    stopCalls.clear();
     turnMarkers = const <MapTurnMarker>[];
     trackLine = const <LatLng>[];
     trackLineCalls.clear();
@@ -281,8 +334,17 @@ class FakeMapController implements MapController {
   /// Simulates a tap on the turn marker at [index].
   void emitTurnTapped(int index) => onTurnTapped?.call(index);
 
-  /// Pretends the camera came to rest.
-  void emitCameraIdle() => onCameraIdle?.call();
+  /// Simulates a tap on the stop at [index].
+  void emitStopTapped(int index) => onStopTapped?.call(index);
+
+  /// Pretends the camera came to rest: the screen's handler and every
+  /// listener.
+  void emitCameraIdle() {
+    onCameraIdle?.call();
+    for (final listener in List<VoidCallback>.of(cameraIdleListeners)) {
+      listener();
+    }
+  }
 
   // ------------------------------------------------------------- recording
 
@@ -362,6 +424,13 @@ class FakeMapController implements MapController {
   }
 
   @override
+  Future<void> setStops(List<MapPoi> stops) async {
+    final copy = List<MapPoi>.unmodifiable(stops);
+    this.stops = copy;
+    stopCalls.add(copy);
+  }
+
+  @override
   Future<void> setTurnMarkers(List<MapTurnMarker> turns) async {
     turnMarkers = List<MapTurnMarker>.unmodifiable(turns);
   }
@@ -380,6 +449,19 @@ class FakeMapController implements MapController {
     trackSegments = copy;
     trackSegmentCalls.add(copy);
     trackLine = const <LatLng>[];
+  }
+
+  @override
+  Future<void> setRouteWind(List<WindSegment> segments) async {
+    final copy = List<WindSegment>.unmodifiable(segments);
+    routeWind = copy;
+    routeWindCalls.add(copy);
+  }
+
+  @override
+  Future<void> clearRouteWind() async {
+    routeWind = const <WindSegment>[];
+    routeWindCalls.add(const <WindSegment>[]);
   }
 
   @override
@@ -419,5 +501,28 @@ class FakeMapController implements MapController {
   Future<void> setCyclosmOverlay(bool visible) async {
     cyclosmOverlay = visible;
     cyclosmOverlayCalls.add(visible);
+  }
+
+  @override
+  Future<void> setCycleMap(String? path) async {
+    cycleMap = path;
+    cycleMapCalls.add(path);
+  }
+
+  @override
+  Future<void> setCycleMapParts(Set<CycleMapPart> parts) async {
+    cycleMapParts = parts;
+  }
+
+  @override
+  Future<void> setWeatherLayers(List<WeatherLayer> layers) async {
+    weatherLayers = layers;
+    weatherLayerCalls.add(layers);
+  }
+
+  @override
+  Future<void> setWindArrows(WindArrows? arrows) async {
+    windArrows = arrows;
+    windArrowCalls.add(arrows);
   }
 }

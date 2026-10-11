@@ -21,7 +21,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
+import 'package:velorki/features/map/domain/cycle_map.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
+import 'package:velorki/features/map/domain/weather_map.dart';
+import 'package:velorki/features/map/domain/wind_field.dart';
 import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -482,6 +485,21 @@ class RecordingMapController implements MapController {
   set onCameraIdle(VoidCallback? handler) => inner.onCameraIdle = handler;
 
   @override
+  void addCameraIdleListener(VoidCallback listener) =>
+      inner.addCameraIdleListener(listener);
+
+  @override
+  void removeCameraIdleListener(VoidCallback listener) =>
+      inner.removeCameraIdleListener(listener);
+
+  @override
+  Future<void> setStops(List<MapPoi> stops) => inner.setStops(stops);
+
+  @override
+  set onStopTapped(void Function(int index)? handler) =>
+      inner.onStopTapped = handler;
+
+  @override
   Future<void> moveTo(
     LatLng center, {
     double? zoom,
@@ -512,6 +530,13 @@ class RecordingMapController implements MapController {
       inner.setTrackSegments(segments);
 
   @override
+  Future<void> setRouteWind(List<WindSegment> segments) =>
+      inner.setRouteWind(segments);
+
+  @override
+  Future<void> clearRouteWind() => inner.clearRouteWind();
+
+  @override
   Future<void> setPosition(
     LatLng? position, {
     double? accuracyM,
@@ -535,4 +560,18 @@ class RecordingMapController implements MapController {
   @override
   Future<void> setCyclosmOverlay(bool visible) =>
       inner.setCyclosmOverlay(visible);
+
+  @override
+  Future<void> setCycleMap(String? path) => inner.setCycleMap(path);
+
+  @override
+  Future<void> setCycleMapParts(Set<CycleMapPart> parts) =>
+      inner.setCycleMapParts(parts);
+
+  @override
+  Future<void> setWeatherLayers(List<WeatherLayer> layers) =>
+      inner.setWeatherLayers(layers);
+
+  @override
+  Future<void> setWindArrows(WindArrows? arrows) => inner.setWindArrows(arrows);
 }

@@ -9,15 +9,24 @@ import 'package:velorki/features/shared/presentation/floating_bar.dart';
 import '../../support/app.dart';
 
 /// Where the glass of the bar [bar] lands at the bottom of an SE-sized
-/// screen with a home indicator.
-Future<Rect> _glass(WidgetTester tester, Widget bar) async {
+/// screen with a safe area of 34 at the bottom, a gesture zone there or
+/// not ([zone]).
+Future<Rect> _glass(
+  WidgetTester tester,
+  Widget bar, {
+  required bool zone,
+}) async {
   tester.view.physicalSize =
       const Size(375, 667) * tester.view.devicePixelRatio;
   tester.view.viewPadding = FakeViewPadding(
     bottom: 34 * tester.view.devicePixelRatio,
   );
+  tester.view.systemGestureInsets = FakeViewPadding(
+    bottom: zone ? 34 * tester.view.devicePixelRatio : 0,
+  );
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetViewPadding);
+  addTearDown(tester.view.resetSystemGestureInsets);
   await tester.pumpWidget(
     testApp(
       home: Scaffold(
@@ -38,39 +47,48 @@ Future<Rect> _glass(WidgetTester tester, Widget bar) async {
 
 void main() {
   for (final docked in [false, true]) {
-    testWidgets('the figures bar sits exactly where the tab bar sits, '
-        '${docked ? 'docked' : 'at rest'}', (tester) async {
-      final tabs = await _glass(
-        tester,
-        FloatingNavigationBar(
-          selectedIndex: 1,
-          onDestinationSelected: (_) {},
-          docked: docked,
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.route), label: 'Plan'),
-            NavigationDestination(icon: Icon(Icons.circle), label: 'Record'),
-          ],
-        ),
-      );
-      final figures = await _glass(
-        tester,
-        FiguresBar(
-          docked: docked,
-          paused: false,
-          system: units.UnitSystem.metric,
-          onOpen: () {},
-          figures: const [
-            LiveFigureReading(LiveFigure.distance, value: 1200),
-            LiveFigureReading(LiveFigure.speed, value: 5),
-            LiveFigureReading(LiveFigure.avgSpeed, value: 4),
-            LiveFigureReading(LiveFigure.ascent, value: 20),
-          ],
-        ),
-      );
-      expect(figures, tabs);
-      expect(figures.height, floatingBarHeight);
-      expect(figures.bottom, 667 - 34 - floatingBarBottomGap);
-      expect(figures.left, floatingBarSideMargin);
-    });
+    for (final zone in [true, false]) {
+      testWidgets('the figures bar sits exactly where the tab bar sits, '
+          '${docked ? 'docked' : 'at rest'}, '
+          '${zone ? 'over a gesture zone' : 'without one'}', (tester) async {
+        final tabs = await _glass(
+          tester,
+          FloatingNavigationBar(
+            selectedIndex: 1,
+            onDestinationSelected: (_) {},
+            docked: docked,
+            destinations: const [
+              NavigationDestination(icon: Icon(Icons.route), label: 'Plan'),
+              NavigationDestination(icon: Icon(Icons.circle), label: 'Record'),
+            ],
+          ),
+          zone: zone,
+        );
+        final figures = await _glass(
+          tester,
+          FiguresBar(
+            docked: docked,
+            paused: false,
+            system: units.UnitSystem.metric,
+            onOpen: () {},
+            figures: const [
+              LiveFigureReading(LiveFigure.distance, value: 1200),
+              LiveFigureReading(LiveFigure.speed, value: 5),
+              LiveFigureReading(LiveFigure.avgSpeed, value: 4),
+              LiveFigureReading(LiveFigure.ascent, value: 20),
+            ],
+          ),
+          zone: zone,
+        );
+        expect(figures, tabs);
+        expect(figures.height, floatingBarHeight);
+        // Without a zone a band higher, for the map's credit under it.
+        expect(
+          figures.bottom,
+          667 - 34 - floatingBarBottomGap - (zone ? 0 : attributionBandHeight),
+        );
+        expect(figures.left, floatingBarSideMargin);
+      });
+    }
   }
 }

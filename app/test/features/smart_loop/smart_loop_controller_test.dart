@@ -506,7 +506,14 @@ void main() {
           .search(_request);
 
       final state = container.read(smartLoopControllerProvider);
-      expect(state.error, 'fake: no track found');
+      expect(
+        state.error,
+        isA<RoutingException>().having(
+          (e) => e.message,
+          'message',
+          'fake: no track found',
+        ),
+      );
       expect(state.foundNothing, isFalse);
       expect(state.candidates, isEmpty);
     });

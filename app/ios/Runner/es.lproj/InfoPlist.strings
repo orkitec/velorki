@@ -1,0 +1,4 @@
+"NSLocationWhenInUseUsageDescription" = "Velorki muestra tu posición en el mapa y graba tus salidas, también con la pantalla apagada durante una grabación.";
+"NSHealthShareUsageDescription" = "Velorki lee tu pulso de Apple Health para mostrarlo y guardarlo con tus salidas.";
+"NSHealthUpdateUsageDescription" = "Velorki guarda tus salidas terminadas en Apple Health como entrenamientos de ciclismo.";
+"NSBluetoothAlwaysUsageDescription" = "Velorki se conecta por Bluetooth a tu banda de pulso y a tus sensores de velocidad, cadencia y potencia.";

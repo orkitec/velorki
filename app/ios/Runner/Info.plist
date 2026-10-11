@@ -43,6 +43,15 @@
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>de</string>
+		<string>fr</string>
+		<string>es</string>
+		<string>it</string>
+		<string>nl</string>
+	</array>
 	<key>CFBundleName</key>
 	<string>velorki</string>
 	<key>CFBundlePackageType</key>
@@ -85,6 +94,7 @@
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>strava</string>
+		<string>comgooglemaps</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>

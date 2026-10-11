@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -8,7 +9,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart' hide CancelToken;
 
 import '../../../app/app_config.dart';
+import '../../map/data/weather_map_preferences.dart';
 import 'routing_tiles_repository.dart';
+import '../../../core/l10n/localized_text.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 part 'segments_manifest_service.g.dart';
 
@@ -22,15 +26,27 @@ part 'segments_manifest_service.g.dart';
 const String brouterDeSegmentsUrl = 'https://brouter.de/brouter/segments4';
 
 /// Raised when the segment mirror cannot be read.
-class SegmentsManifestException implements Exception {
+class SegmentsManifestException implements LocalizedException {
   /// Creates the failure.
-  const SegmentsManifestException(this.message, {this.cause});
+  const SegmentsManifestException(
+    this.message, {
+    this.cause,
+    this.unreachable = false,
+  });
 
-  /// What went wrong, in one sentence.
+  /// What went wrong, in one English sentence for the log.
   final String message;
 
   /// The underlying error, if any.
   final Object? cause;
+
+  /// Whether the mirror did not answer at all, rather than answering
+  /// something unreadable.
+  final bool unreachable;
+
+  @override
+  String describe(AppLocalizations l10n) =>
+      unreachable ? l10n.tileMirrorUnreachable : l10n.tileMirrorUnreadable;
 
   @override
   String toString() => 'SegmentsManifestException: $message';
@@ -61,15 +77,43 @@ class _Shard {
 /// each entry remembering the shard it is served from. One unreadable shard
 /// fails the whole fetch: a manifest missing a shard would silently hide
 /// whole regions from the rider.
+///
+/// The pointer may also carry `weatherLayers`, which overrides the weather
+/// map's built-in sources by `id` (see `applyWeatherOverride`); every read
+/// pointer hands it to [onPointer]. Each entry names an `id` and any of
+/// `enabled` (bool), `kind` (`radar`/`clouds`/`wind`), `url` (https, the
+/// tile or GetMap template with `{bbox-epsg-3857}`, `{z}/{x}/{y}`,
+/// `{width}`, `{height}`, `{time}`, `{timeMs}`, a model's `{run}` and
+/// `{runMinute}`; for the wind's WCS `{west}`, `{south}`, `{east}`,
+/// `{north}` and `{time}`), `time` (`none`/`iso`/`epochMs`/`modelRun`),
+/// `stepMinutes`, `delayMinutes`, `historyMinutes`, `forecastMinutes`,
+/// `tileSize`, `minzoom`, `maxzoom`, `coverage` (`[[west, south, east,
+/// north], ...]`), `attribution` (`{year}` is the image's year),
+/// `opacity`, `metresPerPixel` (the service's native resolution, which a
+/// cloud detail and the soft radar's image are asked at) and `imageUrl`
+/// (https, a radar's GetMap or exportImage template for the soft radar,
+/// with `{bbox-epsg-3857}`, `{width}`, `{height}` and the time, or a tile
+/// template with `{z}/{x}/{y}` the image is put together from; without
+/// one the radar stays on tiles), `role`, `palette` and `timesUrl` (https,
+/// a WMS's capabilities, or for `modelRun` the latest-run JSON). An unknown `id` with `kind`, `url`,
+/// `coverage` and `attribution` adds a source. Anything unreadable falls back to the
+/// built-in sources; it is never an error.
 class SegmentsManifestService {
   /// Creates the service. An empty [segmentsUrl] selects the brouter.de
   /// fallback.
-  SegmentsManifestService({required Dio dio, required String segmentsUrl})
+  SegmentsManifestService({
+    required Dio dio,
+    required String segmentsUrl,
+    this.onPointer,
+  })
     // Named parameters cannot be private, so this cannot be an initialising
     // formal.
     // ignore: prefer_initializing_formals
     : _dio = dio,
-      _segmentsUrl = segmentsUrl.trim();
+       _segmentsUrl = segmentsUrl.trim();
+
+  /// Hears every pointer read, for what it carries besides the tiles.
+  final void Function(Map<Object?, Object?> pointer)? onPointer;
 
   final Dio _dio;
   final String _segmentsUrl;
@@ -158,6 +202,7 @@ class SegmentsManifestService {
       throw SegmentsManifestException(
         'The $what at $base could not be reached.',
         cause: e,
+        unreachable: true,
       );
     }
     try {
@@ -179,6 +224,7 @@ class SegmentsManifestService {
       throw SegmentsManifestException(
         'The tile mirror pointer at $_segmentsUrl could not be reached.',
         cause: e,
+        unreachable: true,
       );
     }
     final Object? data;
@@ -194,6 +240,11 @@ class SegmentsManifestService {
       throw SegmentsManifestException(
         'The tile mirror pointer at $_segmentsUrl is not readable.',
       );
+    }
+    try {
+      onPointer?.call(data);
+    } on Object {
+      // What the pointer carries besides the tiles never fails the fetch.
     }
     return data;
   }
@@ -237,6 +288,7 @@ class SegmentsManifestService {
       throw SegmentsManifestException(
         'The segment listing at $baseUrl could not be reached.',
         cause: e,
+        unreachable: true,
       );
     }
     try {
@@ -294,6 +346,11 @@ SegmentsManifestService segmentsManifestService(Ref ref) =>
     SegmentsManifestService(
       dio: ref.watch(segmentsDioProvider),
       segmentsUrl: ref.watch(effectiveConfigProvider).segmentsUrl,
+      onPointer: (pointer) => unawaited(
+        ref
+            .read(weatherMapSourcesProvider.notifier)
+            .applyPointer(pointer['weatherLayers']),
+      ),
     );
 
 /// The manifest, fetched once and refreshable.

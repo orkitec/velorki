@@ -36,7 +36,7 @@ class TileDownloadQueueState {
   final List<TileName> finished;
 
   /// The last failure, kept until the next run starts.
-  final String? failure;
+  final TileDownloadException? failure;
 
   /// Whether a download is running.
   bool get isRunning => current != null;
@@ -52,7 +52,7 @@ class TileDownloadQueueState {
     bool clearProgress = false,
     List<TileName>? queued,
     List<TileName>? finished,
-    String? failure,
+    TileDownloadException? failure,
     bool clearFailure = false,
   }) => TileDownloadQueueState(
     current: clearCurrent ? null : (current ?? this.current),
@@ -182,7 +182,7 @@ class TileDownloadQueue extends _$TileDownloadQueue {
             _queue.clear();
             break;
           }
-          state = state.copyWith(failure: e.message);
+          state = state.copyWith(failure: e);
         }
       }
     } finally {

@@ -1,0 +1,579 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../l10n/generated/app_localizations.dart';
+import '../../navigation/application/navigation_controller.dart';
+import '../../search/domain/search_group.dart';
+import '../../search/presentation/search_field.dart'
+    show poiKindIcon, gazetteerPoiKindLabel;
+import '../../search/presentation/search_settings_screen.dart'
+    show searchGroupLabel;
+import '../../shared/application/covering_sheets.dart';
+import '../../shared/presentation/stat_tile.dart';
+import '../application/weather_map_binding.dart';
+import '../data/cycle_map_layers.dart';
+import '../data/map_preferences.dart';
+import '../data/weather_map_preferences.dart';
+import '../domain/cycle_map.dart';
+import '../domain/weather_map.dart';
+import 'map_chrome.dart';
+import 'weather_time_row.dart' show weatherClockTime;
+
+/// The groups whose kinds the sheet offers as stops, in this order.
+const List<SearchGroup> stopGroups = <SearchGroup>[
+  SearchGroup.cyclingStops,
+  SearchGroup.overnight,
+  SearchGroup.landmarks,
+];
+
+/// The kinds of [group] the sheet offers: every kind of the group this
+/// build has a label for, but a named building, which is no stop.
+List<String> stopKindsOf(AppLocalizations l10n, SearchGroup group) => <String>[
+  for (final entry in searchGroupOfPoiKind.entries)
+    if (entry.value == group &&
+        entry.key != 'building' &&
+        gazetteerPoiKindLabel(l10n, entry.key) != null)
+      entry.key,
+];
+
+/// Opens the map's Layers sheet: the cycle map, and where [offer] says so,
+/// the stops.
+Future<void> showLayersSheet(
+  BuildContext context, {
+  MapStopsOffer offer = MapStopsOffer.none,
+}) => coverTabSheet(
+  context,
+  () => showModalBottomSheet<void>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    builder: (_) => LayersSheet(offer: offer),
+  ),
+);
+
+/// What the map shows over its base: the cycle map overlay, and on the
+/// shared map the stops, which kinds of them and, on a guided ride, from
+/// where.
+class LayersSheet extends ConsumerWidget {
+  /// Creates the sheet.
+  const LayersSheet({this.offer = MapStopsOffer.none, super.key});
+
+  /// What the sheet offers about stops.
+  final MapStopsOffer offer;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final cyclosm = ref.watch(cyclosmOverlayProvider);
+    final cycleMap = ref.watch(cycleMapPreferencesProvider);
+    final cycleMapPrefs = ref.read(cycleMapPreferencesProvider.notifier);
+    final weather = ref.watch(weatherMapPreferencesProvider);
+    final weatherPrefs = ref.read(weatherMapPreferencesProvider.notifier);
+    final weatherSources = ref.watch(weatherMapSourcesProvider);
+    final opacity = ref.watch(weatherMapOpacityProvider);
+    final opacityPrefs = ref.read(weatherMapOpacityProvider.notifier);
+    final stops = ref.watch(mapStopsPreferencesProvider);
+    final preferences = ref.read(mapStopsPreferencesProvider.notifier);
+    final guided =
+        offer == MapStopsOffer.ride &&
+        ref.watch(activeGuidedRouteProvider) != null;
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(
+        bottom: 16 + MediaQuery.paddingOf(context).bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: Text(l10n.mapLayers, style: theme.textTheme.titleMedium),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.directions_bike),
+            title: Text(l10n.mapLayersCycleMap),
+            subtitle: Text(l10n.mapLayersCycleMapSubtitle),
+            value: cycleMap.shown,
+            onChanged: (value) => unawaited(cycleMapPrefs.setShown(value)),
+          ),
+          // What the cycle map draws folds away with it, as the stops'
+          // kinds do; each chip shows its line, so the chips are the legend.
+          AnimatedSize(
+            duration: const Duration(milliseconds: 350),
+            reverseDuration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubic,
+            alignment: Alignment.topCenter,
+            child: !cycleMap.shown
+                ? const SizedBox(width: double.infinity)
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final part in CycleMapPart.values)
+                          FilterChip(
+                            avatar: CycleMapPartSample(part: part),
+                            label: Text(cycleMapPartLabel(l10n, part)),
+                            showCheckmark: false,
+                            selected: cycleMap.parts.contains(part),
+                            onSelected: (value) => unawaited(
+                              cycleMapPrefs.setPart(part, shown: value),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.public),
+            title: Text(l10n.mapLayersOnlineCycleMap),
+            subtitle: Text(l10n.mapLayersOnlineCycleMapSubtitle),
+            value: cyclosm,
+            onChanged: (value) =>
+                unawaited(ref.read(cyclosmOverlayProvider.notifier).set(value)),
+          ),
+          // The weather, straight from the public services that make it;
+          // a switch whose services a build or the mirror turned off goes.
+          if (weatherKindAvailable(weatherSources, WeatherKind.radar))
+            SwitchListTile(
+              secondary: const Icon(Icons.water_drop_outlined),
+              title: Text(l10n.mapLayersRainRadar),
+              subtitle: Text(l10n.mapLayersRainRadarSubtitle),
+              value: weather.radar,
+              onChanged: (value) => unawaited(weatherPrefs.setRadar(value)),
+            ),
+          if (weatherKindAvailable(weatherSources, WeatherKind.radar))
+            _OpacitySlider(
+              key: radarOpacityKey,
+              shown: weather.radar,
+              value: opacity.radar,
+              onChanged: (value, {required save}) =>
+                  unawaited(opacityPrefs.setRadar(value, save: save)),
+            ),
+          if (weatherKindAvailable(weatherSources, WeatherKind.clouds))
+            SwitchListTile(
+              secondary: const Icon(Icons.cloud_outlined),
+              title: Text(l10n.mapLayersClouds),
+              subtitle: _CloudsSubtitle(on: weather.clouds),
+              value: weather.clouds,
+              onChanged: (value) => unawaited(weatherPrefs.setClouds(value)),
+            ),
+          if (weatherKindAvailable(weatherSources, WeatherKind.clouds))
+            _OpacitySlider(
+              key: cloudsOpacityKey,
+              shown: weather.clouds,
+              value: opacity.clouds,
+              onChanged: (value, {required save}) =>
+                  unawaited(opacityPrefs.setClouds(value, save: save)),
+            ),
+          if (weatherKindAvailable(weatherSources, WeatherKind.wind))
+            SwitchListTile(
+              secondary: const Icon(Icons.air),
+              title: Text(l10n.mapLayersWind),
+              subtitle: Text(l10n.mapLayersWindSubtitle),
+              value: weather.wind,
+              onChanged: (value) => unawaited(weatherPrefs.setWind(value)),
+            ),
+          if (offer != MapStopsOffer.none) ...[
+            SwitchListTile(
+              secondary: const Icon(Icons.local_cafe_outlined),
+              title: Text(l10n.mapLayersStops),
+              subtitle: Text(
+                offer == MapStopsOffer.plan
+                    ? l10n.mapLayersStopsPlanHint
+                    : l10n.mapLayersStopsRideHint,
+              ),
+              value: stops.shown,
+              onChanged: (value) => unawaited(preferences.setShown(value)),
+            ),
+            // The choices that only mean something with stops on fold away
+            // with the switch, as dependent settings do; what was picked is
+            // kept for the next time.
+            AnimatedSize(
+              // Unfolding a screenful of choices wants a moment; folding
+              // them away may be quicker.
+              duration: const Duration(milliseconds: 350),
+              reverseDuration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOutCubic,
+              alignment: Alignment.topCenter,
+              child: !stops.shown
+                  ? const SizedBox(width: double.infinity)
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (guided)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                            child: SegmentedButton<bool>(
+                              segments: [
+                                ButtonSegment<bool>(
+                                  value: true,
+                                  icon: const Icon(Icons.route),
+                                  label: Text(l10n.mapLayersAlongRoute),
+                                ),
+                                ButtonSegment<bool>(
+                                  value: false,
+                                  icon: const Icon(Icons.crop_free),
+                                  label: Text(l10n.mapLayersInArea),
+                                ),
+                              ],
+                              selected: <bool>{stops.alongRoute},
+                              showSelectedIcon: false,
+                              onSelectionChanged: (value) => unawaited(
+                                preferences.setAlongRoute(value.first),
+                              ),
+                            ),
+                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (final group in stopGroups)
+                              if (stopKindsOf(l10n, group) case final kinds
+                                  when kinds.isNotEmpty) ...[
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    20,
+                                    16,
+                                    20,
+                                    8,
+                                  ),
+                                  child: SectionCaption(
+                                    searchGroupLabel(l10n, group),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      for (final kind in kinds)
+                                        FilterChip(
+                                          // A selected chip is the accent colour:
+                                          // its icon goes with the label on it, not
+                                          // with Material's default for the state.
+                                          avatar: Icon(
+                                            poiKindIcon(kind),
+                                            size: 18,
+                                            color: stops.kinds.contains(kind)
+                                                ? Theme.of(context)
+                                                      .colorScheme
+                                                      .onPrimary
+                                                : null,
+                                          ),
+                                          label: Text(
+                                            gazetteerPoiKindLabel(l10n, kind)!,
+                                          ),
+                                          showCheckmark: false,
+                                          selected: stops.kinds.contains(kind),
+                                          onSelected: (value) => unawaited(
+                                            preferences.setKind(
+                                              kind,
+                                              shown: value,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                          ],
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The Clouds switch's subtitle: where the layer exists, and while it is on
+/// the moment of the cloud image in view, where the service names one.
+class _CloudsSubtitle extends ConsumerWidget {
+  const _CloudsSubtitle({required this.on});
+
+  final bool on;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final frame = on
+        ? ref.watch(sharedWeatherMapStatusProvider).cloudsFrame
+        : null;
+    if (frame == null) return Text(l10n.mapLayersCloudsSubtitle);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(l10n.mapLayersCloudsSubtitle),
+        Text(
+          l10n.mapWeatherCloudsAt(weatherClockTime(context, frame)),
+          key: cloudsImageTimeKey,
+        ),
+      ],
+    );
+  }
+}
+
+/// How opaque a weather layer is drawn, under its switch while that is on:
+/// from [weatherOpacityMin] to all of its opacity in steps of 5 %, live
+/// while dragged and remembered when let go.
+class _OpacitySlider extends StatelessWidget {
+  const _OpacitySlider({
+    required this.shown,
+    required this.value,
+    required this.onChanged,
+    super.key,
+  });
+
+  final bool shown;
+  final double value;
+  final void Function(double value, {required bool save}) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    String percent(double v) => l10n.mapLayersOpacityValue((v * 100).round());
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 350),
+      reverseDuration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOutCubic,
+      alignment: Alignment.topCenter,
+      child: !shown
+          ? const SizedBox(width: double.infinity)
+          : Padding(
+              // Under the switch's title, past its icon.
+              padding: const EdgeInsets.fromLTRB(56, 0, 16, 4),
+              child: Row(
+                children: [
+                  ExcludeSemantics(
+                    child: Text(
+                      l10n.mapLayersOpacity,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Semantics(
+                      label: l10n.mapLayersOpacity,
+                      child: Slider(
+                        value: value,
+                        min: weatherOpacityMin,
+                        divisions: ((1 - weatherOpacityMin) / 0.05).round(),
+                        semanticFormatterCallback: percent,
+                        onChanged: (v) => onChanged(v, save: false),
+                        onChangeEnd: (v) => onChanged(v, save: true),
+                      ),
+                    ),
+                  ),
+                  ExcludeSemantics(
+                    child: Text(
+                      percent(value),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+/// The keys of the rain's and the clouds' opacity sliders in the Layers
+/// sheet, for the tests.
+const Key radarOpacityKey = ValueKey<String>('layers-radar-opacity');
+const Key cloudsOpacityKey = ValueKey<String>('layers-clouds-opacity');
+
+/// The key of the cloud image's time in the Layers sheet, for the tests.
+const Key cloudsImageTimeKey = ValueKey<String>('layers-clouds-time');
+
+/// What [part] is called in the Layers sheet.
+String cycleMapPartLabel(AppLocalizations l10n, CycleMapPart part) =>
+    switch (part) {
+      CycleMapPart.infrastructure => l10n.mapCyclePartInfrastructure,
+      CycleMapPart.paths => l10n.mapCyclePartPaths,
+      CycleMapPart.contraflow => l10n.mapCyclePartContraflow,
+      CycleMapPart.directions => l10n.mapCyclePartDirections,
+      CycleMapPart.onewayStreets => l10n.mapCyclePartOnewayStreets,
+      CycleMapPart.routesNational => l10n.mapCyclePartRoutesNational,
+      CycleMapPart.routesRegional => l10n.mapCyclePartRoutesRegional,
+      CycleMapPart.routesLocal => l10n.mapCyclePartRoutesLocal,
+      CycleMapPart.surface => l10n.mapCyclePartSurface,
+      CycleMapPart.barriers => l10n.mapCyclePartBarriers,
+      CycleMapPart.traffic => l10n.mapCyclePartTraffic,
+      CycleMapPart.mtb => l10n.mapCyclePartMtb,
+      CycleMapPart.climbs => l10n.mapCyclePartClimbs,
+    };
+
+/// A short stroke of how the cycle map draws [part], in the colours of the
+/// map under the sheet: the chip's legend.
+class CycleMapPartSample extends StatelessWidget {
+  /// Creates the sample.
+  const CycleMapPartSample({required this.part, super.key});
+
+  /// The part drawn.
+  final CycleMapPart part;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).brightness == Brightness.dark
+        ? CycleMapColors.dark
+        : CycleMapColors.light;
+    return SizedBox.square(
+      dimension: 18,
+      child: CustomPaint(painter: _SamplePainter(part, colors)),
+    );
+  }
+}
+
+class _SamplePainter extends CustomPainter {
+  _SamplePainter(this.part, this.colors);
+
+  final CycleMapPart part;
+  final CycleMapColors colors;
+
+  static Color _hex(String hex) =>
+      Color(int.parse('FF${hex.substring(1, 7)}', radix: 16));
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final y = size.height / 2;
+    final line = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    void stroke(String color, double width, {double dash = 0, double gap = 0}) {
+      line
+        ..color = _hex(color)
+        ..strokeWidth = width;
+      if (dash == 0) {
+        canvas.drawLine(Offset(1, y), Offset(size.width - 1, y), line);
+        return;
+      }
+      for (var x = 1.0; x < size.width - 1; x += dash + gap) {
+        canvas.drawLine(
+          Offset(x, y),
+          Offset((x + dash).clamp(0, size.width - 1), y),
+          line,
+        );
+      }
+    }
+
+    switch (part) {
+      case CycleMapPart.infrastructure:
+        stroke(colors.infrastructure, 3);
+      case CycleMapPart.paths:
+        stroke(colors.shared, 2.5, dash: 4, gap: 3);
+      case CycleMapPart.contraflow:
+        stroke(colors.infrastructure, 2);
+        final arrow = Paint()
+          ..color = _hex(colors.infrastructure)
+          ..style = PaintingStyle.fill;
+        canvas
+          ..drawPath(
+            Path()
+              ..moveTo(1, y)
+              ..lineTo(6, y - 4)
+              ..lineTo(6, y + 4)
+              ..close(),
+            arrow,
+          )
+          ..drawPath(
+            Path()
+              ..moveTo(size.width - 1, y)
+              ..lineTo(size.width - 6, y - 4)
+              ..lineTo(size.width - 6, y + 4)
+              ..close(),
+            arrow,
+          );
+      case CycleMapPart.onewayStreets:
+        canvas.drawPath(
+          Path()
+            ..moveTo(size.width / 2 - 3, y - 5)
+            ..lineTo(size.width / 2 + 3, y)
+            ..lineTo(size.width / 2 - 3, y + 5),
+          Paint()
+            ..color = _hex(colors.trafficArrow)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.6
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round,
+        );
+      case CycleMapPart.directions:
+        stroke(colors.infrastructure, 2);
+        canvas.drawPath(
+          Path()
+            ..moveTo(size.width / 2 - 3, y - 5)
+            ..lineTo(size.width / 2 + 3, y)
+            ..lineTo(size.width / 2 - 3, y + 5),
+          Paint()
+            ..color = _hex(colors.infrastructure)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.6
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round,
+        );
+      case CycleMapPart.routesNational:
+        stroke(colors.routeNational, 7);
+      case CycleMapPart.routesRegional:
+        stroke(colors.routeRegional, 6);
+      case CycleMapPart.routesLocal:
+        stroke(colors.routeLocal, 5);
+      case CycleMapPart.surface:
+        stroke(colors.unpaved, 2.5, dash: 3, gap: 3);
+      case CycleMapPart.traffic:
+        line
+          ..color = _hex(colors.limit30).withValues(alpha: 0.5)
+          ..strokeWidth = 9;
+        canvas.drawLine(Offset(1, y), Offset(size.width - 1, y), line);
+      case CycleMapPart.climbs:
+        final third = (size.width - 2) / 3;
+        for (final (i, color) in [
+          colors.climb6,
+          colors.climb10,
+          colors.climb15,
+        ].indexed) {
+          line
+            ..color = _hex(color)
+            ..strokeWidth = 5;
+          canvas.drawLine(
+            Offset(1 + i * third, y),
+            Offset(1 + (i + 1) * third, y),
+            line,
+          );
+        }
+      case CycleMapPart.mtb:
+        stroke(colors.mtbMedium, 6, dash: 1.2, gap: 3);
+      case CycleMapPart.barriers:
+        canvas
+          ..drawCircle(
+            Offset(size.width / 2, y),
+            5,
+            Paint()..color = _hex(colors.outline),
+          )
+          ..drawCircle(
+            Offset(size.width / 2, y),
+            4,
+            Paint()..color = _hex(colors.barrier),
+          );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SamplePainter old) =>
+      old.part != part || old.colors != colors;
+}

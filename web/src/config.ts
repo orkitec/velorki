@@ -138,6 +138,26 @@ const envSchema = z
 
     SHARE_DB_PATH: optionalStr.transform((v) => v ?? './data/share.sqlite'),
 
+    /* ------------------------------------------------------------- weather */
+
+    /**
+     * Put in the User-Agent of every weather upstream call. MET Norway and the
+     * NWS ask for a way to reach whoever runs the client; a fork sets its own.
+     */
+    WEATHER_CONTACT: optionalStr,
+    /**
+     * The forecast providers in the order they are tried, by id (`nws`, `dwd`,
+     * `metno`); the first whose area covers a cell answers it, and `metno`,
+     * when listed, is also the fallback for every failure. `none` switches
+     * POST /weather off (503).
+     */
+    WEATHER_PROVIDERS: optionalStr.transform((v) =>
+      (v ?? 'nws,dwd,metno')
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter((s) => s !== '' && s !== 'none'),
+    ),
+
     /* -------------------------------------------------------- app linking */
 
     /** Apple Developer team id; without it no apple-app-site-association is served. */

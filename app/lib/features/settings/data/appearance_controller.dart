@@ -3,6 +3,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../app/app_config.dart';
 import '../../../app/theme.dart';
+import '../../map/domain/weather_map.dart';
+
+export '../../map/domain/weather_map.dart' show RadarStyle;
 
 part 'appearance_controller.g.dart';
 
@@ -10,6 +13,8 @@ const String _prefsThemeMode = 'appearance.mode';
 const String _prefsAccent = 'appearance.accent';
 const String _prefsMapLook = 'appearance.map';
 const String _prefsOverlayDark = 'appearance.overlay_dark';
+const String _prefsBarStyle = 'appearance.bar';
+const String _prefsRadarStyle = 'map.weather.radar_style';
 
 /// Which map style is drawn, independently of the app theme.
 enum MapLook {
@@ -60,6 +65,8 @@ class Appearance {
     this.accent = AccentPreset.volt,
     this.mapLook = MapLook.auto,
     this.overlayDark = OverlayDarkMode.inverted,
+    this.barStyle = BarStyle.clear,
+    this.radarStyle = RadarStyle.soft,
   });
 
   /// Light, dark or whatever the system says.
@@ -74,17 +81,27 @@ class Appearance {
   /// How the cycling overlay is treated on the dark map styles.
   final OverlayDarkMode overlayDark;
 
+  /// How see-through the floating bar and the chrome over the map are.
+  final BarStyle barStyle;
+
+  /// How the rain radar on the map is drawn.
+  final RadarStyle radarStyle;
+
   /// A copy with the given fields replaced.
   Appearance copyWith({
     ThemeMode? mode,
     AccentPreset? accent,
     MapLook? mapLook,
     OverlayDarkMode? overlayDark,
+    BarStyle? barStyle,
+    RadarStyle? radarStyle,
   }) => Appearance(
     mode: mode ?? this.mode,
     accent: accent ?? this.accent,
     mapLook: mapLook ?? this.mapLook,
     overlayDark: overlayDark ?? this.overlayDark,
+    barStyle: barStyle ?? this.barStyle,
+    radarStyle: radarStyle ?? this.radarStyle,
   );
 
   @override
@@ -93,10 +110,13 @@ class Appearance {
       other.mode == mode &&
       other.accent == accent &&
       other.mapLook == mapLook &&
-      other.overlayDark == overlayDark;
+      other.overlayDark == overlayDark &&
+      other.barStyle == barStyle &&
+      other.radarStyle == radarStyle;
 
   @override
-  int get hashCode => Object.hash(mode, accent, mapLook, overlayDark);
+  int get hashCode =>
+      Object.hash(mode, accent, mapLook, overlayDark, barStyle, radarStyle);
 }
 
 /// Settings → Appearance, persisted in shared_preferences.
@@ -114,6 +134,8 @@ class AppearanceSetting extends _$AppearanceSetting {
       accent: AccentPreset.fromName(prefs.getString(_prefsAccent)),
       mapLook: MapLook.fromName(prefs.getString(_prefsMapLook)),
       overlayDark: OverlayDarkMode.fromName(prefs.getString(_prefsOverlayDark)),
+      barStyle: BarStyle.fromName(prefs.getString(_prefsBarStyle)),
+      radarStyle: RadarStyle.fromName(prefs.getString(_prefsRadarStyle)),
     );
   }
 
@@ -159,5 +181,28 @@ class AppearanceSetting extends _$AppearanceSetting {
       await prefs.setString(_prefsOverlayDark, mode.name);
     }
     state = state.copyWith(overlayDark: mode);
+  }
+
+  /// Picks how see-through the floating bar and the chrome over the map
+  /// are.
+  Future<void> setBarStyle(BarStyle style) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (style == BarStyle.clear) {
+      await prefs.remove(_prefsBarStyle);
+    } else {
+      await prefs.setString(_prefsBarStyle, style.name);
+    }
+    state = state.copyWith(barStyle: style);
+  }
+
+  /// Picks how the rain radar on the map is drawn.
+  Future<void> setRadarStyle(RadarStyle style) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (style == RadarStyle.soft) {
+      await prefs.remove(_prefsRadarStyle);
+    } else {
+      await prefs.setString(_prefsRadarStyle, style.name);
+    }
+    state = state.copyWith(radarStyle: style);
   }
 }

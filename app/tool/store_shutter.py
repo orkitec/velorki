@@ -72,6 +72,10 @@ def request(folder: str) -> dict[str, str] | None:
 def status_bar(udid: str, network: list[str]) -> None:
     subprocess.run(["xcrun", "simctl", "status_bar", udid, "clear"],
                    check=True, capture_output=True)
+    # The cleared bar animates to the real state first; an override sent
+    # while it does now and then leaves the icons out of order (the battery
+    # before the bars, no wifi) for the rest of the run.
+    time.sleep(2.5)
     subprocess.run(["xcrun", "simctl", "status_bar", udid, "override", *network],
                    check=True, capture_output=True)
     # The status bar animates the change; a picture taken sooner catches
@@ -281,8 +285,10 @@ def main() -> int:
             print(f"store_shutter: {target}.json", flush=True)
         else:
             offline = fields.get("status") == "offline"
-            if offline:
-                status_bar(udid, OFFLINE)
+            # Every picture from a bar set afresh: once a ride has run, iOS
+            # now and then keeps the icons out of order (the battery before
+            # the bars, no wifi) for the rest of the run.
+            status_bar(udid, OFFLINE if offline else ONLINE)
             try:
                 subprocess.run(
                     ["xcrun", "simctl", "io", udid, "screenshot", "--type=png",

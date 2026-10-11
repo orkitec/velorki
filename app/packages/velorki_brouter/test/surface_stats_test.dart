@@ -86,6 +86,42 @@ void main() {
     expect(s.pavedShare, closeTo(1.0, 1e-12));
   });
 
+  test('bike infrastructure counts what the cycle map draws as such', () {
+    // WayTags as BRouter writes them in the messages table.
+    final s = SurfaceStats.fromMessages(
+      table([
+        ('highway=cycleway surface=asphalt oneway=yes', 150),
+        (
+          'highway=path bicycle=designated foot=designated surface=asphalt',
+          100,
+        ),
+        ('highway=residential bicycle_road=yes surface=asphalt', 100),
+        ('highway=secondary cycleway:right=lane surface=asphalt', 120),
+        ('highway=tertiary cycleway=track surface=asphalt', 80),
+        // Allowed on a footway, a bus lane to share, a plain road: none.
+        ('highway=footway bicycle=yes surface=paving_stones', 150),
+        ('highway=primary cycleway=share_busway surface=asphalt', 100),
+        ('highway=residential surface=asphalt', 200),
+      ]),
+      1000,
+    );
+    expect(s.bikeInfrastructureShare, closeTo(0.55, 1e-12));
+    expect(
+      SurfaceStats.isBikeInfrastructure(const {
+        'highway': 'footway',
+        'bicycle': 'yes',
+      }),
+      isFalse,
+    );
+    expect(
+      SurfaceStats.isBikeInfrastructure(const {
+        'highway': 'secondary',
+        'cycleway:left': 'lane',
+      }),
+      isTrue,
+    );
+  });
+
   test('busy counts primary, trunk and their links', () {
     final s = SurfaceStats.fromMessages(
       table([
@@ -171,6 +207,7 @@ void main() {
       coveredLengthM: 990,
       totalLengthM: 1000,
       offRoadShare: 0.02,
+      bikeInfrastructureShare: 0.4,
     );
     expect(SurfaceStats.fromJson(stats.toJson()), stats);
   });
@@ -184,5 +221,6 @@ void main() {
     expect(stats.totalLengthM, 100);
     expect(stats.offRoadShare, 0);
     expect(stats.unpavedShare, 0);
+    expect(stats.bikeInfrastructureShare, isNull);
   });
 }

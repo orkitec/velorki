@@ -250,9 +250,9 @@ void main() {
     });
 
     test('a language the app is not translated into speaks English', () {
-      dispatcher.localeTestValue = const Locale('fr', 'FR');
+      dispatcher.localeTestValue = const Locale('ja', 'JP');
       expect(cueLocaleTag(), 'en-US');
-      expect(cueLocaleTag(const Locale('fr')), 'en-US');
+      expect(cueLocaleTag(const Locale('ja')), 'en-US');
     });
   });
 }

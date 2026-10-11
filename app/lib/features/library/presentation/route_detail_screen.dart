@@ -44,6 +44,7 @@ import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/sheet_header.dart';
 import '../../sharing/presentation/share_link_button.dart';
+import '../../shared/presentation/error_text.dart';
 
 /// Id of a saved route's line on the shared map, while its card shows.
 const String libraryRouteLineId = 'library-route';
@@ -344,7 +345,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
             hasScrollBody: false,
             child: PlaceholderBody(
               icon: Icons.error_outline,
-              message: error.toString(),
+              message: errorText(AppLocalizations.of(context), error),
             ),
           ),
           data: (saved) {

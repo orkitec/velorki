@@ -70,10 +70,14 @@ void main() {
     expect(munich.osmKey, 'place');
     expect(munich.osmValue, 'city');
     expect(munich.subtitle, 'Bavaria, Germany');
+    expect(munich.osmType, 'node');
+    expect(munich.osmId, 240109189);
 
     final cafe = results.last;
     expect(cafe.city, 'Munich');
     expect(cafe.subtitle, 'Munich, Germany');
+    // No osm_type and osm_id in the answer: no element.
+    expect(cafe.hasOsmElement, isFalse);
   });
 
   test('an empty feature list is not an error', () async {

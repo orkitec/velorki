@@ -224,6 +224,8 @@ routes to our share store.
 
 - [x] "© OpenStreetMap contributors" is visible in a corner of the map on every
       map screen. — `lib/features/map/presentation/map_attribution.dart`.
+      Text only there; the credit in Settings → About links to
+      openstreetmap.org/copyright.
 - [x] The About screen credits BRouter, Photon, OpenFreeMap and CyclOSM. —
       `lib/app/licenses.dart`, registered from `bootstrap()`. (The map's own
       attribution line adds CyclOSM only while the overlay is on.)

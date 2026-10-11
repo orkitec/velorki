@@ -89,13 +89,13 @@ void main() {
   ) async {
     final sources = _Sources({'/tmp/tour.gpx': fixtureBytes('route.gpx')});
     final container = await _pumpAppWith(tester, sources);
-    expect(find.widgetWithText(AppBar, 'Import'), findsNothing);
+    expect(find.widgetWithText(AppBar, l10n.importTitle), findsNothing);
 
     listenForIncomingImports(container);
     sources.opened.add('/tmp/tour.gpx');
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(AppBar, 'Import'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, l10n.importTitle), findsOneWidget);
     expect(find.text(l10n.importSummary('GPX', 4)), findsOneWidget);
     await unmountApp(tester);
   });
@@ -109,7 +109,7 @@ void main() {
     sources.opened.add('/tmp/photo.jpg');
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(AppBar, 'Import'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, l10n.importTitle), findsOneWidget);
     expect(find.text('${l10n.importFailedUnknown}\nphoto.jpg'), findsOneWidget);
     await unmountApp(tester);
   });

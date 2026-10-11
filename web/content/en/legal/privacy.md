@@ -73,6 +73,9 @@ away), what you typed is sent to Photon, a geocoding service, together with a
 rough position so that nearby results rank first. Photon returns place
 suggestions.
 
+Tapping "Details" on a place's card fetches its details (opening hours,
+website and the like) from OpenStreetMap.
+
 ### Map tiles
 
 The map is drawn from tiles fetched from OpenFreeMap, and from CyclOSM if you
@@ -309,6 +312,8 @@ own processing**
   are looking at, and your IP address.
 - **komoot GmbH**, Potsdam, Germany — the Photon geocoder at
   `photon.komoot.io`, and only for an online search you asked for.
+- **OpenStreetMap** (`api.openstreetmap.org`) — a place's details, when you
+  tap "Details" on its card.
 - **Apple Inc.** and **Google Ireland Ltd** — the sale of Velorki Plus. They
   are the sellers; we never see your payment details.
 - **Strava, Inc.** and **Ride with GPS** — only after you connect the account
@@ -325,7 +330,8 @@ transfer data there. Those transfers rest on the European
 Commission's Standard Contractual Clauses, or on the provider's certification
 under the EU–US Data Privacy Framework where it has one, together with the
 provider's own technical safeguards. Hetzner, komoot and the map tile services
-we rely on are in the EU. Everything the app stores for you stays on your
+we rely on are in the EU, OpenStreetMap in the UK. Everything the app stores
+for you stays on your
 phone and is transferred nowhere at all.
 
 ## Security

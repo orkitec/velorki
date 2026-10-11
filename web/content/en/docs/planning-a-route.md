@@ -13,12 +13,12 @@ The Plan tab turns taps on the map into a bike route, computed on your phone whe
 3. **Tap again** for the next point. Every tap appends a point to the end of the route, and the last one, the destination, wears a flag. To put a point in the middle instead, **tap the route line** where it should go: the point lands on the line there, and you can drag it like any other.
 4. Velorki waits a moment after your last edit and then routes. While it works the sheet shows a spinner and **Routing…**; then the figures appear.
 
-You can also start from a place instead of a tap. Type into the search field at the top, pick a result, and while the plan is still empty two buttons appear under the bike chips:
+You can also start from a place instead of a tap. Type into the search field at the top and pick a result, or tap a [stop on the map](./stops-on-the-map); while the plan is still empty the [place's card](./search#the-place-card) offers:
 
-- **From my position** rides from where you are to the place you searched for.
-- **Start here** makes the searched place the first point of the route.
+- **Route here** rides from where you are to the place.
+- **Start here** makes the place the first point of the route.
 
-Once a route is being planned, picking a search result simply adds that place as the next waypoint. See [search](./search) for what the search field can find.
+With only a start, it offers **Destination**. Once a route is being planned, the card offers **Add as a stop**, which puts the place into the route where it lies along the way, and **Destination**, which adds it at the end. See [search](./search) for what the search field can find.
 
 ## Mark a place beside the route
 
@@ -108,7 +108,7 @@ The **Elevation** chart draws height against distance. Touch it and drag along i
 
 ### Surface
 
-The **Surface** bar is a single stacked bar of three shares that add up to the whole route, **Paved**, **Unpaved** and **Unknown**, with a legend of percentages underneath. Two more entries in the legend, **Cycleway** and **Busy roads**, overlap the first three rather than adding to them: they tell you how much of the route is on a dedicated cycleway, and how much is on a big road. For a route that is not all the router's own, a file's line in it, the whole line is laid over the routing data for the figures, which needs the region downloaded.
+The **Surface** bar is a single stacked bar of three shares that add up to the whole route, **Paved**, **Unpaved** and **Unknown**, with a legend of percentages underneath. Two more entries in the legend, **Bike paths & lanes** and **Busy roads**, overlap the first three rather than adding to them: they tell you how much of the route runs on cycleways, paths signed for bikes, cycle streets, or a bike lane or track beside the road, and how much is on a big road. For a route that is not all the router's own, a file's line in it, the whole line is laid over the routing data for the figures, which needs the region downloaded.
 
 ## Save it
 

@@ -1,6 +1,6 @@
-• Routen-Assistent (Velorki Plus): Frag zur Route auf der Karte, bau ein Café als Stopp ein, meide einen Abschnitt oder lass dir beschreiben, worüber die Fahrt führt.
-• iPhone quer halten: Planen, Aufzeichnen und Bibliothek bekommen Seitenleisten neben der Karte.
-• Lange Rundtouren brechen nicht mehr zu früh ab.
-• Apple Watch: Die Fahrtansicht passt auf eine Seite und spricht Deutsch.
-• Velorki Plus: Das Jahresabo beginnt mit 7 Tagen gratis.
-• Viele kleinere Verbesserungen.
+• Stopps auf der Karte: Trinkwasser, Cafés, Bäckereien, Toiletten, Fahrrad-Reparaturstationen und mehr. Herausgezoomt sammeln sie sich in Blasen mit einer Zahl; während der Fahrt siehst du die Stopps auf der Route vor dir und wie weit es bis zu jedem ist.
+• Tippe auf einen Ort für seine Ortskarte: was er ist, wie weit entfernt, und Route hierher, Hier starten, Als Stopp einfügen oder Als Ziel. Details zeigt Öffnungszeiten, Website und Telefon aus OpenStreetMap, und Öffnen in gibt den Ort an eine andere Karten-App weiter.
+• Die Suche findet offline viel mehr: Adressen mit Hausnummer, Tippfehler und Abkürzungen, Namen in einem anderen Alphabet, bekannte Orte in deiner Sprache sowie Restaurants, Eisdielen, Tankstellen und Luftpumpen.
+• Orte aus anderen Apps: Teile einen Ort oder einen Kartenlink mit Velorki oder füge Koordinaten in die Suche ein.
+• Die Rundensuche zeigt die bisher beste Runde und sagt, was sie noch prüft.
+• Fehlerbehebungen: Hochwischen zum App-Umschalter verschiebt kein Blatt mehr, beim Drehen des Handys blitzt nichts mehr grau auf, und die Pausiert-Anzeige passt auf kleine Handys.

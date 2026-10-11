@@ -63,8 +63,7 @@ class ExternalRouteImporter {
     } on ImportException catch (e) {
       throw IntegrationException(
         IntegrationFailure.serviceError,
-        'The GPX ${service.id} returned could not be read '
-        '(${e.failure.name}).',
+        (l10n) => l10n.integrationUnreadableGpx(service.brand),
         cause: e,
       );
     }

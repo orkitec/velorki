@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/app_config.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/appearance_controller.dart';
 
-/// Settings → Appearance: light/dark/system and the accent colour.
+/// Settings → Appearance: light/dark/system, the map, the bar's glass, the
+/// rain radar's look and the accent colour.
 class AppearanceSection extends ConsumerWidget {
   /// Creates the section.
   const AppearanceSection({super.key});
@@ -32,17 +32,17 @@ class AppearanceSection extends ConsumerWidget {
               ButtonSegment(
                 value: ThemeMode.system,
                 icon: const Icon(Icons.brightness_auto_outlined),
-                label: Text(l10n.appearanceModeSystem),
+                label: _SegmentLabel(l10n.appearanceModeSystem),
               ),
               ButtonSegment(
                 value: ThemeMode.light,
                 icon: const Icon(Icons.light_mode_outlined),
-                label: Text(l10n.appearanceModeLight),
+                label: _SegmentLabel(l10n.appearanceModeLight),
               ),
               ButtonSegment(
                 value: ThemeMode.dark,
                 icon: const Icon(Icons.dark_mode_outlined),
-                label: Text(l10n.appearanceModeDark),
+                label: _SegmentLabel(l10n.appearanceModeDark),
               ),
             ],
             selected: {appearance.mode},
@@ -52,41 +52,76 @@ class AppearanceSection extends ConsumerWidget {
           const SizedBox(height: 20),
           Text(l10n.appearanceMap, style: theme.textTheme.titleSmall),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
+          SegmentedButton<MapLook>(
+            showSelectedIcon: false,
+            segments: [
               for (final look in MapLook.values)
-                ChoiceChip(
-                  label: Text(mapLookLabel(l10n, look)),
-                  selected: look == appearance.mapLook,
-                  onSelected: (_) => unawaited(controller.setMapLook(look)),
+                ButtonSegment(
+                  value: look,
+                  label: _SegmentLabel(mapLookLabel(l10n, look)),
                 ),
             ],
+            selected: {appearance.mapLook},
+            onSelectionChanged: (selection) =>
+                unawaited(controller.setMapLook(selection.single)),
           ),
-          // Only a build that ships CyclOSM tiles can draw the overlay, and
-          // only then is there anything to choose here.
-          if (ref.watch(effectiveConfigProvider).cyclosmTileUrl.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Text(
-              l10n.appearanceOverlayDarkTitle,
-              style: theme.textTheme.titleSmall,
-            ),
-            const SizedBox(height: 10),
-            SegmentedButton<OverlayDarkMode>(
-              showSelectedIcon: false,
-              segments: [
-                for (final mode in OverlayDarkMode.values)
-                  ButtonSegment(
-                    value: mode,
-                    label: Text(overlayDarkLabel(l10n, mode)),
-                  ),
-              ],
-              selected: {appearance.overlayDark},
-              onSelectionChanged: (selection) =>
-                  unawaited(controller.setOverlayDark(selection.single)),
-            ),
-          ],
+          // Only the online cycle map: its tiles are pictures drawn for a
+          // light map. The offline one has its own colours for dark maps.
+          const SizedBox(height: 20),
+          Text(
+            l10n.appearanceOverlayDarkTitle,
+            style: theme.textTheme.titleSmall,
+          ),
+          const SizedBox(height: 10),
+          SegmentedButton<OverlayDarkMode>(
+            showSelectedIcon: false,
+            segments: [
+              for (final mode in OverlayDarkMode.values)
+                ButtonSegment(
+                  value: mode,
+                  label: _SegmentLabel(overlayDarkLabel(l10n, mode)),
+                ),
+            ],
+            selected: {appearance.overlayDark},
+            onSelectionChanged: (selection) =>
+                unawaited(controller.setOverlayDark(selection.single)),
+          ),
+          const SizedBox(height: 20),
+          Text(l10n.appearanceGlass, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 10),
+          SegmentedButton<BarStyle>(
+            showSelectedIcon: false,
+            segments: [
+              for (final style in BarStyle.values)
+                ButtonSegment(
+                  value: style,
+                  label: _SegmentLabel(barStyleLabel(l10n, style)),
+                ),
+            ],
+            selected: {appearance.barStyle},
+            onSelectionChanged: (selection) =>
+                unawaited(controller.setBarStyle(selection.single)),
+          ),
+          const SizedBox(height: 8),
+          Text(l10n.appearanceGlassHint, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 20),
+          Text(l10n.appearanceRadarStyle, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 10),
+          SegmentedButton<RadarStyle>(
+            showSelectedIcon: false,
+            segments: [
+              for (final style in RadarStyle.values)
+                ButtonSegment(
+                  value: style,
+                  label: _SegmentLabel(radarStyleLabel(l10n, style)),
+                ),
+            ],
+            selected: {appearance.radarStyle},
+            onSelectionChanged: (selection) =>
+                unawaited(controller.setRadarStyle(selection.single)),
+          ),
+          const SizedBox(height: 8),
+          Text(l10n.appearanceRadarHint, style: theme.textTheme.bodySmall),
           const SizedBox(height: 20),
           Text(l10n.appearanceAccent, style: theme.textTheme.titleSmall),
           const SizedBox(height: 10),
@@ -126,6 +161,21 @@ String overlayDarkLabel(AppLocalizations l10n, OverlayDarkMode mode) =>
       OverlayDarkMode.inverted => l10n.appearanceOverlayDarkInverted,
       OverlayDarkMode.dimmed => l10n.appearanceOverlayDarkDimmed,
       OverlayDarkMode.unchanged => l10n.appearanceOverlayDarkUnchanged,
+    };
+
+/// The localised name of a bar style.
+String barStyleLabel(AppLocalizations l10n, BarStyle style) => switch (style) {
+  BarStyle.solid => l10n.appearanceBarSolid,
+  BarStyle.transparent => l10n.appearanceBarTransparent,
+  BarStyle.subtle => l10n.appearanceBarSubtle,
+  BarStyle.clear => l10n.appearanceBarClear,
+};
+
+/// The localised name of a look of the rain radar.
+String radarStyleLabel(AppLocalizations l10n, RadarStyle style) =>
+    switch (style) {
+      RadarStyle.soft => l10n.appearanceRadarSoft,
+      RadarStyle.measured => l10n.appearanceRadarMeasured,
     };
 
 /// The localised name of an accent preset.
@@ -220,4 +270,19 @@ class _AccentSwatch extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A segment's label on one line: in a language whose word is too long for
+/// its share of the row it is set a little smaller rather than wrapped or
+/// cut off.
+class _SegmentLabel extends StatelessWidget {
+  const _SegmentLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => FittedBox(
+    fit: BoxFit.scaleDown,
+    child: Text(text, maxLines: 1, softWrap: false),
+  );
 }

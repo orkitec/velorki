@@ -8,6 +8,30 @@
             "state" : "translated",
             "value" : "Beenden"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beëindigen"
+          }
         }
       }
     },
@@ -17,6 +41,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nach „Beenden“ speicherst du die Fahrt auf dem Handy."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tras «Terminar», guardas la salida en el teléfono."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Après « Terminer », enregistrez la sortie sur le téléphone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dopo «Termina» salvi il giro sul telefono."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na ‘Beëindigen’ sla je de rit op de telefoon op."
           }
         }
       }
@@ -28,6 +76,30 @@
             "state" : "translated",
             "value" : "Velorki braucht Zugriff auf Health: Erlaube ihn auf der Uhr oder in der Health-App des Handys."
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki necesita acceso a Salud: permítelo en el reloj o en la app Salud del teléfono."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki a besoin d’accéder à Santé : autorisez-le sur la montre ou dans l’app Santé du téléphone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki ha bisogno dell'accesso a Salute: consentilo sull'orologio o nell'app Salute del telefono."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki heeft toegang tot Gezondheid nodig: sta die toe op het horloge of in de Gezondheid-app van de telefoon."
+          }
         }
       }
     },
@@ -37,6 +109,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mit dem Stromsparmodus in den Einstellungen der Uhr hält der Akku auch eine lange Fahrt durch."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con el modo de bajo consumo en los ajustes del reloj, la batería aguanta una salida larga."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec le mode économie d’énergie, dans les réglages de la montre, la batterie tient toute une longue sortie."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con la modalità risparmio energetico nelle impostazioni dell'orologio, la batteria regge un giro lungo."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Met de energiebesparingsmodus in de instellingen van het horloge houdt de batterij een lange rit vol."
           }
         }
       }
@@ -48,6 +144,30 @@
             "state" : "translated",
             "value" : "Pause"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausa"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pauze"
+          }
         }
       }
     },
@@ -57,6 +177,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pausiert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En pausa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En pause"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In pausa"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gepauzeerd"
           }
         }
       }
@@ -68,6 +212,30 @@
             "state" : "translated",
             "value" : "Fortsetzen"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reanudar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reprendre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprendi"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hervatten"
+          }
         }
       }
     },
@@ -77,6 +245,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unterwegs"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En marcha"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En route"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In sella"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onderweg"
           }
         }
       }
@@ -88,6 +280,30 @@
             "state" : "translated",
             "value" : "Starte die Fahrt hier oder auf dem Handy."
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empieza una salida aquí o en el teléfono."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Démarrez une sortie ici ou sur le téléphone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inizia un giro qui o sul telefono."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start een rit hier of op de telefoon."
+          }
         }
       }
     },
@@ -97,6 +313,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pulsmessung starten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medir el pulso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mesurer la FC"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Misura la FC"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hartslag meten"
           }
         }
       }
@@ -108,6 +348,30 @@
             "state" : "translated",
             "value" : "Fahrt starten"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar salida"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Démarrer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inizia giro"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rit starten"
+          }
         }
       }
     },
@@ -117,6 +381,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pulsmessung beenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dejar de medir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêter la FC"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ferma la FC"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hartslag stoppen"
           }
         }
       }
@@ -128,6 +416,30 @@
             "state" : "translated",
             "value" : "Das Handy antwortet nicht. Öffne Velorki auf dem Handy und versuch es noch einmal."
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El teléfono no responde. Abre Velorki en el teléfono y vuelve a intentarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le téléphone ne répond pas. Ouvrez Velorki sur le téléphone et réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il telefono non risponde. Apri Velorki sul telefono e riprova."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De telefoon reageert niet. Open Velorki op de telefoon en probeer het opnieuw."
+          }
         }
       }
     },
@@ -137,6 +449,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Die Uhr konnte kein Training starten: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El reloj no pudo iniciar un entrenamiento: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La montre n’a pas pu démarrer d’entraînement : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'orologio non è riuscito ad avviare un allenamento: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het horloge kon geen training starten: %@"
           }
         }
       }
@@ -148,6 +484,30 @@
             "state" : "translated",
             "value" : "Das Training wurde beendet: %@"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El entrenamiento se detuvo: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’entraînement s’est arrêté : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'allenamento si è interrotto: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De training is gestopt: %@"
+          }
         }
       }
     },
@@ -157,6 +517,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "S/min"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ppm"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bpm"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bpm"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bpm"
           }
         }
       }

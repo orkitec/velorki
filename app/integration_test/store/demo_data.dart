@@ -2,7 +2,7 @@
 ///
 /// Everything is on Madeira, inside the `W20_N30` oracle tile that
 /// `tool/itest_mirror.sh` serves, so every route here is computed by the
-/// on-device router. The ride is not a recording: it is laid along a route the
+/// on-device router; only the cycle map shots look at New York. The ride is not a recording: it is laid along a route the
 /// device has just computed, with a speed that follows the gradient and a
 /// heart rate that follows the effort, the same on every run.
 library;
@@ -59,6 +59,18 @@ PlusOffering plusOffering(String locale) {
   );
 }
 
+/// The routing tile the cycle map shots are drawn from: New York, served
+/// beside the oracle tile by store_screenshots.sh with its gazetteer.
+const String cycleMapTile = 'W75_N40';
+
+/// Chelsea by the Hudson River Greenway, where the cycle map shots look: the
+/// greenway, protected lanes on the avenues, local routes, one-way streets
+/// and cafés, which Funchal has too few of.
+const LatLng chelsea = LatLng(40.7470, -74.0070);
+
+/// The zoom of the cycle map shots.
+const double chelseaZoom = 15.2;
+
 /// Avenida do Mar in Funchal: where the rider stands, and where the plan and
 /// the ride start.
 const LatLng funchal = LatLng(32.6472, -16.9080);
@@ -103,12 +115,20 @@ const List<LatLng> rideWaypoints = [funchal, LatLng(32.6789, -16.8448)];
 const Map<String, String> rideNames = {
   'en': 'Up to Camacha',
   'de': 'Hinauf nach Camacha',
+  'fr': 'Montée vers Camacha',
+  'es': 'Subida a Camacha',
+  'it': 'Salita a Camacha',
+  'nl': 'Omhoog naar Camacha',
 };
 
 /// What the rider asks the assistant for on the AI slide, per language.
 const Map<String, String> assistantPrompts = {
   'en': 'A 40 km gravel loop with a café stop halfway',
   'de': 'Eine 40-km-Gravel-Runde mit Café-Stopp auf halber Strecke',
+  'fr': 'Une boucle gravel de 40 km avec une pause café à mi-parcours',
+  'es': 'Una ruta circular de gravel de 40 km con parada para café a mitad',
+  'it': 'Un anello gravel di 40 km con sosta al bar a metà strada',
+  'nl': 'Een gravelrondje van 40 km met een koffiestop halverwege',
 };
 
 /// What the mocked model answers [assistantPrompts] with: a loop from the

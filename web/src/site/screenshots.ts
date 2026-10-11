@@ -18,6 +18,10 @@ export const SCREENS = [
   'library',
   'offline',
   'settings',
+  'assistant',
+  'paywall',
+  'cyclemap',
+  'layers',
 ] as const;
 
 export type Mode = (typeof MODES)[number];

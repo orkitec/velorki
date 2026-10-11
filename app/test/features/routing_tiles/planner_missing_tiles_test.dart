@@ -113,7 +113,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SnackBar), findsOneWidget);
-    expect(find.textContaining('position not mapped'), findsWidgets);
+    expect(
+      find.text(l10n.plannerRoutingFailed(l10n.routingErrorNoRoute)),
+      findsWidgets,
+    );
 
     await unmountApp(tester);
   });

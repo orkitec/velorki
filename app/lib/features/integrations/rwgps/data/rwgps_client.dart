@@ -121,16 +121,17 @@ class RwgpsClient {
       if (task.items.isEmpty && task.errors.isNotEmpty) {
         throw IntegrationException(
           IntegrationFailure.rejected,
-          'Ride with GPS could not import the file: '
-          '${task.errors.map((e) => e.display).join('; ')}',
+          (l10n) => l10n.integrationImportFailed(
+            'Ride with GPS',
+            task.errors.map((e) => e.display).join('; '),
+          ),
         );
       }
       return task;
     }
-    throw const IntegrationException(
+    throw IntegrationException(
       IntegrationFailure.serviceError,
-      'Ride with GPS is still processing the upload. It will appear in the '
-      'account on its own.',
+      (l10n) => l10n.integrationStillProcessing('Ride with GPS'),
     );
   }
 
@@ -208,9 +209,9 @@ class RwgpsClient {
       );
       final bytes = response.data;
       if (bytes == null || bytes.isEmpty) {
-        throw const IntegrationException(
+        throw IntegrationException(
           IntegrationFailure.serviceError,
-          'Ride with GPS returned an empty GPX file for this route.',
+          (l10n) => l10n.integrationEmptyGpx('Ride with GPS'),
         );
       }
       return Uint8List.fromList(bytes);
@@ -268,9 +269,9 @@ class RwgpsClient {
   static Map<String, Object?> _asObject(Object? data) {
     if (data is Map<String, Object?>) return data;
     if (data is Map) return data.cast<String, Object?>();
-    throw const IntegrationException(
+    throw IntegrationException(
       IntegrationFailure.serviceError,
-      'Ride with GPS answered with something that is not a JSON object.',
+      (l10n) => l10n.integrationUnreadableAnswer('Ride with GPS'),
     );
   }
 }

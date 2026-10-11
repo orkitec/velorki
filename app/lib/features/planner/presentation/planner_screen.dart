@@ -14,18 +14,28 @@ import '../../assistant/application/route_advice_controller.dart';
 import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
+import '../../map/application/area_download_hint.dart';
+import '../../map/application/cycle_map_binding.dart';
 import '../../map/application/locate_on_open.dart';
+import '../../map/application/map_stops_controller.dart';
+import '../../map/domain/visible_map.dart';
+import '../../map/presentation/weather_time_row.dart';
+import '../../map/presentation/stops_zoom_chip.dart';
+import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../map/presentation/map_chrome.dart';
+import '../../map/presentation/map_controls.dart' show mapControlButtonSize;
 import '../../map/presentation/visible_map_padding.dart';
 import '../../map/presentation/shared_map_host.dart';
 import '../../offline/presentation/offline_screen.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../search/domain/search_result.dart';
+import '../../search/presentation/place_card.dart';
 import '../../search/presentation/search_field.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
+import '../../shared/application/covering_sheets.dart';
 import '../../shared/application/nav_bar_docking.dart';
 import '../../../app/shell_layout.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
@@ -41,6 +51,7 @@ import '../data/route_repository.dart';
 import '../data/routing_backend_provider.dart';
 import '../domain/elevation_profile.dart';
 import '../domain/planner_state.dart';
+import '../domain/route_waypoints.dart' show projectOnTrack;
 import '../domain/routing_options.dart';
 import 'elevation_profile_chart.dart';
 import 'avoided_stretches_chip.dart';
@@ -51,6 +62,11 @@ import 'save_route_dialog.dart';
 import 'surface_section.dart';
 import 'surface_stats_bar.dart';
 import 'waypoint_edit_sheet.dart';
+import '../../weather/application/route_weather_controller.dart';
+import '../../weather/application/route_wind.dart';
+import '../../weather/application/wind_on_map.dart';
+import '../../weather/presentation/route_weather_section.dart';
+import '../../shared/presentation/error_text.dart';
 
 /// The Plan tab: the search and profile controls at the top and the route
 /// details in a draggable sheet at the bottom, over the map the shell
@@ -79,9 +95,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// Whether a draw is on its way, from the microtask it waits for.
   bool _drawPending = false;
 
-  SearchResult? _placeToStartFrom;
+  /// The place whose card is open: pinned on the map until the card closes.
+  SearchResult? _shownPlace;
 
-  /// The chrome over the map (search field, place actions, profile chips),
+  /// The chrome over the map (search field, chips),
   /// measured after each layout so the map's control column starts below
   /// it whatever the rows above happen to need.
   final GlobalKey _chromeKey = GlobalKey();
@@ -227,6 +244,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// comes next.
   void _onSheetExtent(double extent) {
     if (_active) ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
+    // The stops follow what the sheet leaves of the map.
+    _stops.visibleAreaChanged();
   }
 
   /// What covers this tab's map: its chrome, the column, and the sheet at
@@ -290,8 +309,36 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     WidgetsBinding.instance.addObserver(this);
     _active = ref.read(activeTabProvider) == plannerRoute;
     _map = ref.read(sharedMapControllerProvider);
+    _stops = MapStopsController(
+      find: ref.read(mapStopsFinderProvider),
+      coverage: ref.read(mapStopsCoverageProvider),
+      // What the sheet leaves of the map now, pulled up or down, not at
+      // its resting height.
+      visibleShare: () => mounted
+          ? visibleShareOf(
+              visibleMapPadding(
+                context,
+                chromeTop: _ownControlsTop,
+                sheetExtent: _sheet.isAttached ? _sheet.size : null,
+              ),
+              MediaQuery.sizeOf(context),
+            )
+          : null,
+    )..onStopTapped = _onStopTapped;
+    _areaHint = AreaDownloadHint(ref.read(mapStopsCoverageProvider));
     _updateMapUse();
   }
+
+  /// Whether the map is over an area that is not downloaded, whatever
+  /// layers are on.
+  late final AreaDownloadHint _areaHint;
+
+  /// The stops in the area on screen, from the Layers sheet.
+  late final MapStopsController _stops;
+
+  /// A stop tapped on the map: its card, the map kept at its zoom, since
+  /// the rider is looking at the stop already.
+  void _onStopTapped(SearchResult stop) => unawaited(_openPlace(stop));
 
   bool _searchFocused = false;
   bool _keyboardUp = false;
@@ -358,6 +405,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         if (!mounted || !_sheet.isAttached) return;
         // The keyboard came back in the meantime.
         if (_keyboardUp && _searchFocused) return;
+        // A sheet opened over the tab meanwhile (the card of the place
+        // picked) holds the sheet down, and brings it back here itself.
+        if (ref.read(coveringSheetsProvider) > 0) return;
         final (extent, stops) = before;
         unawaited(
           _sheet.animateTo(
@@ -370,10 +420,23 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       ..ensureVisualUpdate();
   }
 
+  /// Where the sheet comes back to after a sheet opened over the tab: where
+  /// it is, or where the search took it from while it is parked for one.
+  double _sheetReturnExtent() {
+    final before = _sheetBeforeSearch;
+    if (_sheetParked && before != null) {
+      final (extent, stops) = before;
+      return mapSheetExtent(extent, from: stops, to: _sheetStops);
+    }
+    return _sheet.size;
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _binding?.detach();
+    _stops.dispose();
+    _areaHint.dispose();
     _sheet.dispose();
     _assistantSlide.dispose();
     if (_docked) {
@@ -494,17 +557,20 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     required int count,
     required WaypointDetails initial,
     required void Function(int index, int offset) onSwap,
-  }) => showModalBottomSheet<WaypointEditResult>(
-    context: context,
-    useRootNavigator: true,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: true,
-    builder: (context) => WaypointEditSheet(
-      index: index,
-      count: count,
-      initial: initial,
-      onSwap: onSwap,
+  }) => coverTabSheet(
+    context,
+    () => showModalBottomSheet<WaypointEditResult>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (context) => WaypointEditSheet(
+        index: index,
+        count: count,
+        initial: initial,
+        onSwap: onSwap,
+      ),
     ),
   );
 
@@ -514,6 +580,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     if (identical(map, _map)) return;
     _binding?.detach();
     _binding = null;
+    _stops.detach(clear: false);
+    _areaHint.detach();
     _drawing = false;
     _map = map;
     _updateMapUse();
@@ -532,6 +600,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     if (!wanted) {
       if (!_drawing) return;
       _drawing = false;
+      _stops.detach();
+      _areaHint.detach();
       final binding = _binding;
       if (binding == null) return;
       binding.detach();
@@ -573,14 +643,22 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             null => null,
             final place => shownPoi(place),
           };
+      // The wind on the route, when the rider asked for it on the map.
+      binding.routeWind = () => routeWindFor(
+        ref.read(plannerControllerProvider).result,
+        ref.read(routeWeatherControllerProvider),
+        on: ref.read(windOnMapProvider),
+      );
       _binding = binding;
     }
     binding.attach();
     unawaited(binding.sync(ref.read(plannerControllerProvider)));
-    // A searched place the rider has not decided about is still theirs.
-    final place = _placeToStartFrom;
+    _stops.attach(map);
+    _areaHint.attach(map);
+    // A place whose card is open is still pinned.
+    final place = _shownPlace;
     if (place != null) {
-      unawaited(map.setSearchPin(place.position, label: place.name));
+      unawaited(map.setSearchPin(place.position, label: _placeLabel(place)));
     }
     // A place another app sent while the map was not up yet.
     _takeIncomingPlace();
@@ -592,7 +670,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// typed, and a link only a browser can open gets a short message.
   void _takeIncomingPlace() {
     final place = ref.read(incomingPlaceProvider);
-    if (place == null || !mounted || !_active) return;
+    // One card at a time: the next place waits for this one to close.
+    if (place == null || !mounted || !_active || _shownPlace != null) return;
     final search = _searchKey.currentState;
     if (search is! SearchFieldState) return;
     final link = place.link;
@@ -630,23 +709,99 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     }
   }
 
-  void _onPlaceSelected(SearchResult result) {
-    final planner = ref.read(plannerControllerProvider.notifier);
-    if (ref.read(plannerControllerProvider).isEmpty) {
-      unawaited(
-        _map?.moveTo(result.position, zoom: 13, padding: _visiblePadding()),
-      );
-      unawaited(_map?.setSearchPin(result.position, label: result.name));
-      setState(() => _placeToStartFrom = result);
-      return;
-    }
-    planner.addWaypoint(result.position, name: result.name);
+  /// A place picked in the search (or sent by another app, which goes the
+  /// same way): its card, the map zoomed in on it.
+  void _onPlaceSelected(SearchResult result) =>
+      unawaited(_openPlace(result, fromSearch: true, zoom: 13));
+
+  /// What the pin on the map says: the place's name, or what it is.
+  String _placeLabel(SearchResult place) => place.name.isNotEmpty
+      ? place.name
+      : searchResultTitle(AppLocalizations.of(context), place);
+
+  /// What the plan can do with a picked place: start from it or ride to it
+  /// while it is empty, end at it once it has a start, and with a route
+  /// also take it in on the way.
+  List<PlaceAction> _placeActions(PlannerState state) =>
+      switch (state.waypoints.length) {
+        0 => const [PlaceAction.routeHere, PlaceAction.startHere],
+        1 => const [PlaceAction.destination],
+        _ => const [PlaceAction.addStop, PlaceAction.destination],
+      };
+
+  /// The card of a picked [place]: pinned on the map and brought into view
+  /// above the card (at [zoom], or the map's own) while it is open, and
+  /// what the rider chose done once it closes. Closed without a choice, it
+  /// leaves the plan as it was; one picked in the search also empties the
+  /// field.
+  Future<void> _openPlace(
+    SearchResult place, {
+    bool fromSearch = false,
+    double? zoom,
+  }) async {
+    if (!mounted || _shownPlace != null) return;
+    final state = ref.read(plannerControllerProvider);
+    final route = state.result;
+    final offRouteM = route != null && route.geometry.length >= 2
+        ? projectOnTrack(route.positions, place.position).distanceM
+        : null;
+    _shownPlace = place;
+    unawaited(_map?.setSearchPin(place.position, label: _placeLabel(place)));
+    var moved = false;
+    final action = await showPlaceCard(
+      context,
+      place: place,
+      actions: _placeActions(state),
+      offRouteM: offRouteM,
+      onCover: (cover) {
+        if (moved || !mounted) return;
+        moved = true;
+        unawaited(
+          _map?.moveTo(
+            place.position,
+            zoom: zoom,
+            padding: _paddingAbove(cover),
+          ),
+        );
+      },
+    );
+    _shownPlace = null;
+    if (!mounted) return;
     unawaited(_map?.setSearchPin(null));
-    setState(() => _placeToStartFrom = null);
+    final planner = ref.read(plannerControllerProvider.notifier);
+    switch (action) {
+      case null:
+        final search = _searchKey.currentState;
+        if (fromSearch && search is SearchFieldState) search.clear();
+      case PlaceAction.routeHere:
+        await _rideFromPosition(place);
+      case PlaceAction.startHere || PlaceAction.destination:
+        planner.addWaypoint(place.position, name: place.name);
+      case PlaceAction.addStop:
+        planner.addWaypointAlongRoute(place.position, name: place.name);
+    }
+    // A place another app sent meanwhile is taken now.
+    if (mounted) setState(() {});
   }
 
-  /// Forgets a searched place that was never used: the pin goes, and so do
-  /// the two buttons offering it.
+  /// The padding that keeps a place in the map between this tab's chrome
+  /// and a card covering [cover] of the screen's bottom.
+  EdgeInsets _paddingAbove(double cover) {
+    final base = _visiblePadding();
+    final height = MediaQuery.sizeOf(context).height;
+    // Some map is left between the two, however tall the card.
+    final bottom = math.max(0.0, math.min(cover + 24, height - base.top - 48));
+    return base.copyWith(bottom: bottom);
+  }
+
+  /// Closes the not-downloaded chip for [area], the one it speaks of, with
+  /// every other not-downloaded chip over it; they come back over another
+  /// area that is not downloaded.
+  void _closeAreaHint(TileName? area) {
+    if (area == null) return;
+    ref.read(areaHintDismissalsProvider.notifier).dismiss(area);
+  }
+
   /// Opens the offline data screen for the area on screen, which is what the
   /// map's download button opens: "Download for the visible area" is then one
   /// tap away from a search that had nothing to answer with.
@@ -662,27 +817,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
   }
 
-  void _clearSearchedPlace() {
-    if (_placeToStartFrom == null) return;
-    unawaited(_map?.setSearchPin(null));
-    setState(() => _placeToStartFrom = null);
-  }
-
-  void _setSearchedPlaceAsStart() {
-    final place = _placeToStartFrom;
-    if (place == null) return;
-    ref
-        .read(plannerControllerProvider.notifier)
-        .addWaypoint(place.position, name: place.name);
-    unawaited(_map?.setSearchPin(null));
-    setState(() => _placeToStartFrom = null);
-  }
-
-  /// The searched place is the destination; the ride starts where the
-  /// rider is right now.
-  Future<void> _rideFromPosition() async {
-    final place = _placeToStartFrom;
-    if (place == null) return;
+  /// [place] is the destination; the ride starts where the rider is right
+  /// now.
+  Future<void> _rideFromPosition(SearchResult place) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     // Asks for the permission if it has never been asked, like the locate
@@ -699,8 +836,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final planner = ref.read(plannerControllerProvider.notifier);
     planner.addWaypoint(start);
     planner.addWaypoint(place.position, name: place.name);
-    unawaited(_map?.setSearchPin(null));
-    setState(() => _placeToStartFrom = null);
   }
 
   Future<void> _loadAlternatives() async {
@@ -932,6 +1067,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         unawaited(_binding?.sync(ref.read(plannerControllerProvider)));
       }
     });
+    // The weather or the switch for the wind on the map changed.
+    void syncWind() {
+      if (_drawing) unawaited(_binding?.syncWind());
+    }
+
+    ref.listen(routeWeatherControllerProvider, (_, _) => syncWind());
+    ref.listen(windOnMapProvider, (_, _) => syncWind());
     ref.listen(plannerControllerProvider, (previous, next) {
       // Only while this tab's layers are on the map; a plan that changes
       // while the tab is away is drawn whole when it comes back.
@@ -942,9 +1084,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       // Missing tiles are shown as a banner with a download action in the
       // sheet; a snack bar the rider cannot act on would only be in the way.
       if (next.missingTiles.isNotEmpty) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.plannerRoutingFailed(error))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.plannerRoutingFailed(errorText(l10n, error))),
+        ),
+      );
       ref.read(plannerControllerProvider.notifier).clearError();
     });
 
@@ -989,7 +1133,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         _reportDocked(false);
       }
     });
-    if (active) _shareChrome(const MapChromeData());
+    if (active) {
+      _shareChrome(const MapChromeData(stopsOffer: MapStopsOffer.plan));
+    }
+    final stopsWanted = ref.watch(mapStopsPreferencesProvider);
+    _stops.update(shown: stopsWanted.shown, kinds: stopsWanted.kinds);
     _ownControlsTop = _chromeHeight + 12;
     final controlsTop = ref.read(mapControlsTopProvider);
     if (active && (controlsTop.target - _ownControlsTop).abs() >= 0.5) {
@@ -1021,7 +1169,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       key: _searchKey,
       onSelected: _onPlaceSelected,
       onFocusChanged: _onSearchFocus,
-      onCleared: _clearSearchedPlace,
       bias: () => _map?.center,
       onDownloadArea: _openOfflineData,
       trailing: sideways
@@ -1033,8 +1180,61 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           : null,
     );
 
+    final cycleMapMissing = ref.watch(sharedCycleMapMissingAreaProvider);
+    // The areas whose not-downloaded chips the rider closed this session.
+    final dismissedAreas = ref.watch(areaHintDismissalsProvider);
     // What the chrome shows under its first rows, now and then.
     final below = <Widget>[
+      // The area is not downloaded, or stops are on and the map is too far
+      // out for them. The download first, since zooming in would show
+      // nothing either; said for the stops or the cycle map where those
+      // are on, for the area where neither is. Closed over an area, none of
+      // them shows there again this session.
+      ListenableBuilder(
+        listenable: Listenable.merge(<Listenable>[_stops, _areaHint]),
+        builder: (context, _) {
+          final l10n = AppLocalizations.of(context);
+          final stopsMissing = _stops.missingArea;
+          final Widget? chip =
+              stopsMissing != null && !dismissedAreas.contains(stopsMissing)
+              ? StopsDownloadChip(
+                  onDownload: _openOfflineData,
+                  onClose: () => _closeAreaHint(stopsMissing),
+                )
+              : cycleMapMissing != null &&
+                    !dismissedAreas.contains(cycleMapMissing)
+              ? StopsDownloadChip(
+                  onDownload: _openOfflineData,
+                  message: l10n.mapCycleMapNotDownloaded,
+                  onClose: () => _closeAreaHint(cycleMapMissing),
+                )
+              : _areaHint.shownDespite(dismissedAreas)
+              ? StopsDownloadChip(
+                  onDownload: _openOfflineData,
+                  message: l10n.searchAreaNotDownloaded,
+                  onClose: () => _closeAreaHint(_areaHint.missingArea),
+                )
+              // Not after the stops' own chip was closed: zooming in would
+              // show none either.
+              : _stops.needsZoom && stopsMissing == null
+              ? StopsZoomChip(onZoomIn: () => unawaited(_stops.zoomIn()))
+              : null;
+          return chip == null
+              ? const SizedBox.shrink()
+              : Padding(
+                  // Clear of the map's control column at the side: a long
+                  // message wraps rather than run over its top button.
+                  padding: const EdgeInsetsDirectional.only(
+                    top: 10,
+                    end: mapControlButtonSize + 14,
+                  ),
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: chip,
+                  ),
+                );
+        },
+      ),
       // Shown with the faint line of the file's route,
       // and gone with it.
       if (state.differsFromOriginal)
@@ -1063,39 +1263,17 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             ),
           ),
         ),
-      if (_placeToStartFrom != null)
-        Padding(
-          padding: const EdgeInsets.only(top: 10),
-          // One row, the two actions sharing the width. The X
-          // in the search field is what forgets the place.
-          child: Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => unawaited(_rideFromPosition()),
-                  icon: const Icon(Icons.near_me_rounded),
-                  label: Text(
-                    l10n.plannerRideFromPosition,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FilledButton.tonalIcon(
-                  onPressed: _setSearchedPlaceAsStart,
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: Text(
-                    l10n.plannerSetAsStart,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-            ],
+      // The clouds' time, and a weather layer that did not answer: clear
+      // of the control column, as the chips above.
+      const Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: WeatherMapHints(
+          padding: EdgeInsetsDirectional.only(
+            top: 10,
+            end: mapControlButtonSize + 14,
           ),
         ),
+      ),
       if (!hasBackend)
         const Padding(
           padding: EdgeInsets.only(top: 8),
@@ -1165,6 +1343,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   docks: true,
                   dockedBottomInset: bottomInset,
                   onDocked: _reportDocked,
+                  // Down out from behind a sheet opened over the tab, and
+                  // back where it was, or, parked under the keyboard for a
+                  // search, where the search took it from.
+                  collapseWhenCovered: active,
+                  coveredReturnExtent: _sheetReturnExtent,
                   // Under the AI's card, the map is fitted to that card.
                   onExtent: (extent) {
                     if (!_assistantOpen) _onSheetExtent(extent);
@@ -1183,6 +1366,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       ),
                       children: [
                         _SheetHeader(state: state),
+                        // The rain's time control right under the figures,
+                        // in view at the resting height, while the rain is
+                        // on.
+                        const WeatherTimeRow(padding: EdgeInsets.only(top: 10)),
                         const SizedBox(height: 14),
                         // The variants right under the figures, where the sheet
                         // grows to show them; then the actions, so Loop and Save
@@ -1306,7 +1493,7 @@ class _SheetHeader extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                l10n.plannerRoutingFailed(_failureMessage(failure)),
+                l10n.plannerRoutingFailed(errorText(l10n, failure)),
                 style: theme.textTheme.bodyMedium,
               ),
             ),
@@ -1390,13 +1577,13 @@ class _SheetBody extends StatelessWidget {
           )
         else
           SurfaceStatsBar(stats: state.surfaceStats),
+        // The weather on the way; it brings its own space above it, and
+        // takes none when there is nothing to show.
+        const RouteWeatherSection(),
       ],
     );
   }
 }
-
-String _failureMessage(Object error) =>
-    error is RoutingException ? error.message : error.toString();
 
 class _AlternativeChips extends ConsumerWidget {
   const _AlternativeChips({required this.state});

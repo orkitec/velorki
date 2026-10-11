@@ -163,7 +163,7 @@ void main() {
               .having(
                 (e) => e.message,
                 'message',
-                contains('no Velorki relay'),
+                contains('no Velorki server'),
               ),
         ),
       );
@@ -187,14 +187,14 @@ void main() {
       expect(e.message, contains('Velorki Plus'));
     });
 
-    test('rate limiting keeps the relay\'s own retry hint', () {
+    test('rate limiting keeps the relay\'s retry hint', () {
       final e = mapped(
         RelayErrorCode.rateLimited,
         message: 'too many',
         retryAfterS: 90,
       );
       expect(e.failure, IntegrationFailure.rateLimited);
-      expect(e.message, 'too many');
+      expect(e.message, 'Too many requests. Try again in a few minutes.');
       expect(e.retryAfter, const Duration(seconds: 90));
     });
 
@@ -209,10 +209,13 @@ void main() {
       );
     });
 
-    test('anything else keeps its message and counts as relay trouble', () {
+    test('anything else is worded by its code and counts as relay trouble', () {
       final e = mapped(RelayErrorCode.upstreamError, message: 'Strava is down');
       expect(e.failure, IntegrationFailure.relayUnavailable);
-      expect(e.message, 'Strava is down');
+      expect(
+        e.message,
+        "A service Velorki's server relies on did not answer. Try again later.",
+      );
       expect(e.cause, isA<RelayException>());
     });
   });

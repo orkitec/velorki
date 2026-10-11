@@ -32,14 +32,17 @@ changing structure.
 - **Before any commit**, from `app/`, over `lib test integration_test` as
   `app.yml` does: `dart format`, `flutter analyze --fatal-infos`,
   `dart analyze --fatal-infos` (riverpod_lint only runs through `dart analyze`),
-  `flutter test`, and `dart test` in any package you touched.
+  `flutter test` (and again with `--dart-define=VELORKI_TEST_LOCALE=de`, as
+  CI does), `bash tool/unused_code.sh` (public code and files nothing uses), and
+  `dart test` in any package you touched.
 - **In `web/`** (npm, Next.js 16): `npm run dev`, `npm run build`,
   `npm test`, `npm run lint`, `npm run typecheck`, `npm run check:deps`
   (no native addons, no install scripts — the rule that keeps a fork cheap to
   host), `npm run locales -- --check`. Run
   `npm run lint && npm run typecheck && npm test` before committing anything
-  under `web/`. After the first Crowdin sync, only `messages/en.json` and
-  `content/en/` are edited by hand.
+  under `web/`. A change to `messages/en.json` or `content/en/` carries its
+  translation into every other language in the same commit, as the app's
+  strings do; legal pages get a person's read before they go live.
 - **Delegation**: routine implementation goes to cheaper subagents with a
   precise brief; design decisions, verification and review stay with the
   main agent. Subagents must not commit.
@@ -55,8 +58,11 @@ changing structure.
   permission_handler needs compileSdk 37. Android SDK at `~/Android/Sdk`.
 - Codegen: `bash tool/gen.sh` (riverpod, freezed, drift, gen-l10n). build_runner
   here has no `--delete-conflicting-outputs`.
-- Strings live in `app/lib/l10n/app_en.arb` only (other locales come from
-  Crowdin); run `gen.sh` after editing it.
+- Strings are written in `app/lib/l10n/app_en.arb` and translated into every
+  other `app_*.arb` in the same commit (by the agent, matching the terms
+  already in that file); run `gen.sh` after editing. The push uploads them
+  to Crowdin as approved; people's fixes there come back as a pull request
+  on `l10n/crowdin`, which is merged before the next translation change.
 - Config is `--dart-define-from-file=env/<name>.json`. `env/local.json` and
   `env/phone.json` are git-ignored: local points the tile mirror at
   `http://10.0.2.2:8000` (emulator only, debug builds only — profile builds
@@ -159,7 +165,7 @@ changing structure.
   `app/lib/l10n/app_*.arb`; `app.yml` itself runs English and German),
   `gazetteer-perf.yml` (nightly, times the search against New York off the
   mirror), `routing-scenarios.yml` (nightly, the routing scenarios over the
-  New York tile, cached per mirror snapshot), `brouter-oracle.yml` (weekly), `store-assets.yml` (by hand: the App Store screenshots, slides and preview as an artifact, and from a `v*` tag, after approval in `release`, the screenshots onto an App Store version; the Google Play set from an Android emulator as an artifact, uploaded by hand), `web.yml` (every push touching
+  New York tile, cached per mirror snapshot), `brouter-oracle.yml` (weekly), `store-assets.yml` (by hand: the App Store screenshots, slides and preview as an artifact, and from a `v*` tag, after approval in `release`, the screenshots onto an App Store version; the Google Play set from an Android emulator as an artifact, and with `upload`, after approval in `release`, onto the Play store listing), `web.yml` (every push touching
   `web/`: lint, typecheck, vitest, `check:deps`, the locale check,
   `npm audit --omit=dev` and `next build`). No rd5 comes off brouter.de; the oracle job
   does fetch the pinned upstream release zip. Every workflow declares the least

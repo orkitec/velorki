@@ -12,7 +12,16 @@ import '../../../core/geo/ride_stats.dart';
 import '../../../core/permissions/location_permission.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../map/application/area_download_hint.dart';
+import '../../map/application/map_stops_controller.dart';
+import '../../map/presentation/weather_time_row.dart';
+import '../../map/presentation/stops_zoom_chip.dart';
 import '../../map/data/compass_heading.dart';
+import '../../map/data/map_preferences.dart';
+import '../../map/presentation/stops_ahead_line.dart';
+import '../../map/presentation/visible_map_padding.dart';
+import '../../search/domain/search_result.dart';
+import '../../search/presentation/place_card.dart';
 import '../../sensors/application/sensors_seen.dart';
 import 'ride_profile_view.dart';
 import 'ride_cue_sheet.dart';
@@ -29,6 +38,7 @@ import '../../navigation/presentation/navigation_toggles.dart';
 import '../../navigation/presentation/turn_banner.dart';
 import '../../map/domain/visible_map.dart';
 import '../../navigation/presentation/turn_phrases.dart';
+import '../../offline/presentation/offline_screen.dart';
 import '../../library/application/library_card.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
@@ -218,6 +228,20 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     super.initState();
     _active = ref.read(activeTabProvider) == recordingRoute;
     _map = ref.read(sharedMapControllerProvider);
+    _stops = MapStopsController(
+      find: ref.read(mapStopsFinderProvider),
+      coverage: ref.read(mapStopsCoverageProvider),
+      visibleShare: () => mounted
+          ? visibleShareOf(
+              visibleMapPadding(
+                context,
+                chromeTop: _ownControlsTop,
+                sheetExtent: _sheetExtent,
+              ),
+              MediaQuery.sizeOf(context),
+            )
+          : null,
+    )..onStopTapped = (stop) => unawaited(_onStopTapped(stop));
     _updateMapUse();
     // Built in the middle of a change to this tab (its first visit, from
     // another tab): the listener in build sees no change, so the sheet is
@@ -237,6 +261,70 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       _takeOverSheet();
       setState(() => _arrivingExtent = null);
     });
+  }
+
+  /// The stops from the Layers sheet: along the followed route ahead, or in
+  /// the area on screen.
+  late final MapStopsController _stops;
+
+  /// Opens the offline data screen for the area on screen, as the map's
+  /// download button does: where the stops are wanted but not downloaded.
+  void _openOfflineData() {
+    final map = _map;
+    if (map == null) return;
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => OfflineScreen(mapController: map),
+        ),
+      ),
+    );
+  }
+
+  /// Closes the stops' not-downloaded chip for the area it speaks of, with
+  /// every other not-downloaded chip over it; it comes back over another
+  /// area that is not downloaded.
+  void _closeStopsHint() {
+    final area = _stops.missingArea;
+    if (area == null) return;
+    ref.read(areaHintDismissalsProvider.notifier).dismiss(area);
+  }
+
+  /// A stop tapped on the map is picked out, and its card says what and
+  /// where it is for as long as it is open.
+  Future<void> _onStopTapped(SearchResult stop) async {
+    if (!mounted) return;
+    _stops.select(stop);
+    await showPlaceCard(
+      context,
+      place: stop,
+      riderPosition: ref
+          .read(recordingControllerProvider)
+          .snapshot
+          ?.lastPosition,
+    );
+    // Unless another stop has been picked out since.
+    if (mounted && _stops.selected == stop) _stops.select(null);
+  }
+
+  /// An entry of the stops-ahead line: the stop is picked out on the map,
+  /// and shown there unless the camera is following the rider, which a
+  /// look ahead must not take away.
+  void _onStopAheadTapped(SearchResult stop) {
+    _stops.select(stop);
+    final following =
+        _following && ref.read(recordingControllerProvider).isRecording;
+    if (following) return;
+    unawaited(
+      _map?.moveTo(
+        stop.position,
+        padding: visibleMapPadding(
+          context,
+          chromeTop: _ownControlsTop,
+          sheetExtent: _sheetExtent,
+        ),
+      ),
+    );
   }
 
   /// What the shell's control column was last told about this tab.
@@ -278,6 +366,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // must not show it for the frame before the live sheet first reports.
     _liveExtent.value = _liveSheetShown ? extent : 1;
     if (_active) ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
+    // The stops follow what the sheet leaves of the map.
+    _stops.visibleAreaChanged();
   }
 
   /// The sheet's extent as last reported; `null` before the first report.
@@ -485,6 +575,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     if (_dimmed) unawaited(_dimmer?.reset());
     _glanceTimer?.cancel();
     if (_drawing) _map?.onCameraIdle = null;
+    _stops.dispose();
     _idleSheet.dispose();
     _liveSheet.dispose();
     _liveExtent.dispose();
@@ -561,6 +652,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       _map?.onCameraIdle = null;
       _drawing = false;
     }
+    _stops.detach(clear: false);
     _map = map;
     _updateMapUse();
     if (_drawing && mounted) setState(() {});
@@ -579,9 +671,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       if (map == null) return;
       map.onCameraIdle = null;
       _clearLayers(map);
+      _stops.detach();
       return;
     }
     map.onCameraIdle = _handleCameraIdle;
+    _stops.attach(map);
     // Nothing of this tab is on the map yet: the build that follows draws
     // it all, and a ride being followed takes the camera back to the rider
     // once, wherever the other tab left it.
@@ -1347,7 +1441,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
           .start(notificationTitle: l10n.recordingNotificationTitle);
     } on RecordingException catch (error) {
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.recordingFailed(error.message))),
+        SnackBar(content: Text(l10n.recordingFailed(error.describe(l10n)))),
       );
     }
   }
@@ -1669,6 +1763,21 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     );
 
     final guiding = navigation != null && state.isRecording;
+    // The stops of the Layers sheet: along the route still ahead while one
+    // is followed and the rider wants them so, else in the area on screen.
+    final stopsWanted = ref.watch(mapStopsPreferencesProvider);
+    // The areas whose not-downloaded chip the rider closed this session.
+    final dismissedAreas = ref.watch(areaHintDismissalsProvider);
+    final guided = ref.watch(activeGuidedRouteProvider);
+    final stopsAlong = guided != null && stopsWanted.alongRoute;
+    _stops.update(
+      shown: stopsWanted.shown,
+      kinds: stopsWanted.kinds,
+      routeKey: stopsAlong ? guided.key : null,
+      routeLine: stopsAlong ? guided.line : const <LatLng>[],
+      alongM: navigation?.alongM ?? 0,
+    );
+    final stopsAhead = stopsAlong && stopsWanted.shown;
     final snapshot = state.snapshot;
     // The glance view needs figures to show; without a snapshot there are
     // none yet and the normal screen stays.
@@ -1709,9 +1818,17 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // rests as wide as the other tabs' sheets.
     // Never above the sheet's own top, which a short phone with many
     // figures would otherwise ask for.
+    // The rain's time control under the figures, while the rain is on,
+    // is in view at rest too.
+    final rainHeight = weatherTimeRowHeightFor(
+      context,
+      ref,
+      MediaQuery.sizeOf(context).width - 40,
+    );
+    final rainRow = rainHeight > 0 ? rainHeight + 4 : 0.0;
     final initial = math.min(
       state.isRecording && !geometry.sideways
-          ? fraction(292.0 + 76 * extraRows)
+          ? fraction(292.0 + 76 * extraRows + rainRow)
           : geometry.resting,
       _recordMaxSheetSize,
     );
@@ -1757,6 +1874,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
           bearingDeg: _bearing,
           onLocate: _handleLocate,
           onCompass: state.isRecording ? _handleCompass : null,
+          stopsOffer: MapStopsOffer.ride,
         ),
       );
     }
@@ -1842,6 +1960,76 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                     ),
                   ),
                 ),
+              // The next stop of each kind ahead: under the banner, beside
+              // the control column (upright) or the sheet (sideways); under
+              // it the weather's hints.
+              if (!glance)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: TabChromeSlide(
+                    active: active,
+                    child: SafeArea(
+                      bottom: false,
+                      child: BesideSheet(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            left: 12,
+                            right: shellLayout.sideRail
+                                ? 12
+                                : mapControlsWidth(context) + 8,
+                            top: shellLayout.sideRail
+                                ? math.max(
+                                    guiding
+                                        ? turnBannerHeight + _bannerGapPx
+                                        : 0,
+                                    sidewaysTopRowTop + sidewaysTopRowHeight,
+                                  )
+                                : guiding
+                                ? turnBannerHeight + _bannerGapPx
+                                : defaultMapControlsTop,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (stopsAhead || stopsWanted.shown)
+                                ListenableBuilder(
+                                  listenable: _stops,
+                                  // Where nothing is downloaded: offered the
+                                  // download. In the area on screen, zoomed out
+                                  // too far: told to zoom in. Both where the
+                                  // line would be.
+                                  builder: (context, _) => _stops.needsDownload
+                                      ? dismissedAreas.contains(
+                                              _stops.missingArea,
+                                            )
+                                            ? const SizedBox.shrink()
+                                            : StopsDownloadChip(
+                                                onDownload: _openOfflineData,
+                                                onClose: _closeStopsHint,
+                                              )
+                                      : _stops.needsZoom
+                                      ? StopsZoomChip(
+                                          onZoomIn: () =>
+                                              unawaited(_stops.zoomIn()),
+                                        )
+                                      : StopsAheadLine(
+                                          entries: _stops.nextPerKind(),
+                                          onTap: _onStopAheadTapped,
+                                        ),
+                                ),
+                              const WeatherMapHints(
+                                padding: EdgeInsets.only(top: 8),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               if (glance)
                 Positioned.fill(
                   child: _GlancePanel(
@@ -1883,6 +2071,15 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   // bar, not the navigation bar, which is away.
                   onDocked: state.isRecording ? null : _reportDocked,
                   onExtent: _onSheetExtent,
+                  // Down out from behind a sheet opened over the tab. The
+                  // live sheet goes no lower than where it starts folding
+                  // into the figures bar (a hair above, against rounding):
+                  // below that the bar would fade in under the modal sheet,
+                  // and take the sheet's place.
+                  collapseWhenCovered: active,
+                  coveredExtent: state.isRecording
+                      ? collapsed + dockedRange + 0.001
+                      : collapsed,
                   child: state.isRecording
                       ? _LivePanel(
                           state: state,
@@ -2128,6 +2325,9 @@ class _IdlePanel extends ConsumerWidget {
           idleHints(l10n)[hintIndex % idleHints(l10n).length],
           style: theme.textTheme.bodySmall,
         ),
+        // The rain's time control while the rain is on: whether to set out
+        // now or in an hour.
+        const WeatherTimeRow(padding: EdgeInsets.only(top: 10)),
         const SizedBox(height: 16),
         // The chooser first, the button under it: at the sheet's resting
         // height the button then sits about where the Plan tab's toolbar is.
@@ -2266,7 +2466,15 @@ class _LivePanel extends ConsumerWidget {
                   // there is not room for all of it: on a narrow phone in a
                   // language with a long word for it.
                   Flexible(
-                    child: _StatusPill(label: status, paused: state.isPaused),
+                    child: _StatusPill(
+                      label: status,
+                      // On a narrow phone "Auto-paused" leaves no room for
+                      // the clock: it is a pause all the same.
+                      shortLabel: snapshot.autoPaused && state.isPaused
+                          ? l10n.recordingStatusPaused
+                          : null,
+                      paused: state.isPaused,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -2276,6 +2484,8 @@ class _LivePanel extends ConsumerWidget {
                     ),
                     maxLines: 1,
                   ),
+                  // Clear of the play button even when the row is full.
+                  const SizedBox(width: 4),
                 ],
               ),
             ),
@@ -2373,6 +2583,9 @@ class _LivePanel extends ConsumerWidget {
               const SizedBox.shrink(),
           ],
         ),
+        // The rain's time control under the figures while the rain is on:
+        // on a ride, the next hours are what matters.
+        const WeatherTimeRow(padding: EdgeInsets.only(top: 4)),
         const SizedBox(height: 16),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
@@ -2462,10 +2675,17 @@ class _PausedFade extends StatelessWidget {
 /// Deliberately not animated: a repeating animation never lets a widget test
 /// settle, and a steady dot is calmer on the handlebar anyway.
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.label, required this.paused});
+  const _StatusPill({
+    required this.label,
+    required this.paused,
+    this.shortLabel,
+  });
 
   final String label;
   final bool paused;
+
+  /// Shown instead of [label] when that does not fit.
+  final String? shortLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -2504,16 +2724,46 @@ class _StatusPill extends StatelessWidget {
               ),
             const SizedBox(width: 8),
             Flexible(
-              child: Text(
-                label.toUpperCase(),
-                style: theme.textTheme.overline.copyWith(color: textColor),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final style = theme.textTheme.overline.copyWith(
+                    color: textColor,
+                  );
+                  var text = label.toUpperCase();
+                  final short = shortLabel;
+                  if (short != null &&
+                      !_fits(context, text, style, constraints.maxWidth)) {
+                    text = short.toUpperCase();
+                  }
+                  return Text(
+                    text,
+                    style: style,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  );
+                },
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  static bool _fits(
+    BuildContext context,
+    String text,
+    TextStyle style,
+    double width,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      maxLines: 1,
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final fits = painter.width <= width;
+    painter.dispose();
+    return fits;
   }
 }

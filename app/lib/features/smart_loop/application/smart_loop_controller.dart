@@ -127,9 +127,17 @@ class SmartLoopController extends _$SmartLoopController {
 
     final run = _LoopRun(queries.length);
     _run = run;
+    // The status line under the bar is there from the first frame, so it
+    // does not push the bar when the first direction comes back.
+    state = state.copyWith(planned: run.planned);
     run.onProgress = () {
       if (_disposed || !identical(_run, run)) return;
-      state = state.copyWith(progress: run.progress);
+      // Short of full until the search really ends: a retry can follow
+      // the last request, and a full bar over a running search looked done.
+      state = state.copyWith(
+        progress: math.min(run.progress, _runningProgressCap),
+        checked: run.done,
+      );
     };
     final planner = LoopPlanner(
       backend: _CountingBackend(backend, run),
@@ -150,7 +158,7 @@ class SmartLoopController extends _$SmartLoopController {
     } on Object catch (e) {
       if (!_disposed && identical(_run, run)) {
         _run = null;
-        state = state.copyWith(running: false, error: _messageOf(e));
+        state = state.copyWith(running: false, error: e);
       }
       return;
     }
@@ -275,10 +283,10 @@ class SmartLoopController extends _$SmartLoopController {
     state = state.copyWith(candidates: ranked, index: math.max(0, index));
     _show();
   }
-
-  static String _messageOf(Object error) =>
-      error is RoutingException ? error.message : error.toString();
 }
+
+/// The most the bar shows while a search still runs.
+const double _runningProgressCap = 0.9;
 
 /// One loop search: its cancel token and its progress counters.
 class _LoopRun {
@@ -303,7 +311,7 @@ class _LoopRun {
   void Function()? onProgress;
 
   /// The last routing failure worth reporting, shown when nothing routed.
-  String? lastFailure;
+  Object? lastFailure;
 
   /// The tiles the on-device engine lacked, with no server to fall back to.
   final Set<TileName> missingTiles = <TileName>{};
@@ -379,7 +387,7 @@ class _CountingBackend implements RoutingBackend {
       // Only a broken server or a rejected request is worth reporting.
       if (e.kind == RoutingErrorKind.network ||
           e.kind == RoutingErrorKind.invalid) {
-        _run.lastFailure = e.message;
+        _run.lastFailure = e;
       }
       // Nor is a region that is not downloaded yet: it becomes the sheet's
       // download offer.
@@ -388,7 +396,7 @@ class _CountingBackend implements RoutingBackend {
       }
       rethrow;
     } on Object catch (e) {
-      _run.lastFailure = e.toString();
+      _run.lastFailure = e;
       rethrow;
     } finally {
       // The planner cancels what is still running when its deadline is up;

@@ -43,6 +43,7 @@ dependencies:
   # Workspace members, resolved from packages/ (no version constraint).
   velorki_api:
   velorki_brouter:
+  velorki_cycle_map:
   velorki_loops:
   velorki_fit:
   velorki_geo:
@@ -146,5 +147,6 @@ workspace:
   - packages/velorki_brouter
   - packages/velorki_loops
   - packages/velorki_api
+  - packages/velorki_cycle_map
   - packages/brouter_dart
 

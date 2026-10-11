@@ -5,11 +5,13 @@
 // checks the app's part: the sheet stays where it was.
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:velorki/features/map/presentation/map_attribution.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/shared/presentation/floating_bar.dart';
 import 'package:velorki/features/shared/presentation/gesture_zone_guard.dart';
 
 import 'support/harness.dart';
@@ -77,21 +79,70 @@ void main() {
     await pumpFor(tester, const Duration(seconds: 1));
     expect(_sheetState(tester), isNot(rest));
 
-    // The map's attribution chip sits in the band under the bar, in the
-    // zone, and with the sheet docked into the bar it still opens its
-    // notice.
+    // With the sheet docked into the bar, the map's attribution chip is in
+    // view in the band under the bar: in the zone where there is one; where
+    // there is none (a home button, three-button navigation) the bar stands
+    // higher and the chip sits on the safe area's edge under it. It is text
+    // only: a tap on it opens nothing, and without a zone the map under it
+    // gets the tap (in the zone the guard keeps it from everything).
     await tester.dragFrom(
       tester.getCenter(find.byType(SheetHandle)),
       Offset(0, size.height),
     );
     await pumpFor(tester, const Duration(seconds: 1));
     final chip = find.byType(MapAttributionChip);
-    expect(tester.getRect(chip).bottom, greaterThan(size.height - zone));
-    await tapAndPump(tester, chip);
-    expect(find.byType(AlertDialog), findsOneWidget);
-    await tester.tapAt(const Offset(10, 120));
-    await pumpFor(tester, const Duration(seconds: 1));
-    expect(find.byType(AlertDialog), findsNothing);
+    final chipRect = tester.getRect(chip);
+    final bar = tester.getRect(
+      find
+          .descendant(
+            of: find.byType(FloatingBarShell),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    expect(chipRect.top, greaterThanOrEqualTo(bar.bottom));
+    if (zone > 0) {
+      expect(chipRect.bottom, greaterThan(size.height - zone));
+    } else {
+      final safe =
+          tester.view.viewPadding.bottom / tester.view.devicePixelRatio;
+      expect(chipRect.bottom, lessThanOrEqualTo(size.height - safe));
+      expect(chipRect.bottom, greaterThan(size.height - safe - 12));
+    }
+    final hit = HitTestResult();
+    tester.binding.hitTestInView(hit, chipRect.center, tester.view.viewId);
+    final chipObjects = {
+      tester.renderObject(chip),
+      for (final e
+          in find
+              .descendant(
+                of: chip,
+                matching: find.byWidgetPredicate((_) => true),
+              )
+              .evaluate())
+        e.renderObject,
+    };
+    expect(hit.path.where((e) => chipObjects.contains(e.target)), isEmpty);
+    if (zone == 0) {
+      expect(
+        hit.path.any(
+          (e) =>
+              e.target is PlatformViewRenderBox ||
+              e.target is RenderAndroidView ||
+              e.target is RenderUiKitView,
+        ),
+        isTrue,
+        reason: 'the map under the chip gets the tap',
+      );
+    }
+    // In the zone a tap on the chip must open nothing. Without one the tap
+    // is the map's, shown above, and a tap on the planner's map does what
+    // it always does (a point, a place card) in the bar's way.
+    if (zone > 0) {
+      await tester.tapAt(chipRect.center);
+      await pumpFor(tester, const Duration(seconds: 1));
+      expect(find.byType(Dialog), findsNothing);
+    }
 
     await tapAndPump(tester, _tab(1));
     await pumpFor(tester, const Duration(seconds: 1));

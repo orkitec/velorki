@@ -8,11 +8,12 @@ import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/data/offline_regions_repository.dart';
 import '../../map/domain/map_controller.dart';
-import '../../shared/presentation/byte_size.dart';
 import '../../map/presentation/offline_regions_screen.dart';
 import '../../routing_tiles/application/tile_download_controller.dart';
 import '../../routing_tiles/data/routing_tiles_repository.dart';
 import '../../routing_tiles/presentation/routing_tiles_screen.dart';
+import '../../shared/presentation/byte_size.dart';
+import '../../shared/presentation/error_text.dart';
 
 /// Everything a ride without a signal needs, in one place: the map to look
 /// at and the routing data routes are computed from. One button downloads
@@ -144,9 +145,7 @@ class OfflineScreen extends ConsumerWidget {
     } on Object catch (e) {
       messenger?.showSnackBar(
         SnackBar(
-          content: Text(
-            l10n.routingTilesManifestFailed(manifestFailureMessage(e)),
-          ),
+          content: Text(l10n.routingTilesManifestFailed(errorText(l10n, e))),
         ),
       );
       return;
@@ -210,7 +209,7 @@ class OfflineScreen extends ConsumerWidget {
       await ref.read(offlineDownloadControllerProvider.notifier).download(spec);
     } on Object catch (error) {
       messenger?.showSnackBar(
-        SnackBar(content: Text(l10n.offlineMapFailed(error.toString()))),
+        SnackBar(content: Text(l10n.offlineMapFailed(errorText(l10n, error)))),
       );
     }
   }

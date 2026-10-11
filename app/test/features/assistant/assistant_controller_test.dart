@@ -102,9 +102,9 @@ void main() {
     test('an app that follows the phone asks in the language it shows, '
         "with the phone's region", () async {
       expect((await ask(phone: const [Locale('de', 'CH')])).locale, 'de-CH');
-      // Not translated into French: the app is in English, and so is the
+      // Not translated into Japanese: the app is in English, and so is the
       // answer.
-      expect((await ask(phone: const [Locale('fr', 'FR')])).locale, 'en');
+      expect((await ask(phone: const [Locale('ja', 'JP')])).locale, 'en');
     });
 
     test('the units are the ones Settings shows', () async {

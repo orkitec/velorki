@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/app_config.dart';
+import '../domain/cycle_map.dart';
 
 part 'map_preferences.g.dart';
 
@@ -73,6 +74,9 @@ class LastMapCamera extends _$LastMapCamera {
 /// Offline downloads read this too: the OpenStreetMap Foundation tile policy
 /// forbids bulk downloading CyclOSM tiles, so the download action is disabled
 /// while the overlay is active.
+///
+/// It and the offline cycle map ([CycleMapPreferences]) draw the same ways,
+/// so one switched on switches the other off.
 @Riverpod(keepAlive: true)
 class CyclosmOverlay extends _$CyclosmOverlay {
   @override
@@ -83,8 +87,179 @@ class CyclosmOverlay extends _$CyclosmOverlay {
   Future<void> set(bool value) async {
     await ref.read(sharedPreferencesProvider).setBool(_prefsCyclosm, value);
     state = value;
+    if (value) {
+      await ref.read(cycleMapPreferencesProvider.notifier).setShown(false);
+    }
   }
 
   /// Flips the overlay.
   Future<void> toggle() => set(!state);
+}
+
+const String _prefsStopsShown = 'map.stops.shown';
+const String _prefsStopsKinds = 'map.stops.kinds';
+const String _prefsStopsAlongRoute = 'map.stops.alongRoute';
+
+/// The kinds of stop shown until the rider picks their own: what a ride
+/// most often stops for.
+const Set<String> defaultStopKinds = <String>{
+  'drinking_water',
+  'cafe',
+  'bakery',
+  'toilets',
+  'bicycle_repair_station',
+};
+
+/// What the map's Layers sheet says about stops: whether they are shown,
+/// which kinds, and, on a guided ride, whether along the route ahead or in
+/// the part of the map on screen.
+@immutable
+class MapStopsSettings {
+  /// Creates the preferences.
+  const MapStopsSettings({
+    this.shown = false,
+    this.kinds = defaultStopKinds,
+    this.alongRoute = true,
+  });
+
+  /// Whether stops are drawn at all.
+  final bool shown;
+
+  /// The gazetteer POI kinds shown, `drinking_water`, `cafe` and so on.
+  final Set<String> kinds;
+
+  /// On a guided ride, whether the stops are the ones beside the route still
+  /// ahead rather than the ones in the area on screen.
+  final bool alongRoute;
+
+  /// A copy with the named fields replaced.
+  MapStopsSettings copyWith({
+    bool? shown,
+    Set<String>? kinds,
+    bool? alongRoute,
+  }) => MapStopsSettings(
+    shown: shown ?? this.shown,
+    kinds: kinds ?? this.kinds,
+    alongRoute: alongRoute ?? this.alongRoute,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is MapStopsSettings &&
+      other.shown == shown &&
+      other.alongRoute == alongRoute &&
+      setEquals(other.kinds, kinds);
+
+  @override
+  int get hashCode =>
+      Object.hash(shown, alongRoute, Object.hashAllUnordered(kinds));
+
+  @override
+  String toString() =>
+      'MapStopsSettings(shown: $shown, kinds: ${kinds.join(',')}, '
+      'alongRoute: $alongRoute)';
+}
+
+/// The stops the map shows, remembered across launches.
+@Riverpod(keepAlive: true)
+class MapStopsPreferences extends _$MapStopsPreferences {
+  @override
+  MapStopsSettings build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final kinds = prefs.getStringList(_prefsStopsKinds);
+    return MapStopsSettings(
+      shown: prefs.getBool(_prefsStopsShown) ?? false,
+      kinds: kinds == null ? defaultStopKinds : Set<String>.unmodifiable(kinds),
+      alongRoute: prefs.getBool(_prefsStopsAlongRoute) ?? true,
+    );
+  }
+
+  /// Shows the stops or takes them away.
+  Future<void> setShown(bool value) async {
+    state = state.copyWith(shown: value);
+    await ref.read(sharedPreferencesProvider).setBool(_prefsStopsShown, value);
+  }
+
+  /// Shows [kind] among the stops, or stops showing it.
+  Future<void> setKind(String kind, {required bool shown}) async {
+    final kinds = Set<String>.of(state.kinds);
+    if (shown) {
+      kinds.add(kind);
+    } else {
+      kinds.remove(kind);
+    }
+    state = state.copyWith(kinds: Set<String>.unmodifiable(kinds));
+    await ref
+        .read(sharedPreferencesProvider)
+        .setStringList(_prefsStopsKinds, kinds.toList()..sort());
+  }
+
+  /// On a guided ride, along the route ahead or in the area on screen.
+  Future<void> setAlongRoute(bool value) async {
+    state = state.copyWith(alongRoute: value);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool(_prefsStopsAlongRoute, value);
+  }
+}
+
+const String _prefsCycleMapShown = 'map.cycle_map.shown';
+const String _prefsCycleMapParts = 'map.cycle_map.parts';
+const String _prefsCycleMapKnown = 'map.cycle_map.known';
+
+/// The offline cycle map's settings, remembered across launches.
+@Riverpod(keepAlive: true)
+class CycleMapPreferences extends _$CycleMapPreferences {
+  @override
+  CycleMapSettings build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final names = prefs.getStringList(_prefsCycleMapParts);
+    // A part added since the rider last chose starts as its default; one
+    // they knew keeps their choice.
+    final known = prefs.getStringList(_prefsCycleMapKnown) ?? names;
+    return CycleMapSettings(
+      shown: prefs.getBool(_prefsCycleMapShown) ?? false,
+      parts: names == null
+          ? defaultCycleMapParts
+          : Set<CycleMapPart>.unmodifiable(<CycleMapPart>{
+              for (final part in CycleMapPart.values)
+                if (names.contains(part.name) ||
+                    !known!.contains(part.name) &&
+                        defaultCycleMapParts.contains(part))
+                  part,
+            }),
+    );
+  }
+
+  /// Draws the cycle map or takes it away; drawing it takes the CyclOSM
+  /// overlay away, which shows the same ways.
+  Future<void> setShown(bool value) async {
+    if (value == state.shown) return;
+    state = state.copyWith(shown: value);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool(_prefsCycleMapShown, value);
+    if (value && ref.read(cyclosmOverlayProvider)) {
+      await ref.read(cyclosmOverlayProvider.notifier).set(false);
+    }
+  }
+
+  /// Draws [part] or stops drawing it.
+  Future<void> setPart(CycleMapPart part, {required bool shown}) async {
+    final parts = Set<CycleMapPart>.of(state.parts);
+    if (shown) {
+      parts.add(part);
+    } else {
+      parts.remove(part);
+    }
+    state = state.copyWith(parts: Set<CycleMapPart>.unmodifiable(parts));
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setStringList(
+      _prefsCycleMapParts,
+      <String>[for (final part in parts) part.name]..sort(),
+    );
+    await prefs.setStringList(_prefsCycleMapKnown, <String>[
+      for (final part in CycleMapPart.values) part.name,
+    ]);
+  }
 }

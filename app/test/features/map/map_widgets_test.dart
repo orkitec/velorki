@@ -6,12 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart' as geo;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
+import 'package:velorki/core/links/link_opener.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
+import 'package:velorki/features/map/presentation/layers_sheet.dart';
 import 'package:velorki/features/map/presentation/map_attribution.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
@@ -21,9 +24,6 @@ import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
-
-/// The address the OpenStreetMap licence link points at.
-const String _osmUrl = 'https://www.openstreetmap.org/copyright';
 
 Future<Widget> _wrap(
   Widget child, {
@@ -162,23 +162,161 @@ void main() {
       expect(find.textContaining(l10n.mapAttributionCyclosm), findsOneWidget);
     });
 
-    testWidgets('opens the licence dialog with the source URLs', (
-      tester,
-    ) async {
+    testWidgets('leaves the weather credits to the sheet', (tester) async {
+      await tester.pumpWidget(
+        await _wrap(
+          MapAttributionChip(
+            weatherCredits: ValueNotifier<List<String>>(['Radar: X 2026']),
+          ),
+        ),
+      );
+
+      expect(
+        find.text('${l10n.osmAttribution} · ${l10n.mapAttributionOpenFreeMap}'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Radar: X'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(MapAttributionChip),
+          matching: find.byIcon(Icons.info_outline),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('only its (i) is a button, 48 dp tall, named for the '
+        'credits; the credit lets taps through', (tester) async {
+      final semantics = tester.ensureSemantics();
       await tester.pumpWidget(await _wrap(const MapAttributionChip()));
 
-      await tester.tap(find.byType(MapAttributionChip));
+      final info = find.byIcon(Icons.info_outline);
+      final button = find.ancestor(
+        of: info,
+        matching: find.byType(GestureDetector),
+      );
+      expect(
+        tester.getSize(button.first).height,
+        greaterThanOrEqualTo(kMinInteractiveDimension),
+      );
+      expect(
+        tester.getSemantics(info),
+        matchesSemantics(
+          label: l10n.mapCredits,
+          isButton: true,
+          hasTapAction: true,
+        ),
+      );
+      // A tap on the credit's text opens nothing.
+      await tester.tap(
+        find.text('${l10n.osmAttribution} · ${l10n.mapAttributionOpenFreeMap}'),
+        warnIfMissed: false,
+      );
       await tester.pumpAndSettle();
+      expect(find.byType(MapCreditsSheet), findsNothing);
+      semantics.dispose();
+    });
 
-      expect(find.text(l10n.mapAttributionTitle), findsWidgets);
-      expect(find.text(_osmUrl), findsOneWidget);
-      expect(find.text('https://openfreemap.org/'), findsOneWidget);
-      // Not active, so it is not listed.
-      expect(find.text('https://www.cyclosm.org/'), findsNothing);
-
-      await tester.tap(find.text(l10n.mapAttributionClose));
+    Future<List<Uri>> pumpAndOpen(
+      WidgetTester tester, {
+      List<String> weather = const <String>[],
+      bool cyclosm = false,
+    }) async {
+      final opened = <Uri>[];
+      await tester.pumpWidget(
+        await _wrap(
+          MapAttributionChip(
+            weatherCredits: ValueNotifier<List<String>>(weather),
+          ),
+          cyclosm: cyclosm,
+          overrides: [
+            linkOpenerProvider.overrideWithValue((url) async {
+              opened.add(url);
+              return true;
+            }),
+          ],
+        ),
+      );
+      await tester.tap(find.byIcon(Icons.info_outline));
       await tester.pumpAndSettle();
-      expect(find.text(_osmUrl), findsNothing);
+      return opened;
+    }
+
+    testWidgets('a tap opens the credits: the map, then the weather', (
+      tester,
+    ) async {
+      final opened = await pumpAndOpen(
+        tester,
+        weather: ['Radar: X 2026', 'Wind: Y'],
+      );
+
+      final sheet = find.byType(MapCreditsSheet);
+      expect(sheet, findsOneWidget);
+      Finder inSheet(String text) =>
+          find.descendant(of: sheet, matching: find.text(text));
+      expect(inSheet(l10n.mapCredits), findsOneWidget);
+      expect(inSheet(l10n.mapCreditsMap.toUpperCase()), findsOneWidget);
+      expect(inSheet(l10n.osmAttribution), findsOneWidget);
+      expect(inSheet(l10n.mapAttributionOpenFreeMap), findsOneWidget);
+      expect(inSheet(l10n.mapAttributionOpenMapTiles), findsOneWidget);
+      expect(inSheet(l10n.mapAttributionCyclosm), findsNothing);
+      expect(inSheet(l10n.mapCreditsWeather.toUpperCase()), findsOneWidget);
+      expect(inSheet('Radar: X 2026'), findsOneWidget);
+      expect(inSheet('Wind: Y'), findsOneWidget);
+      expect(
+        tester.getTopLeft(inSheet('Radar: X 2026')).dy,
+        greaterThan(tester.getTopLeft(inSheet(l10n.osmAttribution)).dy),
+      );
+
+      await tester.tap(inSheet(l10n.osmAttribution));
+      await tester.tap(inSheet(l10n.mapAttributionOpenFreeMap));
+      await tester.tap(inSheet(l10n.mapAttributionOpenMapTiles));
+      await tester.pumpAndSettle();
+      expect(opened, [
+        Uri.parse('https://www.openstreetmap.org/copyright'),
+        Uri.parse('https://openfreemap.org'),
+        Uri.parse('https://www.openmaptiles.org/'),
+      ]);
+    });
+
+    testWidgets('without weather the sheet has no weather section', (
+      tester,
+    ) async {
+      await pumpAndOpen(tester, cyclosm: true);
+
+      final sheet = find.byType(MapCreditsSheet);
+      expect(sheet, findsOneWidget);
+      expect(
+        find.descendant(
+          of: sheet,
+          matching: find.text(l10n.mapCreditsWeather.toUpperCase()),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: sheet,
+          matching: find.text(l10n.mapAttributionCyclosm),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('"All licences" opens the licence page', (tester) async {
+      PackageInfo.setMockInitialValues(
+        appName: 'Velorki',
+        packageName: 'com.velorki',
+        version: '1.0.0',
+        buildNumber: '1',
+        buildSignature: '',
+      );
+      await pumpAndOpen(tester);
+
+      final row = find.text(l10n.mapCreditsAllLicences);
+      await tester.ensureVisible(row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+      expect(find.byType(LicensePage), findsOneWidget);
     });
   });
 
@@ -222,7 +360,7 @@ void main() {
       expect(controller.cameraMoves.single.zoom, 22);
     });
 
-    testWidgets('toggles the app-wide CyclOSM setting and remembers it', (
+    testWidgets('the Layers sheet toggles the app-wide CyclOSM setting', (
       tester,
     ) async {
       final controller = FakeMapController();
@@ -230,12 +368,21 @@ void main() {
       final element = tester.element(find.byType(MapControls));
       final container = ProviderScope.containerOf(element);
 
-      await tester.tap(find.widgetWithIcon(IconButton, Icons.directions_bike));
+      // The Layers button opens the sheet; its online cycle map switch is
+      // the overlay.
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.layers_outlined));
+      await tester.pumpAndSettle();
+      expect(find.byType(LayersSheet), findsOneWidget);
+      final cycleMap = find.widgetWithText(
+        SwitchListTile,
+        l10n.mapLayersOnlineCycleMap,
+      );
+      await tester.tap(cycleMap);
       await tester.pumpAndSettle();
 
       expect(container.read(cyclosmOverlayProvider), isTrue);
 
-      await tester.tap(find.widgetWithIcon(IconButton, Icons.directions_bike));
+      await tester.tap(cycleMap);
       await tester.pumpAndSettle();
 
       expect(container.read(cyclosmOverlayProvider), isFalse);
@@ -245,7 +392,7 @@ void main() {
       expect(controller.cyclosmOverlayCalls, isEmpty);
     });
 
-    testWidgets('draws the CyclOSM button in the accent while it is on', (
+    testWidgets('draws the Layers button in the accent while CyclOSM is on', (
       tester,
     ) async {
       final controller = FakeMapController();
@@ -255,7 +402,7 @@ void main() {
       await tester.pump();
 
       expect(
-        _buttonColor(tester, Icons.directions_bike),
+        _buttonColor(tester, Icons.layers_outlined),
         buildLightTheme().velorki.accent,
       );
     });

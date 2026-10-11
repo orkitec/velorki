@@ -12,6 +12,8 @@ import 'package:velorki/features/sharing/data/share_service.dart';
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
+import 'package:flutter/widgets.dart' show Locale;
+import 'package:velorki/l10n/generated/app_localizations.dart';
 
 /// One `POST /share` as it reached the relay.
 class _ShareCall {
@@ -94,21 +96,19 @@ void main() {
   group('a share that could not be created', () {
     test('reads as a sentence and keeps the cause for the log', () {
       const cause = FormatException('the relay said nothing');
-      const failure = ShareException(
-        'The share could not be made.',
-        cause: cause,
-      );
+      final failure = ShareException((l10n) => l10n.shareNothing, cause: cause);
 
+      expect(failure.toString(), 'ShareException: There is nothing to share.');
+      expect(failure.message, 'There is nothing to share.');
       expect(
-        failure.toString(),
-        'ShareException: The share could not be made.',
+        failure.describe(lookupAppLocalizations(const Locale('de'))),
+        'Es gibt nichts zu teilen.',
       );
-      expect(failure.message, 'The share could not be made.');
       expect(failure.cause, same(cause));
     });
 
     test('a failure without a cause still reads as a sentence', () {
-      expect(const ShareException('There is nothing to share.').cause, isNull);
+      expect(ShareException((l10n) => l10n.shareNothing).cause, isNull);
     });
   });
 
@@ -312,7 +312,7 @@ void main() {
       expect(relay.calls, hasLength(1));
     });
 
-    test('what the relay said is what the rider is told', () async {
+    test('the relay\'s code is what the rider is told', () async {
       final failure = const RelayException(
         RelayError(
           code: RelayErrorCode.unavailable,
@@ -331,7 +331,11 @@ void main() {
         ),
         throwsA(
           isA<ShareException>()
-              .having((e) => e.message, 'message', 'the server is down')
+              .having(
+                (e) => e.message,
+                'message',
+                "Velorki's server cannot do this right now. Try again later.",
+              )
               .having((e) => e.cause, 'cause', same(failure)),
         ),
       );

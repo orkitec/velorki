@@ -126,6 +126,10 @@ describe('fixed-window rate limits', () => {
       // The pass-through, per rider.
       proxyPerMin: { name: 'proxy_min', limit: 60, windowS: 60 },
       proxyPerDay: { name: 'proxy_day', limit: 1_500, windowS: 86_400 },
+      // Weather, per rider, and per IP before the body is read.
+      weatherPerHour: { name: 'weather_hour', limit: 60, windowS: 3_600 },
+      weatherPerDay: { name: 'weather_day', limit: 400, windowS: 86_400 },
+      weatherPerIpHour: { name: 'weather_ip_hour', limit: 120, windowS: 3_600 },
     });
   });
 });

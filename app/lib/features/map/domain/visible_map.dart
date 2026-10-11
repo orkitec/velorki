@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show immutable;
-import 'package:flutter/painting.dart' show EdgeInsets, Size;
+import 'package:flutter/painting.dart' show EdgeInsets, Rect, Size;
 import 'package:velorki_geo/velorki_geo.dart';
 
 /// The part of the map the rider can see.
@@ -209,3 +209,15 @@ double _latOf(double y, double world) {
 }
 
 double _sinh(double x) => (math.exp(x) - math.exp(-x)) / 2;
+
+/// The visible part of a [size] map with [insets] covered, as shares of its
+/// width and height: what the stops on the map are asked for around.
+Rect visibleShareOf(EdgeInsets insets, Size size) =>
+    size.width <= 0 || size.height <= 0
+    ? const Rect.fromLTRB(0, 0, 1, 1)
+    : Rect.fromLTRB(
+        (insets.left / size.width).clamp(0.0, 1.0),
+        (insets.top / size.height).clamp(0.0, 1.0),
+        (1 - insets.right / size.width).clamp(0.0, 1.0),
+        (1 - insets.bottom / size.height).clamp(0.0, 1.0),
+      );

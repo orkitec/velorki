@@ -17,7 +17,10 @@ in [`web/README.md`](../web/README.md).
 | CI | GitHub Actions in both repositories |
 
 Upstreams: brouter.de (rd5 tiles), Geofabrik (the OSM extracts the `.gaz` files
-are built from), OpenFreeMap and CyclOSM (map tiles), Photon (online search).
+are built from), OpenFreeMap and CyclOSM (map tiles), Photon (online search),
+DWD, NOAA, the Iowa Environmental Mesonet, NASA GIBS and EUMETSAT (the free
+weather map: rain radar, H SAF satellite rain, ICON and HRRR forecasts, clouds
+and ICON wind, fetched by the phone, no relay).
 
 ```
  brouter.de/segments4                      Geofabrik extracts
@@ -90,7 +93,8 @@ and hides the Plus features — see [SELF_HOSTING.md](SELF_HOSTING.md).
 | Codegen | freezed, json_serializable, drift_dev, riverpod_generator, gen-l10n; generated files are not committed, `app/tool/gen.sh` runs them | |
 | HTTP | dio | interceptors for token refresh, the rate-limit bucket, multipart, cancellation |
 | Map | maplibre_gl behind a `MapController` interface so widget tests can fake it; style URL from config | BSD-licensed, vector tiles, offline regions. Mapbox is proprietary and metered per monthly active user |
-| Map tiles | OpenFreeMap vector tiles by default, CyclOSM raster as an optional overlay | no key, no limits; swappable to self-hosted PMTiles |
+| Map tiles | OpenFreeMap vector tiles by default; an offline cycle map drawn from the rd5 tiles, or CyclOSM raster as an online overlay | no key, no limits; swappable to self-hosted PMTiles |
+| Weather map | rain from a ranked list of sources, picked per time-control step (now, quarter hours to +2 h, hours to +24 h) by `rainPartsAt`: radar (DWD WMS, NOAA ImageServer) and the DWD nowcast where they reach, H SAF satellite rain (EUMETSAT WMS) around them at "Now", ICON-EU (hourly, in the DWD radar's style), HRRR over the contiguous US (IEM's reflectivity tiles every 15 minutes of the newest run its `refd_0000.json` names, put together on the phone into one image of the view, at most 16 tiles) and global ICON (six-hour sums) ahead, forecasts as opaque as measurements; each source masked on the phone by those before it: drawn soft, by where the DWD's or the HRRR's frame of the same step measures (read from that image: not its grey "no data", inside its grid), crossfaded over 25 km inside that edge, else by their fixed reach or coverage. Soft by default: one image of the view and its surroundings per source at its native resolution, fetched when the camera rests, each pixel read against the service's legend (hard-coded per source in `rain_legend.dart`; anything not in it, such as the DWD's reach line, dropped), its alpha by the class's rank and its edges blurred in an isolate, drawn as an image source with linear resampling; "As measured" in Settings → Appearance keeps the radars' raster tiles and draws satellite and model images as they come, masked only; clouds as one image per region (EUMETSAT and NASA GIBS WMS), and from zoom 6 a second image of the view and its surroundings at the service's native resolution over it, fetched when the camera rests, both whitened by brightness on the phone and drawn as image sources with linear resampling; wind as one plain-text grid of the view and a quarter around it per time-control hour (global ICON 10 m u/v, DWD WCS `GetCoverage` `format=text/plain`, thinned by the service's `scalesize` when zoomed out; a box across the antimeridian is one request, the service wraps), cached for an hour, from zoom 3, turned on the phone into our own arrows: points on a world-fixed ~70 px grid, bilinearly interpolated, a GeoJSON symbol layer of one SDF arrow coloured and sized by speed over the rain and clouds; `WeatherMapDriver` picks the sources over the view and refreshes them | free public services; EUMETSAT's Meteosat images only on the full hour, which its data policy makes free; SAF products are Core data at any latency |
 
 Versions live in `app/pubspec.yaml`. Deliberately not used: `strava_client` (it
 expects the client secret inside the app) and `latlong2`.
@@ -142,6 +146,7 @@ None depend on Flutter, so they run and are tested on the desktop Dart VM.
 | `velorki_fit` | FIT activities and courses |
 | `velorki_brouter` | the `RoutingBackend` interface, the HTTP, local and composite backends, and the GeoJSON/`messages` parser producing `RouteResult` |
 | `velorki_loops` | the loop candidate strategies and the scorer |
+| `velorki_cycle_map` | the offline cycle map: ways classified from the rd5 tiles, cached per cell, written as GeoJSON in an isolate |
 | `velorki_api` | the client for the relay |
 | `brouter_dart` | the Dart port of the BRouter routing runtime |
 
@@ -401,7 +406,10 @@ and `SegmentsManifestService` fetches every shard's `manifest.json` from the
 the release they are served from (one unreadable shard fails the fetch rather
 than hiding a region). The app marks tiles the mirror has rebuilt as stale
 (checked weekly) and refuses tiles in a newer rd5 format than its bundled
-`lookups.dat`, asking for an app update instead. The map's download button opens `features/offline`,
+`lookups.dat`, asking for an app update instead. The pointer may also carry
+`weatherLayers`, which overrides or switches off the weather map's built-in
+sources by `id` (field list on `SegmentsManifestService`); the last one read
+is kept for offline use, and anything unreadable means the built-in sources. The map's download button opens `features/offline`,
 one screen that fetches the map area and the routing tiles together; the two
 kinds keep their own screens behind it. `CompositeRoutingBackend`
 takes the bounding box of the waypoints, expands it by max(10 km, 20 %), and

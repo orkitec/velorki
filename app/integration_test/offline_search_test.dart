@@ -142,12 +142,9 @@ void main() {
 
     await tapAndPump(tester, row);
 
-    // With an empty plan the place becomes the destination of a ride from the
-    // rider's position, exactly as the online search test does it.
-    await tapAndPump(
-      tester,
-      find.widgetWithText(FilledButton, 'From my position'),
-    );
+    // With an empty plan the place's card makes it the destination of a ride
+    // from the rider's position, exactly as the online search test does it.
+    await tapAndPump(tester, find.widgetWithText(FilledButton, 'Route here'));
 
     await waitUntil(
       tester,

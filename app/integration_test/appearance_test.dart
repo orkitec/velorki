@@ -114,8 +114,12 @@ void main() {
     );
 
     // ------------------------------------------------------ map to Night
-    await waitForWidget(tester, find.widgetWithText(ChoiceChip, 'Night'));
-    await tapAndPump(tester, find.widgetWithText(ChoiceChip, 'Night'));
+    final night = find.descendant(
+      of: find.byType(SegmentedButton<MapLook>),
+      matching: find.text('Night'),
+    );
+    await waitForWidget(tester, night);
+    await tapAndPump(tester, night);
     await pumpFor(tester, const Duration(seconds: 4));
     expect(container.read(appearanceSettingProvider).mapLook, MapLook.night);
     expect(

@@ -8,6 +8,30 @@
             "state" : "translated",
             "value" : "Velorki liest während der Fahrt deinen Puls von der Uhr, um ihn anzuzeigen und mit der Fahrt zu speichern."
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki lee tu pulso del reloj durante la salida para mostrarlo y guardarlo con ella."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki lit votre fréquence cardiaque sur la montre pendant la sortie, pour l’afficher et l’enregistrer avec la sortie."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki legge la tua frequenza cardiaca dall'orologio durante il giro, per mostrarla e salvarla con il giro."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki leest tijdens de rit je hartslag van het horloge, om die te tonen en met de rit op te slaan."
+          }
         }
       }
     },
@@ -17,6 +41,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Velorki startet während der Fahrt ein Training auf der Uhr; nur so misst der Pulssensor auch bei gesenktem Arm weiter."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki inicia un entrenamiento en el reloj durante la salida; así el sensor de pulso sigue midiendo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki lance un entraînement sur la montre pendant la sortie ; c’est ce qui fait que le capteur de fréquence cardiaque continue de mesurer."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki avvia un allenamento sull'orologio durante il giro: è così che il sensore di frequenza cardiaca continua a misurare."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki start tijdens de rit een training op het horloge; zo blijft de hartslagsensor meten."
           }
         }
       }

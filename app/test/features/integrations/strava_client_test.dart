@@ -316,7 +316,7 @@ void main() {
       );
 
       expect(e.failure, IntegrationFailure.rateLimited);
-      expect(e.message, contains('try again in'));
+      expect(e.message, contains('Try again in'));
       // The third request never left the phone.
       expect(adapter.requests, hasLength(2));
 

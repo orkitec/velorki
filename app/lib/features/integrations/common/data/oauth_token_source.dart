@@ -68,7 +68,7 @@ class OAuthTokenSource {
     if (stored == null) {
       throw IntegrationException(
         IntegrationFailure.notConnected,
-        'No ${service.id} account is connected.',
+        (l10n) => l10n.integrationNotConnected(service.brand),
       );
     }
     final due =

@@ -141,16 +141,16 @@ void main() {
   ) async {
     final harness = await pumpIntegrations(tester, const ConnectionsSection());
     harness.connectors[IntegrationService.rwgps]!.failure =
-        const IntegrationException(
+        IntegrationException(
           IntegrationFailure.relayUnavailable,
-          'the relay is down',
+          (l10n) => l10n.relayBusy,
         );
 
     await tester.tap(find.text(l10n.connectionsConnectRwgps));
     await tester.pumpAndSettle();
 
     expect(
-      find.text(l10n.connectionsConnectFailed('the relay is down')),
+      find.text(l10n.connectionsConnectFailed(l10n.relayBusy)),
       findsOneWidget,
     );
   });

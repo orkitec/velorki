@@ -474,7 +474,15 @@ class TurnDirectionChips extends StatelessWidget {
       children: [
         for (final kind in kinds)
           ChoiceChip(
-            avatar: Icon(turnIcon(kind), size: 18),
+            // On the accent colour of a selected chip the icon goes with
+            // the label, not with Material's default for the state.
+            avatar: Icon(
+              turnIcon(kind),
+              size: 18,
+              color: kind == selected
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : null,
+            ),
             label: Text(
               turnKindLabel(TurnHint(pointIndex: 0, kind: kind), l10n),
             ),

@@ -108,7 +108,10 @@ void main() {
     final dark = buildDarkTheme(AccentPreset.glacier);
 
     expect(light.colorScheme.surface, isNot(dark.colorScheme.surface));
-    expect(light.velorki.glass, isNot(dark.velorki.glass));
+    expect(
+      light.velorki.barFill(BarStyle.clear),
+      isNot(dark.velorki.barFill(BarStyle.clear)),
+    );
     // The route changes shade with the map style.
     expect(light.velorki.routeMain, isNot(dark.velorki.routeMain));
   });

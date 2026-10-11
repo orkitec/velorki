@@ -81,6 +81,27 @@ void main() {
       expect(find.text(l10n.settingsPrivacyPolicy), findsOneWidget);
     });
 
+    for (final apiUrl in ['', 'https://api.velorki.test']) {
+      testWidgets('sells the route weather only with a relay ("$apiUrl")', (
+        tester,
+      ) async {
+        await _pump(
+          tester,
+          const PaywallScreen(),
+          service: FakeSubscriptionService(offering: defaultOffering),
+          extraOverrides: [
+            effectiveConfigProvider.overrideWithValue(
+              AppConfig(apiUrl: apiUrl),
+            ),
+          ],
+        );
+        expect(
+          find.text(l10n.plusFeatureWeather),
+          apiUrl.isEmpty ? findsNothing : findsOneWidget,
+        );
+      });
+    }
+
     testWidgets('does not sell an integration this build cannot connect', (
       tester,
     ) async {
@@ -174,7 +195,10 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, l10n.plusSubscribe));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('billing unavailable'), findsOneWidget);
+      expect(
+        find.text(l10n.plusPurchaseFailed(l10n.plusErrorStore)),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Restore purchases works without any login', (tester) async {
@@ -225,7 +249,10 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('no connection'), findsOneWidget);
+      expect(
+        find.text(l10n.plusPricesFailed(l10n.plusErrorStore)),
+        findsOneWidget,
+      );
     });
 
     testWidgets('the terms and privacy links open', (tester) async {

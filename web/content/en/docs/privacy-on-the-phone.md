@@ -1,7 +1,7 @@
 ---
 title: Privacy on the phone
 description: "In rider's terms: what stays on your phone, what leaves it, when, and to whom. There is no account and nothing is uploaded unless you ask."
-order: 15
+order: 17
 ---
 
 Velorki has no account, so there is nothing to log in to and nothing about you on a server. This page is the plain-language version of what that means in practice; the [privacy policy](/privacy) is the formal one.
@@ -24,7 +24,7 @@ On Android, Velorki is deliberately left out of Google's cloud backup and out of
 
 ### While you look at the map
 
-Map tiles are fetched from OpenFreeMap, and from CyclOSM if you turn the cycling overlay on. Asking for a tile tells the tile server which square of the world you are looking at, and involves your IP address, as any request does. An area you have downloaded is served from the phone and asks for nothing.
+Map tiles are fetched from OpenFreeMap, and from CyclOSM if you turn on **Online cycle map** under **Layers**. The **Cycle map** is drawn on the phone and asks nothing of any server. Asking for a tile tells the tile server which square of the world you are looking at, and involves your IP address, as any request does. An area you have downloaded is served from the phone and asks for nothing.
 
 ### While you plan
 
@@ -34,9 +34,13 @@ Routing happens on your phone wherever you have the routing tiles. For an area y
 
 ### While you search
 
-Search is answered on the phone wherever the area's index is downloaded, and nothing you type leaves the device.
+Search is answered on the phone over a downloaded area, and nothing you type leaves the device.
 
-It goes online when you tap **Search online for "…"**, or when you have no index for the area you are looking at. Then what you typed goes to Photon, together with a rough position so that nearby results come first.
+It never goes online by itself: nothing is sent unless you tap **Search online for "…"**. Where no area is downloaded, or the map is over one that is not, nothing is searched until you pick it; **Search downloaded areas** stays on the phone. Then what you typed goes to Photon, together with a rough position so that nearby results come first.
+
+[Stops on the map](./stops-on-the-map) are read from the index on the phone and ask for nothing.
+
+Tapping **Details** on a place's card fetches its details (opening hours, website and the like) from OpenStreetMap.
 
 A short map link you share into Velorki (`maps.app.goo.gl`, `maps.apple/p`, `osm.org/go`) is opened once with the service that made it, to learn where it points; that service sees the link and your IP address, as it would in a browser.
 

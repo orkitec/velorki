@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/http/user_agent.dart';
 import 'package:velorki/features/integrations/common/data/connected_accounts_repository.dart';
-import 'package:velorki/features/integrations/common/data/dio_errors.dart';
 import 'package:velorki/features/integrations/common/data/token_bucket.dart';
 import 'package:velorki/features/integrations/common/domain/connected_account.dart';
 import 'package:velorki/features/integrations/common/domain/integration_exception.dart';
@@ -15,6 +14,8 @@ import 'package:velorki_api/velorki_api.dart' as relay;
 import 'support/fake_dio.dart';
 import 'support/fakes.dart';
 import 'support/pump.dart';
+
+import 'package:velorki/core/l10n/localized_text.dart';
 
 ConnectedAccount _connected({Duration validFor = const Duration(hours: 6)}) =>
     ConnectedAccount(
@@ -263,7 +264,7 @@ void main() {
       );
 
       expect(e.failure, IntegrationFailure.relayUnavailable);
-      expect(e.message, relayPlusNeededMessage);
+      expect(e.message, englishLocalizations.integrationPlusNeeded);
       expect(adapter.requests, hasLength(1));
       expect(relayClient.refreshedWith, isEmpty);
     });
@@ -278,7 +279,7 @@ void main() {
       );
 
       expect(e.failure, IntegrationFailure.unreachable);
-      expect(e.message, relayUnreachableMessage);
+      expect(e.message, englishLocalizations.relayUnreachable);
     });
 
     test('a token the relay cannot open means connecting again', () async {

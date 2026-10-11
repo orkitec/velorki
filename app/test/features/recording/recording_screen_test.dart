@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1344,6 +1346,38 @@ void main() {
     await unmountApp(tester);
   });
 
+  testWidgets(
+    'on a narrow phone auto-paused says paused, beside a whole clock',
+    (tester) async {
+      const size = Size(360, 800);
+      _phone(tester, size, statusBar: 24);
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        surfaceSize: size,
+      );
+      await tester.pump();
+
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(status: RecordingStatus.paused, autoPaused: true),
+      );
+
+      expect(
+        find.text(l10n.recordingStatusPaused.toUpperCase()),
+        findsOneWidget,
+      );
+      expect(find.text('42:07'), findsOneWidget);
+      // The clock keeps clear of the play button.
+      final clock = tester.getRect(find.text('42:07'));
+      final play = tester.getRect(find.byTooltip(l10n.recordingResume));
+      expect(play.left - clock.right, greaterThanOrEqualTo(4));
+      expect(tester.takeException(), isNull);
+      await unmountApp(tester);
+    },
+  );
+
   testWidgets('finishing an empty ride says nothing was recorded', (
     tester,
   ) async {
@@ -1562,7 +1596,11 @@ void main() {
       go(tester, settingsRoute);
       await tester.pumpAndSettle();
       expect(h.screenWake.enabled, isFalse, reason: 'Record is away');
-      await tester.ensureVisible(keepOn);
+      // To the middle: at the bottom edge the floating bar would take the tap.
+      unawaited(
+        Scrollable.ensureVisible(tester.element(keepOn), alignment: 0.5),
+      );
+      await tester.pumpAndSettle();
       expect(shown(tester), isTrue);
       await tester.tap(keepOn);
       await tester.pumpAndSettle();
@@ -2905,7 +2943,10 @@ void main() {
       await pumpRecordingScreen(tester, const RecordingScreen());
       await tester.pump();
 
-      final tile = find.widgetWithText(SwitchListTile, l10n.gpsPrecisionSaver);
+      final tile = find.widgetWithText(
+        SwitchListTile,
+        l10n.settingsBatterySaver,
+      );
       expect(tester.widget<SwitchListTile>(tile).value, isFalse);
 
       await tester.tap(tile);
@@ -3108,7 +3149,10 @@ void main() {
     await tester.tap(find.text(l10n.recordingStart));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.recordingFailed('service timeout')), findsOneWidget);
+    expect(
+      find.text(l10n.recordingFailed(l10n.recordingServiceFailed)),
+      findsOneWidget,
+    );
     await unmountApp(tester);
   });
 

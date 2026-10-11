@@ -1,6 +1,9 @@
 {
   "@@locale": "en",
   "appName": "Velorki",
+  "@appName": {
+    "description": "The app's name, a brand: not translated"
+  },
   "tabPlan": "Plan",
   "@tabPlan": {
     "description": "Bottom navigation tab: route planning"
@@ -289,11 +292,147 @@
   },
   "plannerSetAsStart": "Start here",
   "@plannerSetAsStart": {
-    "description": "Button that turns the searched place into the start of a new route"
+    "description": "Button on the card of a picked place (search result, map stop) with an empty plan: the place becomes the start of a new route"
   },
-  "plannerRideFromPosition": "From my position",
-  "@plannerRideFromPosition": {
-    "description": "Button that plans a route from the rider's current position to the searched place"
+  "placeCardRouteHere": "Route here",
+  "@placeCardRouteHere": {
+    "description": "Button on the card of a picked place with an empty plan: plans a route from the rider's current position to the place"
+  },
+  "placeCardDestination": "Destination",
+  "@placeCardDestination": {
+    "description": "Button on the card of a picked place: appends it to the plan as the new end of the route"
+  },
+  "placeCardAddStop": "Add as a stop",
+  "@placeCardAddStop": {
+    "description": "Button on the card of a picked place: puts it into the route between the waypoints where it fits along the way"
+  },
+  "placeCardClose": "Close",
+  "@placeCardClose": {
+    "description": "Tooltip of the close button on the card of a picked place"
+  },
+  "placeCardFromYou": "{distance} from you",
+  "@placeCardFromYou": {
+    "description": "On the card of a picked place: the straight-line distance from the rider's position",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "1.2 km"
+      }
+    }
+  },
+  "placeCardOffRoute": "{distance} off your route",
+  "@placeCardOffRoute": {
+    "description": "On the card of a picked place: how far it is from the nearest point of the planned route",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "150 m"
+      }
+    }
+  },
+  "placeCardDetails": "Details",
+  "@placeCardDetails": {
+    "description": "Button on the card of a picked place: fetches its opening hours, website and similar details from OpenStreetMap"
+  },
+  "placeCardOpenIn": "Open in…",
+  "@placeCardOpenIn": {
+    "description": "Button on the card of a picked place: opens a sheet of other apps to show the place in, and sharing"
+  },
+  "placeCardOpenInTitle": "Open in",
+  "@placeCardOpenInTitle": {
+    "description": "Title of the sheet that lists the other apps a picked place can be shown in, and sharing"
+  },
+  "placeCardOpenInMapApp": "Map app…",
+  "@placeCardOpenInMapApp": {
+    "description": "Entry of the place card's Open in menu on Android: hands the place to the system, which lists the installed map apps"
+  },
+  "placeCardShare": "Share…",
+  "@placeCardShare": {
+    "description": "Entry of the place card's Open in menu: shares the place's name and an OpenStreetMap link"
+  },
+  "serviceAppleMaps": "Apple Maps",
+  "@serviceAppleMaps": {
+    "description": "Name of the Apple Maps app. Do not translate."
+  },
+  "serviceGoogleMaps": "Google Maps",
+  "@serviceGoogleMaps": {
+    "description": "Name of the Google Maps app. Do not translate."
+  },
+  "serviceOpenStreetMap": "OpenStreetMap",
+  "@serviceOpenStreetMap": {
+    "description": "Name of the OpenStreetMap website. Do not translate."
+  },
+  "placeDetailsNone": "No further details on OpenStreetMap",
+  "@placeDetailsNone": {
+    "description": "On the card of a picked place, after Details was tapped: OpenStreetMap has no opening hours, website or similar for it"
+  },
+  "placeDetailsFailed": "Couldn't load details",
+  "@placeDetailsFailed": {
+    "description": "On the card of a picked place, after Details was tapped: the request failed (offline, timeout)"
+  },
+  "placeDetailsOpenNow": "Open now",
+  "@placeDetailsOpenNow": {
+    "description": "Opening status of a place that is open and does not close within a week"
+  },
+  "placeDetailsOpenCloses": "Open now · closes {time}",
+  "@placeDetailsOpenCloses": {
+    "description": "Opening status of a place that is open, with when it closes",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "18:00"
+      }
+    }
+  },
+  "placeDetailsClosed": "Closed",
+  "@placeDetailsClosed": {
+    "description": "Opening status of a place that is closed and does not open within a week"
+  },
+  "placeDetailsClosedOpens": "Closed · opens {time}",
+  "@placeDetailsClosedOpens": {
+    "description": "Opening status of a place that is closed, with when it opens; the time may carry a weekday",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "Mon 08:00"
+      }
+    }
+  },
+  "placeDetailsCuisine": "Cuisine: {cuisines}",
+  "@placeDetailsCuisine": {
+    "description": "On the card of a picked place: the kinds of food served, as OpenStreetMap names them (English)",
+    "placeholders": {
+      "cuisines": {
+        "type": "String",
+        "example": "vietnamese, ice cream"
+      }
+    }
+  },
+  "placeDetailsWheelchairYes": "Wheelchair accessible",
+  "@placeDetailsWheelchairYes": {
+    "description": "On the card of a picked place: it can be reached in a wheelchair"
+  },
+  "placeDetailsWheelchairLimited": "Partly wheelchair accessible",
+  "@placeDetailsWheelchairLimited": {
+    "description": "On the card of a picked place: it can be reached in a wheelchair only in part"
+  },
+  "placeDetailsWheelchairNo": "Not wheelchair accessible",
+  "@placeDetailsWheelchairNo": {
+    "description": "On the card of a picked place: it cannot be reached in a wheelchair"
+  },
+  "placeDetailsOutdoorSeating": "Outdoor seating",
+  "@placeDetailsOutdoorSeating": {
+    "description": "On the card of a picked place: it has seats outside"
+  },
+  "placeDetailsWikipedia": "{title} on Wikipedia",
+  "@placeDetailsWikipedia": {
+    "description": "On the card of a picked place: a link to its Wikipedia article",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Cologne Cathedral"
+      }
+    }
   },
   "placeLinkNeedsBrowser": "This map link only opens in a browser. Open it there, then share the place from the map page.",
   "@placeLinkNeedsBrowser": {
@@ -463,9 +602,9 @@
   "@surfaceUnknown": {
     "description": "Share of the route whose surface the map data does not say"
   },
-  "surfaceCycleway": "Cycleway",
-  "@surfaceCycleway": {
-    "description": "Share of the route on cycling infrastructure"
+  "surfaceBikeInfrastructure": "Bike paths & lanes",
+  "@surfaceBikeInfrastructure": {
+    "description": "Share of the route on bike infrastructure: cycleways, cycle streets, and bike lanes and tracks beside roads. Shown with a percentage, as in 'Bike paths & lanes 68 %'."
   },
   "surfaceBusy": "Busy roads",
   "@surfaceBusy": {
@@ -521,7 +660,7 @@
   "@searchUnavailable": {
     "description": "Shown when the Photon URL is empty so no search is possible"
   },
-  "searchOnlineFor": "Search online for \u201c{query}\u201d",
+  "searchOnlineFor": "Search online for “{query}”",
   "@searchOnlineFor": {
     "description": "Last row of the offline result list; sends the typed text to the online geocoder",
     "placeholders": {
@@ -535,9 +674,25 @@
   "@searchShowOffline": {
     "description": "Last row of an online result list when the area under the map centre has a downloaded gazetteer; searches the device again"
   },
-  "searchDownloadAreaOffline": "Download this area to search offline",
-  "@searchDownloadAreaOffline": {
-    "description": "Last row of the result list when the area under the map centre has no gazetteer; opens the offline data screen"
+  "searchInDownloaded": "Search downloaded areas",
+  "@searchInDownloaded": {
+    "description": "Choice in the search results over an area that isn't downloaded: search the areas that are downloaded on the phone instead of online."
+  },
+  "searchAreaNotDownloaded": "This area isn't downloaded",
+  "@searchAreaNotDownloaded": {
+    "description": "Title of the notice at the top of the search results when the area under the map centre has no offline data, so the results came from the online search"
+  },
+  "searchAreaNotDownloadedHint": "Download it to search, plan routes and see stops and the cycle map here without a connection.",
+  "@searchAreaNotDownloadedHint": {
+    "description": "Line under the title of the not-downloaded notice in the search results"
+  },
+  "searchAreaDownload": "Download",
+  "@searchAreaDownload": {
+    "description": "Button in the not-downloaded notice in the search results; opens the download for the area on screen"
+  },
+  "searchOnlineResults": "Online results",
+  "@searchOnlineResults": {
+    "description": "Caption above search results that came from the online search, shown under the not-downloaded notice (rendered upper-case)"
   },
   "searchKindCity": "City",
   "@searchKindCity": {
@@ -575,7 +730,7 @@
   "@searchKindStreet": {
     "description": "Second line of an offline search result that is a street"
   },
-  "searchApproximateNumber": "\u2248 {number}",
+  "searchApproximateNumber": "≈ {number}",
   "@searchApproximateNumber": {
     "description": "House number on the second line of an offline search result when the position is only approximate, interpolated between the numbers the gazetteer knows",
     "placeholders": {
@@ -972,12 +1127,20 @@
   "importSavedRides": "{count, plural, =1{One ride added to your rides} other{{count} rides added to your rides}}",
   "@importSavedRides": {
     "description": "Snack bar after several tracks of one file were saved as rides",
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "importSavedRoutes": "{count, plural, =1{One route added to the library} other{{count} routes added to the library}}",
   "@importSavedRoutes": {
     "description": "Snack bar after several tracks of one file were saved as routes",
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "importTracks": "Tracks in this file",
   "@importTracks": {
@@ -986,7 +1149,11 @@
   "importTrackNumber": "Track {number}",
   "@importTrackNumber": {
     "description": "Name of an unnamed track in a file with several",
-    "placeholders": {"number": {"type": "int"}}
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
   },
   "importFailedUnknown": "That is not a GPX, FIT or TCX file.",
   "@importFailedUnknown": {
@@ -1132,14 +1299,25 @@
   "@recordingProfileClimb": {
     "description": "Second line of the record sheet's elevation page while the rider is on a climb",
     "placeholders": {
-      "grade": {"type": "String", "example": "6"},
-      "ascent": {"type": "String", "example": "120 m"}
+      "grade": {
+        "type": "String",
+        "example": "6"
+      },
+      "ascent": {
+        "type": "String",
+        "example": "120 m"
+      }
     }
   },
   "recordingEta": "ETA {time}",
   "@recordingEta": {
     "description": "Estimated time of arrival at the end of the route, on the elevation page",
-    "placeholders": {"time": {"type": "String", "example": "14:32"}}
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "14:32"
+      }
+    }
   },
   "cueSheetStart": "Start",
   "@cueSheetStart": {
@@ -1152,7 +1330,11 @@
   "cueSheetShowAll": "Show all {count}",
   "@cueSheetShowAll": {
     "description": "Button under a collapsed cue sheet",
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "cueSheetShowFewer": "Show fewer",
   "@cueSheetShowFewer": {
@@ -1169,14 +1351,24 @@
   "recordingCuesMore": "{count, plural, =1{1 more} other{{count} more}}",
   "@recordingCuesMore": {
     "description": "Under the cue sheet page when more turns follow than fit",
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "recordingProfileLeft": "{distance} left, {ascent} to climb",
   "@recordingProfileLeft": {
     "description": "Header of the record sheet's elevation page: what remains of the followed route",
     "placeholders": {
-      "distance": {"type": "String", "example": "12.4 km"},
-      "ascent": {"type": "String", "example": "320 m"}
+      "distance": {
+        "type": "String",
+        "example": "12.4 km"
+      },
+      "ascent": {
+        "type": "String",
+        "example": "320 m"
+      }
     }
   },
   "recordingKeepScreenOn": "Keep screen on",
@@ -1442,7 +1634,11 @@
   "rideHeartRateCoverage": "Heart rate · {percent} % of the ride",
   "@rideHeartRateCoverage": {
     "description": "Caption of the ride page's heart-rate chart when the sensor reported for only part of the ride",
-    "placeholders": {"percent": {"type": "int"}}
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
   },
   "rideHeartRate": "Heart rate",
   "@rideHeartRate": {
@@ -1659,6 +1855,40 @@
   "loopStop": "Stop",
   "@loopStop": {
     "description": "Button that cancels a running loop search"
+  },
+  "loopChecking": "Trying {total} directions · {checked} checked so far",
+  "@loopChecking": {
+    "description": "Under the progress bar while a loop search runs and no loop is found yet. Each direction is one loop routed in full",
+    "placeholders": {
+      "checked": {
+        "type": "int",
+        "example": "3"
+      },
+      "total": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
+  "loopCheckingBetter": "Best loop so far. Still looking for a quieter, smoother loop · {checked, plural, one{1 route checked} other{{checked} routes checked}}",
+  "@loopCheckingBetter": {
+    "description": "Under the progress bar while a loop search runs and a loop is already shown; explains why the search goes on. A route is one direction tried, retries included",
+    "placeholders": {
+      "checked": {
+        "type": "int",
+        "example": "7"
+      }
+    }
+  },
+  "loopBestOf": "{count, plural, one{The only loop found} other{Best of {count} loops}}",
+  "@loopBestOf": {
+    "description": "Under the loop once the search is done: how many loops it was chosen from",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "9"
+      }
+    }
   },
   "loopAnother": "Another",
   "@loopAnother": {
@@ -2050,6 +2280,14 @@
   "@plusFeatureLinkSharingBody": {
     "description": "Paywall feature detail: share links"
   },
+  "plusFeatureWeather": "Weather on your route",
+  "@plusFeatureWeather": {
+    "description": "Paywall feature: the forecast along the planned route"
+  },
+  "plusFeatureWeatherBody": "Wind, rain and temperature at the time you reach each part of your route.",
+  "@plusFeatureWeatherBody": {
+    "description": "Paywall feature detail: the forecast along the planned route"
+  },
   "plusFreeAnyway": "Planning, recording, smart loops, offline maps and GPX/FIT files stay free, with or without Plus.",
   "@plusFreeAnyway": {
     "description": "Reassurance under the feature list on the paywall"
@@ -2324,9 +2562,9 @@
   "@mapLookBlack": {
     "description": "Map style option: always the black map"
   },
-  "appearanceOverlayDarkTitle": "Cycling overlay on dark maps",
+  "appearanceOverlayDarkTitle": "Online cycle map on dark maps",
   "@appearanceOverlayDarkTitle": {
-    "description": "Label above the choice of how the CyclOSM overlay is drawn on the night and black maps"
+    "description": "Label above the choice of how the online cycle map (CyclOSM's raster overlay) is drawn on the night and black maps. The offline cycle map has its own dark colours and is not affected."
   },
   "appearanceOverlayDarkInverted": "Inverted",
   "@appearanceOverlayDarkInverted": {
@@ -2339,6 +2577,46 @@
   "appearanceOverlayDarkUnchanged": "Unchanged",
   "@appearanceOverlayDarkUnchanged": {
     "description": "Cycling overlay option: drawn as it comes, bright on a dark map"
+  },
+  "appearanceGlass": "Glass",
+  "@appearanceGlass": {
+    "description": "Label above the choice of how see-through the floating tab bar and the controls floating over the map are (solid, transparent, subtle glass, clear glass), in Settings → Appearance"
+  },
+  "appearanceGlassHint": "Applies to the bar and the controls over the map. Solid in power-saving mode and on battery saver rides.",
+  "@appearanceGlassHint": {
+    "description": "Small text under the Glass choice in Settings → Appearance: the choice changes the tab bar and the buttons, search field and chips floating over the map. The second sentence: the glass turns solid (the Solid choice) while the phone is in its power-saving mode (iOS Low Power Mode, Android Battery Saver) and while a ride is recorded with the app's own Battery saver setting on"
+  },
+  "appearanceRadarStyle": "Rain radar",
+  "@appearanceRadarStyle": {
+    "description": "Settings → Appearance: title of the choice of how the rain radar layer on the map is drawn."
+  },
+  "appearanceRadarSoft": "Soft",
+  "@appearanceRadarSoft": {
+    "description": "Rain radar choice in Settings → Appearance: one smoothed image, soft edges, light rain more see-through than heavy rain. The default."
+  },
+  "appearanceRadarMeasured": "As measured",
+  "@appearanceRadarMeasured": {
+    "description": "Rain radar choice in Settings → Appearance: the radar's own tiles exactly as the weather service delivers them, its 1 km cells sharp."
+  },
+  "appearanceRadarHint": "Soft: smooth edges, light rain fainter than heavy rain. As measured: the images as the services deliver them.",
+  "@appearanceRadarHint": {
+    "description": "Small text under the Rain radar choice in Settings → Appearance explaining the two options, Soft and As measured (use the same words as those two options). As measured applies to every rain image (radar, satellite, model), shown as the weather services deliver them."
+  },
+  "appearanceBarSolid": "Solid",
+  "@appearanceBarSolid": {
+    "description": "Bar style option: the tab bar is not see-through"
+  },
+  "appearanceBarTransparent": "Transparent",
+  "@appearanceBarTransparent": {
+    "description": "Bar style setting: the tab bar is see-through without any blur"
+  },
+  "appearanceBarSubtle": "Subtle glass",
+  "@appearanceBarSubtle": {
+    "description": "Bar style option (default): the tab bar is slightly see-through, like frosted glass"
+  },
+  "appearanceBarClear": "Clear glass",
+  "@appearanceBarClear": {
+    "description": "Bar style option: the tab bar is clearly see-through, like clear glass"
   },
   "accentVolt": "Volt",
   "@accentVolt": {
@@ -3238,7 +3516,12 @@
   "navCautionLabel": "Caution: {name}",
   "@navCautionLabel": {
     "description": "Banner text and spoken phrase for a hazard point of interest on the route",
-    "placeholders": {"name": {"type": "String", "example": "Start dismount zone"}}
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Start dismount zone"
+      }
+    }
   },
   "navContinue": "Continue",
   "@navContinue": {
@@ -3347,16 +3630,6 @@
   "navThenLabel": "then",
   "@navThenLabel": {
     "description": "Word in front of the small arrow that previews the turn after the next one on the banner"
-  },
-  "navThen": "then {instruction}",
-  "@navThen": {
-    "description": "Banner row previewing the turn after the next one",
-    "placeholders": {
-      "instruction": {
-        "type": "String",
-        "example": "keep right"
-      }
-    }
   },
   "navOffRoute": "Off route",
   "@navOffRoute": {
@@ -3492,7 +3765,7 @@
   "@settingsVoiceSystemDefaultHint": {
     "description": "Explanation under the system default voice"
   },
-  "settingsVoiceSystemDefaultNow": "System default \u00b7 {voice}",
+  "settingsVoiceSystemDefaultNow": "System default · {voice}",
   "@settingsVoiceSystemDefaultNow": {
     "description": "The system default voice row when it is known which voice the phone picks",
     "placeholders": {
@@ -3944,7 +4217,7 @@
   "@voiceBetterTitle": {
     "description": "Heading of the card that explains how to install a better iOS voice"
   },
-  "voiceBetterBody": "Your iPhone only has the compact voice for {language}, which is the robotic one. Apple\u2019s Enhanced and Premium voices are free downloads; here is where to get one:",
+  "voiceBetterBody": "Your iPhone only has the compact voice for {language}, which is the robotic one. Apple’s Enhanced and Premium voices are free downloads; here is where to get one:",
   "@voiceBetterBody": {
     "description": "Body of the card that explains how to install a better iOS voice, above the numbered steps",
     "placeholders": {
@@ -3978,7 +4251,7 @@
   "@voiceBetterStep5": {
     "description": "Fifth step of the card that explains how to install a better iOS voice"
   },
-  "voiceBetterAfter": "Velorki then says the turns in the best voice on the phone by itself \u2014 there is nothing to choose here afterwards.",
+  "voiceBetterAfter": "Velorki then says the turns in the best voice on the phone by itself — there is nothing to choose here afterwards.",
   "@voiceBetterAfter": {
     "description": "Line under the steps of the card that explains how to install a better iOS voice"
   },
@@ -3986,7 +4259,7 @@
   "@voiceBetterOpenSettings": {
     "description": "Button on the card that explains how to install a better iOS voice"
   },
-  "voiceBetterOpenSettingsHint": "It opens on Velorki\u2019s own page; Accessibility is further down the main Settings list.",
+  "voiceBetterOpenSettingsHint": "It opens on Velorki’s own page; Accessibility is further down the main Settings list.",
   "@voiceBetterOpenSettingsHint": {
     "description": "Caption under the button of the card that explains how to install a better iOS voice"
   },
@@ -4116,25 +4389,33 @@
   "@settingsKeepScreenOnHint": {
     "description": "Explanation under the keep-screen-on switch in Settings, Recording"
   },
-  "mapAttributionTitle": "Map data and tiles",
-  "@mapAttributionTitle": {
-    "description": "Title of the map attribution chip and of the dialog it opens"
-  },
-  "mapAttributionBody": "Map data from OpenStreetMap, available under the Open Database Licence. Vector tiles by OpenFreeMap; the optional cycling overlay is rendered by CyclOSM on OpenStreetMap Foundation tile servers.",
-  "@mapAttributionBody": {
-    "description": "The full attribution notice in the dialog. The licence and the project names are kept as they are."
-  },
   "mapAttributionOpenFreeMap": "OpenFreeMap",
   "@mapAttributionOpenFreeMap": {
-    "description": "The tile provider, in the attribution line and as a link. A project name: keep it."
+    "description": "The tile provider, in the attribution line on the map. A project name: keep it."
   },
   "mapAttributionCyclosm": "CyclOSM",
   "@mapAttributionCyclosm": {
-    "description": "The cycling overlay renderer, in the attribution line and as a link. A project name: keep it."
+    "description": "The cycling overlay renderer, in the attribution line on the map. A project name: keep it."
   },
-  "mapAttributionClose": "Close",
-  "@mapAttributionClose": {
-    "description": "Button that closes the map attribution dialog"
+  "mapAttributionOpenMapTiles": "© OpenMapTiles",
+  "@mapAttributionOpenMapTiles": {
+    "description": "The vector tile schema, in the map credits sheet. A project name: keep it."
+  },
+  "mapCredits": "Map credits",
+  "@mapCredits": {
+    "description": "Title of the sheet listing the map's data sources, and the screen-reader label of the credit chip on the map that opens it"
+  },
+  "mapCreditsMap": "Map",
+  "@mapCreditsMap": {
+    "description": "Section caption in the map credits sheet: the base map's sources"
+  },
+  "mapCreditsWeather": "Weather",
+  "@mapCreditsWeather": {
+    "description": "Section caption in the map credits sheet: the weather layers' sources"
+  },
+  "mapCreditsAllLicences": "All licences",
+  "@mapCreditsAllLicences": {
+    "description": "Row in the map credits sheet that opens the list of every licence"
   },
   "mapLocateMe": "Show my position",
   "@mapLocateMe": {
@@ -4151,6 +4432,243 @@
   "mapToggleCyclosm": "Cycling map overlay",
   "@mapToggleCyclosm": {
     "description": "Tooltip of the map button that switches the CyclOSM overlay on and off"
+  },
+  "mapLayers": "Layers",
+  "@mapLayers": {
+    "description": "Tooltip of the map button that opens the layers sheet, and the title of that sheet"
+  },
+  "mapLayersCycleMap": "Cycle map",
+  "@mapLayersCycleMap": {
+    "description": "Switch in the layers sheet that puts the cycling map overlay over the map"
+  },
+  "mapLayersCycleMapSubtitle": "Bike lanes, paths and cycle routes from your downloaded areas · works offline · shown when zoomed in",
+  "@mapLayersCycleMapSubtitle": {
+    "description": "Under the Cycle map switch in the Layers sheet: the offline cycle map drawn from the downloaded routing data."
+  },
+  "mapLayersOnlineCycleMap": "Online cycle map",
+  "@mapLayersOnlineCycleMap": {
+    "description": "Layers sheet: switch for the online CyclOSM raster overlay."
+  },
+  "mapLayersOnlineCycleMapSubtitle": "CyclOSM's map with bike shops and parking · needs a connection",
+  "@mapLayersOnlineCycleMapSubtitle": {
+    "description": "Under the online cycle map switch. CyclOSM is the name of the map's maker; keep it."
+  },
+  "mapLayersRainRadar": "Rain radar",
+  "@mapLayersRainRadar": {
+    "description": "Layers sheet: switch for the rain radar layer over the map."
+  },
+  "mapLayersRainRadarSubtitle": "Now: radar in Germany and the US, a satellite estimate elsewhere in Europe and Africa. Ahead: radar forecast for 2 hours in Germany, model forecast up to 24 hours (hourly in Europe, every 6 hours elsewhere)",
+  "@mapLayersRainRadarSubtitle": {
+    "description": "Under the Rain radar switch, where the rain shown comes from. Now: radar where it exists (Germany, the US), elsewhere in Europe and Africa an estimate of the rain from satellite data (less exact than radar). Ahead (the time slider moved into the future): in Germany the radar's own 2-hour forecast, beyond that and elsewhere a weather model's forecast up to 24 hours, in steps of one hour in Europe and of six hours elsewhere. Start with the word used for Now (mapWeatherNow)."
+  },
+  "mapLayersClouds": "Clouds",
+  "@mapLayersClouds": {
+    "description": "Layers sheet: switch for the clouds layer (satellite images) over the map."
+  },
+  "mapLayersCloudsSubtitle": "Europe, Africa and the Americas · updated hourly in Europe",
+  "@mapLayersCloudsSubtitle": {
+    "description": "Under the Clouds switch: where the clouds layer exists, and that it is updated once an hour in Europe."
+  },
+  "mapLayersOpacity": "Opacity",
+  "@mapLayersOpacity": {
+    "description": "Layers sheet: label of the slider under the Rain radar and the Clouds switches that sets how opaque (how little see-through) that layer is drawn over the map."
+  },
+  "mapLayersOpacityValue": "{percent} %",
+  "@mapLayersOpacityValue": {
+    "description": "Layers sheet: the opacity slider's value as a percentage, shown beside the slider and read out by screen readers, e.g. '75 %'.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "mapWeatherNow": "Now",
+  "@mapWeatherNow": {
+    "description": "The rain radar's time control at the present moment."
+  },
+  "mapWeatherMinutesAhead": "+{minutes} min",
+  "@mapWeatherMinutesAhead": {
+    "description": "The rain's time control set to a moment ahead, e.g. '+30 min'.",
+    "placeholders": {
+      "minutes": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "mapWeatherHoursAhead": "+{hours} h",
+  "@mapWeatherHoursAhead": {
+    "description": "The rain's time control set to whole hours ahead, e.g. '+3 h'. 'h' is the hour's unit symbol.",
+    "placeholders": {
+      "hours": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "mapWeatherNowcast": "Nowcast",
+  "@mapWeatherNowcast": {
+    "description": "Ending the rain time control's label when the step ahead shows the weather service's nowcast (the radar's rain moved ahead, up to two hours), e.g. '+45 min · 21:30 · Nowcast'. Keep it short."
+  },
+  "mapWeatherForecast": "Forecast",
+  "@mapWeatherForecast": {
+    "description": "Ending the rain time control's label when the step ahead shows a weather model's forecast, e.g. '+3 h · 23:00 · Forecast'. Keep it short."
+  },
+  "mapWeatherRadarTime": "Rain radar time",
+  "@mapWeatherRadarTime": {
+    "description": "Screen-reader label of the rain radar's time slider."
+  },
+  "mapWeatherRadarUnavailable": "Rain radar unavailable right now",
+  "@mapWeatherRadarUnavailable": {
+    "description": "Hint over the map when the rain radar's service did not answer: the empty map does not mean no rain."
+  },
+  "mapWeatherSatelliteUnavailable": "Satellite rain unavailable right now",
+  "@mapWeatherSatelliteUnavailable": {
+    "description": "Hint over the map when the service with the rain estimated from satellite data did not answer: the empty map does not mean no rain."
+  },
+  "mapWeatherForecastUnavailable": "Rain forecast unavailable right now",
+  "@mapWeatherForecastUnavailable": {
+    "description": "Hint over the map when the rain forecast's service did not answer: the empty map does not mean no rain."
+  },
+  "mapWeatherCloudsUnavailable": "Clouds unavailable right now",
+  "@mapWeatherCloudsUnavailable": {
+    "description": "Hint over the map when the clouds' service did not answer."
+  },
+  "mapWeatherCloudsAt": "Cloud image {time}",
+  "@mapWeatherCloudsAt": {
+    "description": "Second line under the Clouds switch in the Layers sheet while the clouds are on: the time the satellite image of the clouds shows, e.g. 'Cloud image 14:00'.",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "14:00"
+      }
+    }
+  },
+  "mapLayersWind": "Wind",
+  "@mapLayersWind": {
+    "description": "Layers sheet: switch for the wind layer, arrows over the map showing where the wind blows and how strong it is."
+  },
+  "mapLayersWindSubtitle": "Arrows by strength, worldwide · now and up to 24 hours ahead (model, about 28 km)",
+  "@mapLayersWindSubtitle": {
+    "description": "Under the Wind switch: the arrows are coloured and sized by the wind's strength, cover the whole world, follow the time slider from now to 24 hours ahead, and come from a weather model whose grid is about 28 km wide."
+  },
+  "mapWeatherWindUnavailable": "Wind unavailable right now",
+  "@mapWeatherWindUnavailable": {
+    "description": "Hint over the map when the wind's service did not answer: no arrows does not mean no wind."
+  },
+  "mapWeatherWindTime": "Wind time",
+  "@mapWeatherWindTime": {
+    "description": "Screen-reader label of the weather time slider while only the wind layer is on (the rain radar off)."
+  },
+  "mapCyclePartInfrastructure": "Bike lanes & tracks",
+  "@mapCyclePartInfrastructure": {
+    "description": "Chip in the Layers sheet under Cycle map: cycleways, cycle streets, and bike lanes and tracks beside roads."
+  },
+  "mapCyclePartPaths": "Shared paths",
+  "@mapCyclePartPaths": {
+    "description": "Chip: paths shared with walkers and footways bikes may use."
+  },
+  "mapCyclePartContraflow": "Two-way for bikes",
+  "@mapCyclePartContraflow": {
+    "description": "Chip: one-way streets bikes may ride both ways."
+  },
+  "mapCyclePartDirections": "One-way arrows",
+  "@mapCyclePartDirections": {
+    "description": "Chip in the cycle map's parts: chevrons showing which way to ride on one-way cycleways, tracks and lanes."
+  },
+  "mapCyclePartOnewayStreets": "One-way streets",
+  "@mapCyclePartOnewayStreets": {
+    "description": "Chip in the cycle map's parts: grey chevrons in the middle of streets that are one-way for bikes too."
+  },
+  "mapCyclePartRoutesNational": "National routes",
+  "@mapCyclePartRoutesNational": {
+    "description": "Chip: international and national signed cycle routes."
+  },
+  "mapCyclePartRoutesRegional": "Regional routes",
+  "@mapCyclePartRoutesRegional": {
+    "description": "Chip: regional signed cycle routes."
+  },
+  "mapCyclePartRoutesLocal": "Local routes",
+  "@mapCyclePartRoutesLocal": {
+    "description": "Chip: local signed cycle routes."
+  },
+  "mapCyclePartSurface": "Unpaved & bumpy",
+  "@mapCyclePartSurface": {
+    "description": "Chip: ways that are not paved, or are bumpy (cobbles, bad smoothness)."
+  },
+  "mapCyclePartBarriers": "Barriers & steps",
+  "@mapCyclePartBarriers": {
+    "description": "Chip: gates, bollards, stiles on the way, and steps."
+  },
+  "mapCyclePartTraffic": "Calm streets",
+  "@mapCyclePartTraffic": {
+    "description": "Chip: streets tinted by speed limit (30, 20, walking pace) or without motor traffic, and roads closed to bikes in grey."
+  },
+  "mapCyclePartMtb": "Mountain bike",
+  "@mapCyclePartMtb": {
+    "description": "Chip: mountain-bike difficulty (mtb:scale) on trails and mountain-bike routes."
+  },
+  "mapCyclePartClimbs": "Climbs",
+  "@mapCyclePartClimbs": {
+    "description": "Chip in the cycle map's parts: steep pieces of the ways (from 6, 10, 15 %), coloured by grade, with chevrons pointing uphill."
+  },
+  "mapCycleMapNotDownloaded": "No cycle map here — area not downloaded",
+  "@mapCycleMapNotDownloaded": {
+    "description": "Chip over the map when the offline cycle map is on but the area has no downloaded routing tile; a Download label follows it."
+  },
+  "mapLayersStops": "Stops",
+  "@mapLayersStops": {
+    "description": "Switch in the layers sheet that shows places to stop at (taps, cafes, toilets) on the map"
+  },
+  "mapStopsZoomIn": "Zoom in to see stops",
+  "@mapStopsZoomIn": {
+    "description": "Chip over the map while stops are switched on but the map is zoomed out too far to show them; tapping it zooms in"
+  },
+  "mapStopsNotDownloaded": "No stops here — area not downloaded",
+  "@mapStopsNotDownloaded": {
+    "description": "Chip over the map while stops are switched on but the area on screen (or the route ahead) has no downloaded offline data, so no stops can be shown"
+  },
+  "mapStopsDownload": "Download",
+  "@mapStopsDownload": {
+    "description": "Action at the end of the no-stops-here chip; opens the download for the area on screen"
+  },
+  "mapAreaHintHide": "Hide",
+  "@mapAreaHintHide": {
+    "description": "Tooltip and screen-reader label of the close button on the area-not-downloaded chip over the map; hides the chip for that area until the app restarts"
+  },
+  "mapLayersStopsPlanHint": "Shown when zoomed in · tap one to plan to it",
+  "@mapLayersStopsPlanHint": {
+    "description": "Line under the stops switch on the Plan tab: stops show once the map is zoomed in far enough, and a tap on one plans the route to it"
+  },
+  "mapLayersStopsRideHint": "Tap one to see it on the map",
+  "@mapLayersStopsRideHint": {
+    "description": "Line under the stops switch on the Record tab: stops show once the map is zoomed in far enough, and a tap on one shows what it is"
+  },
+  "mapLayersAlongRoute": "Along the route",
+  "@mapLayersAlongRoute": {
+    "description": "Choice in the layers sheet during a guided ride: show the stops beside the route still ahead"
+  },
+  "mapLayersInArea": "In this area",
+  "@mapLayersInArea": {
+    "description": "Choice in the layers sheet during a guided ride: show the stops in the part of the map on screen"
+  },
+  "mapStopsAhead": "Stops ahead",
+  "@mapStopsAhead": {
+    "description": "Accessibility label of the line over the ride map that lists the next stop of each kind ahead on the route"
+  },
+  "mapStopAhead": "{kind} · {distance}",
+  "@mapStopAhead": {
+    "description": "One entry of the stops-ahead line over the ride map: the kind of stop and how far ahead on the route it is",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Drinking water"
+      },
+      "distance": {
+        "type": "String",
+        "example": "1.2 km"
+      }
+    }
   },
   "mapZoomIn": "Zoom in",
   "@mapZoomIn": {
@@ -4326,7 +4844,7 @@
   "@bleScan": {
     "description": "Button that starts a 15 second search for nearby Bluetooth sensors"
   },
-  "bleScanning": "Scanning\u2026",
+  "bleScanning": "Scanning…",
   "@bleScanning": {
     "description": "Label of the Scan button while a search is running"
   },
@@ -4367,7 +4885,7 @@
   "@bleConnected": {
     "description": "State of a paired sensor that is connected and reporting"
   },
-  "bleConnecting": "Connecting\u2026",
+  "bleConnecting": "Connecting…",
   "@bleConnecting": {
     "description": "State of a paired sensor Velorki is connecting to or coming back for"
   },
@@ -4412,7 +4930,20 @@
   "unitCelsius": "{value} °C",
   "@unitCelsius": {
     "description": "A temperature in degrees Celsius",
-    "placeholders": {"value": {"type": "String"}}
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "unitFahrenheit": "{value} °F",
+  "@unitFahrenheit": {
+    "description": "A temperature in degrees Fahrenheit",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
   "statMaxCadence": "Max cadence",
   "@statMaxCadence": {
@@ -4770,66 +5301,673 @@
   },
   "poiKindFood": "Food",
   "@poiKindFood": {
-    "description": "A point of interest kind: a caf\u00e9 or shop"
+    "description": "A point of interest kind: a café or shop"
   },
   "poiKindGeneric": "Other",
   "@poiKindGeneric": {
     "description": "A point of interest kind: anything else"
   },
   "poiKindSummit": "Summit",
-  "@poiKindSummit": {"description": "Point kind: the top of a climb"},
+  "@poiKindSummit": {
+    "description": "Point kind: the top of a climb"
+  },
   "poiKindViewpoint": "Viewpoint",
-  "@poiKindViewpoint": {"description": "Point kind: a view worth stopping for"},
+  "@poiKindViewpoint": {
+    "description": "Point kind: a view worth stopping for"
+  },
   "poiKindShelter": "Shelter",
-  "@poiKindShelter": {"description": "Point kind: a hut or roof against the weather"},
+  "@poiKindShelter": {
+    "description": "Point kind: a hut or roof against the weather"
+  },
   "poiKindShop": "Shop",
-  "@poiKindShop": {"description": "Point kind: a shop"},
+  "@poiKindShop": {
+    "description": "Point kind: a shop"
+  },
   "poiKindRepair": "Bike repair",
-  "@poiKindRepair": {"description": "Point kind: a bike shop or repair stand"},
+  "@poiKindRepair": {
+    "description": "Point kind: a bike shop or repair stand"
+  },
   "poiKindFirstAid": "First aid",
-  "@poiKindFirstAid": {"description": "Point kind: a first-aid post, a pharmacy or a hospital"},
+  "@poiKindFirstAid": {
+    "description": "Point kind: a first-aid post, a pharmacy or a hospital"
+  },
   "poiKindToilet": "Toilet",
-  "@poiKindToilet": {"description": "Point kind: a toilet"},
+  "@poiKindToilet": {
+    "description": "Point kind: a toilet"
+  },
   "poiKindCampsite": "Campsite",
-  "@poiKindCampsite": {"description": "Point kind: a place to sleep outside"},
+  "@poiKindCampsite": {
+    "description": "Point kind: a place to sleep outside"
+  },
   "poiKindAccommodation": "Lodging",
-  "@poiKindAccommodation": {"description": "Point kind: a hotel, hostel or guesthouse, a bed rather than a pitch"},
+  "@poiKindAccommodation": {
+    "description": "Point kind: a hotel, hostel or guesthouse, a bed rather than a pitch"
+  },
   "poiKindParking": "Parking",
-  "@poiKindParking": {"description": "Point kind: somewhere to leave a car or lock a bike"},
+  "@poiKindParking": {
+    "description": "Point kind: somewhere to leave a car or lock a bike"
+  },
   "poiKindTransport": "Transport",
-  "@poiKindTransport": {"description": "Point kind: public transport, a station, a stop or a ferry"},
+  "@poiKindTransport": {
+    "description": "Point kind: public transport, a station, a stop or a ferry"
+  },
   "poiKindTurn": "Turn",
-  "@poiKindTurn": {"description": "Point kind: a turn of the cue sheet"},
+  "@poiKindTurn": {
+    "description": "Point kind: a turn of the cue sheet"
+  },
   "plannerTurnDirection": "Direction",
-  "@plannerTurnDirection": {"description": "Caption over the manoeuvre chips of a turn point in the waypoint sheet"},
+  "@plannerTurnDirection": {
+    "description": "Caption over the manoeuvre chips of a turn point in the waypoint sheet"
+  },
   "plannerPointOnRoute": "On the route",
-  "@plannerPointOnRoute": {"description": "Switch in the point sheet: the route is routed through this point"},
+  "@plannerPointOnRoute": {
+    "description": "Switch in the point sheet: the route is routed through this point"
+  },
   "plannerPointBeside": "Beside the route",
-  "@plannerPointBeside": {"description": "Switch in the point sheet: the point is a place near the route, not one the route goes through"},
+  "@plannerPointBeside": {
+    "description": "Switch in the point sheet: the point is a place near the route, not one the route goes through"
+  },
   "routeDetailDescription": "Description",
-  "@routeDetailDescription": {"description": "Label of the route card's description row and its edit dialog"},
+  "@routeDetailDescription": {
+    "description": "Label of the route card's description row and its edit dialog"
+  },
   "routeDetailAddDescription": "Add a description",
-  "@routeDetailAddDescription": {"description": "Shown in the description row of a route without one"},
+  "@routeDetailAddDescription": {
+    "description": "Shown in the description row of a route without one"
+  },
   "routeDetailLink": "Link",
-  "@routeDetailLink": {"description": "Label of the route card's link row and its edit dialog"},
+  "@routeDetailLink": {
+    "description": "Label of the route card's link row and its edit dialog"
+  },
   "routeDetailAddLink": "Add a link",
-  "@routeDetailAddLink": {"description": "Shown in the link row of a route without one"},
+  "@routeDetailAddLink": {
+    "description": "Shown in the link row of a route without one"
+  },
   "routeDetailPois": "Points of interest",
-  "@routeDetailPois": {"description": "Caption over the route card's list of points of interest off the track"},
+  "@routeDetailPois": {
+    "description": "Caption over the route card's list of points of interest off the track"
+  },
   "cardImportedFrom": "Imported from {source}",
   "@cardImportedFrom": {
     "description": "Line under a route's or ride's name saying which file format it came from",
-    "placeholders": {"source": {"type": "String"}}
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
   },
   "cardImportedFromBy": "Imported from {source} · {creator}",
   "@cardImportedFromBy": {
     "description": "Line under a route's or ride's name saying the file format and who wrote the file",
-    "placeholders": {"source": {"type": "String"}, "creator": {"type": "String"}}
+    "placeholders": {
+      "source": {
+        "type": "String"
+      },
+      "creator": {
+        "type": "String"
+      }
+    }
   },
   "importFormatTcx": "TCX",
-  "@importFormatTcx": {"description": "The TCX file format, in the import summary and the source line"},
+  "@importFormatTcx": {
+    "description": "The TCX file format, in the import summary and the source line"
+  },
   "exportTcxCourse": "TCX course",
-  "@exportTcxCourse": {"description": "Route export menu entry: a TCX course file"},
+  "@exportTcxCourse": {
+    "description": "Route export menu entry: a TCX course file"
+  },
   "rideDetailExportTcx": "Export TCX activity",
-  "@rideDetailExportTcx": {"description": "Ride menu entry: export the ride as a TCX activity"}
+  "@rideDetailExportTcx": {
+    "description": "Ride menu entry: export the ride as a TCX activity"
+  },
+  "errorUnexpected": "Something went wrong.",
+  "@errorUnexpected": {
+    "description": "Shown in place of an error the app has no words for (a database or file error)"
+  },
+  "relayUnreachable": "Velorki's server could not be reached. Check the connection and try again.",
+  "@relayUnreachable": {
+    "description": "Error: the Velorki relay server did not answer"
+  },
+  "relayBusy": "Velorki's server cannot do this right now. Try again later.",
+  "@relayBusy": {
+    "description": "Error: the Velorki relay server is up but unavailable for this"
+  },
+  "relayRejected": "Velorki's server did not accept the request.",
+  "@relayRejected": {
+    "description": "Error: the Velorki relay server refused a request as invalid"
+  },
+  "relayPlusNeeded": "Velorki Plus is needed for this.",
+  "@relayPlusNeeded": {
+    "description": "Error: the Velorki relay server refused because the rider has no Velorki Plus"
+  },
+  "relayConsentNeeded": "Allow the AI features in Settings first.",
+  "@relayConsentNeeded": {
+    "description": "Error: the Velorki relay server needs the rider's consent to the AI features"
+  },
+  "relayNotFound": "Velorki's server no longer has this.",
+  "@relayNotFound": {
+    "description": "Error: the Velorki relay server does not know the requested thing (an expired link)"
+  },
+  "relayTooManyRequests": "Too many requests. Try again in a few minutes.",
+  "@relayTooManyRequests": {
+    "description": "Error: the Velorki relay server rate limited the rider"
+  },
+  "relayUpstreamFailed": "A service Velorki's server relies on did not answer. Try again later.",
+  "@relayUpstreamFailed": {
+    "description": "Error: the Velorki relay server could not reach the service behind it"
+  },
+  "relayNotConfigured": "This build of Velorki has no server configured.",
+  "@relayNotConfigured": {
+    "description": "Error: the app was built without a relay server address"
+  },
+  "integrationNoRelay": "This build has no Velorki server configured, so no service can be connected.",
+  "@integrationNoRelay": {
+    "description": "Error: Strava or Ride with GPS cannot be used because the app was built without a relay server"
+  },
+  "integrationPlusNeeded": "Velorki Plus is needed to use this connection.",
+  "@integrationPlusNeeded": {
+    "description": "Error: connecting Strava or Ride with GPS needs Velorki Plus"
+  },
+  "integrationConnectionInvalid": "The {service} connection is no longer valid. Connect again in Settings → Connections.",
+  "@integrationConnectionInvalid": {
+    "description": "Error: the stored login for a partner service was rejected",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationNotConnected": "No {service} account is connected.",
+  "@integrationNotConnected": {
+    "description": "Error: a partner service was used without a connected account",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationRateLimited": "{service} is rate limiting Velorki. Try again in a few minutes.",
+  "@integrationRateLimited": {
+    "description": "Error: a partner service refused because of too many requests",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationTooManyRequests": "Too many {service} requests: {service} allows {capacity} reads every {window} minutes. Try again in {wait, plural, =1{a minute} other{{wait} minutes}}.",
+  "@integrationTooManyRequests": {
+    "description": "Error: the app's own limit on requests to a partner service is used up",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "capacity": {
+        "type": "int"
+      },
+      "window": {
+        "type": "int"
+      },
+      "wait": {
+        "type": "int"
+      }
+    }
+  },
+  "integrationServiceStatus": "{service} answered with an error ({status}).",
+  "@integrationServiceStatus": {
+    "description": "Error: a partner service answered with an HTTP error code",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "integrationServiceSaid": "{service}: {detail}",
+  "@integrationServiceSaid": {
+    "description": "Error: a partner service's own error text, which is in the service's language",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationServiceUnreachable": "{service} could not be reached. Check the connection and try again.",
+  "@integrationServiceUnreachable": {
+    "description": "Error: a partner service did not answer",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationUploadRejected": "{service} rejected the upload: {detail}",
+  "@integrationUploadRejected": {
+    "description": "Error: a partner service refused an uploaded file; detail is the service's own text",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationStillProcessing": "{service} is still processing the upload. It will appear there on its own.",
+  "@integrationStillProcessing": {
+    "description": "Error: an upload to a partner service had not finished when the app stopped waiting",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationEmptyGpx": "{service} returned an empty GPX file for this route.",
+  "@integrationEmptyGpx": {
+    "description": "Error: a partner service sent an empty route file",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationUnreadableAnswer": "{service} sent an answer Velorki could not read.",
+  "@integrationUnreadableAnswer": {
+    "description": "Error: a partner service answered in an unexpected format",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationUnreadableGpx": "The GPX file from {service} could not be read.",
+  "@integrationUnreadableGpx": {
+    "description": "Error: a route file from a partner service is damaged",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationAuthPageFailed": "The authorisation page could not be opened.",
+  "@integrationAuthPageFailed": {
+    "description": "Error: the login page of a partner service did not open"
+  },
+  "integrationAuthCancelled": "The authorisation was cancelled.",
+  "@integrationAuthCancelled": {
+    "description": "Error: the rider closed the login page of a partner service"
+  },
+  "integrationAuthIncomplete": "The authorisation was not completed.",
+  "@integrationAuthIncomplete": {
+    "description": "Error: the login in a partner service's app did not come back"
+  },
+  "integrationAccessDenied": "Access was not granted, so nothing was connected.",
+  "@integrationAccessDenied": {
+    "description": "Error: the rider denied access on a partner service's login page"
+  },
+  "integrationAuthRefused": "The service refused the authorisation: {detail}",
+  "@integrationAuthRefused": {
+    "description": "Error: a partner service refused the login; detail is its error code",
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationAuthNoCode": "The service sent no authorisation code back.",
+  "@integrationAuthNoCode": {
+    "description": "Error: a partner service's login came back without a code"
+  },
+  "integrationRouteEmpty": "There is nothing to send: this route has no geometry.",
+  "@integrationRouteEmpty": {
+    "description": "Error: sending a route without points to a partner service"
+  },
+  "integrationCreatedNothing": "{service} created nothing from the upload.",
+  "@integrationCreatedNothing": {
+    "description": "Error: a partner service accepted an upload but made nothing of it",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationImportFailed": "{service} could not import the file: {detail}",
+  "@integrationImportFailed": {
+    "description": "Error: a partner service could not import an uploaded file; detail is the service's own text",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationRideNeedsTimes": "{service} needs timestamps to store a ride as a trip, and this track has none. Send it as a route instead, or export the GPX.",
+  "@integrationRideNeedsTimes": {
+    "description": "Error: a ride without times cannot be uploaded to Ride with GPS as a trip",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationAlreadyUploaded": "This ride is already on {service}.",
+  "@integrationAlreadyUploaded": {
+    "description": "Error: uploading a ride a second time",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
+  "integrationRideEmpty": "There is nothing to send to {service}: this ride has no track points.",
+  "@integrationRideEmpty": {
+    "description": "Error: uploading a ride without points",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      }
+    }
+  },
+  "routingErrorNetwork": "The routing server could not be reached.",
+  "@routingErrorNetwork": {
+    "description": "Routing error: the routing server did not answer"
+  },
+  "routingErrorNoRoute": "No route was found between these points.",
+  "@routingErrorNoRoute": {
+    "description": "Routing error: the router found no way between the points"
+  },
+  "routingErrorInvalid": "The router could not work out this route.",
+  "@routingErrorInvalid": {
+    "description": "Routing error: the request or the answer was not understood"
+  },
+  "routingErrorCancelled": "The routing was cancelled.",
+  "@routingErrorCancelled": {
+    "description": "Routing error: the request was cancelled"
+  },
+  "routingErrorMissingTiles": "The routing tiles for this area are not on this device.",
+  "@routingErrorMissingTiles": {
+    "description": "Routing error: the on-device router has no tiles for the area"
+  },
+  "tileDownloadNetwork": "The tile could not be downloaded. Check the connection and try again.",
+  "@tileDownloadNetwork": {
+    "description": "Error: downloading a routing tile failed on the network"
+  },
+  "tileDownloadDamaged": "The tile arrived damaged. Try again.",
+  "@tileDownloadDamaged": {
+    "description": "Error: a downloaded routing tile has the wrong size or checksum"
+  },
+  "tileDownloadCancelled": "The download was cancelled.",
+  "@tileDownloadCancelled": {
+    "description": "Error: a routing tile download was cancelled"
+  },
+  "tileDownloadNoRoom": "There is no room for the tile on this device.",
+  "@tileDownloadNoRoom": {
+    "description": "Error: the phone's storage is full"
+  },
+  "tileMirrorUnreachable": "The tile mirror could not be reached. Check the connection and try again.",
+  "@tileMirrorUnreachable": {
+    "description": "Error: the server the routing tiles come from did not answer"
+  },
+  "tileMirrorUnreadable": "The tile mirror sent a list Velorki could not read.",
+  "@tileMirrorUnreadable": {
+    "description": "Error: the routing tile list is in an unexpected format"
+  },
+  "plusErrorUnavailable": "This build of Velorki has no store configured.",
+  "@plusErrorUnavailable": {
+    "description": "Subscription error: the app was built without a store"
+  },
+  "plusErrorCancelled": "The purchase was cancelled.",
+  "@plusErrorCancelled": {
+    "description": "Subscription error: the rider cancelled the purchase"
+  },
+  "plusErrorStore": "The store could not be reached. Try again later.",
+  "@plusErrorStore": {
+    "description": "Subscription error: the App Store or Google Play had a problem or was offline"
+  },
+  "plusErrorNotAllowed": "Purchases are not allowed on this device.",
+  "@plusErrorNotAllowed": {
+    "description": "Subscription error: purchases are restricted on the phone"
+  },
+  "plusErrorUnknown": "The store reported an error.",
+  "@plusErrorUnknown": {
+    "description": "Subscription error: anything else the store reported"
+  },
+  "shareNothing": "There is nothing to share.",
+  "@shareNothing": {
+    "description": "Error: sharing a route or ride without points"
+  },
+  "shareFileEmpty": "The shared file was empty.",
+  "@shareFileEmpty": {
+    "description": "Error: a shared link's file came back empty"
+  },
+  "searchErrorUnreachable": "The search server could not be reached.",
+  "@searchErrorUnreachable": {
+    "description": "Under 'Search failed': the search server did not answer"
+  },
+  "searchErrorUnreadable": "The search server sent an answer Velorki could not read.",
+  "@searchErrorUnreadable": {
+    "description": "Under 'Search failed': the search server answered in an unexpected format"
+  },
+  "recordingServiceFailed": "The background service did not start.",
+  "@recordingServiceFailed": {
+    "description": "Why a recording could not start: the phone did not start the recording service"
+  },
+  "offlineRegionGone": "This map area is no longer on the device.",
+  "@offlineRegionGone": {
+    "description": "Error: an offline map area was removed while it was used"
+  },
+  "offlineMapDownloadError": "Check the connection and the free space, then try again.",
+  "@offlineMapDownloadError": {
+    "description": "Why an offline map download failed: MapLibre reported an error (network or storage)"
+  },
+  "settingsShowPerformance": "Show performance",
+  "@settingsShowPerformance": {
+    "description": "Switch in Settings > About: shows a small box with frame rate, frame times and memory over the app, for comparing settings on a device"
+  },
+  "settingsShowPerformanceHint": "Frame rate, frame times and memory in a corner of the screen",
+  "@settingsShowPerformanceHint": {
+    "description": "Subtitle of the show performance switch"
+  },
+  "perfFps": "FPS",
+  "@perfFps": {
+    "description": "Label in the performance box: frames per second, keep it short"
+  },
+  "perfUi": "UI",
+  "@perfUi": {
+    "description": "Label in the performance box: the UI thread's time per frame, keep it short"
+  },
+  "perfRaster": "Raster",
+  "@perfRaster": {
+    "description": "Label in the performance box: the raster (GPU drawing) thread's time per frame, keep it short"
+  },
+  "perfJank": "Jank",
+  "@perfJank": {
+    "description": "Label in the performance box: the share of frames that took too long (stutter), keep it short"
+  },
+  "perfMemory": "RAM",
+  "@perfMemory": {
+    "description": "Label in the performance box: the app's memory use (resident memory), keep it short"
+  },
+  "perfFrameTimes": "{average}/{worst} ms",
+  "@perfFrameTimes": {
+    "description": "Average and worst frame time in milliseconds in the performance box",
+    "placeholders": {
+      "average": {
+        "type": "String",
+        "example": "4.1"
+      },
+      "worst": {
+        "type": "String",
+        "example": "9.8"
+      }
+    }
+  },
+  "perfMegabytes": "{value} MB",
+  "@perfMegabytes": {
+    "description": "Memory in megabytes in the performance box",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "312"
+      }
+    }
+  },
+  "weatherTitle": "Weather on the way",
+  "@weatherTitle": {
+    "description": "Caption of the planner sheet's section with the forecast along the route"
+  },
+  "weatherHeadwind": "Headwind {percent}",
+  "@weatherHeadwind": {
+    "description": "Weather summary: the share of the route ridden into a headwind, e.g. 'Headwind 60%'",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherTailwind": "Tailwind {percent}",
+  "@weatherTailwind": {
+    "description": "Weather summary: the share of the route ridden with a tailwind",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherCrosswind": "Crosswind {percent}",
+  "@weatherCrosswind": {
+    "description": "Weather summary: the share of the route ridden in a crosswind",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherMostlyCalm": "Mostly calm",
+  "@weatherMostlyCalm": {
+    "description": "Weather summary: hardly any wind on most of the route"
+  },
+  "weatherDry": "Dry",
+  "@weatherDry": {
+    "description": "Weather summary: no rain expected on the route"
+  },
+  "weatherRainFrom": "Rain from {distance}",
+  "@weatherRainFrom": {
+    "description": "Weather summary: where along the route the rain starts, e.g. 'Rain from 34 km'",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherGusts": "Gusts up to {speed}",
+  "@weatherGusts": {
+    "description": "Weather summary: the strongest gust on the route, e.g. 'Gusts up to 45 km/h'",
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherTemperatureRange": "{low}–{high}",
+  "@weatherTemperatureRange": {
+    "description": "Weather summary: the lowest and highest temperature on the route; low is a bare number, high carries the unit, e.g. '12–17 °C'",
+    "placeholders": {
+      "low": {
+        "type": "String"
+      },
+      "high": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherNoForecast": "No forecast for this time",
+  "@weatherNoForecast": {
+    "description": "Weather section: the forecast does not reach the chosen departure"
+  },
+  "weatherStart": "Start",
+  "@weatherStart": {
+    "description": "Weather section: label before the departure time the forecast is for"
+  },
+  "weatherDepartureToday": "Today {time}",
+  "@weatherDepartureToday": {
+    "description": "Departure time today, e.g. 'Today 10:15'",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherDepartureTomorrow": "Tomorrow {time}",
+  "@weatherDepartureTomorrow": {
+    "description": "Departure time tomorrow, e.g. 'Tomorrow 08:30'",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherDepartureOnDay": "{day} {time}",
+  "@weatherDepartureOnDay": {
+    "description": "Departure time on a later day: abbreviated weekday and time, e.g. 'Sat 07:00'",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherBestTime": "Best time",
+  "@weatherBestTime": {
+    "description": "Button: move the departure to the time with the least rain and headwind"
+  },
+  "weatherBestTimeNow": "Best time now",
+  "@weatherBestTimeNow": {
+    "description": "Disabled button: the chosen departure already is the best one"
+  },
+  "weatherWindOnMap": "Show wind on the route",
+  "@weatherWindOnMap": {
+    "description": "Switch: colour the route on the map by how the wind meets the rider"
+  },
+  "weatherAttribution": "Weather: {sources}",
+  "@weatherAttribution": {
+    "description": "Attribution line under the forecast, naming the weather services, e.g. 'Weather: MET Norway · Deutscher Wetterdienst'",
+    "placeholders": {
+      "sources": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherSourcesTitle": "Weather data",
+  "@weatherSourcesTitle": {
+    "description": "Title of the sheet listing the weather services and their licences"
+  },
+  "weatherTryAgain": "Try again",
+  "@weatherTryAgain": {
+    "description": "Button: ask for the forecast again after it failed"
+  },
+  "weatherStripSemantics": "Weather along the route: {wind}, {rain}, {temperature}",
+  "@weatherStripSemantics": {
+    "description": "Screen reader label of the weather strip, built from the summary figures",
+    "placeholders": {
+      "wind": {
+        "type": "String"
+      },
+      "rain": {
+        "type": "String"
+      },
+      "temperature": {
+        "type": "String"
+      }
+    }
+  }
 }

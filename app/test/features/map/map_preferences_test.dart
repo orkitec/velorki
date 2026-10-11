@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
+import 'package:velorki/features/map/domain/cycle_map.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 const String _latKey = 'map.camera.lat';
@@ -222,6 +223,101 @@ void main() {
       await notifier.toggle();
       expect(container.read(cyclosmOverlayProvider), isFalse);
       expect(prefs.getBool(_cyclosmKey), isFalse);
+    });
+  });
+
+  group('MapStopsPreferences', () {
+    test('off, the five everyday kinds, along the route, until set', () async {
+      final (container, _) = await _container();
+
+      final stops = container.read(mapStopsPreferencesProvider);
+
+      expect(stops.shown, isFalse);
+      expect(stops.kinds, <String>{
+        'drinking_water',
+        'cafe',
+        'bakery',
+        'toilets',
+        'bicycle_repair_station',
+      });
+      expect(stops.alongRoute, isTrue);
+    });
+
+    test('every choice is stored and read back on the next launch', () async {
+      final (container, prefs) = await _container();
+      final notifier = container.read(mapStopsPreferencesProvider.notifier);
+
+      await notifier.setShown(true);
+      await notifier.setKind('cafe', shown: false);
+      await notifier.setKind('camp_site', shown: true);
+      await notifier.setAlongRoute(false);
+
+      expect(prefs.getBool('map.stops.shown'), isTrue);
+      expect(prefs.getBool('map.stops.alongRoute'), isFalse);
+      expect(
+        prefs.getStringList('map.stops.kinds'),
+        unorderedEquals(<String>[
+          'drinking_water',
+          'bakery',
+          'toilets',
+          'bicycle_repair_station',
+          'camp_site',
+        ]),
+      );
+
+      // A fresh container over the same storage is the next launch.
+      final next = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(next.dispose);
+      final stops = next.read(mapStopsPreferencesProvider);
+      expect(stops.shown, isTrue);
+      expect(stops.alongRoute, isFalse);
+      expect(stops.kinds, contains('camp_site'));
+      expect(stops.kinds, isNot(contains('cafe')));
+    });
+
+    test('a rider who switched every kind off keeps none', () async {
+      final (container, prefs) = await _container(<String, Object>{
+        'map.stops.kinds': <String>[],
+      });
+
+      expect(container.read(mapStopsPreferencesProvider).kinds, isEmpty);
+      expect(prefs.getStringList('map.stops.kinds'), isEmpty);
+    });
+  });
+
+  group('CycleMapPreferences', () {
+    test('off with the default parts on a fresh install', () async {
+      final (container, _) = await _container();
+      final settings = container.read(cycleMapPreferencesProvider);
+      expect(settings.shown, isFalse);
+      expect(settings.parts, defaultCycleMapParts);
+    });
+
+    test('a part switched off stays off', () async {
+      final (container, _) = await _container();
+      await container
+          .read(cycleMapPreferencesProvider.notifier)
+          .setPart(CycleMapPart.directions, shown: false);
+      container.invalidate(cycleMapPreferencesProvider);
+      expect(
+        container.read(cycleMapPreferencesProvider).parts,
+        isNot(contains(CycleMapPart.directions)),
+      );
+    });
+
+    test('a part added since the last choice starts as its default', () async {
+      // Saved by a build that knew neither one-way part.
+      final (container, _) = await _container(<String, Object>{
+        'map.cycle_map.parts': <String>['infrastructure'],
+        'map.cycle_map.known': <String>['infrastructure', 'paths'],
+      });
+      final parts = container.read(cycleMapPreferencesProvider).parts;
+      expect(parts, contains(CycleMapPart.infrastructure));
+      expect(parts, isNot(contains(CycleMapPart.paths)));
+      expect(parts, contains(CycleMapPart.directions));
+      expect(parts, isNot(contains(CycleMapPart.onewayStreets)));
     });
   });
 }

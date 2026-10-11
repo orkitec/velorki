@@ -323,7 +323,7 @@ def join(parts: list[tuple[str, float]], target: str) -> float:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--locales", default="en,de")
+    parser.add_argument("--locales", default="en,de,fr,es,it,nl")
     parser.add_argument("--frame", choices=["none", "phone"],
                         help="the framing; default: the set's")
     parser.add_argument("--card", choices=["frost", "accent-frame", "accent-solid"],

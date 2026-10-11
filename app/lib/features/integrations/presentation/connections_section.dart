@@ -63,7 +63,9 @@ class ConnectionTile extends ConsumerWidget {
       // A rider who closed the page does not need to be told what they did.
       if (e.failure == IntegrationFailure.cancelled) return;
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.connectionsConnectFailed(e.message))),
+        SnackBar(
+          content: Text(l10n.connectionsConnectFailed(e.describe(l10n))),
+        ),
       );
     }
   }

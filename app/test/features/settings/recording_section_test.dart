@@ -68,10 +68,19 @@ void main() {
     await _pump(tester);
 
     expect(find.text(l10n.settingsGpsPrecision), findsOneWidget);
+    // The coarsest profile is a segment, the saver its own switch; the two
+    // may share a label (English: "Battery saver") or not.
     expect(
-      find.text(l10n.gpsPrecisionSaver),
-      findsNWidgets(2),
-    ); // segment and switch
+      find.descendant(
+        of: find.byType(SegmentedButton<GpsPrecision>),
+        matching: find.text(l10n.gpsPrecisionSaver),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.widgetWithText(SwitchListTile, l10n.settingsBatterySaver),
+      findsOneWidget,
+    );
     expect(find.text(l10n.gpsPrecisionNormal), findsOneWidget);
     expect(find.text(l10n.gpsPrecisionPrecise), findsOneWidget);
     expect(find.text(l10n.settingsGpsPrecisionHint), findsOneWidget);

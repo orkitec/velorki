@@ -14,3 +14,7 @@ const String velorkiPrivacyUrl = 'https://velorki.com/privacy';
 
 /// The issue tracker, where "Report a problem" in Settings → About leads.
 const String velorkiIssuesUrl = 'https://github.com/orkitec/velorki/issues';
+
+/// OpenStreetMap's copyright and licence page, where the OSM credit in
+/// Settings → About leads.
+const String osmCopyrightUrl = 'https://www.openstreetmap.org/copyright';

@@ -141,7 +141,10 @@ for theme in "${themes[@]}"; do
     # shellcheck disable=SC1091
     source "$WORK/figures.sh"
     region=$locale
-    case "$locale" in en) region=en_US ;; de) region=de_DE ;; esac
+    case "$locale" in
+      en) region=en_US ;; de) region=de_DE ;; fr) region=fr_FR ;;
+      es) region=es_ES ;; it) region=it_IT ;; nl) region=nl_NL ;;
+    esac
     export SIMCTL_CHILD_SHOT_STATUS=active SIMCTL_CHILD_SHOT_STILL=''
     shoot "$OUT/$theme/$locale/riding.png"
 

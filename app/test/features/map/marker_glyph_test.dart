@@ -28,6 +28,83 @@ void main() {
     expect(bytes, isNotEmpty);
   });
 
+  test('a whole marker, disc, rim and glyph, is one PNG as wide as the '
+      'disc and its rim', () async {
+    for (final icon in <IconData?>[Icons.water_drop_outlined, null]) {
+      final bytes = await buildDiscMarkerImage(
+        icon: icon,
+        fill: const Color(0xFF1E88E5),
+        stroke: const Color(0xFFFFFFFF),
+        radiusPx: 10,
+        strokePx: 1.5,
+        devicePixelRatio: 2,
+      );
+
+      expect(bytes.take(8), <int>[137, 80, 78, 71, 13, 10, 26, 10]);
+      // The width of the IHDR chunk, big-endian at bytes 16..19: the disc,
+      // its rim and a pixel of air each side, at the pixel ratio.
+      expect(_pngWidth(bytes), (10 + 1.5 + markerDiscBitmapPadPx) * 2 * 2);
+    }
+  });
+
+  test('each glyph picture is drawn at the size it is shown at, a whole '
+      'number of device pixels at the pixel ratio', () async {
+    const icon = Icons.water_drop_outlined;
+    for (final ratio in <double>[1, 2, 2.625, 3]) {
+      for (final (sizePx, haloPx) in <(double, double)>[
+        (markerGlyphOnDiscSizePx, markerGlyphHaloPx),
+        (markerGlyphUnselectedSizePx, markerGlyphUnselectedHaloPx),
+      ]) {
+        final bytes = await buildMarkerGlyphImage(
+          icon: icon,
+          color: const Color(0xFF14171A),
+          haloColor: const Color(0xFFFFFFFF),
+          devicePixelRatio: ratio,
+          sizePx: sizePx,
+          haloPx: haloPx,
+        );
+        final glyph = TextPainter(
+          text: TextSpan(
+            text: String.fromCharCode(icon.codePoint),
+            style: TextStyle(fontSize: sizePx, fontFamily: icon.fontFamily),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        expect(
+          _pngWidth(bytes),
+          markerBitmapPixels(glyph.width + haloPx * 2, ratio),
+          reason: '$sizePx px at $ratio',
+        );
+        glyph.dispose();
+      }
+    }
+  });
+
+  test('the smaller glyph is the chosen one scaled as the style used to '
+      'scale it, outline and all', () {
+    expect(
+      markerGlyphUnselectedSizePx,
+      closeTo(markerGlyphOnDiscSizePx * markerGlyphUnselectedScale, 1e-9),
+    );
+    expect(
+      markerGlyphUnselectedHaloPx,
+      closeTo(markerGlyphHaloPx * markerGlyphUnselectedScale, 1e-9),
+    );
+    expect(
+      markerGlyphUnselectedName(Icons.water_drop_outlined),
+      isNot(markerGlyphName(Icons.water_drop_outlined)),
+    );
+  });
+
+  test('a bitmap is whole device pixels, rounded up, never none', () {
+    expect(markerBitmapPixels(21.2, 3), 64);
+    expect(markerBitmapPixels(20, 3), 60);
+    // 0.1 × 3 is a hair over 0.3 in floating point; still not a pixel more.
+    expect(markerBitmapPixels(10.1, 3), 31);
+    expect(markerBitmapPixels(0, 3), 1);
+    expect(markerBitmapPixels(10, 0), 10);
+  });
+
   test('every icon is registered under a name of its own', () {
     const icons = <IconData>[
       Icons.water_drop_outlined,
@@ -95,3 +172,7 @@ void main() {
     expect(markerDiscSelectedRadiusPx, lessThan(13));
   });
 }
+
+/// The width of a PNG, from its IHDR chunk (big-endian at bytes 16..19).
+int _pngWidth(List<int> png) =>
+    png[16] << 24 | png[17] << 16 | png[18] << 8 | png[19];

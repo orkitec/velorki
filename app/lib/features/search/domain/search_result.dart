@@ -70,6 +70,14 @@ abstract class SearchResult with _$SearchResult {
     /// by its kind ("the nearest tap") rather than by its name. `null` for
     /// every row whose distance is not the reason it is in the list.
     double? distanceMeters,
+
+    /// The OpenStreetMap element this is, `node`, `way` or `relation`, when
+    /// the source knows it. A street of the gazetteer has none: it is merged
+    /// out of many ways.
+    String? osmType,
+
+    /// The id of the OpenStreetMap element [osmType] names.
+    int? osmId,
   }) = _SearchResult;
 
   const SearchResult._();
@@ -80,7 +88,20 @@ abstract class SearchResult with _$SearchResult {
   /// widget, where the localisations are.
   String get subtitle =>
       [city, state, country].where((s) => s != null && s.isNotEmpty).join(', ');
+
+  /// Whether the OpenStreetMap element behind this is known.
+  bool get hasOsmElement => osmType != null && osmId != null;
 }
+
+/// The element type [raw] spells (`n`, `W`, `relation`, …) as the
+/// OpenStreetMap API writes it, or `null` for anything else.
+String? osmElementType(Object? raw) =>
+    switch (raw?.toString().trim().toLowerCase()) {
+      'n' || 'node' => 'node',
+      'w' || 'way' => 'way',
+      'r' || 'relation' => 'relation',
+      _ => null,
+    };
 
 /// The kind an online result's `osm_key` stands for.
 SearchKind searchKindOfOsmKey(String? osmKey) => switch (osmKey) {

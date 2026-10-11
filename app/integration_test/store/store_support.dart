@@ -18,6 +18,7 @@ import 'package:velorki/features/assistant/domain/ai_consent.dart';
 import 'package:velorki/features/assistant/domain/intent_resolver.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/import_export/application/incoming_import_listener.dart';
+import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
@@ -26,6 +27,7 @@ import 'package:velorki/features/planner/presentation/profile_chip_row.dart';
 import 'package:velorki/features/map/data/offline_regions_repository.dart';
 import 'package:velorki/features/recording/data/follow_mode.dart';
 import 'package:velorki/features/navigation/data/navigation_settings.dart';
+import 'package:velorki/features/performance/data/show_performance_setting.dart';
 import 'package:velorki/features/navigation/data/turn_speaker.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
 import 'package:velorki/features/navigation/presentation/turn_banner.dart';
@@ -176,6 +178,12 @@ Future<StoreSession> startStoreApp(
   await navigation.setVoice(false);
   await navigation.setRerouteMode(RerouteMode.guideBack);
   await container.read(followModeProvider.notifier).select(FollowMode.northUp);
+  // The performance box never goes into a picture, whatever the device had.
+  await container.read(showPerformanceProvider.notifier).set(false);
+  // Only the cycle map shots draw anything over the map's base.
+  await container.read(cycleMapPreferencesProvider.notifier).setShown(false);
+  await container.read(cyclosmOverlayProvider.notifier).set(false);
+  await container.read(mapStopsPreferencesProvider.notifier).setShown(false);
   await pumpFor(tester, const Duration(seconds: 2));
   return StoreSession(container, positions, ride, relay);
 }
@@ -361,6 +369,38 @@ Future<void> frameRoute(
           chips.bottom + 24,
           screen.width - controls.left + 72,
           screen.height - sheet.top + 24,
+        ),
+      );
+}
+
+/// Centres the map on [center] at [zoom], in the part of the Plan tab's map
+/// between its chrome and its sheet.
+Future<void> frameArea(
+  WidgetTester tester,
+  ProviderContainer container,
+  LatLng center,
+  double zoom,
+) async {
+  await pumpFor(tester, const Duration(seconds: 1));
+  final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+  final chips = tester.getRect(find.byType(ProfileChipRow).first);
+  final sheet = tester.getRect(
+    find
+        .descendant(
+          of: find.byType(PlannerScreen),
+          matching: find.byType(SheetHandle),
+        )
+        .first,
+  );
+  await container
+      .read(sharedMapControllerProvider)
+      ?.moveTo(
+        center,
+        zoom: zoom,
+        animate: false,
+        padding: EdgeInsets.only(
+          top: chips.bottom,
+          bottom: screen.height - sheet.top,
         ),
       );
 }

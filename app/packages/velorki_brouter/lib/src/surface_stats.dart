@@ -1,3 +1,5 @@
+import 'package:velorki_cycle_map/velorki_cycle_map.dart';
+
 import 'segment_message.dart';
 
 /// What the route is made of, as fractions of its total length.
@@ -16,6 +18,7 @@ class SurfaceStats {
     required this.coveredLengthM,
     required this.totalLengthM,
     this.offRoadShare = 0,
+    this.bikeInfrastructureShare,
   });
 
   /// All-zero statistics, for a route with no messages or no length.
@@ -28,6 +31,7 @@ class SurfaceStats {
     coveredLengthM: 0,
     totalLengthM: 0,
     offRoadShare: 0,
+    bikeInfrastructureShare: 0,
   );
 
   /// `surface=*` values counted as paved.
@@ -97,6 +101,15 @@ class SurfaceStats {
   /// 0..1. Overlaps the surface shares on purpose.
   final double cyclewayShare;
 
+  /// Share of the route on bike infrastructure, 0..1, as the cycle map
+  /// draws it ([classifyWay]): cycleways, shared foot-and-bike paths, cycle
+  /// streets, and roads with a bike track or lane on either side. Footways
+  /// bikes are merely allowed on and shared bus lanes do not count.
+  ///
+  /// `null` for statistics stored before the share existed; [cyclewayShare]
+  /// is the nearest figure those have.
+  final double? bikeInfrastructureShare;
+
   /// Share of the route on a primary or trunk road, 0..1. Overlaps the
   /// surface shares on purpose.
   final double busyShare;
@@ -145,6 +158,7 @@ class SurfaceStats {
     var cycleway = 0.0;
     var busy = 0.0;
     var offRoad = 0.0;
+    var bikeInfrastructure = 0.0;
     var covered = 0.0;
 
     for (final m in messages) {
@@ -177,6 +191,9 @@ class SurfaceStats {
       if (highway == null) {
         offRoad += d;
       }
+      if (isBikeInfrastructure(tags)) {
+        bikeInfrastructure += d;
+      }
     }
 
     return SurfaceStats(
@@ -188,7 +205,18 @@ class SurfaceStats {
       coveredLengthM: covered,
       totalLengthM: totalLengthM,
       offRoadShare: offRoad / totalLengthM,
+      bikeInfrastructureShare: bikeInfrastructure / totalLengthM,
     );
+  }
+
+  /// Whether a way with [tags] is bike infrastructure, as
+  /// [bikeInfrastructureShare] counts it.
+  static bool isBikeInfrastructure(Map<String, String> tags) {
+    final attrs = CycleAttrs(classifyWay(tags));
+    return switch (attrs.kind) {
+      CycleKind.cycleway || CycleKind.shared || CycleKind.cyclestreet => true,
+      _ => attrs.track != 0 || attrs.lane != 0,
+    };
   }
 
   /// This as JSON, for a database column. [fromJson] reads it back.
@@ -201,10 +229,14 @@ class SurfaceStats {
     'coveredLengthM': coveredLengthM,
     'totalLengthM': totalLengthM,
     'offRoad': offRoadShare,
+    if (bikeInfrastructureShare != null)
+      'bikeInfrastructure': bikeInfrastructureShare,
   };
 
   /// Reads [toJson] back. A missing key reads as zero, so a row written
-  /// before a share existed still comes back.
+  /// before a share existed still comes back; a missing
+  /// `bikeInfrastructure` reads as `null`, since zero would claim the route
+  /// has none.
   factory SurfaceStats.fromJson(Map<String, dynamic> json) {
     double at(String key) => (json[key] as num? ?? 0).toDouble();
     return SurfaceStats(
@@ -216,6 +248,7 @@ class SurfaceStats {
       coveredLengthM: at('coveredLengthM'),
       totalLengthM: at('totalLengthM'),
       offRoadShare: at('offRoad'),
+      bikeInfrastructureShare: (json['bikeInfrastructure'] as num?)?.toDouble(),
     );
   }
 
@@ -241,7 +274,8 @@ class SurfaceStats {
           other.busyShare == busyShare &&
           other.coveredLengthM == coveredLengthM &&
           other.totalLengthM == totalLengthM &&
-          other.offRoadShare == offRoadShare;
+          other.offRoadShare == offRoadShare &&
+          other.bikeInfrastructureShare == bikeInfrastructureShare;
 
   @override
   int get hashCode => Object.hash(
@@ -253,6 +287,7 @@ class SurfaceStats {
     coveredLengthM,
     totalLengthM,
     offRoadShare,
+    bikeInfrastructureShare,
   );
 
   @override
@@ -260,7 +295,9 @@ class SurfaceStats {
       'SurfaceStats(paved: ${_pct(pavedShare)}, '
       'unpaved: ${_pct(unpavedShare)}, unknown: ${_pct(unknownShare)}, '
       'cycleway: ${_pct(cyclewayShare)}, busy: ${_pct(busyShare)}, '
-      'offRoad: ${_pct(offRoadShare)})';
+      'offRoad: ${_pct(offRoadShare)}, '
+      'bikeInfrastructure: '
+      '${bikeInfrastructureShare == null ? '-' : _pct(bikeInfrastructureShare!)})';
 
   static String _pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
 }

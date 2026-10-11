@@ -611,7 +611,8 @@ void main() {
         ),
       );
       expect(e.failure, IntegrationFailure.serviceError);
-      expect(e.message, contains('no browser installed'));
+      expect(e.message, 'The authorisation page could not be opened.');
+      expect(e.cause, isA<PlatformException>());
     });
   });
 

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_api/velorki_api.dart';
 
 import '../../../../app/app_config.dart';
+import '../../../../core/l10n/relay_error_text.dart';
 import '../../../../core/plus/app_user_id.dart';
 import '../../../settings/data/package_info_provider.dart';
 import '../domain/integration_exception.dart';
@@ -43,10 +44,9 @@ final relayClientProvider = Provider<RelayClient?>((ref) {
 RelayClient requireRelay(Ref ref) {
   final relay = ref.read(relayClientProvider);
   if (relay == null) {
-    throw const IntegrationException(
+    throw IntegrationException(
       IntegrationFailure.relayUnavailable,
-      'This build has no Velorki relay configured, so Strava and '
-      'Ride with GPS cannot be connected.',
+      (l10n) => l10n.integrationNoRelay,
     );
   }
   return relay;
@@ -57,12 +57,12 @@ IntegrationException integrationExceptionFor(RelayException e) =>
     switch (e.error.code) {
       RelayErrorCode.notEntitled => IntegrationException(
         IntegrationFailure.relayUnavailable,
-        'Velorki Plus is needed to connect this service.',
+        (l10n) => l10n.integrationPlusNeeded,
         cause: e,
       ),
       RelayErrorCode.rateLimited => IntegrationException(
         IntegrationFailure.rateLimited,
-        e.error.message,
+        (l10n) => relayErrorText(l10n, e.error),
         retryAfter: e.error.retryAfterS == null
             ? null
             : Duration(seconds: e.error.retryAfterS!),
@@ -70,12 +70,12 @@ IntegrationException integrationExceptionFor(RelayException e) =>
       ),
       RelayErrorCode.unavailable => IntegrationException(
         IntegrationFailure.unreachable,
-        e.error.message,
+        (l10n) => relayErrorText(l10n, e.error),
         cause: e,
       ),
       _ => IntegrationException(
         IntegrationFailure.relayUnavailable,
-        e.error.message,
+        (l10n) => relayErrorText(l10n, e.error),
         cause: e,
       ),
     };

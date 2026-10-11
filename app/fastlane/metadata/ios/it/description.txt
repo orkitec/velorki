@@ -1,0 +1,48 @@
+Velorki pianifica percorsi in bici, ti guida lungo il tragitto e registra i tuoi giri. Il calcolo dei percorsi è pensato per la bici e gira sul tuo iPhone, e tutta l'app è open source.
+
+PIANIFICAZIONE
+• Tocca i punti sulla mappa e ottieni un percorso per la bici che usi: trekking, corsa, gravel, mountain bike o la via più diretta.
+• Percorsi alternativi, un profilo altimetrico e il dettaglio dei fondi su cui pedalerai.
+• Anelli: di' quanto vuoi pedalare e, se vuoi, un luogo da cui passare, e Velorki ti propone giri che tornano al punto di partenza.
+• Cerca luoghi e salva i percorsi nella tua libreria.
+• Scarica una regione una volta e pianifica, cerca e naviga lì senza connessione.
+
+NAVIGAZIONE
+• Indicazioni svolta per svolta con annunci vocali, anche a schermo bloccato.
+• Se esci dal percorso, scegli tu cosa succede: una via per tornarci, un nuovo percorso verso la destinazione o niente del tutto.
+• La mappa ti segue orientata nella direzione di marcia, con la prossima svolta sempre in vista.
+
+REGISTRAZIONE
+• Registra a schermo spento, con pausa automatica, e mostra il giro sulla schermata di blocco e nella Dynamic Island.
+• Scegli e ordina i dati che vedi mentre pedali: distanza, velocità, tempo, dislivello, frequenza cardiaca, cadenza, potenza, quanto resta del percorso.
+• Un risparmio batteria per le giornate lunghe: mappa scura, schermo attenuato e una pagina semplice con i numeri.
+• Frequenza cardiaca da Apple Watch, da sensori Bluetooth e da Apple Health. Funzionano anche i sensori di velocità, cadenza e potenza.
+• L'app Velorki su Apple Watch mostra il giro e lo avvia, mette in pausa e termina dal polso.
+• Ogni giro ha una pagina con mappa, grafici di altimetria, velocità e frequenza cardiaca, e parziali.
+
+FILE
+• Apri file GPX, FIT e TCX da File, Mail, Safari o dal menu di condivisione.
+• Esporta percorsi e giri in GPX o FIT per usarli ovunque.
+
+GRATIS, E VELORKI PLUS
+Tutto ciò che gira sul telefono è gratis: pianificazione, anelli, navigazione, registrazione, la libreria, le regioni offline, i sensori, e l'importazione e l'esportazione di file.
+
+Velorki Plus è un abbonamento per le parti che hanno bisogno di un server:
+• L'assistente: descrivi in una frase il giro che vuoi e ricevi un percorso. Chiedigli del percorso sulla mappa, fatti descrivere il giro, o fagli aggiungere una sosta al bar o evitare un tratto.
+• Link di condivisione: trasforma un percorso o un giro in un link che chiunque può aprire nel browser.
+• Collegamenti a due note piattaforme di percorsi e giri, per caricare i tuoi giri e importare i tuoi percorsi.
+
+Velorki Plus è disponibile come abbonamento mensile e annuale a rinnovo automatico; quello annuale inizia con una prova gratuita. Il pagamento viene addebitato sul tuo Apple Account alla conferma dell'acquisto. L'abbonamento si rinnova automaticamente se non viene disattivato almeno 24 ore prima della fine del periodo in corso, e si può gestire e annullare nelle impostazioni del tuo Apple Account. La parte non utilizzata di una prova gratuita decade con l'acquisto di un abbonamento.
+
+Condizioni d'uso: https://velorki.com/terms
+Informativa sulla privacy: https://velorki.com/privacy
+
+PRIVACY
+Nessun account, nessuna registrazione. Percorsi, giri e impostazioni restano sul tuo iPhone. L'assistente chiede il tuo consenso prima che un testo lasci il dispositivo, e la posizione che invia è arrotondata a circa un chilometro.
+
+USO CONTINUO DEL GPS
+L'uso continuo del GPS in background può ridurre notevolmente la durata della batteria. Velorki tiene acceso il GPS solo mentre un giro viene registrato o navigato.
+
+Dati cartografici © collaboratori di OpenStreetMap.
+
+Codice sorgente: https://github.com/orkitec/velorki

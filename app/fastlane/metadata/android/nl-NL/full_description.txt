@@ -1,0 +1,50 @@
+Velorki plant fietsroutes, maakt rondjes en neemt je ritten op. De routering
+is gemaakt voor fietsen en draait op je telefoon, en de hele app is open source.
+
+PLANNEN
+• Tik routepunten op de kaart en krijg een route voor de fiets waar je op zit:
+  toerfiets, racefiets, gravel of mountainbike.
+• Alternatieven voor elke route, een hoogteprofiel en een overzicht van de
+  ondergronden waar je overheen rijdt.
+• Rondjes: zeg hoe ver je wilt fietsen en, als je wilt, één plek om langs te
+  komen, en Velorki stelt rondritten voor die terugkomen waar je begon.
+• Zoek plaatsen, sla routes op in je bibliotheek en download kaartregio's om
+  zonder verbinding te gebruiken.
+
+OPNEMEN
+• Neemt op met het scherm uit en blijft opnemen als de app wordt gesloten.
+• Afstand, tijd, snelheid en stijging tijdens het rijden, met auto-pauze en een
+  melding die de lopende rit toont.
+• Volg een geplande route en bekijk en bewerk de rit daarna.
+
+BESTANDEN
+• Open GPX- en FIT-bestanden vanuit je bestandsapp, vanuit mail, vanuit een
+  browser of via het deelmenu.
+• Exporteer routes en ritten als GPX of FIT en geef ze door aan Komoot, Garmin
+  Connect, Strava of iets anders dat die formaten leest.
+
+GRATIS, EN VELORKI PLUS
+Alles wat op de telefoon draait, is gratis: plannen, rondjes, opnemen, de
+bibliotheek, offline kaartregio's, en GPX- en FIT-import en -export.
+
+Velorki Plus is een abonnement voor de onderdelen die een server of een account
+bij een andere dienst nodig hebben:
+• Strava: een opgenomen rit uploaden, je Strava-routes importeren.
+• Ride with GPS: routes en ritten, in beide richtingen.
+• De assistent: beschrijf de rit die je wilt in één zin en krijg een route.
+• Deellinks voor routes en ritten.
+
+Velorki Plus heeft een gratis proefperiode bij het jaarabonnement en wordt verlengd tot je het
+opzegt in Google Play. Voorwaarden: https://velorki.com/terms
+
+PRIVACY
+Er is geen account en geen registratie. Routes, ritten en instellingen blijven op
+je telefoon. Er gaat niets naar Strava of Ride with GPS tot je het account koppelt
+en erom vraagt. De assistent vraagt je toestemming voordat er tekst het apparaat
+verlaat, en de positie die hij verstuurt wordt afgerond op ongeveer een kilometer.
+Privacybeleid: https://velorki.com/privacy
+
+Kaartgegevens © OpenStreetMap-bijdragers. Routering door BRouter, kaarttegels
+door OpenFreeMap, plaatsen zoeken door Photon, fietslaag door CyclOSM.
+
+Broncode: https://github.com/orkitec/velorki

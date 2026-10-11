@@ -9,6 +9,8 @@ import 'package:velorki_brouter/velorki_brouter.dart' hide CancelToken;
 import '../domain/sha256.dart';
 import 'routing_tiles_repository.dart';
 import 'segments_manifest_service.dart';
+import '../../../core/l10n/localized_text.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 part 'tile_downloader.g.dart';
 
@@ -58,18 +60,27 @@ enum TileDownloadFailure {
 }
 
 /// A tile download that did not finish.
-class TileDownloadException implements Exception {
+class TileDownloadException implements LocalizedException {
   /// Creates the failure.
   const TileDownloadException(this.kind, this.message, {this.cause});
 
   /// What kind of failure it was.
   final TileDownloadFailure kind;
 
-  /// What went wrong, in one sentence.
+  /// What went wrong, in one English sentence for the log.
   final String message;
 
   /// The underlying error, if any.
   final Object? cause;
+
+  @override
+  String describe(AppLocalizations l10n) => switch (kind) {
+    TileDownloadFailure.network => l10n.tileDownloadNetwork,
+    TileDownloadFailure.sizeMismatch ||
+    TileDownloadFailure.checksumMismatch => l10n.tileDownloadDamaged,
+    TileDownloadFailure.cancelled => l10n.tileDownloadCancelled,
+    TileDownloadFailure.storage => l10n.tileDownloadNoRoom,
+  };
 
   @override
   String toString() => 'TileDownloadException(${kind.name}): $message';

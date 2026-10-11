@@ -1,7 +1,7 @@
 ---
 title: Fehlerbehebung
 description: "Lösungen für die häufigen Probleme: keine Position, keine Route, das Kachel-Banner, eine stumme Stimme unter iOS, hängende Downloads und tote Links."
-order: 17
+order: 19
 ---
 
 Was am häufigsten schiefgeht, und was jeweils dagegen hilft. Steht dein Problem nicht hier, sagt der letzte Abschnitt, wie du es meldest.
@@ -84,7 +84,7 @@ Wird eine Datei als falsche Art importiert, stell **Speichern als** auf dem Impo
 
 ## Die Aufnahme hat von selbst aufgehört
 
-Antworte unter Android auf **Im Hintergrund weiter aufzeichnen** mit **Erlauben** und erteile die Berechtigung für Mitteilungen; beides ist es, was das System davon abhält, die Aufnahme zu beenden, während das Handy schläft. Auf beiden Plattformen wird der Track fortlaufend geschrieben, wurde die App also beendet, bekommst du beim nächsten Start **Nicht beendete Fahrt** mit **Fortsetzen**, **Beenden** und **Verwerfen**. Siehe [Fahrt aufzeichnen](./recording-a-ride).
+Antworte unter Android auf **Im Hintergrund weiter aufzeichnen** mit **Einstellungen öffnen**, erlaube Velorki dort uneingeschränkte Akkunutzung und erteile die Berechtigung für Mitteilungen; beides ist es, was das System davon abhält, die Aufnahme zu beenden, während das Handy schläft. Auf beiden Plattformen wird der Track fortlaufend geschrieben, wurde die App also beendet, bekommst du beim nächsten Start **Nicht beendete Fahrt** mit **Fortsetzen**, **Beenden** und **Verwerfen**. Siehe [Fahrt aufzeichnen](./recording-a-ride).
 
 ## Ein Bluetooth-Sensor wird nicht gefunden
 
@@ -100,9 +100,9 @@ Ein gekoppelter Sensor, der **Nicht verbunden** zeigt, ist außer Reichweite, sc
 
 - **Es gibt keinen Schalter Apple Watch.** Er erscheint unter **Einstellungen → Sensoren** nur auf einem iPhone, mit dem eine Uhr gekoppelt ist.
 - **Die App ist nicht auf der Uhr.** Sie steckt in der iPhone-App; kam sie nicht von selbst an, installiere Velorki aus der App **Watch** auf dem iPhone.
-- **Die Fahrt läuft, aber die Uhr misst nichts.** Eine am Handy gestartete Fahrt öffnet die Uhren-App und lässt sie von selbst messen. Zeigt die Uhr trotzdem zwei Striche, tippe dort auf **Start heart rate**; eine orange Zeile unter dem Herz sagt, was schiefging, wenn die Uhr es weiß.
+- **Die Fahrt läuft, aber die Uhr misst nichts.** Eine am Handy gestartete Fahrt öffnet die Uhren-App und lässt sie von selbst messen. Zeigt die Uhr trotzdem zwei Striche, tippe dort auf **Pulsmessung starten**; eine orange Zeile unter dem Herz sagt, was schiefging, wenn die Uhr es weiß.
 - **Die Uhr zeigt keinen Puls.** Sie fragt beim ersten Training um Erlaubnis, deinen Puls zu lesen. Wurde das abgelehnt, erteile die Erlaubnis in den Datenschutzeinstellungen der Uhr.
-- **Start ride auf der Uhr tut am Handy nichts.** Mit Velorki im Hintergrund startet die Fahrt, und das Handy zeigt eine Mitteilung zum Antippen. Eine weggewischte App kann die Uhr nicht wecken, das ist eine Regel von iOS: Die Uhr sagt "The phone did not answer", und Velorki am Handy zu öffnen ist die Abhilfe.
+- **„Fahrt starten“ auf der Uhr tut am Handy nichts.** Mit Velorki im Hintergrund startet die Fahrt, und das Handy zeigt eine Mitteilung zum Antippen. Eine weggewischte App kann die Uhr nicht wecken, das ist eine Regel von iOS: Die Uhr sagt "Das Handy antwortet nicht", und Velorki am Handy zu öffnen ist die Abhilfe.
 - **Der Track beginnt erst, wenn ich das Handy öffne.** iOS gibt einer im Hintergrund geweckten App kein GPS, bis sie einmal geöffnet wurde. Tippe auf die Mitteilung oder öffne Velorki, dann beginnt der Track; danach darf das Handy gesperrt sein.
 
 ## Kein Puls aus Health

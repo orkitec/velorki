@@ -1,7 +1,11 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/floating_bar.dart'
+    show FloatingBarStyle, floatingBarFilter, glassTint;
 import '../domain/route_profile.dart';
 import 'route_format.dart';
 
@@ -14,11 +18,14 @@ import 'route_format.dart';
 /// fifth rather than ending in an ellipsis: German "Trekking" and "Rennrad"
 /// do not fit at 360 dp otherwise.
 ///
-/// Over the map ([glass]) the chips are chrome, so they are opaque glass
-/// whatever the chip theme says; on a sheet, which is a surface already, the
-/// chip theme's fills are left alone. The label colour is set here in both
-/// cases, from the same scheme as the fill: a label style without one kept
-/// the text theme's own colour, white in the dark theme, on the accent.
+/// Over the map ([glass]) the chips are chrome, so they are the
+/// [FloatingBarStyle]'s glass in [glassTint] whatever the chip
+/// theme says, but unblurred: a chip has no shadow to hide the square
+/// corners the engine blurs over the map's native view. On a sheet, which is
+/// a surface already, the chip theme's fills are left alone. The label
+/// colour is set here in both cases, from the same scheme as the fill: a
+/// label style without one kept the text theme's own colour, white in the
+/// dark theme, on the accent.
 class ProfileChipRow extends StatelessWidget {
   /// Creates the row.
   const ProfileChipRow({
@@ -34,7 +41,7 @@ class ProfileChipRow extends StatelessWidget {
   /// Called with the profile the rider tapped.
   final ValueChanged<RouteProfile> onSelected;
 
-  /// Whether the row floats over the map and needs opaque chips.
+  /// Whether the row floats over the map and takes the chrome's glass.
   final bool glass;
 
   @override
@@ -43,7 +50,13 @@ class ProfileChipRow extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final profiles = RouteProfile.values;
-    return SizedBox(
+    // Over the map the chips are the same glass as the search field above
+    // them: the same tint, and the same blur in their own stadium, a rounded
+    // shape with equal corners that iOS clips a blur over the map to.
+    final style = FloatingBarStyle.of(context);
+    final fill = glass ? glassTint(theme.velorki, style) : null;
+    final filter = glass ? floatingBarFilter(style) : null;
+    final row = SizedBox(
       height: 44,
       child: Row(
         children: [
@@ -55,39 +68,53 @@ class ProfileChipRow extends StatelessWidget {
                 padding: EdgeInsets.only(
                   right: index == profiles.length - 1 ? 0 : 6,
                 ),
-                child: ChoiceChip(
-                  label: SizedBox(
-                    width: double.infinity,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        profileLabel(l10n, profile),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
+                child: _ChipGlass(
+                  filter: filter,
+                  child: ChoiceChip(
+                    label: SizedBox(
+                      width: double.infinity,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          profileLabel(l10n, profile),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                        ),
                       ),
                     ),
-                  ),
-                  selected: profile == selected,
-                  onSelected: (_) => onSelected(profile),
-                  showCheckmark: false,
-                  visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  labelPadding: EdgeInsets.zero,
-                  backgroundColor: glass ? theme.velorki.glass : null,
-                  selectedColor: glass ? scheme.primary : null,
-                  side: glass
-                      ? BorderSide(
-                          color: profile == selected
-                              ? scheme.primary
-                              : theme.velorki.glassBorder,
-                        )
-                      : null,
-                  labelStyle: theme.textTheme.labelLarge?.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: profile == selected
-                        ? scheme.onPrimary
-                        : scheme.onSurface,
+                    selected: profile == selected,
+                    onSelected: (_) => onSelected(profile),
+                    showCheckmark: false,
+                    visualDensity: VisualDensity.compact,
+                    // The chip's box is what it draws, so the glass behind
+                    // it (clipped to that box) meets its outline; the row
+                    // keeps the height to tap.
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    labelPadding: EdgeInsets.zero,
+                    // Material 3 chips read `color` before the background
+                    // and selected colours, and the chip theme sets it.
+                    color: fill == null
+                        ? null
+                        : WidgetStateProperty.resolveWith(
+                            (states) => states.contains(WidgetState.selected)
+                                ? scheme.primary
+                                : fill,
+                          ),
+                    side: glass
+                        ? BorderSide(
+                            color: profile == selected
+                                ? scheme.primary
+                                : theme.velorki.glassBorder,
+                          )
+                        : null,
+                    labelStyle: theme.textTheme.labelLarge?.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: profile == selected
+                          ? scheme.onPrimary
+                          : scheme.onSurface,
+                    ),
                   ),
                 ),
               ),
@@ -95,7 +122,46 @@ class ProfileChipRow extends StatelessWidget {
         ],
       ),
     );
+    if (!glass) return row;
+    // A chip's own Material is filled with the canvas colour under its
+    // fill: over the map that would make the glass opaque again.
+    return Theme(
+      data: theme.copyWith(canvasColor: Colors.transparent),
+      child: row,
+    );
   }
+}
+
+/// The blur behind one chip, in its stadium; none when [filter] is null.
+class _ChipGlass extends StatelessWidget {
+  const _ChipGlass({required this.filter, required this.child});
+
+  final ImageFilter? filter;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    clipper: const _StadiumClipper(),
+    child: BackdropFilter.grouped(
+      enabled: filter != null,
+      filter: filter ?? ImageFilter.blur(),
+      child: child,
+    ),
+  );
+}
+
+/// A stadium as a rounded rectangle with four equal corners.
+class _StadiumClipper extends CustomClipper<RRect> {
+  const _StadiumClipper();
+
+  @override
+  RRect getClip(Size size) => RRect.fromRectAndRadius(
+    Offset.zero & size,
+    Radius.circular(size.height / 2),
+  );
+
+  @override
+  bool shouldReclip(_StadiumClipper oldClipper) => false;
 }
 
 /// The routing profile as one button at the end of the search field, for a

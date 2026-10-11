@@ -15,8 +15,8 @@ import '../data/cyclosm_tone.dart';
 import '../data/map_preferences.dart';
 import '../data/maplibre_map_controller.dart';
 import '../data/position_provider.dart';
+import '../data/weather_map_preferences.dart';
 import '../domain/map_controller.dart';
-import '../../shared/presentation/gesture_zone_guard.dart';
 import 'map_attribution.dart';
 import 'map_chrome.dart';
 import 'puck_ownership.dart';
@@ -90,11 +90,9 @@ String mapStyleUrlFor(
   };
 }
 
-/// How far down the native (i) button sits on a phone turned sideways: in
-/// the top corner of the map away from the rail, below the row at the top
-/// (whose far end is the search) and the turn banner, so the attribution
-/// chip has the narrow map's whole width at the bottom.
-const double _infoButtonTopSideways = 124;
+/// Where the native (i) button goes: this far past the map's right edge,
+/// out of view on any screen.
+const double _infoButtonOffscreen = -10000;
 
 /// The map itself: a `MapLibreMap` platform view plus the adapter that turns
 /// it into a [MapController].
@@ -142,7 +140,9 @@ class MapView extends ConsumerStatefulWidget {
 
   /// Inset of the attribution chip from the bottom edge of the view, on top
   /// of the system's own inset there (the home indicator). It sits centred,
-  /// under the floating navigation bar, at the same spot on every tab.
+  /// under the floating navigation bar, at the same spot on every tab; on a
+  /// phone with no gesture zone there, on the safe area's edge
+  /// ([MapChromeInsets.attributionFloor]).
   final EdgeInsets attributionPadding;
 
   @override
@@ -214,6 +214,8 @@ class _MapViewState extends ConsumerState<MapView> {
         devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
         palette: MapPalette.fromTheme(Theme.of(context)),
         cyclosmTone: _readCyclosmTone(),
+        weatherDark: _readMapLook() != MapLook.light,
+        weatherOpacity: ref.read(weatherMapOpacityProvider),
       );
     } on StateError {
       // The style finished loading while the world around the map is being
@@ -236,6 +238,14 @@ class _MapViewState extends ConsumerState<MapView> {
     // wait for the next one, which is up to five metres of riding away.
     final known = ref.read(devicePositionProvider).value;
     if (known != null) _pushPosition(known);
+  }
+
+  /// The map look on screen right now, resolved.
+  MapLook _readMapLook() {
+    final appearance = ref.read(appearanceSettingProvider);
+    final look =
+        ref.read(appearanceOverrideProvider)?.mapLook ?? appearance.mapLook;
+    return resolveMapLook(look, Theme.of(context).brightness);
   }
 
   /// How the CyclOSM overlay is painted for the map look and the overlay
@@ -283,6 +293,10 @@ class _MapViewState extends ConsumerState<MapView> {
       // real `null` (permission gone) takes the puck away.
       if (next.hasValue) _pushPosition(next.value);
     });
+    // The rain's and the clouds' opacity, live while its slider is dragged.
+    ref.listen<WeatherOpacity>(weatherMapOpacityProvider, (_, next) {
+      unawaited(_adapter?.setWeatherOpacity(next));
+    });
     final config = ref.watch(effectiveConfigProvider);
     final appearance = ref.watch(appearanceSettingProvider);
     // The black style of a battery-saver ride wins over the rider's own look
@@ -306,6 +320,11 @@ class _MapViewState extends ConsumerState<MapView> {
           ),
         ),
       );
+      unawaited(
+        adapter.setWeatherDark(
+          resolveMapLook(look, brightness) != MapLook.light,
+        ),
+      );
     }
     // Read, not watch: the initial camera must not rebuild the platform view
     // every time the camera is saved.
@@ -315,10 +334,8 @@ class _MapViewState extends ConsumerState<MapView> {
     final chrome = MapChromeInsets.maybeOf(context);
     final chromeTop = chrome?.controlsTop;
     // The bottom of the view, whatever an owner removed from the padding:
-    // the chip and the (i) button sit in the band under the bar.
-    // Turned sideways the map beside the rail and the sheet is narrow.
-    final sideways =
-        (chrome?.attributionInsets ?? EdgeInsets.zero) != EdgeInsets.zero;
+    // the chip sits in the band under the bar, or, where the safe area is
+    // not that band, where the owner's chrome puts it.
     final attributionBottom = mapAttributionBottom(
       context,
       gap: widget.attributionPadding.bottom,
@@ -339,19 +356,15 @@ class _MapViewState extends ConsumerState<MapView> {
         trackCameraPosition: true,
         compassEnabled: false,
         logoEnabled: false,
-        // maplibre_gl 0.27 cannot hide the native attribution (i) button, so it
-        // is parked bottom right, in the same band as our own chip; sideways in
-        // the top corner away from the rail, where the narrow map leaves it
-        // room the chip's band does not.
-        attributionButtonPosition: !sideways
-            ? ml.AttributionButtonPosition.bottomRight
-            : (chrome?.attributionInsets.left ?? 0) > 0
-            ? ml.AttributionButtonPosition.topRight
-            : ml.AttributionButtonPosition.topLeft,
-        attributionButtonMargins: Point<num>(
-          8,
-          sideways ? _infoButtonTopSideways : attributionBottom,
-        ),
+        // maplibre_gl 0.27 has no switch for the native attribution (i)
+        // button, and a clear tint would still leave it taking taps. Our
+        // chip carries the (i) and the credits instead, so the native button
+        // is pushed off the map's right edge by a negative margin, upright
+        // and sideways alike (one bottom-right corner for both): both
+        // platforms apply margins as they change (Android's
+        // `setAttributionMargins`, iOS's `attributionButtonMargins`).
+        attributionButtonPosition: ml.AttributionButtonPosition.bottomRight,
+        attributionButtonMargins: const Point<num>(_infoButtonOffscreen, 0),
         rotateGesturesEnabled: true,
         tiltGesturesEnabled: false,
         // The map claims every touch that lands on it. Inside a scroll view
@@ -424,10 +437,12 @@ class _MapViewState extends ConsumerState<MapView> {
                     widget.attributionPadding.right +
                     (chrome?.attributionInsets.right ?? 0),
                 bottom: attributionBottom,
-                // Tapped in the band under the bar, which is the system's
-                // gesture zone the shell otherwise keeps to itself.
-                child: const Center(
-                  child: GestureZonePassThrough(child: MapAttributionChip()),
+                // A tap on it opens the credits, the weather layers' among
+                // them while their layers are drawn.
+                child: Center(
+                  child: MapAttributionChip(
+                    weatherCredits: _adapter?.weatherAttributions,
+                  ),
                 ),
               ),
           ],

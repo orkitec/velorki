@@ -1,12 +1,13 @@
 # Localisation
 
-English is the source language, German is the first target. Translation runs
-through [Crowdin](https://crowdin.com); `crowdin.yml` in the repository root
-says what is translated.
+English is the source language; German, French, Spanish, Italian and Dutch are the translations. Translations are
+written in the repository, in the commit that changes the English, by the
+coding agent; [Crowdin](https://crowdin.com) holds them so that people can
+improve them. `crowdin.yml` in the repository root says what is translated.
 
 ## How a string travels
 
-| Source, edited by hand | Target, written by Crowdin |
+| Source | Target, written with it, refined in Crowdin |
 |------------------------|----------------------------|
 | `app/lib/l10n/app_en.arb` | `app/lib/l10n/app_<lang>.arb` |
 | `web/messages/en.json` | `web/messages/<lang>.json` |
@@ -15,12 +16,16 @@ says what is translated.
 | `app/fastlane/metadata/android/en-US/*.txt` | `app/fastlane/metadata/android/<store locale>/*.txt` |
 | `app/store/slides_en.json` | `app/store/slides_<lang>.json` |
 
-`.github/workflows/crowdin.yml` uploads a source file to Crowdin when it
-changes on `main`, and every Monday morning downloads whatever is finished into
-the branch `l10n/crowdin` and opens a pull request titled "Update translations".
-Nothing reaches `main` without review. The download can also be started by hand
-from the Actions tab. A translation pull request can never touch a source file:
-Crowdin only ever writes a target language, and English is the source.
+`.github/workflows/crowdin.yml` uploads the sources and the translations to
+Crowdin when they change on `main`, the translations as approved, and every
+Monday morning downloads what people changed there into the branch
+`l10n/crowdin` and opens a pull request titled "Update translations" (the
+translated ARB files without the `@key` metadata Crowdin copies into them).
+While that pull request is open, a push uploads only the sources: the
+repository's older copy would overwrite the newer text. Merge it first. The
+download can also be started by hand from the Actions tab. A translation pull
+request can never touch a source file: Crowdin only ever writes a target
+language, and English is the source.
 
 The app's `supportedLocales` is generated from the ARB files present, so a
 merged `app_de.arb` enables German with no code change. The website lists its
@@ -29,11 +34,12 @@ a language".
 
 ## Rules
 
-- After the first Crowdin sync, never edit a non-English file by hand: German
-  is edited in Crowdin, not in the repository. The next download overwrites a
-  hand edit, and the change is invisible in Crowdin.
-- New strings go into the English source only. Give an ARB key a `@key`
-  description: it is the only context a translator gets.
+- A change to an English source carries its translation into every other
+  language in the same commit, matching the terms that language already uses.
+  Give an ARB key a `@key` description: it is the context a translator in
+  Crowdin gets.
+- Legal pages (imprint, privacy, terms) and the store texts get a person's
+  read in each language before they go live.
 - Placeholders are ICU, as in the ARB (`{count}`, `{distance}`). They must
   survive translation unchanged, in any order the language needs.
 - In Markdown, front matter keys stay as they are; only `title` and
@@ -50,14 +56,39 @@ a language".
   lower-cases the first letter. They must be written so that survives: never
   start one with a word that is capitalised wherever it stands, such as a
   German noun. "Am Ziel ankommen", not "Ziel erreichen".
-- `app/test/l10n/arb_test.dart` checks that every translated ARB declares its
-  own locale and carries no key English does not have. It runs in CI with the
-  rest of `flutter test`.
+- Nothing English may reach a translated screen. The checks, all generic
+  over the languages present, fail CI otherwise:
+  - `app/test/l10n/arb_test.dart`: every translated ARB declares its locale,
+    has every English key and no other, keeps each message's ICU arguments,
+    and translates every message with words in it, unless `sameAsEnglish`
+    in the test names it with a reason (brands, units, borrowed words).
+  - `app/test/l10n/hardcoded_strings_test.dart`: no literal with letters in
+    a `Text`, `TextSpan`, tooltip, label, title, snack bar, notification or
+    share text under `app/lib`, and no exception's `message` or `toString()`
+    on a screen; failures are shown with `errorText(l10n, error)`
+    (`features/shared/presentation/error_text.dart`), and code without a
+    `BuildContext` describes them with a `LocalizedText`
+    (`core/l10n/localized_text.dart`). Exceptions go in its `_allowed` list,
+    with the reason.
+  - `npm run locales -- --check` in `web/` (CI: `web.yml`): each catalogue
+    has English's keys, ICU arguments and rich-text tags, no message with
+    words is identical to English unless `SAME_AS_ENGLISH` names it, and
+    every `content/en` page has a file in each locale (a `draft: true` one
+    counts; only the bilingual imprint is exempt and falls back to English).
+- Text outside Flutter's strings is native: iOS permission prompts live in
+  `app/ios/Runner/<lang>.lproj/InfoPlist.strings` (English stays in
+  `Info.plist` as the fallback; the watch app has its own `.xcstrings`
+  catalogues), and Android has no native text beyond the brand name, only
+  `res/xml/locales_config.xml` for the per-app language picker.
+  `app/test/l10n/native_strings_test.dart` holds all of it to the ARB
+  languages, and `app/test/l10n/store_texts_test.dart` checks the store
+  texts and slide captions of every translated locale against English.
 - A language must pass the widget suite in its own locale:
-  `flutter test --dart-define=VELORKI_TEST_LOCALE=<lang>` from `app/` pumps
-  every harness-built screen in that language, and CI runs it for German, so a
-  translation that no longer fits its layout is a failed build, not a bug
-  report.
+  `flutter test --dart-define=VELORKI_TEST_LOCALE=<lang>` from `app/` (or
+  `VELORKI_TEST_LOCALE=<lang> flutter test`) pumps every harness-built screen
+  in that language. `app.yml` runs it for German on every push and
+  `locales.yml` for every language by hand, so a translation that no longer
+  fits its layout is a failed build, not a bug report.
 
 ## Store listing texts
 
@@ -123,14 +154,20 @@ is its unit test (`python3 -m unittest app/tool/store_text_check_test.py`).
 ## Adding a language
 
 1. Add the target language in Crowdin's project settings.
-2. Translate. The next Monday's pull request brings
-   `app/lib/l10n/app_<lang>.arb`, `web/messages/<lang>.json` and
-   `web/content/<lang>/...`; a language nobody has started yet brings no files
-   (`skip_untranslated_files`).
+2. Translate every source into it in the repository (`app_<lang>.arb`,
+   `web/messages/<lang>.json`, `web/content/<lang>/...`, the store texts) and
+   push; the upload makes them the approved translations in Crowdin.
 3. For the website, run `npm run locales` in `web/` on that branch and commit
    `src/i18n/locales.generated.ts` — the routing table is imported by client
    code and cannot read the directory itself.
-4. The app needs nothing further; `flutter gen-l10n` (`bash app/tool/gen.sh`)
+4. Native iOS/Android: add `app/ios/Runner/<lang>.lproj/InfoPlist.strings`
+   (same keys as `en.lproj`) and its file reference in the pbxproj's
+   `InfoPlist.strings` variant group, the language in `Info.plist`'s
+   `CFBundleLocalizations` and the pbxproj's `knownRegions`, a `<locale>` in
+   `res/xml/locales_config.xml`, and a `de`-style entry in the watch
+   `.xcstrings`. A `res/values-<lang>/strings.xml` too if `values/strings.xml`
+   ever exists. `native_strings_test.dart` fails until all are there.
+5. The Flutter strings need nothing further; `flutter gen-l10n` (`bash app/tool/gen.sh`)
    picks the new ARB up.
 
 ## Translators

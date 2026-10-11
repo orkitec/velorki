@@ -11,7 +11,9 @@ import 'package:velorki/features/map/application/locate_on_open.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/core/db/database.dart';
+import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
+import 'package:velorki/features/map/testing/fake_stops_coverage.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
@@ -153,6 +155,9 @@ class PlannerHarness {
   /// The map the screens draw on.
   final TestMapController map;
 
+  /// Where stops can be shown: everywhere, unless a test says otherwise.
+  final FakeStopsCoverage stopsCoverage = FakeStopsCoverage();
+
   /// What builds every map instead of a bare [TestMapView] over [map], for a
   /// test that needs something drawn over it.
   MapViewBuilder? mapViewBuilder;
@@ -182,6 +187,7 @@ class PlannerHarness {
     // place the camera themselves.
     locateOnOpenProvider.overrideWith(StayPutOnOpen.new),
     velorkiDatabaseProvider.overrideWithValue(db),
+    mapStopsCoverageProvider.overrideWithValue(stopsCoverage),
   ];
 }
 

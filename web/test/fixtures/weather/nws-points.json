@@ -1,0 +1,20 @@
+{
+  "id": "https://api.weather.gov/points/40.75,-74",
+  "type": "Feature",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [
+      -74,
+      40.75
+    ]
+  },
+  "properties": {
+    "gridId": "OKX",
+    "gridX": 33,
+    "gridY": 44,
+    "forecast": "https://api.weather.gov/gridpoints/OKX/33,44/forecast",
+    "forecastHourly": "https://api.weather.gov/gridpoints/OKX/33,44/forecast/hourly",
+    "forecastGridData": "https://api.weather.gov/gridpoints/OKX/33,44",
+    "timeZone": "America/New_York"
+  }
+}

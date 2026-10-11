@@ -3,6 +3,10 @@ import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:flutter/widgets.dart' show IconData;
 import 'package:velorki_geo/velorki_geo.dart';
 
+import 'cycle_map.dart';
+import 'weather_map.dart';
+import 'wind_field.dart';
+
 /// The planner, recorder and library talk to the map only through this
 /// contract. The production implementation wraps maplibre_gl; tests use a
 /// fake. Nothing outside `features/map` may import maplibre types.
@@ -65,6 +69,12 @@ abstract class MapController {
   /// [onPoiTapped] with its index.
   Future<void> setPois(List<MapPoi> pois);
 
+  /// Places to stop at around the map or along the route ahead — taps,
+  /// cafes, toilets — drawn smaller than [setPois]' markers and under them
+  /// and the waypoints; an empty list takes them away. A tap on one reports
+  /// through [onStopTapped] with its index.
+  Future<void> setStops(List<MapPoi> stops);
+
   /// Small markers on the turns of a route, for a screen that reads the
   /// route rather than rides it; an empty list takes them away. A tap on one
   /// reports through [onTurnTapped] with its index.
@@ -79,6 +89,14 @@ abstract class MapController {
   /// track on the map. A finished ride is drawn this way, a running recording
   /// through [setTrackLine], which has nothing to colour by yet.
   Future<void> setTrackSegments(List<TrackSegment> segments);
+
+  /// The wind along the planned route, drawn over the route line in the
+  /// colour of how it meets the rider; replaces what the last call drew.
+  /// Remembered across a style reload like the route lines.
+  Future<void> setRouteWind(List<WindSegment> segments);
+
+  /// Takes the wind off the route.
+  Future<void> clearRouteWind();
 
   /// User position puck. `null` hides it.
   ///
@@ -104,6 +122,27 @@ abstract class MapController {
   /// Toggle the CyclOSM raster overlay above the vector base map.
   Future<void> setCyclosmOverlay(bool visible);
 
+  /// Draws the offline cycle map from the GeoJSON file at [path], which the
+  /// cycle map worker wrote, or takes it away when [path] is null. The map
+  /// loads the file itself; after a style reload it loads the last one
+  /// again.
+  Future<void> setCycleMap(String? path);
+
+  /// Which parts of the cycle map are drawn: the rest of its layers are
+  /// hidden.
+  Future<void> setCycleMapParts(Set<CycleMapPart> parts);
+
+  /// The weather layers drawn: rain radar tiles and cloud images, under the
+  /// labels and everything Velorki draws; an empty list takes them away.
+  /// A layer already drawn with the same frame stays as it is; a new frame
+  /// is swapped in without the map going bare.
+  Future<void> setWeatherLayers(List<WeatherLayer> layers);
+
+  /// The wind arrows drawn, over the rain and the clouds and under the
+  /// labels and everything Velorki draws, credited while drawn; `null`
+  /// takes them away.
+  Future<void> setWindArrows(WindArrows? arrows);
+
   /// A pin for a searched place the rider has not decided about yet, with
   /// its name; `null` removes it.
   Future<void> setSearchPin(LatLng? position, {String? label});
@@ -122,7 +161,21 @@ abstract class MapController {
 
   /// A tap on a turn marker, with its index in the last [setTurnMarkers].
   set onTurnTapped(void Function(int index)? handler);
+
+  /// A tap on a stop, with its index in the last [setStops].
+  set onStopTapped(void Function(int index)? handler);
+
+  /// The owning screen's own camera idle handler: one slot, which the
+  /// screen sets and clears.
   set onCameraIdle(VoidCallback? handler);
+
+  /// Further camera idle listeners beside [onCameraIdle], for what draws on
+  /// a map without owning it (the stops). Called after [visibleBounds] has
+  /// caught up with the camera that came to rest.
+  void addCameraIdleListener(VoidCallback listener);
+
+  /// Removes a listener [addCameraIdleListener] added.
+  void removeCameraIdleListener(VoidCallback listener);
 
   /// Visible area, for offline downloads and search bias.
   BoundingBox? get visibleBounds;
@@ -151,6 +204,36 @@ class TrackSegment {
 
   @override
   String toString() => 'TrackSegment(${points.length} points, t: $t)';
+}
+
+/// How the wind meets the rider on a stretch of the route, as the map
+/// colours it.
+enum WindClassOnMap { head, cross, tail, calm }
+
+/// One stretch of the route with the same wind.
+@immutable
+class WindSegment {
+  /// Creates a segment.
+  const WindSegment({required this.points, required this.windClass});
+
+  /// The polyline, in riding order.
+  final List<LatLng> points;
+
+  /// How the wind meets the rider along it.
+  final WindClassOnMap windClass;
+
+  @override
+  bool operator ==(Object other) =>
+      other is WindSegment &&
+      other.windClass == windClass &&
+      listEquals(other.points, points);
+
+  @override
+  int get hashCode => Object.hash(windClass, Object.hashAll(points));
+
+  @override
+  String toString() =>
+      'WindSegment(${points.length} points, ${windClass.name})';
 }
 
 /// How a route line is drawn: the route, a variant beside it, a preview

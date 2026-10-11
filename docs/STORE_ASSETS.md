@@ -23,9 +23,11 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
    Max, created on the first run), once per language: the simulator's
    language and region are set, the status bar reads 9:41, and
    `app/integration_test/store/store_screenshots_test.dart` takes every screen
-   the slides use, in each theme: the plan, its variants, a loop, the AI card
+   the slides use, in each theme: the offline cycle map with stops and the
+   Layers sheet over it, the plan, its variants, a loop, the AI card
    with the loop it asked for, the paywall at the stores' prices (top and
-   bottom), a GPX import, a ride's charts, the library, a
+   bottom) and once as a subscriber sees it (`paywall-active`, no prices, for
+   the website), a GPX import, a ride's charts, the library, a
    route under a status bar with no signal (in the dark theme also in another
    accent), and a ride under way, once with the live card and once navigating
    with the figures bar. The AI card talks to the relay mocked in the test
@@ -35,7 +37,11 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
    in `demo_data.dart`: €34.99 a year with a 7-day free trial, €3.99 a month
    without one, priced in the language's format). Everything is on
    Madeira and computed on the device from the tile `app/tool/itest_mirror.sh`
-   serves. The demo ride is laid along a route the device plans, with a speed
+   serves, but the cycle map, which is in Chelsea, New York (Funchal has
+   too few bike lanes to show it): the script fetches `W75_N40.rd5` and its
+   `.gaz` from the tile mirror's current snapshot into
+   `VELORKI_STORE_TILES` (`~/.cache/velorki-tiles/store`, again only when
+   the snapshot changed) and serves them beside Madeira's. The demo ride is laid along a route the device plans, with a speed
    from the gradient and a heart rate from the effort; the ride under way is
    the same model, fed to the real recorder with its clock and a heart-rate
    sensor following the fixes, so about 20 km and an hour in take a minute.
@@ -78,14 +84,16 @@ Copy and order live in `app/store/`:
   features marked.
 - `slide_set.json`: the set that is uploaded, in order, and per slide its
   layout, the screen it shows and its style (plan, variants, navigation,
-  loops, ai, ride, offline-themes, import, lock-screen, watch); `brand` puts the app's icon and
+  loops, cyclemap, ai, ride, offline-themes, lock-screen, watch: ten, the
+  most a size takes; the `import` slide's copy is kept but not in the set); `brand` puts the app's icon and
   name above the eyebrow (slide 01 only). The preview's first caption card
   carries them too. Changing the mix is an edit
   there and `--skip-capture`.
 
-`--until plan` or `--until variants` captures only the screens up to that
-one (the test takes them in the order plan, variants, loop, ai, paywall,
-import, ride, library, offline, live) and keeps the rest of the last capture.
+`--until layers` or `--until variants` captures only the screens up to that
+one (the test takes them in the order cyclemap, layers, plan, variants,
+loop, ai, paywall, import, ride, library, offline, live) and keeps the rest
+of the last capture.
 
 Output, git-ignored, under `app/build/store_screenshots/`:
 
@@ -125,7 +133,11 @@ The same test on an Android emulator, for the screens the Play set uses.
 Start one first: a Pixel 6 profile (1080 × 2400) on a `google_apis` image,
 e.g. an AVD made with `avdmanager create avd -n Velorki_Shots_Android -d
 pixel_6 -k "system-images;android-35;google_apis;arm64-v8a"` and started with
-`emulator -avd Velorki_Shots_Android -gpu swangle_indirect`. The Play set is
+`emulator -avd Velorki_Shots_Android -gpu swangle_indirect -no-window`.
+Headless on purpose: macOS throttles an emulator whose window is hidden or
+covered (App Nap), and a loop search then takes minutes instead of seconds.
+Started from zsh with `&`, it also runs niced (`bg_nice`): start it from
+bash or with `setopt no_bg_nice`. The Play set is
 made on a Mac: on a GPU-less Linux runner every software renderer either
 draws the map without labels, icons and dashed lines (everything MapLibre
 takes from a texture atlas, cf. maplibre-native #3939) or takes the emulator
@@ -144,7 +156,7 @@ Screen or preview.
 
 `app/tool/store_slides.py --platform android` lays the slides out at
 1242 × 2208 (9:16), the phone frame taking the capture's shape. The set is
-`app/store/slide_set_android.json` (the first eight, no Lock Screen or watch); a
+`app/store/slide_set_android.json` (the first eight, no Lock Screen or watch: eight is Play's limit); a
 slide's `android` object in `slides_<lang>.json` overrides its copy there
 (the plan's subline names no phone). Beside the set it makes the 1024 × 500
 feature graphic (the brand line and `feature.headline` over the dark plan)
@@ -161,10 +173,9 @@ Output, git-ignored, under `app/build/store_screenshots/android/`:
 - `slides/set/<locale>/NN-<slide>.png` and `feature-graphic.png`, to upload
 - `slides/set/contact-<locale>.png` and `slides/set/icon-512.png`
 
-Uploading is by hand for now, in the Play Console under the store listing,
-per language: the set as phone screenshots in file order, the feature
-graphic and the icon. An upload from CI (fastlane `supply`) comes once the
-app has a Play account.
+By hand, in the Play Console under the store listing, per language: the set
+as phone screenshots in file order, the feature graphic and the icon. Or from
+CI, below.
 
 ## Preview video
 
@@ -287,3 +298,19 @@ API key) replaces that version's 6.9", 6.5" and Apple Watch screenshots in
 each language uploaded, the watch getting the four `store/` shots.
 `metadata` also uploads `app/fastlane/metadata/ios`. Nothing is submitted for
 review. The preview video is uploaded by hand, from the Mac's recording.
+
+With `android` and `upload` (from a `v*` tag or `main`, no `app_version`
+needed), the `android_upload` job also waits in the `release` environment,
+then `app/tool/store_stage_supply.sh` lays `store-assets-android` out per Play
+locale and `fastlane android store_listing` (supply, with the service account
+release.yml uploads the builds with, `PLAY_SERVICE_ACCOUNT_JSON`) replaces each
+uploaded language's phone screenshots, feature graphic and icon on the store
+listing; `metadata` also uploads the title and both descriptions of every
+language in `app/fastlane/metadata/android`. No build, track or release notes
+change (the Play release notes stay with the release). The set is the
+runner's, without map labels (see above): look at the artifact before
+approving.
+
+`assets_run_id` uploads the sets an earlier run captured instead of capturing
+again: `store-assets` for iOS, `store-assets-android` for Play, so that run
+must have made each set asked for.

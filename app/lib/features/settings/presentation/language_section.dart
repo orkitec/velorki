@@ -11,6 +11,10 @@ import '../data/language_controller.dart';
 const Map<String, String> _nativeNames = <String, String>{
   'en': 'English',
   'de': 'Deutsch',
+  'fr': 'Français',
+  'es': 'Español',
+  'it': 'Italiano',
+  'nl': 'Nederlands',
 };
 
 /// What to call [locale] in the picker: its own name for itself, so a rider

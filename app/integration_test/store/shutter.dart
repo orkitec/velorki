@@ -85,7 +85,7 @@ Future<void> _ask(WidgetTester tester, String name, List<String> lines) async {
     tester,
     () => ack.existsSync() && ack.readAsStringSync().trim() == token,
     describe: 'tool/store_shutter.py to take $name',
-    timeout: const Duration(seconds: 60),
+    timeout: const Duration(minutes: 3),
     onTimeout: () => 'is tool/store_shutter.py running?',
   );
 }

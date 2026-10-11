@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
@@ -25,8 +26,7 @@ double systemGestureZoneHeight(MediaQueryData media, TargetPlatform platform) {
 /// anything in it: a sheet the system's swipe up would otherwise fling
 /// open, the map it would pan. Such a touch reaches nothing in [child]
 /// unless what it lands on is wrapped in a [GestureZonePassThrough] (the
-/// rail where it reaches into the zone, the map's attribution chip), which
-/// then gets it as usual. Nothing is drawn, and touches above the zone are
+/// rail where it reaches into the zone), which then gets it as usual. Nothing is drawn, and touches above the zone are
 /// left alone.
 class GestureZoneGuard extends SingleChildRenderObjectWidget {
   /// Creates the guard.
@@ -89,3 +89,15 @@ class GestureZonePassThrough extends SingleChildRenderObjectWidget {
 }
 
 class _RenderGestureZonePassThrough extends RenderProxyBox {}
+
+/// A [MaterialApp.builder] that guards the system gesture zone of the whole
+/// app, the root navigator's modal sheets included: they are routes above
+/// the shell, outside the guard it wraps its own body in.
+Widget gestureZoneAppBuilder(BuildContext context, Widget? child) =>
+    GestureZoneGuard(
+      zone: systemGestureZoneHeight(
+        MediaQuery.of(context),
+        defaultTargetPlatform,
+      ),
+      child: child,
+    );

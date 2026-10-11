@@ -1,48 +1,54 @@
 ---
 title: Suche
-description: Orte, Straßen, Hausnummern und Dinge wie Trinkwasser oder Toiletten finden, auf dem Handy in heruntergeladenen Gebieten und überall sonst online.
+description: Orte, Straßen, Hausnummern und Dinge wie Trinkwasser oder Toiletten finden, auf dem Handy in heruntergeladenen Gebieten und online, wenn du es wählst.
 order: 4
 ---
 
-Das Suchfeld oben im Tab Planen findet Städte, Straßen, Hausnummern und Ziele wie Cafés, Trinkwasser und Fahrradläden. Wo du ein Gebiet heruntergeladen hast, antwortet es vom Handy, sofort und ohne Empfang; überall sonst fragt es einen Online-Geocoder.
+Das Suchfeld oben im Tab Planen findet Städte, Straßen, Hausnummern und Ziele wie Cafés, Trinkwasser und Fahrradläden. Über einem heruntergeladenen Gebiet antwortet es vom Handy, sofort und ohne Empfang; überall sonst wird nichts gesucht, bis du zwischen einem Online-Geocoder und den Gebieten, die du heruntergeladen hast, wählst.
 
 ## So suchst du
 
 1. Öffne den Tab **Planen** und tippe oben ins Feld mit dem Hinweis **Ort suchen**.
 2. Tippe mindestens drei Zeichen ein. Die Ergebnisse erscheinen während des Tippens in einer Karte unter dem Feld.
-3. Tippe auf ein Ergebnis.
+3. Tippe auf ein Ergebnis. Die Karte fährt zum Ort, setzt eine Nadel und öffnet seine Ortskarte.
 
-Was dann passiert, hängt von der Planung ab:
+Koordinaten, die du ins Feld tippst oder einfügst, `40.71747, -73.94840` oder `40,71747° N, 73,94840° W`, wie Karten-Apps sie kopieren, sind der Ort selbst: ein Ergebnis an dieser Stelle, nichts wird nachgeschlagen und nichts gesendet. Ein Ort aus einer anderen App öffnet sich genauso, siehe [Import und Export](./import-and-export#ein-ort-aus-einer-anderen-app).
 
-- **Noch nichts geplant**: Die Karte fährt zum Ort und setzt eine Nadel, und unter den Rad-Chips erscheinen zwei Schaltflächen, **Von meiner Position** und **Hier starten**.
-- **Eine Route wird schon geplant**: Der Ort wird direkt als nächster Wegpunkt angehängt.
+## Die Ortskarte
 
-Das **X** im Feld löscht den Text, die Nadel und die beiden Schaltflächen.
+Ein Suchergebnis, ein [Stopp auf der Karte](./stops-on-the-map) oder ein Ort aus einer anderen App öffnet eine Karte mit dem Namen des Orts, was er ist, seinem Ort, wie weit er von dir entfernt ist und, wenn es eine Route gibt, wie weit neben der Route. Nichts ändert sich, bis du eine Aktion wählst, und welche es gibt, hängt von der Planung ab:
+
+- **Noch nichts geplant**: **Route hierher** fährt von deinem Standort zum Ort; **Hier starten** macht ihn zum ersten Punkt der Route.
+- **Nur ein Start**: **Als Ziel** macht ihn zum Ende der Route.
+- **Eine Route**: **Als Stopp einfügen** setzt ihn dort in die Route, wo er unterwegs liegt; **Als Ziel** hängt ihn ans Ende.
+
+Im Tab Aufnahme informiert die Karte nur, ohne Aktionen.
+
+Darunter:
+
+- **Details** holt den Ort von OpenStreetMap, nur wenn du darauf tippst: Öffnungszeiten und ob gerade geöffnet ist, Website, Telefonnummer, Küche, Rollstuhlzugang, Außensitzplätze und seinen Wikipedia-Artikel, soweit sie eingetragen sind. Die Details bleiben eine Woche auf dem Handy, der Ort zeigt sie beim nächsten Mal also sofort. Bei Straßen und Orten ohne OpenStreetMap-ID fehlt die Schaltfläche.
+- **Öffnen in…** zeigt den Ort in Apple Karten, in Google Maps, wenn installiert (iPhone), in einer Karten-App deiner Wahl (Android) oder im Browser auf OpenStreetMap, oder reicht ihn an **Teilen…** weiter.
+
+Die Ortskarte zu schließen (das **X**, nach unten wischen oder auf die Karte tippen) ändert nichts und leert die Suche.
 
 ## Offline oder online
 
-Velorki entscheidet nach der **Kartenmitte**, nicht nach deiner Verbindung. Jede heruntergeladene Routing-Kachel bringt einen Suchindex ihres Gebiets mit, also:
+Velorki entscheidet nach der **Kartenmitte**, nicht nach deiner Verbindung. Jede heruntergeladene Routing-Kachel bringt einen Suchindex ihres Gebiets mit.
 
-- liegt der Index der Kachel unter der Kartenmitte auf dem Handy, wird die Anfrage auf dem Handy beantwortet;
-- liegt er nicht dort, geht die Anfrage online an Photon.
+- **Kartenmitte über einem heruntergeladenen Gebiet**: Die Anfrage wird auf dem Handy beantwortet. Die letzte Zeile der Ergebniskarte, **Online nach „…“ suchen**, sucht denselben Text online.
+- **Überall sonst** (Kartenmitte über einem nicht heruntergeladenen Gebiet, gar nichts heruntergeladen oder keine Kartenmitte): Es wird nichts gesucht und nichts verlässt das Handy, bis du **Online nach „…“ suchen** oder, wenn du Gebiete heruntergeladen hast, **In heruntergeladenen Gebieten suchen** wählst; das durchsucht jedes davon, das der Karte nächste zuerst. Deine Wahl gilt für die folgenden Tastendrücke, bis du die Suche leerst. Mit einer Kartenmitte zeigt die Liste außerdem einen Hinweis, **Dieses Gebiet ist nicht heruntergeladen**, eine Zeile mit dem Grund und die Schaltfläche **Herunterladen**, die den Offline-Bildschirm für das sichtbare Gebiet öffnet. Online-Ergebnisse stehen unter der Überschrift **Online-Ergebnisse**, und die letzte Zeile, **Offline-Ergebnisse anzeigen**, wechselt zu den heruntergeladenen Gebieten; Ergebnisse vom Handy enden mit **Online nach „…“ suchen**.
+- **Keine Online-Suche eingerichtet**: Die heruntergeladenen Gebiete antworten.
 
-Ganz unten in der Ergebniskarte steht genau eine Zeile, und welche es ist, verrät dir, woher die Ergebnisse kommen:
-
-| Zeile | Bedeutet | Ein Tipper darauf |
-|---|---|---|
-| **Online nach „…“ suchen** | du siehst Offline-Ergebnisse | sucht denselben Text online |
-| **Offline-Ergebnisse anzeigen** | du siehst Online-Ergebnisse | sucht denselben Text wieder auf dem Handy |
-| **Gebiet herunterladen, um offline zu suchen** | für dieses Gebiet liegt kein Index auf dem Handy | öffnet den Offline-Bildschirm für das sichtbare Gebiet |
-
-Diese Zeile bleibt beim Scrollen durch die Liste sichtbar, und sie steht auch unter einer Fehlermeldung, wo sie am meisten zählt.
+Der Hinweis bleibt beim Scrollen durch die Liste sichtbar, und ist die Suche fehlgeschlagen, steht er über der Fehlermeldung, wo er am meisten zählt.
 
 ## Was sie findet
 
 - **Orte**: Städte, Kleinstädte, Dörfer, Weiler, Stadtteile, Viertel, Ortslagen und Inseln.
 - **Straßen**, mit Hausnummern.
-- **Sonderziele**, jedes mit eigenem Symbol und eigener Beschriftung: Café, Trinkwasser, Toiletten, Fahrrad-Reparaturstation, Fahrradladen, Fahrradverleih, Fahrradparkplatz, E-Bike-Ladestation, Schutzhütte, Campingplatz, Hotel, Hostel, Berghütte, Supermarkt, Bäckerei, Apotheke, Picknickplatz, Bahnhof, Fähranleger, Flughafen, Aussichtspunkt, Gipfel, Pass, Park, Strand, Gewässer, Naturschutzgebiet, Sehenswürdigkeit, Museum, Historische Stätte, Gotteshaus, Krankenhaus, Universität, Sportstätte, Einkaufszentrum, Turm, Leuchtturm, Gebäude.
+- **Sonderziele**, jedes mit eigenem Symbol und eigener Beschriftung: Café, Restaurant, Imbiss, Eisdiele, Tankstelle, Luftpumpe, Trinkwasser, Toiletten, Fahrrad-Reparaturstation, Fahrradladen, Fahrradverleih, Fahrradparkplatz, E-Bike-Ladestation, Schutzhütte, Campingplatz, Hotel, Hostel, Berghütte, Supermarkt, Bäckerei, Apotheke, Picknickplatz, Bahnhof, Fähranleger, Flughafen, Aussichtspunkt, Gipfel, Pass, Park, Strand, Gewässer, Naturschutzgebiet, Sehenswürdigkeit, Museum, Historische Stätte, Gotteshaus, Krankenhaus, Universität, Sportstätte, Einkaufszentrum, Turm, Leuchtturm, Gebäude.
+- **Bekannte Orte in deiner Sprache**: „Parigi“ findet Paris, und eine berühmte Sehenswürdigkeit kommt vor ihren Namensvettern.
 
-Offline-Zeilen zeigen unter dem Namen die Art, die Entfernung, die Hausnummer und den Ort, in dieser Reihenfolge, soweit jeweils bekannt: "Trinkwasser · 350 m", "Straße · 400 · Manhattan". Ein Wasserhahn, eine Toilette, eine Schutzhütte oder ein Fahrradständer ohne eigenen Namen steht stattdessen unter seiner Art.
+Offline-Zeilen zeigen unter dem Namen die Art, die Entfernung und den Ort, soweit jeweils bekannt: "Trinkwasser · 350 m", "Straße · Manhattan". Ein Wasserhahn, eine Toilette, eine Schutzhütte oder ein Fahrradständer ohne eigenen Namen steht stattdessen unter seiner Art.
 
 ## Nach Art suchen
 
@@ -54,13 +60,13 @@ Eine Suche nach Art ignoriert die unten beschriebenen Gruppenschalter.
 
 ## Hausnummern
 
-Setz die Nummer an den Anfang oder ans Ende: "Hauptstraße 12", "400 W 42nd". Velorki nimmt die Nummer weg, sucht die Straße und antwortet an der Position der Nummer entlang dieser Straße.
+Tipp die Nummer dorthin, wo dein Land sie hinsetzt: "Hauptstraße 12", "400 W 42nd", "Via Roma 12/A", "Budapest, Fő utca 12". Velorki findet die Straße und antwortet an der Position der Nummer entlang dieser Straße; die Zeile ist die Adresse, wie du sie getippt hast, "400 West 42nd Street". Ein Ort vor der Straße mit Komma oder dahinter sagt, welche Straße gemeint ist. Eine Postleitzahl bleibt außen vor, und eine Nummer, die zum Namen einer Straße gehört, "Route 66", bleibt Teil des Namens.
 
-Kennt der Index genau diese Nummer, ist die Position exakt. Fällt die Nummer zwischen zwei bekannte, rechnet Velorki dazwischen und kennzeichnet die Zeile mit **≈ 400**, damit du die Schätzung erkennst. Eine Nummer mitten in der Anfrage gilt als Teil des Namens, ebenso eine Ordnungszahl wie "42nd".
+Fällt die Nummer zwischen zwei, die der Index kennt, schätzt Velorki ihre Position, und die Zeile sagt **≈ 400**, damit du siehst, dass es geraten ist.
 
-## Tippfehler
+## Tippfehler, Kurzformen und andere Schriften
 
-Findet eine Anfrage überhaupt nichts, nimmt Velorki die Wörter, die es nicht kennt, sucht im Index die wahrscheinlichsten Wörter, die ein oder zwei Buchstaben entfernt liegen, und sucht erneut. Die Karte sagt dann **Ergebnisse für „…“** über der Liste, mit dem, wonach tatsächlich gesucht wurde.
+Die Offline-Suche verzeiht ein oder zwei falsche Buchstaben, ein zusammen oder getrennt geschriebenes Wort und Kurzformen wie "St" oder "Str.". Namen in Kyrillisch oder Griechisch lassen sich in lateinischen Buchstaben tippen, "aleksandar nevski" oder "Nafplio". Antwortet nichts gut, probiert Velorki stattdessen die wahrscheinlichsten Wörter aus dem Index, und die Karte sagt **Ergebnisse für „…“** über der Liste, mit dem, wonach tatsächlich gesucht wurde.
 
 ## Die Gruppen sortieren
 
@@ -82,6 +88,7 @@ Es gibt keine Schaltfläche zum Speichern; die Änderungen greifen beim nächste
 
 ## Weiterlesen
 
+- [Stopps auf der Karte](./stops-on-the-map)
 - [Offline-Karten und Routing](./offline-maps-and-routing)
 - [Route planen](./planning-a-route)
 - [Einstellungen und Darstellung](./settings-and-appearance)

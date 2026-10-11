@@ -68,6 +68,7 @@ class AssistantProblem {
   const AssistantProblem(
     this.failure, {
     this.message,
+    this.relayCode,
     this.name,
     this.notes,
     this.retryAfterS,
@@ -76,8 +77,12 @@ class AssistantProblem {
   /// What kind of problem it is.
   final AssistantFailure failure;
 
-  /// The relay's own words, when it said anything.
+  /// The relay's own words, or the error, in English for the log.
   final String? message;
+
+  /// The relay's error code, when the relay answered with one; it is what
+  /// the sheet words.
+  final String? relayCode;
 
   /// The place name that could not be found.
   final String? name;
@@ -93,12 +98,14 @@ class AssistantProblem {
       other is AssistantProblem &&
       other.failure == failure &&
       other.message == message &&
+      other.relayCode == relayCode &&
       other.name == name &&
       other.notes == notes &&
       other.retryAfterS == retryAfterS;
 
   @override
-  int get hashCode => Object.hash(failure, message, name, notes, retryAfterS);
+  int get hashCode =>
+      Object.hash(failure, message, relayCode, name, notes, retryAfterS);
 
   @override
   String toString() => 'AssistantProblem(${failure.name}, $message)';

@@ -1,0 +1,54 @@
+Velorki planifica rutas en bici, crea rutas circulares y graba tus salidas. Su
+cálculo de rutas está pensado para la bici y funciona en tu teléfono, y toda la
+app es de código abierto.
+
+PLANIFICAR
+• Toca puntos de paso en el mapa y obtén una ruta para tu bici: cicloturismo,
+  carretera, gravel o bici de montaña.
+• Alternativas para cada ruta, un perfil de altitud y un desglose de las
+  superficies por las que vas a rodar.
+• Rutas circulares: di cuánto quieres pedalear y, si quieres, un lugar por el
+  que pasar, y Velorki te propone recorridos que vuelven al punto de partida.
+• Busca lugares, guarda rutas en tu biblioteca y descarga regiones del mapa
+  para usarlas sin conexión.
+
+GRABACIÓN
+• Graba con la pantalla apagada y sigue grabando aunque cierres la app.
+• Distancia, tiempo, velocidad y desnivel mientras ruedas, con pausa automática
+  y una notificación que muestra la salida en curso.
+• Sigue una ruta planificada y después revisa y edita la salida.
+
+ARCHIVOS
+• Abre archivos GPX y FIT desde tu app de archivos, el correo, un navegador o
+  el menú de compartir.
+• Exporta rutas y salidas como GPX o FIT y pásalas a Komoot, Garmin Connect,
+  Strava o cualquier otra app que lea esos formatos.
+
+GRATIS, Y VELORKI PLUS
+Todo lo que funciona en el teléfono es gratis: planificar, rutas circulares,
+grabación, la biblioteca, las regiones de mapa sin conexión y la importación y
+exportación de GPX y FIT.
+
+Velorki Plus es una suscripción para las partes que necesitan un servidor o una
+cuenta en otro servicio:
+• Strava: sube una salida grabada e importa tus rutas de Strava.
+• Ride with GPS: rutas y salidas, en ambos sentidos.
+• El asistente: describe en una frase la salida que quieres y recibe una ruta.
+• Enlaces para compartir rutas y salidas.
+
+Velorki Plus se ofrece con una prueba gratuita en el plan anual y se renueva
+hasta que lo canceles en Google Play. Condiciones: https://velorki.com/es/terms
+
+PRIVACIDAD
+No hay cuenta ni registro. Las rutas, las salidas y los ajustes se quedan en tu
+teléfono. Nada va a Strava ni a Ride with GPS hasta que conectes la cuenta y lo
+pidas. El asistente te pide consentimiento antes de que ningún texto salga del
+dispositivo, y la posición que envía se redondea a aproximadamente un
+kilómetro.
+Política de privacidad: https://velorki.com/es/privacy
+
+Datos del mapa © colaboradores de OpenStreetMap. Rutas con BRouter, teselas
+del mapa de OpenFreeMap, búsqueda de lugares con Photon, capa ciclista de
+CyclOSM.
+
+Código fuente: https://github.com/orkitec/velorki

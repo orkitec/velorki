@@ -187,8 +187,9 @@ abstract class PlannerState with _$PlannerState {
     /// Previous edits, newest last.
     @Default(<PlannerEdit>[]) List<PlannerEdit> undoStack,
 
-    /// The last routing failure, in the routing server's own words.
-    String? error,
+    /// The last routing failure: a `RoutingException`, [noRoutingBackendError]
+    /// or whatever else the router threw. The screen words it.
+    Object? error,
 
     /// Set while [alternatives] is being fetched.
     @Default(false) bool loadingAlternatives,

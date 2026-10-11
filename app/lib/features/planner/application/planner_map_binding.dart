@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show ValueChanged;
+import 'package:flutter/foundation.dart' show ValueChanged, listEquals;
 import 'package:flutter/painting.dart' show EdgeInsets;
 
 import 'dart:async';
@@ -107,6 +107,27 @@ class PlannerMapBinding {
   /// Read at every [sync].
   RoutePoi? Function()? shownPlace;
 
+  /// The wind to draw on the chosen route; empty for none. Read at every
+  /// [sync] and [syncWind].
+  List<WindSegment> Function()? routeWind;
+
+  /// The wind on the map now, so an unchanged wind is not written again.
+  List<WindSegment> _windDrawn = const <WindSegment>[];
+
+  /// Draws [routeWind] on the map, or takes the wind off when it has none.
+  /// A detached binding does nothing.
+  Future<void> syncWind() async {
+    if (!_attached) return;
+    final wind = routeWind?.call() ?? const <WindSegment>[];
+    if (listEquals(wind, _windDrawn)) return;
+    _windDrawn = wind;
+    if (wind.isEmpty) {
+      await map.clearRouteWind();
+    } else {
+      await map.setRouteWind(wind);
+    }
+  }
+
   /// How many of the markers drawn are the plan's own places.
   int _poiCount = 0;
 
@@ -144,9 +165,12 @@ class PlannerMapBinding {
   Future<void> clear() async {
     final ids = List<String>.of(_lineIds);
     _lineIds.clear();
+    final wind = _windDrawn.isNotEmpty;
+    _windDrawn = const <WindSegment>[];
     await Future.wait(<Future<void>>[
       map.setWaypoints(const <MapWaypoint>[]),
       map.setPois(const <MapPoi>[]),
+      if (wind) map.clearRouteWind(),
       for (final id in ids) map.removeRouteLine(id),
     ]);
   }
@@ -253,6 +277,8 @@ class PlannerMapBinding {
     _lineIds
       ..clear()
       ..addAll(wanted);
+    await syncWind();
+    if (gone()) return;
 
     // Only a plan that went from nothing to a whole route in one step (a
     // saved route being loaded) moves the camera. A binding that is new

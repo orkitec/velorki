@@ -2,7 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show EdgeInsets, Offset;
+import 'package:velorki/features/map/domain/cycle_map.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
+import 'package:velorki/features/map/domain/weather_map.dart';
+import 'package:velorki/features/map/domain/wind_field.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -111,6 +114,29 @@ class TestMapController implements MapController {
   @override
   VoidCallback? onCameraIdle;
 
+  /// The stops last pushed. Kept out of [calls]: the planner tests count
+  /// what the plan draws, and the stops are not the plan's.
+  List<MapPoi> stops = const <MapPoi>[];
+
+  @override
+  void Function(int index)? onStopTapped;
+
+  /// The listeners [addCameraIdleListener] added.
+  final List<VoidCallback> cameraIdleListeners = <VoidCallback>[];
+
+  @override
+  void addCameraIdleListener(VoidCallback listener) =>
+      cameraIdleListeners.add(listener);
+
+  @override
+  void removeCameraIdleListener(VoidCallback listener) =>
+      cameraIdleListeners.remove(listener);
+
+  @override
+  Future<void> setStops(List<MapPoi> stops) async {
+    this.stops = stops;
+  }
+
   @override
   Future<void> moveTo(
     LatLng center, {
@@ -202,6 +228,16 @@ class TestMapController implements MapController {
   }
 
   @override
+  Future<void> setRouteWind(List<WindSegment> segments) async {
+    calls.add(MapCall('setRouteWind', [segments]));
+  }
+
+  @override
+  Future<void> clearRouteWind() async {
+    calls.add(const MapCall('clearRouteWind', []));
+  }
+
+  @override
   Future<void> setPosition(
     LatLng? position, {
     double? accuracyM,
@@ -224,14 +260,38 @@ class TestMapController implements MapController {
   /// The searched place shown, if any.
   LatLng? searchPin;
 
+  /// The label of [searchPin], if any.
+  String? searchPinLabel;
+
   @override
   Future<void> setSearchPin(LatLng? position, {String? label}) async {
     searchPin = position;
+    searchPinLabel = position == null ? null : label;
   }
 
   @override
   Future<void> setCyclosmOverlay(bool visible) async {
     calls.add(MapCall('setCyclosmOverlay', [visible]));
+  }
+
+  @override
+  Future<void> setCycleMap(String? path) async {
+    calls.add(MapCall('setCycleMap', [path]));
+  }
+
+  @override
+  Future<void> setCycleMapParts(Set<CycleMapPart> parts) async {
+    calls.add(MapCall('setCycleMapParts', [parts]));
+  }
+
+  @override
+  Future<void> setWeatherLayers(List<WeatherLayer> layers) async {
+    calls.add(MapCall('setWeatherLayers', [layers]));
+  }
+
+  @override
+  Future<void> setWindArrows(WindArrows? arrows) async {
+    calls.add(MapCall('setWindArrows', [arrows]));
   }
 }
 

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/map/data/marker_glyph.dart';
 import 'package:velorki/features/map/data/marker_layers.dart';
@@ -93,15 +94,30 @@ void main() {
       '#444444',
       '#123456',
     ]);
-    // The glyph is there in both states, only smaller in one of them.
+    // The glyph is there in both states, only smaller in one of them: a
+    // picture of its own at each size, picked by name, never scaled.
     final glyph = markers.glyph().toJson();
-    expect(glyph['icon-image'], <Object>['get', 'icon']);
-    expect(glyph['icon-size'], <Object>[
+    expect(glyph['icon-image'], <Object>[
       'case',
-      chosen,
-      1.0,
-      markerGlyphUnselectedScale,
+      <Object>['has', 'icon'],
+      <Object>[
+        'case',
+        chosen,
+        <Object>['get', 'icon'],
+        <Object>[
+          'concat',
+          <Object>['get', 'icon'],
+          markerGlyphUnselectedSuffix,
+        ],
+      ],
+      '',
     ]);
+    expect(glyph.containsKey('icon-size'), isFalse);
+    expect(
+      '${markerGlyphName(Icons.water_drop_outlined)}'
+      '$markerGlyphUnselectedSuffix',
+      markerGlyphUnselectedName(Icons.water_drop_outlined),
+    );
     expect(markers.name(field: 'name').toJson()['text-size'], <Object>[
       'case',
       chosen,
@@ -128,5 +144,25 @@ void main() {
     expect(markers.glyph().toJson()['icon-opacity'], faded);
     expect(markers.number().toJson()['text-opacity'], faded);
     expect(markers.name(field: 'label').toJson()['text-opacity'], faded);
+  });
+
+  test('no marker picture is scaled by the style: each size has a picture '
+      'of its own, which MapLibre draws pixel for pixel', () {
+    for (final layer in <Map<String, dynamic>>[
+      markers.glyph().toJson(),
+      markers.stop().toJson(),
+      markers.clusterBubble().toJson(),
+    ]) {
+      expect(layer.containsKey('icon-size'), isFalse);
+    }
+    expect(markers.clusterBubble().toJson()['icon-image'], <Object>[
+      'step',
+      <Object>['get', 'point_count'],
+      'velorki-stop-cluster-14',
+      10,
+      'velorki-stop-cluster-17',
+      50,
+      'velorki-stop-cluster-20',
+    ]);
   });
 }

@@ -9,6 +9,7 @@ import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
+import '../../shared/presentation/error_text.dart';
 import '../data/ride_repository.dart';
 import '../domain/ride.dart';
 
@@ -33,7 +34,10 @@ class RidesList extends ConsumerWidget {
       error: (error, _) => SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
-          child: Text(error.toString(), style: theme.textTheme.bodyMedium),
+          child: Text(
+            errorText(AppLocalizations.of(context), error),
+            style: theme.textTheme.bodyMedium,
+          ),
         ),
       ),
       data: (items) {

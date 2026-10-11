@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -9,9 +10,12 @@ import '../../planner/presentation/planner_map_host.dart';
 import '../../shared/application/active_tab.dart';
 import '../../shared/application/nav_bar_docking.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
+import '../application/cycle_map_binding.dart';
 import '../application/locate_on_open.dart';
+import '../application/weather_map_binding.dart';
 import '../data/map_preferences.dart';
 import '../domain/map_controller.dart';
+import 'map_attribution.dart' show shellAttributionFloor;
 import 'map_chrome.dart';
 import 'puck_ownership.dart';
 
@@ -66,10 +70,30 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
 
   late final SharedMapController _shared;
 
+  /// The offline cycle map on this map; its hint is the shell's.
+  late final CycleMapBinding _cycleMap;
+
+  /// The weather layers on this map; their status is the shell's.
+  late final WeatherMapBinding _weather;
+
   @override
   void initState() {
     super.initState();
     _shared = ref.read(sharedMapControllerProvider.notifier);
+    _cycleMap = CycleMapBinding(ref);
+    final hint = ref.read(sharedCycleMapMissingAreaProvider.notifier);
+    _cycleMap.driver.missingArea.addListener(
+      () => hint.set(_cycleMap.driver.missingArea.value),
+    );
+    _weather = WeatherMapBinding(ref);
+    final weatherStatus = ref.read(sharedWeatherMapStatusProvider.notifier);
+    // Out of the build that may have handed the map over: a status may
+    // not be written to a provider there.
+    _weather.driver.status.addListener(
+      () => scheduleMicrotask(() {
+        if (mounted) weatherStatus.set(_weather.driver.status.value);
+      }),
+    );
     _locate = ref.read(locateOnOpenProvider);
     WidgetsBinding.instance.addObserver(this);
     // A cold start: the remembered view is on screen from the first frame,
@@ -102,6 +126,8 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
   void _handleMapReady(MapController controller) {
     _map = controller;
     unawaited(controller.setCyclosmOverlay(ref.read(cyclosmOverlayProvider)));
+    _cycleMap.attach(controller);
+    _weather.attach(controller);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && identical(_map, controller)) _shared.set(controller);
     });
@@ -110,6 +136,8 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _cycleMap.dispose();
+    _weather.dispose();
     // Deferred: the tree is locked while a widget goes.
     final shared = _shared;
     scheduleMicrotask(() => shared.set(null));
@@ -121,6 +149,8 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
     ref.listen<bool>(cyclosmOverlayProvider, (_, next) {
       unawaited(_map?.setCyclosmOverlay(next));
     });
+    _cycleMap.listen();
+    _weather.listen();
     final builder = ref.watch(mapViewBuilderProvider);
     if (!identical(builder, _builder)) {
       _builder = builder;
@@ -142,6 +172,14 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
       layout,
       docked: docked,
     );
+    // Read for the dependency: this map's own media has the bottom inset
+    // taken off, so the zone is measured on the screen's.
+    MediaQuery.systemGestureInsetsOf(context);
+    final attributionFloor = shellAttributionFloor(
+      MediaQueryData.fromView(View.of(context)),
+      layout,
+      defaultTargetPlatform,
+    );
     final attributionInsets = !layout.sideRail
         ? EdgeInsets.zero
         : layout.side == RailSide.left
@@ -150,6 +188,7 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
     return MapChromeInsets(
       hoistedControls: true,
       attributionInsets: attributionInsets,
+      attributionFloor: attributionFloor,
       child: PuckOwnership(
         owned: ref.watch(recorderOwnsPuckProvider),
         // Any touch on the map itself — a pan, a pinch, a tap — is the

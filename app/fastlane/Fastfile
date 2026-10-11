@@ -56,8 +56,8 @@ platform :android do
       aab: AAB_PATH,
       json_key: ENV["PLAY_SERVICE_ACCOUNT_JSON_PATH"],
       release_status: "completed",
-      # The listing is still written by hand in the Play Console; turn these
-      # off once fastlane/metadata/android is the source of truth.
+      # The listing is the store_listing lane's (store-assets.yml), not a
+      # release's.
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true,
@@ -85,6 +85,36 @@ platform :android do
     latest = codes.map(&:to_i).max || 0
     UI.success("Highest version code on Play: #{latest}")
     File.write(ENV["LATEST_VERSION_CODE_FILE"], latest.to_s)
+  end
+
+  # Run by .github/workflows/store-assets.yml, with the texts and screenshots
+  # laid out by tool/store_stage_supply.sh in PLAY_METADATA_PATH. Only the
+  # listing changes: no build, no release notes, no track. supply still reads
+  # one release (it would put release notes on it), so it is pointed at the
+  # newest build on the internal track, which every release reaches.
+  desc "Upload the Play screenshots, feature graphic and icon (and with UPLOAD_METADATA=true the texts) to the store listing"
+  lane :store_listing do
+    %w[PLAY_SERVICE_ACCOUNT_JSON_PATH PLAY_METADATA_PATH].each do |name|
+      UI.user_error!("Set #{name}") if ENV[name].to_s.empty?
+    end
+
+    latest = google_play_track_version_codes(track: "internal").map(&:to_i).max
+    UI.user_error!("No build on the internal track yet; release one first") unless latest
+
+    upload_to_play_store(
+      json_key: ENV["PLAY_SERVICE_ACCOUNT_JSON_PATH"],
+      metadata_path: ENV["PLAY_METADATA_PATH"],
+      track: "internal",
+      version_code: latest,
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_changelogs: true,
+      skip_upload_metadata: ENV["UPLOAD_METADATA"] != "true",
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
+      # Unchanged images stay; the rest are replaced, in file order.
+      sync_image_upload: true,
+    )
   end
 
   desc "Promote the newest internal build to the closed test track"

@@ -1,18 +1,26 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/theme.dart';
+import 'package:velorki/features/shared/presentation/gesture_zone_guard.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 
 /// The language the widget suite runs in.
 ///
-/// `flutter test --dart-define=VELORKI_TEST_LOCALE=de` runs every
-/// harness-built screen in German, which is how a translation that no longer
-/// fits its layout fails CI.
-const String testLocaleName = String.fromEnvironment(
-  'VELORKI_TEST_LOCALE',
-  defaultValue: 'en',
-);
+/// `flutter test --dart-define=VELORKI_TEST_LOCALE=de`, or
+/// `VELORKI_TEST_LOCALE=de flutter test`, runs every harness-built screen in
+/// German, which is how a translation that no longer fits its layout fails
+/// CI. The dart-define wins when both are given.
+final String testLocaleName = _testLocaleName();
+
+String _testLocaleName() {
+  const defined = String.fromEnvironment('VELORKI_TEST_LOCALE');
+  if (defined.isNotEmpty) return defined;
+  final env = Platform.environment['VELORKI_TEST_LOCALE'] ?? '';
+  return env.isNotEmpty ? env : 'en';
+}
 
 /// [testLocaleName] as a [Locale], handed to every app this file builds.
 ///
@@ -29,22 +37,20 @@ Locale _localeNamed(String name) {
       : Locale(parts.first, second);
 }
 
-/// Whether the suite runs in English, the locale the string expectations are
-/// written in.
-bool get isEnglishTestLocale => testLocaleName == 'en';
-
 /// The strings of the locale under test, for expectations that would
 /// otherwise hard-code English.
 final AppLocalizations l10n = lookupAppLocalizations(testLocale);
 
-/// A `skip:` value that runs the test in English and skips it in every other
-/// locale, naming [why].
-///
-/// Only for tests that really are about English — everything else should look
-/// its strings up through [l10n].
-Object? englishOnly(String why) => isEnglishTestLocale
-    ? false
-    : 'English-only ($why); VELORKI_TEST_LOCALE=$testLocaleName';
+/// The app's own builder (`VelorkiApp`) without the performance box: one
+/// backdrop group for the glass over the map, and the gesture zone's guard.
+Widget _appBuilder(BuildContext context, Widget? child) =>
+    BackdropGroup(child: gestureZoneAppBuilder(context, child));
+
+/// Whether the [BackdropFilter] found by [blur] shares the app's backdrop
+/// group (`BackdropFilter.grouped`) rather than reading the backdrop on
+/// its own.
+bool isGroupedBlur(WidgetTester tester, Finder blur) =>
+    tester.renderObject<RenderBackdropFilter>(blur).backdropKey != null;
 
 /// A localised [MaterialApp] showing [home], in the locale under test.
 MaterialApp testApp({required Widget home, ThemeData? theme, Locale? locale}) =>
@@ -53,6 +59,7 @@ MaterialApp testApp({required Widget home, ThemeData? theme, Locale? locale}) =>
       locale: locale ?? testLocale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: _appBuilder,
       home: home,
     );
 
@@ -67,6 +74,7 @@ MaterialApp testRouterApp({
   locale: locale ?? testLocale,
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
+  builder: _appBuilder,
   routerConfig: routerConfig,
 );
 
@@ -108,4 +116,26 @@ void expectNoClippedText(WidgetTester tester) {
 Future<void> tapBack(WidgetTester tester) async {
   await tester.tap(find.byType(BackButton).first);
   await tester.pumpAndSettle();
+}
+
+/// Picks the online search the result list offers for [text] once the field
+/// has been typed into: over an area that is not downloaded the search asks
+/// before anything leaves the phone.
+Future<void> pickOnlineSearch(WidgetTester tester, String text) async {
+  await tester.tap(find.text(l10n.searchOnlineFor(text)));
+  await tester.pumpAndSettle();
+}
+
+/// Types [text] into [field] (the first text field unless given), waits out
+/// the debounce and picks the online search, as a rider looking at an area
+/// that is not downloaded does.
+Future<void> searchOnlineFor(
+  WidgetTester tester,
+  String text, {
+  Finder? field,
+}) async {
+  await tester.enterText(field ?? find.byType(TextField).first, text);
+  await tester.pump(const Duration(milliseconds: 400));
+  await tester.pumpAndSettle();
+  await pickOnlineSearch(tester, text);
 }
