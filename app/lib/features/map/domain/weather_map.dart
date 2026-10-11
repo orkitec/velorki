@@ -127,6 +127,7 @@ class WeatherMapSource {
     this.palette = RainPalette.dwd,
     this.reach,
     this.extent,
+    this.timesUrl,
   });
 
   /// Stable name, which the mirror's override refers to.
@@ -155,6 +156,14 @@ class WeatherMapSource {
   /// by its fixed [reach], which stands in only where the frame cannot be
   /// had. `null` for none.
   final List<LatLng>? extent;
+
+  /// Where the service tells the moments it has frames of: a WMS
+  /// GetCapabilities request for the source's layer alone, whose time
+  /// dimension names its newest frame ([parseWmsNewestTime]). The frames
+  /// asked for are never newer than that ([frameAt]'s `newest`), since the
+  /// service answers a moment past it with an error. `null` where the
+  /// service is not asked: the frames follow the clock alone.
+  final String? timesUrl;
 
   /// [reach], or the [coverage] boxes as rings.
   List<List<LatLng>> get reachRings =>
@@ -234,7 +243,16 @@ class WeatherMapSource {
   /// A source that names no moment shows its latest image, now only. A
   /// satellite shows the present only, and a model only the moments ahead
   /// ([modelFrameTime]).
-  WeatherFrame? frameAt(DateTime now, {int offsetMinutes = 0}) {
+  ///
+  /// [newest] is the newest frame the service has, where it said
+  /// ([timesUrl]): no frame is asked for past it, moved back onto the
+  /// source's grid (for the Meteosat images the full hour). Without it the
+  /// clock alone decides.
+  WeatherFrame? frameAt(
+    DateTime now, {
+    int offsetMinutes = 0,
+    DateTime? newest,
+  }) {
     if (kind == WeatherKind.wind) {
       // The model's hourly frames: the hour the step falls in.
       if (offsetMinutes < 0 || offsetMinutes > forecastMinutes) return null;
@@ -257,13 +275,14 @@ class WeatherMapSource {
     if (timeFormat == WeatherTimeFormat.none) {
       return offsetMinutes == 0 ? const WeatherFrame(null) : null;
     }
-    return WeatherFrame(
-      latestFrameTime(
-        now,
-        stepMinutes: stepMinutes,
-        delayMinutes: delayMinutes,
-      ).add(Duration(minutes: offsetMinutes)),
-    );
+    final time = latestFrameTime(
+      now,
+      stepMinutes: stepMinutes,
+      delayMinutes: delayMinutes,
+    ).add(Duration(minutes: offsetMinutes));
+    if (newest == null) return WeatherFrame(time);
+    final cap = floorToStep(newest, stepMinutes);
+    return WeatherFrame(time.isAfter(cap) ? cap : time);
   }
 
   /// A model's frame for the moment [offsetMinutes] from [now]: the hour
@@ -464,6 +483,7 @@ class WeatherMapSource {
     bool? enabled,
     RainRole? role,
     RainPalette? palette,
+    String? timesUrl,
   }) => WeatherMapSource(
     id: id,
     kind: kind ?? this.kind,
@@ -486,6 +506,7 @@ class WeatherMapSource {
     palette: palette ?? this.palette,
     reach: reach,
     extent: extent,
+    timesUrl: timesUrl ?? this.timesUrl,
   );
 
   @override
@@ -511,7 +532,8 @@ class WeatherMapSource {
       other.role == role &&
       other.palette == palette &&
       identical(other.reach, reach) &&
-      identical(other.extent, extent);
+      identical(other.extent, extent) &&
+      other.timesUrl == timesUrl;
 
   @override
   int get hashCode => Object.hash(
@@ -534,7 +556,7 @@ class WeatherMapSource {
     enabled,
     role,
     palette,
-    Object.hash(identityHashCode(reach), identityHashCode(extent)),
+    Object.hash(identityHashCode(reach), identityHashCode(extent), timesUrl),
   );
 
   @override
@@ -553,6 +575,52 @@ DateTime latestFrameTime(
       now.toUtc().millisecondsSinceEpoch -
       delayMinutes * Duration.millisecondsPerMinute;
   return DateTime.fromMillisecondsSinceEpoch(ms - ms % step, isUtc: true);
+}
+
+/// [time] moved back onto a [stepMinutes] grid, in UTC.
+DateTime floorToStep(DateTime time, int stepMinutes) {
+  final step = math.max(1, stepMinutes) * Duration.millisecondsPerMinute;
+  final ms = time.toUtc().millisecondsSinceEpoch;
+  return DateTime.fromMillisecondsSinceEpoch(ms - ms % step, isUtc: true);
+}
+
+/// A time dimension in a WMS capabilities document: `Dimension` (1.3.0) or
+/// `Extent` (1.1.1), its attributes and, unless it closes itself, its text.
+final RegExp _wmsDimension = RegExp(
+  r'<(?:[\w.-]+:)?(?:Dimension|Extent)\b([^>]*?)(/?)>([^<]*)',
+);
+
+final RegExp _wmsTimeName = RegExp(r'''\bname\s*=\s*["']time["']''');
+
+final RegExp _wmsDefault = RegExp(r'''\bdefault\s*=\s*["']([^"']*)["']''');
+
+/// The newest moment a WMS capabilities document ([xml]) names in its time
+/// dimensions, UTC: the latest of the values listed (`a,b,c`) and of the
+/// ends of the intervals (`start/end/period`), else the dimension's
+/// `default`; `null` where there is none that reads (an error report, a
+/// layer without time, `current`).
+DateTime? parseWmsNewestTime(String xml) {
+  DateTime? newest;
+  DateTime? fallback;
+  for (final match in _wmsDimension.allMatches(xml)) {
+    final attributes = match.group(1)!;
+    if (!_wmsTimeName.hasMatch(attributes)) continue;
+    final text = match.group(2)!.isEmpty ? match.group(3)! : '';
+    for (final item in text.split(',')) {
+      final parts = item.trim().split('/');
+      final value = parts.length >= 2 ? parts[1] : parts[0];
+      final time = DateTime.tryParse(value.trim())?.toUtc();
+      if (time != null && (newest == null || time.isAfter(newest))) {
+        newest = time;
+      }
+    }
+    final stated = _wmsDefault.firstMatch(attributes)?.group(1);
+    final time = stated == null ? null : DateTime.tryParse(stated.trim());
+    if (time != null && (fallback == null || time.isAfter(fallback))) {
+      fallback = time.toUtc();
+    }
+  }
+  return newest ?? fallback;
 }
 
 /// [time] as the services want it: `YYYY-MM-DDTHH:MM:00.000Z`.
@@ -1153,10 +1221,14 @@ final WeatherMapSource noaaRadar = WeatherMapSource(
 /// Every SAF product is Core data under the EUMETSAT Data Policy, CC BY 4.0
 /// at any latency, so unlike the Meteosat images ([eumetsatClouds]) it is
 /// taken every ten minutes, as new as it comes ([enforceWeatherLicences]
-/// leaves it so). Its newest frame lags some 20 minutes (a 25-minute delay
-/// on its 10-minute grid); the service answers a moment it has no frame for
-/// with the nearest one. The data reach ±70° from the sub-satellite point;
-/// the box keeps to where the view is not too slanted.
+/// leaves it so). Its newest frame lags 20 minutes to an hour, and the
+/// service answers a moment past it with an XML error, not the nearest
+/// frame: so the newest one is read off the layer's capabilities
+/// ([WeatherMapSource.timesUrl]) and never asked past; until that is known,
+/// a 25-minute delay on its 10-minute grid. Where it has no frame of "Now"
+/// (it failed, or its newest is too old), ICON-EU's hour stands in
+/// ([rainStandIn]). The data reach ±70° from the sub-satellite point; the
+/// box keeps to where the view is not too slanted.
 final WeatherMapSource hsafRain = WeatherMapSource(
   id: 'rain_hsaf',
   kind: WeatherKind.radar,
@@ -1172,7 +1244,14 @@ final WeatherMapSource hsafRain = WeatherMapSource(
   // The geostationary infrared is some 3 km a pixel over Europe.
   nativeMetresPerPixel: 3000,
   attribution: 'Satellite rain: Contains modified EUMETSAT H SAF data {year}',
+  timesUrl: _eumetsatTimesUrl('mtg_fd', 'h40b'),
 );
+
+/// The capabilities of the one EUMETSAT layer [workspace]:[layer], about
+/// 6 KB, whose time dimension names its newest frame.
+String _eumetsatTimesUrl(String workspace, String layer) =>
+    'https://view.eumetsat.int/geoserver/$workspace/$layer/ows'
+    '?service=WMS&version=1.3.0&request=GetCapabilities';
 
 const String _hsafUrl =
     'https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0'
@@ -1366,6 +1445,7 @@ final WeatherMapSource eumetsatClouds = WeatherMapSource(
   // kilometre.
   nativeMetresPerPixel: 1000,
   attribution: 'Clouds: Contains modified EUMETSAT Meteosat data {year}',
+  timesUrl: _eumetsatTimesUrl('mtg_fd', 'ir105_hrfi'),
 );
 
 /// Where a cloud image fades into a neighbour's: over the band of
@@ -1578,6 +1658,8 @@ WeatherMapSource? _parseOver(WeatherMapSource base, Map<Object?, Object?> row) {
   if (url != null && !url.startsWith('https://')) return null;
   final imageUrl = _str(row['imageUrl']);
   if (imageUrl != null && !imageUrl.startsWith('https://')) return null;
+  final timesUrl = _str(row['timesUrl']);
+  if (timesUrl != null && !timesUrl.startsWith('https://')) return null;
   return base.copyWith(
     kind: _kind(row['kind']),
     urlTemplate: url,
@@ -1597,6 +1679,7 @@ WeatherMapSource? _parseOver(WeatherMapSource base, Map<Object?, Object?> row) {
     enabled: row['enabled'] is bool ? row['enabled']! as bool : null,
     role: _role(row['role']),
     palette: _palette(row['palette']),
+    timesUrl: timesUrl,
   );
 }
 
@@ -1735,17 +1818,35 @@ class RainPart {
 /// one before it without an [WeatherMapSource.extent]; one with an extent
 /// measures where its frame says, so what follows it stays a part (see
 /// [RainPart.cutBy]).
+///
+/// [newest] holds, by source id, the newest frame a service said it has
+/// (see [WeatherMapSource.frameAt]). [missing] names the satellites known
+/// to have no frame of "Now" (failed, or their newest too old): at "Now"
+/// they are left out, and where one of them meets the view the first model
+/// stands in for it ([rainStandIn]).
 List<RainPart> rainPartsAt(
   Iterable<WeatherMapSource> sources,
   DateTime now,
   int offsetMinutes, {
   required BoundingBox view,
+  Map<String, DateTime> newest = const <String, DateTime>{},
+  Set<String> missing = const <String>{},
 }) {
+  final standIn = offsetMinutes == 0
+      ? rainStandIn(sources, missing, (s) => s.covers(view))
+      : null;
   final out = <RainPart>[];
   for (final source in sources) {
     if (source.kind != WeatherKind.radar || !source.enabled) continue;
     if (!source.covers(view)) continue;
-    final frame = source.frameAt(now, offsetMinutes: offsetMinutes);
+    final frame = _rainFrame(
+      source,
+      now,
+      offsetMinutes,
+      newest: newest,
+      missing: missing,
+      standIn: standIn,
+    );
     if (frame == null) continue;
     // Wholly left to one before it (a view inside Europe, for the global
     // model): nothing to draw, nothing to ask.
@@ -1772,6 +1873,55 @@ List<RainPart> rainPartsAt(
     );
   }
   return out;
+}
+
+/// The model that stands in at "Now" for a satellite named in [missing]
+/// that is enabled among [sources] and passes [where]: the first enabled
+/// model (ICON-EU), so the rain beyond the radars never goes blank; `null`
+/// where no such satellite or no model is there.
+WeatherMapSource? rainStandIn(
+  Iterable<WeatherMapSource> sources,
+  Set<String> missing,
+  bool Function(WeatherMapSource source) where,
+) {
+  if (missing.isEmpty) return null;
+  bool rain(WeatherMapSource s) => s.kind == WeatherKind.radar && s.enabled;
+  final down = sources.any(
+    (s) =>
+        rain(s) &&
+        s.role == RainRole.satellite &&
+        missing.contains(s.id) &&
+        where(s),
+  );
+  if (!down) return null;
+  return sources.where((s) => rain(s) && s.role == RainRole.model).firstOrNull;
+}
+
+/// [source]'s frame [offsetMinutes] from [now] among the rain's sources: at
+/// "Now" none for a satellite in [missing], and for the [standIn] the hour
+/// "Now" falls in, as its first step ahead would show.
+WeatherFrame? _rainFrame(
+  WeatherMapSource source,
+  DateTime now,
+  int offsetMinutes, {
+  required Map<String, DateTime> newest,
+  required Set<String> missing,
+  required WeatherMapSource? standIn,
+}) {
+  if (offsetMinutes == 0) {
+    if (source.role == RainRole.satellite && missing.contains(source.id)) {
+      return null;
+    }
+    if (identical(source, standIn)) {
+      final time = source.modelFrameTime(now, 0);
+      return time == null ? null : WeatherFrame(time);
+    }
+  }
+  return source.frameAt(
+    now,
+    offsetMinutes: offsetMinutes,
+    newest: newest[source.id],
+  );
 }
 
 /// How wide the seam is where a source measuring by its frame (the DWD's
@@ -1875,17 +2025,31 @@ class RainCoverage {
 /// What the rain at [point] shows at [offsetMinutes] from [now]: the role
 /// of the first source in [sources] with a frame whose reach holds the
 /// point, and the moment it shows (for a model, the hour the step falls
-/// in). `null` where none does, or the source names no moment.
+/// in). `null` where none does, or the source names no moment. [newest]
+/// and [missing] as for [rainPartsAt]: where a model stands in at "Now",
+/// the model and the hour "Now" falls in.
 ({RainRole role, DateTime time})? rainAtPoint(
   Iterable<WeatherMapSource> sources,
   LatLng point,
   DateTime now,
-  int offsetMinutes,
-) {
+  int offsetMinutes, {
+  Map<String, DateTime> newest = const <String, DateTime>{},
+  Set<String> missing = const <String>{},
+}) {
+  final standIn = offsetMinutes == 0
+      ? rainStandIn(sources, missing, (s) => s.reaches(point))
+      : null;
   for (final source in sources) {
     if (source.kind != WeatherKind.radar || !source.enabled) continue;
     if (!source.reaches(point)) continue;
-    final frame = source.frameAt(now, offsetMinutes: offsetMinutes);
+    final frame = _rainFrame(
+      source,
+      now,
+      offsetMinutes,
+      newest: newest,
+      missing: missing,
+      standIn: standIn,
+    );
     if (frame == null) continue;
     final time = frame.time;
     if (time == null) return null;

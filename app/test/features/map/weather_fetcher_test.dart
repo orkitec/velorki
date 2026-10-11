@@ -750,6 +750,58 @@ void main() {
       expect(processed, 0);
     });
 
+    test('an XML error under 200 is a refusal of the source, taken once; '
+        'other failures are not', () async {
+      final now = DateTime.utc(2026, 10, 11, 15, 12);
+      final frame = hsafRain.frameAt(now)!;
+      adapter.contentType = 'text/xml';
+      adapter.body = Uint8List.fromList(
+        utf8.encode('<ServiceExceptionReport/>'),
+      );
+      expect(await fetcher.radarImage(hsafRain, box, frame, now), isNull);
+      expect(dir.listSync(), isEmpty);
+      expect(fetcher.takeRefusal('radar_dwd'), isFalse);
+      expect(fetcher.takeRefusal('rain_hsaf'), isTrue);
+      expect(fetcher.takeRefusal('rain_hsaf'), isFalse);
+      adapter
+        ..contentType = 'image/png'
+        ..status = 503;
+      expect(await fetcher.radarImage(hsafRain, box, frame, now), isNull);
+      expect(fetcher.takeRefusal('rain_hsaf'), isFalse);
+    });
+
+    test('the newest frame off the source\'s capabilities', () async {
+      adapter
+        ..contentType = 'text/xml; charset=UTF-8'
+        ..body = Uint8List.fromList(
+          utf8.encode(
+            '<WMS_Capabilities><Dimension name="time" '
+            'default="2026-10-11T14:20:00Z" units="ISO8601">'
+            '2026-07-23T00:00:00.000Z/2026-10-11T14:20:00.000Z/PT10M'
+            '</Dimension></WMS_Capabilities>',
+          ),
+        );
+      expect(
+        await fetcher.newestFrame(hsafRain),
+        DateTime.utc(2026, 10, 11, 14, 20),
+      );
+      expect(adapter.requests.single.toString(), hsafRain.timesUrl);
+      // None without a timesUrl, without asking.
+      expect(await fetcher.newestFrame(dwdRadar), isNull);
+      expect(adapter.requests, hasLength(1));
+      // An error, a failure or no answer: none.
+      adapter.body = Uint8List.fromList(
+        utf8.encode('<ServiceExceptionReport/>'),
+      );
+      expect(await fetcher.newestFrame(hsafRain), isNull);
+      adapter.status = 500;
+      expect(await fetcher.newestFrame(hsafRain), isNull);
+      adapter
+        ..status = 200
+        ..hang = true;
+      expect(await fetcher.newestFrame(hsafRain), isNull);
+    });
+
     test('the cache keeps the last few images of a source', () async {
       final now = DateTime.utc(2026, 10, 10, 14, 42);
       final frame = dwdRadar.frameAt(now)!;

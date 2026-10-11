@@ -41,6 +41,8 @@ String weatherClockTime(BuildContext context, DateTime utc) =>
     centre,
     status.at ?? DateTime.now(),
     offsetMinutes,
+    newest: status.newest,
+    missing: status.missing,
   );
 }
 
@@ -54,7 +56,8 @@ String? weatherSourceTag(AppLocalizations l10n, RainRole role) =>
 
 /// The time control's label: the step, the moment the rain over the
 /// middle of the view shows, and ahead what that is. "Now · 20:25",
-/// "+45 min · 21:30 · Nowcast", "+3 h · 23:00 · Forecast".
+/// "+45 min · 21:30 · Nowcast", "+3 h · 23:00 · Forecast"; and "Now · 20:00
+/// · Forecast" where the model stands in for the satellite.
 String weatherRainLabel(
   BuildContext context,
   int offsetMinutes,
@@ -64,9 +67,15 @@ String weatherRainLabel(
   return <String>[
     weatherStepText(l10n, offsetMinutes),
     if (rain != null) weatherClockTime(context, rain.time),
-    if (rain != null && offsetMinutes > 0) ?weatherSourceTag(l10n, rain.role),
+    if (rain != null && _tagged(offsetMinutes, rain.role))
+      ?weatherSourceTag(l10n, rain.role),
   ].join(' · ');
 }
+
+/// Whether the rain's label says what it shows: ahead, and at "Now" where
+/// a model stands in for the satellite.
+bool _tagged(int offsetMinutes, RainRole role) =>
+    offsetMinutes > 0 || role == RainRole.model;
 
 /// Whether the rain is on and some source of it in use.
 bool weatherRainOn(WidgetRef ref) =>
@@ -195,8 +204,10 @@ double weatherTimeLabelWidth(
       if (rain != null) weatherClockTime(context, rain.time),
     ];
     labels.add(parts.join(' · '));
-    if (rain == null || offset <= 0) continue;
+    if (rain == null) continue;
     for (final role in RainRole.values) {
+      // "Now" may say it is the model's, so it is measured with that too.
+      if (!_tagged(offset, role)) continue;
       final tag = weatherSourceTag(l10n, role);
       if (tag != null) labels.add(<String>[...parts, tag].join(' · '));
     }
@@ -475,7 +486,8 @@ class WeatherMapHints extends ConsumerWidget {
         l10n.mapLayersRainRadar,
         if (offset > 0) weatherStepText(l10n, offset),
         if (rain != null) weatherClockTime(context, rain.time),
-        if (rain != null && offset > 0) ?weatherSourceTag(l10n, rain.role),
+        if (rain != null && _tagged(offset, rain.role))
+          ?weatherSourceTag(l10n, rain.role),
       ].join(' · '),
       icon: Icons.water_drop_outlined,
     );

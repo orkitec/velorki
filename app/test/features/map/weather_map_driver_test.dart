@@ -70,6 +70,22 @@ class _Fetcher implements WeatherFetcher {
   /// What a rain image is answered with, where set, instead.
   Uint8List? Function(WeatherMapSource source, BoundingBox box)? radarAnswer;
 
+  /// The newest frame each source's service says it has, by id; the
+  /// sources asked, in order; and the sources whose images were refused
+  /// (an XML error) and not yet taken.
+  final Map<String, DateTime> newest = <String, DateTime>{};
+  final List<String> newestAsked = <String>[];
+  final Set<String> refused = <String>{};
+
+  @override
+  Future<DateTime?> newestFrame(WeatherMapSource source) {
+    newestAsked.add(source.id);
+    return Future<DateTime?>.value(newest[source.id]);
+  }
+
+  @override
+  bool takeRefusal(String sourceId) => refused.remove(sourceId);
+
   /// The wind grids asked for (request, moment), whether the service
   /// answers, and the answers held back while [holdWind] is set.
   bool windUp = true;
@@ -636,6 +652,247 @@ void main() {
         async.elapse(cloudsRefreshInterval);
         expect(fetcher.details, hasLength(2));
         expect(detailLayer()!.frameKey, isNot(first.frameKey));
+        driver.dispose();
+      });
+    });
+  });
+
+  group('the newest frame a service has', () {
+    final paris = _view(2.35, 48.85);
+    DateTime at(int h, int m) => DateTime.utc(2026, 10, 11, h, m);
+    List<DateTime?> satelliteTimes() => <DateTime?>[
+      for (final (id, _, time) in fetcher.radarImages)
+        if (id == 'rain_hsaf') time,
+    ];
+
+    setUp(() {
+      map.visibleBounds = paris;
+      now = at(15, 12);
+    });
+
+    test('once it is in, "now" keeps to it without a pan, and the label '
+        'too', () {
+      fakeAsync((async) {
+        fetcher.newest['rain_hsaf'] = at(14, 20);
+        configure(radar: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(fetcher.newestAsked, <String>['rain_hsaf']);
+        // The clock's frame went out before the answer; then the newest.
+        expect(satelliteTimes(), <DateTime>[at(14, 40), at(14, 20)]);
+        expect(drawn(), contains('rain_hsaf'));
+        expect(driver.status.value.newest, <String, DateTime>{
+          'rain_hsaf': at(14, 20),
+        });
+        // Rests of the camera ask for neither again.
+        map.emitCameraIdle();
+        async.flushMicrotasks();
+        expect(fetcher.newestAsked, hasLength(1));
+        expect(satelliteTimes(), hasLength(2));
+        driver.dispose();
+      });
+    });
+
+    test('asked at most every five minutes; a failure or an older answer '
+        'keeps the last', () {
+      fakeAsync((async) {
+        fetcher.newest['rain_hsaf'] = at(14, 20);
+        configure(radar: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        now = now.add(const Duration(minutes: 2));
+        map.emitCameraIdle();
+        async.flushMicrotasks();
+        expect(fetcher.newestAsked, hasLength(1));
+        // The refresh asks; no answer leaves 14:20.
+        fetcher.newest.remove('rain_hsaf');
+        now = now.add(radarRefreshInterval);
+        async.elapse(radarRefreshInterval);
+        expect(fetcher.newestAsked, hasLength(2));
+        expect(driver.status.value.newest['rain_hsaf'], at(14, 20));
+        // An older one, from a server behind, neither.
+        fetcher.newest['rain_hsaf'] = at(14, 10);
+        now = now.add(radarRefreshInterval);
+        async.elapse(radarRefreshInterval);
+        expect(fetcher.newestAsked, hasLength(3));
+        expect(driver.status.value.newest['rain_hsaf'], at(14, 20));
+        expect(satelliteTimes().toSet(), <DateTime>{at(14, 40), at(14, 20)});
+        // A newer one moves the frame on.
+        fetcher.newest['rain_hsaf'] = at(14, 50);
+        now = now.add(radarRefreshInterval);
+        async.elapse(radarRefreshInterval);
+        expect(satelliteTimes().last, at(14, 50));
+        driver.dispose();
+      });
+    });
+
+    test('a refused frame asks again at once and shows the newest', () {
+      fakeAsync((async) {
+        var answers = 0;
+        fetcher.radarAnswer = (source, box) {
+          if (source.id != 'rain_hsaf' || answers++ > 0) {
+            return Uint8List.fromList(<int>[5]);
+          }
+          // The service's XML error for a moment past its newest frame.
+          fetcher.refused.add(source.id);
+          return null;
+        };
+        configure(radar: true);
+        driver.attach(map);
+        // The first answer has none; by the refusal the service has 14:20.
+        fetcher.newest['rain_hsaf'] = at(14, 20);
+        async.flushMicrotasks();
+        expect(fetcher.newestAsked, <String>['rain_hsaf', 'rain_hsaf']);
+        expect(satelliteTimes(), <DateTime>[at(14, 40), at(14, 20)]);
+        expect(drawn(), contains('rain_hsaf'));
+        expect(driver.status.value.failedRain, isEmpty);
+        driver.dispose();
+      });
+    });
+
+    group('the model in the satellite\'s place at "Now"', () {
+      /// Whether the satellite answers, and whether with the service's XML
+      /// error.
+      var hsafUp = true;
+      var hsafRefuses = false;
+      setUp(() {
+        hsafUp = true;
+        hsafRefuses = false;
+        fetcher.radarAnswer = (source, box) {
+          if (source.id != 'rain_hsaf' || hsafUp) {
+            return Uint8List.fromList(<int>[source.id.length]);
+          }
+          if (hsafRefuses) fetcher.refused.add(source.id);
+          return null;
+        };
+      });
+
+      List<DateTime?> modelTimes() => <DateTime?>[
+        for (final (id, _, time) in fetcher.radarImages)
+          if (id == 'rain_icon_eu') time,
+      ];
+
+      void expectModel() {
+        expect(drawn(), contains('rain_icon_eu'));
+        expect(drawn(), isNot(contains('rain_hsaf')));
+        // The hour "Now" falls in, as at +15 min.
+        expect(modelTimes().last, at(16, 0));
+        expect(driver.status.value.missing, <String>{'rain_hsaf'});
+        // The rain shows: nothing to report.
+        expect(driver.status.value.failed, isEmpty);
+      }
+
+      void expectSatellite() {
+        expect(drawn(), contains('rain_hsaf'));
+        expect(drawn(), isNot(contains('rain_icon_eu')));
+        expect(driver.status.value.missing, isEmpty);
+      }
+
+      test('its image failed, its newest not known: the model, until an '
+          'image comes again', () {
+        fakeAsync((async) {
+          hsafUp = false;
+          configure(radar: true);
+          driver.attach(map);
+          async.flushMicrotasks();
+          expectModel();
+          // Asked again in the background with the refresh; in, it is back.
+          hsafUp = true;
+          now = now.add(radarRefreshInterval);
+          async.elapse(radarRefreshInterval);
+          expect(satelliteTimes(), <DateTime>[at(14, 40), at(14, 50)]);
+          expectSatellite();
+          driver.dispose();
+        });
+      });
+
+      test(
+        'refused with an XML error, its newest not to be had: the model',
+        () {
+          fakeAsync((async) {
+            hsafUp = false;
+            hsafRefuses = true;
+            configure(radar: true);
+            driver.attach(map);
+            async.flushMicrotasks();
+            // Its newest asked for again at once, in vain.
+            expect(fetcher.newestAsked, <String>['rain_hsaf', 'rain_hsaf']);
+            expectModel();
+            // Not asked again before the refresh.
+            map.emitCameraIdle();
+            async.elapse(radarImageDebounce);
+            expect(satelliteTimes(), hasLength(1));
+            driver.dispose();
+          });
+        },
+      );
+
+      test('its newest frame over 90 minutes old: the model, never the old '
+          'frame; a newer one takes its place back', () {
+        fakeAsync((async) {
+          fetcher.newest['rain_hsaf'] = at(13, 30);
+          configure(radar: true);
+          driver.attach(map);
+          async.flushMicrotasks();
+          expectModel();
+          expect(satelliteTimes(), isNot(contains(at(13, 30))));
+          fetcher.newest['rain_hsaf'] = at(14, 50);
+          now = now.add(radarRefreshInterval);
+          async.elapse(radarRefreshInterval);
+          expect(satelliteTimes().last, at(14, 50));
+          expectSatellite();
+          driver.dispose();
+        });
+      });
+
+      test('ahead, nothing changes', () {
+        fakeAsync((async) {
+          hsafUp = false;
+          configure(radar: true);
+          driver.attach(map);
+          async.flushMicrotasks();
+          configure(radar: true, offset: 15);
+          async.flushMicrotasks();
+          expect(drawn(), contains('rain_icon_eu'));
+          expect(modelTimes().toSet(), <DateTime>{at(16, 0)});
+          driver.dispose();
+        });
+      });
+    });
+
+    test('a source without one, or without a frame for the step, is not '
+        'asked', () {
+      fakeAsync((async) {
+        map.visibleBounds = newYork;
+        configure(radar: true, offset: 45);
+        driver.attach(map);
+        async.flushMicrotasks();
+        // Over Paris ahead, the satellite has no frame: not asked either.
+        map.visibleBounds = paris;
+        map.emitCameraIdle();
+        async.flushMicrotasks();
+        expect(fetcher.newestAsked, isEmpty);
+        expect(driver.status.value.newest, isEmpty);
+        driver.dispose();
+      });
+    });
+
+    test('the Meteosat clouds keep to it on the full hour', () {
+      fakeAsync((async) {
+        now = at(15, 30);
+        fetcher.newest['clouds_eumetsat'] = at(14, 50);
+        configure(clouds: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(fetcher.newestAsked, <String>['clouds_eumetsat']);
+        expect(fetcher.images, <String>[
+          'clouds_eumetsat.0@${at(15, 0)}',
+          'clouds_eumetsat.0@${at(14, 0)}',
+        ]);
+        expect(driver.status.value.cloudsFrame, at(14, 0));
+        map.emitCameraIdle();
+        async.flushMicrotasks();
+        expect(fetcher.images, hasLength(2));
         driver.dispose();
       });
     });

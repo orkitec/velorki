@@ -25,6 +25,12 @@ class _QuietFetcher implements WeatherFetcher {
   Future<bool> probe(String url) async => true;
 
   @override
+  Future<DateTime?> newestFrame(WeatherMapSource source) async => null;
+
+  @override
+  bool takeRefusal(String sourceId) => false;
+
+  @override
   Future<Uint8List?> cloudImage(
     WeatherMapSource source,
     int region,

@@ -1139,4 +1139,206 @@ void main() {
       );
     });
   });
+
+  group('the newest frame a service has', () {
+    test('read off the end of the time interval', () {
+      const xml = '''
+<WMS_Capabilities version="1.3.0"><Capability><Layer><Layer queryable="1">
+<Name>h40b</Name>
+<Dimension name="time" default="2026-10-11T14:20:00Z" units="ISO8601" nearestValue="1">2026-07-23T00:00:00.000Z/2026-10-11T14:20:00.000Z/PT10M</Dimension>
+</Layer></Layer></Capability></WMS_Capabilities>''';
+      expect(parseWmsNewestTime(xml), DateTime.utc(2026, 10, 11, 14, 20));
+    });
+
+    test('the latest of a list, intervals among it', () {
+      const xml =
+          '<Dimension name="time" units="ISO8601">'
+          '2026-10-11T13:00:00Z,2026-10-11T14:50:00Z, '
+          '2026-10-11T10:00:00Z/2026-10-11T12:00:00Z/PT1H</Dimension>';
+      expect(parseWmsNewestTime(xml), DateTime.utc(2026, 10, 11, 14, 50));
+      // WMS 1.1.1 names it in an Extent.
+      const old =
+          '<Dimension name="time" units="ISO8601"/>'
+          '<Extent name="time" default="2026-10-11T09:00:00Z">'
+          '2026-10-11T08:00:00Z,2026-10-11T09:00:00Z</Extent>';
+      expect(parseWmsNewestTime(old), DateTime.utc(2026, 10, 11, 9));
+    });
+
+    test('the default where the values do not read', () {
+      const xml =
+          '<Dimension name="time" default="2026-10-11T14:20:00Z" '
+          'units="ISO8601">2026-07-23T00:00:00Z/current/PT10M</Dimension>';
+      expect(parseWmsNewestTime(xml), DateTime.utc(2026, 10, 11, 14, 20));
+    });
+
+    test('none from an error, another dimension or garbage', () {
+      expect(
+        parseWmsNewestTime(
+          '<ServiceExceptionReport><ServiceException code="InvalidDimensionValue">'
+          'Time value 2026-10-11T15:00:00Z not in range</ServiceException>'
+          '</ServiceExceptionReport>',
+        ),
+        isNull,
+      );
+      expect(
+        parseWmsNewestTime(
+          '<Dimension name="elevation" default="0">0,100,200</Dimension>',
+        ),
+        isNull,
+      );
+      expect(parseWmsNewestTime('not xml at all'), isNull);
+      expect(parseWmsNewestTime(''), isNull);
+      expect(
+        parseWmsNewestTime('<Dimension name="time">yesterday</Dimension>'),
+        isNull,
+      );
+    });
+
+    test('caps the frame: never past it, on the source\'s grid', () {
+      // The clock alone would ask for 14:40; the service has 14:20.
+      expect(hsafRain.frameAt(utc(15, 12))!.time, utc(14, 40));
+      expect(
+        hsafRain.frameAt(utc(15, 12), newest: utc(14, 20))!.time,
+        utc(14, 20),
+      );
+      // Off the grid, moved back onto it.
+      expect(
+        hsafRain.frameAt(utc(15, 12), newest: utc(14, 27, 30))!.time,
+        utc(14, 20),
+      );
+      // A newer one than the clock asks for leaves the clock's.
+      expect(
+        hsafRain.frameAt(utc(15, 12), newest: utc(15, 0))!.time,
+        utc(14, 40),
+      );
+      // Still the present only.
+      expect(
+        hsafRain.frameAt(utc(15, 12), offsetMinutes: 15, newest: utc(14, 20)),
+        isNull,
+      );
+    });
+
+    test('the Meteosat clouds stay on the full hour', () {
+      expect(eumetsatClouds.frameAt(utc(15, 30))!.time, utc(15, 0));
+      expect(
+        eumetsatClouds.frameAt(utc(15, 30), newest: utc(14, 50))!.time,
+        utc(14, 0),
+      );
+      expect(
+        eumetsatClouds.frameAt(utc(15, 30), newest: utc(15, 10))!.time,
+        utc(15, 0),
+      );
+    });
+
+    test('the rain\'s parts and label keep to it', () {
+      final parts = rainPartsAt(
+        defaultWeatherMapSources,
+        utc(15, 12),
+        0,
+        view: view(2.35, 48.85),
+        newest: <String, DateTime>{'rain_hsaf': utc(14, 20)},
+      );
+      expect(
+        parts.firstWhere((p) => p.source.id == 'rain_hsaf').frame.time,
+        utc(14, 20),
+      );
+      expect(
+        rainAtPoint(
+          defaultWeatherMapSources,
+          const LatLng(48.85, 2.35),
+          utc(15, 12),
+          0,
+          newest: <String, DateTime>{'rain_hsaf': utc(14, 20)},
+        ),
+        (role: RainRole.satellite, time: utc(14, 20)),
+      );
+    });
+
+    test('a satellite without a frame of "Now": ICON-EU stands in, its hour '
+        'of "Now", as at its first step ahead', () {
+      const missing = <String>{'rain_hsaf'};
+      final parts = rainPartsAt(
+        defaultWeatherMapSources,
+        utc(15, 12),
+        0,
+        view: view(2.35, 48.85),
+        missing: missing,
+      );
+      expect(parts.map((p) => p.source.id), <String>[
+        'radar_dwd',
+        'rain_icon_eu',
+      ]);
+      expect(parts.last.frame.time, utc(16, 0));
+      expect(
+        parts.last.frame,
+        iconEuRain.frameAt(utc(15, 12), offsetMinutes: 15),
+      );
+      // Masked by the radar's reach, as ahead.
+      expect(parts.last.maskedBy, <String>['radar_dwd']);
+      expect(
+        rainAtPoint(
+          defaultWeatherMapSources,
+          const LatLng(48.85, 2.35),
+          utc(15, 12),
+          0,
+          missing: missing,
+        ),
+        (role: RainRole.model, time: utc(15, 0)),
+      );
+      // Ahead nothing changes; where the satellite does not reach, nor
+      // "Now".
+      expect(
+        rainPartsAt(
+          defaultWeatherMapSources,
+          utc(15, 12),
+          15,
+          view: view(2.35, 48.85),
+          missing: missing,
+        ).map((p) => p.source.id),
+        <String>['radar_dwd', 'rain_icon_eu'],
+      );
+      expect(
+        rainPartsAt(
+          defaultWeatherMapSources,
+          utc(15, 12),
+          0,
+          view: view(100, 10),
+          missing: missing,
+        ),
+        isEmpty,
+      );
+      // Without it, the model has no "Now".
+      expect(
+        rainPartsAt(
+          defaultWeatherMapSources,
+          utc(15, 12),
+          0,
+          view: view(2.35, 48.85),
+        ).map((p) => p.source.id),
+        <String>['radar_dwd', 'rain_hsaf'],
+      );
+    });
+
+    test('the EUMETSAT layers say where, and an override may too', () {
+      expect(
+        hsafRain.timesUrl,
+        'https://view.eumetsat.int/geoserver/mtg_fd/h40b/ows'
+        '?service=WMS&version=1.3.0&request=GetCapabilities',
+      );
+      expect(eumetsatClouds.timesUrl, contains('/mtg_fd/ir105_hrfi/ows?'));
+      expect(dwdRadar.timesUrl, isNull);
+      final sources = applyWeatherOverride(defaultWeatherMapSources, [
+        {'id': 'radar_noaa', 'timesUrl': 'https://times.example/caps'},
+        {'id': 'radar_dwd', 'timesUrl': 'http://insecure.example/caps'},
+      ]);
+      final noaa = sources.firstWhere((s) => s.id == 'radar_noaa');
+      expect(noaa.timesUrl, 'https://times.example/caps');
+      expect(noaa, isNot(noaaRadar));
+      expect(sources.firstWhere((s) => s.id == 'radar_dwd'), dwdRadar);
+      // The licence rule keeps it.
+      final clouds = enforceWeatherLicences(<WeatherMapSource>[eumetsatClouds])
+          .single;
+      expect(clouds.timesUrl, eumetsatClouds.timesUrl);
+    });
+  });
 }

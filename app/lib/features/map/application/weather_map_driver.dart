@@ -18,6 +18,14 @@ const Duration radarRefreshInterval = Duration(minutes: 5);
 /// How often the clouds do.
 const Duration cloudsRefreshInterval = Duration(minutes: 10);
 
+/// How far behind the clock a satellite's newest frame may be before the
+/// model stands in for it at "Now" (see [rainStandIn]).
+const Duration satelliteStaleAfter = Duration(minutes: 90);
+
+/// How often a source with a [WeatherMapSource.timesUrl] is asked for its
+/// newest frame at most, unless it refuses a frame.
+const Duration weatherTimesRefreshInterval = Duration(minutes: 5);
+
 /// How long the camera rests before the clouds' detail image is asked
 /// for: a pan of a few flicks asks once, at its end.
 const Duration cloudDetailDebounce = Duration(milliseconds: 600);
@@ -66,6 +74,8 @@ class WeatherMapStatus {
     this.shownOffset,
     this.failed = const <WeatherKind>{},
     this.failedRain = const <RainRole>{},
+    this.newest = const <String, DateTime>{},
+    this.missing = const <String>{},
   });
 
   /// The middle of the view, whose rain the time control's label describes
@@ -90,6 +100,15 @@ class WeatherMapStatus {
   /// the satellite, the forecast.
   final Set<RainRole> failedRain;
 
+  /// The newest frame each source with a [WeatherMapSource.timesUrl] said
+  /// it has, by id, which the frames shown keep to (see
+  /// [WeatherMapSource.frameAt]).
+  final Map<String, DateTime> newest;
+
+  /// The satellites without a frame of "Now", for which the model stands
+  /// in (see [rainStandIn]).
+  final Set<String> missing;
+
   @override
   bool operator ==(Object other) =>
       other is WeatherMapStatus &&
@@ -98,7 +117,9 @@ class WeatherMapStatus {
       other.cloudsFrame == cloudsFrame &&
       other.shownOffset == shownOffset &&
       setEquals(other.failed, failed) &&
-      setEquals(other.failedRain, failedRain);
+      setEquals(other.failedRain, failedRain) &&
+      mapEquals(other.newest, newest) &&
+      setEquals(other.missing, missing);
 
   @override
   int get hashCode => Object.hash(
@@ -108,12 +129,18 @@ class WeatherMapStatus {
     shownOffset,
     Object.hashAllUnordered(failed),
     Object.hashAllUnordered(failedRain),
+    Object.hashAllUnordered(<Object>[
+      for (final MapEntry(:key, :value) in newest.entries)
+        Object.hash(key, value),
+    ]),
+    Object.hashAllUnordered(missing),
   );
 
   @override
   String toString() =>
       'WeatherMapStatus(centre: $centre, at: $at, clouds: $cloudsFrame, '
-      'shown: $shownOffset, failed: $failed, failedRain: $failedRain)';
+      'shown: $shownOffset, failed: $failed, failedRain: $failedRain, '
+      'newest: $newest, missing: $missing)';
 }
 
 /// Keeps one map drawing the weather layers the settings ask for: the
@@ -212,6 +239,20 @@ class WeatherMapDriver {
 
   /// The arrows last handed to the map.
   WindArrows? _windDrawn;
+
+  /// The newest frame of each source with a [WeatherMapSource.timesUrl]
+  /// as its service last said, by id; when it was last asked, and the
+  /// sources being asked now.
+  final Map<String, DateTime> _newest = <String, DateTime>{};
+  final Map<String, DateTime> _newestAskedAt = <String, DateTime>{};
+  final Set<String> _newestInFlight = <String>{};
+
+  /// The satellites that have no frame of "Now" to show: their image
+  /// failed, or their newest frame is older than [satelliteStaleAfter]. The
+  /// model stands in for them at "Now" while their image is asked for
+  /// again in the background ([_retrySatellites]); one that comes, of a
+  /// frame not too old, takes its place back.
+  final Set<String> _satellitesDown = <String>{};
 
   /// The probe URL each radar source was last checked with.
   final Map<String, String> _probed = <String, String>{};
@@ -349,7 +390,17 @@ class WeatherMapDriver {
       _rainFailed.clear();
       _windFailed.clear();
     }
-    if (!listEquals(sources, _sources)) _frames.clear();
+    if (!listEquals(sources, _sources)) {
+      _frames.clear();
+      // A source asked elsewhere for its times, or not at all, starts over.
+      for (final old in _sources) {
+        final next = sources.where((s) => s.id == old.id).firstOrNull;
+        if (next?.timesUrl != old.timesUrl) {
+          _newest.remove(old.id);
+          _newestAskedAt.remove(old.id);
+        }
+      }
+    }
     _settings = settings;
     _sources = sources;
     _offset = offsetMinutes;
@@ -364,7 +415,10 @@ class WeatherMapDriver {
       _attempted.clear();
       _detailFailed.clear();
     }
-    if (turnedOn.contains(WeatherKind.radar)) _rainFailed.clear();
+    if (turnedOn.contains(WeatherKind.radar)) {
+      _rainFailed.clear();
+      _satellitesDown.clear();
+    }
     if (turnedOn.contains(WeatherKind.wind)) _windFailed.clear();
     // Clouds switched off let their images go, and so does the radar.
     if (!settings.clouds) {
@@ -517,6 +571,26 @@ class WeatherMapDriver {
     final layers = <WeatherLayer>[];
     final covering = <String>{};
 
+    // A satellite whose newest frame is too old stands aside.
+    for (final source in _enabled(WeatherKind.radar)) {
+      if (_stale(source, now)) _satellitesDown.add(source.id);
+    }
+
+    // The newest frames of the sources in use over the view that say them.
+    if (view != null) {
+      for (final source in _enabled(WeatherKind.clouds)) {
+        if (source.covers(view)) _askNewest(source, now);
+      }
+      for (final part in rainPartsAt(
+        _enabled(WeatherKind.radar),
+        now,
+        _offset,
+        view: view,
+      )) {
+        _askNewest(part.source, now);
+      }
+    }
+
     // Clouds first, which is under the rain.
     _cloudsFrame = null;
     final zoom = map.zoom;
@@ -524,7 +598,7 @@ class WeatherMapDriver {
     final shownDetails = <String>{};
     for (final source in _enabled(WeatherKind.clouds)) {
       if (view == null || !source.covers(view)) continue;
-      final frame = source.frameAt(now);
+      final frame = source.frameAt(now, newest: _newest[source.id]);
       if (frame == null) continue;
       covering.add(source.id);
       _cloudsFrame ??= frame.time;
@@ -772,18 +846,24 @@ class WeatherMapDriver {
   /// What the rain draws over [view] at [step]: each part [rainPartsAt]
   /// picks, as tiles or as images of the pieces of the view, with what it
   /// is masked by and so the keys of its images.
+  ///
+  /// At "Now" the model stands in for the satellites that are down, unless
+  /// [standIn] is false: the plan as it would be with them up.
   List<_PartPlan> _stepPlan(
     int step,
     BoundingBox view,
     double? zoom,
-    DateTime now,
-  ) {
+    DateTime now, {
+    bool standIn = true,
+  }) {
     final z = _zoomOf(view, zoom);
     final parts = rainPartsAt(
       _enabled(WeatherKind.radar),
       now,
       step,
       view: view,
+      newest: _newest,
+      missing: standIn ? _satellitesDown : const <String>{},
     );
     final areas = weatherImageAreas(view, z);
     final out = <_PartPlan>[];
@@ -976,6 +1056,56 @@ class WeatherMapDriver {
         attribution: '',
       ).covers(view);
 
+  /// Asks [source]'s service for its newest frame, where it says it
+  /// ([WeatherMapSource.timesUrl]): not while asked already, and unless
+  /// [force]d not within [weatherTimesRefreshInterval] of the last time.
+  void _askNewest(WeatherMapSource source, DateTime now, {bool force = false}) {
+    final url = source.timesUrl;
+    if (url == null || _newestInFlight.contains(source.id)) return;
+    final asked = _newestAskedAt[source.id];
+    if (!force &&
+        asked != null &&
+        now.difference(asked) < weatherTimesRefreshInterval) {
+      return;
+    }
+    _newestAskedAt[source.id] = now;
+    _newestInFlight.add(source.id);
+    unawaited(_loadNewest(source, url, force: force));
+  }
+
+  /// [source]'s newest frame, then the frames that keep to it. One that
+  /// cannot be had leaves the last one known. An older one than known is
+  /// taken only when asked after a refusal: a service behind several
+  /// servers may answer with one a step behind, which would swap the
+  /// frames back and forth.
+  Future<void> _loadNewest(
+    WeatherMapSource source,
+    String url, {
+    required bool force,
+  }) async {
+    final time = await _fetcher.newestFrame(source);
+    _newestInFlight.remove(source.id);
+    if (_disposed || time == null) return;
+    // Switched to another source of times, or none, meanwhile.
+    if (!_sources.any((s) => s.id == source.id && s.timesUrl == url)) return;
+    final known = _newest[source.id];
+    if (time == known || (known != null && !force && time.isBefore(known))) {
+      return;
+    }
+    _newest[source.id] = time;
+    _update();
+    _planRadar();
+    _planDetails();
+  }
+
+  /// After an image of [source] failed: where the service refused it (a
+  /// moment past its newest frame), its newest frame is asked for again at
+  /// once.
+  void _onRefusal(WeatherMapSource source) {
+    if (!_fetcher.takeRefusal(source.id)) return;
+    _askNewest(source, _clock(), force: true);
+  }
+
   Future<void> _probe(String id, String url) async {
     final ok = await _fetcher.probe(url);
     if (_disposed || _probed[id] != url) return;
@@ -1006,6 +1136,7 @@ class WeatherMapDriver {
     if (_disposed) return;
     if (image == null) {
       _failed.add(source.id);
+      _onRefusal(source);
       _publish();
       return;
     }
@@ -1037,7 +1168,7 @@ class WeatherMapDriver {
     final now = _clock();
     for (final source in _enabled(WeatherKind.clouds)) {
       if (!source.covers(view)) continue;
-      final frame = source.frameAt(now);
+      final frame = source.frameAt(now, newest: _newest[source.id]);
       if (frame == null) continue;
       final stamp = cloudImageStamp(frame, now);
       final shown = _details[source.id];
@@ -1094,6 +1225,7 @@ class WeatherMapDriver {
     if (image == null) {
       _detailFailed[source.id] = planned.layer.frameKey;
       _failed.add(source.id);
+      _onRefusal(source);
       _publish();
     } else {
       _detailFailed.remove(source.id);
@@ -1270,7 +1402,51 @@ class WeatherMapDriver {
         unawaited(_loadRadar(p, slot, planned, now));
       }
     }
+    _retrySatellites(view, map.zoom, now);
     _prefetch();
+  }
+
+  /// Whether [source] is a satellite whose newest frame, as its service
+  /// said, is older than [satelliteStaleAfter].
+  bool _stale(WeatherMapSource source, DateTime now) {
+    if (source.role != RainRole.satellite) return false;
+    final newest = _newest[source.id];
+    return newest != null && now.difference(newest) > satelliteStaleAfter;
+  }
+
+  /// At "Now", asks in the background for the images of the satellites
+  /// down whose frames are not too old, as they would be drawn: once in,
+  /// they take the model's place again. A failed one waits for the
+  /// refresh, or for a newer frame.
+  void _retrySatellites(BoundingBox view, double? mapZoom, DateTime now) {
+    if (_offset != 0 || _satellitesDown.isEmpty) return;
+    final zoom = _zoomOf(view, mapZoom);
+    var back = false;
+    for (final p in _stepPlan(0, view, mapZoom, now, standIn: false)) {
+      final source = p.part.source;
+      if (!_satellitesDown.contains(source.id) || _stale(source, now)) {
+        continue;
+      }
+      if (p.tiles || p.waiting || p.hidden || p.slots.isEmpty) continue;
+      if (p.slots.every((slot) => _frames.containsKey(slot.key))) {
+        // Loaded already: back at once.
+        _satellitesDown.remove(source.id);
+        back = true;
+        continue;
+      }
+      for (final slot in p.slots) {
+        if (_frames.containsKey(slot.key) ||
+            _rainFailed.contains(slot.key) ||
+            _prefetchInFlight.contains(slot.key)) {
+          continue;
+        }
+        final planned = _planned(p, slot, now);
+        if (!planned.fits(view, zoom)) continue;
+        _prefetchInFlight.add(slot.key);
+        unawaited(_loadRadar(p, slot, planned, now, background: true));
+      }
+    }
+    if (back) _update();
   }
 
   /// The order the other steps of the time control are asked for in: the
@@ -1395,8 +1571,11 @@ class WeatherMapDriver {
     }
     if (image == null) {
       _rainFailed.add(slot.key);
+      if (source.role == RainRole.satellite) _satellitesDown.add(source.id);
+      _onRefusal(source);
     } else {
       _rainFailed.remove(slot.key);
+      if (!_stale(source, _clock())) _satellitesDown.remove(source.id);
     }
     final map = _map;
     final view = map?.visibleBounds;
@@ -1504,6 +1683,8 @@ class WeatherMapDriver {
         for (final source in failing)
           if (source.kind == WeatherKind.radar) source.role,
       },
+      newest: Map<String, DateTime>.unmodifiable(_newest),
+      missing: Set<String>.unmodifiable(_satellitesDown),
     );
   }
 }

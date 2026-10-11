@@ -429,6 +429,38 @@ void main() {
       );
     });
 
+    testWidgets('where the model stands in for the satellite, "Now" says it '
+        'is a forecast', (tester) async {
+      final (_, container) = await _pump(
+        tester,
+        const WeatherTimeRow(),
+        prefs: <String, Object>{'map.weather.radar': true},
+      );
+      const paris = LatLng(48.85, 2.35);
+      final status = container.read(sharedWeatherMapStatusProvider.notifier)
+        ..set(WeatherMapStatus(centre: paris, at: at));
+      await tester.pump();
+      expect(
+        label(tester),
+        '${l10n.mapWeatherNow} · '
+        '${clock(tester, DateTime.utc(2026, 10, 10, 14, 10))}',
+      );
+      status.set(
+        WeatherMapStatus(
+          centre: paris,
+          at: at,
+          missing: const <String>{'rain_hsaf'},
+        ),
+      );
+      await tester.pump();
+      expect(
+        label(tester),
+        '${l10n.mapWeatherNow} · '
+        '${clock(tester, DateTime.utc(2026, 10, 10, 14))} · '
+        '${l10n.mapWeatherForecast}',
+      );
+    });
+
     testWidgets('dragged, the map is told the step under the finger at once, '
         'and the label says the step it shows', (tester) async {
       final (_, container) = await _pump(

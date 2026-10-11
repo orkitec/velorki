@@ -921,6 +921,16 @@ abstract class WeatherFetcher {
     WeatherFrame frame,
     DateTime now,
   );
+
+  /// The newest frame [source]'s service has, read off its
+  /// [WeatherMapSource.timesUrl] ([parseWmsNewestTime]); `null` without
+  /// one, or when it cannot be had within [weatherProbeTimeout].
+  Future<DateTime?> newestFrame(WeatherMapSource source);
+
+  /// Whether the service refused an image of the source [sourceId] since
+  /// this was last asked: answered with an XML error under status 200, as a
+  /// WMS does for a moment it has no frame of. Asking clears it.
+  bool takeRefusal(String sourceId);
 }
 
 /// Reads a wind grid off the main isolate.
@@ -969,6 +979,38 @@ class HttpWeatherFetcher implements WeatherFetcher {
   /// The requests made, newest last; for tests and the log.
   final List<String> requests = <String>[];
 
+  /// The sources an image of which was refused since [takeRefusal] last
+  /// asked.
+  final Set<String> _refused = <String>{};
+
+  @override
+  bool takeRefusal(String sourceId) => _refused.remove(sourceId);
+
+  @override
+  Future<DateTime?> newestFrame(WeatherMapSource source) async {
+    final url = source.timesUrl;
+    if (url == null) return null;
+    requests.add(url);
+    try {
+      final response = await dio
+          .get<String>(
+            url,
+            options: Options(
+              responseType: ResponseType.plain,
+              sendTimeout: probeTimeout,
+              receiveTimeout: probeTimeout,
+            ),
+          )
+          .timeout(probeTimeout);
+      final status = response.statusCode ?? 0;
+      final data = response.data;
+      if (status < 200 || status >= 300 || data == null) return null;
+      return parseWmsNewestTime(data);
+    } on Object {
+      return null;
+    }
+  }
+
   @override
   Future<bool> probe(String url) async {
     final body = await _getImage(url, probeTimeout);
@@ -989,6 +1031,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
     return _cloud(
       source.regionImageUrl(frame, region),
       name,
+      source: source.id,
       (dir) => _prune(dir, (file) => file.startsWith(prefix), name, now),
       process: (png) => process(png, job),
     );
@@ -1009,6 +1052,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
     return _cloud(
       source.detailImageUrl(frame, box),
       name,
+      source: source.id,
       // Other moments go; of this one the last few boxes stay.
       (dir) => _prune(
         dir,
@@ -1052,6 +1096,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
     return _cloud(
       url,
       name,
+      source: source.id,
       (dir) => _prune(
         dir,
         (_) => false,
@@ -1154,12 +1199,13 @@ class HttpWeatherFetcher implements WeatherFetcher {
 
   /// The image cached as [name], else fetched from [url] within [timeout]
   /// (the cloud images' by default), turned by [process] and cached,
-  /// [prune] then tidying the cache.
+  /// [prune] then tidying the cache. A refusal is put down to [source].
   Future<Uint8List?> _cloud(
     String url,
     String name,
     void Function(Directory dir) prune, {
     required Future<Uint8List> Function(Uint8List png) process,
+    required String source,
     Duration? timeout,
   }) async {
     final Directory dir;
@@ -1171,7 +1217,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
       debugPrint('velorki: cloud cache unreadable: $error');
       return null;
     }
-    final body = await _getImage(url, timeout ?? imageTimeout);
+    final body = await _getImage(url, timeout ?? imageTimeout, source: source);
     if (body == null) return null;
     final Uint8List png;
     try {
@@ -1190,8 +1236,13 @@ class HttpWeatherFetcher implements WeatherFetcher {
     return png;
   }
 
-  /// The body of [url] when it is an image, else `null`.
-  Future<Uint8List?> _getImage(String url, Duration timeout) async {
+  /// The body of [url] when it is an image, else `null`; an XML error is
+  /// put down as a refusal of [source] ([takeRefusal]).
+  Future<Uint8List?> _getImage(
+    String url,
+    Duration timeout, {
+    String? source,
+  }) async {
     requests.add(url);
     try {
       final response = await dio
@@ -1210,7 +1261,12 @@ class HttpWeatherFetcher implements WeatherFetcher {
       final type = response.headers.value(Headers.contentTypeHeader) ?? '';
       final data = response.data;
       if (status < 200 || status >= 300) return null;
-      if (!type.toLowerCase().startsWith('image/')) return null;
+      if (!type.toLowerCase().startsWith('image/')) {
+        if (source != null && type.toLowerCase().contains('xml')) {
+          _refused.add(source);
+        }
+        return null;
+      }
       if (data == null || data.isEmpty) return null;
       return Uint8List.fromList(data);
     } on Object {
