@@ -278,6 +278,41 @@ void main() {
     });
   });
 
+  test('over the Netherlands the KNMI\'s radar, over Finland the FMI\'s, '
+      'each credited while drawn and asked for its newest frame', () {
+    fakeAsync((async) {
+      map.visibleBounds = _view(4.9, 52.37);
+      fetcher.newest['radar_knmi'] = DateTime.utc(2026, 10, 10, 14, 25);
+      configure(radar: true);
+      driver.attach(map);
+      async.flushMicrotasks();
+      expect(drawn(), contains('radar_knmi'));
+      final knmi = shown().firstWhere((l) => l.id == 'radar_knmi');
+      expect(knmi.attribution, 'Radar: KNMI (CC BY 4.0)');
+      // Never past the newest frame its service names.
+      expect(knmi.tiles, contains('time=2026-10-10T14:25:00.000Z'));
+      expect(fetcher.newestAsked, contains('radar_knmi'));
+      map.visibleBounds = _view(24.94, 60.17);
+      map.emitCameraIdle();
+      async.flushMicrotasks();
+      expect(drawn(), <String>['radar_fmi']);
+      expect(
+        shown().single.attribution,
+        'Radar: Finnish Meteorological Institute (CC BY 4.0)',
+      );
+      expect(fetcher.newestAsked, contains('radar_fmi'));
+      // Ahead the FMI has nothing: ICON-EU, and its credit instead.
+      configure(radar: true, offset: 15);
+      async.flushMicrotasks();
+      expect(drawn(), <String>['rain_icon_eu']);
+      expect(
+        shown().single.attribution,
+        'Forecast: Deutscher Wetterdienst (CC BY 4.0)',
+      );
+      driver.dispose();
+    });
+  });
+
   test('out of the coverage the layer goes; back in, it is probed again', () {
     fakeAsync((async) {
       configure(radar: true);

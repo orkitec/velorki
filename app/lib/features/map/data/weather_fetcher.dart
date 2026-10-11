@@ -901,7 +901,7 @@ const int cloudImageVersion = 2;
 /// What tells the rain images prepared now from those an older app left in
 /// the cache, which the age limit then clears: raised with each change to
 /// how they are prepared.
-const int rainImageVersion = 6;
+const int rainImageVersion = 7;
 
 /// The width and height of [png] from its header; `null` where it is not
 /// a PNG.

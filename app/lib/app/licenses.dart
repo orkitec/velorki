@@ -106,6 +106,9 @@ requested.
 
 Rain radar and its two-hour nowcast over Germany: Deutscher Wetterdienst
 (DWD), CC BY 4.0.
+Rain radar over the Netherlands: KNMI (Royal Netherlands Meteorological
+Institute), CC BY 4.0.
+Rain radar over Finland: Finnish Meteorological Institute (FMI), CC BY 4.0.
 Rain radar over the US: NOAA National Weather Service, public domain. Not
 endorsed by NOAA.
 Rain from satellite over Europe, Africa and the Atlantic: contains modified
@@ -122,6 +125,8 @@ CC BY 4.0 under the EUMETSAT Data Policy. Only the hourly images that policy
 makes freely available are used.
 
 https://www.dwd.de/
+https://www.knmi.nl/
+https://en.ilmatieteenlaitos.fi/open-data
 https://www.weather.gov/
 https://mesonet.agron.iastate.edu/
 https://www.earthdata.nasa.gov/gibs

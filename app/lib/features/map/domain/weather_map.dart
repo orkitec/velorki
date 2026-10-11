@@ -48,6 +48,14 @@ enum RainPalette {
   /// The Iowa Environmental Mesonet's NEXRAD reflectivity ramp (N0Q), half
   /// a dBZ a colour, which its HRRR forecast is drawn in.
   n0q,
+
+  /// The KNMI radar's blue ramp, white-blue for 0.1 mm an hour to violet
+  /// for 100, on a log scale.
+  knmi,
+
+  /// The FMI radar's rain rate ramp: cyan, greens, yellow, orange, red,
+  /// purple; grey for no data.
+  fmi,
 }
 
 /// How the rain radar is drawn, chosen under Settings → Appearance.
@@ -1381,6 +1389,231 @@ const List<LatLng> dwdRadarExtent = <LatLng>[
   LatLng(55.724, 1.506),
 ];
 
+/// Rain radar over the Netherlands and the sea and land around them, from
+/// the KNMI: the composite of its radars (`RAD_NL25_PCP_CM`), a kilometre
+/// a cell, every five minutes; no forecast. After the DWD's in the list, so
+/// over Germany the DWD's radar draws and the KNMI's fills in to its west.
+///
+/// Drawn in the style `precip-blue-transparent/nearest`, a fixed ramp over
+/// 0.1 to 100 mm an hour that the phone reads back as rates
+/// ([RainPalette.knmi]). The style draws dry and beyond the radars' reach
+/// alike, transparent, so where it measures is its fixed reach
+/// ([knmiRadarReach]), which the sources after it fade in across as beside
+/// the DWD's radar ([WeatherMapSource.extent]). The service answers a
+/// moment past its newest frame, some five to ten minutes behind the clock,
+/// with an error: the newest is read off its capabilities, which name the
+/// composite's frames from 2024 on as one interval.
+final WeatherMapSource knmiRadar = WeatherMapSource(
+  id: 'radar_knmi',
+  kind: WeatherKind.radar,
+  palette: RainPalette.knmi,
+  urlTemplate: _knmiUrl('256', '256'),
+  imageUrlTemplate: _knmiUrl('{width}', '{height}'),
+  // Its reach's box: the composite's own box reaches south to 48.9°, where
+  // its radars no longer do.
+  coverage: <BoundingBox>[_box(0, 49.1, 9.8, 55.85)],
+  reach: const <List<LatLng>>[knmiRadarReach],
+  extent: knmiRadarReach,
+  maxZoom: 10,
+  timeFormat: WeatherTimeFormat.iso,
+  delayMinutes: 10,
+  // The composite's cells are a kilometre square.
+  nativeMetresPerPixel: 1000,
+  attribution: 'Radar: KNMI (CC BY 4.0)',
+  timesUrl:
+      'https://geoservices.knmi.nl/adagucserver?dataset=RADAR'
+      '&service=WMS&version=1.3.0&request=GetCapabilities',
+);
+
+String _knmiUrl(String width, String height) =>
+    'https://geoservices.knmi.nl/adagucserver?dataset=RADAR&service=WMS'
+    '&version=1.3.0&request=GetMap&layers=RAD_NL25_PCP_CM'
+    '&styles=precip-blue-transparent/nearest&crs=EPSG:3857'
+    '&bbox={bbox-epsg-3857}&width=$width&height=$height'
+    '&format=image/png&transparent=true&time={time}';
+
+/// Where the KNMI's radars reach: the edge of what its composite measures
+/// (in the style `precip-blue/nearest`, which draws dry white and beyond
+/// the reach nothing), the same in frames of March, August and October
+/// 2026; traced from an image of the composite's box (0.8 km a pixel), kept
+/// some 3 km inside and simplified to within 1.5 km. From the English coast
+/// to Hamburg and from Denmark's west coast to Luxembourg.
+const List<LatLng> knmiRadarReach = <LatLng>[
+  LatLng(52.58, 9.62),
+  LatLng(52.82, 9.51),
+  LatLng(53.10, 9.53),
+  LatLng(53.49, 9.48),
+  LatLng(53.89, 9.32),
+  LatLng(54.36, 8.99),
+  LatLng(54.58, 8.76),
+  LatLng(54.86, 8.41),
+  LatLng(55.21, 7.78),
+  LatLng(55.47, 7.08),
+  LatLng(55.69, 6.17),
+  LatLng(55.77, 5.56),
+  LatLng(55.81, 4.99),
+  LatLng(55.78, 4.07),
+  LatLng(55.64, 3.14),
+  LatLng(55.52, 2.65),
+  LatLng(55.33, 2.08),
+  LatLng(55.11, 1.59),
+  LatLng(54.95, 1.32),
+  LatLng(54.72, 1.00),
+  LatLng(54.36, 0.59),
+  LatLng(53.86, 0.25),
+  LatLng(53.60, 0.14),
+  LatLng(53.26, 0.05),
+  LatLng(52.76, 0.07),
+  LatLng(52.58, 0.13),
+  LatLng(52.48, 0.14),
+  LatLng(52.04, 0.34),
+  LatLng(51.83, 0.51),
+  LatLng(51.29, 0.63),
+  LatLng(50.82, 0.86),
+  LatLng(50.43, 1.17),
+  LatLng(50.07, 1.57),
+  LatLng(49.83, 1.92),
+  LatLng(49.63, 2.27),
+  LatLng(49.46, 2.62),
+  LatLng(49.34, 2.96),
+  LatLng(49.28, 4.48),
+  LatLng(49.14, 6.61),
+  LatLng(49.36, 7.38),
+  LatLng(49.52, 7.76),
+  LatLng(49.75, 8.23),
+  LatLng(50.09, 8.73),
+  LatLng(50.57, 9.23),
+  LatLng(50.96, 9.49),
+  LatLng(51.93, 9.75),
+  LatLng(52.25, 9.73),
+];
+
+/// Rain radar over Finland and the Baltic around it, from the Finnish
+/// Meteorological Institute: the rain rate of its radars' composite
+/// (`Radar:suomi_rr_eureffin`), every five minutes, the past week; no
+/// forecast.
+///
+/// Its colours are a ramp the phone reads back as rates
+/// ([RainPalette.fmi]). Like the DWD's, the composite draws "no data" in
+/// grey (`#CCCCCC` at 15 %) inside its grid ([fmiRadarExtent]) beyond its
+/// radars' reach, so the sources after it are cut by each frame's own
+/// reach; [fmiRadarReach] stands in where a frame cannot be had. The
+/// service answers a moment past its newest frame, some five minutes behind
+/// the clock, with an XML error: the newest is read off the layer's own
+/// capabilities.
+final WeatherMapSource fmiRadar = WeatherMapSource(
+  id: 'radar_fmi',
+  kind: WeatherKind.radar,
+  palette: RainPalette.fmi,
+  urlTemplate: _fmiUrl('256', '256'),
+  imageUrlTemplate: _fmiUrl('{width}', '{height}'),
+  coverage: <BoundingBox>[_box(17.3, 57.6, 34, 69.6)],
+  reach: const <List<LatLng>>[fmiRadarReach],
+  extent: fmiRadarExtent,
+  maxZoom: 10,
+  timeFormat: WeatherTimeFormat.iso,
+  delayMinutes: 10,
+  nativeMetresPerPixel: 1000,
+  attribution: 'Radar: Finnish Meteorological Institute (CC BY 4.0)',
+  timesUrl:
+      'https://openwms.fmi.fi/geoserver/Radar/suomi_rr_eureffin/ows'
+      '?service=WMS&version=1.3.0&request=GetCapabilities',
+);
+
+String _fmiUrl(String width, String height) =>
+    'https://openwms.fmi.fi/geoserver/Radar/wms?service=WMS&version=1.3.0'
+    '&request=GetMap&layers=Radar:suomi_rr_eureffin&styles=&crs=EPSG:3857'
+    '&bbox={bbox-epsg-3857}&width=$width&height=$height'
+    '&format=image/png&transparent=true&time={time}';
+
+/// Where the FMI's radars reach: the edge of the grey "no data" its
+/// composite draws inside its grid, traced from a frame of 2026-10-11 (some
+/// 2 km a pixel), kept some 4 km inside and simplified to within 5 km.
+/// Finland, the Gulf of Bothnia to the Swedish coast, the Gulf of Finland
+/// and the north of Estonia.
+const List<LatLng> fmiRadarReach = <LatLng>[
+  LatLng(69.28, 23.20),
+  LatLng(69.20, 30.55),
+  LatLng(69.09, 33.06),
+  LatLng(68.93, 33.40),
+  LatLng(68.44, 33.47),
+  LatLng(67.93, 33.27),
+  LatLng(67.35, 32.55),
+  LatLng(66.91, 32.55),
+  LatLng(66.48, 32.28),
+  LatLng(65.89, 31.50),
+  LatLng(65.60, 32.62),
+  LatLng(65.33, 33.27),
+  LatLng(59.92, 31.74),
+  LatLng(59.80, 30.99),
+  LatLng(59.32, 30.21),
+  LatLng(59.02, 29.43),
+  LatLng(58.77, 28.10),
+  LatLng(58.70, 26.84),
+  LatLng(58.44, 25.72),
+  LatLng(58.36, 24.22),
+  LatLng(58.15, 23.58),
+  LatLng(58.06, 20.55),
+  LatLng(58.06, 20.14),
+  LatLng(58.19, 19.60),
+  LatLng(58.63, 18.51),
+  LatLng(61.34, 17.87),
+  LatLng(61.45, 17.97),
+  LatLng(62.06, 17.83),
+  LatLng(62.44, 17.97),
+  LatLng(62.92, 18.38),
+  LatLng(63.29, 18.95),
+  LatLng(64.08, 19.36),
+  LatLng(64.64, 20.18),
+  LatLng(65.00, 21.16),
+  LatLng(65.61, 21.44),
+  LatLng(66.06, 22.01),
+  LatLng(66.59, 21.44),
+  LatLng(67.22, 21.20),
+  LatLng(67.98, 21.57),
+  LatLng(68.77, 21.44),
+  LatLng(69.11, 21.61),
+  LatLng(69.26, 21.74),
+];
+
+/// The FMI composite's grid: its box in the Finnish grid (EPSG:3067,
+/// −118 to 876 km east, 6336 to 7908 km north), the ring its images are
+/// drawn in, kept 3 km inside and simplified to within 1.5 km.
+const List<LatLng> fmiRadarExtent = <LatLng>[
+  LatLng(56.782, 16.909),
+  LatLng(56.937, 19.042),
+  LatLng(57.043, 20.925),
+  LatLng(57.130, 23.090),
+  LatLng(57.175, 24.992),
+  LatLng(57.191, 26.899),
+  LatLng(57.174, 29.077),
+  LatLng(57.128, 30.980),
+  LatLng(57.040, 33.144),
+  LatLng(59.137, 33.517),
+  LatLng(61.232, 33.948),
+  LatLng(63.092, 34.391),
+  LatLng(64.949, 34.902),
+  LatLng(66.572, 35.418),
+  LatLng(68.192, 36.013),
+  LatLng(69.578, 36.601),
+  LatLng(70.961, 37.277),
+  LatLng(71.126, 33.683),
+  LatLng(71.213, 30.496),
+  LatLng(71.245, 26.829),
+  LatLng(71.215, 23.621),
+  LatLng(71.130, 20.433),
+  LatLng(70.967, 16.837),
+  LatLng(70.769, 13.752),
+  LatLng(70.481, 10.314),
+  LatLng(69.132, 11.376),
+  LatLng(67.777, 12.306),
+  LatLng(66.188, 13.252),
+  LatLng(64.593, 14.077),
+  LatLng(62.763, 14.897),
+  LatLng(60.928, 15.609),
+  LatLng(58.857, 16.305),
+];
+
 /// Base reflectivity over the US from the National Weather Service: the
 /// past two hours, no forecast.
 ///
@@ -1834,6 +2067,8 @@ List<CloudFade> cloudFadesOf(
 /// before it shows the same moment (see [rainPartsAt]).
 final List<WeatherMapSource> defaultWeatherMapSources = <WeatherMapSource>[
   dwdRadar,
+  knmiRadar,
+  fmiRadar,
   noaaRadar,
   hsafRain,
   iconEuRain,
@@ -2013,6 +2248,8 @@ RainPalette? _palette(Object? v) => switch (v) {
   'dwdModel6h' => RainPalette.dwdModel6h,
   'dwdModel1h' => RainPalette.dwdModel1h,
   'n0q' => RainPalette.n0q,
+  'knmi' => RainPalette.knmi,
+  'fmi' => RainPalette.fmi,
   _ => null,
 };
 

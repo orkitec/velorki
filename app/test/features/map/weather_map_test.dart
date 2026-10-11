@@ -1342,6 +1342,246 @@ void main() {
     });
   });
 
+  group('the KNMI and FMI radars', () {
+    // 14:42 UTC.
+    final now = utc(14, 42);
+    const amsterdam = LatLng(52.37, 4.90);
+    const helsinki = LatLng(60.17, 24.94);
+    const oslo = LatLng(59.91, 10.75);
+    BoundingBox around(LatLng p) => view(p.lon, p.lat);
+    List<String> ids(int offset, LatLng at, [List<WeatherMapSource>? s]) =>
+        <String>[
+          for (final part in rainPartsAt(
+            s ?? defaultWeatherMapSources,
+            now,
+            offset,
+            view: around(at),
+          ))
+            part.source.id,
+        ];
+
+    test('radars, ordered after the DWD\'s and ahead of the satellite', () {
+      final rain = <String>[
+        for (final s in defaultWeatherMapSources)
+          if (s.kind == WeatherKind.radar) s.id,
+      ];
+      expect(rain.indexOf('radar_knmi'), rain.indexOf('radar_dwd') + 1);
+      expect(rain.indexOf('radar_fmi'), lessThan(rain.indexOf('rain_hsaf')));
+      expect(knmiRadar.role, RainRole.radar);
+      expect(fmiRadar.role, RainRole.radar);
+    });
+
+    test('their reach: Amsterdam the KNMI\'s, beyond the DWD\'s; Helsinki '
+        'the FMI\'s; Oslo neither\'s', () {
+      expect(knmiRadar.reaches(amsterdam), isTrue);
+      expect(dwdRadar.reaches(amsterdam), isFalse);
+      expect(fmiRadar.reaches(helsinki), isTrue);
+      expect(fmiRadar.reaches(const LatLng(65.01, 25.47)), isTrue); // Oulu
+      for (final source in <WeatherMapSource>[knmiRadar, fmiRadar]) {
+        expect(source.reaches(oslo), isFalse, reason: source.id);
+        // The fixed reach lies inside the coverage box.
+        for (final p in source.reach!.single) {
+          expect(source.coverage.single.contains(p), isTrue, reason: '$p');
+        }
+      }
+      // The FMI's reach lies inside its grid.
+      for (final p in fmiRadarReach) {
+        expect(ringContains(fmiRadarExtent, p), isTrue, reason: '$p');
+      }
+      // The KNMI draws dry and beyond its reach alike: its frame measures
+      // across its reach, faded in over its seam.
+      expect(knmiRadar.extent, same(knmiRadarReach));
+      expect(fmiRadar.extent, same(fmiRadarExtent));
+    });
+
+    test('"Now": over Amsterdam the KNMI, over Helsinki the FMI, the '
+        'satellite after each cut by its frame; over Oslo the satellite', () {
+      // The KNMI's frame, ten minutes behind the clock: not the DWD's
+      // (14:35) nor the satellite's (14:10).
+      expect(rainAtPoint(defaultWeatherMapSources, amsterdam, now, 0), (
+        role: RainRole.radar,
+        time: utc(14, 30),
+      ));
+      expect(ids(0, amsterdam), <String>[
+        'radar_dwd',
+        'radar_knmi',
+        'rain_hsaf',
+      ]);
+      final hsaf = rainPartsAt(
+        defaultWeatherMapSources,
+        now,
+        0,
+        view: around(amsterdam),
+      ).last;
+      expect(hsaf.cutBy, <WeatherMapSource>[dwdRadar, knmiRadar]);
+      expect(hsaf.hiddenByReach(around(amsterdam)), isTrue);
+
+      expect(rainAtPoint(defaultWeatherMapSources, helsinki, now, 0), (
+        role: RainRole.radar,
+        time: utc(14, 30),
+      ));
+      expect(ids(0, helsinki), <String>['radar_fmi', 'rain_hsaf']);
+      expect(
+        rainPartsAt(
+          defaultWeatherMapSources,
+          now,
+          0,
+          view: around(helsinki),
+        ).last.cutBy,
+        <WeatherMapSource>[fmiRadar],
+      );
+
+      expect(rainAtPoint(defaultWeatherMapSources, oslo, now, 0), (
+        role: RainRole.satellite,
+        time: utc(14, 10),
+      ));
+      expect(ids(0, oslo), <String>['rain_hsaf']);
+    });
+
+    test('ahead they have nothing: the nowcast and ICON-EU', () {
+      expect(knmiRadar.frameAt(now, offsetMinutes: 15), isNull);
+      expect(fmiRadar.frameAt(now, offsetMinutes: 15), isNull);
+      expect(ids(15, amsterdam), <String>['radar_dwd', 'rain_icon_eu']);
+      expect(ids(15, helsinki), <String>['rain_icon_eu']);
+      expect(rainAtPoint(defaultWeatherMapSources, helsinki, now, 15), (
+        role: RainRole.model,
+        time: utc(14, 0),
+      ));
+    });
+
+    test('their frames never pass the newest their capabilities name', () {
+      expect(
+        knmiRadar.timesUrl,
+        'https://geoservices.knmi.nl/adagucserver?dataset=RADAR'
+        '&service=WMS&version=1.3.0&request=GetCapabilities',
+      );
+      expect(
+        fmiRadar.timesUrl,
+        'https://openwms.fmi.fi/geoserver/Radar/suomi_rr_eureffin/ows'
+        '?service=WMS&version=1.3.0&request=GetCapabilities',
+      );
+      // As the services write them, 2026-10-11.
+      expect(
+        parseWmsNewestTime(
+          '<Dimension name="time" units="ISO8601" '
+          'default="2026-10-11T22:35:00Z" multipleValues="1" '
+          'nearestValue="0" current="1">'
+          '2024-12-05T13:35:00Z/2026-10-11T22:35:00Z/PT5M</Dimension>',
+        ),
+        DateTime.utc(2026, 10, 11, 22, 35),
+      );
+      expect(
+        parseWmsNewestTime(
+          '<Dimension name="time" default="current" units="ISO8601">'
+          '2026-10-04T22:45:00.000Z/2026-10-11T22:40:00.000Z/PT5M'
+          '</Dimension>',
+        ),
+        DateTime.utc(2026, 10, 11, 22, 40),
+      );
+      for (final source in <WeatherMapSource>[knmiRadar, fmiRadar]) {
+        // The clock alone: 15:00, ten minutes back on the five-minute grid.
+        expect(source.frameAt(utc(15, 12))!.time, utc(15, 0));
+        expect(
+          source.frameAt(utc(15, 12), newest: utc(14, 47, 30))!.time,
+          utc(14, 45),
+        );
+        expect(
+          source.frameAt(utc(15, 12), newest: utc(15, 10))!.time,
+          utc(15, 0),
+        );
+        // The past they keep, as the DWD's.
+        expect(
+          source.frameAt(utc(15, 12), offsetMinutes: -60)!.time,
+          utc(14, 0),
+        );
+        expect(
+          source.tileUrl(source.frameAt(utc(15, 12))!),
+          contains('time=2026-10-10T15:00:00.000Z'),
+        );
+      }
+      final parts = rainPartsAt(
+        defaultWeatherMapSources,
+        utc(15, 12),
+        0,
+        view: around(helsinki),
+        newest: <String, DateTime>{'radar_fmi': utc(14, 50)},
+      );
+      expect(parts.first.frame.time, utc(14, 50));
+      expect(
+        rainAtPoint(
+          defaultWeatherMapSources,
+          amsterdam,
+          utc(15, 12),
+          0,
+          newest: <String, DateTime>{'radar_knmi': utc(14, 55)},
+        ),
+        (role: RainRole.radar, time: utc(14, 55)),
+      );
+    });
+
+    test('their requests: a WMS GetMap in Web Mercator, each in its own '
+        'style', () {
+      const box = BoundingBox(south: 52, west: 4, north: 53, east: 5);
+      final frame = WeatherFrame(utc(14, 30));
+      final knmi = knmiRadar.softImageUrl(frame, box)!;
+      expect(knmi, startsWith('https://geoservices.knmi.nl/adagucserver?'));
+      expect(knmi, contains('layers=RAD_NL25_PCP_CM'));
+      expect(knmi, contains('styles=precip-blue-transparent/nearest'));
+      expect(knmi, contains('crs=EPSG:3857'));
+      expect(knmi, contains('time=2026-10-10T14:30:00.000Z'));
+      expect(knmiRadar.tileUrl(frame), contains('width=256&height=256'));
+      final fmi = fmiRadar.softImageUrl(frame, box)!;
+      expect(fmi, startsWith('https://openwms.fmi.fi/geoserver/Radar/wms?'));
+      expect(fmi, contains('layers=Radar:suomi_rr_eureffin'));
+      expect(fmi, contains('crs=EPSG:3857'));
+    });
+
+    test('the credits', () {
+      expect(knmiRadar.attribution, 'Radar: KNMI (CC BY 4.0)');
+      expect(
+        fmiRadar.attribution,
+        'Radar: Finnish Meteorological Institute (CC BY 4.0)',
+      );
+    });
+
+    test('the mirror can switch them off or change them', () {
+      final sources = applyWeatherOverride(defaultWeatherMapSources, [
+        {'id': 'radar_knmi', 'enabled': false},
+        {
+          'id': 'radar_fmi',
+          'imageUrl': 'https://fmi.example/wms?bbox={bbox-epsg-3857}',
+          'timesUrl': 'https://fmi.example/caps',
+          'delayMinutes': 15,
+        },
+        {'id': 'radar_new', 'palette': 'knmi'},
+      ]);
+      expect(sources.firstWhere((s) => s.id == 'radar_knmi').enabled, isFalse);
+      // With the KNMI off, the satellite says what rains over Amsterdam.
+      expect(rainAtPoint(sources, amsterdam, now, 0), (
+        role: RainRole.satellite,
+        time: utc(14, 10),
+      ));
+      final fmi = sources.firstWhere((s) => s.id == 'radar_fmi');
+      expect(fmi.imageUrlTemplate, startsWith('https://fmi.example/'));
+      expect(fmi.timesUrl, 'https://fmi.example/caps');
+      expect(fmi.delayMinutes, 15);
+      expect(fmi.extent, same(fmiRadarExtent));
+      expect(fmi.palette, RainPalette.fmi);
+      final palettes = applyWeatherOverride(defaultWeatherMapSources, [
+        {'id': 'radar_dwd', 'palette': 'knmi'},
+        {'id': 'radar_noaa', 'palette': 'fmi'},
+      ]);
+      expect(
+        palettes.firstWhere((s) => s.id == 'radar_dwd').palette,
+        RainPalette.knmi,
+      );
+      expect(
+        palettes.firstWhere((s) => s.id == 'radar_noaa').palette,
+        RainPalette.fmi,
+      );
+    });
+  });
+
   group('the HRRR', () {
     final run = DateTime.utc(2026, 10, 10, 12);
     final nyc = view(-74, 40.7);
