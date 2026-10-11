@@ -18,8 +18,8 @@ in [`web/README.md`](../web/README.md).
 
 Upstreams: brouter.de (rd5 tiles), Geofabrik (the OSM extracts the `.gaz` files
 are built from), OpenFreeMap and CyclOSM (map tiles), Photon (online search),
-DWD, NOAA, NASA GIBS and EUMETSAT (the free weather map: rain radar and
-clouds, fetched by the phone, no relay).
+DWD, NOAA, NASA GIBS and EUMETSAT (the free weather map: rain radar, H SAF
+satellite rain, ICON forecast and clouds, fetched by the phone, no relay).
 
 ```
  brouter.de/segments4                      Geofabrik extracts
@@ -93,7 +93,7 @@ and hides the Plus features — see [SELF_HOSTING.md](SELF_HOSTING.md).
 | HTTP | dio | interceptors for token refresh, the rate-limit bucket, multipart, cancellation |
 | Map | maplibre_gl behind a `MapController` interface so widget tests can fake it; style URL from config | BSD-licensed, vector tiles, offline regions. Mapbox is proprietary and metered per monthly active user |
 | Map tiles | OpenFreeMap vector tiles by default; an offline cycle map drawn from the rd5 tiles, or CyclOSM raster as an online overlay | no key, no limits; swappable to self-hosted PMTiles |
-| Weather map | rain radar (DWD WMS, NOAA ImageServer) by default soft: one image of the view and its surroundings per source at the radar's 1 km, fetched when the camera rests, its alpha set by rain intensity along the palette's hue and its edges blurred in an isolate, drawn as an image source with linear resampling; "As measured" in Settings → Appearance keeps the raster tiles; clouds as one image per region (EUMETSAT and NASA GIBS WMS), and from zoom 6 a second image of the view and its surroundings at the service's native resolution over it, fetched when the camera rests, both whitened by brightness on the phone and drawn as image sources with linear resampling; `WeatherMapDriver` picks the sources over the view and refreshes them | free public services; EUMETSAT only on the full hour, which its data policy makes free |
+| Weather map | rain from a ranked list of sources, picked per time-control step (now, quarter hours to +2 h, hours to +24 h) by `rainPartsAt`: radar (DWD WMS, NOAA ImageServer) and the DWD nowcast where they reach, H SAF satellite rain (EUMETSAT WMS) around them at "Now", ICON-EU (hourly, in the DWD radar's style) and global ICON (six-hour sums) ahead; each source masked on the phone by the reach of those before it. Soft by default: one image of the view and its surroundings per source at its native resolution, fetched when the camera rests, its alpha set by rain intensity from its palette and its edges blurred in an isolate, drawn as an image source with linear resampling; "As measured" in Settings → Appearance keeps the radars' raster tiles and draws satellite and model images as they come, masked only; clouds as one image per region (EUMETSAT and NASA GIBS WMS), and from zoom 6 a second image of the view and its surroundings at the service's native resolution over it, fetched when the camera rests, both whitened by brightness on the phone and drawn as image sources with linear resampling; `WeatherMapDriver` picks the sources over the view and refreshes them | free public services; EUMETSAT's Meteosat images only on the full hour, which its data policy makes free; SAF products are Core data at any latency |
 
 Versions live in `app/pubspec.yaml`. Deliberately not used: `strava_client` (it
 expects the client secret inside the app) and `latlong2`.

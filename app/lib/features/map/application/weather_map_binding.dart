@@ -10,7 +10,7 @@ import 'weather_map_driver.dart';
 part 'weather_map_binding.g.dart';
 
 /// What the weather layers on the shell's map say about themselves, for
-/// the time control over it.
+/// the time control in the tabs' sheets and the hints over the map.
 @Riverpod(keepAlive: true)
 class SharedWeatherMapStatus extends _$SharedWeatherMapStatus {
   @override
@@ -33,8 +33,14 @@ class WeatherMapBinding {
     : driver = WeatherMapDriver(fetcher: _ref.read(weatherFetcherProvider)) {
     _configure();
     _lifecycle = AppLifecycleListener(
-      onShow: () => driver.setForeground(true),
-      onHide: () => driver.setForeground(false),
+      onShow: () {
+        _ref.read(weatherRadarOffsetProvider.notifier).shown(DateTime.now());
+        driver.setForeground(true);
+      },
+      onHide: () {
+        _ref.read(weatherRadarOffsetProvider.notifier).hidden(DateTime.now());
+        driver.setForeground(false);
+      },
     );
   }
 

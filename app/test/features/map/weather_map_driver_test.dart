@@ -31,14 +31,21 @@ class _Fetcher implements WeatherFetcher {
       <(String, BoundingBox, DateTime?)>[];
   final List<Completer<Uint8List?>> heldRadar = <Completer<Uint8List?>>[];
 
+  /// Of each rain image asked for: the look and what it is masked by.
+  final List<(RadarStyle, String)> radarJobs = <(RadarStyle, String)>[];
+
   @override
   Future<Uint8List?> radarImage(
     WeatherMapSource source,
     BoundingBox box,
     WeatherFrame frame,
-    DateTime now,
-  ) {
+    DateTime now, {
+    RadarStyle style = RadarStyle.soft,
+    List<List<LatLng>> masks = const <List<LatLng>>[],
+    String maskKey = '',
+  }) {
     radarImages.add((source.id, box, frame.time));
+    radarJobs.add((style, maskKey));
     if (holdRadar) {
       final answer = Completer<Uint8List?>();
       heldRadar.add(answer);
@@ -151,10 +158,10 @@ void main() {
         'Radar: Deutscher Wetterdienst (CC BY 4.0)',
       );
       expect(fetcher.probes, hasLength(1));
-      expect(
-        driver.status.value.radarFrame,
-        DateTime.utc(2026, 10, 10, 14, 35),
-      );
+      // Inside the radar's reach: no satellite asked for under it.
+      expect(fetcher.radarImages, isEmpty);
+      expect(driver.status.value.centre, berlin.center);
+      expect(driver.status.value.at, now);
       expect(driver.status.value.failed, isEmpty);
       // A move within the coverage asks nothing new.
       map.emitCameraIdle();
@@ -183,20 +190,26 @@ void main() {
     });
   });
 
-  test('a moment ahead: NOAA has none, and says forecast is Germany only', () {
+  test('a moment ahead: over New York the global model, over Germany the '
+      'nowcast', () {
     fakeAsync((async) {
       map.visibleBounds = newYork;
       configure(radar: true);
       driver.attach(map);
       async.flushMicrotasks();
       expect(drawn(), <String>['radar_noaa']);
-      expect(driver.status.value.forecastElsewhere, isFalse);
       configure(radar: true, offset: 30);
       async.flushMicrotasks();
-      expect(map.weatherLayers, isEmpty);
-      expect(driver.status.value.forecastElsewhere, isTrue);
-      expect(driver.status.value.radarFrame, DateTime.utc(2026, 10, 10, 15, 5));
-      // Over Germany the forecast is there.
+      // NOAA has no moment ahead; the global ICON, as an image, for the six
+      // hours up to 18 UTC that 15:12 falls in.
+      expect(fetcher.radarImages.single.$1, 'rain_icon');
+      expect(fetcher.radarImages.single.$3, DateTime.utc(2026, 10, 10, 18));
+      expect(drawn(), <String>['rain_icon']);
+      expect(
+        map.weatherLayers.single.attribution,
+        'Forecast: Deutscher Wetterdienst (CC BY 4.0)',
+      );
+      // Over Germany the nowcast, inside its reach alone.
       map.visibleBounds = berlin;
       map.emitCameraIdle();
       async.flushMicrotasks();
@@ -205,7 +218,40 @@ void main() {
         map.weatherLayers.single.tiles,
         contains('time=2026-10-10T15:05:00.000Z'),
       );
-      expect(driver.status.value.forecastElsewhere, isFalse);
+      // Three hours on, the nowcast is over: ICON-EU, for the hour 17 UTC.
+      configure(radar: true, offset: 180);
+      async.flushMicrotasks();
+      expect(drawn(), <String>['rain_icon_eu']);
+      expect(fetcher.radarImages.last.$3, DateTime.utc(2026, 10, 10, 18));
+      expect(fetcher.radarJobs.last.$2, isEmpty);
+      driver.dispose();
+    });
+  });
+
+  test('at the edge of the DWD\'s reach, the satellite fills in around the '
+      'radar, masked by it; ahead the model does', () {
+    fakeAsync((async) {
+      // Strasbourg to Nancy: half in reach, half beyond.
+      map.visibleBounds = BoundingBox(
+        south: 48.2,
+        west: 6.0,
+        north: 48.9,
+        east: 7.8,
+      );
+      configure(radar: true);
+      driver.attach(map);
+      async.flushMicrotasks();
+      expect(fetcher.radarImages.single.$1, 'rain_hsaf');
+      // The newest ten-minute frame at least 25 minutes old.
+      expect(fetcher.radarImages.single.$3, DateTime.utc(2026, 10, 10, 14, 10));
+      expect(fetcher.radarJobs.single.$2, '-radar_dwd');
+      expect(drawn(), <String>['radar_dwd', 'rain_hsaf']);
+      configure(radar: true, offset: 45);
+      async.flushMicrotasks();
+      expect(fetcher.radarImages.last.$1, 'rain_icon_eu');
+      expect(fetcher.radarImages.last.$3, DateTime.utc(2026, 10, 10, 16));
+      expect(fetcher.radarJobs.last.$2, '-radar_dwd');
+      expect(drawn(), <String>['radar_dwd', 'rain_icon_eu']);
       driver.dispose();
     });
   });
@@ -308,7 +354,8 @@ void main() {
     });
   });
 
-  test('a source the mirror switched off is not drawn', () {
+  test('a source the mirror switched off is not drawn; the satellite '
+      'takes its place', () {
     fakeAsync((async) {
       configure(
         radar: true,
@@ -318,7 +365,8 @@ void main() {
       );
       driver.attach(map);
       async.flushMicrotasks();
-      expect(map.weatherLayers, isEmpty);
+      expect(drawn(), <String>['rain_hsaf']);
+      expect(fetcher.radarJobs.single.$2, isEmpty);
       driver.dispose();
     });
   });
@@ -331,7 +379,7 @@ void main() {
       configure();
       async.flushMicrotasks();
       expect(map.weatherLayers, isEmpty);
-      expect(driver.status.value.radarFrame, isNull);
+      expect(driver.status.value.cloudsFrame, isNull);
       driver.dispose();
     });
   });
@@ -591,10 +639,10 @@ void main() {
         fetcher.heldRadar.single.complete(Uint8List.fromList(<int>[1]));
         async.flushMicrotasks();
         expect(map.weatherLayers.single.image, <int>[1]);
-        soft(offset: -30);
+        soft(offset: 30);
         async.flushMicrotasks();
         expect(fetcher.radarImages, hasLength(2));
-        expect(fetcher.radarImages.last.$3, DateTime.utc(2026, 10, 10, 14, 5));
+        expect(fetcher.radarImages.last.$3, DateTime.utc(2026, 10, 10, 15, 5));
         // Still the last one while the new one is out.
         expect(map.weatherLayers.single.image, <int>[1]);
         fetcher.heldRadar.last.complete(Uint8List.fromList(<int>[2]));
@@ -668,7 +716,7 @@ void main() {
       });
     });
 
-    test('NOAA has no moment ahead; the forecast hint is as on tiles', () {
+    test('ahead over the US, the model\'s image instead of NOAA\'s', () {
       fakeAsync((async) {
         map
           ..visibleBounds = newYork
@@ -676,13 +724,44 @@ void main() {
         soft(offset: 30);
         driver.attach(map);
         async.flushMicrotasks();
-        expect(fetcher.radarImages, isEmpty);
-        expect(map.weatherLayers, isEmpty);
-        expect(driver.status.value.forecastElsewhere, isTrue);
+        expect(fetcher.radarImages.single.$1, 'rain_icon');
+        expect(fetcher.radarJobs.single, (RadarStyle.soft, ''));
         soft();
         async.flushMicrotasks();
-        expect(fetcher.radarImages.single.$1, 'radar_noaa');
-        expect(driver.status.value.forecastElsewhere, isFalse);
+        expect(fetcher.radarImages.last.$1, 'radar_noaa');
+        expect(drawn(), <String>['radar_noaa']);
+        driver.dispose();
+      });
+    });
+
+    test('a forecast that does not come is reported as the forecast', () {
+      fakeAsync((async) {
+        map
+          ..visibleBounds = newYork
+          ..zoom = 8;
+        fetcher.radarImagesUp = false;
+        soft(offset: 60);
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(driver.status.value.failedRain, <RainRole>{RainRole.model});
+        expect(driver.status.value.failed, <WeatherKind>{WeatherKind.radar});
+        driver.dispose();
+      });
+    });
+
+    test('as measured, the satellite and the models are still images, as '
+        'see-through as the tiles', () {
+      fakeAsync((async) {
+        map
+          ..visibleBounds = newYork
+          ..zoom = 8;
+        configure(radar: true, offset: 60);
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(fetcher.radarJobs.single, (RadarStyle.measured, ''));
+        final layer = map.weatherLayers.single;
+        expect(layer.image, isNotNull);
+        expect(layer.opacity, 0.75);
         driver.dispose();
       });
     });

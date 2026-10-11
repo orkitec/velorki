@@ -8,12 +8,10 @@ import 'package:velorki/features/map/application/weather_map_driver.dart';
 import 'package:velorki/features/map/data/weather_map_preferences.dart';
 import 'package:velorki/features/map/domain/weather_map.dart';
 import 'package:velorki/features/map/presentation/layers_sheet.dart';
-import 'package:velorki/features/map/presentation/weather_map_overlay.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
+import 'package:velorki/features/map/presentation/weather_time_row.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
-
-final AppLocalizations l10n = lookupAppLocalizations(const Locale('en'));
 
 Future<(SharedPreferences, ProviderContainer)> _pump(
   WidgetTester tester,
@@ -116,6 +114,9 @@ void main() {
           'map.weather.override': encodeWeatherOverride([
             {'id': 'radar_dwd', 'enabled': false},
             {'id': 'radar_noaa', 'enabled': false},
+            {'id': 'rain_hsaf', 'enabled': false},
+            {'id': 'rain_icon_eu', 'enabled': false},
+            {'id': 'rain_icon', 'enabled': false},
           ])!,
         },
       );
@@ -125,11 +126,19 @@ void main() {
   });
 
   group('time control', () {
-    testWidgets('only while the radar is on', (tester) async {
-      final (_, container) = await _pump(
-        tester,
-        const Align(alignment: Alignment.topRight, child: WeatherMapOverlay()),
-      );
+    // 14:42 UTC, the view over Berlin.
+    final at = DateTime.utc(2026, 10, 10, 14, 42);
+    final berlin = WeatherMapStatus(centre: const LatLng(52.5, 13.4), at: at);
+    final newYork = WeatherMapStatus(centre: const LatLng(40.7, -74), at: at);
+
+    String label(WidgetTester tester) =>
+        tester.widget<Text>(find.byKey(weatherTimeLabelKey)).data!;
+
+    String clock(WidgetTester tester, DateTime utc) =>
+        weatherClockTime(tester.element(find.byType(Slider)), utc);
+
+    testWidgets('only while the rain is on', (tester) async {
+      final (_, container) = await _pump(tester, const WeatherTimeRow());
       expect(find.byType(Slider), findsNothing);
       await container
           .read(weatherMapPreferencesProvider.notifier)
@@ -148,67 +157,101 @@ void main() {
       expect(find.byType(Slider), findsNothing);
     });
 
-    testWidgets('the label says the offset and the frame in local time', (
+    testWidgets('one line: the label and the slider side by side', (
       tester,
     ) async {
+      await tester.binding.setSurfaceSize(const Size(360, 800));
       final (_, container) = await _pump(
         tester,
-        const Align(alignment: Alignment.topRight, child: WeatherMapOverlay()),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: WeatherTimeRow(),
+        ),
         prefs: <String, Object>{'map.weather.radar': true},
       );
-      final frame = DateTime.utc(2026, 10, 10, 14, 35);
-      container
-          .read(sharedWeatherMapStatusProvider.notifier)
-          .set(WeatherMapStatus(radarFrame: frame));
+      container.read(sharedWeatherMapStatusProvider.notifier).set(berlin);
+      container.read(weatherRadarOffsetProvider.notifier).set(105);
       await tester.pump();
-      String label() => tester
-          .widget<Text>(find.byKey(const ValueKey('weather-time-label')))
-          .data!;
-      final context = tester.element(find.byType(Slider));
-      expect(label(), 'Now · ${weatherClockTime(context, frame)}');
-
-      // Moved a step back: the label follows the finger.
+      final text = tester.getRect(find.byKey(weatherTimeLabelKey));
       final slider = tester.getRect(find.byType(Slider));
-      final step = (slider.width - 2 * 14) / 16;
-      await tester.dragFrom(slider.center, Offset(-step * 3, 0));
+      expect(text.right, lessThanOrEqualTo(slider.left + 1));
+      expect((text.center.dy - slider.center.dy).abs(), lessThan(2));
+      expect(slider.width, greaterThan(120));
+    });
+
+    testWidgets('the label says the step, the frame over the view\'s middle '
+        'and what it is', (tester) async {
+      final (_, container) = await _pump(
+        tester,
+        const WeatherTimeRow(),
+        prefs: <String, Object>{'map.weather.radar': true},
+      );
+      final status = container.read(sharedWeatherMapStatusProvider.notifier)
+        ..set(berlin);
       await tester.pump();
-      expect(container.read(weatherRadarOffsetProvider), -45);
-      container
-          .read(sharedWeatherMapStatusProvider.notifier)
-          .set(
-            WeatherMapStatus(
-              radarFrame: frame.subtract(const Duration(minutes: 45)),
-            ),
-          );
+      // The DWD's frame over Berlin.
+      expect(
+        label(tester),
+        '${l10n.mapWeatherNow} · '
+        '${clock(tester, DateTime.utc(2026, 10, 10, 14, 35))}',
+      );
+      // Over New York, NOAA's, twenty minutes back: not the DWD's time.
+      status.set(newYork);
       await tester.pump();
       expect(
-        label(),
-        '−45 min · '
-        '${weatherClockTime(context, frame.subtract(const Duration(minutes: 45)))}',
+        label(tester),
+        '${l10n.mapWeatherNow} · '
+        '${clock(tester, DateTime.utc(2026, 10, 10, 14, 20))}',
       );
-    });
 
-    testWidgets('a moment ahead elsewhere says forecast is Germany only', (
-      tester,
-    ) async {
-      final (_, container) = await _pump(
-        tester,
-        const Align(alignment: Alignment.topRight, child: WeatherMapOverlay()),
-        prefs: <String, Object>{'map.weather.radar': true},
-      );
-      container
-          .read(sharedWeatherMapStatusProvider.notifier)
-          .set(const WeatherMapStatus(forecastElsewhere: true));
+      // Moved three steps on: the label follows the finger, the step is
+      // shared once let go.
+      status.set(berlin);
       await tester.pump();
-      expect(find.text(l10n.mapWeatherForecastGermanyOnly), findsOneWidget);
+      final slider = tester.getRect(find.byType(Slider));
+      final step = (slider.width - 2 * 14) / (weatherRadarOffsets.length - 1);
+      final gesture = await tester.startGesture(
+        Offset(slider.left + 14, slider.center.dy),
+      );
+      await gesture.moveBy(Offset(step * 3, 0));
+      await tester.pump();
+      expect(
+        label(tester),
+        '${l10n.mapWeatherMinutesAhead(45)} · '
+        '${clock(tester, DateTime.utc(2026, 10, 10, 15, 20))} · '
+        '${l10n.mapWeatherNowcast}',
+      );
+      expect(container.read(weatherRadarOffsetProvider), 0);
+      await gesture.up();
+      await tester.pump();
+      expect(container.read(weatherRadarOffsetProvider), 45);
+
+      // Over New York ahead: the model, for the hour the step falls in.
+      status.set(newYork);
+      await tester.pump();
+      expect(
+        label(tester),
+        '${l10n.mapWeatherMinutesAhead(45)} · '
+        '${clock(tester, DateTime.utc(2026, 10, 10, 15))} · '
+        '${l10n.mapWeatherForecast}',
+      );
+      container.read(weatherRadarOffsetProvider.notifier).set(180);
+      status.set(berlin);
+      await tester.pump();
+      expect(
+        label(tester),
+        '${l10n.mapWeatherHoursAhead(3)} · '
+        '${clock(tester, DateTime.utc(2026, 10, 10, 17))} · '
+        '${l10n.mapWeatherForecast}',
+      );
     });
 
-    testWidgets('a layer that did not answer says so until it does', (
+    testWidgets('a source that did not answer says so until it does', (
       tester,
     ) async {
       final (_, container) = await _pump(
         tester,
-        const Align(alignment: Alignment.topRight, child: WeatherMapOverlay()),
+        const WeatherMapHints(),
         prefs: <String, Object>{
           'map.weather.radar': true,
           'map.weather.clouds': true,
@@ -219,30 +262,114 @@ void main() {
       status.set(
         const WeatherMapStatus(
           failed: <WeatherKind>{WeatherKind.radar, WeatherKind.clouds},
+          failedRain: <RainRole>{
+            RainRole.radar,
+            RainRole.satellite,
+            RainRole.model,
+          },
         ),
       );
       await tester.pump();
       expect(find.text(l10n.mapWeatherRadarUnavailable), findsOneWidget);
+      expect(find.text(l10n.mapWeatherSatelliteUnavailable), findsOneWidget);
+      expect(find.text(l10n.mapWeatherForecastUnavailable), findsOneWidget);
       expect(find.text(l10n.mapWeatherCloudsUnavailable), findsOneWidget);
+      // No slider on the map.
+      expect(find.byType(Slider), findsNothing);
       status.set(const WeatherMapStatus());
       await tester.pump();
-      expect(find.text(l10n.mapWeatherRadarUnavailable), findsNothing);
-      expect(find.text(l10n.mapWeatherCloudsUnavailable), findsNothing);
+      expect(find.byType(WeatherMapChip), findsNothing);
     });
 
-    testWidgets('clouds alone show their time', (tester) async {
+    testWidgets('the clouds show their time, with the rain on or off', (
+      tester,
+    ) async {
       final (_, container) = await _pump(
         tester,
-        const Align(alignment: Alignment.topRight, child: WeatherMapOverlay()),
+        const WeatherMapHints(),
         prefs: <String, Object>{'map.weather.clouds': true},
       );
-      expect(find.textContaining('Clouds'), findsNothing);
+      expect(find.byType(WeatherMapChip), findsNothing);
+      final frame = DateTime.utc(2026, 10, 10, 14);
       container
           .read(sharedWeatherMapStatusProvider.notifier)
-          .set(WeatherMapStatus(cloudsFrame: DateTime.utc(2026, 10, 10, 14)));
+          .set(WeatherMapStatus(cloudsFrame: frame));
       await tester.pump();
-      expect(find.textContaining('Clouds '), findsOneWidget);
+      final caption = l10n.mapWeatherCloudsAt(
+        weatherClockTime(tester.element(find.byType(WeatherMapHints)), frame),
+      );
+      expect(find.text(caption), findsOneWidget);
+      await container
+          .read(weatherMapPreferencesProvider.notifier)
+          .setRadar(true);
+      await tester.pump();
+      expect(find.text(caption), findsOneWidget);
+    });
+
+    testWidgets('the Library\'s chip: the rain\'s moment, no slider', (
+      tester,
+    ) async {
+      final (_, container) = await _pump(
+        tester,
+        const WeatherMapHints(rainTime: true),
+        prefs: <String, Object>{'map.weather.radar': true},
+      );
+      container.read(sharedWeatherMapStatusProvider.notifier).set(berlin);
+      await tester.pump();
+      final context = tester.element(find.byType(WeatherMapHints));
+      expect(
+        find.text(
+          '${l10n.mapLayersRainRadar} · '
+          '${weatherClockTime(context, DateTime.utc(2026, 10, 10, 14, 35))}',
+        ),
+        findsOneWidget,
+      );
       expect(find.byType(Slider), findsNothing);
+      container.read(weatherRadarOffsetProvider.notifier).set(180);
+      await tester.pump();
+      expect(
+        find.text(
+          '${l10n.mapLayersRainRadar} · ${l10n.mapWeatherHoursAhead(3)} · '
+          '${weatherClockTime(context, DateTime.utc(2026, 10, 10, 17))} · '
+          '${l10n.mapWeatherForecast}',
+        ),
+        findsOneWidget,
+      );
+      // The rain off: no chip.
+      await container
+          .read(weatherMapPreferencesProvider.notifier)
+          .setRadar(false);
+      await tester.pump();
+      expect(find.byType(WeatherMapChip), findsNothing);
+    });
+  });
+
+  group('the shared step', () {
+    test('kept until the app is away more than half an hour', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final step = container.read(weatherRadarOffsetProvider.notifier)..set(60);
+      final t = DateTime.utc(2026, 10, 10, 14);
+      step
+        ..hidden(t)
+        ..shown(t.add(const Duration(minutes: 29)));
+      expect(container.read(weatherRadarOffsetProvider), 60);
+      step
+        ..hidden(t)
+        ..shown(t.add(const Duration(minutes: 31)));
+      expect(container.read(weatherRadarOffsetProvider), 0);
+      // Shown without having been hidden: nothing.
+      step
+        ..set(30)
+        ..shown(t.add(const Duration(hours: 5)));
+      expect(container.read(weatherRadarOffsetProvider), 30);
+    });
+
+    test('snapped to the steps', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(weatherRadarOffsetProvider.notifier).set(200);
+      expect(container.read(weatherRadarOffsetProvider), 180);
     });
   });
 }

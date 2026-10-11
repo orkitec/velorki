@@ -308,6 +308,11 @@ void main() {
       ]);
     });
 
+    test('the DWD\'s see-through grey beyond its radars goes', () {
+      // As its composite draws it, from a real image.
+      expect(softenRadarPixels(1, 1, _pixel(126, 126, 126, 77))[3], 0);
+    });
+
     test('a transparent pixel stays transparent', () {
       expect(softenRadarPixels(1, 1, _pixel(0, 200, 0, 0))[3], 0);
     });
@@ -400,6 +405,7 @@ void main() {
     late Directory dir;
     late HttpWeatherFetcher fetcher;
     var processed = 0;
+    final jobs = <RainImageJob>[];
     final box = dwdRadar.softBox(
       cloudDetailArea(
         const BoundingBox(south: 52.3, west: 13.2, north: 52.7, east: 13.6),
@@ -412,13 +418,15 @@ void main() {
       dir = Directory.systemTemp.createTempSync('radar');
       addTearDown(() => dir.deleteSync(recursive: true));
       processed = 0;
+      jobs.clear();
       fetcher = HttpWeatherFetcher(
         dio: Dio()..httpClientAdapter = adapter,
         cacheDir: () async => dir,
         probeTimeout: const Duration(milliseconds: 200),
         process: (png) async => throw StateError('not the clouds'),
-        processRadar: (png) async {
+        processRadar: (png, job) async {
           processed++;
+          jobs.add(job);
           return Uint8List.fromList(<int>[8, ...png]);
         },
       );
@@ -443,7 +451,7 @@ void main() {
       await fetcher.radarImage(
         dwdRadar,
         box,
-        dwdRadar.frameAt(now, offsetMinutes: -15)!,
+        dwdRadar.frameAt(now, offsetMinutes: 15)!,
         now,
       );
       expect(adapter.requests, hasLength(2));
@@ -484,6 +492,286 @@ void main() {
         );
       }
       expect(dir.listSync(), hasLength(radarImageCacheKeep));
+    });
+
+    test('the satellite: its own look and masks, each a cache entry of its '
+        'own', () async {
+      final now = DateTime.utc(2026, 10, 10, 14, 42);
+      final frame = hsafRain.frameAt(now)!;
+      final view = hsafRain.softBox(box)!;
+      await fetcher.radarImage(
+        hsafRain,
+        view,
+        frame,
+        now,
+        masks: dwdRadar.reachRings,
+        maskKey: '-radar_dwd',
+      );
+      final uri = adapter.requests.single;
+      expect(uri.host, 'view.eumetsat.int');
+      expect(uri.queryParameters['layers'], 'mtg_fd:h40b');
+      expect(uri.queryParameters['time'], '2026-10-10T14:10:00.000Z');
+      final job = jobs.single;
+      expect(job.palette, RainPalette.hsaf);
+      expect(job.soft, isTrue);
+      expect(job.box, view);
+      expect(job.masks, dwdRadar.reachRings);
+      // As measured, or unmasked: another image.
+      await fetcher.radarImage(
+        hsafRain,
+        view,
+        frame,
+        now,
+        style: RadarStyle.measured,
+        masks: dwdRadar.reachRings,
+        maskKey: '-radar_dwd',
+      );
+      await fetcher.radarImage(hsafRain, view, frame, now);
+      expect(adapter.requests, hasLength(3));
+      expect(jobs[1].soft, isFalse);
+      expect(jobs[2].masks, isEmpty);
+      // The satellite measures: not drawn lighter.
+      expect(jobs.any((job) => job.forecast), isFalse);
+    });
+
+    test('a model\'s image is a forecast, a radar\'s is not', () async {
+      final now = DateTime.utc(2026, 10, 10, 14, 42);
+      for (final source in <WeatherMapSource>[iconEuRain, iconGlobalRain]) {
+        await fetcher.radarImage(
+          source,
+          source.softBox(box)!,
+          source.frameAt(now, offsetMinutes: 60)!,
+          now,
+        );
+      }
+      await fetcher.radarImage(dwdRadar, box, dwdRadar.frameAt(now)!, now);
+      expect(jobs.map((job) => job.forecast), <bool>[true, true, false]);
+    });
+  });
+
+  group('rain palettes', () {
+    int level(double alpha) => (alpha * 255).round();
+
+    test('H SAF: light green the faintest, as the radar\'s lightest; the '
+        'purples the strongest; the colours kept', () {
+      // Each class's colour as the service draws it.
+      List<int> soft(int r, int g, int b) =>
+          softenRainPixels(1, 1, _pixel(r, g, b, 255), RainPalette.hsaf);
+      expect(soft(204, 255, 204), <int>[204, 255, 204, level(radarAlphaCyan)]);
+      expect(soft(153, 230, 153)[3], level(0.68));
+      expect(soft(51, 179, 51)[3], level(0.82));
+      expect(soft(51, 102, 255)[3], level(radarAlphaRed));
+      expect(soft(153, 51, 204)[3], level(radarAlphaMagenta));
+      expect(soft(127, 0, 127)[3], level(radarAlphaMagenta));
+      // An edge pixel between two classes reads as the nearer.
+      expect(soft(199, 246, 199)[3], level(radarAlphaCyan));
+      // Every class at least as faint as the radar's lightest, at most its
+      // heaviest, and rising.
+      var last = 0.0;
+      for (final (_, (_, _, _, alpha)) in hsafClasses) {
+        expect(alpha, inInclusiveRange(radarAlphaCyan, radarAlphaMagenta));
+        expect(alpha, greaterThanOrEqualTo(last));
+        last = alpha;
+      }
+    });
+
+    test('the global model: recoloured into the radar\'s palette at the mean '
+        'rate an hour, its no-rain veil gone', () {
+      List<int> soft(int r, int g, int b, [int a = 255]) =>
+          softenRainPixels(1, 1, _pixel(r, g, b, a), RainPalette.dwdModel6h);
+      // The veil over dry ground, as the service draws it.
+      expect(soft(0, 0, 0, 20)[3], 0);
+      // 0.1–0.5 mm in six hours: the radar's lightest cyan.
+      expect(soft(220, 247, 195), <int>[51, 255, 255, level(radarAlphaCyan)]);
+      // 2–5 mm: under a millimetre an hour, the radar's dark green.
+      expect(soft(0, 191, 1).sublist(0, 3), <int>[1, 153, 52]);
+      // 40–50 mm: 7.5–10 mm an hour, orange-yellow.
+      expect(soft(204, 0, 0).sublist(0, 3), <int>[255, 196, 1]);
+      // 200–300 mm: red, at the radar's red.
+      expect(soft(142, 102, 255), <int>[254, 0, 0, level(radarAlphaRed)]);
+      // As measured: the colours as they are, only the veil away.
+      expect(
+        measuredRainPixels(_pixel(0, 0, 0, 20), RainPalette.dwdModel6h)[3],
+        0,
+      );
+      expect(
+        measuredRainPixels(_pixel(0, 191, 1, 255), RainPalette.dwdModel6h),
+        <int>[0, 191, 1, 255],
+      );
+    });
+
+    test('ICON-EU in the radar\'s style reads as the radar', () {
+      // The DWD radar style's colours, from a real ICON-EU image.
+      expect(
+        softenRainPixels(1, 1, _pixel(51, 255, 255, 255), RainPalette.radarHue),
+        softenRadarPixels(1, 1, _pixel(51, 255, 255, 255)),
+      );
+      expect(
+        softenRainPixels(1, 1, _pixel(254, 0, 0, 255), RainPalette.radarHue)[3],
+        level(radarAlphaRed),
+      );
+    });
+
+    test('the job does nothing to an image that needs nothing', () {
+      const box = BoundingBox(south: 0, west: 0, north: 1, east: 1);
+      expect(
+        const RainImageJob(
+          palette: RainPalette.hsaf,
+          soft: false,
+          box: box,
+        ).needed,
+        isFalse,
+      );
+      expect(
+        const RainImageJob(
+          palette: RainPalette.dwdModel6h,
+          soft: false,
+          box: box,
+        ).needed,
+        isTrue,
+      );
+      expect(
+        const RainImageJob(
+          palette: RainPalette.hsaf,
+          soft: false,
+          box: box,
+          masks: <List<LatLng>>[
+            <LatLng>[LatLng(0, 0), LatLng(1, 0), LatLng(1, 1)],
+          ],
+        ).needed,
+        isTrue,
+      );
+    });
+  });
+
+  group('forecast alpha', () {
+    const box = BoundingBox(south: 0, west: 0, north: 1, east: 1);
+    final cases = <(RainPalette, Uint8List)>[
+      (RainPalette.radarHue, _pixel(0, 200, 0, 255)),
+      (RainPalette.dwdModel6h, _pixel(0, 0, 255, 255)),
+    ];
+
+    for (final soft in <bool>[true, false]) {
+      test('a model\'s pixels keep $forecastAlphaScale of their alpha '
+          '(soft: $soft), a measurement\'s all', () {
+        for (final (palette, pixel) in cases) {
+          final measured = prepareRainPixels(
+            1,
+            1,
+            pixel,
+            RainImageJob(palette: palette, soft: soft, box: box),
+          );
+          final forecast = prepareRainPixels(
+            1,
+            1,
+            pixel,
+            RainImageJob(
+              palette: palette,
+              soft: soft,
+              box: box,
+              forecast: true,
+            ),
+          );
+          expect(measured[3], greaterThan(0), reason: '$palette');
+          expect(
+            forecast[3],
+            (measured[3] * forecastAlphaScale).round(),
+            reason: '$palette',
+          );
+          expect(forecast.sublist(0, 3), measured.sublist(0, 3));
+        }
+      });
+    }
+
+    test('a forecast job is always needed', () {
+      expect(
+        const RainImageJob(
+          palette: RainPalette.radarHue,
+          soft: false,
+          box: box,
+          forecast: true,
+        ).needed,
+        isTrue,
+      );
+    });
+  });
+
+  group('masks', () {
+    // A 10 × 10 image of a box 10° wide at the equator, all rain.
+    const box = BoundingBox(south: -5, west: 0, north: 5, east: 10);
+    Uint8List rain() {
+      final out = Uint8List(10 * 10 * 4);
+      for (var i = 0; i < 100; i++) {
+        out.setAll(i * 4, <int>[0, 200, 0, 255]);
+      }
+      return out;
+    }
+
+    int alphaAt(Uint8List rgba, int x, int y) => rgba[(y * 10 + x) * 4 + 3];
+
+    test('pixels inside a ring go, the rest stay', () {
+      final rgba = rain();
+      // The box's western half, a little more.
+      maskRainPixels(10, 10, rgba, box, <List<LatLng>>[
+        <LatLng>[
+          LatLng(-6, -1),
+          LatLng(-6, 5.2),
+          LatLng(6, 5.2),
+          LatLng(6, -1),
+        ],
+      ]);
+      for (var y = 0; y < 10; y++) {
+        for (var x = 0; x < 10; x++) {
+          expect(alphaAt(rgba, x, y), x < 5 ? 0 : 255, reason: '($x, $y)');
+        }
+      }
+    });
+
+    test('a ring beside the image takes nothing, a triangle its part', () {
+      final rgba = rain();
+      maskRainPixels(10, 10, rgba, box, <List<LatLng>>[
+        <LatLng>[LatLng(10, 20), LatLng(11, 20), LatLng(11, 21)],
+      ]);
+      for (var i = 3; i < rgba.length; i += 4) {
+        expect(rgba[i], 255);
+      }
+      // A triangle on the box's southern edge: wide at the bottom, a point
+      // at the top.
+      maskRainPixels(10, 10, rgba, box, <List<LatLng>>[
+        <LatLng>[LatLng(-6, 0), LatLng(-6, 10), LatLng(5, 5)],
+      ]);
+      expect(alphaAt(rgba, 5, 9), 0);
+      expect(alphaAt(rgba, 0, 9), 255);
+      expect(alphaAt(rgba, 5, 1), 0);
+      expect(alphaAt(rgba, 2, 1), 255);
+    });
+
+    test('prepared as measured and masked, the colours stay', () {
+      final out = prepareRainPixels(
+        10,
+        10,
+        rain(),
+        RainImageJob(
+          palette: RainPalette.hsaf,
+          soft: false,
+          box: box,
+          masks: <List<LatLng>>[
+            <LatLng>[
+              LatLng(-6, -1),
+              LatLng(-6, 2.5),
+              LatLng(6, 2.5),
+              LatLng(6, -1),
+            ],
+          ],
+        ),
+      );
+      expect(alphaAt(out, 0, 0), 0);
+      expect(out.sublist((5 * 10 + 5) * 4, (5 * 10 + 5) * 4 + 4), <int>[
+        0,
+        200,
+        0,
+        255,
+      ]);
     });
   });
 

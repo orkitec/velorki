@@ -13,6 +13,7 @@ import '../../../core/permissions/location_permission.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/application/map_stops_controller.dart';
+import '../../map/presentation/weather_time_row.dart';
 import '../../map/presentation/stops_zoom_chip.dart';
 import '../../map/data/compass_heading.dart';
 import '../../map/data/map_preferences.dart';
@@ -1805,9 +1806,12 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // rests as wide as the other tabs' sheets.
     // Never above the sheet's own top, which a short phone with many
     // figures would otherwise ask for.
+    // The rain's time control under the figures, while the rain is on,
+    // is in view at rest too.
+    final rainRow = weatherRainOn(ref) ? weatherTimeRowHeight + 4 : 0.0;
     final initial = math.min(
       state.isRecording && !geometry.sideways
-          ? fraction(292.0 + 76 * extraRows)
+          ? fraction(292.0 + 76 * extraRows + rainRow)
           : geometry.resting,
       _recordMaxSheetSize,
     );
@@ -1940,8 +1944,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   ),
                 ),
               // The next stop of each kind ahead: under the banner, beside
-              // the control column (upright) or the sheet (sideways).
-              if ((stopsAhead || stopsWanted.shown) && !glance)
+              // the control column (upright) or the sheet (sideways); under
+              // it the weather's hints.
+              if (!glance)
                 Positioned(
                   top: 0,
                   left: 0,
@@ -1968,28 +1973,35 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                                 ? turnBannerHeight + _bannerGapPx
                                 : defaultMapControlsTop,
                           ),
-                          child: Align(
-                            alignment: Alignment.topLeft,
-                            child: ListenableBuilder(
-                              listenable: _stops,
-                              // Where nothing is downloaded: offered the
-                              // download. In the area on screen, zoomed out
-                              // too far: told to zoom in. Both where the
-                              // line would be.
-                              builder: (context, _) => _stops.needsDownload
-                                  ? StopsDownloadChip(
-                                      onDownload: _openOfflineData,
-                                    )
-                                  : _stops.needsZoom
-                                  ? StopsZoomChip(
-                                      onZoomIn: () =>
-                                          unawaited(_stops.zoomIn()),
-                                    )
-                                  : StopsAheadLine(
-                                      entries: _stops.nextPerKind(),
-                                      onTap: _onStopAheadTapped,
-                                    ),
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (stopsAhead || stopsWanted.shown)
+                                ListenableBuilder(
+                                  listenable: _stops,
+                                  // Where nothing is downloaded: offered the
+                                  // download. In the area on screen, zoomed out
+                                  // too far: told to zoom in. Both where the
+                                  // line would be.
+                                  builder: (context, _) => _stops.needsDownload
+                                      ? StopsDownloadChip(
+                                          onDownload: _openOfflineData,
+                                        )
+                                      : _stops.needsZoom
+                                      ? StopsZoomChip(
+                                          onZoomIn: () =>
+                                              unawaited(_stops.zoomIn()),
+                                        )
+                                      : StopsAheadLine(
+                                          entries: _stops.nextPerKind(),
+                                          onTap: _onStopAheadTapped,
+                                        ),
+                                ),
+                              const WeatherMapHints(
+                                padding: EdgeInsets.only(top: 8),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -2291,6 +2303,9 @@ class _IdlePanel extends ConsumerWidget {
           idleHints(l10n)[hintIndex % idleHints(l10n).length],
           style: theme.textTheme.bodySmall,
         ),
+        // The rain's time control while the rain is on: whether to set out
+        // now or in an hour.
+        const WeatherTimeRow(padding: EdgeInsets.only(top: 10)),
         const SizedBox(height: 16),
         // The chooser first, the button under it: at the sheet's resting
         // height the button then sits about where the Plan tab's toolbar is.
@@ -2546,6 +2561,9 @@ class _LivePanel extends ConsumerWidget {
               const SizedBox.shrink(),
           ],
         ),
+        // The rain's time control under the figures while the rain is on:
+        // on a ride, the next hours are what matters.
+        const WeatherTimeRow(padding: EdgeInsets.only(top: 4)),
         const SizedBox(height: 16),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,

@@ -19,6 +19,7 @@ import '../../map/application/cycle_map_binding.dart';
 import '../../map/application/locate_on_open.dart';
 import '../../map/application/map_stops_controller.dart';
 import '../../map/domain/visible_map.dart';
+import '../../map/presentation/weather_time_row.dart';
 import '../../map/presentation/stops_zoom_chip.dart';
 import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
@@ -1245,6 +1246,17 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             ),
           ),
         ),
+      // The clouds' time, and a weather layer that did not answer: clear
+      // of the control column, as the chips above.
+      const Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: WeatherMapHints(
+          padding: EdgeInsetsDirectional.only(
+            top: 10,
+            end: mapControlButtonSize + 14,
+          ),
+        ),
+      ),
       if (!hasBackend)
         const Padding(
           padding: EdgeInsets.only(top: 8),
@@ -1337,6 +1349,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       ),
                       children: [
                         _SheetHeader(state: state),
+                        // The rain's time control right under the figures,
+                        // in view at the resting height, while the rain is
+                        // on.
+                        const WeatherTimeRow(padding: EdgeInsets.only(top: 10)),
                         const SizedBox(height: 14),
                         // The variants right under the figures, where the sheet
                         // grows to show them; then the actions, so Loop and Save

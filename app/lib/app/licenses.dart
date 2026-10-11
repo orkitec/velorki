@@ -104,9 +104,15 @@ The optional rain radar and clouds layers are loaded by the phone straight
 from the public services that make them; those services see the map area
 requested.
 
-Rain radar over Germany: Deutscher Wetterdienst (DWD), CC BY 4.0.
+Rain radar and its two-hour nowcast over Germany: Deutscher Wetterdienst
+(DWD), CC BY 4.0.
 Rain radar over the US: NOAA National Weather Service, public domain. Not
 endorsed by NOAA.
+Rain from satellite over Europe, Africa and the Atlantic: contains modified
+EUMETSAT H SAF data, CC BY 4.0 under the EUMETSAT Data Policy, which makes
+every SAF product Core data.
+Rain forecast: the ICON-EU and ICON models of the Deutscher Wetterdienst
+(DWD), CC BY 4.0.
 Clouds over the Americas: NOAA GOES imagery via NASA GIBS (Global Imagery
 Browse Services), public domain.
 Clouds over Europe and Africa: contains modified EUMETSAT Meteosat data,
@@ -116,7 +122,8 @@ makes freely available are used.
 https://www.dwd.de/
 https://www.weather.gov/
 https://www.earthdata.nasa.gov/gibs
-https://www.eumetsat.int/'''),
+https://www.eumetsat.int/
+https://hsaf.meteoam.it/'''),
   _DataLicense('Photon', '''
 Place search by Photon, © komoot GmbH and contributors, Apache License 2.0.
 

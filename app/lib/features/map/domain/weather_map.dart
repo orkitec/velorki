@@ -4,8 +4,37 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
-/// What a weather layer shows: where it rains now, or the clouds.
+/// What a weather layer shows: the rain (measured, estimated or
+/// forecast; the "Rain radar" switch), or the clouds.
 enum WeatherKind { radar, clouds }
+
+/// Where a rain source's picture of the rain comes from.
+enum RainRole {
+  /// A weather radar: measured, and for the DWD also its two-hour nowcast.
+  radar,
+
+  /// A satellite's estimate, where no radar reaches; the present only.
+  satellite,
+
+  /// A weather model's forecast, for the moments ahead.
+  model,
+}
+
+/// How the colours of a rain image are read when it is drawn soft, and what
+/// of it is no rain at all.
+enum RainPalette {
+  /// A radar's palette, light blue and cyan through green, yellow and red to
+  /// purple: alpha by hue (see `radarIntensityAlpha`). The DWD's radar
+  /// palette serves the ICON-EU forecast too, asked for in that style.
+  radarHue,
+
+  /// The H SAF satellite rain: light green, greens, blues, purples.
+  hsaf,
+
+  /// The DWD's six-hour precipitation scale for the global ICON forecast,
+  /// recoloured into the radar's palette at the mean rate per hour.
+  dwdModel6h,
+}
 
 /// How the rain radar is drawn, chosen under Settings → Appearance.
 enum RadarStyle {
@@ -88,6 +117,9 @@ class WeatherMapSource {
     this.nativeMetresPerPixel = 2000,
     this.imageUrlTemplate,
     this.enabled = true,
+    this.role = RainRole.radar,
+    this.palette = RainPalette.radarHue,
+    this.reach,
   });
 
   /// Stable name, which the mirror's override refers to.
@@ -95,6 +127,35 @@ class WeatherMapSource {
 
   /// Radar or clouds.
   final WeatherKind kind;
+
+  /// For rain: a radar, a satellite or a model. Rain sources are listed
+  /// from the most trusted down; each leaves the [reachRings] of those
+  /// before it that show the same moment to them (see [rainPartsAt]).
+  final RainRole role;
+
+  /// How the soft look reads the rain image's colours.
+  final RainPalette palette;
+
+  /// Where the source actually has data, as lon/lat rings, finer than its
+  /// [coverage] boxes: a radar's reach. `null` for the coverage boxes.
+  final List<List<LatLng>>? reach;
+
+  /// [reach], or the [coverage] boxes as rings.
+  List<List<LatLng>> get reachRings =>
+      reach ??
+      <List<LatLng>>[
+        for (final box in coverage)
+          <LatLng>[
+            LatLng(box.south, box.west),
+            LatLng(box.south, box.east),
+            LatLng(box.north, box.east),
+            LatLng(box.north, box.west),
+          ],
+      ];
+
+  /// Whether [point] lies where the source has data ([reachRings]).
+  bool reaches(LatLng point) =>
+      reachRings.any((ring) => ringContains(ring, point));
 
   /// The tile URL template.
   final String urlTemplate;
@@ -154,8 +215,20 @@ class WeatherMapSource {
   /// where the source has nothing for that moment (a forecast it does not
   /// make, a past it does not keep).
   ///
-  /// A source that names no moment shows its latest image, now only.
+  /// A source that names no moment shows its latest image, now only. A
+  /// satellite shows the present only, and a model only the moments ahead
+  /// ([modelFrameTime]).
   WeatherFrame? frameAt(DateTime now, {int offsetMinutes = 0}) {
+    if (kind == WeatherKind.radar && role == RainRole.model) {
+      if (offsetMinutes <= 0) return null;
+      final time = modelFrameTime(now, offsetMinutes);
+      return time == null ? null : WeatherFrame(time);
+    }
+    if (kind == WeatherKind.radar &&
+        role == RainRole.satellite &&
+        offsetMinutes != 0) {
+      return null;
+    }
     if (offsetMinutes > forecastMinutes) return null;
     if (-offsetMinutes > historyMinutes) return null;
     if (timeFormat == WeatherTimeFormat.none) {
@@ -168,6 +241,35 @@ class WeatherMapSource {
         delayMinutes: delayMinutes,
       ).add(Duration(minutes: offsetMinutes)),
     );
+  }
+
+  /// A model's frame for the moment [offsetMinutes] from [now]: the hour
+  /// that moment falls in, as the model names it.
+  ///
+  /// A model's frame is the rain summed over the [stepMinutes] up to its
+  /// time: an hour for ICON-EU, six for the global ICON. So the hour the
+  /// moment falls in, which ends on the next full hour, is the frame whose
+  /// span holds that end. Clamped to the frames there are: none before the
+  /// one holding the present hour, none beyond [forecastMinutes] from now;
+  /// `null` where that leaves none.
+  DateTime? modelFrameTime(DateTime now, int offsetMinutes) {
+    final step = math.max(1, stepMinutes) * Duration.millisecondsPerMinute;
+    int ceilStep(int ms) => ms % step == 0 ? ms : ms - ms % step + step;
+    const hour = Duration.millisecondsPerHour;
+    int hourEnd(DateTime t) {
+      final ms = t.toUtc().millisecondsSinceEpoch;
+      return ms - ms % hour + hour;
+    }
+
+    final first = ceilStep(hourEnd(now));
+    final lastMs =
+        now.toUtc().millisecondsSinceEpoch +
+        forecastMinutes * Duration.millisecondsPerMinute;
+    final last = lastMs - lastMs % step;
+    if (last < first) return null;
+    final wanted = ceilStep(hourEnd(now.add(Duration(minutes: offsetMinutes))))
+        .clamp(first, last);
+    return DateTime.fromMillisecondsSinceEpoch(wanted, isUtc: true);
   }
 
   /// The tile URL template with [frame]'s moment filled in; `{z}`, `{x}`,
@@ -330,6 +432,8 @@ class WeatherMapSource {
     double? nativeMetresPerPixel,
     String? imageUrlTemplate,
     bool? enabled,
+    RainRole? role,
+    RainPalette? palette,
   }) => WeatherMapSource(
     id: id,
     kind: kind ?? this.kind,
@@ -348,6 +452,9 @@ class WeatherMapSource {
     nativeMetresPerPixel: nativeMetresPerPixel ?? this.nativeMetresPerPixel,
     imageUrlTemplate: imageUrlTemplate ?? this.imageUrlTemplate,
     enabled: enabled ?? this.enabled,
+    role: role ?? this.role,
+    palette: palette ?? this.palette,
+    reach: reach,
   );
 
   @override
@@ -369,7 +476,10 @@ class WeatherMapSource {
       other.opacity == opacity &&
       other.nativeMetresPerPixel == nativeMetresPerPixel &&
       other.imageUrlTemplate == imageUrlTemplate &&
-      other.enabled == enabled;
+      other.enabled == enabled &&
+      other.role == role &&
+      other.palette == palette &&
+      identical(other.reach, reach);
 
   @override
   int get hashCode => Object.hash(
@@ -390,6 +500,9 @@ class WeatherMapSource {
     nativeMetresPerPixel,
     imageUrlTemplate,
     enabled,
+    role,
+    palette,
+    identityHashCode(reach),
   );
 
   @override
@@ -575,14 +688,60 @@ const int radarSoftMaxSide = 1536;
 
 /// The pixel size of [source]'s soft radar image of [box]: the radar's
 /// own resolution, each side within [radarSoftMinSide] and
-/// [radarSoftMaxSide].
+/// [radarSoftMaxSide]. A model's has no minimum: its box is already at
+/// least [modelMinCells] of its cells a side ([modelImageArea]), and one
+/// pixel a cell is what lets the map blend the cells into each other.
 (int, int) radarSoftImageSize(WeatherMapSource source, BoundingBox box) =>
     cloudImageSize(
       box,
       metresPerPixel: source.nativeMetresPerPixel,
       maxSide: radarSoftMaxSide,
-      minSide: radarSoftMinSide,
+      minSide: source.role == RainRole.model ? 1 : radarSoftMinSide,
     );
+
+// A model's cells are kilometres wide (7 for ICON-EU, 28 for the global
+// ICON). An image of a city's view at the model's own resolution would be
+// a few pixels, which the service then draws larger, each cell a hard
+// block that the map's smoothing cannot undo. So a model's image covers at
+// least [modelMinCells] cells a side, one pixel a cell, and the map's
+// linear resampling turns the cells into gradients.
+
+/// The fewest of a model's own cells each side of its image spans.
+const int modelMinCells = 24;
+
+/// How much of its alpha a model's rain keeps, in either look: a model
+/// forecast is less certain than a measurement and should read lighter
+/// than the radar.
+const double forecastAlphaScale = 0.6;
+
+/// The area [source]'s (a model's) image of [area] covers: [area] grown
+/// to at least [modelMinCells] of the model's cells a side, about its
+/// middle put on a grid a quarter of that wide, its edges on the cells: so
+/// a pan of less than an eighth asks for the same box. The coverage clips
+/// it later ([WeatherMapSource.softBox]).
+BoundingBox modelImageArea(WeatherMapSource source, BoundingBox area) {
+  const origin = 20037508.342789244;
+  final cell = source.nativeMetresPerPixel;
+  final snap = cell * modelMinCells / 4;
+  (double, double) grow(double a, double b) {
+    final mid = ((a + b) / 2 / snap).roundToDouble() * snap;
+    final need = math.max(b - a, modelMinCells * cell) / 2 + snap / 2;
+    final half = (need / cell).ceilToDouble() * cell;
+    return (
+      (mid - half).clamp(-origin, origin),
+      (mid + half).clamp(-origin, origin),
+    );
+  }
+
+  final (west, east) = grow(mercatorX(area.west), mercatorX(area.east));
+  final (south, north) = grow(mercatorY(area.south), mercatorY(area.north));
+  return _box(
+    lonOfMercatorX(west),
+    latOfMercatorY(south),
+    lonOfMercatorX(east),
+    latOfMercatorY(north),
+  );
+}
 
 /// Whether the soft image of [box] is coarser than [source]'s own
 /// resolution: capped at [radarSoftMaxSide], so zooming in is worth a new,
@@ -638,6 +797,7 @@ final WeatherMapSource dwdRadar = WeatherMapSource(
       '&bbox={bbox-epsg-3857}&width={width}&height={height}'
       '&format=image/png&transparent=true&time={time}',
   coverage: <BoundingBox>[_box(1.5, 45, 19, 56.5)],
+  reach: const <List<LatLng>>[dwdRadarReach],
   maxZoom: 10,
   timeFormat: WeatherTimeFormat.iso,
   forecastMinutes: 120,
@@ -645,6 +805,86 @@ final WeatherMapSource dwdRadar = WeatherMapSource(
   nativeMetresPerPixel: 1000,
   attribution: 'Radar: Deutscher Wetterdienst (CC BY 4.0)',
 );
+
+/// Where the DWD's radars reach: the ring inside the magenta line its
+/// composite draws around them, some 4 km in, traced from an image of its
+/// coverage box (2 km a pixel) and simplified to within 6 km. Beyond it the
+/// composite is grey, "no data", inside its box; the satellite and the
+/// models draw there instead.
+const List<LatLng> dwdRadarReach = <LatLng>[
+  LatLng(51.34, 15.90),
+  LatLng(51.59, 15.81),
+  LatLng(51.82, 15.61),
+  LatLng(52.14, 15.90),
+  LatLng(52.61, 16.07),
+  LatLng(52.96, 16.04),
+  LatLng(53.32, 15.83),
+  LatLng(53.56, 15.52),
+  LatLng(53.79, 15.08),
+  LatLng(53.97, 14.30),
+  LatLng(54.55, 14.28),
+  LatLng(54.82, 14.10),
+  LatLng(55.14, 13.71),
+  LatLng(55.43, 12.95),
+  LatLng(55.52, 12.12),
+  LatLng(55.46, 11.39),
+  LatLng(55.27, 10.74),
+  LatLng(55.34, 10.34),
+  LatLng(55.34, 9.76),
+  LatLng(55.24, 9.19),
+  LatLng(55.08, 8.67),
+  LatLng(54.67, 8.04),
+  LatLng(54.85, 7.38),
+  LatLng(54.90, 6.48),
+  LatLng(54.81, 5.91),
+  LatLng(54.58, 5.27),
+  LatLng(54.24, 4.78),
+  LatLng(53.68, 4.51),
+  LatLng(53.26, 4.57),
+  LatLng(52.93, 4.80),
+  LatLng(52.69, 5.08),
+  LatLng(52.42, 5.56),
+  LatLng(51.93, 4.98),
+  LatLng(51.51, 4.84),
+  LatLng(51.34, 4.85),
+  LatLng(50.97, 4.96),
+  LatLng(50.64, 4.63),
+  LatLng(50.33, 4.50),
+  LatLng(50.08, 4.48),
+  LatLng(49.61, 4.64),
+  LatLng(49.31, 4.91),
+  LatLng(49.06, 5.29),
+  LatLng(48.87, 5.82),
+  LatLng(48.76, 6.49),
+  LatLng(48.45, 6.20),
+  LatLng(48.11, 6.06),
+  LatLng(47.71, 6.04),
+  LatLng(47.39, 6.17),
+  LatLng(47.08, 6.42),
+  LatLng(46.82, 6.81),
+  LatLng(46.61, 7.41),
+  LatLng(46.55, 7.88),
+  LatLng(46.64, 8.72),
+  LatLng(46.78, 9.13),
+  LatLng(46.91, 9.22),
+  LatLng(46.73, 9.93),
+  LatLng(46.73, 10.54),
+  LatLng(46.96, 11.35),
+  LatLng(46.86, 11.95),
+  LatLng(46.88, 12.53),
+  LatLng(46.97, 12.95),
+  LatLng(47.18, 13.44),
+  LatLng(47.48, 13.82),
+  LatLng(47.83, 14.05),
+  LatLng(48.25, 14.14),
+  LatLng(48.70, 14.01),
+  LatLng(49.20, 14.41),
+  LatLng(49.56, 14.50),
+  LatLng(49.85, 14.44),
+  LatLng(50.09, 15.13),
+  LatLng(50.33, 15.50),
+  LatLng(50.80, 15.84),
+];
 
 /// Base reflectivity over the US from the National Weather Service: the
 /// past two hours, no forecast.
@@ -679,6 +919,108 @@ final WeatherMapSource noaaRadar = WeatherMapSource(
   maxZoom: 10,
   timeFormat: WeatherTimeFormat.epochMs,
   attribution: 'Radar: NOAA National Weather Service',
+);
+
+/// Rain from satellite over Europe, Africa and the Atlantic: the EUMETSAT
+/// H SAF product H40B, Meteosat Third Generation's infrared calibrated by
+/// microwave passes, every ten minutes; the present only, where no radar
+/// reaches.
+///
+/// Every SAF product is Core data under the EUMETSAT Data Policy, CC BY 4.0
+/// at any latency, so unlike the Meteosat images ([eumetsatClouds]) it is
+/// taken every ten minutes, as new as it comes ([enforceWeatherLicences]
+/// leaves it so). Its newest frame lags some 20 minutes (a 25-minute delay
+/// on its 10-minute grid); the service answers a moment it has no frame for
+/// with the nearest one. The data reach ±70° from the sub-satellite point;
+/// the box keeps to where the view is not too slanted.
+final WeatherMapSource hsafRain = WeatherMapSource(
+  id: 'rain_hsaf',
+  kind: WeatherKind.radar,
+  role: RainRole.satellite,
+  palette: RainPalette.hsaf,
+  urlTemplate: _hsafUrl,
+  imageUrlTemplate: _hsafUrl,
+  coverage: <BoundingBox>[_box(-60, -60, 60, 66)],
+  timeFormat: WeatherTimeFormat.iso,
+  stepMinutes: 10,
+  delayMinutes: 25,
+  historyMinutes: 0,
+  // The geostationary infrared is some 3 km a pixel over Europe.
+  nativeMetresPerPixel: 3000,
+  attribution: 'Satellite rain: Contains modified EUMETSAT H SAF data {year}',
+);
+
+const String _hsafUrl =
+    'https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0'
+    '&request=GetMap&layers=mtg_fd:h40b&styles=&crs=EPSG:3857'
+    '&bbox={bbox-epsg-3857}&width={width}&height={height}'
+    '&format=image/png&transparent=true&time={time}';
+
+/// The DWD's map service for a model layer [layer] drawn in [style].
+String _dwdModelUrl(String layer, String style) =>
+    'https://maps.dwd.de/geoserver/dwd/wms?service=WMS&version=1.3.0'
+    '&request=GetMap&layers=dwd:$layer&styles=$style&crs=EPSG:3857'
+    '&bbox={bbox-epsg-3857}&width={width}&height={height}'
+    '&format=image/png&transparent=true&time={time}';
+
+/// The forecast over Europe from the DWD's ICON-EU model: the rain of each
+/// hour (`TOTPREC01H`), on a 0.0625° grid, up to 78 hours from each run (00,
+/// 06, 12 and 18 UTC). The service serves the latest run, an hour after it
+/// to its end; a moment outside answers with an error.
+///
+/// Asked for in the radar's own style (`niederschlagsradar`, mm/h), not the
+/// layer's, which paints all rain under 2 mm an hour one grey: so the
+/// forecast reads like the radar beside it, and softens the same way.
+final WeatherMapSource iconEuRain = WeatherMapSource(
+  id: 'rain_icon_eu',
+  kind: WeatherKind.radar,
+  role: RainRole.model,
+  urlTemplate: _dwdModelUrl(
+    'Icon-eu_reg00625_fd_sl_TOTPREC01H',
+    'niederschlagsradar',
+  ),
+  imageUrlTemplate: _dwdModelUrl(
+    'Icon-eu_reg00625_fd_sl_TOTPREC01H',
+    'niederschlagsradar',
+  ),
+  coverage: <BoundingBox>[_box(-23.5, 29.5, 62.5, 70.5)],
+  timeFormat: WeatherTimeFormat.iso,
+  stepMinutes: 60,
+  delayMinutes: 0,
+  historyMinutes: 0,
+  // Well inside the 78 hours of a run even half a day after it.
+  forecastMinutes: 60 * 60,
+  // 0.0625° is about 7 km of Web Mercator x.
+  nativeMetresPerPixel: 7000,
+  attribution: 'Forecast: Deutscher Wetterdienst (CC BY 4.0)',
+);
+
+/// The forecast everywhere else from the DWD's global ICON model, on a
+/// 0.25° grid.
+///
+/// The service has no hourly rain for it: `TOTPREC` is summed from the
+/// run's start, so it only grows; the shortest span is `TOTPREC06H`, the
+/// rain of the six hours up to 00, 06, 12 and 18 UTC. That is used, each
+/// step showing the six hours its hour falls in, recoloured on the phone
+/// into the radar's palette at the mean rate per hour (see
+/// [RainPalette.dwdModel6h]); drawn as measured it keeps the service's own
+/// six-hour scale.
+final WeatherMapSource iconGlobalRain = WeatherMapSource(
+  id: 'rain_icon',
+  kind: WeatherKind.radar,
+  role: RainRole.model,
+  palette: RainPalette.dwdModel6h,
+  urlTemplate: _dwdModelUrl('Icon_reg025_fd_sl_TOTPREC06H', ''),
+  imageUrlTemplate: _dwdModelUrl('Icon_reg025_fd_sl_TOTPREC06H', ''),
+  coverage: <BoundingBox>[_box(-180, -85, 180, 85)],
+  timeFormat: WeatherTimeFormat.iso,
+  stepMinutes: 360,
+  delayMinutes: 0,
+  historyMinutes: 0,
+  forecastMinutes: 100 * 60,
+  // 0.25° is about 28 km.
+  nativeMetresPerPixel: 28000,
+  attribution: 'Forecast: Deutscher Wetterdienst (CC BY 4.0)',
 );
 
 /// The NASA GIBS map service the GOES clouds come from: one GetMap for a
@@ -747,9 +1089,15 @@ final WeatherMapSource eumetsatClouds = WeatherMapSource(
 );
 
 /// The sources a build ships with, before the mirror's override.
+///
+/// The rain sources from the most trusted down: each draws only where none
+/// before it shows the same moment (see [rainPartsAt]).
 final List<WeatherMapSource> defaultWeatherMapSources = <WeatherMapSource>[
   dwdRadar,
   noaaRadar,
+  hsafRain,
+  iconEuRain,
+  iconGlobalRain,
   goesEastClouds,
   goesWestClouds,
   eumetsatClouds,
@@ -759,14 +1107,27 @@ final List<WeatherMapSource> defaultWeatherMapSources = <WeatherMapSource>[
 /// [eumetsatClouds].
 const String _eumetsatHost = 'view.eumetsat.int';
 
-bool _onEumetsat(WeatherMapSource source) =>
-    Uri.tryParse(source.urlTemplate)?.host == _eumetsatHost ||
-    (source.imageUrlTemplate != null &&
-        Uri.tryParse(source.imageUrlTemplate!)?.host == _eumetsatHost);
+/// A request for an H SAF product (`layers=…:h40b` and the like): Core
+/// data at any latency under the EUMETSAT Data Policy, unlike the Meteosat
+/// imagery.
+final RegExp _safLayer = RegExp(
+  r'[?&]layers=[a-z0-9_]+:h\d+[a-z]*(&|$)',
+  caseSensitive: false,
+);
+
+bool _onEumetsat(WeatherMapSource source) {
+  bool held(String? url) {
+    if (url == null) return false;
+    if (Uri.tryParse(url)?.host != _eumetsatHost) return false;
+    return !_safLayer.hasMatch(url);
+  }
+
+  return held(source.urlTemplate) || held(source.imageUrlTemplate);
+}
 
 /// [sources] with every source on the EUMETSAT host held to full hours at
 /// least 20 minutes old with the moment in the URL; one whose URL names no
-/// moment is switched off.
+/// moment is switched off. H SAF products are left as they are.
 List<WeatherMapSource> enforceWeatherLicences(List<WeatherMapSource> sources) =>
     <WeatherMapSource>[
       for (final source in sources)
@@ -872,6 +1233,8 @@ WeatherMapSource? _parseOver(WeatherMapSource base, Map<Object?, Object?> row) {
     nativeMetresPerPixel: _positive(row['metresPerPixel']),
     imageUrlTemplate: imageUrl,
     enabled: row['enabled'] is bool ? row['enabled']! as bool : null,
+    role: _role(row['role']),
+    palette: _palette(row['palette']),
   );
 }
 
@@ -886,6 +1249,20 @@ double? _positive(Object? v) => v is num && v > 0 ? v.toDouble() : null;
 WeatherKind? _kind(Object? v) => switch (v) {
   'radar' => WeatherKind.radar,
   'clouds' => WeatherKind.clouds,
+  _ => null,
+};
+
+RainRole? _role(Object? v) => switch (v) {
+  'radar' => RainRole.radar,
+  'satellite' => RainRole.satellite,
+  'model' => RainRole.model,
+  _ => null,
+};
+
+RainPalette? _palette(Object? v) => switch (v) {
+  'radarHue' => RainPalette.radarHue,
+  'hsaf' => RainPalette.hsaf,
+  'dwdModel6h' => RainPalette.dwdModel6h,
   _ => null,
 };
 
@@ -911,29 +1288,175 @@ List<BoundingBox>? _coverage(Object? v) {
   return out;
 }
 
-/// How far the radar's time control reaches back and ahead, in minutes,
-/// and its step.
-const int weatherRadarRangeMinutes = 120;
-const int weatherRadarStepMinutes = 15;
-
-/// The offsets the time control offers, from two hours back to two ahead.
-List<int> get weatherRadarOffsets => <int>[
-  for (
-    var m = -weatherRadarRangeMinutes;
-    m <= weatherRadarRangeMinutes;
-    m += weatherRadarStepMinutes
-  )
-    m,
+/// The steps of the rain's time control, in minutes from now: now, then
+/// every quarter hour to two hours ahead, then every hour to a day ahead.
+const List<int> weatherRadarOffsets = <int>[
+  0,
+  15, 30, 45, 60, 75, 90, 105, 120, //
+  180, 240, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900, 960, //
+  1020, 1080, 1140, 1200, 1260, 1320, 1380, 1440,
 ];
 
-/// The control's slider position for [offsetMinutes] and back.
-int weatherSliderIndexOf(int offsetMinutes) =>
-    (offsetMinutes.clamp(-weatherRadarRangeMinutes, weatherRadarRangeMinutes) +
-        weatherRadarRangeMinutes) ~/
-    weatherRadarStepMinutes;
+/// The control's slider position for [offsetMinutes] (the nearest step)
+/// and back.
+int weatherSliderIndexOf(int offsetMinutes) {
+  var best = 0;
+  for (var i = 1; i < weatherRadarOffsets.length; i++) {
+    if ((weatherRadarOffsets[i] - offsetMinutes).abs() <
+        (weatherRadarOffsets[best] - offsetMinutes).abs()) {
+      best = i;
+    }
+  }
+  return best;
+}
 
 int weatherOffsetOfSliderIndex(int index) =>
-    index * weatherRadarStepMinutes - weatherRadarRangeMinutes;
+    weatherRadarOffsets[index.clamp(0, weatherRadarOffsets.length - 1)];
+
+/// [minutes] moved onto the nearest step of the control.
+int snapWeatherOffset(int minutes) =>
+    weatherOffsetOfSliderIndex(weatherSliderIndexOf(minutes));
+
+/// One rain source's part of the map at a step: the moment it shows, and
+/// the places it leaves to the sources before it that show the same step
+/// ([masks], lon/lat rings, named by [maskedBy]), so a radar and a
+/// satellite or a model never draw over each other.
+@immutable
+class RainPart {
+  /// Creates the part.
+  const RainPart({
+    required this.source,
+    required this.frame,
+    this.masks = const <List<LatLng>>[],
+    this.maskedBy = const <String>[],
+  });
+
+  final WeatherMapSource source;
+  final WeatherFrame frame;
+  final List<List<LatLng>> masks;
+  final List<String> maskedBy;
+
+  /// What tells this part's masks from another's, for an image's cache key.
+  String get maskKey => maskedBy.isEmpty ? '' : '-${maskedBy.join('+')}';
+
+  @override
+  String toString() => 'RainPart(${source.id}, $frame, masked by $maskedBy)';
+}
+
+/// What each rain source in [sources] (the enabled ones, most trusted
+/// first) draws over [view] at [offsetMinutes] from [now]: those that have
+/// a frame for it and meet the view, each masked by the reach of those
+/// before it in the list.
+///
+/// So at "Now" the radars draw where they reach and the satellite around
+/// them; ahead, the DWD's nowcast in its reach for two hours, ICON-EU over
+/// Europe around it and the global ICON everywhere else.
+List<RainPart> rainPartsAt(
+  Iterable<WeatherMapSource> sources,
+  DateTime now,
+  int offsetMinutes, {
+  required BoundingBox view,
+}) {
+  final out = <RainPart>[];
+  for (final source in sources) {
+    if (source.kind != WeatherKind.radar || !source.enabled) continue;
+    if (!source.covers(view)) continue;
+    final frame = source.frameAt(now, offsetMinutes: offsetMinutes);
+    if (frame == null) continue;
+    // Wholly left to one before it (a view inside Europe, for the global
+    // model): nothing to draw, nothing to ask.
+    if (out.any(
+      (before) =>
+          before.source.reachRings.any((ring) => _boxInsideRing(view, ring)),
+    )) {
+      continue;
+    }
+    out.add(
+      RainPart(
+        source: source,
+        frame: frame,
+        masks: <List<LatLng>>[
+          for (final before in out) ...before.source.reachRings,
+        ],
+        maskedBy: <String>[for (final before in out) before.source.id],
+      ),
+    );
+  }
+  return out;
+}
+
+/// What the rain at [point] shows at [offsetMinutes] from [now]: the role
+/// of the first source in [sources] with a frame whose reach holds the
+/// point, and the moment it shows (for a model, the hour the step falls
+/// in). `null` where none does, or the source names no moment.
+({RainRole role, DateTime time})? rainAtPoint(
+  Iterable<WeatherMapSource> sources,
+  LatLng point,
+  DateTime now,
+  int offsetMinutes,
+) {
+  for (final source in sources) {
+    if (source.kind != WeatherKind.radar || !source.enabled) continue;
+    if (!source.reaches(point)) continue;
+    final frame = source.frameAt(now, offsetMinutes: offsetMinutes);
+    if (frame == null) continue;
+    final time = frame.time;
+    if (time == null) return null;
+    if (source.role != RainRole.model) return (role: source.role, time: time);
+    // The hour the step falls in, or where the model's frames end before
+    // it, the last hour of the last frame.
+    final moment = now
+        .add(Duration(minutes: offsetMinutes))
+        .toUtc()
+        .millisecondsSinceEpoch;
+    final hour = moment - moment % Duration.millisecondsPerHour;
+    final lastHour = time.millisecondsSinceEpoch - Duration.millisecondsPerHour;
+    return (
+      role: RainRole.model,
+      time: DateTime.fromMillisecondsSinceEpoch(
+        math.min(hour, lastHour),
+        isUtc: true,
+      ),
+    );
+  }
+  return null;
+}
+
+/// Whether [box] lies wholly inside [ring]: its corners inside, and no
+/// corner of the ring inside the box, which a bay of the ring would have.
+bool _boxInsideRing(BoundingBox box, List<LatLng> ring) {
+  if (box.west > box.east) return false;
+  final corners = <LatLng>[
+    LatLng(box.south, box.west),
+    LatLng(box.south, box.east),
+    LatLng(box.north, box.east),
+    LatLng(box.north, box.west),
+  ];
+  if (!corners.every((c) => ringContains(ring, c))) return false;
+  return !ring.any(
+    (p) =>
+        p.lat > box.south &&
+        p.lat < box.north &&
+        p.lon > box.west &&
+        p.lon < box.east,
+  );
+}
+
+/// Whether [point] lies inside [ring] (lon/lat, closed or not), by the
+/// crossings of a ray along its latitude.
+bool ringContains(List<LatLng> ring, LatLng point) {
+  var inside = false;
+  for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    final a = ring[i];
+    final b = ring[j];
+    if ((a.lat > point.lat) != (b.lat > point.lat) &&
+        point.lon <
+            (b.lon - a.lon) * (point.lat - a.lat) / (b.lat - a.lat) + a.lon) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
 
 /// One weather layer the map is asked to draw: a source's radar tiles for
 /// one frame ([tiles]), or one region of a source's clouds as one image

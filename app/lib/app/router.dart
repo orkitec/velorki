@@ -15,7 +15,6 @@ import '../features/library/presentation/library_screen.dart';
 import '../features/map/presentation/map_chrome.dart';
 import '../features/map/presentation/map_controls.dart';
 import '../features/map/presentation/visible_map_padding.dart';
-import '../features/map/presentation/weather_map_overlay.dart';
 import '../features/map/application/locate_on_open.dart';
 import '../features/map/presentation/shared_map_host.dart';
 import '../features/navigation/application/navigation_controller.dart';
@@ -409,11 +408,6 @@ class HomeShell extends ConsumerWidget {
                                 onWidth: ref
                                     .read(mapControlsRowWidthProvider.notifier)
                                     .set,
-                                below: WeatherMapOverlay(
-                                  alignment: layout.side == RailSide.left
-                                      ? CrossAxisAlignment.start
-                                      : CrossAxisAlignment.end,
-                                ),
                                 child: controls(layout),
                               )
                             : SafeArea(
@@ -429,22 +423,7 @@ class HomeShell extends ConsumerWidget {
                                       child: child,
                                     ),
                                   ),
-                                  // The weather's time control and hints
-                                  // sit beside the column, level with its
-                                  // top, and glide with it: under it they
-                                  // ran into a resting sheet.
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Padding(
-                                        padding: EdgeInsets.only(right: 8),
-                                        child: WeatherMapOverlay(top: 0),
-                                      ),
-                                      controls(layout),
-                                    ],
-                                  ),
+                                  child: controls(layout),
                                 ),
                               ),
                       ),
@@ -493,7 +472,6 @@ Widget _sidewaysControlsRow(
   ShellLayout layout, {
   required ValueChanged<double> onWidth,
   required Widget child,
-  Widget? below,
 }) {
   final media = MediaQuery.of(context);
   final start = sidewaysTopRowStart(media, layout);
@@ -506,21 +484,12 @@ Widget _sidewaysControlsRow(
     ),
     child: Align(
       alignment: left ? Alignment.topLeft : Alignment.topRight,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: left
-            ? CrossAxisAlignment.start
-            : CrossAxisAlignment.end,
-        children: [
-          SizedBox(
-            height: sidewaysTopRowHeight,
-            child: Center(
-              widthFactor: 1,
-              child: _WidthReporter(onWidth: onWidth, child: child),
-            ),
-          ),
-          ?below,
-        ],
+      child: SizedBox(
+        height: sidewaysTopRowHeight,
+        child: Center(
+          widthFactor: 1,
+          child: _WidthReporter(onWidth: onWidth, child: child),
+        ),
       ),
     ),
   );

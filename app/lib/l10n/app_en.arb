@@ -4447,9 +4447,9 @@
   "@mapLayersRainRadar": {
     "description": "Layers sheet: switch for the rain radar layer over the map."
   },
-  "mapLayersRainRadarSubtitle": "Germany and the US · now and the next two hours in Germany",
+  "mapLayersRainRadarSubtitle": "Radar in Germany and the US, a satellite estimate elsewhere in Europe and Africa · forecast up to 24 hours",
   "@mapLayersRainRadarSubtitle": {
-    "description": "Under the Rain radar switch: where the radar exists, and that the next two hours (a forecast) are only offered in Germany."
+    "description": "Under the Rain radar switch: radar where it exists (Germany, the US), elsewhere in Europe and Africa an estimate of the rain from satellite data (less exact than radar), and a forecast for the next 24 hours."
   },
   "mapLayersClouds": "Clouds",
   "@mapLayersClouds": {
@@ -4463,19 +4463,9 @@
   "@mapWeatherNow": {
     "description": "The rain radar's time control at the present moment."
   },
-  "mapWeatherMinutesAgo": "−{minutes} min",
-  "@mapWeatherMinutesAgo": {
-    "description": "The rain radar's time control set to a moment in the past, e.g. '−45 min'. The minus is a real minus sign (U+2212).",
-    "placeholders": {
-      "minutes": {
-        "type": "int",
-        "example": "45"
-      }
-    }
-  },
   "mapWeatherMinutesAhead": "+{minutes} min",
   "@mapWeatherMinutesAhead": {
-    "description": "The rain radar's time control set to a moment ahead (a forecast), e.g. '+30 min'.",
+    "description": "The rain's time control set to a moment ahead, e.g. '+30 min'.",
     "placeholders": {
       "minutes": {
         "type": "int",
@@ -4483,17 +4473,39 @@
       }
     }
   },
+  "mapWeatherHoursAhead": "+{hours} h",
+  "@mapWeatherHoursAhead": {
+    "description": "The rain's time control set to whole hours ahead, e.g. '+3 h'. 'h' is the hour's unit symbol.",
+    "placeholders": {
+      "hours": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "mapWeatherNowcast": "Nowcast",
+  "@mapWeatherNowcast": {
+    "description": "Ending the rain time control's label when the step ahead shows the weather service's nowcast (the radar's rain moved ahead, up to two hours), e.g. '+45 min · 21:30 · Nowcast'. Keep it short."
+  },
+  "mapWeatherForecast": "Forecast",
+  "@mapWeatherForecast": {
+    "description": "Ending the rain time control's label when the step ahead shows a weather model's forecast, e.g. '+3 h · 23:00 · Forecast'. Keep it short."
+  },
   "mapWeatherRadarTime": "Rain radar time",
   "@mapWeatherRadarTime": {
     "description": "Screen-reader label of the rain radar's time slider."
   },
-  "mapWeatherForecastGermanyOnly": "Forecast: Germany only",
-  "@mapWeatherForecastGermanyOnly": {
-    "description": "Hint under the rain radar's time control when a moment ahead is chosen but the map shows an area without a radar forecast."
-  },
   "mapWeatherRadarUnavailable": "Rain radar unavailable right now",
   "@mapWeatherRadarUnavailable": {
     "description": "Hint over the map when the rain radar's service did not answer: the empty map does not mean no rain."
+  },
+  "mapWeatherSatelliteUnavailable": "Satellite rain unavailable right now",
+  "@mapWeatherSatelliteUnavailable": {
+    "description": "Hint over the map when the service with the rain estimated from satellite data did not answer: the empty map does not mean no rain."
+  },
+  "mapWeatherForecastUnavailable": "Rain forecast unavailable right now",
+  "@mapWeatherForecastUnavailable": {
+    "description": "Hint over the map when the rain forecast's service did not answer: the empty map does not mean no rain."
   },
   "mapWeatherCloudsUnavailable": "Clouds unavailable right now",
   "@mapWeatherCloudsUnavailable": {

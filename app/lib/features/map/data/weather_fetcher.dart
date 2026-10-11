@@ -111,8 +111,9 @@ const double radarAlphaRed = 0.9;
 /// The alpha of magenta and purple, the heaviest rain and hail.
 const double radarAlphaMagenta = 0.95;
 
-/// The alpha of grey: the DWD's area beyond the radars' reach, kept in
-/// view but faint.
+/// The alpha of opaque grey, which no radar palette uses for rain: faint.
+/// The DWD's see-through grey beyond its radars' reach goes altogether
+/// (see [rainPixel]).
 const double radarAlphaGrey = 0.25;
 
 /// How far apart a pixel's strongest and weakest channel have to be for its
@@ -173,29 +174,47 @@ double radarIntensityAlpha(int r, int g, int b) {
 /// averaged over a box of [radarBlurRadius], so the edges of the rain fade
 /// out instead of stepping. A pixel the service left transparent stays so,
 /// and one as heavy as [radarAlphaRed] or more is never made fainter.
-Uint8List softenRadarPixels(int width, int height, Uint8List rgba) {
+Uint8List softenRadarPixels(int width, int height, Uint8List rgba) =>
+    softenRainPixels(width, height, rgba, RainPalette.radarHue);
+
+/// The soft look of a rain image of [palette]: every pixel's colour and
+/// its alpha by how heavy the rain is ([rainPixel]), then the alpha alone
+/// averaged over a box of [radarBlurRadius], so the edges fade out instead
+/// of stepping. A pixel that is no rain stays transparent, and one at
+/// [radarAlphaRed] or more is never made fainter.
+Uint8List softenRainPixels(
+  int width,
+  int height,
+  Uint8List rgba,
+  RainPalette palette,
+) {
   final n = width * height;
   final alpha = Float64List(n);
   final heavy = Uint8List(n);
+  final out = Uint8List.fromList(rgba);
   for (var i = 0; i < n; i++) {
     final o = i * 4;
     final a = rgba[o + 3];
     if (a == 0) continue;
-    final intensity = radarIntensityAlpha(rgba[o], rgba[o + 1], rgba[o + 2]);
+    final pixel = rainPixel(palette, rgba[o], rgba[o + 1], rgba[o + 2], a);
+    if (pixel == null) {
+      out[o + 3] = 0;
+      continue;
+    }
+    final (r, g, b, intensity) = pixel;
+    out[o] = r;
+    out[o + 1] = g;
+    out[o + 2] = b;
     alpha[i] = intensity * a / 255;
     if (intensity >= radarAlphaRed) heavy[i] = 1;
   }
-  final out = Uint8List.fromList(rgba);
   const r = radarBlurRadius;
   const box = (2 * r + 1) * (2 * r + 1);
   for (var y = 0; y < height; y++) {
     for (var x = 0; x < width; x++) {
       final i = y * width + x;
       final o = i * 4;
-      if (rgba[o + 3] == 0) {
-        out[o + 3] = 0;
-        continue;
-      }
+      if (out[o + 3] == 0) continue;
       // Beyond the image's edge counts as the edge's own pixel, so the
       // border of the box is not taken for the border of the rain.
       var sum = 0.0;
@@ -209,6 +228,219 @@ Uint8List softenRadarPixels(int width, int height, Uint8List rgba) {
       var value = sum / box;
       if (heavy[i] == 1 && value < alpha[i]) value = alpha[i];
       out[o + 3] = (value * 255).round().clamp(0, 255);
+    }
+  }
+  return out;
+}
+
+/// One pixel of a rain image of [palette] as the soft look draws it: its
+/// colour and how opaque its rain is (0..1, before the service's own alpha
+/// [a]); `null` where it is no rain.
+///
+/// The radar's palette is read by hue; its grey is "no data" (the DWD's
+/// area beyond the radars' reach, which the service itself draws
+/// see-through) and goes, other grey stays faint. The satellite's and the
+/// global model's are read class by class from their legends.
+(int, int, int, double)? rainPixel(
+  RainPalette palette,
+  int r,
+  int g,
+  int b,
+  int a,
+) {
+  switch (palette) {
+    case RainPalette.radarHue:
+      final spread = math.max(r, math.max(g, b)) - math.min(r, math.min(g, b));
+      if (spread < radarGreySpread && a < 128) return null;
+      return (r, g, b, radarIntensityAlpha(r, g, b));
+    case RainPalette.hsaf:
+      final (_, _, _, alpha) = _nearest(hsafClasses, r, g, b);
+      return (r, g, b, alpha);
+    case RainPalette.dwdModel6h:
+      if (_modelNoData(r, g, b)) return null;
+      final (rr, gg, bb, _) = _nearest(dwdModel6hClasses, r, g, b);
+      return (rr, gg, bb, radarIntensityAlpha(rr, gg, bb));
+  }
+}
+
+/// The global model's ground with no rain: the service draws it a faint
+/// black veil (alpha 20), and "under 0.1 mm" a light grey.
+bool _modelNoData(int r, int g, int b) =>
+    math.max(r, math.max(g, b)) < 40 || (r == g && g == b && r >= 200);
+
+/// The class of [classes] (legend colour first, then what it is drawn as)
+/// whose legend colour is nearest to (r, g, b).
+(int, int, int, double) _nearest(
+  List<((int, int, int), (int, int, int, double))> classes,
+  int r,
+  int g,
+  int b,
+) {
+  var best = classes.first.$2;
+  var bestDistance = 1 << 30;
+  for (final ((cr, cg, cb), drawn) in classes) {
+    final d = (cr - r) * (cr - r) + (cg - g) * (cg - g) + (cb - b) * (cb - b);
+    if (d < bestDistance) {
+      bestDistance = d;
+      best = drawn;
+    }
+  }
+  return best;
+}
+
+/// The H SAF rain's legend (`mtg_h40b_default`), lightest first, each class
+/// drawn in its own colour at its alpha: light green under about 1.5 mm an
+/// hour at [radarAlphaCyan], as faint as the radar's lightest, up to the
+/// purples of 30 mm and more at [radarAlphaMagenta].
+const List<((int, int, int), (int, int, int, double))> hsafClasses =
+    <((int, int, int), (int, int, int, double))>[
+      ((204, 255, 204), (204, 255, 204, radarAlphaCyan)), // < 1.5 mm/h
+      ((153, 230, 153), (153, 230, 153, 0.68)), // < 4
+      ((102, 204, 102), (102, 204, 102, 0.76)), // < 7
+      ((51, 179, 51), (51, 179, 51, 0.82)), // < 10
+      ((51, 153, 204), (51, 153, 204, 0.86)), // < 15
+      ((51, 102, 255), (51, 102, 255, radarAlphaRed)), // < 20
+      ((0, 0, 255), (0, 0, 255, 0.92)), // < 25
+      ((102, 0, 204), (102, 0, 204, 0.94)), // < 30
+      ((153, 51, 204), (153, 51, 204, radarAlphaMagenta)), // < 40
+      ((204, 0, 153), (204, 0, 153, radarAlphaMagenta)), // < 50
+      ((127, 0, 127), (127, 0, 127, radarAlphaMagenta)), // 50 and more
+    ];
+
+/// The global ICON's six-hour legend (`icon_reg025_fd_sl_totprec06h_wmc_
+/// isoarea`), each class drawn in the DWD radar's colour for its mean rate
+/// per hour (the class's middle over six hours): 0.1–0.5 mm in six hours is
+/// the radar's lightest, 200–300 mm its 30–45 mm an hour. The alpha is then
+/// the radar's, by hue.
+const List<((int, int, int), (int, int, int, double))> dwdModel6hClasses =
+    <((int, int, int), (int, int, int, double))>[
+      ((220, 247, 195), (51, 255, 255, 0)), // 0.1–0.5 mm
+      ((185, 247, 124), (51, 255, 255, 0)), // 0.5–1
+      ((0, 230, 1), (26, 204, 154, 0)), // 1–2
+      ((0, 191, 1), (1, 153, 52, 0)), // 2–5
+      ((0, 128, 23), (77, 179, 27, 0)), // 5–10
+      ((51, 185, 255), (153, 204, 1, 0)), // 10–15
+      ((0, 125, 255), (153, 204, 1, 0)), // 15–20
+      ((255, 192, 64), (204, 230, 1, 0)), // 20–25
+      ((230, 153, 0), (204, 230, 1, 0)), // 25–30
+      ((179, 119, 0), (255, 255, 1, 0)), // 30–35
+      ((255, 0, 0), (255, 255, 1, 0)), // 35–40
+      ((204, 0, 0), (255, 196, 1, 0)), // 40–50
+      ((166, 0, 0), (255, 196, 1, 0)), // 50–60
+      ((254, 0, 255), (255, 137, 1, 0)), // 60–70
+      ((216, 0, 217), (255, 137, 1, 0)), // 70–80
+      ((188, 0, 191), (255, 137, 1, 0)), // 80–90
+      ((165, 0, 166), (255, 69, 1, 0)), // 90–100
+      ((199, 179, 255), (255, 69, 1, 0)), // 100–150
+      ((170, 140, 255), (255, 69, 1, 0)), // 150–200
+      ((142, 102, 255), (254, 0, 0, 0)), // 200–300
+    ];
+
+/// The as-measured look of a rain image of [palette]: the service's
+/// colours as they are, only the global model's no-rain veil taken away.
+Uint8List measuredRainPixels(Uint8List rgba, RainPalette palette) {
+  if (palette != RainPalette.dwdModel6h) return rgba;
+  final out = Uint8List.fromList(rgba);
+  for (var o = 0; o + 3 < out.length; o += 4) {
+    if (out[o + 3] == 0) continue;
+    if (_modelNoData(out[o], out[o + 1], out[o + 2])) out[o + 3] = 0;
+  }
+  return out;
+}
+
+/// Makes every pixel of [rgba] ([width] × [height], an image of [box] in
+/// Web Mercator) transparent that lies inside one of [masks] (lon/lat
+/// rings): the places a source leaves to those before it. Row by row, by
+/// where each row's middle crosses the rings' edges.
+void maskRainPixels(
+  int width,
+  int height,
+  Uint8List rgba,
+  BoundingBox box,
+  List<List<LatLng>> masks,
+) {
+  if (masks.isEmpty || width <= 0 || height <= 0) return;
+  final x0 = mercatorX(box.west);
+  final xSpan = mercatorX(box.east) - x0;
+  final y1 = mercatorY(box.north);
+  final ySpan = y1 - mercatorY(box.south);
+  if (xSpan <= 0 || ySpan <= 0) return;
+  for (final ring in masks) {
+    if (ring.length < 3) continue;
+    final xs = <double>[
+      for (final p in ring) (mercatorX(p.lon) - x0) / xSpan * width,
+    ];
+    final ys = <double>[
+      for (final p in ring) (y1 - mercatorY(p.lat)) / ySpan * height,
+    ];
+    final top = ys.reduce(math.min).floor().clamp(0, height);
+    final bottom = ys.reduce(math.max).ceil().clamp(0, height);
+    for (var y = top; y < bottom; y++) {
+      final cy = y + 0.5;
+      final crossings = <double>[];
+      for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        if ((ys[i] > cy) != (ys[j] > cy)) {
+          crossings.add(
+            xs[i] + (cy - ys[i]) / (ys[j] - ys[i]) * (xs[j] - xs[i]),
+          );
+        }
+      }
+      crossings.sort();
+      for (var k = 0; k + 1 < crossings.length; k += 2) {
+        final from = (crossings[k] - 0.5).ceil().clamp(0, width);
+        final to = (crossings[k + 1] - 0.5).floor().clamp(-1, width - 1);
+        for (var x = from; x <= to; x++) {
+          rgba[(y * width + x) * 4 + 3] = 0;
+        }
+      }
+    }
+  }
+}
+
+/// What a rain image needs on the phone before the map draws it: the look
+/// ([soft] or as measured), how its colours are read ([palette]), the box
+/// it shows and the places it leaves to other sources ([masks]).
+@immutable
+class RainImageJob {
+  /// Creates the job.
+  const RainImageJob({
+    required this.palette,
+    required this.soft,
+    required this.box,
+    this.masks = const <List<LatLng>>[],
+    this.forecast = false,
+  });
+
+  final RainPalette palette;
+  final bool soft;
+  final BoundingBox box;
+  final List<List<LatLng>> masks;
+
+  /// Whether the image is a model's forecast, drawn lighter
+  /// ([forecastAlphaScale]).
+  final bool forecast;
+
+  /// Whether the image is to be touched at all: as measured, unmasked, no
+  /// forecast and in a palette drawn as it comes, it is drawn as the
+  /// service sent it.
+  bool get needed =>
+      soft || forecast || masks.isNotEmpty || palette == RainPalette.dwdModel6h;
+}
+
+/// [rgba] ([width] × [height]) as [job] wants it drawn.
+Uint8List prepareRainPixels(
+  int width,
+  int height,
+  Uint8List rgba,
+  RainImageJob job,
+) {
+  final out = job.soft
+      ? softenRainPixels(width, height, rgba, job.palette)
+      : Uint8List.fromList(measuredRainPixels(rgba, job.palette));
+  maskRainPixels(width, height, out, job.box, job.masks);
+  if (job.forecast) {
+    for (var o = 3; o < out.length; o += 4) {
+      out[o] = (out[o] * forecastAlphaScale).round();
     }
   }
   return out;
@@ -280,13 +512,18 @@ Future<Uint8List> processCloudImage(Uint8List png) async {
   );
 }
 
-/// Decodes the radar's [png] on the engine, then softens it
-/// ([softenRadarPixels]) and re-encodes it on a background isolate.
-Future<Uint8List> processRadarImage(Uint8List png) async {
+/// Decodes the rain's [png] on the engine, then prepares it as [job] says
+/// ([prepareRainPixels]) and re-encodes it on a background isolate; the
+/// service's own image where the job wants nothing done.
+Future<Uint8List> processRainImage(Uint8List png, RainImageJob job) async {
+  if (!job.needed) return png;
   final (width, height, pixels) = await _decode(png);
   return Isolate.run(
-    () =>
-        encodePngRgba(width, height, softenRadarPixels(width, height, pixels)),
+    () => encodePngRgba(
+      width,
+      height,
+      prepareRainPixels(width, height, pixels, job),
+    ),
   );
 }
 
@@ -350,16 +587,21 @@ abstract class WeatherFetcher {
     DateTime now,
   );
 
-  /// The soft radar's image of [box] at [frame] (see
-  /// `WeatherMapSource.softImageUrl`), softened as [processRadarImage]
-  /// does; `null` when the service does not answer with an image within
-  /// [weatherProbeTimeout], which is the radar's check.
+  /// A rain source's image of [box] at [frame] (see
+  /// `WeatherMapSource.softImageUrl`): the soft radar, the satellite or a
+  /// model, prepared for [style] with [masks] left out as
+  /// [processRainImage] does; `null` when the service does not answer with
+  /// an image within [weatherProbeTimeout], which is the source's check.
+  /// [maskKey] names the masks in the cache.
   Future<Uint8List?> radarImage(
     WeatherMapSource source,
     BoundingBox box,
     WeatherFrame frame,
-    DateTime now,
-  );
+    DateTime now, {
+    RadarStyle style = RadarStyle.soft,
+    List<List<LatLng>> masks = const <List<LatLng>>[],
+    String maskKey = '',
+  });
 }
 
 /// [WeatherFetcher] over HTTP, cloud images cached in [cacheDir].
@@ -370,7 +612,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
     required this.dio,
     required this.cacheDir,
     this.process = processCloudImage,
-    this.processRadar = processRadarImage,
+    this.processRadar = processRainImage,
     this.probeTimeout = weatherProbeTimeout,
     this.imageTimeout = cloudImageTimeout,
   });
@@ -388,8 +630,9 @@ class HttpWeatherFetcher implements WeatherFetcher {
 
   final Future<Uint8List> Function(Uint8List png) process;
 
-  /// Turns a radar image into the soft one drawn.
-  final Future<Uint8List> Function(Uint8List png) processRadar;
+  /// Turns a rain image into the one drawn.
+  final Future<Uint8List> Function(Uint8List png, RainImageJob job)
+  processRadar;
 
   /// The requests made, newest last; for tests and the log.
   final List<String> requests = <String>[];
@@ -446,14 +689,24 @@ class HttpWeatherFetcher implements WeatherFetcher {
     WeatherMapSource source,
     BoundingBox box,
     WeatherFrame frame,
-    DateTime now,
-  ) async {
+    DateTime now, {
+    RadarStyle style = RadarStyle.soft,
+    List<List<LatLng>> masks = const <List<LatLng>>[],
+    String maskKey = '',
+  }) async {
     final url = source.softImageUrl(frame, box);
     if (url == null) return null;
-    final prefix = '${source.id}_soft_';
+    final prefix = '${source.id}_${style.name}_';
     final name =
         '$prefix${cloudDetailKey(box)}_${radarImageStamp(source, frame, now)}'
-        '.png';
+        '$maskKey.png';
+    final job = RainImageJob(
+      palette: source.palette,
+      soft: style == RadarStyle.soft,
+      box: box,
+      masks: masks,
+      forecast: source.role == RainRole.model,
+    );
     return _cloud(
       url,
       name,
@@ -466,7 +719,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
         keep: radarImageCacheKeep,
       ),
       timeout: probeTimeout,
-      process: processRadar,
+      process: (png) => processRadar(png, job),
     );
   }
 

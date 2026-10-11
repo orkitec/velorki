@@ -75,18 +75,36 @@ class WeatherMapPreferences extends _$WeatherMapPreferences {
   }
 }
 
-/// Where the radar's time control stands, in minutes from now: 0 is "Now".
-/// For this launch only: the radar opens on the present.
+/// How long the app may be away before the rain's time control is back on
+/// "Now" when it returns: a step chosen for a ride later the same hour
+/// stays, one from the morning does not.
+const Duration weatherStepResetAfter = Duration(minutes: 30);
+
+/// Where the rain's time control stands, in minutes from now: 0 is "Now",
+/// else one of [weatherRadarOffsets]. One for the Plan, Record and Library
+/// tabs, for this launch only, and back on "Now" when the app returns after
+/// more than [weatherStepResetAfter] away.
 @Riverpod(keepAlive: true)
 class WeatherRadarOffset extends _$WeatherRadarOffset {
+  DateTime? _hiddenAt;
+
   @override
   int build() => 0;
 
-  /// Moves the control.
-  void set(int minutes) => state = minutes.clamp(
-    -weatherRadarRangeMinutes,
-    weatherRadarRangeMinutes,
-  );
+  /// Moves the control, to the nearest step.
+  void set(int minutes) => state = snapWeatherOffset(minutes);
+
+  /// The app went to the background at [at].
+  void hidden(DateTime at) => _hiddenAt ??= at;
+
+  /// The app came back at [at]: after long enough away, back to "Now".
+  void shown(DateTime at) {
+    final hidden = _hiddenAt;
+    _hiddenAt = null;
+    if (hidden != null && at.difference(hidden) > weatherStepResetAfter) {
+      state = 0;
+    }
+  }
 }
 
 /// The weather sources in force: the built-in ones, as the tile mirror's
