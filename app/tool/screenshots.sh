@@ -8,8 +8,10 @@
 #   tool/screenshots.sh --screens planner,settings   # only these screens
 #   tool/screenshots.sh --lang de       # the app in German (default: en)
 #
-# Output: web/public/screenshots/<lang>/<mode>-<accent>/<screen>.png plus
-# web/public/screenshots/manifest.json. Screens are planner, loop, search,
+# Output: web/public/screenshots/<lang>/<mode>-<accent>/<screen>.webp plus
+# web/public/screenshots/manifest.json. Each screen is captured as PNG and
+# converted with `cwebp -q 88 -m 6 -metadata none` (lossy WebP, a fifth of
+# the size, which keeps the site's deploy artifact under Orkify's limit). Screens are planner, loop, search,
 # navigation, recording, ride, library, offline, settings, assistant,
 # paywall, cyclemap and layers; the appearance
 # matrix is both modes in all five accents — light-volt and dark-volt first,
@@ -24,8 +26,8 @@
 #   English, so the keyboard is QWERTY) such as the Play capture's AVD; the
 #   phone is never touched, the serial is fixed to emulator-5554 unless
 #   VELORKI_SHOT_DEVICE says otherwise. Bash 3.2 (macOS) is enough.
-# * `mise` (Flutter 3.47 and Java 21), the Android platform tools, python3 and
-#   `env/local.json` (git-ignored; it points the tile mirror at 10.0.2.2:8000).
+# * `mise` (Flutter 3.47 and Java 21), the Android platform tools, python3,
+#   cwebp (`brew install webp`) and `env/local.json` (git-ignored; it points the tile mirror at 10.0.2.2:8000).
 # * Network: the map style and its raster tiles come from OpenFreeMap. Routing,
 #   the gazetteer and the loop search all run on the device.
 #
@@ -128,6 +130,7 @@ A() { adb -s "$SERIAL" "$@"; }
 
 require_device() {
   command -v adb > /dev/null || die "adb is not on PATH (\$HOME/Android/Sdk/platform-tools)."
+  command -v cwebp > /dev/null || die "cwebp is not on PATH (brew install webp)."
   if ! adb devices | grep -q "^$SERIAL[[:space:]]*device$"; then
     die "$SERIAL is not attached. Start it with ~/Work/bin/velorki-emu and wait for sys.boot_completed."
   fi
@@ -715,11 +718,18 @@ shot() {  # shot <mode-accent> <screen>
   mkdir -p "$dir"
   dismiss_snackbar
   demo_mode_apply
-  A exec-out screencap -p > "$dir/$2.png"
-  local bytes
-  bytes=$(wc -c < "$dir/$2.png" | tr -d ' ')
-  [ "$bytes" -gt 20000 ] || die "$dir/$2.png came out empty ($bytes bytes)"
-  printf '    %s/%s/%s.png (%s kB)\n' "$LANG_TAG" "$1" "$2" "$(( bytes / 1024 ))"
+  local png="$WORK/shot.png" bytes
+  A exec-out screencap -p > "$png"
+  bytes=$(wc -c < "$png" | tr -d ' ')
+  [ "$bytes" -gt 20000 ] || die "$dir/$2 came out empty ($bytes bytes)"
+  to_webp "$png" "$dir/$2.webp"
+  rm -f "$png"
+  bytes=$(wc -c < "$dir/$2.webp" | tr -d ' ')
+  printf '    %s/%s/%s.webp (%s kB)\n' "$LANG_TAG" "$1" "$2" "$(( bytes / 1024 ))"
+}
+
+to_webp() {  # to_webp <in.png> <out.webp>
+  cwebp -quiet -q 88 -m 6 -metadata none "$1" -o "$2" || die "cwebp could not convert $1"
 }
 
 go_tab() {
@@ -1006,8 +1016,8 @@ cap_from_store() {  # cap_from_store <mode-accent> <screen> <store shot>
   fi
   [ -f "$from" ] || die "no $from; run tool/store_screenshots.sh --platform android --locales $LANG_TAG --until paywall"
   mkdir -p "$OUT/$LANG_TAG/$1"
-  cp "$from" "$OUT/$LANG_TAG/$1/$2.png"
-  printf '    %s/%s/%s.png (from the Play capture)\n' "$LANG_TAG" "$1" "$2"
+  to_webp "$from" "$OUT/$LANG_TAG/$1/$2.webp"
+  printf '    %s/%s/%s.webp (from the Play capture)\n' "$LANG_TAG" "$1" "$2"
 }
 
 capture_look() {  # capture_look <mode-accent>
@@ -1080,7 +1090,7 @@ for language in languages:
         mode, accent = look.split("-", 1)
         shots = []
         for screen in screens:
-            relative = f"{language}/{look}/{screen}.png"
+            relative = f"{language}/{look}/{screen}.webp"
             path = os.path.join(out, relative)
             if not os.path.exists(path):
                 continue

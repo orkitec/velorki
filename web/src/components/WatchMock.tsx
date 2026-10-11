@@ -11,7 +11,7 @@ import { DEFAULT_SHOT_LOCALE } from '@/site/screenshots';
  *
  * The screen is a drawing, because the screenshot pipeline runs on Android
  * emulators and has no watch. A capture from the watch simulator on a Mac
- * drops into `public/screenshots/<lang>/watch/ride.png` (see the README there)
+ * drops into `public/screenshots/<lang>/watch/ride.webp` (see the README there)
  * and is used instead, in the page's own language where it exists and in
  * English where it does not, exactly as `PhoneFrame` falls back. The check is
  * a filesystem read and so happens here, on the server, at build time.
@@ -30,8 +30,8 @@ const SHOT_HEIGHT = 484;
 function watchShot(locale: string): string | null {
   const languages = locale === DEFAULT_SHOT_LOCALE ? [DEFAULT_SHOT_LOCALE] : [locale, DEFAULT_SHOT_LOCALE];
   for (const language of languages) {
-    if (existsSync(path.join(process.cwd(), 'public', 'screenshots', language, 'watch', 'ride.png'))) {
-      return `/screenshots/${language}/watch/ride.png`;
+    if (existsSync(path.join(process.cwd(), 'public', 'screenshots', language, 'watch', 'ride.webp'))) {
+      return `/screenshots/${language}/watch/ride.webp`;
     }
   }
   return null;

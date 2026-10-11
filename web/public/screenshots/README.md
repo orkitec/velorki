@@ -7,7 +7,7 @@ missing renders as a labelled placeholder inside the phone frame.
 ## Layout
 
 ```
-public/screenshots/<lang>/<mode>-<accent>/<screen>.png
+public/screenshots/<lang>/<mode>-<accent>/<screen>.webp
 ```
 
 - `<lang>`: the app's own language setting for the run — `en` (the app on
@@ -17,7 +17,7 @@ public/screenshots/<lang>/<mode>-<accent>/<screen>.png
 - `<screen>`: `planner`, `loop`, `search`, `navigation`, `recording`, `ride`,
   `library`, `offline`, `settings`, `assistant`, `paywall`, `cyclemap`, `layers`
 
-So `public/screenshots/en/dark-volt/planner.png` is the planner in the app's
+So `public/screenshots/en/dark-volt/planner.webp` is the planner in the app's
 default look. The pipeline takes the whole matrix — both modes in all five
 accents, ten looks of nine screens — per language: `light-volt` and
 `dark-volt` first, then the four other dark looks, then the four other light
@@ -35,7 +35,7 @@ the pipeline's own record of a run, and lists the languages it found.
 ## The watch slot
 
 ```
-public/screenshots/<lang>/watch/ride.png
+public/screenshots/<lang>/watch/ride.webp
 ```
 
 One file per language, outside the mode/accent grid: the Apple Watch app's ride
@@ -43,16 +43,18 @@ screen, as `src/components/WatchMock.tsx` shows it on the landing page. The
 pipeline runs on Android emulators and cannot take it; it comes from the watch
 simulator on a Mac (Xcode → Devices and Simulators, see
 `app/ios/VelorkiWatch/README.md`), portrait, the simulator's own size — the CSS
-case is cut to **396 × 484** and covers anything else from the top. Drop the
-file in and the drawn screen is replaced; leave it out and the drawing stays.
-A page in a locale falls back to `en/watch/ride.png`, as the phone frames do.
+case is cut to **396 × 484** and covers anything else from the top. Convert it
+(`cwebp -q 88 -m 6 -metadata none`), drop it in and the drawn screen is replaced;
+leave it out and the drawing stays.
+A page in a locale falls back to `en/watch/ride.webp`, as the phone frames do.
 The watch app's own words are English in every language, so one capture per
 language is only worth taking for the figures the phone sends it.
 
 ## Format
 
-PNG, portrait, **1080 × 2400** (the aspect the CSS phone frame is cut to —
-`aspect-ratio: 1080 / 2400` in `src/app/globals.css`). Other sizes still work:
+Lossy WebP (`cwebp -q 88 -m 6 -metadata none`: the pipeline captures PNG and
+converts, which keeps the deploy artifact small), portrait, **1080 × 2400**
+(the aspect the CSS phone frame is cut to — `aspect-ratio: 1080 / 2400` in `src/app/globals.css`). Other sizes still work:
 the image is drawn with `object-fit: cover` from the top, so a taller shot is
 cropped at the bottom rather than distorted. Keep the status bar in the frame;
 it is part of how the app looks on a phone.
