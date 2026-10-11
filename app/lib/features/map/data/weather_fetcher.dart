@@ -855,7 +855,7 @@ const int cloudImageVersion = 2;
 /// What tells the rain images prepared now from those an older app left in
 /// the cache, which the age limit then clears: raised with each change to
 /// how they are prepared.
-const int rainImageVersion = 4;
+const int rainImageVersion = 5;
 
 /// The width and height of [png] from its header; `null` where it is not
 /// a PNG.
@@ -1284,8 +1284,10 @@ class HttpWeatherFetcher implements WeatherFetcher {
       // 200: only an image counts.
       final type = response.headers.value(Headers.contentTypeHeader) ?? '';
       final data = response.data;
-      if (status < 200 || status >= 300) return null;
-      if (!type.toLowerCase().startsWith('image/')) {
+      if (status < 200 ||
+          status >= 300 ||
+          !type.toLowerCase().startsWith('image/')) {
+        debugPrint('velorki: weather image not served ($status, $type): $url');
         if (source != null && type.toLowerCase().contains('xml')) {
           _refused.add(source);
         }
@@ -1293,7 +1295,8 @@ class HttpWeatherFetcher implements WeatherFetcher {
       }
       if (data == null || data.isEmpty) return null;
       return Uint8List.fromList(data);
-    } on Object {
+    } on Object catch (error) {
+      debugPrint('velorki: weather image not fetched ($error): $url');
       return null;
     }
   }

@@ -1051,39 +1051,37 @@ void main() {
       expect(iconEuRain.palette, RainPalette.dwdModel1h);
     });
 
-    test('NOAA: its ramp from grey-blue to dark red, the colours it was not '
-        'seen to draw the heaviest', () {
+    test('NOAA: its ramp read by dBZ and drawn as the radar\'s class for '
+        'the rate, the colours it was not seen to draw the heaviest', () {
       final legend = noaaRadarLegend;
-      expect(legend.classify(0xA5, 0xAB, 0xB4, 255), 0); // grey-blue
-      expect(legend.classify(0x43, 0x5E, 0x9F, 255), 1);
-      expect(legend.classify(0x5E, 0xAD, 0xCF, 255), 2);
-      expect(legend.classify(0x0E, 0xD6, 0x14, 255), 4); // green
-      expect(legend.classify(0x09, 0x5E, 0x09, 255), 6); // dark green
-      expect(legend.classify(0xFF, 0xE2, 0x00, 255), 7); // yellow
-      expect(legend.classify(0xFF, 0xB1, 0x00, 255), 8);
-      expect(legend.classify(0xFF, 0x00, 0x00, 255), 9); // red
-      expect(legend.classify(0xB1, 0x00, 0x00, 255), 10);
+      // Under 5 dBZ, under 0.08 mm an hour: no rain.
+      expect(legend.classify(0xA5, 0xAB, 0xB4, 255), rainNone);
+      expect(legend.classify(0x43, 0x5E, 0x9F, 255), 0); // 5–10 dBZ
+      expect(legend.classify(0x5E, 0xAD, 0xCF, 255), 1); // 10–15
+      expect(legend.classify(0x0E, 0xD6, 0x14, 255), 2); // 20–25, green
+      expect(legend.classify(0x09, 0x5E, 0x09, 255), 5); // 30–35
+      expect(legend.classify(0xFF, 0xE2, 0x00, 255), 7); // 35–40, yellow
+      expect(legend.classify(0xFF, 0xB1, 0x00, 255), 9); // 40–45
+      expect(legend.classify(0xFF, 0x00, 0x00, 255), 10); // 45–50, red
+      expect(legend.classify(0xB1, 0x00, 0x00, 255), 11); // 50–55
       // Mixed by the service's own resampling (a real pixel of a bilinear
       // image): the class of the nearest colour, not the heaviest.
-      expect(legend.classify(0x48, 0xC8, 0x93, 255), inInclusiveRange(3, 4));
-      // Not seen on the day the ramp was read: the heaviest.
-      expect(legend.classify(0xFF, 0x00, 0xFF, 255), legend.classCount - 1);
-      expect(legend.alphaOf(legend.classCount - 1), rainAlphaHeaviest);
-      // Light rain faint, a storm's core heavy, the ground transparent.
+      expect(legend.classify(0x48, 0xC8, 0x93, 255), inInclusiveRange(2, 2));
+      // Not seen on the day the ramp was read: the radar's 100–150 mm.
+      expect(legend.classify(0xFF, 0x00, 0xFF, 255), 13);
+      // Drawn in the radar's colours: a 20–25 dBZ green is the radar's
+      // 0.4–1 mm green; a storm's core heavy, the ground transparent.
       List<int> soft(int r, int g, int b, [int a = 255]) =>
           softenRainPixels(1, 1, _pixel(r, g, b, a), RainPalette.noaa);
-      expect(soft(0x8F, 0x97, 0xB4), <int>[
-        0x8F,
-        0x97,
-        0xB4,
-        level(rainAlphaLightest),
+      expect(soft(0x0E, 0xD6, 0x14), <int>[
+        0x01,
+        0x99,
+        0x34,
+        level(dwdRadarLegend.alphaOf(2)),
       ]);
       expect(soft(0xD8, 0x00, 0x00)[3], greaterThan(level(rainAlphaHeavy)));
+      expect(soft(0x8F, 0x97, 0xB4)[3], 0);
       expect(soft(0, 0, 0, 0)[3], 0);
-      // Every class rises.
-      for (var k = 1; k < legend.classCount; k++) {
-        expect(legend.alphaOf(k), greaterThan(legend.alphaOf(k - 1)));
-      }
     });
 
     test('the global model: recoloured into the radar\'s legend at the mean '
@@ -1092,8 +1090,10 @@ void main() {
           softenRainPixels(1, 1, _pixel(r, g, b, a), RainPalette.dwdModel6h);
       // The veil over dry ground, as the service draws it.
       expect(soft(0, 0, 0, 20)[3], 0);
-      // 0.1–0.5 mm in six hours: the radar's lightest cyan.
-      expect(soft(0xDC, 0xF7, 0xC3), <int>[
+      // 0.1–0.5 mm in six hours, under 0.1 an hour: no rain.
+      expect(soft(0xDC, 0xF7, 0xC3)[3], 0);
+      // 0.5–1 mm: the radar's lightest cyan.
+      expect(soft(0xB9, 0xF7, 0x7C), <int>[
         0x33,
         0xFF,
         0xFF,

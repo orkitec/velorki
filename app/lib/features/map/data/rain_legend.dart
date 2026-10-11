@@ -55,8 +55,9 @@ class RainLegend {
     List<List<int>> classes, {
     this.noData,
     this.drawnIn,
-    this.unmatchedIsHeaviest = false,
+    bool unmatchedIsHeaviest = false,
   }) : colours = <int>[for (final c in classes) ...c],
+       unmatchedClass = unmatchedIsHeaviest ? classes.length : null,
        classOf = <int>[
          for (var i = 0; i < classes.length; i++)
            for (final _ in classes[i]) i,
@@ -64,14 +65,16 @@ class RainLegend {
        classCount = classes.length + (unmatchedIsHeaviest ? 1 : 0);
 
   /// A legend whose colours each stand for the class of [drawnIn] at the
-  /// same index of [classOf], and are drawn in its colours.
+  /// same index of [classOf] ([rainNone] for no rain), and are drawn in its
+  /// colours; an opaque colour it does not hold is [unmatchedClass] where
+  /// that is given (see [unmatchedClass]).
   RainLegend.recoloured(
     this.colours,
     this.classOf, {
     required RainLegend this.drawnIn,
     this.noData,
-  }) : unmatchedIsHeaviest = false,
-       classCount = drawnIn.classCount;
+    this.unmatchedClass,
+  }) : classCount = drawnIn.classCount;
 
   /// The legend's colours, lightest first.
   final List<int> colours;
@@ -89,12 +92,12 @@ class RainLegend {
   /// is drawn in; `null` where it is drawn in its own.
   final RainLegend? drawnIn;
 
-  /// Whether an opaque pixel the legend does not hold is the heaviest
-  /// class, one above the legend's own: for a service that draws nothing
-  /// but its data and whose colours for the heaviest rain are not known.
-  /// One near a colour of the legend ([rainLegendLooseTolerance]) is read
-  /// as that colour's class instead.
-  final bool unmatchedIsHeaviest;
+  /// The class an opaque pixel the legend does not hold is read as, `null`
+  /// for none: for a service that draws nothing but its data and whose
+  /// colours for the heaviest rain are not known, the heaviest. One near a
+  /// colour of the legend ([rainLegendLooseTolerance]) is read as that
+  /// colour's class instead.
+  final int? unmatchedClass;
 
   /// The class of the pixel (r, g, b, a), 0 the lightest; [rainNoData] in
   /// the [noData] colour, [rainNone] for anything else.
@@ -104,9 +107,10 @@ class RainLegend {
     if (a < rainLegendMinAlpha) return rainNone;
     final best = _nearest(r, g, b, rainLegendTolerance);
     if (best >= 0) return classOf[best];
-    if (!unmatchedIsHeaviest) return rainNone;
+    final unmatched = unmatchedClass;
+    if (unmatched == null) return rainNone;
     final loose = _nearest(r, g, b, rainLegendLooseTolerance);
-    return loose >= 0 ? classOf[loose] : classCount - 1;
+    return loose >= 0 ? classOf[loose] : unmatched;
   }
 
   /// Whether the pixel (r, g, b, a) is the service's "no data".
@@ -257,8 +261,8 @@ final RainLegend hsafLegend = RainLegend.recoloured(
 /// read 2026-10-11; "under 0.1 mm" is a black veil at alpha 20, no class.
 /// Each class is drawn as the DWD radar's class for its mean rate an hour
 /// (the class's middle over six hours), so the forecast reads like the
-/// radar: 0.1–0.5 mm in six hours is the radar's lightest, 200–300 mm its
-/// 30–45 mm an hour.
+/// radar: 0.5–1 mm in six hours is the radar's lightest, 200–300 mm its
+/// 30–45 mm an hour; 0.1–0.5 mm, under 0.1 mm an hour, is no rain.
 final RainLegend dwdModel6hLegend = RainLegend.recoloured(
   const <int>[
     0xDCF7C3, // 0.1–0.5 mm
@@ -283,7 +287,10 @@ final RainLegend dwdModel6hLegend = RainLegend.recoloured(
     0x8E66FF, // 200–300
     0xFFFFFF, // more than 300
   ],
-  const <int>[0, 0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 8, 9, 9, 9, 10, 11],
+  const <int>[
+    // 0.1–0.5 mm in six hours is under 0.1 an hour: no rain, as on the radar.
+    rainNone, 0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 8, 9, 9, 9, 10, 11, //
+  ],
   drawnIn: dwdRadarLegend,
 );
 
@@ -298,7 +305,7 @@ final RainLegend dwdModel6hLegend = RainLegend.recoloured(
 /// opaque colour not among them counts as the heaviest class: the service
 /// draws nothing but its data; one near the ramp, as the service's own
 /// resampling mixes them, is the class of the nearest.
-final RainLegend noaaRadarLegend = RainLegend(const <List<int>>[
+const List<List<int>> _noaaClasses = <List<int>>[
   <int>[
     0xBABFB4, 0xB3B9B4, 0xB0B6B4, 0xADB3B4, 0xAAB1B4, 0xA8AEB4, 0xA5ABB4, //
     0xA2A9B5, 0x9FA6B5, 0x9CA3B5, 0x9AA0B5, 0x979EB5, 0x949BB5, 0x8F97B4,
@@ -345,4 +352,24 @@ final RainLegend noaaRadarLegend = RainLegend(const <List<int>>[
     0xF70000, 0xEF0000, 0xE80000, 0xE00000, 0xD80000, 0xD00000, 0xC10000, //
     0xB90000, 0xB10000,
   ], // 50–55
-], unmatchedIsHeaviest: true);
+];
+
+/// The DWD radar class each of NOAA's 5 dBZ classes is drawn as: its rain
+/// rate by the Marshall–Palmer relation (Z = 200 R^1.6) at the middle of
+/// the class, so NOAA's green (25–30 dBZ, 1.3–2.7 mm an hour) is the
+/// radar's 1–2 mm green, not a light rain's. Under 5 dBZ, under 0.08 mm an
+/// hour, is no rain; the heaviest, unseen colours (55 dBZ and more, over
+/// 100 mm an hour) the radar's 100–150 mm.
+const List<int> _noaaDrawnAs = <int>[rainNone, 0, 1, 2, 2, 3, 5, 7, 9, 10, 11];
+
+/// NOAA's legend as the soft rain reads it: see [_noaaClasses] and
+/// [_noaaDrawnAs].
+final RainLegend noaaRadarLegend = RainLegend.recoloured(
+  <int>[for (final c in _noaaClasses) ...c],
+  <int>[
+    for (var i = 0; i < _noaaClasses.length; i++)
+      for (final _ in _noaaClasses[i]) _noaaDrawnAs[i],
+  ],
+  drawnIn: dwdRadarLegend,
+  unmatchedClass: 13,
+);
