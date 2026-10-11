@@ -254,9 +254,10 @@ const double markerDiscBitmapPadPx = 1;
 /// One picture rather than a circle layer under a glyph: a symbol fades in
 /// and out with the map's placement, a circle only pops.
 ///
-/// The glyph is [glyphPx] high with an outline of [glyphHaloPx] in
-/// [glyphHaloColor], filled with [glyphColor], exactly as
-/// [buildMarkerGlyphImage] draws it.
+/// The glyph is [glyphPx] high, filled with [glyphColor], and placed as
+/// [buildMarkerGlyphImage] places it with an outline of [glyphHaloPx]; the
+/// outline itself is left out on a disc, where the disc sets the glyph off
+/// and a translucent outline would only blur its edges.
 Future<Uint8List> buildDiscMarkerImage({
   required Color fill,
   required Color stroke,
@@ -267,14 +268,13 @@ Future<Uint8List> buildDiscMarkerImage({
   double glyphPx = markerGlyphOnDiscSizePx,
   double glyphHaloPx = markerGlyphHaloPx,
   Color glyphColor = const Color(0xFFFFFFFF),
-  Color glyphHaloColor = const Color(0x59000000),
 }) async {
   final glyph = icon == null
       ? null
       : _glyphPainters(
           icon: icon,
           color: glyphColor,
-          haloColor: glyphHaloColor,
+          haloColor: const Color(0x00000000),
           sizePx: glyphPx,
           haloPx: glyphHaloPx,
         );
@@ -311,7 +311,6 @@ Future<Uint8List> buildDiscMarkerImage({
           center - Offset(glyph.halo.width / 2, glyph.halo.height / 2),
           ratio,
         );
-        glyph.halo.paint(canvas, origin);
         glyph.fill.paint(canvas, origin);
       }
     });
