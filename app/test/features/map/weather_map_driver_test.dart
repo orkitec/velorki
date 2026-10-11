@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:fake_async/fake_async.dart';
@@ -16,6 +17,12 @@ class _Fetcher implements WeatherFetcher {
   final List<String> probes = <String>[];
   final List<String> images = <String>[];
 
+  /// The detail images asked for, and the answers held back for them while
+  /// [holdDetails] is set.
+  final List<BoundingBox> details = <BoundingBox>[];
+  final List<Completer<Uint8List?>> held = <Completer<Uint8List?>>[];
+  bool holdDetails = false;
+
   @override
   Future<bool> probe(String url) async {
     probes.add(url);
@@ -31,6 +38,24 @@ class _Fetcher implements WeatherFetcher {
   ) async {
     images.add('${source.id}.$region@${frame.time}');
     return cloudsUp ? Uint8List.fromList(<int>[1, 2, 3]) : null;
+  }
+
+  @override
+  Future<Uint8List?> cloudDetailImage(
+    WeatherMapSource source,
+    BoundingBox box,
+    WeatherFrame frame,
+    DateTime now,
+  ) {
+    details.add(box);
+    if (holdDetails) {
+      final answer = Completer<Uint8List?>();
+      held.add(answer);
+      return answer.future;
+    }
+    return Future<Uint8List?>.value(
+      cloudsUp ? Uint8List.fromList(<int>[4, 5, 6]) : null,
+    );
   }
 }
 
@@ -280,6 +305,180 @@ void main() {
       expect(map.weatherLayers, isEmpty);
       expect(driver.status.value.radarFrame, isNull);
       driver.dispose();
+    });
+  });
+
+  group('cloud detail', () {
+    /// The view moves to [box] at [zoom] and comes to rest.
+    void rest(FakeAsync async, BoundingBox box, double zoom) {
+      map
+        ..visibleBounds = box
+        ..zoom = zoom;
+      map.emitCameraIdle();
+      async.flushMicrotasks();
+    }
+
+    WeatherLayer? detailLayer() => map.weatherLayers
+        .where((l) => l.id == 'clouds_eumetsat.detail')
+        .firstOrNull;
+
+    test('asked for once the camera rests at zoom 6, over the region', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        configure(radar: true, clouds: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(fetcher.details, isEmpty);
+        async.elapse(cloudDetailDebounce - const Duration(milliseconds: 1));
+        expect(fetcher.details, isEmpty);
+        async.elapse(const Duration(milliseconds: 1));
+        expect(fetcher.details, hasLength(1));
+        expect(drawn(), <String>[
+          'clouds_eumetsat.0',
+          'clouds_eumetsat.detail',
+          'radar_dwd',
+        ]);
+        final box = detailLayer()!.imageBox!;
+        expect(box.west, lessThan(berlin.west));
+        expect(box.north, greaterThan(berlin.north));
+        expect(detailLayer()!.image, <int>[4, 5, 6]);
+        expect(
+          detailLayer()!.attribution,
+          'Clouds: Contains modified EUMETSAT Meteosat data 2026',
+        );
+        // A small move inside the box, or a little zoom, asks nothing new.
+        rest(async, _view(13.45, 52.52), 8.5);
+        async.elapse(cloudDetailDebounce);
+        expect(fetcher.details, hasLength(1));
+        driver.dispose();
+      });
+    });
+
+    test('not below zoom 6; zoomed out, the detail goes', () {
+      fakeAsync((async) {
+        map.zoom = 5;
+        configure(clouds: true);
+        driver.attach(map);
+        async.elapse(cloudDetailDebounce * 2);
+        expect(fetcher.details, isEmpty);
+        rest(async, berlin, 7);
+        async.elapse(cloudDetailDebounce);
+        expect(detailLayer(), isNotNull);
+        rest(async, berlin, 5.5);
+        expect(detailLayer(), isNull);
+        expect(drawn(), <String>['clouds_eumetsat.0']);
+        driver.dispose();
+      });
+    });
+
+    test('switched off, the detail goes and is not asked for', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        configure(clouds: true);
+        driver.attach(map);
+        async.elapse(cloudDetailDebounce);
+        expect(detailLayer(), isNotNull);
+        configure();
+        async.elapse(cloudDetailDebounce);
+        expect(map.weatherLayers, isEmpty);
+        rest(async, _view(2.35, 48.85), 8);
+        async.elapse(cloudDetailDebounce);
+        expect(fetcher.details, hasLength(1));
+        driver.dispose();
+      });
+    });
+
+    test('leaving the box or zooming on asks anew; the old one stays '
+        'until the new one is in', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        fetcher.holdDetails = true;
+        configure(clouds: true);
+        driver.attach(map);
+        async.elapse(cloudDetailDebounce);
+        fetcher.held.single.complete(Uint8List.fromList(<int>[1]));
+        async.flushMicrotasks();
+        final first = detailLayer()!;
+        // Paris is far outside Berlin's box.
+        rest(async, _view(2.35, 48.85), 8);
+        async.elapse(cloudDetailDebounce);
+        expect(fetcher.details, hasLength(2));
+        expect(detailLayer(), first);
+        fetcher.held.last.complete(Uint8List.fromList(<int>[2]));
+        async.flushMicrotasks();
+        expect(detailLayer()!.frameKey, isNot(first.frameKey));
+        expect(detailLayer()!.image, <int>[2]);
+        // Zoomed in by 1.5 over the same place: a finer one.
+        rest(async, _view(2.35, 48.85), 9.5);
+        async.elapse(cloudDetailDebounce);
+        expect(fetcher.details, hasLength(3));
+        driver.dispose();
+      });
+    });
+
+    test('one request at a time; an answer for a view left is dropped', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        fetcher.holdDetails = true;
+        configure(clouds: true);
+        driver.attach(map);
+        async.elapse(cloudDetailDebounce);
+        expect(fetcher.details, hasLength(1));
+        rest(async, _view(2.35, 48.85), 8);
+        async.elapse(cloudDetailDebounce);
+        rest(async, _view(-3.7, 40.4), 8); // Madrid
+        async.elapse(cloudDetailDebounce);
+        expect(fetcher.details, hasLength(1));
+        // Berlin's answer comes when the view is over Madrid: not drawn,
+        // and Madrid is asked for next.
+        fetcher.held.single.complete(Uint8List.fromList(<int>[1]));
+        async.flushMicrotasks();
+        expect(detailLayer(), isNull);
+        expect(fetcher.details, hasLength(2));
+        expect(fetcher.details.last.west, lessThan(-3.9));
+        expect(fetcher.details.last.east, greaterThan(-3.5));
+        fetcher.held.last.complete(Uint8List.fromList(<int>[3]));
+        async.flushMicrotasks();
+        expect(detailLayer()!.image, <int>[3]);
+        driver.dispose();
+      });
+    });
+
+    test('a detail that does not come is reported, not asked again '
+        'until the refresh', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        configure(clouds: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        fetcher.cloudsUp = false;
+        async.elapse(cloudDetailDebounce);
+        expect(driver.status.value.failed, <WeatherKind>{WeatherKind.clouds});
+        rest(async, berlin, 8);
+        async.elapse(cloudDetailDebounce);
+        expect(fetcher.details, hasLength(1));
+        fetcher.cloudsUp = true;
+        async.elapse(cloudsRefreshInterval);
+        expect(fetcher.details, hasLength(2));
+        expect(driver.status.value.failed, isEmpty);
+        expect(detailLayer(), isNotNull);
+        driver.dispose();
+      });
+    });
+
+    test('the next hour brings a new detail', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        configure(clouds: true);
+        driver.attach(map);
+        async.elapse(cloudDetailDebounce);
+        final first = detailLayer()!;
+        now = now.add(const Duration(hours: 1));
+        async.elapse(cloudsRefreshInterval);
+        expect(fetcher.details, hasLength(2));
+        expect(detailLayer()!.frameKey, isNot(first.frameKey));
+        driver.dispose();
+      });
     });
   });
 }

@@ -44,11 +44,12 @@ class WeatherFrame {
 ///
 /// Radar comes as tiles: the URL is a MapLibre tile template, `{z}`/`{x}`/
 /// `{y}` for a tile pyramid, `{bbox-epsg-3857}` for a WMS or ArcGIS service
-/// that renders a box. Clouds come as one image per [coverage] box: the URL
-/// is a WMS GetMap with `{bbox-epsg-3857}`, `{width}` and `{height}`, which
-/// the app fetches itself and turns into white cloud on a clear ground
-/// (see `weather_cloud_images.dart`). Either names its moment with
-/// `{time}` or `{timeMs}` ([timeFormat]).
+/// that renders a box. Clouds come as one image per [coverage] box, and
+/// zoomed in a second, finer image of the view's surroundings
+/// ([detailImageUrl]): the URL is a WMS GetMap with `{bbox-epsg-3857}`,
+/// `{width}` and `{height}`, which the app fetches itself and turns into
+/// white cloud on a clear ground (see `weather_fetcher.dart`). Either names
+/// its moment with `{time}` or `{timeMs}` ([timeFormat]).
 @immutable
 class WeatherMapSource {
   /// Creates a source.
@@ -67,6 +68,7 @@ class WeatherMapSource {
     this.historyMinutes = 120,
     this.forecastMinutes = 0,
     this.opacity,
+    this.nativeMetresPerPixel = 2000,
     this.enabled = true,
   });
 
@@ -113,6 +115,12 @@ class WeatherMapSource {
 
   /// The layer's opacity, overriding the kind's default.
   final double? opacity;
+
+  /// How many Web Mercator metres one pixel of the service's own imagery
+  /// spans, about: a cloud detail image is asked for at this resolution,
+  /// not the screen's, so the service sends what it has and the map
+  /// smooths it, instead of the service blowing its pixels up into blocks.
+  final double nativeMetresPerPixel;
 
   /// Whether the source is used at all; a fork or the mirror can switch one
   /// off.
@@ -167,10 +175,44 @@ class WeatherMapSource {
   String regionImageUrl(WeatherFrame frame, int region) {
     final box = coverage[region];
     final (width, height) = cloudImageSize(box);
-    return tileUrl(frame)
-        .replaceAll('{bbox-epsg-3857}', mercatorBboxString(box))
-        .replaceAll('{width}', '$width')
-        .replaceAll('{height}', '$height');
+    return imageUrl(frame, box, width, height);
+  }
+
+  /// The GetMap URL of the detail image of [box] at [frame]: the service's
+  /// own [nativeMetresPerPixel], each side kept within [cloudDetailMinSide]
+  /// and [cloudDetailMaxSide] pixels.
+  String detailImageUrl(WeatherFrame frame, BoundingBox box) {
+    final (width, height) = cloudDetailImageSize(this, box);
+    return imageUrl(frame, box, width, height);
+  }
+
+  /// The GetMap URL of [box] at [frame] as an image of [width] × [height].
+  String imageUrl(WeatherFrame frame, BoundingBox box, int width, int height) =>
+      tileUrl(frame)
+          .replaceAll('{bbox-epsg-3857}', mercatorBboxString(box))
+          .replaceAll('{width}', '$width')
+          .replaceAll('{height}', '$height');
+
+  /// The part of [area] the detail image shows: its overlap with the
+  /// coverage box it overlaps most, `null` where it meets none.
+  BoundingBox? detailBox(BoundingBox area) {
+    BoundingBox? best;
+    var bestSize = 0.0;
+    for (final box in coverage) {
+      final south = math.max(box.south, area.south);
+      final north = math.min(box.north, area.north);
+      final west = math.max(box.west, area.west);
+      final east = math.min(box.east, area.east);
+      if (south >= north || west >= east) continue;
+      final size =
+          (mercatorX(east) - mercatorX(west)) *
+          (mercatorY(north) - mercatorY(south));
+      if (size > bestSize) {
+        bestSize = size;
+        best = _box(west, south, east, north);
+      }
+    }
+    return best;
   }
 
   /// The credit for [frame].
@@ -228,6 +270,7 @@ class WeatherMapSource {
     int? forecastMinutes,
     String? attribution,
     double? opacity,
+    double? nativeMetresPerPixel,
     bool? enabled,
   }) => WeatherMapSource(
     id: id,
@@ -244,6 +287,7 @@ class WeatherMapSource {
     forecastMinutes: forecastMinutes ?? this.forecastMinutes,
     attribution: attribution ?? this.attribution,
     opacity: opacity ?? this.opacity,
+    nativeMetresPerPixel: nativeMetresPerPixel ?? this.nativeMetresPerPixel,
     enabled: enabled ?? this.enabled,
   );
 
@@ -264,6 +308,7 @@ class WeatherMapSource {
       other.forecastMinutes == forecastMinutes &&
       other.attribution == attribution &&
       other.opacity == opacity &&
+      other.nativeMetresPerPixel == nativeMetresPerPixel &&
       other.enabled == enabled;
 
   @override
@@ -282,6 +327,7 @@ class WeatherMapSource {
     forecastMinutes,
     attribution,
     opacity,
+    nativeMetresPerPixel,
     enabled,
   );
 
@@ -348,6 +394,13 @@ double mercatorY(double lat) {
   return math.log(math.tan(math.pi / 4 + clamped / 2)) * 6378137.0;
 }
 
+/// The longitude of Web Mercator x [x] and the latitude of y [y], in
+/// degrees: [mercatorX] and [mercatorY] the other way.
+double lonOfMercatorX(double x) => x * 180 / 20037508.342789244;
+
+double latOfMercatorY(double y) =>
+    (2 * math.atan(math.exp(y / 6378137.0)) - math.pi / 2) * 180 / math.pi;
+
 /// [box] in Web Mercator, `minx,miny,maxx,maxy`.
 String mercatorBboxString(BoundingBox box) {
   String f(double v) => v.toStringAsFixed(1);
@@ -357,17 +410,95 @@ String mercatorBboxString(BoundingBox box) {
 
 /// The pixel size of the image of [box]: [metresPerPixel] Web Mercator
 /// metres a pixel, scaled down to [maxSide] on the long side, the box's
-/// aspect kept.
+/// aspect kept, and no side under [minSide].
 (int, int) cloudImageSize(
   BoundingBox box, {
   double metresPerPixel = cloudMetresPerPixel,
   int maxSide = cloudImageMaxSide,
+  int minSide = 1,
 }) {
   final w = (mercatorX(box.east) - mercatorX(box.west)) / metresPerPixel;
   final h = (mercatorY(box.north) - mercatorY(box.south)) / metresPerPixel;
   final scale = math.min(1.0, maxSide / math.max(w, h));
-  return (math.max(1, (w * scale).round()), math.max(1, (h * scale).round()));
+  return (
+    math.max(minSide, (w * scale).round()),
+    math.max(minSide, (h * scale).round()),
+  );
 }
+
+// Zoomed in, the region's image alone is blocky: a few kilometres a pixel,
+// blown up. So from [cloudDetailMinZoom] the clouds get a second image over
+// the view and a margin around it, at the service's own resolution, drawn
+// over the region's, which still covers a pan beyond it and the view
+// zoomed out.
+
+/// The zoom from which the clouds get a detail image.
+const double cloudDetailMinZoom = 6;
+
+/// How far the detail image reaches beyond the view on each side, as a
+/// share of the view's width and height.
+const double cloudDetailMargin = 0.25;
+
+/// The fewest pixels a side of a detail image has: zoomed far in the box
+/// is only a few of the service's pixels, which the map then smooths.
+const int cloudDetailMinSide = 64;
+
+/// The most pixels a side of a detail image has.
+const int cloudDetailMaxSide = 1536;
+
+/// How far the zoom moves from the detail image's before it is fetched
+/// anew, finer or coarser.
+const double cloudDetailRezoom = 1.5;
+
+/// The pixel size of [source]'s detail image of [box]: the service's own
+/// resolution, each side within [cloudDetailMinSide] and
+/// [cloudDetailMaxSide].
+(int, int) cloudDetailImageSize(WeatherMapSource source, BoundingBox box) =>
+    cloudImageSize(
+      box,
+      metresPerPixel: source.nativeMetresPerPixel,
+      maxSide: cloudDetailMaxSide,
+      minSide: cloudDetailMinSide,
+    );
+
+/// The area a detail image of [view] at [zoom] covers: the view and
+/// [cloudDetailMargin] around it, rounded outward to the tile grid one zoom
+/// finer than [zoom], so a small pan asks for the same box (and finds it in
+/// the cache). `null` for a view across the antimeridian, which keeps the
+/// region's image only.
+BoundingBox? cloudDetailArea(BoundingBox view, double zoom) {
+  if (view.west > view.east) return null;
+  const origin = 20037508.342789244;
+  final x0 = mercatorX(view.west);
+  final x1 = mercatorX(view.east);
+  final y0 = mercatorY(view.south);
+  final y1 = mercatorY(view.north);
+  final dx = (x1 - x0) * cloudDetailMargin;
+  final dy = (y1 - y0) * cloudDetailMargin;
+  final grid = 2 * origin / (1 << (zoom.floor() + 1).clamp(0, 22));
+  double down(double v) =>
+      ((v + origin) / grid).floorToDouble() * grid - origin;
+  double up(double v) => ((v + origin) / grid).ceilToDouble() * grid - origin;
+  final west = down(x0 - dx).clamp(-origin, origin);
+  final east = up(x1 + dx).clamp(-origin, origin);
+  final south = down(y0 - dy).clamp(-origin, origin);
+  final north = up(y1 + dy).clamp(-origin, origin);
+  return _box(
+    lonOfMercatorX(west),
+    latOfMercatorY(south),
+    lonOfMercatorX(east),
+    latOfMercatorY(north),
+  );
+}
+
+/// What names a detail box in the cache: its Web Mercator corners to the
+/// kilometre.
+String cloudDetailKey(BoundingBox box) => <double>[
+  mercatorX(box.west),
+  mercatorY(box.south),
+  mercatorX(box.east),
+  mercatorY(box.north),
+].map((v) => (v / 1000).round()).join('_');
 
 BoundingBox _box(double west, double south, double east, double north) =>
     BoundingBox(south: south, west: west, north: north, east: east);
@@ -420,6 +551,9 @@ String _gibsGoes(String layer) =>
     '&TRANSPARENT=TRUE&CRS=EPSG:3857&BBOX={bbox-epsg-3857}'
     '&WIDTH={width}&HEIGHT={height}&TIME=default';
 
+/// GOES band 13 is sampled every 2 km at the sub-satellite point.
+const double goesNativeMetresPerPixel = 2000;
+
 /// Infrared clouds over the eastern Americas, GOES-East through NASA GIBS:
 /// the latest image only.
 final WeatherMapSource goesEastClouds = WeatherMapSource(
@@ -428,6 +562,7 @@ final WeatherMapSource goesEastClouds = WeatherMapSource(
   urlTemplate: _gibsGoes('GOES-East_ABI_Band13_Clean_Infrared'),
   coverage: <BoundingBox>[_box(-115, -60, -20, 60)],
   maxZoom: 6,
+  nativeMetresPerPixel: goesNativeMetresPerPixel,
   attribution: 'Clouds: NOAA GOES via NASA GIBS',
 );
 
@@ -438,6 +573,7 @@ final WeatherMapSource goesWestClouds = WeatherMapSource(
   urlTemplate: _gibsGoes('GOES-West_ABI_Band13_Clean_Infrared'),
   coverage: <BoundingBox>[_box(-180, -60, -115, 60), _box(165, -60, 180, 60)],
   maxZoom: 6,
+  nativeMetresPerPixel: goesNativeMetresPerPixel,
   attribution: 'Clouds: NOAA GOES via NASA GIBS',
 );
 
@@ -465,6 +601,9 @@ final WeatherMapSource eumetsatClouds = WeatherMapSource(
   stepMinutes: 60,
   delayMinutes: 20,
   historyMinutes: 0,
+  // The high-resolution fast imagery samples its 10.5 µm channel every
+  // kilometre.
+  nativeMetresPerPixel: 1000,
   attribution: 'Clouds: Contains modified EUMETSAT Meteosat data {year}',
 );
 
@@ -583,6 +722,7 @@ WeatherMapSource? _parseOver(WeatherMapSource base, Map<Object?, Object?> row) {
     forecastMinutes: _int(row['forecastMinutes']),
     attribution: _str(row['attribution']),
     opacity: _num(row['opacity'])?.clamp(0.0, 1.0),
+    nativeMetresPerPixel: _positive(row['metresPerPixel']),
     enabled: row['enabled'] is bool ? row['enabled']! as bool : null,
   );
 }
@@ -592,6 +732,8 @@ String? _str(Object? v) => v is String && v.trim().isNotEmpty ? v : null;
 int? _int(Object? v) => v is num && v >= 0 ? v.toInt() : null;
 
 double? _num(Object? v) => v is num ? v.toDouble() : null;
+
+double? _positive(Object? v) => v is num && v > 0 ? v.toDouble() : null;
 
 WeatherKind? _kind(Object? v) => switch (v) {
   'radar' => WeatherKind.radar,

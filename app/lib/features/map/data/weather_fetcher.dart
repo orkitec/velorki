@@ -8,6 +8,7 @@ import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
+import 'package:velorki_geo/velorki_geo.dart';
 
 import '../domain/weather_map.dart';
 
@@ -25,6 +26,10 @@ const Duration latestCloudSlot = Duration(minutes: 10);
 
 /// How long a cloud image stays in the cache at most.
 const Duration cloudCacheMaxAge = Duration(hours: 6);
+
+/// How many detail images of one source the cache keeps: the boxes of the
+/// last few views, for panning back.
+const int cloudDetailCacheKeep = 12;
 
 // The infrared images are bright where it is cold: high cloud tops are
 // white, the warm ground dark grey. A pixel's luminance between these two
@@ -156,7 +161,7 @@ Future<Uint8List> processCloudImage(Uint8List png) async {
 }
 
 /// What the weather layers ask of the network: whether a radar tile
-/// answers, and the cloud image of a region.
+/// answers, the cloud image of a region and the finer one of a view.
 abstract class WeatherFetcher {
   /// Whether [url] answers with an image within [weatherProbeTimeout].
   Future<bool> probe(String url);
@@ -166,6 +171,15 @@ abstract class WeatherFetcher {
   Future<Uint8List?> cloudImage(
     WeatherMapSource source,
     int region,
+    WeatherFrame frame,
+    DateTime now,
+  );
+
+  /// The detail cloud image of [box] at [frame] (see `cloudDetailArea`),
+  /// processed as [cloudImage]'s; `null` when it cannot be had.
+  Future<Uint8List?> cloudDetailImage(
+    WeatherMapSource source,
+    BoundingBox box,
     WeatherFrame frame,
     DateTime now,
   );
@@ -209,22 +223,58 @@ class HttpWeatherFetcher implements WeatherFetcher {
     int region,
     WeatherFrame frame,
     DateTime now,
-  ) async {
-    final stamp = cloudImageStamp(frame, now);
+  ) {
     final prefix = '${source.id}_${region}_';
+    final name = '$prefix${cloudImageStamp(frame, now)}.png';
+    return _cloud(
+      source.regionImageUrl(frame, region),
+      name,
+      (dir) => _prune(dir, (file) => file.startsWith(prefix), name, now),
+    );
+  }
+
+  @override
+  Future<Uint8List?> cloudDetailImage(
+    WeatherMapSource source,
+    BoundingBox box,
+    WeatherFrame frame,
+    DateTime now,
+  ) {
+    final prefix = '${source.id}_detail_';
+    final stamp = '_${cloudImageStamp(frame, now)}.png';
+    final name = '$prefix${cloudDetailKey(box)}$stamp';
+    return _cloud(
+      source.detailImageUrl(frame, box),
+      name,
+      // Other moments go; of this one the last few boxes stay.
+      (dir) => _prune(
+        dir,
+        (file) => file.startsWith(prefix) && !file.endsWith(stamp),
+        name,
+        now,
+        prefix: prefix,
+        keep: cloudDetailCacheKeep,
+      ),
+    );
+  }
+
+  /// The cloud image cached as [name], else fetched from [url], processed
+  /// and cached, [prune] then tidying the cache.
+  Future<Uint8List?> _cloud(
+    String url,
+    String name,
+    void Function(Directory dir) prune,
+  ) async {
     final Directory dir;
     try {
       dir = await cacheDir();
-      final cached = File(p.join(dir.path, '$prefix$stamp.png'));
+      final cached = File(p.join(dir.path, name));
       if (cached.existsSync()) return await cached.readAsBytes();
     } on Object catch (error) {
       debugPrint('velorki: cloud cache unreadable: $error');
       return null;
     }
-    final body = await _getImage(
-      source.regionImageUrl(frame, region),
-      imageTimeout,
-    );
+    final body = await _getImage(url, imageTimeout);
     if (body == null) return null;
     final Uint8List png;
     try {
@@ -235,8 +285,8 @@ class HttpWeatherFetcher implements WeatherFetcher {
     }
     try {
       if (!dir.existsSync()) dir.createSync(recursive: true);
-      await File(p.join(dir.path, '$prefix$stamp.png')).writeAsBytes(png);
-      _prune(dir, prefix, '$prefix$stamp.png', now);
+      await File(p.join(dir.path, name)).writeAsBytes(png);
+      prune(dir);
     } on Object catch (error) {
       debugPrint('velorki: cloud image not cached: $error');
     }
@@ -271,20 +321,41 @@ class HttpWeatherFetcher implements WeatherFetcher {
     }
   }
 
-  /// Deletes the region's other images, and any image past
-  /// [cloudCacheMaxAge].
-  static void _prune(Directory dir, String prefix, String keep, DateTime now) {
+  /// Deletes the images [replaced] names, any image past
+  /// [cloudCacheMaxAge] and, with [prefix], all but the newest [keep]
+  /// under it; never [current].
+  static void _prune(
+    Directory dir,
+    bool Function(String name) replaced,
+    String current,
+    DateTime now, {
+    String? prefix,
+    int keep = 0,
+  }) {
+    final kept = <(File, DateTime)>[];
     for (final entry in dir.listSync()) {
       if (entry is! File) continue;
       final name = p.basename(entry.path);
-      if (name == keep || !name.endsWith('.png')) continue;
+      if (name == current || !name.endsWith('.png')) continue;
       try {
-        if (name.startsWith(prefix) ||
-            now.difference(entry.lastModifiedSync()) > cloudCacheMaxAge) {
+        final modified = entry.lastModifiedSync();
+        if (replaced(name) || now.difference(modified) > cloudCacheMaxAge) {
           entry.deleteSync();
+        } else if (prefix != null && name.startsWith(prefix)) {
+          kept.add((entry, modified));
         }
       } on FileSystemException {
         // Gone already, or busy: the next prune tries again.
+      }
+    }
+    // The current one counts towards [keep].
+    if (kept.length < keep) return;
+    kept.sort((a, b) => b.$2.compareTo(a.$2));
+    for (final (file, _) in kept.skip(math.max(0, keep - 1))) {
+      try {
+        file.deleteSync();
+      } on FileSystemException {
+        // As above.
       }
     }
   }

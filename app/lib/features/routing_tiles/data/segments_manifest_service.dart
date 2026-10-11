@@ -86,8 +86,9 @@ class _Shard {
 /// `{height}`, `{time}`, `{timeMs}`), `time` (`none`/`iso`/`epochMs`),
 /// `stepMinutes`, `delayMinutes`, `historyMinutes`, `forecastMinutes`,
 /// `tileSize`, `minzoom`, `maxzoom`, `coverage` (`[[west, south, east,
-/// north], ...]`), `attribution` (`{year}` is the image's year) and
-/// `opacity`. An unknown `id` with `kind`, `url`, `coverage` and
+/// north], ...]`), `attribution` (`{year}` is the image's year),
+/// `opacity` and `metresPerPixel` (the clouds' native resolution, which
+/// their detail image is asked at). An unknown `id` with `kind`, `url`, `coverage` and
 /// `attribution` adds a source. Anything unreadable falls back to the
 /// built-in sources; it is never an error.
 class SegmentsManifestService {

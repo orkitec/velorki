@@ -299,4 +299,141 @@ void main() {
       expect(weatherOffsetLabel(l10n, 30), '+30 min');
     });
   });
+
+  group('cloud detail', () {
+    double mercatorWidth(BoundingBox b) =>
+        mercatorX(b.east) - mercatorX(b.west);
+    double mercatorHeight(BoundingBox b) =>
+        mercatorY(b.north) - mercatorY(b.south);
+
+    test('each service at its own resolution: 1 km EUMETSAT, 2 km GOES', () {
+      expect(eumetsatClouds.nativeMetresPerPixel, 1000);
+      expect(goesEastClouds.nativeMetresPerPixel, 2000);
+      expect(goesWestClouds.nativeMetresPerPixel, 2000);
+      const box = BoundingBox(south: 50, west: 10, north: 53, east: 15);
+      final (w, h) = cloudDetailImageSize(eumetsatClouds, box);
+      expect(w, (mercatorWidth(box) / 1000).round());
+      expect(h, (mercatorHeight(box) / 1000).round());
+      final (gw, _) = cloudDetailImageSize(goesEastClouds, box);
+      expect(gw, (mercatorWidth(box) / 2000).round());
+    });
+
+    test('each side between 64 and 1536 pixels', () {
+      const tiny = BoundingBox(south: 50, west: 10, north: 50.05, east: 10.1);
+      expect(cloudDetailImageSize(eumetsatClouds, tiny), (64, 64));
+      final (w, h) = cloudDetailImageSize(
+        eumetsatClouds,
+        eumetsatClouds.coverage.single,
+      );
+      expect(h, cloudDetailMaxSide);
+      expect(w, lessThanOrEqualTo(cloudDetailMaxSide));
+      expect(w, greaterThanOrEqualTo(cloudDetailMinSide));
+    });
+
+    test('the area: the view, a quarter around it, on the grid', () {
+      final v = view(13.4, 52.5);
+      final area = cloudDetailArea(v, 8)!;
+      final mw = mercatorWidth(v);
+      expect(
+        mercatorX(area.west),
+        lessThanOrEqualTo(mercatorX(v.west) - mw / 4),
+      );
+      expect(
+        mercatorX(area.east),
+        greaterThanOrEqualTo(mercatorX(v.east) + mw / 4),
+      );
+      final mh = mercatorHeight(v);
+      expect(
+        mercatorY(area.south),
+        lessThanOrEqualTo(mercatorY(v.south) - mh / 4 + 0.01),
+      );
+      expect(
+        mercatorY(area.north),
+        greaterThanOrEqualTo(mercatorY(v.north) + mh / 4 - 0.01),
+      );
+      // On the zoom-9 tile grid.
+      const origin = 20037508.342789244;
+      const cell = 2 * origin / 512;
+      final x = (mercatorX(area.west) + origin) / cell;
+      expect(x, closeTo(x.roundToDouble(), 1e-6));
+      // A small pan finds the same box, so the same cache entry.
+      final panned = cloudDetailArea(view(13.401, 52.501), 8)!;
+      expect(cloudDetailKey(panned), cloudDetailKey(area));
+      // A big one does not.
+      expect(
+        cloudDetailKey(cloudDetailArea(view(14, 52.5), 8)!),
+        isNot(cloudDetailKey(area)),
+      );
+    });
+
+    test('across the antimeridian there is no detail', () {
+      const across = BoundingBox(south: 0, west: 179, north: 1, east: -179);
+      expect(cloudDetailArea(across, 8), isNull);
+    });
+
+    test('the box is clipped to the coverage', () {
+      // Over the Atlantic's edge of the EUMETSAT box.
+      final area = cloudDetailArea(view(-30, 50, 1), 7)!;
+      expect(area.west, lessThan(-30));
+      final box = eumetsatClouds.detailBox(area)!;
+      expect(box.west, -30);
+      expect(box.east, area.east);
+      expect(
+        eumetsatClouds.detailBox(cloudDetailArea(view(-80, 40), 8)!),
+        isNull,
+      );
+      // GOES-West: the larger of its two boxes.
+      final pacific = goesWestClouds.detailBox(
+        const BoundingBox(south: 0, west: 160, north: 10, east: 180),
+      )!;
+      expect(pacific.west, 165);
+    });
+
+    test('the cache key is the box to the kilometre', () {
+      const box = BoundingBox(south: 0, west: 0, north: 1, east: 1);
+      expect(
+        cloudDetailKey(box),
+        '0_0_${(mercatorX(1) / 1000).round()}_${(mercatorY(1) / 1000).round()}',
+      );
+    });
+
+    test('an EUMETSAT detail never lacks a full-hour time', () {
+      final box = eumetsatClouds.detailBox(
+        cloudDetailArea(view(13.4, 52.5), 8)!,
+      )!;
+      for (var minute = 0; minute < 24 * 60; minute += 7) {
+        final now = utc(0, 0).add(Duration(minutes: minute));
+        final url = eumetsatClouds.detailImageUrl(
+          eumetsatClouds.frameAt(now)!,
+          box,
+        );
+        final time = timeOf(url);
+        expect(time, matches(RegExp(r'^\d{4}-\d\d-\d\dT\d\d:00:00\.000Z$')));
+        final shown = DateTime.parse(time!);
+        expect(now.difference(shown).inMinutes, greaterThanOrEqualTo(20));
+        final (w, h) = cloudDetailImageSize(eumetsatClouds, box);
+        expect(url, contains('width=$w&height=$h'));
+        expect(url, contains('bbox=${mercatorBboxString(box)}&'));
+      }
+    });
+
+    test('the mirror can set the resolution', () {
+      final sources = applyWeatherOverride(defaultWeatherMapSources, [
+        {'id': 'clouds_goes_east', 'metresPerPixel': 4000},
+        {'id': 'clouds_goes_west', 'metresPerPixel': -1},
+      ]);
+      expect(
+        sources
+            .firstWhere((s) => s.id == 'clouds_goes_east')
+            .nativeMetresPerPixel,
+        4000,
+      );
+      expect(
+        sources
+            .firstWhere((s) => s.id == 'clouds_goes_west')
+            .nativeMetresPerPixel,
+        2000,
+      );
+    });
+  });
 }

@@ -786,8 +786,9 @@ class MaplibreMapControllerAdapter implements MapController {
   List<WeatherLayer> _weatherWanted = const <WeatherLayer>[];
   final Map<String, List<(int, WeatherLayer)>> _weatherDrawn =
       <String, List<(int, WeatherLayer)>>{};
-  // The weather layers' order in the style, bottom to top.
-  final List<(String, WeatherKind)> _weatherStack = <(String, WeatherKind)>[];
+  // The weather layers in the style, bottom to top: each style layer's id
+  // and the weather layer it draws.
+  final List<(String, String)> _weatherStack = <(String, String)>[];
   int _nextWeatherGeneration = 0;
   Future<void> _weatherTurn = Future<void>.value();
   bool _weatherDark;
@@ -2251,6 +2252,9 @@ class MaplibreMapControllerAdapter implements MapController {
         await _removeWeatherGenerations(id, _weatherDrawn[id]!.length);
       }
     }
+    final order = <String, int>{
+      for (final (i, layer) in wanted.indexed) layer.id: i,
+    };
     final stale = <String, int>{};
     for (final layer in wanted) {
       final drawn = _weatherDrawn[layer.id];
@@ -2265,7 +2269,7 @@ class MaplibreMapControllerAdapter implements MapController {
         }
         continue;
       }
-      await _addWeatherGeneration(layer);
+      await _addWeatherGeneration(layer, order);
       final now = _weatherDrawn[layer.id]!;
       if (now.length > 1) stale[layer.id] = now.length - 1;
     }
@@ -2277,9 +2281,15 @@ class MaplibreMapControllerAdapter implements MapController {
     }
   }
 
-  /// Adds [layer] as the newest generation of its id: clouds under the
-  /// rain, both under the cycle map and the base map's labels.
-  Future<void> _addWeatherGeneration(WeatherLayer layer) async {
+  /// Adds [layer] as the newest generation of its id, in the style where
+  /// [order] (each layer's place in the list asked for, bottom to top) puts
+  /// it: over its own older generations and what comes before it (a
+  /// cloud's detail over its region, clouds under the rain), all under the
+  /// cycle map and the base map's labels.
+  Future<void> _addWeatherGeneration(
+    WeatherLayer layer,
+    Map<String, int> order,
+  ) async {
     await _findLabelAnchor();
     final n = _nextWeatherGeneration++;
     final source = MapLayerIds.weatherSource(layer.id, n);
@@ -2310,16 +2320,17 @@ class MaplibreMapControllerAdapter implements MapController {
         ),
       );
     }
-    // Under the lowest rain for clouds, else under the cycle map's lowest
-    // layer, else under the labels.
-    var at = _weatherStack.length;
+    // Under the lowest layer that comes after it in the list, else under
+    // the cycle map's lowest layer, else under the labels.
+    final mine = order[layer.id] ?? order.length;
+    var at = _weatherStack.indexWhere(
+      (e) => (order[e.$2] ?? order.length) > mine,
+    );
     String? below;
-    if (layer.kind == WeatherKind.clouds) {
-      final radar = _weatherStack.indexWhere((e) => e.$2 == WeatherKind.radar);
-      if (radar >= 0) {
-        at = radar;
-        below = _weatherStack[radar].$1;
-      }
+    if (at >= 0) {
+      below = _weatherStack[at].$1;
+    } else {
+      at = _weatherStack.length;
     }
     below ??= _cycleGenerations.isEmpty
         ? _cycleAnchor
@@ -2334,7 +2345,7 @@ class MaplibreMapControllerAdapter implements MapController {
       belowLayerId: below,
       enableInteraction: false,
     );
-    _weatherStack.insert(at, (id, layer.kind));
+    _weatherStack.insert(at, (id, layer.id));
     (_weatherDrawn[layer.id] ??= <(int, WeatherLayer)>[]).add((n, layer));
   }
 
@@ -2352,11 +2363,20 @@ class MaplibreMapControllerAdapter implements MapController {
     if (drawn.isEmpty) _weatherDrawn.remove(id);
   }
 
-  ml.LayerProperties _weatherProperties(WeatherLayer layer) => weatherTone(
-    layer.kind,
-    dark: _weatherDark,
-    opacity: layer.opacity,
-  ).layerProperties();
+  ml.LayerProperties _weatherProperties(WeatherLayer layer) {
+    final paint = weatherTone(
+      layer.kind,
+      dark: _weatherDark,
+      opacity: layer.opacity,
+    ).layerProperties();
+    // A cloud image is blown up well past its pixels: smoothed between
+    // them, it reads as soft cloud rather than squares. Linear is the
+    // default, said here so a style or platform default cannot change it.
+    if (layer.kind != WeatherKind.clouds) return paint;
+    return paint.copyWith(
+      const ml.RasterLayerProperties(rasterResampling: 'linear'),
+    );
+  }
 
   /// Paints the weather for a dark map look or a light one.
   Future<void> setWeatherDark(bool dark) async {

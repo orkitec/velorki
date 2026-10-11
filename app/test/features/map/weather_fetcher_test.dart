@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/map/data/weather_fetcher.dart';
 import 'package:velorki/features/map/domain/weather_map.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 /// Answers every request with [body] under [contentType] and [status], or
 /// never, when [hang] is set.
@@ -195,6 +196,62 @@ void main() {
         isNull,
       );
       expect(dir.listSync(), isEmpty);
+    });
+
+    test('a detail image asks for the box at its native size, a full hour, '
+        'then comes from the cache', () async {
+      final now = DateTime.utc(2026, 10, 10, 14, 25);
+      final frame = eumetsatClouds.frameAt(now)!;
+      final box = eumetsatClouds.detailBox(
+        cloudDetailArea(
+          const BoundingBox(south: 52.3, west: 13.2, north: 52.7, east: 13.6),
+          8,
+        )!,
+      )!;
+      final first = await fetcher.cloudDetailImage(
+        eumetsatClouds,
+        box,
+        frame,
+        now,
+      );
+      expect(first, <int>[9, 1, 2, 3]);
+      final query = adapter.requests.single.queryParameters;
+      expect(query['time'], '2026-10-10T14:00:00.000Z');
+      final (w, h) = cloudDetailImageSize(eumetsatClouds, box);
+      expect(query['width'], '$w');
+      expect(query['height'], '$h');
+      expect(query['bbox'], mercatorBboxString(box));
+      await fetcher.cloudDetailImage(eumetsatClouds, box, frame, now);
+      expect(adapter.requests, hasLength(1));
+      expect(processed, 1);
+      // The region's own image is a cache entry of its own.
+      await fetcher.cloudImage(eumetsatClouds, 0, frame, now);
+      expect(adapter.requests, hasLength(2));
+      expect(dir.listSync(), hasLength(2));
+    });
+
+    test('the cache keeps the last few detail boxes of the hour; the next '
+        'hour replaces them', () async {
+      final now = DateTime.utc(2026, 10, 10, 14, 25);
+      final frame = eumetsatClouds.frameAt(now)!;
+      for (var i = 0; i < cloudDetailCacheKeep + 3; i++) {
+        final box = BoundingBox(
+          south: 50,
+          west: 1.0 + i,
+          north: 51,
+          east: 1.5 + i,
+        );
+        await fetcher.cloudDetailImage(eumetsatClouds, box, frame, now);
+      }
+      expect(dir.listSync(), hasLength(cloudDetailCacheKeep));
+      final later = now.add(const Duration(hours: 1));
+      await fetcher.cloudDetailImage(
+        eumetsatClouds,
+        const BoundingBox(south: 50, west: 1, north: 51, east: 1.5),
+        eumetsatClouds.frameAt(later)!,
+        later,
+      );
+      expect(dir.listSync(), hasLength(1));
     });
 
     test('the latest GOES image is kept for one refresh slot', () {

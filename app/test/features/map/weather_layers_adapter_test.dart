@@ -5,6 +5,7 @@ import 'package:velorki/features/map/data/cycle_map_layers.dart';
 import 'package:velorki/features/map/data/maplibre_map_controller.dart';
 import 'package:velorki/features/map/data/weather_paint.dart';
 import 'package:velorki/features/map/domain/weather_map.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/maplibre_style_ops_fake.dart';
 
@@ -145,6 +146,89 @@ void main() {
           .lastPropertiesOf(MapLayerIds.weatherLayer('clouds_eumetsat.0', 0))!
           .properties!['raster-brightness-max'],
       cloudsDarkTone.brightnessMax,
+    );
+  });
+
+  test('a cloud detail goes over its region, and stays over a new frame '
+      'of the region', () async {
+    WeatherLayer detail(String frame) => WeatherLayer.image(
+      id: 'clouds_eumetsat.detail',
+      kind: WeatherKind.clouds,
+      image: Uint8List.fromList(<int>[4]),
+      imageBox: const BoundingBox(south: 52, west: 13, north: 53, east: 14),
+      frameKey: 'detail@$frame',
+      attribution: 'Clouds: clouds_eumetsat.0',
+    );
+    await map.setWeatherLayers([
+      _clouds('clouds_eumetsat.0', 'a'),
+      _radar('radar_dwd', '1'),
+    ]);
+    await map.setWeatherLayers([
+      _clouds('clouds_eumetsat.0', 'a'),
+      detail('a'),
+      _radar('radar_dwd', '1'),
+    ]);
+    final detailLayer = MapLayerIds.weatherLayer('clouds_eumetsat.detail', 2);
+    expect(
+      ops.addLayerOf(detailLayer)!.belowLayerId,
+      MapLayerIds.weatherLayer('radar_dwd', 1),
+    );
+    // The region's next hour goes under the detail, not over it.
+    await map.setWeatherLayers([
+      _clouds('clouds_eumetsat.0', 'b'),
+      detail('a'),
+      _radar('radar_dwd', '1'),
+    ]);
+    expect(
+      ops
+          .addLayerOf(MapLayerIds.weatherLayer('clouds_eumetsat.0', 3))!
+          .belowLayerId,
+      detailLayer,
+    );
+    // A new detail goes over the old one, then the old one goes.
+    await map.setWeatherLayers([
+      _clouds('clouds_eumetsat.0', 'b'),
+      detail('b'),
+      _radar('radar_dwd', '1'),
+    ]);
+    expect(
+      ops
+          .addLayerOf(MapLayerIds.weatherLayer('clouds_eumetsat.detail', 4))!
+          .belowLayerId,
+      MapLayerIds.weatherLayer('radar_dwd', 1),
+    );
+    expect(ops.layerIds, isNot(contains(detailLayer)));
+    expect(map.weatherAttributions.value, [
+      'Clouds: clouds_eumetsat.0',
+      'Radar: radar_dwd',
+    ]);
+  });
+
+  test('cloud images are smoothed, linearly; the radar is left as it '
+      'was', () async {
+    await map.setWeatherLayers([
+      _clouds('clouds_eumetsat.0', 'a'),
+      _radar('radar_dwd', '1'),
+    ]);
+    expect(
+      ops
+          .addLayerOf(MapLayerIds.weatherLayer('clouds_eumetsat.0', 0))!
+          .properties!['raster-resampling'],
+      'linear',
+    );
+    expect(
+      ops
+          .addLayerOf(MapLayerIds.weatherLayer('radar_dwd', 1))!
+          .properties!
+          .containsKey('raster-resampling'),
+      isFalse,
+    );
+    await map.setWeatherDark(true);
+    expect(
+      ops
+          .lastPropertiesOf(MapLayerIds.weatherLayer('clouds_eumetsat.0', 0))!
+          .properties!['raster-resampling'],
+      'linear',
     );
   });
 }

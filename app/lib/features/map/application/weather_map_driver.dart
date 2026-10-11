@@ -14,6 +14,10 @@ const Duration radarRefreshInterval = Duration(minutes: 5);
 /// How often the clouds do.
 const Duration cloudsRefreshInterval = Duration(minutes: 10);
 
+/// How long the camera rests before the clouds' detail image is asked
+/// for: a pan of a few flicks asks once, at its end.
+const Duration cloudDetailDebounce = Duration(milliseconds: 600);
+
 /// The zoom the radar's probe tile is asked at: low, so it is one cheap
 /// tile around the middle of the view.
 const int weatherProbeZoom = 5;
@@ -74,7 +78,11 @@ class WeatherMapStatus {
 /// checked with one tile ([WeatherFetcher.probe]) when the layer comes on,
 /// on each refresh and when the view first enters the source's coverage.
 /// Clouds are one image per region, which this driver fetches; that fetch
-/// is their check. A source that does not answer is reported in [status],
+/// is their check. Zoomed in to [cloudDetailMinZoom] and more, each cloud
+/// source also gets a finer image of the view's surroundings once the
+/// camera has rested ([cloudDetailDebounce]), drawn over the region's and
+/// replaced when the view leaves it or the zoom moves on; one request per
+/// source at a time, an answer for a view since left dropped. A source that does not answer is reported in [status],
 /// so the map can say so instead of looking like a dry, clear day.
 class WeatherMapDriver {
   /// A driver fetching through [fetcher], telling the time by [clock].
@@ -91,6 +99,7 @@ class WeatherMapDriver {
   bool _disposed = false;
   Timer? _radarTimer;
   Timer? _cloudsTimer;
+  Timer? _detailTimer;
 
   /// The probe URL each radar source was last checked with.
   final Map<String, String> _probed = <String, String>{};
@@ -106,6 +115,13 @@ class WeatherMapDriver {
   /// refresh, not with every move of the map.
   final Map<String, WeatherLayer> _images = <String, WeatherLayer>{};
   final Map<String, String> _attempted = <String, String>{};
+
+  /// Each cloud source's detail image, the request in flight for it (its
+  /// key) and the last one asked for, which a failure is not asked again
+  /// for until the next refresh.
+  final Map<String, _CloudDetail> _details = <String, _CloudDetail>{};
+  final Map<String, String> _detailInFlight = <String, String>{};
+  final Map<String, String> _detailAttempted = <String, String>{};
 
   List<WeatherLayer> _drawn = const <WeatherLayer>[];
   DateTime? _radarFrame;
@@ -128,6 +144,7 @@ class WeatherMapDriver {
     map.addCameraIdleListener(_onCameraIdle);
     _update();
     _resetTimers();
+    _scheduleDetails();
   }
 
   /// Lets the map go, taking the layers off it when [clear] is true.
@@ -140,6 +157,8 @@ class WeatherMapDriver {
     }
     _drawn = const <WeatherLayer>[];
     _map = null;
+    _detailTimer?.cancel();
+    _detailTimer = null;
     _resetTimers();
   }
 
@@ -168,11 +187,18 @@ class WeatherMapDriver {
         _failed.remove(source.id);
       }
     }
-    if (turnedOn.contains(WeatherKind.clouds)) _attempted.clear();
+    if (turnedOn.contains(WeatherKind.clouds)) {
+      _attempted.clear();
+      _detailAttempted.clear();
+    }
     // Clouds switched off let their images go.
-    if (!settings.clouds) _images.clear();
+    if (!settings.clouds) {
+      _images.clear();
+      _details.clear();
+    }
     _update();
     _resetTimers();
+    _scheduleDetails();
   }
 
   /// Whether the app is in the foreground: refreshes run only then, and
@@ -182,9 +208,11 @@ class WeatherMapDriver {
     _foreground = foreground;
     if (foreground) {
       _attempted.clear();
+      _detailAttempted.clear();
       _update(recheck: true);
     }
     _resetTimers();
+    _scheduleDetails();
   }
 
   /// Stops for good.
@@ -193,10 +221,25 @@ class WeatherMapDriver {
     detach(clear: false);
     _radarTimer?.cancel();
     _cloudsTimer?.cancel();
+    _detailTimer?.cancel();
     _status.dispose();
   }
 
-  void _onCameraIdle() => _update();
+  void _onCameraIdle() {
+    _update();
+    _scheduleDetails();
+  }
+
+  /// Asks for the detail images once the camera has rested; only while
+  /// the clouds are on, on a map, in the foreground.
+  void _scheduleDetails() {
+    _detailTimer?.cancel();
+    _detailTimer = null;
+    if (_disposed || _map == null || !_foreground || !_settings.clouds) {
+      return;
+    }
+    _detailTimer = Timer(cloudDetailDebounce, _planDetails);
+  }
 
   void _resetTimers() {
     _radarTimer?.cancel();
@@ -213,7 +256,9 @@ class WeatherMapDriver {
     if (_settings.clouds) {
       _cloudsTimer = Timer.periodic(cloudsRefreshInterval, (_) {
         _attempted.clear();
+        _detailAttempted.clear();
         _update();
+        _planDetails();
       });
     }
   }
@@ -235,6 +280,9 @@ class WeatherMapDriver {
 
     // Clouds first, which is under the rain.
     _cloudsFrame = null;
+    final zoom = map.zoom;
+    final detailed = zoom != null && zoom >= cloudDetailMinZoom;
+    final shownDetails = <String>{};
     for (final source in _enabled(WeatherKind.clouds)) {
       if (view == null || !source.covers(view)) continue;
       final frame = source.frameAt(now);
@@ -254,7 +302,16 @@ class WeatherMapDriver {
           unawaited(_loadCloud(source, region, frame, now, key, frameKey));
         }
       }
+      // The detail over the region's image, the last one until the next
+      // is in.
+      final detail = _details[source.id];
+      if (detailed && detail != null) {
+        layers.add(detail.layer);
+        shownDetails.add(source.id);
+      }
     }
+    // Zoomed out, off or out of view: the details go.
+    _details.removeWhere((id, _) => !shownDetails.contains(id));
 
     _radarFrame = null;
     var forecastCovered = false;
@@ -341,6 +398,97 @@ class WeatherMapDriver {
     _update();
   }
 
+  /// Asks for each cloud source's detail image of the view where the one
+  /// shown is missing, of another moment, or no longer fits: the view
+  /// left its box or the zoom moved [cloudDetailRezoom] or more.
+  void _planDetails() {
+    _detailTimer?.cancel();
+    _detailTimer = null;
+    if (_disposed || !_foreground) return;
+    final map = _map;
+    final view = map?.visibleBounds;
+    final zoom = map?.zoom;
+    if (map == null || view == null || zoom == null) return;
+    if (zoom < cloudDetailMinZoom) return;
+    final now = _clock();
+    for (final source in _enabled(WeatherKind.clouds)) {
+      if (!source.covers(view)) continue;
+      final frame = source.frameAt(now);
+      if (frame == null) continue;
+      final stamp = cloudImageStamp(frame, now);
+      final shown = _details[source.id];
+      if (shown != null && shown.stamp == stamp && shown.fits(view, zoom)) {
+        continue;
+      }
+      // One request per source: the next is planned when it is back.
+      if (_detailInFlight.containsKey(source.id)) continue;
+      final area = cloudDetailArea(view, zoom);
+      final box = area == null ? null : source.detailBox(area);
+      if (area == null || box == null) continue;
+      final key = '${source.id}.detail@${cloudDetailKey(box)}@$stamp';
+      if (_detailAttempted[source.id] == key) continue;
+      _detailAttempted[source.id] = key;
+      _detailInFlight[source.id] = key;
+      unawaited(
+        _loadDetail(
+          source,
+          _CloudDetail(
+            layer: WeatherLayer.image(
+              id: '${source.id}.detail',
+              kind: WeatherKind.clouds,
+              image: Uint8List(0),
+              imageBox: box,
+              frameKey: key,
+              attribution: source.attributionFor(frame, now),
+              opacity: source.opacity,
+            ),
+            area: area,
+            zoom: zoom,
+            stamp: stamp,
+          ),
+          frame,
+          now,
+        ),
+      );
+    }
+  }
+
+  Future<void> _loadDetail(
+    WeatherMapSource source,
+    _CloudDetail planned,
+    WeatherFrame frame,
+    DateTime now,
+  ) async {
+    final box = planned.layer.imageBox!;
+    final image = await _fetcher.cloudDetailImage(source, box, frame, now);
+    if (_disposed) return;
+    _detailInFlight.remove(source.id);
+    if (image == null) {
+      _failed.add(source.id);
+      _publish();
+    } else {
+      _failed.remove(source.id);
+      // Kept only while it still fits what the map shows: zoomed out, the
+      // clouds off or the view moved on, it is dropped.
+      final map = _map;
+      final view = map?.visibleBounds;
+      final zoom = map?.zoom;
+      if (_settings.clouds &&
+          view != null &&
+          zoom != null &&
+          zoom >= cloudDetailMinZoom &&
+          planned.fits(view, zoom) &&
+          _enabled(WeatherKind.clouds).any((s) => s.id == source.id)) {
+        _details[source.id] = planned.withImage(image);
+        _update();
+      } else {
+        _publish();
+      }
+    }
+    // What the view wants now, which may have moved on while this was out.
+    _planDetails();
+  }
+
   void _publish() {
     if (_disposed) return;
     _status.value = WeatherMapStatus(
@@ -354,4 +502,47 @@ class WeatherMapDriver {
       forecastElsewhere: _forecastElsewhere,
     );
   }
+}
+
+/// A cloud source's detail image: the layer drawn, the [area] it was asked
+/// for (the view and its margin, before the coverage clips it), the zoom
+/// it was asked at and the moment it shows.
+@immutable
+class _CloudDetail {
+  const _CloudDetail({
+    required this.layer,
+    required this.area,
+    required this.zoom,
+    required this.stamp,
+  });
+
+  final WeatherLayer layer;
+  final BoundingBox area;
+  final double zoom;
+  final int stamp;
+
+  /// Whether it still serves [view] at [zoom]: the view inside its area,
+  /// the zoom less than [cloudDetailRezoom] away.
+  bool fits(BoundingBox view, double zoom) =>
+      (zoom - this.zoom).abs() < cloudDetailRezoom &&
+      view.west <= view.east &&
+      view.west >= area.west &&
+      view.east <= area.east &&
+      view.south >= area.south &&
+      view.north <= area.north;
+
+  _CloudDetail withImage(Uint8List image) => _CloudDetail(
+    layer: WeatherLayer.image(
+      id: layer.id,
+      kind: layer.kind,
+      image: image,
+      imageBox: layer.imageBox!,
+      frameKey: layer.frameKey,
+      attribution: layer.attribution,
+      opacity: layer.opacity,
+    ),
+    area: area,
+    zoom: zoom,
+    stamp: stamp,
+  );
 }
