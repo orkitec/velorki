@@ -285,6 +285,18 @@ Future<Uint8List> buildDiscMarkerImage({
       canvas,
       ratio,
     ) {
+      // The rim as a whole disc under the fill, not a ring beside it: two
+      // soft edges that only meet leave a seam of the map showing through.
+      if (strokePx > 0) {
+        canvas.drawCircle(
+          center,
+          radiusPx + strokePx,
+          Paint()
+            ..style = PaintingStyle.fill
+            ..color = stroke
+            ..isAntiAlias = true,
+        );
+      }
       canvas.drawCircle(
         center,
         radiusPx,
@@ -293,17 +305,6 @@ Future<Uint8List> buildDiscMarkerImage({
           ..color = fill
           ..isAntiAlias = true,
       );
-      if (strokePx > 0) {
-        canvas.drawCircle(
-          center,
-          radiusPx + strokePx / 2,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = strokePx
-            ..color = stroke
-            ..isAntiAlias = true,
-        );
-      }
       if (glyph != null) {
         // Centred as the glyph's own bitmap is centred on its point.
         final origin = _onDevicePixels(
