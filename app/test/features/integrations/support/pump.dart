@@ -13,6 +13,7 @@ import 'package:velorki/features/integrations/common/data/integration_connector.
 import 'package:velorki/core/links/link_opener.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/integrations/common/data/secure_key_value_store.dart';
+import 'package:velorki/features/integrations/testing/in_memory_secure_key_value_store.dart';
 import 'package:velorki/features/integrations/common/domain/connected_account.dart';
 import 'package:velorki/features/settings/data/package_info_provider.dart';
 import 'package:velorki/features/settings/data/units.dart';

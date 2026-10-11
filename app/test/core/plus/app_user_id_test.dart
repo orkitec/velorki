@@ -21,7 +21,6 @@ void main() {
     final container = await _container(<String, Object>{});
 
     final first = container.read(appUserIdProvider);
-    expect(isAnonymousAppUserId(first), isTrue);
     expect(first, startsWith('anon-'));
     expect(container.read(appUserIdProvider), first);
 
@@ -41,9 +40,5 @@ void main() {
 
   test('two generated ids differ', () {
     expect(generateAnonymousAppUserId(), isNot(generateAnonymousAppUserId()));
-  });
-
-  test('a RevenueCat id is not treated as anonymous', () {
-    expect(isAnonymousAppUserId(r'$RCAnonymousID:abc'), isFalse);
   });
 }

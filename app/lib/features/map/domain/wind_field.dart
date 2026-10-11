@@ -45,16 +45,6 @@ const int windMaxArrows = 4000;
   return (dir: dir, ms: ms);
 }
 
-/// The class of a wind of [ms] m/s: 0 calm, 1 light, 2 moderate, 3 fresh,
-/// 4 strong (see [windSpeedClasses]).
-int windSpeedClass(double ms) {
-  var i = 0;
-  while (i < windSpeedClasses.length && ms >= windSpeedClasses[i]) {
-    i++;
-  }
-  return i;
-}
-
 /// The zoom the arrows are spaced for: [zoom] rounded down to a half, so a
 /// small zoom does not move every arrow.
 double windSpacingZoom(double zoom) => (zoom * 2).floorToDouble() / 2;

@@ -562,9 +562,9 @@ void main() {
   // Pixels as the services draw them, read from their GetMap images of
   // 2026-10-11 (DWD `dwd:Niederschlagsradar`, EUMETSAT `mtg_fd:h40b`, NOAA
   // `exportImage` nearest-neighbour, the DWD's ICON layers).
-  group('softenRadarPixels: the DWD legend', () {
+  group('softenRainPixels: the DWD legend', () {
     int alphaOf(int r, int g, int b, [int a = 255]) =>
-        softenRadarPixels(1, 1, _pixel(r, g, b, a))[3];
+        softenRainPixels(1, 1, _pixel(r, g, b, a), RainPalette.dwd)[3];
 
     int level(double alpha) => (alpha * 255).round();
 
@@ -575,10 +575,11 @@ void main() {
       var last = 0;
       for (var k = 0; k < legend.colours.length; k++) {
         final c = legend.colours[k];
-        final out = softenRadarPixels(
+        final out = softenRainPixels(
           1,
           1,
           _pixel(c >> 16 & 0xFF, c >> 8 & 0xFF, c & 0xFF, 255),
+          RainPalette.dwd,
         );
         expect(out.sublist(0, 3), <int>[
           c >> 16 & 0xFF,
@@ -651,10 +652,11 @@ void main() {
 
     test('edges soften: the alpha alone, averaged over its 3 × 3 box', () {
       // Green, under a millimetre, beside yellow, 5 to 7.5; the rest dry.
-      final out = softenRadarPixels(
+      final out = softenRainPixels(
         5,
         5,
         image({(2, 2): 0x019934, (3, 2): 0xFFFF01}),
+        RainPalette.dwd,
       );
       expect(
         alphaAt(out, 2, 2),
@@ -670,13 +672,14 @@ void main() {
     });
 
     test('inside a field of rain the alpha stays', () {
-      final out = softenRadarPixels(
+      final out = softenRainPixels(
         5,
         5,
         image({
           for (var y = 0; y < 5; y++)
             for (var x = 0; x < 5; x++) (x, y): 0x019934,
         }),
+        RainPalette.dwd,
       );
       expect(alphaAt(out, 2, 2), level(legend.alphaOf(2)));
       // At the image's border too: beyond it counts as the border.
@@ -688,12 +691,21 @@ void main() {
       expect(legend.alphaOf(11), greaterThanOrEqualTo(rainAlphaHeavy));
       expect(legend.alphaOf(10), lessThan(rainAlphaHeavy));
       expect(
-        alphaAt(softenRadarPixels(5, 5, image({(2, 2): 0xE5004C})), 2, 2),
+        alphaAt(
+          softenRainPixels(5, 5, image({(2, 2): 0xE5004C}), RainPalette.dwd),
+          2,
+          2,
+        ),
         level(legend.alphaOf(11)),
       );
       expect(
         alphaAt(
-          softenRadarPixels(5, 5, image({(2, 2): 0x0000FE, (2, 3): 0x019934})),
+          softenRainPixels(
+            5,
+            5,
+            image({(2, 2): 0x0000FE, (2, 3): 0x019934}),
+            RainPalette.dwd,
+          ),
           2,
           2,
         ),
@@ -701,13 +713,17 @@ void main() {
       );
       // 30 to 45 mm an hour is not heavy: it fades at the edge.
       expect(
-        alphaAt(softenRadarPixels(5, 5, image({(2, 2): 0xFE0000})), 2, 2),
+        alphaAt(
+          softenRainPixels(5, 5, image({(2, 2): 0xFE0000}), RainPalette.dwd),
+          2,
+          2,
+        ),
         (legend.alphaOf(10) / 9 * 255).round(),
       );
     });
 
     test('light rain beside heavy is lifted, never the other way', () {
-      final out = softenRadarPixels(
+      final out = softenRainPixels(
         5,
         5,
         image({
@@ -716,6 +732,7 @@ void main() {
           (3, 2): 0xCC0098,
           (2, 1): 0xCC0098,
         }),
+        RainPalette.dwd,
       );
       expect(alphaAt(out, 1, 2), level(legend.alphaOf(12)));
       expect(

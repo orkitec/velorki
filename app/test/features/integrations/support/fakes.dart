@@ -4,8 +4,7 @@ import 'package:velorki/features/integrations/common/data/oauth_flow.dart';
 import 'package:velorki/features/integrations/common/domain/integration_exception.dart';
 import 'package:velorki_api/velorki_api.dart';
 
-export 'package:velorki/features/integrations/common/data/secure_key_value_store.dart'
-    show InMemorySecureKeyValueStore;
+export 'package:velorki/features/integrations/testing/in_memory_secure_key_value_store.dart';
 
 /// A [WebAuthenticator] that answers with a canned callback URL.
 class FakeWebAuthenticator implements WebAuthenticator {

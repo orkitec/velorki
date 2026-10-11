@@ -61,7 +61,7 @@ enum RainPalette {
 /// How the rain radar is drawn, chosen under Settings → Appearance.
 enum RadarStyle {
   /// One image of the view, smoothed on the phone: soft edges, light rain
-  /// fainter than heavy (see `softenRadarPixels`).
+  /// fainter than heavy (see `softenRainPixels`).
   soft,
 
   /// The service's tiles as delivered, its cells sharp.

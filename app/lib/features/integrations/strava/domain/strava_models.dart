@@ -90,10 +90,6 @@ class StravaUpload {
 String stravaActivityUrl(String activityId) =>
     'https://www.strava.com/activities/$activityId';
 
-/// The web page of a Strava route.
-String stravaRouteUrl(String routeId) =>
-    'https://www.strava.com/routes/$routeId';
-
 /// One entry of `GET /athletes/{id}/routes`.
 class StravaRouteSummary {
   /// Creates a summary.

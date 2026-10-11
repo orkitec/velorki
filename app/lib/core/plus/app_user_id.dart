@@ -16,9 +16,6 @@ const String anonymousAppUserIdPrefix = 'anon-';
 String generateAnonymousAppUserId({Uuid uuid = const Uuid()}) =>
     '$anonymousAppUserIdPrefix${uuid.v4()}';
 
-/// Whether [id] was made up by the app rather than issued by RevenueCat.
-bool isAnonymousAppUserId(String id) => id.startsWith(anonymousAppUserIdPrefix);
-
 /// The identity the relay authenticates every request against.
 ///
 /// The relay checks the RevenueCat entitlement of whatever comes in as

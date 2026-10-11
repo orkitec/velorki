@@ -564,14 +564,6 @@ List<TurnHint> decodeTurns(String? json) {
   return out;
 }
 
-/// Parses the `surface_stats_json` column.
-SurfaceStats? decodeSurfaceStats(String? json) {
-  if (json == null || json.isEmpty) return null;
-  final decoded = _tryDecode(json);
-  if (decoded is! Map<String, dynamic>) return null;
-  return SurfaceStats.fromJson(decoded);
-}
-
 Object? _tryDecode(String json) {
   try {
     return jsonDecode(json);

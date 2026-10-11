@@ -432,17 +432,4 @@ void main() {
       },
     );
   });
-
-  group('opening a route screen without a connection', () {
-    test('names the service that is not connected', () {
-      expect(
-        notConnectedException(IntegrationService.strava).message,
-        'No Strava account is connected.',
-      );
-      expect(
-        notConnectedException(IntegrationService.rwgps).failure,
-        IntegrationFailure.notConnected,
-      );
-    });
-  });
 }

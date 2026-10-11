@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -193,10 +192,6 @@ class Sha256 {
     0xc67178f2,
   ];
 }
-
-/// The SHA-256 of [text], as lower-case hexadecimal.
-String sha256OfString(String text) =>
-    (Sha256()..add(utf8.encode(text))).hexDigest();
 
 /// The SHA-256 of [file], read in chunks so a 250 MB tile never sits in
 /// memory as a whole.

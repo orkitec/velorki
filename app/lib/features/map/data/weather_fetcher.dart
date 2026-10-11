@@ -146,11 +146,6 @@ void fadeCloudPixels(
 /// How far, in pixels, the softening of edges reaches: 1 is a 3 × 3 box.
 const int radarBlurRadius = 1;
 
-/// Turns the straight RGBA pixels of a DWD radar image ([width] ×
-/// [height]) into the soft radar (see [softenRainPixels]).
-Uint8List softenRadarPixels(int width, int height, Uint8List rgba) =>
-    softenRainPixels(width, height, rgba, RainPalette.dwd);
-
 /// The soft look of a rain image of [palette]: each pixel read against the
 /// palette's legend ([RainLegend.classify]), rain drawn in its legend
 /// colour at its class's alpha times the service's own, everything else

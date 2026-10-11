@@ -16,7 +16,7 @@ const RasterTone radarTone = (
 );
 
 /// The soft rain radar: opaque as a layer, since its image's alpha already
-/// carries how see-through each shower is (see `softenRadarPixels`).
+/// carries how see-through each shower is (see `softenRainPixels`).
 const RasterTone radarSoftTone = (
   brightnessMin: 0.0,
   brightnessMax: 1.0,

@@ -171,18 +171,6 @@ Band 1:
       expect(windDirectionSpeed(3, -4).ms, closeTo(5, 1e-12));
       expect(windDirectionSpeed(0, 0).ms, 0);
     });
-
-    test('classes: calm, light, moderate, fresh, strong', () {
-      expect(windSpeedClass(0), 0);
-      expect(windSpeedClass(1.9), 0);
-      expect(windSpeedClass(2), 1);
-      expect(windSpeedClass(4.9), 1);
-      expect(windSpeedClass(5), 2);
-      expect(windSpeedClass(8), 3);
-      expect(windSpeedClass(10.9), 3);
-      expect(windSpeedClass(11), 4);
-      expect(windSpeedClass(30), 4);
-    });
   });
 
   group('interpolation', () {

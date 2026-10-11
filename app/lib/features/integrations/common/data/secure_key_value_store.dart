@@ -45,25 +45,6 @@ class FlutterSecureKeyValueStore implements SecureKeyValueStore {
   Future<void> delete(String key) => _storage.delete(key: key);
 }
 
-/// An in-memory store, for tests and for the widget previews.
-class InMemorySecureKeyValueStore implements SecureKeyValueStore {
-  /// Creates a store seeded with [values].
-  InMemorySecureKeyValueStore([Map<String, String>? values])
-    : values = <String, String>{...?values};
-
-  /// What is stored right now; tests read and seed it directly.
-  final Map<String, String> values;
-
-  @override
-  Future<String?> read(String key) async => values[key];
-
-  @override
-  Future<void> write(String key, String value) async => values[key] = value;
-
-  @override
-  Future<void> delete(String key) async => values.remove(key);
-}
-
 /// The app's secure storage. Overridden in tests with an in-memory store.
 final secureKeyValueStoreProvider = Provider<SecureKeyValueStore>(
   (ref) => FlutterSecureKeyValueStore(),
