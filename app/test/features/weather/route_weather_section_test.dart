@@ -11,7 +11,6 @@ import 'package:velorki/core/units/units.dart' show formatSpeed;
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/subscription/application/plus_access.dart';
 import 'package:velorki/features/weather/application/route_weather_controller.dart';
-import 'package:velorki/features/weather/application/route_overlay.dart';
 import 'package:velorki/features/weather/domain/route_sampling.dart';
 import 'package:velorki/features/weather/domain/route_weather_state.dart';
 import 'package:velorki/features/weather/presentation/route_weather_section.dart';
@@ -125,7 +124,6 @@ Future<_Pumped> _pump(
           body: ListView(
             padding: const EdgeInsets.all(20),
             children: const [
-              RouteOverlayLegend(),
               SizedBox(key: Key('above'), height: 10),
               RouteWeatherSection(),
               SizedBox(key: Key('below'), height: 10),
@@ -346,82 +344,6 @@ void main() {
       ),
     );
     expect(button.onPressed, isNull);
-  });
-
-  testWidgets('the route is coloured by the wind, the rain or nothing; the '
-      'choice is remembered and the key over the map follows it', (
-    tester,
-  ) async {
-    final pumped = await _pump(tester);
-    RouteOverlay choice() => pumped.container.read(routeOverlayChoiceProvider);
-    expect(choice(), RouteOverlay.off);
-    expect(find.byKey(const ValueKey('route-overlay-legend')), findsNothing);
-
-    await tester.tap(find.text(l10n.weatherWind));
-    await tester.pump();
-    expect(choice(), RouteOverlay.wind);
-    expect(pumped.prefs.getString('weather.route_overlay'), 'wind');
-    expect(find.byKey(const ValueKey('route-overlay-legend')), findsOneWidget);
-    // Over the map and under the strip.
-    expect(find.byType(WindColourKey), findsNWidgets(2));
-
-    await tester.tap(find.text(l10n.weatherRain));
-    await tester.pump();
-    expect(choice(), RouteOverlay.rain);
-    // A dry ride: the key says there is no rain rather than show colours.
-    expect(find.text(l10n.weatherRainNoneOnRoute), findsOneWidget);
-    expect(find.byType(RainColourKey), findsNothing);
-
-    await tester.tap(find.text(l10n.weatherOverlayOff));
-    await tester.pump();
-    expect(choice(), RouteOverlay.off);
-    expect(find.byKey(const ValueKey('route-overlay-legend')), findsNothing);
-  });
-
-  testWidgets('the rain key names the strengths while rain is on the way', (
-    tester,
-  ) async {
-    await _pump(
-      tester,
-      weather: AsyncData<RouteWeatherState?>(weatherState(precip: (_) => 3)),
-    );
-    await tester.tap(find.text(l10n.weatherRain));
-    await tester.pump();
-    expect(find.byType(RainColourKey), findsOneWidget);
-    for (final name in [
-      l10n.weatherRainLight,
-      l10n.weatherRainModerate,
-      l10n.weatherRainHeavy,
-    ]) {
-      expect(find.text(name), findsOneWidget);
-    }
-  });
-
-  testWidgets('no key over the map while the forecast is on its way', (
-    tester,
-  ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    await _pump(tester, weather: const AsyncLoading<RouteWeatherState?>());
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(RouteWeatherSection)),
-    );
-    await container
-        .read(routeOverlayChoiceProvider.notifier)
-        .set(RouteOverlay.wind);
-    await tester.pump();
-    expect(find.byKey(const ValueKey('route-overlay-legend')), findsNothing);
-  });
-
-  test('the wind switch of before comes back as the wind', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'weather.wind_on_map': true,
-    });
-    final prefs = await SharedPreferences.getInstance();
-    final container = ProviderContainer(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-    );
-    addTearDown(container.dispose);
-    expect(container.read(routeOverlayChoiceProvider), RouteOverlay.wind);
   });
 
   test('the fixture is from MET Norway', () {

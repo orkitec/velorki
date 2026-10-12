@@ -24,6 +24,8 @@ import 'package:velorki/features/subscription/application/plus_access.dart';
 import 'package:velorki/features/weather/application/route_weather_controller.dart';
 import 'package:velorki/features/weather/domain/route_weather_state.dart';
 import 'package:velorki/features/weather/presentation/route_weather_strip.dart';
+import 'package:velorki/features/weather/presentation/weather_keys.dart';
+import 'package:velorki/core/geo/route_gradient.dart';
 
 import '../../support/app.dart';
 import '../../support/chart_cursor.dart';
@@ -539,6 +541,17 @@ void main() {
       );
       expect(find.textContaining(l10n.weatherDry), findsOneWidget);
 
+      // The gradient by default: a flat road, one grey stretch.
+      final colours = h.map.calls.where((c) => c.method == 'setRouteColours');
+      expect(colours, isNotEmpty);
+      expect(
+        (colours.last.arguments.single! as List<ColouredSegment>).map(
+          (s) => s.colour,
+        ),
+        [gradientClassColour(GradientClass.flat)],
+      );
+      expect(find.byType(GradientColourKey), findsOneWidget);
+
       final wind = find.text(l10n.weatherWind);
       await tester.ensureVisible(wind);
       await tester.pumpAndSettle();
@@ -556,16 +569,24 @@ void main() {
           ),
         ),
       );
+      // The wind takes the gradient off.
       expect(
-        find.byKey(const ValueKey('route-overlay-legend')),
-        findsOneWidget,
+        h.map.calls.where((c) => c.method == 'clearRouteColours'),
+        isNotEmpty,
       );
+      // Under the strip, and under the choice.
+      expect(find.byType(WindColourKey), findsNWidgets(2));
+      expect(find.byType(GradientColourKey), findsNothing);
 
       // A dry ride: the rain takes the wind off and draws nothing.
+      final coloured = colours.length;
       await tester.tap(find.text(l10n.weatherRain));
       await tester.pumpAndSettle();
       expect(h.map.calls.last.method, 'clearRouteWind');
-      expect(h.map.calls.where((c) => c.method == 'setRouteRain'), isEmpty);
+      expect(
+        h.map.calls.where((c) => c.method == 'setRouteColours'),
+        hasLength(coloured),
+      );
       expect(find.text(l10n.weatherRainNoneOnRoute), findsOneWidget);
       await unmountApp(tester);
     });

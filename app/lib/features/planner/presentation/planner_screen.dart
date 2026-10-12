@@ -55,7 +55,6 @@ import '../domain/elevation_profile.dart';
 import '../domain/planner_state.dart';
 import '../domain/route_waypoints.dart' show projectOnTrack;
 import '../domain/routing_options.dart';
-import 'elevation_profile_chart.dart';
 import 'avoided_stretches_chip.dart';
 import 'original_route_chip.dart';
 import 'profile_chip_row.dart';
@@ -65,10 +64,9 @@ import 'surface_section.dart';
 import 'surface_stats_bar.dart';
 import 'waypoint_edit_sheet.dart';
 import '../../weather/application/route_weather_controller.dart';
-import '../../weather/application/route_wind.dart';
-import '../../weather/application/route_overlay.dart';
+import '../../weather/application/route_colouring.dart';
+import '../../weather/presentation/route_colour_choice.dart';
 import '../../weather/presentation/route_weather_section.dart';
-import '../../weather/presentation/weather_keys.dart';
 import '../../shared/presentation/error_text.dart';
 
 /// The Plan tab: the search and profile controls at the top and the route
@@ -660,13 +658,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             null => null,
             final place => shownPoi(place),
           };
-      // The wind or the rain on the route, when the rider asked for it on
-      // the map.
-      binding.routeWeather = () => routeWeatherLinesFor(
-        ref.read(plannerControllerProvider).result?.positions,
-        ref.read(routeWeatherControllerProvider(plannerWeatherRoute)),
-        ref.read(routeOverlayChoiceProvider),
-      );
+      // What the route is coloured by: its gradient, or the wind or the
+      // rain on it, as the rider chose.
+      binding.routeColours = () =>
+          ref.read(routeColouringProvider(plannerWeatherRoute)).lines;
       _binding = binding;
     }
     binding.attach();
@@ -1086,16 +1081,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         unawaited(_binding?.sync(ref.read(plannerControllerProvider)));
       }
     });
-    // The weather or what the route on the map is coloured by changed.
-    void syncWeather() {
-      if (_drawing) unawaited(_binding?.syncWeather());
-    }
-
-    ref.listen(
-      routeWeatherControllerProvider(plannerWeatherRoute),
-      (_, _) => syncWeather(),
-    );
-    ref.listen(routeOverlayChoiceProvider, (_, _) => syncWeather());
+    // What the route on the map is coloured by changed: the choice, the
+    // route or its weather.
+    ref.listen(routeColouringProvider(plannerWeatherRoute), (_, _) {
+      if (_drawing) unawaited(_binding?.syncColours());
+    });
     ref.listen(plannerControllerProvider, (previous, next) {
       // Only while this tab's layers are on the map; a plan that changes
       // while the tab is away is drawn whole when it comes back.
@@ -1290,17 +1280,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       const Align(
         alignment: AlignmentDirectional.centerStart,
         child: WeatherMapHints(
-          padding: EdgeInsetsDirectional.only(
-            top: 10,
-            end: mapControlButtonSize + 14,
-          ),
-        ),
-      ),
-      // What the colours of the wind or the rain on the route mean, while
-      // it is coloured by them.
-      const Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: RouteOverlayLegend(
           padding: EdgeInsetsDirectional.only(
             top: 10,
             end: mapControlButtonSize + 14,
@@ -1658,7 +1637,10 @@ class _SheetBodyState extends State<_SheetBody> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ElevationProfileChart(
+        // The profile, coloured as the route on the map is, and the choice
+        // of what that is under it.
+        RouteElevationProfile(
+          route: plannerWeatherRoute,
           samples: elevationProfile(route.geometry),
           window: _window,
           onWindow: _setWindow,

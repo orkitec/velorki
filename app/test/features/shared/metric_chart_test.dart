@@ -458,4 +458,89 @@ void main() {
       expect(chartCursorHandles, findsOneWidget);
     });
   });
+
+  group('bands', () {
+    const red = Color(0xFFFF0000);
+    const blue = Color(0xFF0000FF);
+    const gap = Color(0x22000000);
+
+    test('hard stops along the line, the plain fill between the bands', () {
+      final gradient = chartBandsGradient(
+        start: 0,
+        end: 10,
+        bands: const [
+          (start: 6, end: 10, colour: blue),
+          (start: 2, end: 4, colour: red),
+        ],
+        gap: gap,
+      )!;
+      expect(gradient.stops, [0, 0.2, 0.2, 0.4, 0.4, 0.6, 0.6, 1]);
+      expect(gradient.colors, [
+        gap,
+        gap,
+        red.withValues(alpha: chartBandAlpha),
+        red.withValues(alpha: chartBandAlpha),
+        gap,
+        gap,
+        blue.withValues(alpha: chartBandAlpha),
+        blue.withValues(alpha: chartBandAlpha),
+      ]);
+      // Left to right.
+      expect(gradient.begin, Alignment.centerLeft);
+      expect(gradient.end, Alignment.centerRight);
+    });
+
+    test('bands are cut to the line, and none at all is no gradient', () {
+      final cut = chartBandsGradient(
+        start: 0,
+        end: 10,
+        bands: const [(start: -5, end: 20, colour: red)],
+        gap: gap,
+      )!;
+      expect(cut.stops, [0, 1]);
+      expect(
+        chartBandsGradient(
+          start: 0,
+          end: 10,
+          bands: const <ChartBand>[],
+          gap: gap,
+        ),
+        isNull,
+      );
+      expect(
+        chartBandsGradient(
+          start: 0,
+          end: 10,
+          bands: const [(start: 12, end: 20, colour: red)],
+          gap: gap,
+        ),
+        isNull,
+      );
+    });
+
+    testWidgets('a chart with bands fills under its line in their colours, '
+        'zoomed or not', (tester) async {
+      await tester.pumpWidget(
+        testApp(
+          home: Scaffold(
+            body: MetricChart(
+              title: 'Elevation',
+              spots: _elevenSpots(),
+              readoutAt: (i) => 'sample $i',
+              zoomable: true,
+              window: (start: 2, end: 6),
+              onWindow: (_) {},
+              bands: const [(start: 0, end: 5, colour: red)],
+            ),
+          ),
+        ),
+      );
+      final data = tester.widget<LineChart>(find.byType(LineChart)).data;
+      final fill = data.lineBarsData.single.belowBarData;
+      // Against the whole line, which is the box fl_chart spreads the fill
+      // over, not against the window.
+      expect(fill.gradient!.stops, [0, 0.5, 0.5, 1]);
+      expect(data.lineBarsData.single.color, isNot(red));
+    });
+  });
 }

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
+import 'package:velorki/core/geo/route_gradient.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/testing/fake_map_controller.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
@@ -11,6 +12,7 @@ import 'package:velorki/features/planner/application/planner_map_binding.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/domain/planner_state.dart';
 import 'package:velorki/features/map/data/rain_legend.dart';
+import 'package:velorki/features/weather/application/route_colouring.dart';
 import 'package:velorki/features/weather/application/route_overlay.dart';
 import 'package:velorki/features/weather/application/route_weather_controller.dart';
 import 'package:velorki/features/weather/application/route_wind.dart';
@@ -19,6 +21,7 @@ import 'package:velorki/features/weather/domain/route_weather_state.dart';
 import 'package:velorki/features/weather/presentation/route_weather_strip.dart';
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import '../planner/support/fakes.dart';
 import 'support/weather_fixtures.dart';
@@ -73,12 +76,39 @@ RouteWeatherState _weather(
   );
 }
 
+/// The wind on [geometry] as the map draws it.
+List<WindSegment> windSegments(
+  List<TrackPoint> geometry,
+  RouteWeatherState weather,
+) => routeColouringFor(
+  geometry,
+  AsyncData<RouteWeatherState?>(weather),
+  RouteOverlay.wind,
+).lines.wind;
+
+/// The rain on [geometry] as the map draws it.
+List<ColouredSegment> rainSegments(
+  List<TrackPoint> geometry,
+  RouteWeatherState weather,
+) => routeColouringFor(
+  geometry,
+  AsyncData<RouteWeatherState?>(weather),
+  RouteOverlay.rain,
+).lines.colours;
+
+/// What the map draws on [geometry] for [overlay].
+RouteColourLines lines(
+  List<TrackPoint>? geometry,
+  AsyncValue<RouteWeatherState?> weather,
+  RouteOverlay overlay,
+) => routeColouringFor(geometry, weather, overlay).lines;
+
 void main() {
   final route = straightRoute(lengthM: 12000);
 
   group('windSegments', () {
     test('splits the route where the wind changes, end to end', () {
-      final segments = windSegments(route.positions, _weather(route));
+      final segments = windSegments(route.geometry, _weather(route));
       expect(segments.map((s) => s.windClass), [
         WindClassOnMap.head,
         WindClassOnMap.tail,
@@ -91,7 +121,7 @@ void main() {
 
     test('leaves a gap where a sample has no weather', () {
       final weather = _weather(route, headCells: 99, missing: {1});
-      final segments = windSegments(route.positions, weather);
+      final segments = windSegments(route.geometry, weather);
       expect(segments.length, greaterThan(1));
       expect(segments.every((s) => s.windClass == WindClassOnMap.head), isTrue);
       expect(segments.first.points.last, isNot(segments[1].points.first));
@@ -99,7 +129,7 @@ void main() {
 
     test('draws nothing on a route the weather is not for', () {
       final other = straightRoute(lengthM: 8000);
-      expect(windSegments(other.positions, _weather(route)), isEmpty);
+      expect(windSegments(other.geometry, _weather(route)), isEmpty);
     });
   });
 
@@ -112,7 +142,7 @@ void main() {
         precipProb: null,
         precip: (c, _) => c < 2 ? 0 : (c < 4 ? 0.5 : 4),
       );
-      final segments = rainSegments(route.positions, weather);
+      final segments = rainSegments(route.geometry, weather);
       expect(segments.map((s) => s.colour), [
         rainClassColour(dwdRadarClassOf(0.5)),
         rainClassColour(dwdRadarClassOf(4)),
@@ -128,9 +158,9 @@ void main() {
     test('a few hundredths of a mm are no rain; a likely shower is the '
         'lightest class', () {
       final drizzle = _weather(route, precipProb: null, precip: (_, _) => 0.1);
-      expect(rainSegments(route.positions, drizzle), isEmpty);
+      expect(rainSegments(route.geometry, drizzle), isEmpty);
       final likely = _weather(route, precipProb: 70, precip: (_, _) => 0);
-      expect(rainSegments(route.positions, likely).map((s) => s.colour), [
+      expect(rainSegments(route.geometry, likely).map((s) => s.colour), [
         rainClassColour(0),
       ]);
     });
@@ -145,43 +175,89 @@ void main() {
     });
   });
 
-  group('routeWeatherLinesFor', () {
+  group('routeColouringFor', () {
     final data = AsyncData<RouteWeatherState?>(_weather(route));
     test('only with a choice and a forecast for the route', () {
-      final line = route.positions;
+      final line = route.geometry;
+      expect(lines(line, data, RouteOverlay.wind).wind, isNotEmpty);
+      expect(lines(line, data, RouteOverlay.wind).colours, isEmpty);
+      expect(lines(line, data, RouteOverlay.rain).colours, isNotEmpty);
+      expect(lines(line, data, RouteOverlay.rain).wind, isEmpty);
+      expect(lines(line, data, RouteOverlay.off), RouteColourLines.none);
+      expect(lines(null, data, RouteOverlay.wind), RouteColourLines.none);
       expect(
-        routeWeatherLinesFor(line, data, RouteOverlay.wind).wind,
-        isNotEmpty,
-      );
-      expect(routeWeatherLinesFor(line, data, RouteOverlay.wind).rain, isEmpty);
-      expect(
-        routeWeatherLinesFor(line, data, RouteOverlay.rain).rain,
-        isNotEmpty,
-      );
-      expect(routeWeatherLinesFor(line, data, RouteOverlay.rain).wind, isEmpty);
-      expect(
-        routeWeatherLinesFor(line, data, RouteOverlay.off),
-        RouteWeatherLines.none,
-      );
-      expect(
-        routeWeatherLinesFor(null, data, RouteOverlay.wind),
-        RouteWeatherLines.none,
-      );
-      expect(
-        routeWeatherLinesFor(
+        lines(
           line,
           const AsyncLoading<RouteWeatherState?>(),
           RouteOverlay.wind,
         ),
-        RouteWeatherLines.none,
+        RouteColourLines.none,
       );
       expect(
-        routeWeatherLinesFor(
+        lines(
           line,
           const AsyncData<RouteWeatherState?>(null),
           RouteOverlay.rain,
         ),
-        RouteWeatherLines.none,
+        RouteColourLines.none,
+      );
+    });
+  });
+
+  group('the gradient', () {
+    test('needs no weather and runs the whole route', () {
+      final drawn = lines(
+        route.geometry,
+        const AsyncLoading<RouteWeatherState?>(),
+        RouteOverlay.gradient,
+      );
+      expect(drawn.wind, isEmpty);
+      expect(drawn.colours.map((s) => s.colour), [
+        gradientClassColour(GradientClass.flat),
+      ]);
+      expect(drawn.colours.single.points.first, route.positions.first);
+      expect(drawn.colours.single.points.last, route.positions.last);
+    });
+
+    test('changes colour where the road starts to climb', () {
+      // Flat for 2 km, then 8 % up for 2 km.
+      final geometry = <TrackPoint>[
+        for (var d = 0.0; d <= 4000; d += 50)
+          TrackPoint(
+            destinationPoint(const LatLng(50, 8), 0, d),
+            ele: 100 + (d > 2000 ? (d - 2000) * 0.08 : 0),
+          ),
+      ];
+      final colouring = routeColouringFor(
+        geometry,
+        const AsyncData<RouteWeatherState?>(null),
+        RouteOverlay.gradient,
+      );
+      // The few metres where the window straddles the corner and reads a
+      // moderate climb are folded into a neighbour.
+      expect(colouring.colours.map((r) => r.key), [
+        gradientClassColour(GradientClass.flat),
+        gradientClassColour(GradientClass.steep),
+      ]);
+      expect(colouring.colours.last.endM, closeTo(4000, 1));
+      expect(colouring.colours[1].startM, closeTo(2000, 50));
+      // The map has the same stretches, end to end.
+      expect(colouring.lines.colours, hasLength(2));
+      expect(
+        colouring.lines.colours.first.points.last,
+        colouring.lines.colours[1].points.first,
+      );
+    });
+
+    test('a route without heights has no gradient', () {
+      final bare = straightRoute(ele: null);
+      expect(
+        lines(
+          bare.geometry,
+          const AsyncData<RouteWeatherState?>(null),
+          RouteOverlay.gradient,
+        ),
+        RouteColourLines.none,
       );
     });
   });
@@ -213,8 +289,8 @@ void main() {
               map: map,
               planner: container.read(plannerControllerProvider.notifier),
             )
-            ..routeWeather = () =>
-                routeWeatherLinesFor(shown?.positions, weather, overlay);
+            ..routeColours = () =>
+                routeColouringFor(shown?.geometry, weather, overlay).lines;
       binding.attach();
     });
 
@@ -222,59 +298,73 @@ void main() {
       await binding.sync(const PlannerState());
       expect(map.routeWind, isEmpty);
       expect(map.routeWindCalls, isEmpty);
-      expect(map.routeRainCalls, isEmpty);
+      expect(map.routeColourCalls, isEmpty);
 
       overlay = RouteOverlay.wind;
-      await binding.syncWeather();
+      await binding.syncColours();
       expect(map.routeWind.map((s) => s.windClass), [
         WindClassOnMap.head,
         WindClassOnMap.tail,
       ]);
 
       // Unchanged: not written again.
-      await binding.syncWeather();
+      await binding.syncColours();
       expect(map.routeWindCalls, hasLength(1));
 
       overlay = RouteOverlay.off;
-      await binding.syncWeather();
+      await binding.syncColours();
       expect(map.routeWind, isEmpty);
-      expect(map.routeRainCalls, isEmpty);
+      expect(map.routeColourCalls, isEmpty);
     });
 
     test('the choice moves between the wind and the rain, and Off takes '
         'either off', () async {
       overlay = RouteOverlay.wind;
-      await binding.syncWeather();
+      await binding.syncColours();
       expect(map.routeWind, isNotEmpty);
-      expect(map.routeRain, isEmpty);
+      expect(map.routeColours, isEmpty);
 
       overlay = RouteOverlay.rain;
-      await binding.syncWeather();
+      await binding.syncColours();
       expect(map.routeWind, isEmpty);
-      expect(map.routeRain, isNotEmpty);
+      expect(map.routeColours, isNotEmpty);
 
       overlay = RouteOverlay.off;
-      await binding.syncWeather();
+      await binding.syncColours();
       expect(map.routeWind, isEmpty);
-      expect(map.routeRain, isEmpty);
-      expect(map.routeRainCalls.last, isEmpty);
+      expect(map.routeColours, isEmpty);
+      expect(map.routeColourCalls.last, isEmpty);
     });
 
     test('takes the weather off when the route changes', () async {
       overlay = RouteOverlay.rain;
-      await binding.syncWeather();
-      expect(map.routeRain, isNotEmpty);
+      await binding.syncColours();
+      expect(map.routeColours, isNotEmpty);
 
       // A new route: its weather is on its way.
       shown = straightRoute(lengthM: 8000);
       weather = const AsyncLoading<RouteWeatherState?>();
       await binding.sync(const PlannerState());
-      expect(map.routeRain, isEmpty);
+      expect(map.routeColours, isEmpty);
+    });
+
+    test('draws the gradient through the coloured stretches, and Off '
+        'takes it off', () async {
+      overlay = RouteOverlay.gradient;
+      await binding.syncColours();
+      expect(map.routeWind, isEmpty);
+      expect(map.routeColours.map((s) => s.colour), [
+        gradientClassColour(GradientClass.flat),
+      ]);
+
+      overlay = RouteOverlay.off;
+      await binding.syncColours();
+      expect(map.routeColours, isEmpty);
     });
 
     test('a cleared binding takes the weather with it', () async {
       overlay = RouteOverlay.wind;
-      await binding.syncWeather();
+      await binding.syncColours();
       await binding.clear();
       expect(map.routeWind, isEmpty);
     });

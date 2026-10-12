@@ -24,6 +24,7 @@ class ElevationProfileChart extends ConsumerWidget {
     this.window,
     this.onWindow,
     this.cursor,
+    this.bands = const <DistanceBand>[],
     super.key,
   });
 
@@ -44,6 +45,11 @@ class ElevationProfileChart extends ConsumerWidget {
   /// Where the cursor stands, in metres along the route; see
   /// [MetricChart.cursor].
   final ValueNotifier<double?>? cursor;
+
+  /// What the fill under the line is coloured by, in metres along the
+  /// route: what the route on the map is coloured by. See
+  /// [MetricChart.bands].
+  final List<DistanceBand> bands;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -77,6 +83,7 @@ class ElevationProfileChart extends ConsumerWidget {
       window: chartWindow(system, window),
       onWindow: distanceWindowCallback(system, onWindow),
       cursor: cursor,
+      bands: chartBands(system, bands),
       metresPerUnit: units.displayToMeters(system, 1),
       cursorLabel: l10n.chartCursorRoute,
       resetLabel: l10n.chartResetZoomRoute,

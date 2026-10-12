@@ -12,6 +12,9 @@ import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
+import 'package:velorki/features/recording/data/ride_view_settings.dart';
+import 'package:velorki/core/geo/route_gradient.dart';
+import 'package:velorki/features/weather/presentation/weather_keys.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki/features/recording/domain/ride_range.dart';
 import 'package:velorki/features/recording/domain/ride_upload.dart';
@@ -824,6 +827,77 @@ void main() {
       greaterThan(tester.getTopLeft(find.byType(RideSplitsTable)).dy),
     );
 
+    await unmountApp(tester);
+  });
+
+  testWidgets('the track is coloured by speed until the gradient is '
+      'chosen, which colours the map and the elevation chart and has its '
+      'own key; the choice is remembered', (tester) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _withClimb());
+
+    final choice = find.byType(SegmentedButton<RideTrackColour>);
+    expect(find.text(l10n.rideColourTrackBy), findsOneWidget);
+    expect(choice, findsOneWidget);
+    expect(find.byType(RideSpeedLegend), findsOneWidget);
+    expect(find.byType(GradientColourKey), findsNothing);
+    expect(harness.map.trackSegments, isNotEmpty);
+    expect(harness.map.trackSegments.every((s) => s.colour == null), isTrue);
+    expect(
+      tester.widget<RideElevationChart>(find.byType(RideElevationChart)).bands,
+      isEmpty,
+    );
+
+    await tester.tap(
+      find.descendant(of: choice, matching: find.text(l10n.colourByGradient)),
+    );
+    await tester.pumpAndSettle();
+
+    // Flat, the 5 % climb, flat again.
+    expect(harness.map.trackSegments.map((s) => s.colour), [
+      gradientClassColour(GradientClass.flat),
+      gradientClassColour(GradientClass.moderate),
+      gradientClassColour(GradientClass.flat),
+    ]);
+    expect(find.byType(GradientColourKey), findsOneWidget);
+    expect(find.byType(RideSpeedLegend), findsNothing);
+    final bands = tester
+        .widget<RideElevationChart>(find.byType(RideElevationChart))
+        .bands;
+    expect(bands.map((b) => b.colour), [
+      Color(0xFF000000 | gradientClassColour(GradientClass.flat)),
+      Color(0xFF000000 | gradientClassColour(GradientClass.moderate)),
+      Color(0xFF000000 | gradientClassColour(GradientClass.flat)),
+    ]);
+    expect(bands[1].start, closeTo(500, 60));
+    expect(bands[1].end, closeTo(2500, 60));
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('rides.trackColour'), 'gradient');
+
+    await tester.tap(
+      find.descendant(of: choice, matching: find.text(l10n.rideSpeed)),
+    );
+    await tester.pumpAndSettle();
+    expect(harness.map.trackSegments.every((s) => s.colour == null), isTrue);
+    expect(find.byType(RideSpeedLegend), findsOneWidget);
+    expect(prefs.getString('rides.trackColour'), isNull);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride without heights offers no gradient, whatever was '
+      'chosen', (tester) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(withElevation: false),
+      preferences: const <String, Object>{'rides.trackColour': 'gradient'},
+    );
+    expect(find.byType(SegmentedButton<RideTrackColour>), findsNothing);
+    expect(find.byType(GradientColourKey), findsNothing);
+    expect(find.byType(RideSpeedLegend), findsOneWidget);
+    expect(harness.map.trackSegments.every((s) => s.colour == null), isTrue);
     await unmountApp(tester);
   });
 

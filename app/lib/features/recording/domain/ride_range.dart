@@ -82,33 +82,46 @@ List<LatLng> trackSlice(
   List<double> distanceAt, {
   required double startM,
   required double endM,
-}) {
-  if (positions.length < 2 ||
-      distanceAt.length != positions.length ||
-      endM <= startM) {
-    return const <LatLng>[];
-  }
-  final last = distanceAt.last;
-  final from = startM.clamp(0.0, last);
-  final to = endM.clamp(0.0, last);
-  if (to <= from) return const <LatLng>[];
+}) => trackSlices(positions, distanceAt, [(startM: startM, endM: endM)]).single;
 
-  final out = <LatLng>[];
-  // The fix at or before the start and the one at or after the end, with
-  // the boundary points lerped in between them and their neighbours.
+/// [trackSlice] for each of [ranges] at once, in one walk along the track:
+/// a colouring cut into a thousand runs costs one pass over a long track,
+/// not a thousand. The ranges have to be in order along the track and not
+/// overlap, as the runs of a colouring are.
+List<List<LatLng>> trackSlices(
+  List<LatLng> positions,
+  List<double> distanceAt,
+  Iterable<({double startM, double endM})> ranges,
+) {
+  final valid = positions.length >= 2 && distanceAt.length == positions.length;
+  final last = valid ? distanceAt.last : 0.0;
+  final slices = <List<LatLng>>[];
+  // Where the walk stands: the fix at or before the last range's end.
   var i = 0;
-  while (i < distanceAt.length - 1 && distanceAt[i + 1] <= from) {
-    i++;
-  }
-  out.add(_at(positions, distanceAt, i, from));
-  for (var j = i + 1; j < distanceAt.length; j++) {
-    if (distanceAt[j] >= to) {
-      out.add(_at(positions, distanceAt, j - 1, to));
-      break;
+  for (final range in ranges) {
+    final from = range.startM.clamp(0.0, last);
+    final to = range.endM.clamp(0.0, last);
+    if (!valid || range.endM <= range.startM || to <= from) {
+      slices.add(const <LatLng>[]);
+      continue;
     }
-    if (distanceAt[j] > from) out.add(positions[j]);
+    // The fix at or before the start and the one at or after the end, with
+    // the boundary points lerped in between them and their neighbours.
+    while (i < distanceAt.length - 1 && distanceAt[i + 1] <= from) {
+      i++;
+    }
+    final out = <LatLng>[_at(positions, distanceAt, i, from)];
+    for (var j = i + 1; j < distanceAt.length; j++) {
+      if (distanceAt[j] >= to) {
+        out.add(_at(positions, distanceAt, j - 1, to));
+        i = j - 1;
+        break;
+      }
+      if (distanceAt[j] > from) out.add(positions[j]);
+    }
+    slices.add(out);
   }
-  return out;
+  return slices;
 }
 
 /// The point [target] metres along the track, which lies between fix

@@ -36,8 +36,6 @@ import '../data/library_section.dart';
 import 'rename_route_dialog.dart';
 import 'route_detail_screen.dart';
 import '../../shared/presentation/error_text.dart';
-import '../../weather/application/route_weather_controller.dart';
-import '../../weather/presentation/weather_keys.dart';
 
 /// The Library tab: a card over the map the tabs share, holding the saved
 /// routes and the recorded rides, or the one route or ride the rider opened.
@@ -465,20 +463,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       ),
                       child: Align(
                         alignment: Alignment.topLeft,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const WeatherMapHints(rainTime: true),
-                            // What the colours of the wind or the rain on a
-                            // saved route mean, while it is coloured by them.
-                            if (widget.routeId case final id?)
-                              RouteOverlayLegend(
-                                route: SavedWeatherRoute(id),
-                                padding: const EdgeInsets.only(top: 6),
-                              ),
-                          ],
-                        ),
+                        child: const WeatherMapHints(rainTime: true),
                       ),
                     ),
                   ),

@@ -6,7 +6,7 @@ import 'dart:math' as math;
 
 import 'package:velorki_geo/velorki_geo.dart';
 
-import '../../map/application/route_weather_drawer.dart';
+import '../../map/application/route_colour_drawer.dart';
 import '../../map/domain/map_controller.dart';
 import '../domain/planner_state.dart';
 import '../domain/route_poi.dart';
@@ -108,18 +108,18 @@ class PlannerMapBinding {
   /// Read at every [sync].
   RoutePoi? Function()? shownPlace;
 
-  /// The weather to draw on the chosen route: the wind or the rain, or
-  /// nothing. Read at every [sync] and [syncWeather].
-  RouteWeatherLines Function()? routeWeather;
+  /// What the chosen route is coloured by: the gradient, the wind or the
+  /// rain, or nothing. Read at every [sync] and [syncColours].
+  RouteColourLines Function()? routeColours;
 
-  /// What of the weather is on the map now, so it is not written again.
-  final RouteWeatherDrawer _weather = RouteWeatherDrawer();
+  /// What of the colouring is on the map now, so it is not written again.
+  final RouteColourDrawer _colours = RouteColourDrawer();
 
-  /// Draws [routeWeather] on the map, or takes the weather off when it has
-  /// none. A detached binding does nothing.
-  Future<void> syncWeather() async {
+  /// Draws [routeColours] on the map, or takes the colouring off when there
+  /// is none. A detached binding does nothing.
+  Future<void> syncColours() async {
     if (!_attached) return;
-    await _weather.draw(map, routeWeather?.call() ?? RouteWeatherLines.none);
+    await _colours.draw(map, routeColours?.call() ?? RouteColourLines.none);
   }
 
   /// How many of the markers drawn are the plan's own places.
@@ -162,7 +162,7 @@ class PlannerMapBinding {
     await Future.wait(<Future<void>>[
       map.setWaypoints(const <MapWaypoint>[]),
       map.setPois(const <MapPoi>[]),
-      _weather.clear(map),
+      _colours.clear(map),
       for (final id in ids) map.removeRouteLine(id),
     ]);
   }
@@ -269,7 +269,7 @@ class PlannerMapBinding {
     _lineIds
       ..clear()
       ..addAll(wanted);
-    await syncWeather();
+    await syncColours();
     if (gone()) return;
 
     // Only a plan that went from nothing to a whole route in one step (a

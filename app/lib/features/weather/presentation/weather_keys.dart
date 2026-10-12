@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/geo/route_gradient.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../shared/presentation/stat_tile.dart';
+import '../application/route_colouring.dart';
 import '../application/route_overlay.dart';
 import '../application/route_weather_controller.dart';
 import '../application/route_wind.dart';
@@ -70,11 +72,48 @@ class RainColourKey extends StatelessWidget {
   }
 }
 
+/// What the gradient's colours mean: a dot in each and the gradient, in
+/// percent, its class starts at; an arrow down for the descents. Numbers
+/// rather than words, so it stays one short line in any language.
+class GradientColourKey extends StatelessWidget {
+  /// Creates the key.
+  const GradientColourKey({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = AppLocalizations.of(context).localeName;
+    final percent = NumberFormat.percentPattern(locale);
+    final number = NumberFormat.decimalPattern(locale);
+    final bounds = gradientClassBounds;
+    return _Key(
+      spacing: 8,
+      entries: [
+        for (final gradient in GradientClass.values)
+          (
+            <Color>[Color(0xFF000000 | gradientClassColour(gradient))],
+            switch (gradient) {
+              // Not a word: an arrow says downhill in every language.
+              GradientClass.descent => '\u2193',
+              GradientClass.flat => number.format(0),
+              GradientClass.moderate => number.format(bounds[1]),
+              GradientClass.steep => number.format(bounds[2]),
+              // The last says what the numbers are.
+              GradientClass.verySteep => percent.format(bounds[3] / 100),
+            },
+          ),
+      ],
+    );
+  }
+}
+
 class _Key extends StatelessWidget {
-  const _Key({required this.entries, this.style});
+  const _Key({required this.entries, this.style, this.spacing = 12});
 
   final List<(List<Color>, String)> entries;
   final TextStyle? style;
+
+  /// Between the entries.
+  final double spacing;
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +124,7 @@ class _Key extends StatelessWidget {
           color: theme.colorScheme.onSurfaceVariant,
         );
     return Wrap(
-      spacing: 12,
+      spacing: spacing,
       runSpacing: 4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
@@ -124,73 +163,54 @@ class _Swatch extends StatelessWidget {
   }
 }
 
-/// The key to the weather the route on the map is coloured by, over the
-/// map while it is: the wind's colours, the rain's, or that no rain is on
-/// the way. Nothing while the route is in its own colour, or while its
-/// weather is on its way, failed or not there.
-class RouteOverlayLegend extends ConsumerWidget {
-  /// Creates the legend of [route]'s weather.
-  const RouteOverlayLegend({
-    this.route = plannerWeatherRoute,
-    this.padding = EdgeInsets.zero,
-    super.key,
-  });
+/// The key to what the route is coloured by, under the choice of it: the
+/// gradient's colours, the wind's, the rain's, or that no rain is on the
+/// way. Nothing while the route is in its own colour, while there is no
+/// route to colour, or while its weather is on its way, failed or not
+/// there.
+class RouteColourKey extends ConsumerWidget {
+  /// Creates the key to [route]'s colouring.
+  const RouteColourKey({this.route = plannerWeatherRoute, super.key});
 
-  /// Whose weather it is.
+  /// Whose route it is.
   final WeatherRoute route;
-
-  /// Around the chip, while there is one.
-  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final overlay = ref.watch(routeOverlayChoiceProvider);
-    if (overlay == RouteOverlay.off) return const SizedBox.shrink();
-    final weather = ref.watch(routeWeatherControllerProvider(route));
-    final state = weather.isLoading || weather.hasError ? null : weather.value;
-    if (state == null || !state.weather.weather.any((w) => w != null)) {
-      return const SizedBox.shrink();
-    }
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final style = theme.textTheme.labelMedium?.copyWith(
-      color: theme.colorScheme.onSurface,
-    );
-    final rainy = state.weather.weather.any(
-      (w) => w != null && rainClassOnRoute(w) != null,
-    );
-    final Widget key = switch (overlay) {
-      RouteOverlay.off => const SizedBox.shrink(),
-      RouteOverlay.wind => WindColourKey(
-        style: style,
-        calm: state.weather.weather.any((w) => w?.windClass == WindClass.calm),
-      ),
-      RouteOverlay.rain =>
-        rainy
-            ? RainColourKey(style: style)
-            : Text(l10n.weatherRainNoneOnRoute, style: style),
-    };
-    return Padding(
-      padding: padding,
-      child: GlassPanel(
-        key: const ValueKey<String>('route-overlay-legend'),
-        radius: 18,
-        padding: const EdgeInsets.fromLTRB(10, 7, 12, 7),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              overlay == RouteOverlay.wind
-                  ? Icons.air
-                  : Icons.water_drop_outlined,
-              size: 16,
-              color: theme.colorScheme.primary,
+    final overlay = ref.watch(routeOverlayShownProvider);
+    switch (overlay) {
+      case RouteOverlay.off:
+        return const SizedBox.shrink();
+      case RouteOverlay.gradient:
+        return ref.watch(routeColouringProvider(route)).isEmpty
+            ? const SizedBox.shrink()
+            : const GradientColourKey();
+      case RouteOverlay.wind || RouteOverlay.rain:
+        final weather = ref.watch(routeWeatherControllerProvider(route));
+        final state = weather.isLoading || weather.hasError
+            ? null
+            : weather.value;
+        if (state == null || !state.weather.weather.any((w) => w != null)) {
+          return const SizedBox.shrink();
+        }
+        if (overlay == RouteOverlay.wind) {
+          return WindColourKey(
+            calm: state.weather.weather.any(
+              (w) => w?.windClass == WindClass.calm,
             ),
-            const SizedBox(width: 8),
-            Flexible(child: key),
-          ],
-        ),
-      ),
-    );
+          );
+        }
+        final rainy = state.weather.weather.any(
+          (w) => w != null && rainClassOnRoute(w) != null,
+        );
+        if (rainy) return const RainColourKey();
+        final theme = Theme.of(context);
+        return Text(
+          AppLocalizations.of(context).weatherRainNoneOnRoute,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        );
+    }
   }
 }

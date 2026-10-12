@@ -13,7 +13,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/presentation/describe_route_sheet.dart';
 import '../../integrations/presentation/route_send_menu.dart';
 import '../../map/application/route_cursor.dart';
-import '../../map/application/route_weather_drawer.dart';
+import '../../map/application/route_colour_drawer.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/shared_map_layers.dart';
 import '../../planner/application/planner_controller.dart';
@@ -23,7 +23,6 @@ import '../../planner/domain/saved_route.dart';
 import '../../planner/domain/route_poi.dart';
 import '../../planner/domain/route_waypoints.dart';
 import '../../planner/domain/waypoint.dart';
-import '../../planner/presentation/elevation_profile_chart.dart';
 import '../../navigation/application/route_cues.dart';
 import '../../navigation/application/route_geometry.dart';
 import 'edit_text_dialog.dart';
@@ -48,9 +47,9 @@ import '../../shared/presentation/sheet_header.dart';
 import '../../sharing/presentation/share_link_button.dart';
 import '../../shared/presentation/error_text.dart';
 import '../../shared/presentation/metric_chart.dart' show DistanceWindow;
-import '../../weather/application/route_overlay.dart';
 import '../../weather/application/route_weather_controller.dart';
-import '../../weather/application/route_wind.dart';
+import '../../weather/application/route_colouring.dart';
+import '../../weather/presentation/route_colour_choice.dart';
 import '../../weather/presentation/route_weather_section.dart';
 
 /// Id of a saved route's line on the shared map, while its card shows.
@@ -89,12 +88,12 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
   /// metres; `null` for all of it.
   DistanceWindow? _window;
 
-  /// The wind or the rain on the route, as the weather section's choice
-  /// colours it.
-  final RouteWeatherDrawer _weatherOnMap = RouteWeatherDrawer();
+  /// What the route is coloured by on the map, as the choice under the
+  /// profile has it.
+  final RouteColourDrawer _coloursOnMap = RouteColourDrawer();
 
-  /// The route's line as last drawn, for the weather on it.
-  List<LatLng>? _drawnLine;
+  /// Whether the route's line is on the map, for the colouring on it.
+  bool _lineDrawn = false;
 
   WeatherRoute get _weatherRoute => SavedWeatherRoute(widget.routeId);
 
@@ -129,9 +128,9 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
   @override
   void clearLayers(MapController map) {
     _shownRouteId = null;
-    _drawnLine = null;
+    _lineDrawn = false;
     _cursor.map = null;
-    unawaited(_weatherOnMap.clear(map));
+    unawaited(_coloursOnMap.clear(map));
     map.onPoiTapped = null;
     map.onTurnTapped = null;
     unawaited(map.removeRouteLine(libraryRouteLineId));
@@ -179,8 +178,8 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     _cuesRouteId = route.id;
     final ready = map.isReady;
     await map.setRouteLine(libraryRouteLineId, positions);
-    _drawnLine = positions;
-    unawaited(_drawWeather());
+    _lineDrawn = true;
+    unawaited(_drawColours());
     // The card may have closed while the line went on, and the map is the
     // next screen's then: nothing more to draw or fit.
     if (!mounted || _wantedVersion != version) return;
@@ -214,18 +213,16 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     }
   }
 
-  /// Draws the weather on the route the way the rider chose, or takes it
-  /// off.
-  Future<void> _drawWeather() async {
+  /// Colours the route on the map the way the rider chose, or takes the
+  /// colouring off; nothing before the route's line is on the map.
+  Future<void> _drawColours() async {
     final map = layersMap;
     if (map == null || !mounted) return;
-    await _weatherOnMap.draw(
+    await _coloursOnMap.draw(
       map,
-      routeWeatherLinesFor(
-        _drawnLine,
-        ref.read(routeWeatherControllerProvider(_weatherRoute)),
-        ref.read(routeOverlayChoiceProvider),
-      ),
+      _lineDrawn
+          ? ref.read(routeColouringProvider(_weatherRoute)).lines
+          : RouteColourLines.none,
     );
   }
 
@@ -375,10 +372,9 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
   Widget build(BuildContext context) {
     listenLayers();
     ref.listen(
-      routeWeatherControllerProvider(_weatherRoute),
-      (_, _) => unawaited(_drawWeather()),
+      routeColouringProvider(_weatherRoute),
+      (_, _) => unawaited(_drawColours()),
     );
-    ref.listen(routeOverlayChoiceProvider, (_, _) => unawaited(_drawWeather()));
     final l10n = AppLocalizations.of(context);
     final units = ref.watch(unitSystemProvider);
     final route = ref.watch(savedRouteProvider(widget.routeId));
@@ -544,7 +540,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                       hideWithoutRouting: false,
                     ),
                     const SizedBox(height: 28),
-                    ElevationProfileChart(
+                    // The profile, coloured as the route on the map is,
+                    // and the choice of what that is under it.
+                    RouteElevationProfile(
+                      route: _weatherRoute,
                       samples: elevationProfile(geometry),
                       height: 220,
                       window: _window,

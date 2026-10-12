@@ -141,8 +141,8 @@ void main() {
           MapLayerIds.routeWindSource,
           MapLayerIds.routeWindLayer,
           // The rain on the route, in the same place.
-          MapLayerIds.routeRainSource,
-          MapLayerIds.routeRainLayer,
+          MapLayerIds.routeColourSource,
+          MapLayerIds.routeColourLayer,
           // The rider dot of a chart: over the routes, under the puck.
           MapLayerIds.routeCursorSource,
           MapLayerIds.routeCursorLayer,
@@ -1559,7 +1559,8 @@ void main() {
       );
     });
 
-    test('the layer colours the line by t, slow to fast', () async {
+    test('the layer colours the line by t, slow to fast, or a segment by '
+        'its own colour', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops, palette: _repainted);
       await adapter.attachToStyle();
@@ -1569,14 +1570,39 @@ void main() {
 
       final paint = ops.lastPropertiesOf(MapLayerIds.trackLayer)!;
       expect(paint.properties!['line-color'], <Object>[
-        'interpolate',
-        <Object>['linear'],
-        <Object>['get', 't'],
-        0,
-        '#505050',
-        1,
-        '#5F5F5F',
+        'case',
+        <Object>['has', 'c'],
+        <Object>[
+          'to-color',
+          <Object>['get', 'c'],
+        ],
+        <Object>[
+          'interpolate',
+          <Object>['linear'],
+          <Object>['get', 't'],
+          0,
+          '#505050',
+          1,
+          '#5F5F5F',
+        ],
       ]);
+    });
+
+    test('a segment with its own colour carries it to the map', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setTrackSegments(<TrackSegment>[
+        const TrackSegment.coloured(points: _points, colour: 0xF08A24),
+      ]);
+
+      final features = _featuresOf(ops, MapLayerIds.trackSource);
+      expect(
+        (features.single as Map<String, dynamic>)['properties'],
+        <String, Object>{'t': 0.0, 'c': '#f08a24'},
+      );
     });
 
     test('the paint is written once, not on every update', () async {
@@ -1724,13 +1750,13 @@ void main() {
     });
   });
 
-  group('setRouteRain', () {
-    const rain = <RainSegment>[
-      RainSegment(
+  group('setRouteColours', () {
+    const rain = <ColouredSegment>[
+      ColouredSegment(
         points: <LatLng>[LatLng(47.0, 8.0), LatLng(47.1, 8.1)],
         colour: 0x019934,
       ),
-      RainSegment(
+      ColouredSegment(
         points: <LatLng>[LatLng(47.1, 8.1), LatLng(47.2, 8.2)],
         colour: 0xFFC401,
       ),
@@ -1741,26 +1767,26 @@ void main() {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);
       await adapter.attachToStyle();
-      final layer = ops.addLayerOf(MapLayerIds.routeRainLayer)!;
+      final layer = ops.addLayerOf(MapLayerIds.routeColourLayer)!;
       expect(layer.properties!['line-color'], <Object>[
         'to-color',
         <Object>['get', 'c'],
       ]);
-      await adapter.setRouteRain(rain);
+      await adapter.setRouteColours(rain);
       expect(
         _featuresOf(
           ops,
-          MapLayerIds.routeRainSource,
+          MapLayerIds.routeColourSource,
         ).map((f) => (f as Map<String, dynamic>)['properties']['c']),
         <String>['#019934', '#ffc401'],
       );
 
       ops.reloadStyle();
       await adapter.attachToStyle();
-      expect(_featuresOf(ops, MapLayerIds.routeRainSource), hasLength(2));
+      expect(_featuresOf(ops, MapLayerIds.routeColourSource), hasLength(2));
 
-      await adapter.clearRouteRain();
-      expect(_featuresOf(ops, MapLayerIds.routeRainSource), isEmpty);
+      await adapter.clearRouteColours();
+      expect(_featuresOf(ops, MapLayerIds.routeColourSource), isEmpty);
     });
   });
 

@@ -102,9 +102,13 @@ void main() {
     // The cue sheet names the points; a tap on a line shows its note.
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Bakery'), findsOneWidget);
+    await tester.ensureVisible(find.text('Home'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
     expect(find.text('Start here'), findsOneWidget);
+    await tester.ensureVisible(find.text('Bakery'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Bakery'));
     await tester.pumpAndSettle();
     expect(find.text('Croissants'), findsOneWidget);

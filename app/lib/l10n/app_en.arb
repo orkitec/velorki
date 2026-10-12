@@ -2586,6 +2586,14 @@
   "@appearanceGlassHint": {
     "description": "Small text under the Glass choice in Settings → Appearance: the choice changes the tab bar and the buttons, search field and chips floating over the map. The second sentence: the glass turns solid (the Solid choice) while the phone is in its power-saving mode (iOS Low Power Mode, Android Battery Saver) and while a ride is recorded with the app's own Battery saver setting on"
   },
+  "appearanceGlassSolidPowerSave": "Solid right now: the phone is saving power.",
+  "@appearanceGlassSolidPowerSave": {
+    "description": "Shown under the Glass choice in Settings → Appearance while the phone is in its power-saving mode (iOS Low Power Mode, Android Battery Saver): the glass is solid whatever is picked"
+  },
+  "appearanceGlassSolidBatterySaverRide": "Solid right now: this ride is recorded in battery saver.",
+  "@appearanceGlassSolidBatterySaverRide": {
+    "description": "Shown under the Glass choice in Settings → Appearance while a ride is recorded with the app's own Battery saver setting on: the glass is solid whatever is picked"
+  },
   "appearanceRadarStyle": "Rain radar",
   "@appearanceRadarStyle": {
     "description": "Settings → Appearance: title of the choice of how the rain radar layer on the map is drawn."
@@ -6020,11 +6028,19 @@
   },
   "weatherRouteOverlay": "Colour the route by",
   "@weatherRouteOverlay": {
-    "description": "Weather section: label over the choice of what the route on the map is coloured by: nothing, the wind or the rain"
+    "description": "Label over the choice, under the elevation chart, of what the route on the map is coloured by: nothing, the gradient, the wind or the rain"
   },
   "weatherOverlayOff": "Off",
   "@weatherOverlayOff": {
     "description": "Choice of what the route on the map is coloured by: nothing, the route in its own colour. Keep it short"
+  },
+  "colourByGradient": "Gradient",
+  "@colourByGradient": {
+    "description": "Choice of what the route on the map, the ride's track and the elevation chart are coloured by: how steep the road is (the gradient, in percent). Keep it short"
+  },
+  "rideColourTrackBy": "Colour the track by",
+  "@rideColourTrackBy": {
+    "description": "Ride page: label over the choice of what the ride's track on the map is coloured by: the speed or the gradient"
   },
   "weatherRainLight": "Light",
   "@weatherRainLight": {
@@ -6040,6 +6056,6 @@
   },
   "weatherRainNoneOnRoute": "No rain on the route",
   "@weatherRainNoneOnRoute": {
-    "description": "Chip over the map while the route is coloured by the rain and no rain is expected anywhere on it"
+    "description": "Under the choice of what the route is coloured by, while it is coloured by the rain and no rain is expected anywhere on it"
   }
 }

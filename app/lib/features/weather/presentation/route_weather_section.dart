@@ -19,7 +19,6 @@ import '../../shared/presentation/metric_chart.dart' show DistanceWindow;
 import '../../shared/presentation/stat_tile.dart';
 import '../../subscription/application/plus_access.dart';
 import '../application/route_weather_controller.dart';
-import '../application/route_overlay.dart';
 import '../domain/route_weather.dart';
 import '../domain/route_weather_state.dart';
 import 'route_weather_strip.dart';
@@ -190,8 +189,8 @@ class _Best {
 }
 
 /// The forecast: the line that sums it up, the strip with its key, the
-/// departure and what the route on the map is coloured by. Without
-/// [state], the same rows, empty, at the same height.
+/// departure and the attribution. Without [state], the same rows, empty, at
+/// the same height.
 class _WeatherBody extends ConsumerWidget {
   const _WeatherBody({
     required this.route,
@@ -278,8 +277,6 @@ class _WeatherBody extends ConsumerWidget {
         const SizedBox(height: 12),
         _Departure(route: route, state: s),
         const SizedBox(height: 4),
-        const _OverlayChoice(),
-        const SizedBox(height: 4),
         // Always there while the forecast is shown: the services ask for it.
         if (s == null)
           Padding(
@@ -329,57 +326,6 @@ class _SummaryLine extends StatelessWidget {
     return ConstrainedBox(
       constraints: BoxConstraints(minHeight: height),
       child: Text(text ?? ' ', style: style),
-    );
-  }
-}
-
-/// What the route on the map is coloured by: nothing, the wind, the rain.
-class _OverlayChoice extends ConsumerWidget {
-  const _OverlayChoice();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final overlay = ref.watch(routeOverlayChoiceProvider);
-    Widget label(String text) => FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Text(text, maxLines: 1, softWrap: false),
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          l10n.weatherRouteOverlay,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 6),
-        SegmentedButton<RouteOverlay>(
-          showSelectedIcon: false,
-          segments: [
-            ButtonSegment(
-              value: RouteOverlay.off,
-              label: label(l10n.weatherOverlayOff),
-            ),
-            ButtonSegment(
-              value: RouteOverlay.wind,
-              icon: const Icon(Icons.air, size: 18),
-              label: label(l10n.weatherWind),
-            ),
-            ButtonSegment(
-              value: RouteOverlay.rain,
-              icon: const Icon(Icons.water_drop_outlined, size: 18),
-              label: label(l10n.weatherRain),
-            ),
-          ],
-          selected: {overlay},
-          onSelectionChanged: (selection) => unawaited(
-            ref.read(routeOverlayChoiceProvider.notifier).set(selection.single),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -238,13 +238,13 @@ class TestMapController implements MapController {
   }
 
   @override
-  Future<void> setRouteRain(List<RainSegment> segments) async {
-    calls.add(MapCall('setRouteRain', [segments]));
+  Future<void> setRouteColours(List<ColouredSegment> segments) async {
+    calls.add(MapCall('setRouteColours', [segments]));
   }
 
   @override
-  Future<void> clearRouteRain() async {
-    calls.add(const MapCall('clearRouteRain', []));
+  Future<void> clearRouteColours() async {
+    calls.add(const MapCall('clearRouteColours', []));
   }
 
   @override

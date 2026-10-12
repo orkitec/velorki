@@ -210,12 +210,14 @@ class FakeMapController implements MapController {
   /// empty list.
   final List<List<WindSegment>> routeWindCalls = <List<WindSegment>>[];
 
-  /// The rain drawn on the route; empty when there is none.
-  List<RainSegment> routeRain = const <RainSegment>[];
+  /// The coloured stretches (the rain, the gradient) drawn on the route;
+  /// empty when there are none.
+  List<ColouredSegment> routeColours = const <ColouredSegment>[];
 
-  /// Every [setRouteRain] call, in order; a [clearRouteRain] records an
+  /// Every [setRouteColours] call, in order; a [clearRouteColours] records an
   /// empty list.
-  final List<List<RainSegment>> routeRainCalls = <List<RainSegment>>[];
+  final List<List<ColouredSegment>> routeColourCalls =
+      <List<ColouredSegment>>[];
 
   /// The last [setPosition] call, `null` until one happens.
   RecordedPosition? position;
@@ -472,16 +474,16 @@ class FakeMapController implements MapController {
   }
 
   @override
-  Future<void> setRouteRain(List<RainSegment> segments) async {
-    final copy = List<RainSegment>.unmodifiable(segments);
-    routeRain = copy;
-    routeRainCalls.add(copy);
+  Future<void> setRouteColours(List<ColouredSegment> segments) async {
+    final copy = List<ColouredSegment>.unmodifiable(segments);
+    routeColours = copy;
+    routeColourCalls.add(copy);
   }
 
   @override
-  Future<void> clearRouteRain() async {
-    routeRain = const <RainSegment>[];
-    routeRainCalls.add(const <RainSegment>[]);
+  Future<void> clearRouteColours() async {
+    routeColours = const <ColouredSegment>[];
+    routeColourCalls.add(const <ColouredSegment>[]);
   }
 
   @override

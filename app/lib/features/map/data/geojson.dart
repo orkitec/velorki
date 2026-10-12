@@ -100,7 +100,8 @@ Map<String, dynamic> lineFeatureCollection(
 }
 
 /// One `LineString` feature per segment, each carrying its `t` in the feature
-/// properties so one line layer can colour the whole track by speed.
+/// properties so one line layer can colour the whole track by speed, or its
+/// own colour in `c` (`#rrggbb`) for a segment that has one.
 ///
 /// Segments of fewer than two points are dropped, as a one point line is
 /// invalid GeoJSON and MapLibre would throw the whole source away with it.
@@ -112,7 +113,10 @@ Map<String, dynamic> trackSegmentsFeatureCollection(
       if (segment.points.length >= 2)
         <String, dynamic>{
           'type': 'Feature',
-          'properties': <String, dynamic>{'t': segment.t},
+          'properties': <String, dynamic>{
+            't': segment.t,
+            if (segment.colour case final colour?) 'c': _hexColour(colour),
+          },
           'geometry': <String, dynamic>{
             'type': 'LineString',
             'coordinates': segment.points.map(lngLat).toList(),
@@ -142,17 +146,17 @@ Map<String, dynamic> windSegmentsFeatureCollection(List<WindSegment> segments) {
   return <String, dynamic>{'type': 'FeatureCollection', 'features': features};
 }
 
-/// The rain on the route, one line feature per segment, its colour in `c`
-/// (`#rrggbb`).
-Map<String, dynamic> rainSegmentsFeatureCollection(List<RainSegment> segments) {
+/// Stretches of the route each in its own colour (the rain, the gradient),
+/// one line feature per segment, its colour in `c` (`#rrggbb`).
+Map<String, dynamic> colouredSegmentsFeatureCollection(
+  List<ColouredSegment> segments,
+) {
   final features = <Map<String, dynamic>>[
     for (final segment in segments)
       if (segment.points.length >= 2)
         <String, dynamic>{
           'type': 'Feature',
-          'properties': <String, dynamic>{
-            'c': '#${segment.colour.toRadixString(16).padLeft(6, '0')}',
-          },
+          'properties': <String, dynamic>{'c': _hexColour(segment.colour)},
           'geometry': <String, dynamic>{
             'type': 'LineString',
             'coordinates': segment.points.map(lngLat).toList(),
@@ -183,19 +187,31 @@ Map<String, dynamic> windArrowsFeatureCollection(List<WindArrow> arrows) {
   };
 }
 
+/// [colour] (0xRRGGBB) as `#rrggbb`.
+String _hexColour(int colour) => '#${colour.toRadixString(16).padLeft(6, '0')}';
+
 /// A `line-color` expression ramping from [slow] to [fast] over the `t` of
-/// [trackSegmentsFeatureCollection].
+/// [trackSegmentsFeatureCollection], or a segment's own colour where it
+/// carries one in `c`.
 ///
 /// One layer and one interpolation rather than five layers: the ramp is
 /// continuous, so a finer classification later needs no style change.
 List<Object> trackSpeedColorExpression(String slow, String fast) => <Object>[
-  'interpolate',
-  <Object>['linear'],
-  <Object>['get', 't'],
-  0,
-  slow,
-  1,
-  fast,
+  'case',
+  <Object>['has', 'c'],
+  <Object>[
+    'to-color',
+    <Object>['get', 'c'],
+  ],
+  <Object>[
+    'interpolate',
+    <Object>['linear'],
+    <Object>['get', 't'],
+    0,
+    slow,
+    1,
+    fast,
+  ],
 ];
 
 /// What is drawn inside a waypoint's disc: its 1-based number, or nothing

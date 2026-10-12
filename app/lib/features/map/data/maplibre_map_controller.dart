@@ -63,8 +63,8 @@ abstract final class MapLayerIds {
   static const String turnsLayer = 'velorki-turns-dot';
   static const String routeWindSource = 'velorki-route-wind';
   static const String routeWindLayer = 'velorki-route-wind-line';
-  static const String routeRainSource = 'velorki-route-rain';
-  static const String routeRainLayer = 'velorki-route-rain-line';
+  static const String routeColourSource = 'velorki-route-colour';
+  static const String routeColourLayer = 'velorki-route-colour-line';
 
   /// The rider badge a chart's cursor puts on the route, and its picture:
   /// the cursor's handle, a disc in the chart's colour with the rider on it
@@ -876,8 +876,8 @@ class MaplibreMapControllerAdapter implements MapController {
   bool _trackColoured = false;
   // The wind on the planned route, replayed after a style reload.
   List<WindSegment> _routeWind = const <WindSegment>[];
-  // The rain on the planned route, the same.
-  List<RainSegment> _routeRain = const <RainSegment>[];
+  // The rain or the gradient on the planned route, the same.
+  List<ColouredSegment> _routeColours = const <ColouredSegment>[];
   // Hysteresis and circular averaging for the heading cone, so it neither
   // blinks nor spins while the rider rolls along at walking pace.
   final HeadingSmoother _headingSmoother = HeadingSmoother();
@@ -1068,12 +1068,13 @@ class MaplibreMapControllerAdapter implements MapController {
       emptyFeatureCollection(),
     );
     await add(MapLayerIds.routeWindSource, MapLayerIds.routeWindLayer);
-    // The rain on it, in the same place: only one of the two is drawn.
+    // The rain or the gradient on it, each stretch in its own colour, in the
+    // same place: only one of the wind and these is drawn.
     await _ops.addGeoJsonSource(
-      MapLayerIds.routeRainSource,
+      MapLayerIds.routeColourSource,
       emptyFeatureCollection(),
     );
-    await add(MapLayerIds.routeRainSource, MapLayerIds.routeRainLayer);
+    await add(MapLayerIds.routeColourSource, MapLayerIds.routeColourLayer);
 
     // The rider badge of a chart's cursor: over the route lines, the wind
     // on them and the track, under the puck and the markers. A symbol, so
@@ -1180,7 +1181,7 @@ class MaplibreMapControllerAdapter implements MapController {
     if (_track.isNotEmpty) await setTrackLine(_track);
     if (_trackSegments.isNotEmpty) await setTrackSegments(_trackSegments);
     if (_routeWind.isNotEmpty) await setRouteWind(_routeWind);
-    if (_routeRain.isNotEmpty) await setRouteRain(_routeRain);
+    if (_routeColours.isNotEmpty) await setRouteColours(_routeColours);
     final lines = Map<String, List<LatLng>>.of(_routePoints);
     for (final entry in lines.entries) {
       await setRouteLine(
@@ -1892,8 +1893,8 @@ class MaplibreMapControllerAdapter implements MapController {
         lineCap: 'round',
         lineJoin: 'round',
       ),
-      // The rain map's own colours, which each stretch carries.
-      MapLayerIds.routeRainLayer: ml.LineLayerProperties(
+      // The colours each stretch carries: the rain map's, the gradient's.
+      MapLayerIds.routeColourLayer: ml.LineLayerProperties(
         lineColor: <Object>[
           'to-color',
           <Object>['get', 'c'],
@@ -2178,21 +2179,22 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> clearRouteWind() => setRouteWind(const <WindSegment>[]);
 
   @override
-  Future<void> setRouteRain(List<RainSegment> segments) async {
-    _routeRain = List<RainSegment>.unmodifiable(segments);
+  Future<void> setRouteColours(List<ColouredSegment> segments) async {
+    _routeColours = List<ColouredSegment>.unmodifiable(segments);
     if (!_attached) return;
-    if (await _hasSource(MapLayerIds.routeRainSource) == false) {
+    if (await _hasSource(MapLayerIds.routeColourSource) == false) {
       await attachToStyle();
       return;
     }
     await _writeBaseSource(
-      MapLayerIds.routeRainSource,
-      rainSegmentsFeatureCollection(segments),
+      MapLayerIds.routeColourSource,
+      colouredSegmentsFeatureCollection(segments),
     );
   }
 
   @override
-  Future<void> clearRouteRain() => setRouteRain(const <RainSegment>[]);
+  Future<void> clearRouteColours() =>
+      setRouteColours(const <ColouredSegment>[]);
 
   /// Switches the track layer between the flat colour and the speed ramp,
   /// writing the paint only when it actually changes.
