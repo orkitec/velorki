@@ -15,9 +15,6 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
       SHA-256 from Play Console → App integrity, then the upload key's — so
       `/.well-known/assetlinks.json` stops answering 404 and Android's App
       Links verify, and `WEATHER_CONTACT` for the relay's weather calls.
-- [ ] **BRouter on the VPS**: `deploy/` (compose with Caddy + BRouter + updater,
-      or the systemd units). First planet sync 1–3 h; `SEGMENT_FILTER` for a
-      regional start. Only needed for routing outside downloaded tiles.
 - [ ] **Measure the battery saver**: everything [BATTERY.md](BATTERY.md)
       describes is in the app; the two comparison rides that would prove it are
       not. That file's "How to measure" is the procedure; write both numbers
