@@ -12,7 +12,7 @@ NAVEGACIÓN
 • Si te sales de la ruta, tú eliges qué pasa: un camino para volver a ella, una ruta nueva al destino o nada.
 • El mapa te sigue orientado según tu dirección, con el próximo giro siempre a la vista.
 
-GRABACIÓN
+ARCHIVOS
 • Graba con la pantalla apagada, con pausa automática, y muestra la salida en la pantalla bloqueada y en la Dynamic Island.
 • Elige y ordena los datos que ves mientras ruedas: distancia, velocidad, tiempo, desnivel, pulso, cadencia, potencia y lo que queda de ruta.
 • Un ahorro de batería para jornadas largas: mapa oscuro, pantalla atenuada y una página sencilla con las cifras.
@@ -20,7 +20,7 @@ GRABACIÓN
 • La app de Velorki para Apple Watch muestra la salida y la inicia, pausa y termina desde tu muñeca.
 • Cada salida tiene su página con mapa, gráficas de altitud, velocidad y pulso, y parciales.
 
-ARCHIVOS
+GRABACIÓN
 • Abre archivos GPX, FIT y TCX desde Archivos, Mail, Safari o el menú de compartir.
 • Exporta rutas y salidas como GPX o FIT para usarlas en cualquier otro sitio.
 

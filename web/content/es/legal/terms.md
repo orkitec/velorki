@@ -1,11 +1,8 @@
 ---
 title: Condiciones de uso
 description: Las condiciones para usar la app y la web de Velorki, la suscripción Velorki Plus, los enlaces compartidos y el asistente.
-draft: true
+draft: false
 ---
-
-> **Nota sobre la traducción.** Esta es una traducción de la versión en inglés.
-> En caso de discrepancia, prevalece la versión en inglés.
 
 Fecha de entrada en vigor: 27 de septiembre de 2026.
 
@@ -113,14 +110,16 @@ antes de que termine se convierte en una suscripción de pago.
 Cancelas a través de la tienda, no a través de nosotros: en iOS, en los
 ajustes de suscripciones de tu cuenta de Apple; en Android, en Google Play, en
 Suscripciones. El botón **Gestionar** de la app, en **Ajustes → Suscripción**,
-abre esa página por ti. Cancelar detiene la siguiente renovación; Plus sigue
+abre esa página por ti.
+Cancelar detiene la siguiente renovación; Plus sigue
 activo hasta el final del periodo que ya has pagado.
 
 ### 4.3 Reembolsos
 
 **Los reembolsos los gestiona la tienda**, según la propia política de
 reembolsos de Apple o de Google. No podemos reembolsar una compra cuyo pago no
-cobramos nosotros. Esto no afecta a tus derechos legales como consumidor.
+cobramos nosotros.
+Esto no afecta a tus derechos legales como consumidor.
 
 ### 4.4 Restaurar una compra
 
@@ -194,11 +193,13 @@ servir el enlace, y nada más.
 
 Un enlace compartido es una **URL de capacidad**: no lleva contraseña, y
 cualquiera que tenga el enlace puede ver el contenido, incluido dónde empieza y
-termina el track. Trata un enlace como público. No compartas una salida que
+termina el track.
+Trata un enlace como público. No compartas una salida que
 empiece en la dirección de tu casa salvo que te parezca bien que sea visible.
 
 Un elemento compartido se elimina automáticamente **un año** después de su
-creación. Actualmente no hay forma de retirar un enlace antes desde la app,
+creación.
+Actualmente no hay forma de retirar un enlace antes desde la app,
 así que trata un enlace que entregues como público durante ese año;
 escríbenos si hay que retirar alguno antes.
 
@@ -236,18 +237,18 @@ Velorki usa servicios gestionados por otros. Usarlos implica que sus
 condiciones y sus políticas de privacidad se aplican a esa parte del tráfico,
 y no somos responsables de cómo se comportan ni de si siguen disponibles:
 
-| Servicio | Qué hace |
-|---|---|
-| [OpenStreetMap](https://www.openstreetmap.org/copyright) | los datos del mapa sobre los que se construye todo (ODbL) |
-| [OpenFreeMap](https://openfreemap.org) | las teselas de mapa vectorial con las que se dibuja el mapa |
-| [CyclOSM](https://www.cyclosm.org) | la capa ciclista opcional |
-| [BRouter](https://brouter.de) | el motor de enrutamiento y los datos de enrutamiento |
-| [Photon](https://photon.komoot.io) | búsqueda de lugares en línea |
-| [Strava](https://www.strava.com/legal/terms) | subida de salidas e importación de rutas, si lo conectas |
-| [Ride with GPS](https://ridewithgps.com/terms) | rutas y recorridos, si lo conectas |
-| el proveedor de IA | el modelo que hay detrás del asistente (nombrado en la política de privacidad) |
-| Apple, Google | las tiendas, el pago y la gestión de la suscripción |
-| RevenueCat | comprobar si una suscripción está activa |
+| Servicio                                                 | Qué hace                                                                                          |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| [OpenStreetMap](https://www.openstreetmap.org/copyright) | los datos del mapa sobre los que se construye todo (ODbL)                      |
+| [OpenFreeMap](https://openfreemap.org)                   | las teselas de mapa vectorial con las que se dibuja el mapa                                       |
+| [CyclOSM](https://www.cyclosm.org)                       | la capa ciclista opcional                                                                         |
+| [BRouter](https://brouter.de)                            | el motor de enrutamiento y los datos de enrutamiento                                              |
+| [Photon](https://photon.komoot.io)                       | búsqueda de lugares en línea                                                                      |
+| [Strava](https://www.strava.com/legal/terms)             | subida de salidas e importación de rutas, si lo conectas                                          |
+| [Ride with GPS](https://ridewithgps.com/terms)           | rutas y recorridos, si lo conectas                                                                |
+| el proveedor de IA                                       | el modelo que hay detrás del asistente (nombrado en la política de privacidad) |
+| Apple, Google                                            | las tiendas, el pago y la gestión de la suscripción                                               |
+| RevenueCat                                               | comprobar si una suscripción está activa                                                          |
 
 Conectar Strava o Ride with GPS también implica que cumples **sus**
 condiciones. Lo que les subes se rige por sus políticas, no por las nuestras.
@@ -284,7 +285,8 @@ conforme a la Ley alemana de responsabilidad por productos
 Por negligencia leve solo respondemos cuando se haya incumplido una obligación
 cuyo cumplimiento hace posible en primer lugar la correcta ejecución de este
 contrato y en cuyo cumplimiento puedes confiar con regularidad (una
-«obligación esencial»). En ese caso, la responsabilidad se limita al daño
+«obligación esencial»).
+En ese caso, la responsabilidad se limita al daño
 típico de este tipo de contrato y previsible en el momento de celebrarlo.
 
 Queda excluida cualquier otra responsabilidad por negligencia leve. Esto se

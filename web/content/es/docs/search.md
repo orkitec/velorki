@@ -44,8 +44,11 @@ El aviso sigue visible mientras desplazas la lista y, si la búsqueda falló, qu
 ## Qué encuentra
 
 - **Lugares**: ciudades, pueblos, aldeas, caseríos, barrios, vecindarios, parajes e islas.
+
 - **Calles**, con números de portal.
+
 - **Puntos de interés**, cada uno con su icono y su etiqueta: Cafetería, Restaurante, Comida rápida, Heladería, Gasolinera, Bomba de aire, Agua potable, Aseos, Estación de reparación de bicis, Tienda de bicis, Alquiler de bicis, Aparcabicis, Carga de e-bikes, Refugio, Camping, Hotel, Hostel, Refugio de montaña, Supermercado, Panadería, Farmacia, Zona de pícnic, Estación, Terminal de ferri, Aeropuerto, Mirador, Cima, Puerto de montaña, Parque, Playa, Agua, Reserva natural, Atracción, Museo, Lugar histórico, Lugar de culto, Hospital, Universidad, Instalación deportiva, Centro comercial, Torre, Faro, Edificio.
+
 - **Lugares conocidos en tu idioma**: «Parigi» encuentra París, y un monumento famoso va antes que sus homónimos.
 
 Las filas sin conexión muestran bajo el nombre el tipo, la distancia y la población, en la medida en que se conocen: «Agua potable · 350 m», «Calle · Manhattan». Una fuente, un aseo, un refugio o un aparcabicis sin nombre propio aparece con el nombre de su tipo.
