@@ -485,8 +485,9 @@ void main() {
       );
     });
 
-    testWidgets('as a planned route\'s departure each step says so; without '
-        'a route the label is the map\'s', (tester) async {
+    testWidgets('as a planned route\'s departure each step says so and '
+        'tells the departure\'s time; without a route the label is the '
+        'map\'s', (tester) async {
       final (_, container) = await _pump(
         tester,
         const WeatherTimeRow(leave: true),
@@ -494,10 +495,10 @@ void main() {
       );
       container.read(sharedWeatherMapStatusProvider.notifier).set(berlin);
       await tester.pump();
+      // The rain shows its 14:35 frame; the rider leaves at the map's now.
       expect(
         label(tester),
-        '${l10n.mapWeatherLeaveNow} · '
-        '${clock(tester, DateTime.utc(2026, 10, 10, 14, 35))}',
+        '${l10n.mapWeatherLeaveNow} · ${clock(tester, at)}',
       );
       expect(
         tester.getSemantics(find.byType(Slider)).label,
@@ -508,8 +509,7 @@ void main() {
       expect(
         label(tester),
         '${l10n.mapWeatherLeaveAhead(l10n.mapWeatherMinutesAhead(45))} · '
-        '${clock(tester, DateTime.utc(2026, 10, 10, 15, 20))} · '
-        '${l10n.mapWeatherNowcast}',
+        '${clock(tester, at.add(const Duration(minutes: 45)))}',
       );
 
       // No route: the same moment, as the map's.

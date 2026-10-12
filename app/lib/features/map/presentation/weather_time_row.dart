@@ -333,10 +333,11 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
         : layers
         ? status.shownOffset ?? dragging
         : dragging;
-    // With the rain on the label tells the rain's moment, else the wind's,
-    // and with neither on the departure's.
+    // As a route's departure the label tells the departure's clock time,
+    // which the rider plans by (the rain's own moment is in the Layers
+    // sheet); otherwise the rain's moment with the rain on, else the wind's.
     final rainOn = weatherRainOn(ref);
-    final label = !layers
+    final label = !layers || leave
         ? weatherDepartureLabel(
             context,
             labelOffset,
@@ -361,7 +362,7 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
       status,
       wind: !rainOn,
       leave: leave,
-      departure: !layers,
+      departure: !layers || leave,
     );
     final drop = Icon(
       !layers
