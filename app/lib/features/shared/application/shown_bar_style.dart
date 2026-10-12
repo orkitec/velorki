@@ -15,12 +15,31 @@ part 'shown_bar_style.g.dart';
 /// does. A ride without the saver keeps the glass.
 @Riverpod(keepAlive: true)
 BarStyle shownBarStyle(Ref ref) {
-  final chosen = ref.watch(
+  if (ref.watch(barStyleOverrideProvider) != null) return BarStyle.solid;
+  return ref.watch(
     appearanceSettingProvider.select((appearance) => appearance.barStyle),
   );
-  final systemSaving = ref.watch(systemPowerSaveProvider).value ?? false;
-  if (systemSaving || ref.watch(batterySaverActiveProvider)) {
-    return BarStyle.solid;
+}
+
+/// Why the glass is solid whatever the rider picked.
+enum BarStyleOverride {
+  /// The phone's own power-saving mode is on.
+  systemPowerSave,
+
+  /// A ride is being recorded in Velorki's battery saver.
+  batterySaverRide,
+}
+
+/// Why [shownBarStyle] is solid now, `null` while the rider's choice is
+/// shown; Settings → Appearance says it, so a pick that changes nothing on
+/// screen is explained.
+@Riverpod(keepAlive: true)
+BarStyleOverride? barStyleOverride(Ref ref) {
+  if (ref.watch(systemPowerSaveProvider).value ?? false) {
+    return BarStyleOverride.systemPowerSave;
   }
-  return chosen;
+  if (ref.watch(batterySaverActiveProvider)) {
+    return BarStyleOverride.batterySaverRide;
+  }
+  return null;
 }

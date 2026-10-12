@@ -117,9 +117,14 @@ void main() {
 
       await switchSystem(on: true);
       expect(container.read(shownBarStyleProvider), BarStyle.solid);
+      expect(
+        container.read(barStyleOverrideProvider),
+        BarStyleOverride.systemPowerSave,
+      );
 
       await switchSystem(on: false);
       expect(container.read(shownBarStyleProvider), BarStyle.clear);
+      expect(container.read(barStyleOverrideProvider), isNull);
     });
 
     test('a ride recorded in battery saver turns it solid', () async {
@@ -133,6 +138,10 @@ void main() {
       service.emit(_snapshot());
       await pumpEventQueue();
       expect(container.read(shownBarStyleProvider), BarStyle.solid);
+      expect(
+        container.read(barStyleOverrideProvider),
+        BarStyleOverride.batterySaverRide,
+      );
 
       service.emit(_snapshot(status: RecordingStatus.idle));
       await pumpEventQueue();
