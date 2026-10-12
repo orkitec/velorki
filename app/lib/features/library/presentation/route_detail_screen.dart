@@ -76,7 +76,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
   /// The cue sheet, to scroll it into view when a marker is tapped.
   final GlobalKey _cueSheetKey = GlobalKey();
 
-  /// The rider dot a finger on the profile puts on the route.
+  /// The profile's cursor, and the rider badge it puts on the route.
   final RouteCursor _cursor = RouteCursor();
 
   @override
@@ -500,7 +500,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                     ElevationProfileChart(
                       samples: elevationProfile(geometry),
                       height: 220,
-                      onCursor: _cursor.show,
+                      cursor: _cursor,
                     ),
                     if (cues.length > 1) ...[
                       const SizedBox(height: 28),

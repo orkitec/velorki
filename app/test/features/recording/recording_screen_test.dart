@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:velorki/features/navigation/application/route_geometry.dart';
-import 'package:velorki/features/map/application/route_cursor.dart';
 import 'package:fl_chart/fl_chart.dart' show LineChart;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,6 +59,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
+import '../../support/chart_cursor.dart';
 import '../../support/format.dart';
 import '../search/support/gazetteer_fixture.dart';
 import '../planner/support/fakes.dart' show MapCall, syntheticRoute;
@@ -385,8 +385,9 @@ void main() {
       await unmountApp(tester);
     });
 
-    testWidgets('a finger on the profile page puts the rider dot on the '
-        'route being followed', (tester) async {
+    testWidgets('a tap on the profile page puts the cursor and the rider '
+        'badge on the route being followed; they stay, and go with the '
+        'page', (tester) async {
       final h = await following(tester);
       await emitSnapshot(
         tester,
@@ -407,17 +408,22 @@ void main() {
 
       // Halfway along the plot is halfway along the route.
       final rect = tester.getRect(plot);
-      final finger = await tester.startGesture(
+      await tester.tapAt(
         Offset(rect.left + 40 + (rect.width - 40) / 2, rect.center.dy),
       );
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
       final line = syntheticRoute().positions;
       final cumulative = cumulativeDistances(line);
       final half = pointAlong(line, cumulative, cumulative.last / 2);
       expect(haversineMeters(h.map.routeCursor!, half), lessThan(30));
+      await tester.pump(const Duration(seconds: 3));
+      expect(haversineMeters(h.map.routeCursor!, half), lessThan(30));
+      expect(chartCursorHandles, findsOneWidget);
 
-      await finger.up();
-      await tester.pump(routeCursorLinger + const Duration(milliseconds: 400));
+      // The figures back: the profile's cursor goes with it.
+      await tester.fling(plot.first, const Offset(300, 0), 1200);
+      await tester.pumpAndSettle();
+      expect(find.byType(RideProfileView), findsNothing);
       expect(h.map.routeCursor, isNull);
       await unmountApp(tester);
     });

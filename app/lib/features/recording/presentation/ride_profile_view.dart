@@ -20,10 +20,10 @@ import '../../shared/presentation/stat_tile.dart';
 /// it, and above it what is left — the distance and the climbing. A swipe on
 /// the figures brings it up; the same swipe back brings the figures back.
 ///
-/// A finger on it says where along the route it is through [onCursor], for
-/// the rider dot on the map, and a pinch zooms it, as every chart along a
-/// route does ([ChartGestures]). A sideways swipe stays the page's, but on
-/// a zoomed profile, where one finger pans.
+/// A tap puts the [cursor] on it, with the rider badge on the map, and its
+/// handle drags it; a pinch zooms it, as every chart along a route does
+/// ([ChartGestures]). A sideways swipe stays the page's, but on a zoomed
+/// profile, where one finger pans, and on the handle.
 class RideProfileView extends ConsumerWidget {
   /// Creates the page.
   const RideProfileView({
@@ -31,7 +31,7 @@ class RideProfileView extends ConsumerWidget {
     required this.alongM,
     this.etaAt,
     this.height = 150,
-    this.onCursor,
+    this.cursor,
     super.key,
   });
 
@@ -49,9 +49,9 @@ class RideProfileView extends ConsumerWidget {
   /// Height of the chart area.
   final double height;
 
-  /// Called with how far along the route, in metres, a finger on the
-  /// profile is, and with `null` once it is gone.
-  final ValueChanged<double?>? onCursor;
+  /// Where the cursor stands, in metres along the route; see
+  /// [ChartGestures.cursor].
+  final ValueNotifier<double?>? cursor;
 
   /// The climbing left from [alongM] to the end: the positive steps between
   /// the samples ahead.
@@ -158,7 +158,7 @@ class RideProfileView extends ConsumerWidget {
         _secondLine(context, l10n, system),
         const SizedBox(height: 10),
         SizedBox(
-          height: height,
+          height: chartCursorBandHeight + height,
           child: ChartGestures(
             extent: (
               start: units.distanceToDisplay(system, samples.first.distanceM),
@@ -166,8 +166,9 @@ class RideProfileView extends ConsumerWidget {
             ),
             zoomable: true,
             leftInset: _leftReservedSize,
-            onRead: (x) => onCursor?.call(units.displayToMeters(system, x)),
-            onReadEnd: ({required lifted}) => onCursor?.call(null),
+            bottomInset: _bottomReservedSize,
+            cursor: cursor,
+            metresPerUnit: units.displayToMeters(system, 1),
             resetLabel: l10n.chartResetZoomRoute,
             builder: (context, window) => _chart(context, system, window),
           ),
@@ -295,7 +296,7 @@ class RideProfileView extends ConsumerWidget {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 24,
+              reservedSize: _bottomReservedSize,
               getTitlesWidget: (value, meta) => label(meta.formattedValue),
             ),
           ),
@@ -343,6 +344,9 @@ class RideProfileView extends ConsumerWidget {
 
   /// The room the height labels get.
   static const double _leftReservedSize = 40;
+
+  /// The room the distance labels get.
+  static const double _bottomReservedSize = 24;
 
   /// The height of the line at [x], between the two spots around it.
   static FlSpot _interpolate(List<FlSpot> spots, double x) {

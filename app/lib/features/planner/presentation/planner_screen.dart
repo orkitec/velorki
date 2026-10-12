@@ -87,9 +87,15 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// The shared map, while it can be driven.
   MapController? _map;
 
-  /// The rider dot a finger on the profile or the weather strip puts on
-  /// the route.
+  /// The cursor the profile and the weather strip share, and the rider
+  /// badge it puts on the route.
   final RouteCursor _cursor = RouteCursor();
+
+  /// The stretch of the route the profile and the weather strip are zoomed
+  /// to, kept here beside the cursor: the sheet's body is built afresh when
+  /// the sheet changes height, and the zoom must outlive that.
+  final ValueNotifier<(RouteResult?, DistanceWindow?)> _chartWindow =
+      ValueNotifier<(RouteResult?, DistanceWindow?)>((null, null));
 
   /// The binding of the plan to [_map]; kept while the tab is away, so the
   /// plan's history is not lost between a leave and a return.
@@ -442,6 +448,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     WidgetsBinding.instance.removeObserver(this);
     _binding?.detach();
     _cursor.dispose();
+    _chartWindow.dispose();
     _stops.dispose();
     _areaHint.dispose();
     _sheet.dispose();
@@ -1396,7 +1403,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                           onSave: _save,
                         ),
                         const SizedBox(height: 16),
-                        _SheetBody(state: state, cursor: _cursor),
+                        _SheetBody(
+                          state: state,
+                          cursor: _cursor,
+                          window: _chartWindow,
+                        ),
                       ],
                     ),
                   ),
@@ -1565,40 +1576,65 @@ class _SheetHeader extends ConsumerWidget {
 /// Everything under the actions: chart, surfaces, alternatives.
 ///
 /// The profile and the weather strip run along the same distance and share
-/// one zoom window, and a finger on either puts the rider dot on the route.
+/// one zoom window and one cursor, which puts the rider badge on the route.
 class _SheetBody extends StatefulWidget {
-  const _SheetBody({required this.state, required this.cursor});
+  const _SheetBody({
+    required this.state,
+    required this.cursor,
+    required this.window,
+  });
 
   final PlannerState state;
 
-  /// The rider dot on the map.
+  /// The charts' cursor and the rider badge on the map.
   final RouteCursor cursor;
+
+  /// The zoom of the profile and the strip, and the route it is of.
+  final ValueNotifier<(RouteResult?, DistanceWindow?)> window;
 
   @override
   State<_SheetBody> createState() => _SheetBodyState();
 }
 
 class _SheetBodyState extends State<_SheetBody> {
-  /// The route the window is of; another route starts from the whole of it.
-  RouteResult? _route;
+  @override
+  void initState() {
+    super.initState();
+    widget.window.addListener(_rebuild);
+  }
+
+  @override
+  void didUpdateWidget(_SheetBody old) {
+    super.didUpdateWidget(old);
+    if (old.window == widget.window) return;
+    old.window.removeListener(_rebuild);
+    widget.window.addListener(_rebuild);
+  }
+
+  @override
+  void dispose() {
+    widget.window.removeListener(_rebuild);
+    super.dispose();
+  }
+
+  void _rebuild() => setState(() {});
 
   /// The stretch of the route the profile and the strip are zoomed to, in
-  /// metres; `null` for all of it.
-  DistanceWindow? _window;
+  /// metres; `null` for all of it. Another route starts from the whole.
+  DistanceWindow? get _window {
+    final (route, window) = widget.window.value;
+    return identical(route, widget.state.result) ? window : null;
+  }
 
   void _setWindow(DistanceWindow? window) {
     if (window == _window) return;
-    setState(() => _window = window);
+    widget.window.value = (widget.state.result, window);
   }
 
   @override
   Widget build(BuildContext context) {
     final state = widget.state;
     final route = state.result;
-    if (!identical(route, _route)) {
-      _route = route;
-      _window = null;
-    }
     widget.cursor.setLine(route, () => route!.positions);
     // A round trip comes with its start alone and is still a route: the
     // plan drops its route when the waypoints go under two by hand.
@@ -1610,7 +1646,7 @@ class _SheetBodyState extends State<_SheetBody> {
           samples: elevationProfile(route.geometry),
           window: _window,
           onWindow: _setWindow,
-          onCursor: widget.cursor.show,
+          cursor: widget.cursor,
         ),
         const SizedBox(height: 20),
         // A route the router did not draw all of has its line matched
@@ -1628,7 +1664,7 @@ class _SheetBodyState extends State<_SheetBody> {
         RouteWeatherSection(
           window: _window,
           onWindow: _setWindow,
-          onCursor: widget.cursor.show,
+          cursor: widget.cursor,
         ),
       ],
     );

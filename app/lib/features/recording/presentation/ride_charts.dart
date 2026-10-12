@@ -29,7 +29,7 @@ class RideElevationChart extends ConsumerWidget {
     this.marks = const <({double alongM, String label})>[],
     this.window,
     this.onWindow,
-    this.onCursor,
+    this.cursor,
   });
 
   /// The analysed samples of the ride.
@@ -50,9 +50,9 @@ class RideElevationChart extends ConsumerWidget {
   /// [MetricChart.onWindow].
   final ValueChanged<DistanceWindow?>? onWindow;
 
-  /// Called with how far along the ride, in metres, the sample under a
-  /// finger is, and with `null` once the finger is gone: for the rider dot.
-  final ValueChanged<double?>? onCursor;
+  /// Where the cursor stands, in metres along the ride; see
+  /// [MetricChart.cursor].
+  final ValueNotifier<double?>? cursor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -81,7 +81,8 @@ class RideElevationChart extends ConsumerWidget {
       zoomable: true,
       window: chartWindow(system, window),
       onWindow: distanceWindowCallback(system, onWindow),
-      onTouched: cursorCallback(onCursor, (i) => withElevation[i].distanceM),
+      cursor: cursor,
+      metresPerUnit: units.displayToMeters(system, 1),
       marks: <ChartMark>[
         for (final mark in marks)
           (x: units.distanceToDisplay(system, mark.alongM), label: mark.label),
@@ -103,7 +104,7 @@ class RideSpeedChart extends ConsumerWidget {
     this.highlight,
     this.window,
     this.onWindow,
-    this.onCursor,
+    this.cursor,
   });
 
   /// The analysed samples of the ride.
@@ -120,9 +121,9 @@ class RideSpeedChart extends ConsumerWidget {
   /// [MetricChart.onWindow].
   final ValueChanged<DistanceWindow?>? onWindow;
 
-  /// Called with how far along the ride, in metres, the sample under a
-  /// finger is, and with `null` once the finger is gone: for the rider dot.
-  final ValueChanged<double?>? onCursor;
+  /// Where the cursor stands, in metres along the ride; see
+  /// [MetricChart.cursor].
+  final ValueNotifier<double?>? cursor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -148,7 +149,8 @@ class RideSpeedChart extends ConsumerWidget {
       zoomable: true,
       window: chartWindow(system, window),
       onWindow: distanceWindowCallback(system, onWindow),
-      onTouched: cursorCallback(onCursor, (i) => samples[i].distanceM),
+      cursor: cursor,
+      metresPerUnit: units.displayToMeters(system, 1),
       readoutAt: (index) => l10n.rideChartPoint(
         formatDistance(l10n, system, samples[index].distanceM),
         formatSpeed(l10n, system, samples[index].speedMps),
@@ -169,7 +171,7 @@ class RideHeartRateChart extends ConsumerWidget {
     this.highlight,
     this.window,
     this.onWindow,
-    this.onCursor,
+    this.cursor,
   });
 
   /// The analysed samples of the ride.
@@ -186,9 +188,9 @@ class RideHeartRateChart extends ConsumerWidget {
   /// [MetricChart.onWindow].
   final ValueChanged<DistanceWindow?>? onWindow;
 
-  /// Called with how far along the ride, in metres, the sample under a
-  /// finger is, and with `null` once the finger is gone: for the rider dot.
-  final ValueChanged<double?>? onCursor;
+  /// Where the cursor stands, in metres along the ride; see
+  /// [MetricChart.cursor].
+  final ValueNotifier<double?>? cursor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -242,7 +244,8 @@ class RideHeartRateChart extends ConsumerWidget {
       zoomable: true,
       window: chartWindow(system, window),
       onWindow: distanceWindowCallback(system, onWindow),
-      onTouched: cursorCallback(onCursor, (i) => withHeartRate[i].distanceM),
+      cursor: cursor,
+      metresPerUnit: units.displayToMeters(system, 1),
       readoutAt: (index) => l10n.rideChartPoint(
         formatDistance(l10n, system, withHeartRate[index].distanceM),
         formatHeartRate(l10n, withHeartRate[index].heartRateBpm),
@@ -281,7 +284,7 @@ class RideTemperatureChart extends ConsumerWidget {
     this.highlight,
     this.window,
     this.onWindow,
-    this.onCursor,
+    this.cursor,
   });
 
   final List<ChartSample> samples;
@@ -292,9 +295,9 @@ class RideTemperatureChart extends ConsumerWidget {
 
   final ValueChanged<DistanceWindow?>? onWindow;
 
-  /// Called with how far along the ride, in metres, the sample under a
-  /// finger is, and with `null` once the finger is gone: for the rider dot.
-  final ValueChanged<double?>? onCursor;
+  /// Where the cursor stands, in metres along the ride; see
+  /// [MetricChart.cursor].
+  final ValueNotifier<double?>? cursor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -326,7 +329,8 @@ class RideTemperatureChart extends ConsumerWidget {
       zoomable: true,
       window: chartWindow(system, window),
       onWindow: distanceWindowCallback(system, onWindow),
-      onTouched: cursorCallback(onCursor, (i) => measured[i].distanceM),
+      cursor: cursor,
+      metresPerUnit: units.displayToMeters(system, 1),
       readoutAt: (index) => l10n.rideChartPoint(
         formatDistance(l10n, system, measured[index].distanceM),
         // In Celsius whatever the units, as the chart's axis is.

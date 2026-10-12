@@ -189,7 +189,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// map right now: while it is the tab on screen and the map is usable.
   bool _drawing = false;
 
-  /// The rider dot a finger on the route's profile puts on the route.
+  /// The cursor of the route's profile, and the rider badge it puts on the
+  /// route.
   final RouteCursor _cursor = RouteCursor();
 
   /// Whether the map still has to be turned back north for a ride that
@@ -1031,6 +1032,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// asking for a style only to watch the map stay put would be a riddle.
   void _setSheetPage(int page) {
     if (!mounted || page == _sheetPage) return;
+    // The profile's cursor goes with the profile.
+    _cursor.clear();
     setState(() => _sheetPage = page);
   }
 
@@ -1115,7 +1118,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       _followTarget = null;
       _followCamera = null;
       _followStarts = true;
-      if (ended) _sheetPage = 0;
+      if (ended) {
+        _sheetPage = 0;
+        _cursor.clear();
+      }
     }
     final map = _map;
     if (map == null) return;
@@ -2434,7 +2440,7 @@ class _LivePanel extends ConsumerWidget {
 
   final RecordingUiState state;
 
-  /// The rider dot a finger on the profile puts on the route.
+  /// The profile's cursor and the rider badge it puts on the route.
   final RouteCursor cursor;
 
   /// The ride's figures, in order: the grid shows them all.
@@ -2450,12 +2456,12 @@ class _LivePanel extends ConsumerWidget {
   final VoidCallback onResume;
   final VoidCallback onStop;
 
-  /// Where the profile's finger goes: the dot on the route the profile is
-  /// of, the one being followed.
-  ValueChanged<double?> _profileCursor(WidgetRef ref) {
+  /// The profile's cursor, on the route the profile is of: the one being
+  /// followed.
+  RouteCursor _profileCursor(WidgetRef ref) {
     final route = ref.watch(guidedRouteProvider);
     cursor.setLine(route, () => route!.line);
-    return cursor.show;
+    return cursor;
   }
 
   @override
@@ -2582,7 +2588,7 @@ class _LivePanel extends ConsumerWidget {
             ),
             if (page == 1)
               RideProfileView(
-                onCursor: _profileCursor(ref),
+                cursor: _profileCursor(ref),
                 // Watched only while the page is up: the samples come from
                 // the route's geometry, once per route, and a rider who
                 // never swipes never pays for them.

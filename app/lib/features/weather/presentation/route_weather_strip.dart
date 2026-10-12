@@ -34,9 +34,10 @@ const double _arrowSpacingPx = 14;
 /// size while the forecast is on its way.
 ///
 /// It shows the [window] of the route the elevation profile above it shows,
-/// and a pinch on it zooms that same window; a finger on it says where
-/// along the route it is through [onCursor], for the rider dot. Its touches
-/// are a chart's, [ChartGestures].
+/// and a pinch on it zooms that same window; it shares the profile's
+/// [cursor] too, the rider badge on the map with it. Its touches are a
+/// chart's, [ChartGestures], and so is the band over it that the cursor's
+/// handle sits in.
 class RouteWeatherStrip extends StatelessWidget {
   /// Creates the strip.
   const RouteWeatherStrip({
@@ -46,7 +47,7 @@ class RouteWeatherStrip extends StatelessWidget {
     this.minTempLabel,
     this.window,
     this.onWindow,
-    this.onCursor,
+    this.cursor,
     super.key,
   });
 
@@ -70,9 +71,9 @@ class RouteWeatherStrip extends StatelessWidget {
   /// metres; without it the strip keeps its own.
   final ValueChanged<DistanceWindow?>? onWindow;
 
-  /// Called with how far along the route, in metres, a finger on the strip
-  /// is, and with `null` once it is gone.
-  final ValueChanged<double?>? onCursor;
+  /// Where the cursor stands, in metres along the route; see
+  /// [ChartGestures.cursor].
+  final ValueNotifier<double?>? cursor;
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +90,11 @@ class RouteWeatherStrip extends StatelessWidget {
       container: true,
       label: semanticsLabel,
       child: total <= 0
-          ? strip(context, null)
+          // The placeholder keeps the band the handle will sit in.
+          ? Padding(
+              padding: const EdgeInsets.only(top: chartCursorBandHeight),
+              child: strip(context, null),
+            )
           : ChartGestures(
               extent: (start: 0, end: total),
               zoomable: true,
@@ -97,8 +102,7 @@ class RouteWeatherStrip extends StatelessWidget {
               onWindow: onWindow,
               leftInset: weatherStripLeftInset,
               rightInset: weatherStripRightInset,
-              onRead: onCursor,
-              onReadEnd: ({required lifted}) => onCursor?.call(null),
+              cursor: cursor,
               builder: strip,
             ),
     );

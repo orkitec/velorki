@@ -1026,6 +1026,8 @@
   "unitPercent": "{value} %",
   "chartResetZoom": "Tutto il giro",
   "chartResetZoomRoute": "Tutto il percorso",
+  "chartCursor": "Posizione sul giro",
+  "chartCursorRoute": "Posizione sul percorso",
   "rideHighlightSplit": "Parziale {index}",
   "rideHighlightClimb": "Salita {index}",
   "rideHighlightChip": "{name} · {range}",

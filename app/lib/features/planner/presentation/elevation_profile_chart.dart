@@ -13,8 +13,8 @@ import 'route_format.dart';
 ///
 /// The samples are thinned by [elevationProfile] before they get here, so the
 /// chart never draws more than [elevationProfileMaxPoints] points no matter
-/// how long the route is. Touching the line reads out that point, and a
-/// pinch zooms it. The axes carry bare numbers, in kilometres and metres or
+/// how long the route is. A tap, a sweep or the cursor's handle reads out a
+/// point, and a pinch zooms it. The axes carry bare numbers, in kilometres and metres or
 /// in miles and feet.
 class ElevationProfileChart extends ConsumerWidget {
   /// Creates the chart.
@@ -23,7 +23,7 @@ class ElevationProfileChart extends ConsumerWidget {
     this.height = 140,
     this.window,
     this.onWindow,
-    this.onCursor,
+    this.cursor,
     super.key,
   });
 
@@ -41,9 +41,9 @@ class ElevationProfileChart extends ConsumerWidget {
   /// [MetricChart.onWindow]. Without it the chart keeps its own.
   final ValueChanged<DistanceWindow?>? onWindow;
 
-  /// Called with how far along the route, in metres, the sample under a
-  /// finger is, and with `null` once the finger is gone: for the rider dot.
-  final ValueChanged<double?>? onCursor;
+  /// Where the cursor stands, in metres along the route; see
+  /// [MetricChart.cursor].
+  final ValueNotifier<double?>? cursor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -76,7 +76,9 @@ class ElevationProfileChart extends ConsumerWidget {
       zoomable: true,
       window: chartWindow(system, window),
       onWindow: distanceWindowCallback(system, onWindow),
-      onTouched: cursorCallback(onCursor, (i) => samples[i].distanceM),
+      cursor: cursor,
+      metresPerUnit: units.displayToMeters(system, 1),
+      cursorLabel: l10n.chartCursorRoute,
       resetLabel: l10n.chartResetZoomRoute,
       readoutAt: (index) => l10n.elevationPoint(
         formatDistance(l10n, system, samples[index].distanceM),

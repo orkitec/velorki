@@ -41,15 +41,14 @@ const Duration weatherDepartureStep = Duration(minutes: 15);
 /// it. While the forecast is on its way the section keeps the height it will
 /// have, so the sheet's content does not jump when it arrives.
 ///
-/// Its strip shares the elevation profile's [window] and reports the finger
-/// on it through [onCursor], as the profile does.
+/// Its strip shares the elevation profile's [window] and [cursor].
 class RouteWeatherSection extends ConsumerWidget {
   /// Creates the section.
   const RouteWeatherSection({
     super.key,
     this.window,
     this.onWindow,
-    this.onCursor,
+    this.cursor,
   });
 
   /// See [RouteWeatherStrip.window].
@@ -58,8 +57,8 @@ class RouteWeatherSection extends ConsumerWidget {
   /// See [RouteWeatherStrip.onWindow].
   final ValueChanged<DistanceWindow?>? onWindow;
 
-  /// See [RouteWeatherStrip.onCursor].
-  final ValueChanged<double?>? onCursor;
+  /// See [RouteWeatherStrip.cursor].
+  final ValueNotifier<double?>? cursor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -83,7 +82,7 @@ class RouteWeatherSection extends ConsumerWidget {
                   state: value,
                   window: window,
                   onWindow: onWindow,
-                  onCursor: onCursor,
+                  cursor: cursor,
                 ),
               ),
     };
@@ -191,13 +190,13 @@ class _WeatherBody extends ConsumerWidget {
     required this.state,
     this.window,
     this.onWindow,
-    this.onCursor,
+    this.cursor,
   });
 
   final RouteWeatherState? state;
   final DistanceWindow? window;
   final ValueChanged<DistanceWindow?>? onWindow;
-  final ValueChanged<double?>? onCursor;
+  final ValueNotifier<double?>? cursor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -223,7 +222,7 @@ class _WeatherBody extends ConsumerWidget {
           weather: s?.weather,
           window: window,
           onWindow: onWindow,
-          onCursor: onCursor,
+          cursor: cursor,
           maxTempLabel: summary?.maxTemp == null
               ? null
               : formatTemperature(l10n, system, summary!.maxTemp!),

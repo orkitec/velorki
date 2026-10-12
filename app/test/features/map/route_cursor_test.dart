@@ -11,76 +11,82 @@ final List<LatLng> _line = <LatLng>[
 ];
 
 void main() {
-  test('puts the dot as far along the line as the finger is', () {
+  test('puts the badge as far along the line as the cursor stands', () {
     final map = FakeMapController();
     final cursor = RouteCursor()
       ..map = map
       ..setLine(_line, () => _line);
 
-    cursor.show(1500);
+    cursor.value = 1500;
     expect(haversineMeters(map.routeCursor!, _line.first), closeTo(1500, 1));
-    cursor.show(2750);
+    cursor.value = 2750;
     expect(haversineMeters(map.routeCursor!, _line.first), closeTo(2750, 1));
 
     // The same place again is not drawn again.
     final calls = map.routeCursorCalls.length;
-    cursor.show(2750);
+    cursor.value = 2750;
     expect(map.routeCursorCalls, hasLength(calls));
     cursor.dispose();
   });
 
-  test('a lifted finger leaves the dot for a moment, a new touch keeps it', () {
+  test('the badge stays until the cursor is hidden', () {
     fakeAsync((async) {
       final map = FakeMapController();
       final cursor = RouteCursor()
         ..map = map
         ..setLine(_line, () => _line);
 
-      cursor.show(1000);
-      cursor.show(null);
-      async.elapse(routeCursorLinger ~/ 2);
+      cursor.value = 1000;
+      async.elapse(const Duration(minutes: 1));
       expect(map.routeCursor, isNotNull);
 
-      // Back on the chart before it went: it stays, and moves.
-      cursor.show(2000);
-      async.elapse(routeCursorLinger);
-      expect(haversineMeters(map.routeCursor!, _line.first), closeTo(2000, 1));
-
-      cursor.show(null);
-      async.elapse(routeCursorLinger);
+      cursor.clear();
+      expect(cursor.value, isNull);
       expect(map.routeCursor, isNull);
       expect(map.routeCursorCalls.last, isNull);
       cursor.dispose();
     });
   });
 
-  test('another line, another map or the end takes the dot away at once', () {
+  test('another line hides the cursor; another map takes the badge with '
+      'it; the end takes it away', () {
     final map = FakeMapController();
     final other = FakeMapController();
     final cursor = RouteCursor()
       ..map = map
       ..setLine(_line, () => _line);
+    var told = 0;
+    cursor.addListener(() => told++);
 
-    cursor.show(1000);
+    cursor.value = 1000;
     cursor.setLine(_line.reversed, () => _line.reversed.toList());
+    expect(cursor.value, isNull);
+    expect(told, 2, reason: 'the charts hear of both');
     expect(map.routeCursor, isNull);
 
-    cursor.show(1000);
+    cursor.value = 1000;
     cursor.map = other;
     expect(map.routeCursor, isNull);
-    cursor.show(500);
-    expect(other.routeCursor, isNotNull);
+    expect(haversineMeters(other.routeCursor!, _line.last), closeTo(1000, 1));
+
+    // Without a map the cursor still moves, and the badge is back where it
+    // is once a map is.
+    cursor.map = null;
+    expect(other.routeCursor, isNull);
+    cursor.value = 500;
+    cursor.map = map;
+    expect(haversineMeters(map.routeCursor!, _line.last), closeTo(500, 1));
 
     cursor.dispose();
-    expect(other.routeCursor, isNull);
+    expect(map.routeCursor, isNull);
   });
 
-  test('without a line there is no dot', () {
+  test('without a line there is no badge', () {
     final map = FakeMapController();
     final cursor = RouteCursor()
       ..map = map
       ..setLine(null, () => _line);
-    cursor.show(1000);
+    cursor.value = 1000;
     expect(map.routeCursorCalls, isEmpty);
     cursor.dispose();
   });

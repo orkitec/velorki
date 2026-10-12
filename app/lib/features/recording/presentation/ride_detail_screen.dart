@@ -88,7 +88,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
   // so a pinch on the speed chart zooms the elevation chart to the same
   // road. `null` for the whole ride.
   DistanceWindow? _window;
-  // The rider dot a finger on a chart puts on the track.
+  // The cursor the charts share, and the rider badge it puts on the track.
   final RouteCursor _cursor = RouteCursor();
   // The range the map has on it, so a rebuild does not redraw the same line.
   RideRange? _shownRange;
@@ -803,7 +803,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                           ],
                           window: _window,
                           onWindow: _setWindow,
-                          onCursor: _cursor.show,
+                          cursor: _cursor,
                         ),
                       ],
                       if (analysis.hasSpeed) ...[
@@ -813,7 +813,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                           highlight: range,
                           window: _window,
                           onWindow: _setWindow,
-                          onCursor: _cursor.show,
+                          cursor: _cursor,
                         ),
                       ],
                       if (analysis.hasHeartRate) ...[
@@ -823,7 +823,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                           highlight: range,
                           window: _window,
                           onWindow: _setWindow,
-                          onCursor: _cursor.show,
+                          cursor: _cursor,
                         ),
                       ],
                       if (analysis.hasTemperature) ...[
@@ -833,7 +833,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                           highlight: range,
                           window: _window,
                           onWindow: _setWindow,
-                          onCursor: _cursor.show,
+                          cursor: _cursor,
                         ),
                       ],
                       if (maxHeartRateBpm != null &&

@@ -15,6 +15,7 @@ import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/recording/presentation/ride_profile_view.dart';
 
 import '../../support/app.dart';
+import '../../support/chart_cursor.dart';
 
 /// A 12 km route: a climb to a pass at 6 km, a descent, a bump at the end.
 List<ElevationSample> _route() => <ElevationSample>[
@@ -128,14 +129,14 @@ void main() {
     expect(find.text(l10n.recordingProfileNoRoute), findsOneWidget);
   });
 
-  testWidgets('a finger on the profile says where along the route it is, '
-      'and a pinch zooms it until "Whole route" shows it all again', (
-    tester,
-  ) async {
-    final cursor = <double?>[];
+  testWidgets('a tap on the profile puts the cursor where along the route it '
+      'is, and it stays; a pinch zooms it until "Whole route" shows it all '
+      'again, the handle moving the cursor meanwhile', (tester) async {
+    final cursor = ValueNotifier<double?>(null);
+    addTearDown(cursor.dispose);
     await pump(
       tester,
-      RideProfileView(samples: _route(), alongM: 4000, onCursor: cursor.add),
+      RideProfileView(samples: _route(), alongM: 4000, cursor: cursor),
     );
     final units = ProviderScope.containerOf(
       tester.element(find.byType(RideProfileView)),
@@ -146,8 +147,8 @@ void main() {
 
     await tester.tapAt(at(0.25));
     await tester.pump(const Duration(milliseconds: 400));
-    expect(cursor.first, closeTo(3000, 20));
-    expect(cursor.last, isNull);
+    expect(cursor.value, closeTo(3000, 20));
+    expect(chartCursorHandles, findsOneWidget);
 
     final a = await tester.createGesture();
     final b = await tester.createGesture();
@@ -165,6 +166,16 @@ void main() {
     final whole = units == UnitSystem.metric ? 12.0 : 12000 / 1609.344;
     var data = tester.widget<LineChart>(find.byType(LineChart)).data;
     expect(data.maxX - data.minX, lessThan(whole * 0.6));
+
+    // The pinch left the cursor at the window's left edge; the handle
+    // drags it in.
+    final edge = cursor.value!;
+    await dragChartCursor(tester, const Offset(60, 0));
+    expect(cursor.value, greaterThan(edge + 200));
+    expect(
+      tester.widget<LineChart>(find.byType(LineChart)).data.minX,
+      data.minX,
+    );
 
     await tester.tap(find.text(l10n.chartResetZoomRoute));
     await tester.pumpAndSettle();

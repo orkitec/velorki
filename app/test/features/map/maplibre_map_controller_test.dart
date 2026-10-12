@@ -142,7 +142,6 @@ void main() {
           MapLayerIds.routeWindLayer,
           // The rider dot of a chart: over the routes, under the puck.
           MapLayerIds.routeCursorSource,
-          MapLayerIds.routeCursorEdgeLayer,
           MapLayerIds.routeCursorLayer,
           MapLayerIds.positionSource,
           // The ring is the bottom of the puck, the dot the top, so a route
@@ -2004,6 +2003,41 @@ void main() {
   });
 
   group('setRouteCursor', () {
+    test('the badge is a picture of its own, registered before the layer '
+        'that shows it as drawn, and drawn again in a new palette', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      final image = ops.calls.indexWhere(
+        (c) => c.name == 'addImage' && c.id == MapLayerIds.routeCursorImage,
+      );
+      final layer = ops.calls.indexWhere(
+        (c) =>
+            c.name == 'addLayer' && c.layerId == MapLayerIds.routeCursorLayer,
+      );
+      expect(image, isNonNegative);
+      expect(image, lessThan(layer));
+      final before = ops.calls[image].imageBytes!;
+      expect(before, isNotEmpty);
+      final properties = ops
+          .addLayerOf(MapLayerIds.routeCursorLayer)!
+          .properties!;
+      expect(properties['icon-image'], MapLayerIds.routeCursorImage);
+      expect(properties['icon-allow-overlap'], isTrue);
+      expect(properties['icon-ignore-placement'], isTrue);
+      // Shown as drawn, a device pixel to a pixel: never scaled.
+      expect(properties.containsKey('icon-size'), isFalse);
+
+      ops.clearCalls();
+      await adapter.setPalette(_repainted);
+      final redrawn = ops
+          .callsNamed('addImage')
+          .where((c) => c.id == MapLayerIds.routeCursorImage);
+      expect(redrawn, hasLength(1));
+      expect(redrawn.single.imageBytes, isNot(before));
+    });
+
     test('draws the dot, takes it away, and comes back after a style '
         'reload', () async {
       final ops = RecordingStyleOps();

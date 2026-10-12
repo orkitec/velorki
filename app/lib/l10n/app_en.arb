@@ -5249,6 +5249,14 @@
   "@chartResetZoomRoute": {
     "description": "Small button at the top right of a zoomed chart along a route that zooms back out to the whole route"
   },
+  "chartCursor": "Position on the ride",
+  "@chartCursor": {
+    "description": "What a screen reader says for the draggable handle on a ride chart that marks a point of the ride (and puts a bike on the map there); swiping up or down moves it"
+  },
+  "chartCursorRoute": "Position on the route",
+  "@chartCursorRoute": {
+    "description": "What a screen reader says for the draggable handle on a chart along a route that marks a point of the route (and puts a bike on the map there); swiping up or down moves it"
+  },
   "rideHighlightSplit": "Split {index}",
   "@rideHighlightSplit": {
     "description": "Name of the split a rider picked, in the chip over the ride map that says what the thick line is; the index counts from 1",

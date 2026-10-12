@@ -23,10 +23,14 @@ import 'stat_tile.dart';
 /// [onWindow] the caller owns the window and several charts can share one;
 /// without it the chart keeps its own.
 ///
+/// A tap or a sweep puts the cursor on the line, a handle on top drags it,
+/// and the read-out says the sample nearest to it. With [cursor] the caller
+/// owns it, in metres, and several charts can share one, as the rider badge
+/// on the map does.
+///
 /// The touches are [ChartGestures]', with fl_chart's own off; its doc says
-/// why. While a finger is on the line, [onTouched] tells the caller which
-/// sample it is on, for the rider dot on the map.
-class MetricChart extends StatefulWidget {
+/// why.
+class MetricChart extends StatelessWidget {
   /// Creates the chart.
   const MetricChart({
     required this.title,
@@ -41,7 +45,9 @@ class MetricChart extends StatefulWidget {
     this.zoomable = false,
     this.window,
     this.onWindow,
-    this.onTouched,
+    this.cursor,
+    this.metresPerUnit = 1,
+    this.cursorLabel,
     this.resetLabel,
   });
 
@@ -88,152 +94,56 @@ class MetricChart extends StatefulWidget {
   /// without it the chart keeps its own window.
   final ValueChanged<ChartWindow?>? onWindow;
 
-  /// Called with the index of the sample a finger lands or sweeps on, and
-  /// with `null` once no finger is on one: lifted, or taken by a pinch or a
-  /// pan. The read-out itself stays after a lift; this does not.
-  final ValueChanged<int?>? onTouched;
+  /// Where the cursor stands, in metres along the line, `null` while it is
+  /// hidden; see [ChartGestures.cursor]. The chart keeps its own when left
+  /// out.
+  final ValueNotifier<double?>? cursor;
+
+  /// How many metres one unit of the x axis is; see
+  /// [ChartGestures.metresPerUnit].
+  final double metresPerUnit;
+
+  /// What a screen reader calls the cursor's handle, "Position on the ride"
+  /// when left out.
+  final String? cursorLabel;
 
   /// The label of the button that shows the whole line again while zoomed,
   /// "Whole ride" when left out.
   final String? resetLabel;
 
-  @override
-  State<MetricChart> createState() => _MetricChartState();
-}
-
-/// One mark on a [MetricChart]: where on the x axis, and what to call it.
-typedef ChartMark = ({double x, String label});
-
-/// A stretch of a [MetricChart]'s x axis, in the axis' unit.
-typedef ChartWindow = ({double start, double end});
-
-/// Where a [MetricChart]'s y axis runs from and to.
-typedef ChartAxis = ({double min, double max});
-
-/// A stretch of a route or a ride the charts along it are zoomed to, in
-/// metres from the start; one for all of them, so a pinch on one zooms the
-/// others to the same road.
-typedef DistanceWindow = ({double start, double end});
-
-/// [window] on a chart's x axis, which runs in the rider's distance unit,
-/// converted as the samples are; `null` for the whole line.
-ChartWindow? chartWindow(units.UnitSystem system, DistanceWindow? window) =>
-    window == null
-    ? null
-    : (
-        start: units.distanceToDisplay(system, window.start),
-        end: units.distanceToDisplay(system, window.end),
-      );
-
-/// [onWindow] as a [MetricChart] calls it: with the window in the axis'
-/// unit, handed on in metres. `null` when there is nobody to hand it to, so
-/// the chart keeps its own window.
-ValueChanged<ChartWindow?>? distanceWindowCallback(
-  units.UnitSystem system,
-  ValueChanged<DistanceWindow?>? onWindow,
-) => onWindow == null
-    ? null
-    : (window) => onWindow(
-        window == null
-            ? null
-            : (
-                start: units.displayToMeters(system, window.start),
-                end: units.displayToMeters(system, window.end),
-              ),
-      );
-
-/// How close to a mark, as a share of the axis width, the touched sample
-/// has to be for the mark's name to join the read-out.
-const double chartMarkReadoutShare = 0.01;
-
-/// The narrowest window a pinch can reach, as a share of the whole line.
-const double chartMinWindowShare = 0.05;
-
-/// [onCursor] as a [MetricChart] calls it: with a sample's index, handed on
-/// as the sample's distance along the line, [distanceOf] it; `null` when
-/// there is nobody to hand it to.
-ValueChanged<int?>? cursorCallback(
-  ValueChanged<double?>? onCursor,
-  double Function(int index) distanceOf,
-) => onCursor == null
-    ? null
-    : (index) => onCursor(index == null ? null : distanceOf(index));
-
-/// A tenth of the range of air above and below the line; a flat line still
-/// needs an axis to sit in the middle of.
-ChartAxis paddedYAxis(double lowest, double highest) {
-  final padding = ((highest - lowest) * 0.1).clamp(0.5, double.infinity);
-  return (min: lowest - padding, max: highest + padding);
-}
-
-/// A step for an axis spanning [range] that lands on round numbers: 1, 2 or
-/// 5 times a power of ten, giving at most about [count] steps.
-double niceAxisStep(double range, int count) {
-  if (range <= 0 || count < 1) return 1;
-  final raw = range / count;
-  final magnitude = math
-      .pow(10, (math.log(raw) / math.ln10).floor())
-      .toDouble();
-  final norm = raw / magnitude;
-  final nice = norm <= 1
-      ? 1
-      : norm <= 2
-      ? 2
-      : norm <= 5
-      ? 5
-      : 10;
-  return nice * magnitude;
-}
-
-/// The y axis of a height chart: five to a hundred metres of air around a
-/// line running from [lowest] to [highest], said in the height unit of
-/// [system].
-ChartAxis elevationAxis(
-  units.UnitSystem system,
-  double lowest,
-  double highest,
-) {
-  final padding = ((highest - lowest) * 0.1).clamp(
-    units.elevationToDisplay(system, 5),
-    units.elevationToDisplay(system, 100),
-  );
-  return (min: lowest - padding, max: highest + padding);
-}
-
-class _MetricChartState extends State<MetricChart> {
-  int? _touched;
-
-  // Whether a finger is on the sample [_touched], as against a read-out
-  // that stayed after the finger lifted.
-  bool _held = false;
+  /// The height of the x axis labels under the plot.
+  static const double _bottomReservedSize = 24;
 
   @override
-  void didUpdateWidget(MetricChart oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.spots, widget.spots) && _touched != null) {
-      _touched = null;
-      _report(null);
-    }
+  Widget build(BuildContext context) {
+    if (spots.length < 2) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    return ChartGestures(
+      extent: (start: spots.first.x, end: spots.last.x),
+      zoomable: zoomable,
+      window: window,
+      onWindow: onWindow,
+      leftInset: leftReservedSize,
+      bottomInset: _bottomReservedSize,
+      cursor: cursor,
+      metresPerUnit: metresPerUnit,
+      cursorLabel: cursorLabel ?? l10n.chartCursor,
+      cursorValue: (x) {
+        final index = _nearest(x);
+        return index == null ? '' : readoutAt(index);
+      },
+      resetLabel: resetLabel ?? l10n.chartResetZoom,
+      header: _header,
+      builder: _plot,
+    );
   }
 
-  @override
-  void dispose() {
-    // A chart that goes while a finger is on it still owes its caller the
-    // lift; the caller only draws with it, it does not build.
-    if (_held) widget.onTouched?.call(null);
-    super.dispose();
-  }
-
-  void _report(int? index) {
-    _held = index != null;
-    widget.onTouched?.call(index);
-  }
-
-  /// Reads out the sample nearest to [x] on the axis.
-  void _readAt(double x) {
+  /// The sample nearest to [x] on the axis; `null` when every sample is a
+  /// gap.
+  int? _nearest(double x) {
     int? nearest;
     var distance = double.infinity;
-    for (final (i, spot) in widget.spots.indexed) {
+    for (final (i, spot) in spots.indexed) {
       if (spot.isNull()) continue;
       final d = (spot.x - x).abs();
       if (d < distance) {
@@ -241,48 +151,20 @@ class _MetricChartState extends State<MetricChart> {
         nearest = i;
       }
     }
-    if (nearest == null || (nearest == _touched && _held)) return;
-    if (nearest != _touched) setState(() => _touched = nearest);
-    _report(nearest);
-  }
-
-  void _endRead({required bool lifted}) {
-    // A lifted finger leaves its read-out; a pinch or a pan takes it.
-    if (!lifted && _touched != null) setState(() => _touched = null);
-    if (_held) _report(null);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final spots = widget.spots;
-    if (spots.length < 2) return const SizedBox.shrink();
-    return ChartGestures(
-      extent: (start: spots.first.x, end: spots.last.x),
-      zoomable: widget.zoomable,
-      window: widget.window,
-      onWindow: widget.onWindow,
-      leftInset: widget.leftReservedSize,
-      onRead: _readAt,
-      onReadEnd: _endRead,
-      resetLabel:
-          widget.resetLabel ?? AppLocalizations.of(context).chartResetZoom,
-      header: _header,
-      builder: _plot,
-    );
+    return nearest;
   }
 
   /// What the window shows of the x axis, and the marks inside it.
   ({double minX, double maxX, List<ChartMark> marks}) _visible(
     ChartWindow? window,
   ) {
-    final spots = widget.spots;
     final minX = window?.start ?? spots.first.x;
     final maxX = window?.end ?? spots.last.x;
     return (
       minX: minX,
       maxX: maxX,
       marks: <ChartMark>[
-        for (final mark in widget.marks)
+        for (final mark in marks)
           if (mark.x >= minX && mark.x <= maxX) mark,
       ],
     );
@@ -291,7 +173,6 @@ class _MetricChartState extends State<MetricChart> {
   /// The y axis for the samples in the window, so a zoomed line fills the
   /// height; a window between two samples falls back to the whole line.
   ChartAxis _yAxis(ChartWindow? window, double minX, double maxX) {
-    final spots = widget.spots;
     double? lowest;
     double? highest;
     for (final spot in spots) {
@@ -307,23 +188,22 @@ class _MetricChartState extends State<MetricChart> {
         if (highest == null || spot.y > highest) highest = spot.y;
       }
     }
-    return widget.yAxis(lowest ?? 0, highest ?? 0);
+    return yAxis(lowest ?? 0, highest ?? 0);
   }
 
-  /// The caption, and the read-out of the sample touched.
-  Widget _header(BuildContext context, ChartWindow? window) {
+  /// The caption, and the read-out of the sample nearest to the [cursor].
+  Widget _header(BuildContext context, ChartWindow? window, double? cursor) {
     final theme = Theme.of(context);
     final colors = theme.velorki;
-    final spots = widget.spots;
     final (:minX, :maxX, :marks) = _visible(window);
-    final touched = _touched;
+    final touched = cursor == null ? null : _nearest(cursor);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Expanded(child: SectionCaption(widget.title)),
+            Expanded(child: SectionCaption(title)),
             if (touched != null && touched < spots.length)
               Flexible(
                 child: Text(
@@ -347,25 +227,22 @@ class _MetricChartState extends State<MetricChart> {
   Widget _plot(BuildContext context, ChartWindow? window) {
     final theme = Theme.of(context);
     final colors = theme.velorki;
-    final spots = widget.spots;
     final (:minX, :maxX, :marks) = _visible(window);
     final axis = _yAxis(window, minX, maxX);
     // The band never widens the axis: it is cut to the window, and a stretch
     // that lies wholly outside it is not drawn at all.
-    final band = widget.highlight;
+    final band = highlight;
     final bandStart = band?.start.clamp(minX, maxX);
     final bandEnd = band?.end.clamp(minX, maxX);
     final markLabelStyle = theme.textTheme.labelSmall?.copyWith(
       color: colors.accent,
     );
     return SizedBox(
-      height: widget.height,
+      height: height,
       child: LineChart(
         // A pinch wants the axis where the fingers are, not on its
         // way there.
-        duration: widget.zoomable
-            ? Duration.zero
-            : const Duration(milliseconds: 150),
+        duration: zoomable ? Duration.zero : const Duration(milliseconds: 150),
         LineChartData(
           minY: axis.min,
           maxY: axis.max,
@@ -429,13 +306,13 @@ class _MetricChartState extends State<MetricChart> {
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: widget.leftReservedSize,
+                reservedSize: leftReservedSize,
                 // Round steps, about one per 40 points of height;
                 // left to itself fl_chart halves the range
                 // ("429.1").
                 interval: niceAxisStep(
                   axis.max - axis.min,
-                  math.max(2, widget.height ~/ 40),
+                  math.max(2, height ~/ 40),
                 ),
                 // Only the evenly spaced steps: the ends of the axis
                 // are rarely round and sit on top of the step
@@ -465,8 +342,8 @@ class _MetricChartState extends State<MetricChart> {
   /// The read-out for the sample [index], with the name of a mark the finger
   /// is on — within [chartMarkReadoutShare] of the axis [width] — after it.
   String _readout(int index, List<ChartMark> marks, double width) {
-    final text = widget.readoutAt(index);
-    final x = widget.spots[index].x;
+    final text = readoutAt(index);
+    final x = spots[index].x;
     for (final mark in marks) {
       if ((mark.x - x).abs() <= width * chartMarkReadoutShare) {
         return '$text · ${mark.label}';
@@ -488,4 +365,93 @@ class _MetricChartState extends State<MetricChart> {
       ),
     );
   }
+}
+
+/// One mark on a [MetricChart]: where on the x axis, and what to call it.
+typedef ChartMark = ({double x, String label});
+
+/// A stretch of a [MetricChart]'s x axis, in the axis' unit.
+typedef ChartWindow = ({double start, double end});
+
+/// Where a [MetricChart]'s y axis runs from and to.
+typedef ChartAxis = ({double min, double max});
+
+/// A stretch of a route or a ride the charts along it are zoomed to, in
+/// metres from the start; one for all of them, so a pinch on one zooms the
+/// others to the same road.
+typedef DistanceWindow = ({double start, double end});
+
+/// [window] on a chart's x axis, which runs in the rider's distance unit,
+/// converted as the samples are; `null` for the whole line.
+ChartWindow? chartWindow(units.UnitSystem system, DistanceWindow? window) =>
+    window == null
+    ? null
+    : (
+        start: units.distanceToDisplay(system, window.start),
+        end: units.distanceToDisplay(system, window.end),
+      );
+
+/// [onWindow] as a [MetricChart] calls it: with the window in the axis'
+/// unit, handed on in metres. `null` when there is nobody to hand it to, so
+/// the chart keeps its own window.
+ValueChanged<ChartWindow?>? distanceWindowCallback(
+  units.UnitSystem system,
+  ValueChanged<DistanceWindow?>? onWindow,
+) => onWindow == null
+    ? null
+    : (window) => onWindow(
+        window == null
+            ? null
+            : (
+                start: units.displayToMeters(system, window.start),
+                end: units.displayToMeters(system, window.end),
+              ),
+      );
+
+/// How close to a mark, as a share of the axis width, the touched sample
+/// has to be for the mark's name to join the read-out.
+const double chartMarkReadoutShare = 0.01;
+
+/// The narrowest window a pinch can reach, as a share of the whole line.
+const double chartMinWindowShare = 0.05;
+
+/// A tenth of the range of air above and below the line; a flat line still
+/// needs an axis to sit in the middle of.
+ChartAxis paddedYAxis(double lowest, double highest) {
+  final padding = ((highest - lowest) * 0.1).clamp(0.5, double.infinity);
+  return (min: lowest - padding, max: highest + padding);
+}
+
+/// A step for an axis spanning [range] that lands on round numbers: 1, 2 or
+/// 5 times a power of ten, giving at most about [count] steps.
+double niceAxisStep(double range, int count) {
+  if (range <= 0 || count < 1) return 1;
+  final raw = range / count;
+  final magnitude = math
+      .pow(10, (math.log(raw) / math.ln10).floor())
+      .toDouble();
+  final norm = raw / magnitude;
+  final nice = norm <= 1
+      ? 1
+      : norm <= 2
+      ? 2
+      : norm <= 5
+      ? 5
+      : 10;
+  return nice * magnitude;
+}
+
+/// The y axis of a height chart: five to a hundred metres of air around a
+/// line running from [lowest] to [highest], said in the height unit of
+/// [system].
+ChartAxis elevationAxis(
+  units.UnitSystem system,
+  double lowest,
+  double highest,
+) {
+  final padding = ((highest - lowest) * 0.1).clamp(
+    units.elevationToDisplay(system, 5),
+    units.elevationToDisplay(system, 100),
+  );
+  return (min: lowest - padding, max: highest + padding);
 }

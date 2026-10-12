@@ -1026,6 +1026,8 @@
   "unitPercent": "{value} %",
   "chartResetZoom": "Hele rit",
   "chartResetZoomRoute": "Hele route",
+  "chartCursor": "Positie op de rit",
+  "chartCursorRoute": "Positie op de route",
   "rideHighlightSplit": "Split {index}",
   "rideHighlightClimb": "Klim {index}",
   "rideHighlightChip": "{name} · {range}",

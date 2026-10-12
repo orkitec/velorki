@@ -497,7 +497,7 @@ class FakeMapController implements MapController {
     searchPinLabel = position == null ? null : label;
   }
 
-  /// The rider dot shown, if any.
+  /// The rider badge shown, if any.
   LatLng? routeCursor;
 
   /// Every [setRouteCursor] call, in order.

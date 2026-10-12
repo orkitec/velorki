@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/shared/presentation/metric_chart.dart';
 
@@ -9,6 +10,7 @@ import 'package:velorki/features/shared/presentation/adaptive_docking_sheet.dart
 import 'package:velorki/features/shared/presentation/swipe_pages.dart';
 
 import '../../support/app.dart';
+import '../../support/chart_cursor.dart';
 
 /// The samples of an eleven-point chart, one every unit of x.
 List<FlSpot> _elevenSpots() => <FlSpot>[
@@ -140,18 +142,19 @@ void main() {
     expect(niceAxisStep(0, 4), 1);
   });
 
-  group('the finger on the line', () {
-    Future<List<int?>> pumpChart(
+  group('the cursor', () {
+    Future<ValueNotifier<double?>> pumpChart(
       WidgetTester tester, {
       Widget Function(Widget chart)? around,
     }) async {
-      final touched = <int?>[];
+      final cursor = ValueNotifier<double?>(null);
+      addTearDown(cursor.dispose);
       final chart = MetricChart(
         title: 'Elevation',
         spots: _elevenSpots(),
         readoutAt: (i) => 'sample $i',
         zoomable: true,
-        onTouched: touched.add,
+        cursor: cursor,
       );
       await tester.binding.setSurfaceSize(const Size(500, 800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -159,12 +162,44 @@ void main() {
         testApp(home: Scaffold(body: around?.call(chart) ?? chart)),
       );
       await tester.pump();
-      return touched;
+      return cursor;
     }
 
-    testWidgets('reports the sample a finger lands and sweeps on, and null '
-        'once it lifts; the read-out stays', (tester) async {
-      final touched = await pumpChart(tester);
+    /// The window the chart shows.
+    ({double minX, double maxX}) shown(WidgetTester tester) {
+      final data = tester.widget<LineChart>(find.byType(LineChart)).data;
+      return (minX: data.minX, maxX: data.maxX);
+    }
+
+    testWidgets('a tap puts it there, with its handle and the read-out, and '
+        'it stays after the finger lifts', (tester) async {
+      final cursor = await pumpChart(tester);
+      expect(chartCursorHandles, findsNothing);
+
+      await tester.tapAt(_pixelOf(tester, 3));
+      await tester.pump();
+      expect(cursor.value, closeTo(3, 0.01));
+      expect(find.text('sample 3'), findsOneWidget);
+      expect(chartCursorHandles, findsOneWidget);
+      // The handle sits on the cursor's x, over the plot.
+      expect(
+        tester.getCenter(chartCursorHandles).dx,
+        closeTo(_pixelOf(tester, 3).dx, 0.5),
+      );
+      expect(
+        tester.getRect(chartCursorHandles).bottom,
+        lessThanOrEqualTo(tester.getRect(find.byType(LineChart)).top),
+      );
+
+      await tester.pump(const Duration(seconds: 5));
+      expect(cursor.value, closeTo(3, 0.01));
+      expect(find.text('sample 3'), findsOneWidget);
+    });
+
+    testWidgets('unzoomed, one finger sweeping the plot moves it', (
+      tester,
+    ) async {
+      final cursor = await pumpChart(tester);
 
       final finger = await tester.startGesture(_pixelOf(tester, 2));
       await tester.pump();
@@ -172,33 +207,148 @@ void main() {
         await finger.moveTo(_pixelOf(tester, x));
         await tester.pump();
       }
-      expect(touched, <int?>[2, 3, 4, 5, 6]);
       await finger.up();
-      await tester.pump();
-      expect(touched.last, isNull);
-      expect(find.text('sample 6'), findsOneWidget);
-      // The double tap waits for a second tap that never comes.
       await tester.pump(const Duration(milliseconds: 400));
+
+      expect(cursor.value, closeTo(6, 0.01));
+      expect(find.text('sample 6'), findsOneWidget);
+      expect(chartCursorHandles, findsOneWidget);
     });
 
-    testWidgets('a pinch takes the sample away and reports so', (tester) async {
-      final touched = await pumpChart(tester);
+    testWidgets('zoomed, one finger on the plot pans while the handle moves '
+        'the cursor', (tester) async {
+      final cursor = await pumpChart(tester);
+      await _pinchOut(tester);
+      await tester.pump(const Duration(milliseconds: 400));
+      final zoomed = shown(tester);
+      expect(zoomed.maxX - zoomed.minX, lessThan(10));
+
+      final middle = (zoomed.minX + zoomed.maxX) / 2;
+      await tester.tapAt(
+        _pixelOf(tester, middle, min: zoomed.minX, max: zoomed.maxX),
+      );
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(cursor.value, closeTo(middle, 0.01));
+
+      // A drag on the plot pans; the cursor stays on its place on the line.
+      final plot = _pixelOf(tester, middle, min: zoomed.minX, max: zoomed.maxX);
+      await tester.dragFrom(plot + const Offset(0, 30), const Offset(-60, 0));
+      await tester.pump(const Duration(milliseconds: 400));
+      final panned = shown(tester);
+      expect(panned.minX, greaterThan(zoomed.minX));
+      expect(cursor.value, closeTo(middle, 0.01));
+
+      // The handle drags it like a slider, by as much of the window as the
+      // finger moves across the plot.
+      final before = cursor.value!;
+      final perPixel =
+          (panned.maxX - panned.minX) /
+          (_pixelOf(
+                tester,
+                panned.maxX,
+                min: panned.minX,
+                max: panned.maxX,
+              ).dx -
+              _pixelOf(
+                tester,
+                panned.minX,
+                min: panned.minX,
+                max: panned.maxX,
+              ).dx);
+      await dragChartCursor(tester, const Offset(40, 0));
+      expect(cursor.value, closeTo(before + 40 * perPixel, 0.02));
+      expect(shown(tester), panned, reason: 'the handle does not pan');
+    });
+
+    testWidgets('a pan that leaves it outside the window takes it to the '
+        'nearest edge', (tester) async {
+      final cursor = await pumpChart(tester);
+      await _pinchOut(tester);
+      await tester.pump(const Duration(milliseconds: 400));
+      final zoomed = shown(tester);
+      await tester.tapAt(
+        _pixelOf(tester, zoomed.minX + 0.1, min: zoomed.minX, max: zoomed.maxX),
+      );
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // The line moves left under the finger: the window moves right, past
+      // the cursor.
+      final plot = _pixelOf(
+        tester,
+        (zoomed.minX + zoomed.maxX) / 2,
+        min: zoomed.minX,
+        max: zoomed.maxX,
+      );
+      await tester.dragFrom(plot + const Offset(0, 30), const Offset(-120, 0));
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final panned = shown(tester);
+      expect(panned.minX, greaterThan(zoomed.minX + 0.1));
+      expect(cursor.value, closeTo(panned.minX, 1e-9));
+      expect(chartCursorHandles, findsOneWidget);
+    });
+
+    testWidgets('a pinch zooms and leaves it where it was', (tester) async {
+      final cursor = await pumpChart(tester);
+      await tester.tapAt(_pixelOf(tester, 5));
+      await tester.pump(const Duration(milliseconds: 400));
 
       await _pinchOut(tester);
+      await tester.pump(const Duration(milliseconds: 400));
 
-      expect(touched, isNotEmpty);
-      expect(touched.last, isNull);
-      expect(find.textContaining('sample'), findsNothing);
+      expect(shown(tester).maxX - shown(tester).minX, lessThan(10));
+      expect(cursor.value, closeTo(5, 0.01));
       expect(find.text(l10n.chartResetZoom), findsOneWidget);
+    });
+
+    testWidgets('a double tap on the handle hides it', (tester) async {
+      final cursor = await pumpChart(tester);
+      await tester.tapAt(_pixelOf(tester, 4));
+      await tester.pump(const Duration(milliseconds: 400));
+
+      await doubleTapChartCursor(tester);
+
+      expect(cursor.value, isNull);
+      expect(chartCursorHandles, findsNothing);
+      expect(find.textContaining('sample'), findsNothing);
       await tester.pump(const Duration(milliseconds: 400));
     });
 
-    testWidgets('a vertical drag on the chart scrolls the page it is on', (
+    testWidgets('a screen reader steps it by a hundredth of the window', (
       tester,
     ) async {
+      final semantics = tester.ensureSemantics();
+      final cursor = await pumpChart(tester);
+      await tester.tapAt(_pixelOf(tester, 4));
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final handle = find.semantics.byLabel(l10n.chartCursor);
+      expect(handle, findsOne);
+      expect(
+        tester.getSemantics(find.bySemanticsLabel(l10n.chartCursor)),
+        matchesSemantics(
+          label: l10n.chartCursor,
+          value: 'sample 4',
+          isSlider: true,
+          hasIncreaseAction: true,
+          hasDecreaseAction: true,
+        ),
+      );
+      tester.semantics.performAction(handle, SemanticsAction.increase);
+      await tester.pump();
+      expect(cursor.value, closeTo(4.1, 1e-6));
+      tester.semantics.performAction(handle, SemanticsAction.decrease);
+      tester.semantics.performAction(handle, SemanticsAction.decrease);
+      await tester.pump();
+      expect(cursor.value, closeTo(3.9, 1e-6));
+      semantics.dispose();
+    });
+
+    testWidgets('a vertical drag on the chart scrolls the page it is on, and '
+        'puts no cursor on the line', (tester) async {
       final scroll = ScrollController();
       addTearDown(scroll.dispose);
-      final touched = await pumpChart(
+      final cursor = await pumpChart(
         tester,
         around: (chart) => ListView(
           controller: scroll,
@@ -214,18 +364,15 @@ void main() {
         await tester.pump();
       }
       await finger.up();
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
 
       expect(scroll.offset, greaterThan(100));
-      // The landing read out where the finger came down, and nothing swept.
-      expect(touched.whereType<int>().toSet(), hasLength(1));
-      expect(touched.last, isNull);
-      await tester.pump(const Duration(milliseconds: 400));
+      expect(cursor.value, isNull);
     });
 
     testWidgets('in a sheet turned sideways, whose drag runs along the x '
-        'axis, a sweep still reads out', (tester) async {
-      final touched = await pumpChart(
+        'axis, a sweep still moves it', (tester) async {
+      final cursor = await pumpChart(
         tester,
         // The landscape sheet: turned a quarter, its content turned back.
         around: (chart) => QuarterTurnedFrame(
@@ -251,14 +398,19 @@ void main() {
       await finger.up();
       await tester.pump(const Duration(milliseconds: 400));
 
-      expect(touched.whereType<int>().toSet().length, greaterThan(2));
-      expect(touched.last, isNull);
+      expect(cursor.value, greaterThan(3));
+      // And the handle, turned with the sheet, drags it too.
+      final before = cursor.value!;
+      await dragChartCursor(tester, const Offset(-40, 0));
+      expect(cursor.value, lessThan(before - 0.5));
     });
 
     testWidgets('on a page that swipes sideways, a zoomed chart pans with one '
-        'finger instead of turning the page', (tester) async {
+        'finger and the handle moves the cursor, neither turning the page', (
+      tester,
+    ) async {
       var page = 0;
-      await pumpChart(
+      final cursor = await pumpChart(
         tester,
         around: (chart) => StatefulBuilder(
           builder: (context, setState) => SwipePages(
@@ -268,6 +420,13 @@ void main() {
           ),
         ),
       );
+      await tester.tapAt(_pixelOf(tester, 5));
+      await tester.pump(const Duration(milliseconds: 400));
+      await dragChartCursor(tester, const Offset(-60, 0));
+      await tester.pumpAndSettle();
+      expect(page, 0);
+      expect(cursor.value, lessThan(4.5));
+
       await _pinchOut(tester);
       final zoomed = tester.widget<LineChart>(find.byType(LineChart)).data;
 
@@ -277,6 +436,26 @@ void main() {
       expect(page, 0);
       final panned = tester.widget<LineChart>(find.byType(LineChart)).data;
       expect(panned.minX, greaterThan(zoomed.minX));
+    });
+
+    testWidgets('without a cursor handed in, the chart keeps its own', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        testApp(
+          home: Scaffold(
+            body: MetricChart(
+              title: 'Elevation',
+              spots: _elevenSpots(),
+              readoutAt: (i) => 'sample $i',
+            ),
+          ),
+        ),
+      );
+      await tester.tapAt(_pixelOf(tester, 7));
+      await tester.pump();
+      expect(find.text('sample 7'), findsOneWidget);
+      expect(chartCursorHandles, findsOneWidget);
     });
   });
 }

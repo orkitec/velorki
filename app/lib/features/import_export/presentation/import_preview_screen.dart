@@ -71,7 +71,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
   MapController? _map;
   bool _drawn = false;
 
-  /// The rider dot a finger on the profile puts on the track.
+  /// The profile's cursor, and the rider badge it puts on the track.
   late final RouteCursor _cursor = RouteCursor()
     ..setLine(
       widget.candidate?.track,
@@ -396,7 +396,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                 child: ElevationProfileChart(
                   samples: elevationProfile(track.points),
                   height: 220,
-                  onCursor: _cursor.show,
+                  cursor: _cursor,
                 ),
               ),
               if (_cues.length > 1)

@@ -64,11 +64,12 @@ abstract final class MapLayerIds {
   static const String routeWindSource = 'velorki-route-wind';
   static const String routeWindLayer = 'velorki-route-wind-line';
 
-  /// The rider dot a finger on a chart puts on the route: a dark edge
-  /// under a disc ringed in the chart's colour.
+  /// The rider badge a chart's cursor puts on the route, and its picture:
+  /// the cursor's handle, a disc in the chart's colour with the rider on it
+  /// and a dark rim.
   static const String routeCursorSource = 'velorki-route-cursor';
-  static const String routeCursorEdgeLayer = 'velorki-route-cursor-edge';
-  static const String routeCursorLayer = 'velorki-route-cursor-dot';
+  static const String routeCursorLayer = 'velorki-route-cursor-badge';
+  static const String routeCursorImage = 'velorki-route-cursor-badge';
 
   /// The wind arrows over the map, and the arrow they are drawn with.
   static const String windSource = 'velorki-weather-wind';
@@ -128,6 +129,7 @@ class MapPalette {
     this.stopClusterLabel = '#FFFFFF',
     this.cycle = CycleMapColors.light,
     this.routeCursor = '#1565C0',
+    this.routeCursorGlyph = '#FFFFFF',
     this.windHead = '#D62C45',
     this.windCross = '#C77800',
     this.windTail = '#1C9A57',
@@ -161,9 +163,12 @@ class MapPalette {
   /// The offline cycle map's colours.
   final CycleMapColors cycle;
 
-  /// The ring of the rider dot a finger on a chart puts on the route: the
-  /// colour the chart's line is drawn in, so the two read as one.
+  /// The rider badge a chart's cursor puts on the route: its disc in the
+  /// colour the chart's line and cursor are drawn in, so the two read as
+  /// one, and the rider on it. Its rim is [waypointStroke], as every
+  /// marker's is.
   final String routeCursor;
+  final String routeCursorGlyph;
 
   /// A bubble standing for several stops close together, in the accent,
   /// and the count written on it.
@@ -208,6 +213,7 @@ class MapPalette {
       stopClusterLabel = '#FFFFFF',
       cycle = CycleMapColors.light,
       routeCursor = '#1565C0',
+      routeCursorGlyph = '#FFFFFF',
       windHead = '#D62C45',
       windCross = '#C77800',
       windTail = '#1C9A57',
@@ -276,6 +282,7 @@ class MapPalette {
       stopClusterLabel: VelorkiColors.hex(theme.colorScheme.onPrimary),
       cycle: dark ? CycleMapColors.dark : CycleMapColors.light,
       routeCursor: VelorkiColors.hex(colors.accent),
+      routeCursorGlyph: VelorkiColors.hex(theme.colorScheme.onPrimary),
       windHead: VelorkiColors.hex(colors.windHead),
       windCross: VelorkiColors.hex(colors.windCross),
       windTail: VelorkiColors.hex(colors.windTail),
@@ -345,6 +352,7 @@ class MapPalette {
       other.stopClusterLabel == stopClusterLabel &&
       other.cycle == cycle &&
       other.routeCursor == routeCursor &&
+      other.routeCursorGlyph == routeCursorGlyph &&
       other.windHead == windHead &&
       other.windCross == windCross &&
       other.windTail == windTail &&
@@ -382,6 +390,7 @@ class MapPalette {
       stopClusterLabel,
       cycle,
       routeCursor,
+      routeCursorGlyph,
       windHead,
       windCross,
       windTail,
@@ -440,6 +449,10 @@ const int puckInterpolationSteps = 12;
 
 /// How wide the white outline around each wind arrow is, in pixels.
 const double windArrowHaloWidth = 2;
+
+/// How wide the dark rim round the rider badge of a chart's cursor is, in
+/// logical pixels: as wide as the rim of the handle it stands for.
+const double routeCursorRimPx = 2;
 
 /// How far apart, in logical pixels, stops are drawn as one bubble.
 const double stopsClusterRadiusPx = 50;
@@ -847,7 +860,7 @@ class MaplibreMapControllerAdapter implements MapController {
   LatLng? _searchPin;
   String? _searchPinLabel;
 
-  // The rider dot as last asked for, and whether a write of it is on its
+  // The rider badge as last asked for, and whether a write of it is on its
   // way: a sweeping finger asks far faster than the platform draws, so the
   // asks that come during a write make one more write, of the last of them.
   LatLng? _routeCursor;
@@ -1052,13 +1065,14 @@ class MaplibreMapControllerAdapter implements MapController {
     );
     await add(MapLayerIds.routeWindSource, MapLayerIds.routeWindLayer);
 
-    // The rider dot of a chart: over the route lines, the wind on them and
-    // the track, under the puck and the markers.
+    // The rider badge of a chart's cursor: over the route lines, the wind
+    // on them and the track, under the puck and the markers. A symbol, so
+    // its picture comes first.
     await _ops.addGeoJsonSource(
       MapLayerIds.routeCursorSource,
       emptyFeatureCollection(),
     );
-    await add(MapLayerIds.routeCursorSource, MapLayerIds.routeCursorEdgeLayer);
+    await _addRouteCursorImage();
     await add(MapLayerIds.routeCursorSource, MapLayerIds.routeCursorLayer);
 
     await _ops.addGeoJsonSource(
@@ -1319,6 +1333,29 @@ class MaplibreMapControllerAdapter implements MapController {
       // Bubbles go missing until the next attach or palette change; the
       // single stops still draw.
       debugPrint('velorki: stop cluster bubble failed: $error');
+    }
+  }
+
+  /// Registers the rider badge of a chart's cursor: the handle's disc in the
+  /// palette's colours with the rider on it, the size of a chosen marker
+  /// and drawn as the stop discs are. Again on every palette change;
+  /// `addImage` under the same name replaces the bitmap.
+  Future<void> _addRouteCursorImage() async {
+    try {
+      final bytes = await buildDiscMarkerImage(
+        icon: riderCursorIcon,
+        fill: colorFromMapHex(palette.routeCursor),
+        stroke: colorFromMapHex(palette.waypointStroke),
+        radiusPx: markerDiscSelectedRadiusPx,
+        strokePx: routeCursorRimPx,
+        glyphColor: colorFromMapHex(palette.routeCursorGlyph),
+        devicePixelRatio: devicePixelRatio,
+      );
+      if (_disposed) return;
+      await _ops.addImage(MapLayerIds.routeCursorImage, bytes);
+    } on Object catch (error) {
+      // The badge goes missing until the next attach or palette change.
+      debugPrint('velorki: route cursor badge failed: $error');
     }
   }
 
@@ -1794,6 +1831,7 @@ class MaplibreMapControllerAdapter implements MapController {
     // The cone, the marker glyphs and the stops are bitmaps, not style
     // colours, so they have to be drawn again.
     await _addStopClusterImage();
+    await _addRouteCursorImage();
     await _addHeadingConeImage();
     await _redrawMarkerGlyphs();
     await _redrawStopImages();
@@ -1843,20 +1881,12 @@ class MaplibreMapControllerAdapter implements MapController {
         lineCap: 'round',
         lineJoin: 'round',
       ),
-      // A dark edge, then a disc in the map's label colour ringed in the
-      // chart's: it holds up on the route line, which may wear that same
-      // colour, on a light map and a dark one, and it is neither the puck's
-      // filled dot nor a turn marker's small one.
-      MapLayerIds.routeCursorEdgeLayer: ml.CircleLayerProperties(
-        circleRadius: 11.0,
-        circleColor: palette.routeMainCasing,
-        circleOpacity: 0.9,
-      ),
-      MapLayerIds.routeCursorLayer: ml.CircleLayerProperties(
-        circleRadius: 6.0,
-        circleColor: palette.mapLabel,
-        circleStrokeWidth: 3.5,
-        circleStrokeColor: palette.routeCursor,
+      // The badge as drawn, never scaled, and always shown: it is where
+      // the rider's finger is, whatever it covers.
+      MapLayerIds.routeCursorLayer: ml.SymbolLayerProperties(
+        iconImage: MapLayerIds.routeCursorImage,
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
       ),
       MapLayerIds.positionAccuracyLayer: _accuracyProperties(),
       MapLayerIds.positionHeadingLayer: ml.SymbolLayerProperties(
