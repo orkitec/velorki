@@ -411,6 +411,27 @@ Band 1:
       }
     });
 
+    test('of the newest run the service named, which the URL names', () {
+      final run = DateTime.utc(2026, 10, 11, 6);
+      final frame = dwdWind.frameAt(now, offsetMinutes: 60, newest: run)!;
+      expect(frame.time, DateTime.utc(2026, 10, 11, 15));
+      expect(frame.run, run);
+      // Before the run is known the frame names none.
+      expect(dwdWind.frameAt(now)!.run, isNull);
+      final request = windRequestFor(
+        const BoundingBox(south: 49, west: 7, north: 51, east: 8),
+        8,
+      )!;
+      final url = request.url(dwdWind, frame);
+      expect(url, contains('subset=time(%222026-10-11T15:00:00.000Z%22)'));
+      expect(
+        url,
+        contains('subset=REFERENCE_TIME(%222026-10-11T06:00:00.000Z%22)'),
+      );
+      expect(dwdWind.timesUrl, contains('request=DescribeCoverage'));
+      expect(dwdWind.timesUrl, contains('dwd__Icon_reg025_fd_sl_UV10M'));
+    });
+
     test('clamped to the hours there are', () {
       expect(
         windFrameTime(now, 3000, forecastMinutes: 24 * 60),

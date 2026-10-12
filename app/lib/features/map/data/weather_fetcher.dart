@@ -898,6 +898,11 @@ const int cloudImageVersion = 2;
 /// how they are prepared.
 const int rainImageVersion = 7;
 
+/// What tells the wind grids asked for now from those an older app left in
+/// the cache, which the age limit then clears: raised with each change to
+/// what a grid is of (2: of the newest run, named in the name).
+const int windGridVersion = 2;
+
 /// The width and height of [png] from its header; `null` where it is not
 /// a PNG.
 (int, int)? pngSize(Uint8List png) {
@@ -1085,7 +1090,9 @@ class HttpWeatherFetcher implements WeatherFetcher {
       final status = response.statusCode ?? 0;
       final data = response.data;
       if (status < 200 || status >= 300 || data == null) return null;
-      // A model named by its run says its newest run; a WMS its frames.
+      // A model named by its run says its newest run, and so does the
+      // wind's WCS; a WMS its frames.
+      if (source.kind == WeatherKind.wind) return parseNewestRun(data);
       return source.timeFormat == WeatherTimeFormat.modelRun
           ? parseModelRunTime(data)
           : parseWmsNewestTime(data);
@@ -1227,8 +1234,11 @@ class HttpWeatherFetcher implements WeatherFetcher {
   ) async {
     final time = frame.time;
     if (time == null) return null;
-    final prefix = '${source.id}_';
-    final name = '$prefix${request.key}_${time.millisecondsSinceEpoch}.txt';
+    final run = frame.run;
+    final name =
+        '${source.id}_w${windGridVersion}_${request.key}'
+        '_${time.millisecondsSinceEpoch}'
+        '${run == null ? '' : '_${run.millisecondsSinceEpoch}'}.txt';
     Directory? dir;
     try {
       dir = await cacheDir();
@@ -1447,12 +1457,17 @@ class _WeatherCacheIndex {
   int _bytes = 0;
 
   static final RegExp _cloudName = RegExp(r'^\w+?_v(\d+)_');
+  static final RegExp _windName = RegExp(r'^\w+?_w(\d+)_');
   static final RegExp _rainName = RegExp(r'^\w+?_(?:soft|measured)(\d+)_');
 
   /// Whether [name] is an image prepared otherwise than now: a cloud image
   /// of another [cloudImageVersion], a rain image of another
-  /// [rainImageVersion].
+  /// [rainImageVersion]; or a wind grid of another [windGridVersion].
   static bool _stale(String name) {
+    if (name.endsWith('.txt')) {
+      final wind = _windName.firstMatch(name);
+      return wind == null || int.parse(wind[1]!) != windGridVersion;
+    }
     if (!name.endsWith('.png')) return false;
     final cloud = _cloudName.firstMatch(name);
     if (cloud != null) return int.parse(cloud[1]!) != cloudImageVersion;

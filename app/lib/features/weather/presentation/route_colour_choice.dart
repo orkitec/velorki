@@ -6,8 +6,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
-import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/plus/plus_gate.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
 import '../../map/domain/map_controller.dart';
 import '../../planner/domain/elevation_profile.dart';
@@ -17,6 +17,7 @@ import '../../subscription/application/plus_access.dart';
 import '../application/route_colouring.dart';
 import '../application/route_overlay.dart';
 import '../application/route_weather_controller.dart';
+import 'free_forecast_dialog.dart';
 import 'weather_keys.dart';
 
 /// A route's elevation profile with the fill under the line coloured as the
@@ -107,11 +108,13 @@ List<DistanceBand> routeColouringBands(
 /// What the route on the map and the profile above are coloured by:
 /// nothing, the gradient, the wind or the rain.
 ///
-/// The wind and the rain are Velorki Plus: without it they carry a lock,
-/// and picking one shows what Plus is rather than choosing it. A build
-/// without the relay, which has no weather to colour by, does not offer
-/// them, and neither does a phone whose store has not said yet whether the
-/// rider has Plus, as the weather section shows nothing then either.
+/// The wind and the rain come from the relay's forecast with Velorki Plus,
+/// and from the free forecast the phone loads itself without it (or in a
+/// build without the relay). The first time a rider without Plus picks
+/// either, a dialog says what the free forecast is
+/// ([showFreeForecastDialog]); only once they accept it is the choice made.
+/// A pick while the store has not said whether the rider has Plus asks
+/// nothing and counts as accepting it.
 class RouteColourChoice extends ConsumerWidget {
   /// Creates the choice.
   const RouteColourChoice({super.key});
@@ -121,10 +124,6 @@ class RouteColourChoice extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final shown = ref.watch(routeOverlayShownProvider);
-    final access = ref.watch(relayClientProvider) == null
-        ? PlusAccess.unknown
-        : ref.watch(plusAccessProvider(PlusFeature.weather));
-    final locked = access == PlusAccess.missing;
     Widget label(String text) => FittedBox(
       fit: BoxFit.scaleDown,
       child: Text(text, maxLines: 1, softWrap: false),
@@ -135,10 +134,42 @@ class RouteColourChoice extends ConsumerWidget {
       String text,
     ) => ButtonSegment(
       value: value,
-      icon: Icon(locked ? Icons.lock_outline : icon, size: 18),
+      icon: Icon(icon, size: 18),
       label: label(text),
-      tooltip: locked ? l10n.plusTitle : null,
     );
+    Future<void> choose(RouteOverlay overlay) async {
+      final choice = ref.read(routeOverlayChoiceProvider.notifier);
+      if (isWeatherOverlay(overlay) &&
+          !ref.read(routeWeatherFromRelayProvider) &&
+          !ref.read(freeRouteForecastAcceptedProvider)) {
+        final relay = ref.read(relayClientProvider) != null;
+        if (relay &&
+            ref.read(plusAccessProvider(PlusFeature.weather)) ==
+                PlusAccess.unknown) {
+          // The store has not said yet: no question for what may be a
+          // Plus rider. The free forecast meanwhile, the relay's once Plus
+          // is granted; and the pick stands for an acceptance, so no
+          // dialog comes later out of nowhere should Plus turn out
+          // missing.
+          await ref.read(freeRouteForecastAcceptedProvider.notifier).accept();
+          await choice.set(overlay);
+          return;
+        }
+        final answer = await showFreeForecastDialog(context, offerPlus: relay);
+        if (!context.mounted) return;
+        switch (answer) {
+          case FreeForecastAnswer.use:
+            await ref.read(freeRouteForecastAcceptedProvider.notifier).accept();
+          case FreeForecastAnswer.seePlus:
+            unawaited(context.push(paywallRoute));
+            return;
+          case null:
+            return;
+        }
+      }
+      await choice.set(overlay);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -160,26 +191,16 @@ class RouteColourChoice extends ConsumerWidget {
               value: RouteOverlay.gradient,
               label: label(l10n.colourByGradient),
             ),
-            if (access != PlusAccess.unknown) ...[
-              weather(RouteOverlay.wind, Icons.air, l10n.weatherWind),
-              weather(
-                RouteOverlay.rain,
-                Icons.water_drop_outlined,
-                l10n.weatherRain,
-              ),
-            ],
+            weather(RouteOverlay.wind, Icons.air, l10n.weatherWind),
+            weather(
+              RouteOverlay.rain,
+              Icons.water_drop_outlined,
+              l10n.weatherRain,
+            ),
           ],
           selected: {shown},
-          onSelectionChanged: (selection) {
-            final overlay = selection.single;
-            if (locked && isWeatherOverlay(overlay)) {
-              unawaited(context.push(paywallRoute));
-              return;
-            }
-            unawaited(
-              ref.read(routeOverlayChoiceProvider.notifier).set(overlay),
-            );
-          },
+          onSelectionChanged: (selection) =>
+              unawaited(choose(selection.single)),
         ),
       ],
     );

@@ -6057,5 +6057,38 @@
   "weatherRainNoneOnRoute": "No rain on the route",
   "@weatherRainNoneOnRoute": {
     "description": "Under the choice of what the route is coloured by, while it is coloured by the rain and no rain is expected anywhere on it"
+  },
+  "weatherFreeForecastTitle": "Free wind and rain forecast",
+  "@weatherFreeForecastTitle": {
+    "description": "Title of the dialog shown the first time a rider without Velorki Plus colours the route by wind or rain"
+  },
+  "weatherFreeForecastBody": "This free forecast comes from a coarser public weather model: about 28 km for wind, finer for rain in Europe. It has no gusts and no chance of rain.",
+  "@weatherFreeForecastBody": {
+    "description": "Body of that dialog: where the free forecast comes from and what it lacks. 28 km is the wind model's grid"
+  },
+  "weatherFreeForecastPlusBody": "Velorki Plus uses finer local forecasts.",
+  "@weatherFreeForecastPlusBody": {
+    "description": "Last line of that dialog, in builds that offer Velorki Plus"
+  },
+  "weatherFreeForecastUse": "Use free forecast",
+  "@weatherFreeForecastUse": {
+    "description": "Button of that dialog: colour the route from the free forecast, and do not ask again"
+  },
+  "weatherFreeForecastSeePlus": "See Plus",
+  "@weatherFreeForecastSeePlus": {
+    "description": "Button of that dialog: open the Velorki Plus page"
+  },
+  "weatherFreeForecastSource": "Free forecast · {source}",
+  "@weatherFreeForecastSource": {
+    "description": "Small line under the colour key while the route is coloured from the free forecast; {source} is the data's attribution, 'Deutscher Wetterdienst (CC BY 4.0)'",
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherFreeForecastFiner": "Plus: finer forecast",
+  "@weatherFreeForecastFiner": {
+    "description": "Tooltip of that line, which opens the Velorki Plus page"
   }
 }

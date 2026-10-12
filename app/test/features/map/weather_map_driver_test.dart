@@ -13,6 +13,9 @@ import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 /// Answers probes and cloud images as told, recording what was asked.
+/// The newest run the wind's service names.
+final DateTime windRun = DateTime.utc(2026, 10, 10, 6);
+
 class _Fetcher implements WeatherFetcher {
   bool radarUp = true;
   bool cloudsUp = true;
@@ -73,7 +76,10 @@ class _Fetcher implements WeatherFetcher {
   /// The newest frame each source's service says it has, by id; the
   /// sources asked, in order; and the sources whose images were refused
   /// (an XML error) and not yet taken.
-  final Map<String, DateTime> newest = <String, DateTime>{};
+  final Map<String, DateTime> newest = <String, DateTime>{
+    // The wind's newest run.
+    'wind_icon': windRun,
+  };
   final List<String> newestAsked = <String>[];
   final Set<String> refused = <String>{};
 
@@ -93,6 +99,9 @@ class _Fetcher implements WeatherFetcher {
   final List<(WindRequest, DateTime?)> winds = <(WindRequest, DateTime?)>[];
   final List<Completer<WindGrid?>> heldWind = <Completer<WindGrid?>>[];
 
+  /// The frames of [winds], with the run each names.
+  final List<WeatherFrame> windFrames = <WeatherFrame>[];
+
   @override
   Future<WindGrid?> windGrid(
     WeatherMapSource source,
@@ -101,6 +110,7 @@ class _Fetcher implements WeatherFetcher {
     DateTime now,
   ) {
     winds.add((request, frame.time));
+    windFrames.add(frame);
     if (holdWind) {
       final answer = Completer<WindGrid?>();
       heldWind.add(answer);
@@ -1966,6 +1976,38 @@ void main() {
         async.elapse(windDebounce);
         expect(fetcher.winds, hasLength(1));
         expect(map.windArrows, isNot(arrows));
+        driver.dispose();
+      });
+    });
+
+    test('of the newest run its service names: nothing asked before it is '
+        'known, and a newer run is a new grid', () {
+      fakeAsync((async) {
+        map.zoom = 9;
+        fetcher.newest.remove('wind_icon');
+        configure(wind: true);
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(fetcher.newestAsked, contains('wind_icon'));
+        expect(fetcher.winds, isEmpty);
+        expect(map.windArrows, isNull);
+
+        // The run is known: the grid of it.
+        fetcher.newest['wind_icon'] = windRun;
+        // Past the wait between two askings, inside the hour.
+        now = now.add(const Duration(minutes: 6));
+        async.elapse(windRefreshInterval);
+        expect(fetcher.windFrames, hasLength(1));
+        expect(fetcher.windFrames.single.run, windRun);
+        expect(map.windArrows, isNotNull);
+
+        // A newer run: the same hour asked again, of it.
+        final newer = windRun.add(const Duration(hours: 6));
+        fetcher.newest['wind_icon'] = newer;
+        now = now.add(const Duration(minutes: 6));
+        async.elapse(windRefreshInterval);
+        expect(fetcher.windFrames.last.run, newer);
+        expect(fetcher.windFrames.last.time, fetcher.windFrames.first.time);
         driver.dispose();
       });
     });

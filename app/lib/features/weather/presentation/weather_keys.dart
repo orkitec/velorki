@@ -1,10 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/router.dart';
 import '../../../app/theme.dart';
 import '../../../core/geo/route_gradient.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../integrations/common/data/relay_client_provider.dart';
+import '../application/free_route_weather.dart';
 import '../application/route_colouring.dart';
 import '../application/route_overlay.dart';
 import '../application/route_weather_controller.dart';
@@ -166,8 +172,12 @@ class _Swatch extends StatelessWidget {
 /// The key to what the route is coloured by, under the choice of it: the
 /// gradient's colours, the wind's, the rain's, or that no rain is on the
 /// way. Nothing while the route is in its own colour, while there is no
-/// route to colour, or while its weather is on its way, failed or not
-/// there.
+/// route to colour, or while its weather is on its way or not there; the
+/// relay's forecast failing says so in the weather section, the free
+/// forecast failing says so here.
+///
+/// Coloured from the free forecast, a line under the key names its source
+/// ([FreeForecastSourceLine]).
 class RouteColourKey extends ConsumerWidget {
   /// Creates the key to [route]'s colouring.
   const RouteColourKey({this.route = plannerWeatherRoute, super.key});
@@ -178,6 +188,10 @@ class RouteColourKey extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final overlay = ref.watch(routeOverlayShownProvider);
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
     switch (overlay) {
       case RouteOverlay.off:
         return const SizedBox.shrink();
@@ -186,31 +200,89 @@ class RouteColourKey extends ConsumerWidget {
             ? const SizedBox.shrink()
             : const GradientColourKey();
       case RouteOverlay.wind || RouteOverlay.rain:
-        final weather = ref.watch(routeWeatherControllerProvider(route));
+        final l10n = AppLocalizations.of(context);
+        final free = !ref.watch(routeWeatherFromRelayProvider);
+        final weather = ref.watch(routeColourWeatherProvider(route));
+        if (free && weather.hasError) {
+          return Text(
+            overlay == RouteOverlay.wind
+                ? l10n.mapWeatherWindUnavailable
+                : l10n.mapWeatherForecastUnavailable,
+            style: muted,
+          );
+        }
         final state = weather.isLoading || weather.hasError
             ? null
             : weather.value;
         if (state == null || !state.weather.weather.any((w) => w != null)) {
           return const SizedBox.shrink();
         }
+        final Widget key;
         if (overlay == RouteOverlay.wind) {
-          return WindColourKey(
+          key = WindColourKey(
             calm: state.weather.weather.any(
               (w) => w?.windClass == WindClass.calm,
             ),
           );
-        }
-        final rainy = state.weather.weather.any(
+        } else if (state.weather.weather.any(
           (w) => w != null && rainClassOnRoute(w) != null,
-        );
-        if (rainy) return const RainColourKey();
-        final theme = Theme.of(context);
-        return Text(
-          AppLocalizations.of(context).weatherRainNoneOnRoute,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+        )) {
+          key = const RainColourKey();
+        } else {
+          key = Text(l10n.weatherRainNoneOnRoute, style: muted);
+        }
+        if (!free) return key;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [key, const SizedBox(height: 4), FreeForecastSourceLine()],
         );
     }
+  }
+}
+
+/// The attribution of the free forecast the route is coloured by, one
+/// small muted line: "Free forecast · Deutscher Wetterdienst (CC BY 4.0)".
+/// In a build that offers Velorki Plus a tap on it shows what Plus is,
+/// whose forecast is finer; a chevron says so. Scaled down rather than
+/// wrapped or cut where it does not fit, so the source is always read in
+/// full.
+class FreeForecastSourceLine extends ConsumerWidget {
+  /// Creates the line.
+  const FreeForecastSourceLine({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colour = theme.colorScheme.onSurfaceVariant;
+    final offerPlus = ref.watch(relayClientProvider) != null;
+    final line = FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: AlignmentDirectional.centerStart,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l10n.weatherFreeForecastSource(dwdAttribution),
+            maxLines: 1,
+            softWrap: false,
+            style: theme.textTheme.labelSmall?.copyWith(color: colour),
+          ),
+          if (offerPlus) Icon(Icons.chevron_right, size: 14, color: colour),
+        ],
+      ),
+    );
+    if (!offerPlus) return line;
+    return Tooltip(
+      message: l10n.weatherFreeForecastFiner,
+      child: InkWell(
+        onTap: () => unawaited(context.push(paywallRoute)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: line,
+        ),
+      ),
+    );
   }
 }

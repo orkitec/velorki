@@ -406,9 +406,10 @@ class RouteWeatherStripPainter extends CustomPainter {
     double? lo;
     double? hi;
     for (final s in w.weather) {
-      if (s == null) continue;
-      lo = lo == null ? s.temp : math.min(lo, s.temp);
-      hi = hi == null ? s.temp : math.max(hi, s.temp);
+      final t = s?.temp;
+      if (t == null) continue;
+      lo = lo == null ? t : math.min(lo, t);
+      hi = hi == null ? t : math.max(hi, t);
     }
     if (lo == null || hi == null) return;
     const pad = 3.0;
@@ -422,16 +423,16 @@ class RouteWeatherStripPainter extends CustomPainter {
     final dots = <Offset>[];
     var open = false;
     for (var i = 0; i < w.samples.length; i++) {
-      final s = i < w.weather.length ? w.weather[i] : null;
-      if (s == null) {
+      final t = i < w.weather.length ? w.weather[i]?.temp : null;
+      if (t == null) {
         open = false;
         continue;
       }
-      final p = Offset(xOf(w.samples[i].distanceM), yOf(s.temp));
+      final p = Offset(xOf(w.samples[i].distanceM), yOf(t));
       final nextHas =
           i + 1 < w.samples.length &&
           i + 1 < w.weather.length &&
-          w.weather[i + 1] != null;
+          w.weather[i + 1]?.temp != null;
       if (!open) {
         path.moveTo(p.dx, p.dy);
         open = true;

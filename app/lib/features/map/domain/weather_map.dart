@@ -300,10 +300,13 @@ class WeatherMapSource {
     DateTime? newest,
   }) {
     if (kind == WeatherKind.wind) {
-      // The model's hourly frames: the hour the step falls in.
+      // The model's hourly frames: the hour the step falls in. With
+      // [timesUrl], of the newest run, which [newest] is then (the frame
+      // names no run before it is known, and the map asks for none).
       if (offsetMinutes < 0 || offsetMinutes > forecastMinutes) return null;
       return WeatherFrame(
         windFrameTime(now, offsetMinutes, forecastMinutes: forecastMinutes),
+        run: timesUrl == null ? null : newest,
       );
     }
     if (timeFormat == WeatherTimeFormat.modelRun) {
@@ -382,6 +385,7 @@ class WeatherMapSource {
         .replaceAll('{time}', formatWeatherTime(time))
         .replaceAll('{timeMs}', '${time.toUtc().millisecondsSinceEpoch}')
         .replaceAll('{run}', run == null ? '' : formatModelRun(run))
+        .replaceAll('{runTime}', run == null ? '' : formatWeatherTime(run))
         .replaceAll(
           '{runMinute}',
           run == null
@@ -1870,6 +1874,11 @@ const List<LatLng> hrrrDomain = <LatLng>[
 /// `{west}`, `{south}`, `{east}` and `{north}` are the box in degrees, its
 /// east past 180° for a box across the antimeridian, which the service
 /// wraps.
+///
+/// The coverage holds the last day and a half of runs, and a request that
+/// names none is answered from the oldest; so each names the newest run
+/// (`{runTime}`), read off the coverage's DescribeCoverage ([timesUrl],
+/// `parseNewestRun`), and there is no wind before it is known.
 final WeatherMapSource dwdWind = WeatherMapSource(
   id: 'wind_icon',
   kind: WeatherKind.wind,
@@ -1877,7 +1886,11 @@ final WeatherMapSource dwdWind = WeatherMapSource(
       'https://maps.dwd.de/geoserver/ows?service=WCS&version=2.0.1'
       '&request=GetCoverage&coverageId=dwd__Icon_reg025_fd_sl_UV10M'
       '&format=text/plain&subset=Lat({south},{north})'
-      '&subset=Long({west},{east})&subset=time(%22{time}%22)',
+      '&subset=Long({west},{east})&subset=time(%22{time}%22)'
+      '&subset=REFERENCE_TIME(%22{runTime}%22)',
+  timesUrl:
+      'https://maps.dwd.de/geoserver/ows?service=WCS&version=2.0.1'
+      '&request=DescribeCoverage&coverageId=dwd__Icon_reg025_fd_sl_UV10M',
   coverage: <BoundingBox>[_box(-180, -85, 180, 85)],
   timeFormat: WeatherTimeFormat.iso,
   stepMinutes: 60,

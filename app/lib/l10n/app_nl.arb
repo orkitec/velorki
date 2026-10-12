@@ -1171,5 +1171,12 @@
   "weatherRainLight": "Licht",
   "weatherRainModerate": "Matig",
   "weatherRainHeavy": "Zwaar",
-  "weatherRainNoneOnRoute": "Geen regen op de route"
+  "weatherRainNoneOnRoute": "Geen regen op de route",
+  "weatherFreeForecastTitle": "Gratis wind- en regenverwachting",
+  "weatherFreeForecastBody": "Deze gratis verwachting komt van een grover openbaar weermodel: ongeveer 28 km voor de wind, fijner voor regen in Europa. Er zitten geen windstoten of regenkansen in.",
+  "weatherFreeForecastPlusBody": "Velorki Plus gebruikt fijnere lokale verwachtingen.",
+  "weatherFreeForecastUse": "Gratis verwachting gebruiken",
+  "weatherFreeForecastSeePlus": "Plus bekijken",
+  "weatherFreeForecastSource": "Gratis verwachting · {source}",
+  "weatherFreeForecastFiner": "Plus: fijnere verwachting"
 }

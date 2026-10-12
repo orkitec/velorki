@@ -61,8 +61,9 @@ class SampleWeather {
   /// When the rider gets there, UTC.
   final DateTime at;
 
-  /// Air temperature, °C.
-  final double temp;
+  /// Air temperature, °C; `null` from a source without one (the free
+  /// forecast the route is coloured by).
+  final double? temp;
 
   /// Mean wind, m/s.
   final double windMs;
@@ -98,7 +99,7 @@ class SampleWeather {
 
   @override
   String toString() =>
-      'SampleWeather(${distanceM.round()} m at $at: ${temp.toStringAsFixed(1)} °C, '
+      'SampleWeather(${distanceM.round()} m at $at: ${temp?.toStringAsFixed(1)} °C, '
       'wind ${windMs.toStringAsFixed(1)} from ${windFromDeg.round()}° '
       '(${windClass.name}), rain $precipMm)';
 }
@@ -299,8 +300,10 @@ class RouteWeatherSummary {
       total += weights[i];
       if (w == null) continue;
       byClass[w.windClass] = (byClass[w.windClass] ?? 0) + weights[i];
-      minTemp = minTemp == null ? w.temp : math.min(minTemp, w.temp);
-      maxTemp = maxTemp == null ? w.temp : math.max(maxTemp, w.temp);
+      if (w.temp case final t?) {
+        minTemp = minTemp == null ? t : math.min(minTemp, t);
+        maxTemp = maxTemp == null ? t : math.max(maxTemp, t);
+      }
       if (firstRain == null && w.wet) firstRain = w.distanceM;
       if (w.gust != null) {
         maxGust = maxGust == null ? w.gust : math.max(maxGust, w.gust!);

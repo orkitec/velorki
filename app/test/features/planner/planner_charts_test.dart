@@ -11,6 +11,7 @@ import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/shared/presentation/metric_chart.dart';
 import 'package:velorki/features/subscription/application/plus_access.dart';
 import 'package:velorki/features/weather/application/route_weather_controller.dart';
+import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
 import 'package:velorki/features/weather/domain/route_weather_state.dart';
 import 'package:velorki/features/weather/presentation/route_weather_strip.dart';
 import 'package:velorki/features/weather/presentation/route_colour_choice.dart';
@@ -356,5 +357,64 @@ void main() {
     await tester.pumpAndSettle();
     expect(profile().window, isNull);
     expect(strip().window, isNull);
+  });
+
+  testWidgets('without Plus the free forecast draws the wind on the route '
+      'once the rider accepts it, with its source under the key', (
+    tester,
+  ) async {
+    final free = FakeDwdClient();
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      extraOverrides: [
+        relayClientProvider.overrideWithValue(MockRelay().client()),
+        plusAccessProvider.overrideWith((ref, feature) => PlusAccess.missing),
+        dwdForecastClientProvider.overrideWithValue(free),
+        weatherClockProvider.overrideWithValue(
+          () => DateTime.utc(2026, 10, 11, 8),
+        ),
+      ],
+    );
+    ProviderScope.containerOf(tester.element(find.byType(PlannerScreen)))
+        .read(plannerControllerProvider.notifier)
+        .loadComputedRoute(
+          result: _route,
+          waypoints: [
+            Waypoint(pos: _route.geometry.first.pos),
+            Waypoint(pos: _route.geometry.last.pos),
+          ],
+          options: RoutingOptions(),
+        );
+    await tester.pumpAndSettle();
+    final wind = find.descendant(
+      of: find.byType(RouteColourChoice),
+      matching: find.text(l10n.weatherWind),
+    );
+    await tester.ensureVisible(wind);
+    await tester.pumpAndSettle();
+    await tester.tap(wind);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.weatherFreeForecastUse));
+    await tester.pumpAndSettle();
+    await tester.pump(weatherDebounce);
+    await tester.pumpAndSettle();
+
+    expect(free.requests, isNotEmpty);
+    final drawn = h.map.calls.where((c) => c.method == 'setRouteWind');
+    expect(drawn, isNotEmpty);
+    final segments = drawn.last.arguments.single! as List<WindSegment>;
+    expect(segments, isNotEmpty);
+    expect(
+      segments,
+      everyElement(
+        isA<WindSegment>().having(
+          (s) => s.windClass,
+          'class',
+          WindClassOnMap.head,
+        ),
+      ),
+    );
+    expect(find.byType(FreeForecastSourceLine), findsOneWidget);
   });
 }

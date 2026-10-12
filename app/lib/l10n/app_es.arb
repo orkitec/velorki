@@ -1171,5 +1171,12 @@
   "weatherRainLight": "Débil",
   "weatherRainModerate": "Moderada",
   "weatherRainHeavy": "Fuerte",
-  "weatherRainNoneOnRoute": "Sin lluvia en la ruta"
+  "weatherRainNoneOnRoute": "Sin lluvia en la ruta",
+  "weatherFreeForecastTitle": "Previsión gratuita de viento y lluvia",
+  "weatherFreeForecastBody": "Esta previsión gratuita procede de un modelo meteorológico público más grueso: unos 28 km para el viento, más fino para la lluvia en Europa. No incluye rachas ni probabilidad de lluvia.",
+  "weatherFreeForecastPlusBody": "Velorki Plus usa previsiones locales más precisas.",
+  "weatherFreeForecastUse": "Usar previsión gratuita",
+  "weatherFreeForecastSeePlus": "Ver Plus",
+  "weatherFreeForecastSource": "Previsión gratuita · {source}",
+  "weatherFreeForecastFiner": "Plus: previsión más precisa"
 }

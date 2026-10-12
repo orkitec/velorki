@@ -1171,5 +1171,12 @@
   "weatherRainLight": "Leicht",
   "weatherRainModerate": "Mäßig",
   "weatherRainHeavy": "Stark",
-  "weatherRainNoneOnRoute": "Kein Regen auf der Route"
+  "weatherRainNoneOnRoute": "Kein Regen auf der Route",
+  "weatherFreeForecastTitle": "Kostenlose Wind- und Regenvorhersage",
+  "weatherFreeForecastBody": "Diese kostenlose Vorhersage stammt aus einem gröberen öffentlichen Wettermodell: etwa 28 km für den Wind, in Europa feiner für den Regen. Sie hat keine Böen und keine Regenwahrscheinlichkeit.",
+  "weatherFreeForecastPlusBody": "Velorki Plus nutzt feinere lokale Vorhersagen.",
+  "weatherFreeForecastUse": "Kostenlose Vorhersage nutzen",
+  "weatherFreeForecastSeePlus": "Plus ansehen",
+  "weatherFreeForecastSource": "Kostenlose Vorhersage · {source}",
+  "weatherFreeForecastFiner": "Plus: genauere Vorhersage"
 }

@@ -8,12 +8,15 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/core/geo/route_gradient.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
+import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/planner/domain/elevation_profile.dart';
 import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
 import 'package:velorki/features/subscription/application/plus_access.dart';
+import 'package:velorki/features/weather/application/free_route_weather.dart';
 import 'package:velorki/features/weather/application/route_colouring.dart';
 import 'package:velorki/features/weather/application/route_overlay.dart';
 import 'package:velorki/features/weather/application/route_weather_controller.dart';
+import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
 import 'package:velorki/features/weather/domain/route_sampling.dart';
 import 'package:velorki/features/weather/domain/route_weather_state.dart';
 import 'package:velorki/features/weather/presentation/route_colour_choice.dart';
@@ -58,6 +61,17 @@ RouteWeatherState _weather({double precip = 0}) {
   );
 }
 
+/// What the store says, changed by a test.
+class _Access extends Notifier<PlusAccess> {
+  @override
+  PlusAccess build() => PlusAccess.unknown;
+
+  void set(PlusAccess access) => state = access;
+}
+
+final NotifierProvider<_Access, PlusAccess> _access =
+    NotifierProvider<_Access, PlusAccess>(_Access.new);
+
 class _FakeWeather extends RouteWeatherController {
   _FakeWeather(this._initial);
 
@@ -76,6 +90,8 @@ Future<ProviderContainer> _pump(
   bool withRelay = true,
   Map<String, Object> prefs = const <String, Object>{},
   AsyncValue<RouteWeatherState?>? weather,
+  FakeDwdClient? free,
+  PlusAccess Function(Ref ref)? accessOf,
 }) async {
   SharedPreferences.setMockInitialValues(prefs);
   final stored = await SharedPreferences.getInstance();
@@ -107,9 +123,14 @@ Future<ProviderContainer> _pump(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(stored),
       relayClientProvider.overrideWithValue(withRelay ? relay.client() : null),
-      plusAccessProvider.overrideWith((ref, feature) => access),
+      plusAccessProvider.overrideWith(
+        (ref, feature) => accessOf?.call(ref) ?? access,
+      ),
       weatherRouteGeometryProvider(plannerWeatherRoute)
           .overrideWithValue(_geometry),
+      weatherRouteSpeedProvider(plannerWeatherRoute).overrideWithValue(18),
+      dwdForecastClientProvider.overrideWithValue(free ?? FakeDwdClient()),
+      weatherClockProvider.overrideWithValue(() => _earliest),
       routeWeatherControllerProvider.overrideWith2(
         (_) =>
             _FakeWeather(weather ?? AsyncData<RouteWeatherState?>(_weather())),
@@ -239,15 +260,128 @@ void main() {
     expect(_bands(tester), isEmpty);
   });
 
-  testWidgets('without Plus the wind and the rain are locked: a tap shows '
-      'the paywall and changes nothing', (tester) async {
-    final container = await _pump(tester, access: PlusAccess.missing);
-    expect(find.byIcon(Icons.lock_outline), findsNWidgets(2));
-    expect(_segment(l10n.weatherWind), findsOneWidget);
+  testWidgets('without Plus the first pick of the wind asks; the free '
+      'forecast chosen colours the route from it and is not asked again', (
+    tester,
+  ) async {
+    final free = FakeDwdClient();
+    final container = await _pump(
+      tester,
+      access: PlusAccess.missing,
+      free: free,
+    );
+    expect(find.byIcon(Icons.lock_outline), findsNothing);
     await tester.tap(_segment(l10n.weatherWind));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.weatherFreeForecastTitle), findsOneWidget);
+    expect(find.text(l10n.weatherFreeForecastPlusBody), findsOneWidget);
+    expect(container.read(routeOverlayChoiceProvider), RouteOverlay.gradient);
+
+    await tester.tap(find.text(l10n.weatherFreeForecastUse));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.weatherFreeForecastTitle), findsNothing);
+    expect(container.read(routeOverlayChoiceProvider), RouteOverlay.wind);
+    expect(container.read(routeOverlayShownProvider), RouteOverlay.wind);
+    expect(
+      container
+          .read(sharedPreferencesProvider)
+          .getBool('weather.free_route_forecast'),
+      isTrue,
+    );
+    // Asked once the route has stood still a moment.
+    await tester.pump(weatherDebounce);
+    await tester.pumpAndSettle();
+    expect(free.requests, isNotEmpty);
+    expect(
+      container
+          .read(routeColouringProvider(plannerWeatherRoute))
+          .wind
+          .map((r) => r.key),
+      everyElement(WindClassOnMap.head),
+    );
+    expect(_bands(tester), isNotEmpty);
+    expect(find.byType(WindColourKey), findsOneWidget);
+    expect(find.byType(FreeForecastSourceLine), findsOneWidget);
+    expect(
+      find.text(l10n.weatherFreeForecastSource(dwdAttribution)),
+      findsOneWidget,
+    );
+    expectNoClippedText(tester);
+
+    // The rain: no question again.
+    await tester.tap(_segment(l10n.weatherRain));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.weatherFreeForecastTitle), findsNothing);
+    expect(container.read(routeOverlayChoiceProvider), RouteOverlay.rain);
+    expect(find.text(l10n.weatherRainNoneOnRoute), findsOneWidget);
+    expect(find.byType(FreeForecastSourceLine), findsOneWidget);
+
+    // The source line shows what Plus is.
+    await tester.tap(find.byType(FreeForecastSourceLine));
+    await tester.pumpAndSettle();
+    expect(find.text('paywall'), findsOneWidget);
+  });
+
+  testWidgets('a rider who accepted it before is not asked', (tester) async {
+    final container = await _pump(
+      tester,
+      access: PlusAccess.missing,
+      prefs: const <String, Object>{'weather.free_route_forecast': true},
+    );
+    await tester.tap(_segment(l10n.weatherRain));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.weatherFreeForecastTitle), findsNothing);
+    expect(container.read(routeOverlayChoiceProvider), RouteOverlay.rain);
+    await tester.pump(weatherDebounce);
+  });
+
+  testWidgets('"See Plus" shows the paywall and changes nothing', (
+    tester,
+  ) async {
+    final container = await _pump(tester, access: PlusAccess.missing);
+    await tester.tap(_segment(l10n.weatherWind));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.weatherFreeForecastSeePlus));
     await tester.pumpAndSettle();
     expect(find.text('paywall'), findsOneWidget);
     expect(container.read(routeOverlayChoiceProvider), RouteOverlay.gradient);
+    expect(container.read(freeRouteForecastAcceptedProvider), isFalse);
+  });
+
+  testWidgets('dismissed, the dialog changes nothing and asks again', (
+    tester,
+  ) async {
+    final container = await _pump(tester, access: PlusAccess.missing);
+    await tester.tap(_segment(l10n.weatherRain));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.commonCancel));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.weatherFreeForecastTitle), findsNothing);
+    expect(container.read(routeOverlayChoiceProvider), RouteOverlay.gradient);
+    expect(container.read(freeRouteForecastAcceptedProvider), isFalse);
+    expect(
+      container
+          .read(sharedPreferencesProvider)
+          .getBool('weather.free_route_forecast'),
+      isNull,
+    );
+
+    await tester.tap(_segment(l10n.weatherRain));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.weatherFreeForecastTitle), findsOneWidget);
+  });
+
+  testWidgets('with Plus no question and no free source line: the relay '
+      'forecast colours the route', (tester) async {
+    final free = FakeDwdClient();
+    await _pump(tester, free: free);
+    await tester.tap(_segment(l10n.weatherWind));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.weatherFreeForecastTitle), findsNothing);
+    expect(find.byType(WindColourKey), findsOneWidget);
+    expect(find.byType(FreeForecastSourceLine), findsNothing);
+    await tester.pump(weatherDebounce);
+    expect(free.requests, isEmpty);
   });
 
   testWidgets('without Plus a wind chosen before is shown as the gradient', (
@@ -268,19 +402,98 @@ void main() {
     );
   });
 
-  testWidgets('a build without the relay offers no wind and no rain', (
+  testWidgets('a build without the relay offers the wind and the rain from '
+      'the free forecast, without Plus in the dialog or the source line', (
     tester,
   ) async {
-    await _pump(tester, withRelay: false);
-    expect(_segment(l10n.colourByGradient), findsOneWidget);
-    expect(_segment(l10n.weatherWind), findsNothing);
-    expect(_segment(l10n.weatherRain), findsNothing);
+    final container = await _pump(
+      tester,
+      withRelay: false,
+      free: FakeDwdClient(rain: 3),
+    );
+    expect(_segment(l10n.weatherWind), findsOneWidget);
+    expect(_segment(l10n.weatherRain), findsOneWidget);
+    await tester.tap(_segment(l10n.weatherRain));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.weatherFreeForecastTitle), findsOneWidget);
+    expect(find.text(l10n.weatherFreeForecastSeePlus), findsNothing);
+    expect(find.text(l10n.weatherFreeForecastPlusBody), findsNothing);
+    await tester.tap(find.text(l10n.weatherFreeForecastUse));
+    await tester.pumpAndSettle();
+    await tester.pump(weatherDebounce);
+    await tester.pumpAndSettle();
+    expect(container.read(routeOverlayShownProvider), RouteOverlay.rain);
+    expect(find.byType(RainColourKey), findsOneWidget);
+    expect(_bands(tester), isNotEmpty);
+    expect(find.byType(FreeForecastSourceLine), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_right), findsNothing);
   });
 
-  testWidgets('nor while the store has not answered', (tester) async {
-    await _pump(tester, access: PlusAccess.unknown);
-    expect(_segment(l10n.weatherWind), findsNothing);
-    expect(_segment(l10n.weatherRain), findsNothing);
+  testWidgets('while the store has not answered: no question, the free '
+      'forecast at once, and the relay\'s once Plus is granted', (
+    tester,
+  ) async {
+    final free = FakeDwdClient();
+    final container = await _pump(
+      tester,
+      free: free,
+      accessOf: (ref) => ref.watch(_access),
+    );
+    expect(_segment(l10n.weatherWind), findsOneWidget);
+    await tester.tap(_segment(l10n.weatherWind));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.weatherFreeForecastTitle), findsNothing);
+    expect(container.read(routeOverlayChoiceProvider), RouteOverlay.wind);
+    expect(container.read(routeOverlayShownProvider), RouteOverlay.wind);
+    await tester.pump(weatherDebounce);
+    await tester.pumpAndSettle();
+    expect(free.requests, isNotEmpty);
+    expect(find.byType(FreeForecastSourceLine), findsOneWidget);
+
+    container.read(_access.notifier).set(PlusAccess.granted);
+    await tester.pumpAndSettle();
+    expect(container.read(routeWeatherFromRelayProvider), isTrue);
+    expect(find.byType(FreeForecastSourceLine), findsNothing);
+    expect(find.byType(WindColourKey), findsOneWidget);
+  });
+
+  testWidgets('picked while the store had not answered, Plus missing keeps '
+      'the choice and the free forecast, and never asks', (tester) async {
+    final container = await _pump(
+      tester,
+      accessOf: (ref) => ref.watch(_access),
+    );
+    await tester.tap(_segment(l10n.weatherRain));
+    await tester.pumpAndSettle();
+    container.read(_access.notifier).set(PlusAccess.missing);
+    await tester.pump(weatherDebounce);
+    await tester.pumpAndSettle();
+    expect(container.read(routeOverlayShownProvider), RouteOverlay.rain);
+    expect(find.byType(FreeForecastSourceLine), findsOneWidget);
+    await tester.tap(_segment(l10n.weatherWind));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.weatherFreeForecastTitle), findsNothing);
+    expect(container.read(routeOverlayChoiceProvider), RouteOverlay.wind);
+    await tester.pump(weatherDebounce);
+  });
+
+  testWidgets('the free forecast failing says so under the choice', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      access: PlusAccess.missing,
+      prefs: const <String, Object>{
+        'weather.free_route_forecast': true,
+        'weather.route_overlay': 'wind',
+      },
+      free: FakeDwdClient(down: true),
+    );
+    await tester.pump(weatherDebounce);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapWeatherWindUnavailable), findsOneWidget);
+    expect(_bands(tester), isEmpty);
+    expect(find.byType(FreeForecastSourceLine), findsNothing);
   });
 
   test('the wind switch of before comes back as the wind', () async {

@@ -9,6 +9,7 @@ import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../recording/domain/ride_range.dart';
 import '../domain/route_weather_state.dart';
+import 'free_route_weather.dart';
 import 'route_overlay.dart';
 import 'route_weather_controller.dart';
 import 'route_wind.dart';
@@ -130,6 +131,17 @@ List<TrackPoint>? weatherRouteGeometry(Ref ref, WeatherRoute route) =>
       ),
     };
 
+/// The weather [route] is coloured by: the relay's forecast with Velorki
+/// Plus ([routeWeatherFromRelayProvider]), the free one the phone loads
+/// itself without ([freeRouteWeatherProvider]).
+@riverpod
+AsyncValue<RouteWeatherState?> routeColourWeather(
+  Ref ref,
+  WeatherRoute route,
+) => ref.watch(routeWeatherFromRelayProvider)
+    ? ref.watch(routeWeatherControllerProvider(route))
+    : ref.watch(freeRouteWeatherProvider(route));
+
 /// What [route] is coloured by, on the map and under its elevation chart:
 /// [routeColouringFor] with what is shown ([routeOverlayShownProvider]).
 /// The weather is only watched while the wind or the rain is shown.
@@ -141,7 +153,7 @@ RouteColouring routeColouring(Ref ref, WeatherRoute route) {
   return routeColouringFor(
     geometry,
     isWeatherOverlay(overlay)
-        ? ref.watch(routeWeatherControllerProvider(route))
+        ? ref.watch(routeColourWeatherProvider(route))
         : const AsyncData<RouteWeatherState?>(null),
     overlay,
   );

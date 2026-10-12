@@ -305,9 +305,11 @@ void main() {
         'clouds_eumetsat_v${cloudImageVersion - 1}_0_1.png',
         'clouds_eumetsat_v${cloudImageVersion - 1}_detail_1_2_3_4_5.png',
         'radar_dwd_soft${rainImageVersion - 1}_1_2_3_4_5.png',
+        // A wind grid of before the runs were named: of the oldest run.
+        'wind_icon_1_2_3_4_5.txt',
         'clouds_goes_east_v${cloudImageVersion}_0_1.png',
         'radar_dwd_measured${rainImageVersion}_1_2_3_4_5.png',
-        'wind_icon_1_2_3_4_5.txt',
+        'wind_icon_w${windGridVersion}_1_2_3_4_5_6.txt',
       ];
       for (final name in names) {
         File(p.join(dir.path, name))
@@ -322,8 +324,8 @@ void main() {
         now,
       );
       final left = {for (final f in dir.listSync()) p.basename(f.path)};
-      expect(left, containsAll(names.skip(3)));
-      expect(left.intersection(names.take(3).toSet()), isEmpty);
+      expect(left, containsAll(names.skip(4)));
+      expect(left.intersection(names.take(4).toSet()), isEmpty);
     });
 
     test('a region\'s image is prepared over its box, faded as asked, and '
@@ -1889,7 +1891,8 @@ void main() {
       8,
     )!;
     final now = DateTime.now().toUtc();
-    final frame = dwdWind.frameAt(now)!;
+    final run = DateTime.utc(2026, 10, 12, 12);
+    final frame = dwdWind.frameAt(now, newest: run)!;
 
     setUp(() {
       adapter = _Adapter()
@@ -1909,6 +1912,33 @@ void main() {
       );
     });
 
+    test('the newest run is read off the coverage\'s description, and a '
+        'grid of another run is another request', () async {
+      adapter
+        ..contentType = 'application/xml'
+        ..body = File('test/fixtures/weather/dwd_route_totprec_describe.xml')
+            .readAsBytesSync();
+      expect(await fetcher.newestFrame(dwdWind), run);
+      expect(
+        adapter.requests.single.toString(),
+        contains('request=DescribeCoverage'),
+      );
+      adapter
+        ..contentType = 'text/plain'
+        ..body = Uint8List.fromList(utf8.encode(text));
+      await fetcher.windGrid(dwdWind, request, frame, now);
+      final newer = dwdWind.frameAt(
+        now,
+        newest: run.add(const Duration(hours: 6)),
+      )!;
+      await fetcher.windGrid(dwdWind, request, newer, now);
+      expect(adapter.requests, hasLength(3));
+      expect(
+        adapter.requests[2].toString(),
+        contains('REFERENCE_TIME(%222026-10-12T18:00:00.000Z%22)'),
+      );
+    });
+
     test('asks for the box at the hour, reads the grid, then comes from the '
         'cache for an hour', () async {
       final grid = await fetcher.windGrid(dwdWind, request, frame, now);
@@ -1921,6 +1951,8 @@ void main() {
         contains('subset=Long(${request.box.west.toStringAsFixed(3)}'),
       );
       expect(url, contains(formatWeatherTime(frame.time!)));
+      // Of the newest run, not the oldest the service would answer from.
+      expect(url, contains('REFERENCE_TIME(%222026-10-12T12:00:00.000Z%22)'));
       final again = await fetcher.windGrid(dwdWind, request, frame, now);
       expect(again!.columns, 20);
       expect(adapter.requests, hasLength(1));

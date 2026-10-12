@@ -82,20 +82,24 @@ class RouteWeatherDigest {
     double? gust;
     SampleWeather? firstWet;
     var wettest = 0.0;
+    var seen = false;
     for (final (i, w) in route.weather.indexed) {
       if (w == null || i >= samples.length) continue;
       final weight = _weight(distances, i);
       covered += weight;
       byClass[w.windClass] = (byClass[w.windClass] ?? 0) + weight;
-      minTemp = minTemp == null ? w.temp : math.min(minTemp, w.temp);
-      maxTemp = maxTemp == null ? w.temp : math.max(maxTemp, w.temp);
+      seen = true;
+      if (w.temp case final t?) {
+        minTemp = minTemp == null ? t : math.min(minTemp, t);
+        maxTemp = maxTemp == null ? t : math.max(maxTemp, t);
+      }
       if (w.gust case final g?) gust = gust == null ? g : math.max(gust, g);
       if (w.wet) {
         firstWet ??= w;
         wettest = math.max(wettest, w.precipMm);
       }
     }
-    if (minTemp == null) return const RouteWeatherDigest();
+    if (!seen) return const RouteWeatherDigest();
 
     DigestWind wind;
     if (covered <= 0) {
