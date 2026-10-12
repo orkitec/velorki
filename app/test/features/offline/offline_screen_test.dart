@@ -96,11 +96,22 @@ Future<void> _runDownloads(
   WidgetTester tester, {
   bool Function()? until,
 }) async {
-  final limit = until == null ? 30 : 300;
-  for (var i = 0; i < limit; i++) {
-    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+  if (until == null) {
+    for (var i = 0; i < 30; i++) {
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    return;
+  }
+  // The download writes real files: what it needs is real time, which a
+  // busy machine running the whole suite gives out slowly. Waited for by
+  // the clock, not by a count of turns.
+  final deadline = DateTime.now().add(const Duration(seconds: 15));
+  while (!until() && DateTime.now().isBefore(deadline)) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 5)),
+    );
     await tester.pump(const Duration(milliseconds: 20));
-    if (until != null && until()) return;
   }
 }
 
