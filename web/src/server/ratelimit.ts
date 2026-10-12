@@ -60,6 +60,16 @@ export const LIMITS = {
   weatherPerDay: { name: 'weather_day', limit: 400, windowS: 86_400 },
   /** Charged before the body is read, like the share route's. */
   weatherPerIpHour: { name: 'weather_ip_hour', limit: 120, windowS: 3_600 },
+  /**
+   * The OPERA radar's frame list and images. The map asks for an image of
+   * the view each time the camera rests and the frame list every five
+   * minutes, so a minute of panning stays well inside; the day catches a
+   * client in a loop.
+   */
+  radarPerMin: { name: 'radar_min', limit: 60, windowS: 60 },
+  radarPerDay: { name: 'radar_day', limit: 3_000, windowS: 86_400 },
+  /** Charged before the entitlement is checked, like the share route's. */
+  radarPerIpHour: { name: 'radar_ip_hour', limit: 1_200, windowS: 3_600 },
 } as const satisfies Record<string, LimitSpec>;
 
 /** The counter key of one window. Exported so tests can assert the shape. */

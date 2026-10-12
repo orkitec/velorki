@@ -86,7 +86,8 @@ tags:
       Hourly forecasts along a route, from public weather services: the US
       National Weather Service in the US, the Deutscher Wetterdienst (through
       Bright Sky) in and around Germany, MET Norway everywhere else and as the
-      fallback whenever one of those fails.
+      fallback whenever one of those fails. And, for the map, the EUMETNET
+      OPERA radar composite over Europe as images.
 
 paths:
   /health:
@@ -799,6 +800,132 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
+  /weather/radar/opera/frames:
+    get:
+      tags: [weather]
+      operationId: getOperaFrames
+      summary: The OPERA radar composite's frames of the last two hours.
+      description: |
+        EUMETNET OPERA's maximum reflectivity composite over Europe (CC BY 4.0),
+        every five minutes, some five minutes behind the clock. The frames are
+        read off the composite's open archive, at most once a minute for the
+        whole cluster; `newest` is the last of them, and the app asks for no
+        image past it.
+
+        Rate limits, shared with the image below: 1200 per hour per IP,
+        charged before the entitlement is checked, then 60 per minute and 3000
+        per day per app user. 503 `unavailable` where the server keeps no
+        radar (`OPERA_CACHE_DIR=none`); 502 `upstream_error` when the archive
+        does not answer.
+      responses:
+        '200':
+          description: The frames, oldest first.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperaFrames'
+              examples:
+                frames:
+                  value:
+                    frames: ['2026-10-12T20:55:00.000Z', '2026-10-12T21:00:00.000Z', '2026-10-12T21:05:00.000Z']
+                    newest: '2026-10-12T21:05:00.000Z'
+                    stepMinutes: 5
+                    attribution: 'Radar: EUMETNET OPERA (CC BY 4.0)'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /weather/radar/opera/image:
+    get:
+      tags: [weather]
+      operationId: getOperaImage
+      summary: One image of a Web Mercator box at one OPERA frame.
+      description: |
+        The rain of one frame over `bbox`, as an indexed PNG of
+        `width` x `height`, drawn in the Deutscher Wetterdienst radar's
+        fifteen classes and colours (mm an hour from the reflectivity by
+        Marshall-Palmer, Z = 200 R^1.6; the classes are the app's
+        `dwdRadarLegend`), where the composite has no data `#7E7E7E` at alpha
+        77, dry and beyond the composite transparent. Clutter is dropped as
+        dry: patches of echo under four cells, and patches more than half of
+        which is 5 mm an hour or more (interference spokes and fixed echoes
+        have no light rain around them). The same query as the WMS GetMap the
+        app asks the other radars for.
+
+        `time` has to be one of the frames listed: nothing the client sends
+        names a file or a URL. The first request for a frame fetches it from
+        the archive once for the whole cluster; it is kept for two and a half
+        hours. A frame never changes, so the answer may be kept
+        (`Cache-Control: private`).
+
+        Rate limits as for the frames.
+      parameters:
+        - name: time
+          in: query
+          required: true
+          description: A frame of `GET /weather/radar/opera/frames`, ISO 8601 UTC.
+          schema:
+            type: string
+            format: date-time
+          example: '2026-10-12T21:05:00.000Z'
+        - name: bbox
+          in: query
+          required: true
+          description: |
+            `west,south,east,north` in EPSG:3857 metres, inside Web Mercator
+            and meeting the composite (39.5° W to 57.8° E, 31.7° to 73.9° N).
+          schema:
+            type: string
+          example: '-626172.1,5009377.1,1252344.3,6887893.5'
+        - name: width
+          in: query
+          required: true
+          description: Pixels, 1 to 1536; one pixel's width and height in metres within a factor of 32 of each other.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1536
+        - name: height
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1536
+      responses:
+        '200':
+          description: The image.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/XRequestId'
+            Cache-Control:
+              description: '`private, max-age=3600`.'
+              schema:
+                type: string
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
   /s/{id}:
     get:
       tags: [share]
@@ -1432,6 +1559,30 @@ components:
         licence:
           type: string
           description: The attribution the app shows beside the forecast.
+
+    OperaFrames:
+      type: object
+      required: [frames, newest, stepMinutes, attribution]
+      additionalProperties: false
+      properties:
+        frames:
+          type: array
+          description: The frames of the last two hours, oldest first.
+          items:
+            type: string
+            format: date-time
+        newest:
+          description: The last of `frames`; null when there is none.
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        stepMinutes:
+          type: integer
+          description: The composite's step.
+        attribution:
+          type: string
+          description: The credit the app shows with the layer.
 
   responses:
     OAuthTokenPassthrough:

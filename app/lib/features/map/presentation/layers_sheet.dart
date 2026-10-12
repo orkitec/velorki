@@ -2,8 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
+import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../integrations/common/data/relay_client_provider.dart';
 import '../../navigation/application/navigation_controller.dart';
 import '../../search/domain/search_group.dart';
 import '../../search/presentation/search_field.dart'
@@ -12,6 +16,7 @@ import '../../search/presentation/search_settings_screen.dart'
     show searchGroupLabel;
 import '../../shared/application/covering_sheets.dart';
 import '../../shared/presentation/stat_tile.dart';
+import '../../subscription/application/plus_access.dart';
 import '../application/weather_map_binding.dart';
 import '../data/cycle_map_layers.dart';
 import '../data/map_preferences.dart';
@@ -19,6 +24,7 @@ import '../data/weather_map_preferences.dart';
 import '../domain/cycle_map.dart';
 import '../domain/weather_map.dart';
 import 'map_chrome.dart';
+import 'rain_radar_dialog.dart';
 import 'weather_time_row.dart'
     show weatherClockTime, weatherRainAt, weatherRainLabel;
 
@@ -38,6 +44,35 @@ List<String> stopKindsOf(AppLocalizations l10n, SearchGroup group) => <String>[
         gazetteerPoiKindLabel(l10n, entry.key) != null)
       entry.key,
 ];
+
+/// Switches the rain radar [on] or off. Each time a rider the store says
+/// has no Velorki Plus switches it on, in a build with the relay, a dialog
+/// says what Plus adds ([showRainRadarDialog]): the radar comes on only
+/// once they choose the free one; "See Plus" opens the Plus page and leaves
+/// it off. Plus riders, riders the store has not answered for, and builds
+/// without the relay are asked nothing.
+Future<void> _switchRainRadar(
+  BuildContext context,
+  WidgetRef ref, {
+  required bool on,
+}) async {
+  final prefs = ref.read(weatherMapPreferencesProvider.notifier);
+  if (on &&
+      ref.read(relayClientProvider) != null &&
+      ref.read(plusAccessProvider(PlusFeature.weather)) == PlusAccess.missing) {
+    final answer = await showRainRadarDialog(context);
+    switch (answer) {
+      case RainRadarAnswer.useFree:
+        break;
+      case RainRadarAnswer.seePlus:
+        if (context.mounted) unawaited(context.push(paywallRoute));
+        return;
+      case null:
+        return;
+    }
+  }
+  await prefs.setRadar(on);
+}
 
 /// Opens the map's Layers sheet: the cycle map, and where [offer] says so,
 /// the stops.
@@ -147,7 +182,8 @@ class LayersSheet extends ConsumerWidget {
               title: Text(l10n.mapLayersRainRadar),
               subtitle: _RainSubtitle(on: weather.radar),
               value: weather.radar,
-              onChanged: (value) => unawaited(weatherPrefs.setRadar(value)),
+              onChanged: (value) =>
+                  unawaited(_switchRainRadar(context, ref, on: value)),
             ),
           if (weatherKindAvailable(weatherSources, WeatherKind.radar))
             _OpacitySlider(

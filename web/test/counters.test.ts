@@ -130,6 +130,10 @@ describe('fixed-window rate limits', () => {
       weatherPerHour: { name: 'weather_hour', limit: 60, windowS: 3_600 },
       weatherPerDay: { name: 'weather_day', limit: 400, windowS: 86_400 },
       weatherPerIpHour: { name: 'weather_ip_hour', limit: 120, windowS: 3_600 },
+      // The OPERA radar's frames and images, per rider, and per IP first.
+      radarPerMin: { name: 'radar_min', limit: 60, windowS: 60 },
+      radarPerDay: { name: 'radar_day', limit: 3_000, windowS: 86_400 },
+      radarPerIpHour: { name: 'radar_ip_hour', limit: 1_200, windowS: 3_600 },
     });
   });
 });

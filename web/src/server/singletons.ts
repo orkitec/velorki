@@ -2,6 +2,8 @@
 import { cache } from '@orkify/cache';
 import { loadConfig, type Config } from '@/config';
 import { ShareStore } from '@/share/store';
+import { OperaStore } from '@/weather/opera/store';
+import { userAgent } from '@/weather/upstream';
 import {
   DailyBudget,
   createModelFactory,
@@ -30,6 +32,7 @@ export interface Singletons {
   getModel: ModelFactory;
   prompts: Prompts;
   budget: DailyBudget;
+  opera: OperaStore | null;
 }
 
 const KEY = Symbol.for('velorki.singletons');
@@ -93,6 +96,24 @@ export function getBudget(): DailyBudget {
   const b = bag();
   b.budget ??= new DailyBudget(getConfig(), getCounters());
   return b.budget;
+}
+
+/** The OPERA radar's frames, or `null` where `OPERA_CACHE_DIR` is `none`. */
+export function getOpera(): OperaStore | null {
+  const b = bag();
+  if (b.opera !== undefined) return b.opera;
+  const config = getConfig();
+  const dir = config.OPERA_CACHE_DIR;
+  b.opera =
+    dir === undefined
+      ? null
+      : new OperaStore({
+          dir,
+          counters: getCounters(),
+          userAgent: userAgent(config.APP_VERSION, config.PUBLIC_BASE_URL, config.WEATHER_CONTACT),
+          log: getLogger(),
+        });
+  return b.opera;
 }
 
 /** Tests only: replace part of the bag. Anything left out is built lazily. */

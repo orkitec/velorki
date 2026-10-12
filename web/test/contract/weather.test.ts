@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parse } from 'yaml';
+import { GET as operaFrames } from '@/app/(api)/weather/radar/opera/frames/route';
 import { POST as weather } from '@/app/(api)/weather/route';
 import { AUTH, jsonRequest, withEnv } from '../helpers';
 
@@ -168,6 +170,38 @@ describe('POST /weather contract', () => {
       const body = (await res.json()) as { cells: { hours: unknown[] }[] };
       expect(problemsOf('WeatherResponse', body)).toEqual([]);
       expect(body.cells.map((c) => c.hours.length)).toEqual([2, 2]);
+    });
+  });
+});
+
+describe('GET /weather/radar/opera/frames contract', () => {
+  const op = () =>
+    (doc.paths as Record<string, Schema>)['/weather/radar/opera/frames']?.get as Schema;
+
+  it('has an example that matches the schema', () => {
+    const answers = examples((op().responses as Record<string, Schema>)['200'] as Schema);
+    expect(Object.keys(answers)).not.toHaveLength(0);
+    for (const value of Object.values(answers)) expect(problemsOf('OperaFrames', value)).toEqual([]);
+  });
+
+  it('answers with a body that matches the schema', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.parse('2026-10-12T21:07:30Z'));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(
+          '<ListBucketResult><Contents><Key>2026/10/12/OPERA/COMP/OPERA@20261012T2105@0@DBZH.tiff</Key></Contents></ListBucketResult>',
+          { headers: { 'content-type': 'application/xml' } },
+        ),
+      ),
+    );
+    await withEnv({ OPERA_CACHE_DIR: mkdtempSync(join(tmpdir(), 'velorki-opera-')) }, async () => {
+      const res = await operaFrames(
+        new Request('https://api.velorki.com/weather/radar/opera/frames', { headers: AUTH }),
+      );
+      expect(res.status).toBe(200);
+      expect(problemsOf('OperaFrames', await res.json())).toEqual([]);
     });
   });
 });

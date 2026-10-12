@@ -1180,6 +1180,10 @@
   "weatherFreeForecastPlusBody": "Velorki Plus nutzt feinere lokale Vorhersagen.",
   "weatherFreeForecastUse": "Kostenlose Vorhersage nutzen",
   "weatherFreeForecastSeePlus": "Plus ansehen",
+  "mapRainRadarPlusTitle": "Regenradar",
+  "mapRainRadarPlusBody": "Velorki Plus ergänzt echtes Radar in ganz Europa, wo die kostenlose Karte nur Schätzungen aus Satellitendaten hat, etwa in Frankreich, Spanien, Großbritannien, der Schweiz und Skandinavien.",
+  "mapRainRadarPlusUseFree": "Kostenloses Radar nutzen",
+  "mapRainRadarPlusSeePlus": "Plus ansehen",
   "weatherFreeForecastSource": "Kostenlose Vorhersage · {source}",
   "weatherFreeForecastFiner": "Plus: genauere Vorhersage"
 }

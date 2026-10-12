@@ -1180,6 +1180,10 @@
   "weatherFreeForecastPlusBody": "Velorki Plus gebruikt fijnere lokale verwachtingen.",
   "weatherFreeForecastUse": "Gratis verwachting gebruiken",
   "weatherFreeForecastSeePlus": "Plus bekijken",
+  "mapRainRadarPlusTitle": "Regenradar",
+  "mapRainRadarPlusBody": "Velorki Plus voegt echte radar toe in heel Europa waar de gratis kaart alleen schattingen via satelliet heeft, zoals in Frankrijk, Spanje, het Verenigd Koninkrijk, Zwitserland en Scandinavië.",
+  "mapRainRadarPlusUseFree": "Gratis radar gebruiken",
+  "mapRainRadarPlusSeePlus": "Plus bekijken",
   "weatherFreeForecastSource": "Gratis verwachting · {source}",
   "weatherFreeForecastFiner": "Plus: fijnere verwachting"
 }

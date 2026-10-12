@@ -1280,12 +1280,15 @@ class WeatherMapDriver {
   }
 
   /// Whether [source] is drawn as an image of the view rather than tiles:
-  /// one with an image request, a radar only when drawn soft. The
-  /// satellite and the models are always images, as measured too, since
-  /// their images are masked.
+  /// one with an image request, a radar only when drawn soft or when it
+  /// serves no tiles (the relay's OPERA radar). The satellite and the
+  /// models are always images, as measured too, since their images are
+  /// masked.
   bool _drawnAsImage(WeatherMapSource source) {
     if (source.imageUrlTemplate == null) return false;
-    return source.role != RainRole.radar || _radarStyle == RadarStyle.soft;
+    return source.role != RainRole.radar ||
+        _radarStyle == RadarStyle.soft ||
+        !source.servesTiles;
   }
 
   /// What tells one image of [part] from the next, besides its box: its

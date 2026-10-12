@@ -4,9 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:velorki_api/velorki_api.dart';
 
 import '../../../app/app_config.dart';
 import '../../../core/http/user_agent.dart';
+import '../../../core/plus/plus_gate.dart';
+import '../../integrations/common/data/relay_client_provider.dart';
+import '../../subscription/application/plus_access.dart';
 import '../domain/weather_map.dart';
 import 'weather_fetcher.dart';
 
@@ -230,7 +234,10 @@ class WeatherRadarPreview extends _$WeatherRadarPreview {
 }
 
 /// The weather sources in force: the built-in ones, as the tile mirror's
-/// `weatherLayers` last said (kept, so it holds offline).
+/// `weatherLayers` last said (kept, so it holds offline); with Velorki Plus
+/// granted, in a build with the relay, the OPERA radar across Europe as well
+/// ([withOperaRadar]), which the mirror can switch off by its id as any
+/// other.
 @Riverpod(keepAlive: true)
 class WeatherMapSources extends _$WeatherMapSources {
   @override
@@ -238,10 +245,22 @@ class WeatherMapSources extends _$WeatherMapSources {
     final stored = ref
         .watch(sharedPreferencesProvider)
         .getString(_prefsOverride);
-    return applyWeatherOverride(
-      defaultWeatherMapSources,
-      decodeWeatherOverride(stored),
+    return _compose(
+      stored,
+      relay: ref.watch(relayClientProvider),
+      access: ref.watch(plusAccessProvider(PlusFeature.weather)),
     );
+  }
+
+  static List<WeatherMapSource> _compose(
+    String? stored, {
+    required RelayClient? relay,
+    required PlusAccess access,
+  }) {
+    final defaults = relay != null && access == PlusAccess.granted
+        ? withOperaRadar(defaultWeatherMapSources, relay.uriFor('/').toString())
+        : defaultWeatherMapSources;
+    return applyWeatherOverride(defaults, decodeWeatherOverride(stored));
   }
 
   /// Takes the `weatherLayers` value of the mirror's pointer that was just
@@ -255,9 +274,10 @@ class WeatherMapSources extends _$WeatherMapSources {
     } else {
       await prefs.setString(_prefsOverride, encoded);
     }
-    state = applyWeatherOverride(
-      defaultWeatherMapSources,
-      decodeWeatherOverride(encoded),
+    state = _compose(
+      encoded,
+      relay: ref.read(relayClientProvider),
+      access: ref.read(plusAccessProvider(PlusFeature.weather)),
     );
   }
 }
@@ -267,7 +287,8 @@ class WeatherMapSources extends _$WeatherMapSources {
 bool weatherKindAvailable(List<WeatherMapSource> sources, WeatherKind kind) =>
     sources.any((s) => s.enabled && s.kind == kind);
 
-/// The network the weather layers are fetched over.
+/// The network the weather layers are fetched over. Only the OPERA radar's
+/// requests to the relay carry the rider's credentials ([relayAuthFor]).
 @Riverpod(keepAlive: true)
 WeatherFetcher weatherFetcher(Ref ref) {
   final dio = velorkiDio();
@@ -277,5 +298,6 @@ WeatherFetcher weatherFetcher(Ref ref) {
     cacheDir: () async => Directory(
       p.join((await getApplicationCacheDirectory()).path, 'clouds'),
     ),
+    headersFor: (url) => relayAuthFor(ref.read(relayClientProvider), url),
   );
 }

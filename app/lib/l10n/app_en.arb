@@ -6096,6 +6096,22 @@
   "@weatherFreeForecastSeePlus": {
     "description": "Button of that dialog: open the Velorki Plus page"
   },
+  "mapRainRadarPlusTitle": "Rain radar",
+  "@mapRainRadarPlusTitle": {
+    "description": "Title of the dialog shown each time a rider without Velorki Plus switches the rain radar on in the map's Layers sheet"
+  },
+  "mapRainRadarPlusBody": "Velorki Plus adds real radar across Europe where the free map only has satellite estimates, such as France, Spain, the UK, Switzerland and Scandinavia.",
+  "@mapRainRadarPlusBody": {
+    "description": "Body of that dialog: with Plus, measured radar (EUMETNET OPERA) replaces the satellite's estimate of the rain in much of Europe; the free map has radar of its own only in Germany, the Netherlands and Finland"
+  },
+  "mapRainRadarPlusUseFree": "Use free radar",
+  "@mapRainRadarPlusUseFree": {
+    "description": "Button of that dialog: switch the free rain radar on"
+  },
+  "mapRainRadarPlusSeePlus": "See Plus",
+  "@mapRainRadarPlusSeePlus": {
+    "description": "Button of that dialog: open the Velorki Plus page; the rain radar stays off"
+  },
   "weatherFreeForecastSource": "Free forecast · {source}",
   "@weatherFreeForecastSource": {
     "description": "Small line under the colour key while the route is coloured from the free forecast; {source} is the data's attribution, 'Deutscher Wetterdienst (CC BY 4.0)'",

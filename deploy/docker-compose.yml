@@ -114,6 +114,7 @@ services:
       SITE_HOST: ${DOMAIN:?set DOMAIN in .env}
       API_HOST: ${DOMAIN:?set DOMAIN in .env}
       SHARE_DB_PATH: /var/lib/velorki/share.sqlite
+      OPERA_CACHE_DIR: /var/lib/velorki/opera
     expose:
       - "8080"
     volumes:

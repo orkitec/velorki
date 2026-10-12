@@ -105,3 +105,7 @@ processes:
       # Orkify keeps releases in their own directories, so a relative path
       # would hand out links that break on the next deploy.
       SHARE_DB_PATH: '/var/lib/velorki/share.sqlite'
+      # The OPERA radar's decoded frames (src/weather/opera/store.ts): a cache,
+      # rebuilt from the archive on demand, so it needs no backup; outside the
+      # release tree all the same, so a deploy does not refetch every frame.
+      OPERA_CACHE_DIR: '/var/lib/velorki/opera'
