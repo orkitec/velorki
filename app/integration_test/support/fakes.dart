@@ -558,6 +558,10 @@ class RecordingMapController implements MapController {
       inner.setSearchPin(position, label: label);
 
   @override
+  Future<void> setRouteCursor(LatLng? position) =>
+      inner.setRouteCursor(position);
+
+  @override
   Future<void> setCyclosmOverlay(bool visible) =>
       inner.setCyclosmOverlay(visible);
 

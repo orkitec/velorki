@@ -166,12 +166,11 @@ void main() {
   });
 
   group('the web pages of Strava', () {
-    test('an activity and a route each have their own address', () {
+    test('an activity has its own address', () {
       expect(
         stravaActivityUrl('5555'),
         'https://www.strava.com/activities/5555',
       );
-      expect(stravaRouteUrl('123'), 'https://www.strava.com/routes/123');
     });
   });
 

@@ -30,9 +30,19 @@ void main() {
       cacheDir: '${temp.path}/cache',
       outputDir: '${temp.path}/out',
     );
-    addTearDown(() {
+    addTearDown(() async {
       worker.dispose();
-      temp.deleteSync(recursive: true);
+      // The worker is killed, not awaited: it may still be writing its
+      // cache for a moment, and a file it adds fails the delete.
+      for (var attempt = 0; ; attempt++) {
+        try {
+          temp.deleteSync(recursive: true);
+          return;
+        } on FileSystemException {
+          if (attempt == 20) rethrow;
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+        }
+      }
     });
   });
 

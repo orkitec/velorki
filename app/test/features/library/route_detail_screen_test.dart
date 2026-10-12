@@ -16,8 +16,12 @@ import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki/core/links/link_opener.dart';
 import 'package:velorki/features/library/presentation/route_detail_screen.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
+import 'package:velorki/features/shared/presentation/metric_chart.dart';
+import 'package:fl_chart/fl_chart.dart' show LineChart;
 
 import '../../support/app.dart';
+import '../../support/chart_cursor.dart';
 import '../../support/format.dart';
 import '../planner/support/fakes.dart';
 import '../planner/support/pump.dart';
@@ -101,6 +105,108 @@ void main() {
     expect(find.text('All riders must dismount'), findsOneWidget);
     expect(h.map.calls.where((c) => c.method == 'moveTo'), hasLength(1));
     await unmountApp(tester);
+  });
+
+  testWidgets('a tap on the profile puts the cursor and the rider badge on '
+      'the route, a sweep moves them and they stay; zoomed, the handle moves '
+      'the cursor; a vertical drag on it still moves the card; and the '
+      'badge goes with the screen', (tester) async {
+    final h = PlannerHarness();
+    const start = LatLng(48, 11);
+    // Four kilometres due north, a point every 100 m, climbing.
+    final track = <TrackPoint>[
+      for (var m = 0; m <= 4000; m += 100)
+        TrackPoint(destinationPoint(start, 0, m.toDouble()), ele: 400 + m / 20),
+    ];
+    final saved =
+        await RouteRepository(
+          h.db.routesDao,
+          clock: () => DateTime.utc(2026, 9, 12, 10),
+        ).saveImportedRoute(
+          name: 'North',
+          points: track,
+          source: RouteSource.importedGpx,
+        );
+    await pumpApp(
+      tester,
+      initialLocation: routeDetailLocation(saved.id),
+      harness: h,
+    );
+    await tester.pumpAndSettle();
+    final chart = find.descendant(
+      of: find.byType(ElevationProfileChart),
+      matching: find.byType(LineChart),
+    );
+    await tester.ensureVisible(chart);
+    await tester.pumpAndSettle();
+    Offset at(double share) {
+      final rect = tester.getRect(chart);
+      final left =
+          rect.left +
+          tester.widget<MetricChart>(find.byType(MetricChart)).leftReservedSize;
+      return Offset(left + (rect.right - left) * share, rect.center.dy);
+    }
+
+    // A tap a quarter of the way, then a sweep to three quarters.
+    await tester.tapAt(at(0.25));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(haversineMeters(h.map.routeCursor!, start), closeTo(1000, 20));
+    final finger = await tester.startGesture(at(0.4));
+    await tester.pump();
+    for (final share in <double>[0.5, 0.6, 0.75]) {
+      await finger.moveTo(at(share));
+      await tester.pump();
+    }
+    expect(haversineMeters(h.map.routeCursor!, start), closeTo(3000, 20));
+    await finger.up();
+    await tester.pump(const Duration(seconds: 3));
+    expect(haversineMeters(h.map.routeCursor!, start), closeTo(3000, 20));
+    expect(chartCursorHandles, findsOneWidget);
+
+    // Two fingers apart: the profile zooms.
+    final centre = at(0.5);
+    final a = await tester.createGesture();
+    final b = await tester.createGesture();
+    await a.down(centre - const Offset(50, 0));
+    await b.down(centre + const Offset(50, 0));
+    await tester.pump();
+    for (var i = 0; i < 10; i++) {
+      await a.moveBy(const Offset(-10, 0));
+      await b.moveBy(const Offset(10, 0));
+      await tester.pump();
+    }
+    await a.up();
+    await b.up();
+    await tester.pump(const Duration(milliseconds: 400));
+    final data = tester.widget<LineChart>(chart).data;
+    expect(data.maxX - data.minX, lessThan(3));
+    expect(find.text(l10n.chartResetZoomRoute), findsOneWidget);
+
+    // Zoomed, the handle drags the cursor back towards the middle.
+    final kmPerPixel = (data.maxX - data.minX) / (at(1).dx - at(0).dx);
+    final from = haversineMeters(h.map.routeCursor!, start);
+    await dragChartCursor(tester, const Offset(-40, 0));
+    expect(
+      haversineMeters(h.map.routeCursor!, start),
+      closeTo(from - 40 * kmPerPixel * 1000, 20),
+    );
+    expect(tester.widget<LineChart>(chart).data.minX, data.minX);
+
+    // A finger dragged down the profile, a little at a time, moves the
+    // card under it rather than the profile.
+    final before = tester.getRect(chart).top;
+    final drag = await tester.startGesture(at(0.5));
+    for (var i = 0; i < 12; i++) {
+      await drag.moveBy(const Offset(0, 10));
+      await tester.pump();
+    }
+    await drag.up();
+    await tester.pumpAndSettle();
+    expect(tester.getRect(chart).top, greaterThan(before + 50));
+    expect(tester.widget<LineChart>(chart).data.minX, data.minX);
+    expect(h.map.routeCursor, isNotNull);
+    await unmountApp(tester);
+    expect(h.map.routeCursor, isNull);
   });
 
   testWidgets('a deleted route says so instead of crashing', (tester) async {

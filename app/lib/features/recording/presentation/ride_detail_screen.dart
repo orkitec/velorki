@@ -16,6 +16,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/domain/connected_account.dart';
 import '../../integrations/presentation/integration_labels.dart';
 import '../../integrations/presentation/ride_upload_menu.dart';
+import '../../map/application/route_cursor.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/shared_map_layers.dart';
 import '../../planner/domain/route_poi.dart';
@@ -27,6 +28,7 @@ import '../../settings/data/units.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../map/presentation/visible_map_padding.dart';
 import '../../shared/presentation/docking_sheet.dart';
+import '../../shared/presentation/metric_chart.dart';
 import '../../shared/presentation/sheet_header.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/placeholder_body.dart';
@@ -85,7 +87,9 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
   // The stretch the charts are zoomed to, in metres; one for all of them,
   // so a pinch on the speed chart zooms the elevation chart to the same
   // road. `null` for the whole ride.
-  RideWindow? _window;
+  DistanceWindow? _window;
+  // The cursor the charts share, and the rider badge it puts on the track.
+  final RouteCursor _cursor = RouteCursor();
   // The range the map has on it, so a rebuild does not redraw the same line.
   RideRange? _shownRange;
   // The route the map has on it, by id; empty for none, which is also what
@@ -128,6 +132,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
   @override
   void dispose() {
     disposeLayers();
+    _cursor.dispose();
     // Deferred: the tree is locked while a widget goes, and the card would
     // rebuild for the chip.
     final highlight = _highlight;
@@ -140,6 +145,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
     _shownKey = null;
     _shownRange = null;
     _shownRouteKey = '';
+    _cursor.map = map;
     final ride = ref.read(rideProvider(widget.rideId)).value;
     if (ride != null) {
       unawaited(_showOnMap(ride, _analysis));
@@ -160,6 +166,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
     _shownKey = null;
     _shownRange = null;
     _shownRouteKey = '';
+    _cursor.map = null;
     map.onPoiTapped = null;
     unawaited(map.setTrackLine(const <LatLng>[]));
     unawaited(map.removeRouteLine(rideRouteLineId));
@@ -235,7 +242,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
 
   void _select(RideRange? range) => _highlight.set(range);
 
-  void _setWindow(RideWindow? window) {
+  void _setWindow(DistanceWindow? window) {
     if (window == _window) return;
     setState(() => _window = window);
   }
@@ -494,6 +501,13 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
       }
     }
     _analysis = analysis;
+    // The charts run along the analysed track, so the dot does too.
+    final rideValue = ride.value;
+    _cursor.setLine(
+      rideValue == null ? null : analysis,
+      () => rideValue!.positions,
+      along: () => analysis!.distanceAt,
+    );
     final effort = analysis?.effort;
     final calories = profile.calories && effort != null
         ? estimateCalories(profile, effort, year: year)
@@ -789,6 +803,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                           ],
                           window: _window,
                           onWindow: _setWindow,
+                          cursor: _cursor,
                         ),
                       ],
                       if (analysis.hasSpeed) ...[
@@ -798,6 +813,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                           highlight: range,
                           window: _window,
                           onWindow: _setWindow,
+                          cursor: _cursor,
                         ),
                       ],
                       if (analysis.hasHeartRate) ...[
@@ -807,6 +823,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                           highlight: range,
                           window: _window,
                           onWindow: _setWindow,
+                          cursor: _cursor,
                         ),
                       ],
                       if (analysis.hasTemperature) ...[
@@ -816,6 +833,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                           highlight: range,
                           window: _window,
                           onWindow: _setWindow,
+                          cursor: _cursor,
                         ),
                       ],
                       if (maxHeartRateBpm != null &&

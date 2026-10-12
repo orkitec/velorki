@@ -930,3 +930,7 @@ TextTheme _textTheme(ColorScheme scheme) {
     ),
   );
 }
+
+/// The rider on the handle of a chart's cursor and on the badge the cursor
+/// puts on the map, so the two read as one.
+const IconData riderCursorIcon = Icons.directions_bike;

@@ -60,9 +60,14 @@ describe('locale switcher markup', () => {
 });
 
 describe('native locale names', () => {
-  it('falls back to the code for a locale nobody has named yet', () => {
+  it('names every language the site is built in as it calls itself', () => {
     expect(localeName('en')).toBe('English');
     expect(localeName('de')).toBe('Deutsch');
-    expect(localeName('fr')).toBe('FR');
+    expect(localeName('fr')).toBe('Français');
+    for (const locale of LOCALES) expect(localeName(locale)).not.toBe(locale.toUpperCase());
+  });
+
+  it('falls back to the code for a locale nobody has named yet', () => {
+    expect(localeName('pt')).toBe('PT');
   });
 });

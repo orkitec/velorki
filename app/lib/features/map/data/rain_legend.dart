@@ -173,6 +173,8 @@ RainLegend rainLegendOf(RainPalette palette) => switch (palette) {
   RainPalette.dwdModel6h => dwdModel6hLegend,
   RainPalette.dwdModel1h => dwdModel1hLegend,
   RainPalette.n0q => n0qLegend,
+  RainPalette.knmi => knmiRadarLegend,
+  RainPalette.fmi => fmiRadarLegend,
 };
 
 /// The DWD radar's legend (`dwd:Niederschlagsradar`), the same for its
@@ -207,8 +209,15 @@ final RainLegend dwdRadarLegend = RainLegend(const <List<int>>[
 /// 2.5 for "15", 25 for "150"), read 2026-10-11 from
 /// `…&request=GetLegendGraphic&layer=dwd:Icon-eu_reg00625_fd_sl_TOTPREC01H&style=niederschlagsradar&format=application/json`,
 /// while the model's values are mm in an hour. Each colour is drawn as the
-/// radar's class for the middle of the hourly rate it stands for; the two
-/// lightest, under 0.08 mm an hour, as no rain.
+/// radar's class for the middle of the hourly rate it stands for; the three
+/// lightest, under 0.17 mm an hour, as no rain.
+///
+/// That drizzle falls in the radar's lightest class, 0.1–0.2 mm an hour,
+/// and the models spread it wide where neither the satellite at "Now" nor
+/// most radars show anything: drawn, the forecast at +15 minutes looked far
+/// wetter than "Now" beside it. So the models' rain under 0.2 mm an hour is
+/// no rain (here and in [dwdModel6hLegend]); the radars, the satellite and
+/// the HRRR keep their lightest class.
 final RainLegend dwdModel1hLegend = RainLegend.recoloured(
   const <int>[
     0x33FFFF, // 0.017–0.033 mm/h
@@ -228,7 +237,8 @@ final RainLegend dwdModel1hLegend = RainLegend.recoloured(
     0x0000FE, // 25 and more
   ],
   const <int>[
-    rainNone, rainNone, 0, 1, 1, 2, 2, 3, 3, 4, 5, 6, 8, 9, 10, //
+    // Under 0.17 mm an hour: drizzle the satellite never shows, no rain.
+    rainNone, rainNone, rainNone, 1, 1, 2, 2, 3, 3, 4, 5, 6, 8, 9, 10, //
   ],
   drawnIn: dwdRadarLegend,
   noData: 0x7D7D7D,
@@ -264,8 +274,9 @@ final RainLegend hsafLegend = RainLegend.recoloured(
 /// read 2026-10-11; "under 0.1 mm" is a black veil at alpha 20, no class.
 /// Each class is drawn as the DWD radar's class for its mean rate an hour
 /// (the class's middle over six hours), so the forecast reads like the
-/// radar: 0.5–1 mm in six hours is the radar's lightest, 200–300 mm its
-/// 30–45 mm an hour; 0.1–0.5 mm, under 0.1 mm an hour, is no rain.
+/// radar: 1–2 mm in six hours is the radar's 0.2–0.4 mm, 200–300 mm its
+/// 30–45 mm an hour; under 1 mm, under 0.17 mm an hour, is no rain, the
+/// drizzle [dwdModel1hLegend] leaves out too.
 final RainLegend dwdModel6hLegend = RainLegend.recoloured(
   const <int>[
     0xDCF7C3, // 0.1–0.5 mm
@@ -291,8 +302,28 @@ final RainLegend dwdModel6hLegend = RainLegend.recoloured(
     0xFFFFFF, // more than 300
   ],
   const <int>[
-    // 0.1–0.5 mm in six hours is under 0.1 an hour: no rain, as on the radar.
-    rainNone, 0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 8, 9, 9, 9, 10, 11, //
+    // Under 1 mm in six hours, under 0.17 an hour: drizzle, no rain.
+    rainNone,
+    rainNone,
+    1,
+    2,
+    3,
+    4,
+    4,
+    5,
+    5,
+    6,
+    6,
+    7,
+    7,
+    8,
+    8,
+    8,
+    9,
+    9,
+    9,
+    10,
+    11, //
   ],
   drawnIn: dwdRadarLegend,
 );
@@ -469,3 +500,135 @@ final RainLegend n0qLegend = RainLegend.recoloured(n0qColours, <int>[
     else
       math.max(0, dwdRadarClassOf(marshallPalmerRate(n0qDbzOf(i)))),
 ], drawnIn: dwdRadarLegend);
+
+/// The lowest value of the KNMI radar's composite [knmiColours] draws:
+/// a reflectivity byte of 78, some 0.1 mm an hour.
+const int knmiLowestValue = 78;
+
+/// The rain rate, mm an hour, of the KNMI composite's byte [value]: its
+/// reflectivity in half dBZ, turned into rain as KNMI's server does,
+/// R = 10^((value − 109) / 32), Marshall–Palmer on the composite's scale.
+double knmiRateOf(int value) => math.pow(10, (value - 109) / 32).toDouble();
+
+/// The colours the KNMI's radar service (`RAD_NL25_PCP_CM`, style
+/// `precip-blue-transparent/nearest`) draws for the composite's bytes from
+/// [knmiLowestValue] up, one each: a continuous ramp over 0.1 to 100 mm an
+/// hour on a log scale, white-blue through blue to violet. Its legend
+/// graphic labels the ramp only roughly and the style is not published, so
+/// the ramp was read 2026-10-11 off the service itself: for cells of one
+/// colour in images over the Netherlands, its `GetFeatureInfo` gave the
+/// rate, every byte from 78 (0.11 mm an hour) to 168 (70 mm an hour) its
+/// own colour. Bytes 163 and 167 did not fall and are their neighbours'
+/// mean; each line's comment is its first rate. Under byte 78 the service
+/// draws nothing, as it does for dry and for beyond the radars' reach.
+const List<int> knmiColours = <int>[
+  0xCDF3FF, 0xCBF1FF, 0xC7EFFF, 0xC4EDFF, 0xC1EBFF, 0xBEE9FF, // 0.11
+  0xBAE7FF, 0xB8E6FF, 0xB4E3FF, 0xB1E2FF, 0xADDFFF, 0xABDEFF, // 0.17
+  0xA7DCFF, 0xA5DAFF, 0xA1D8FF, 0x9ED6FF, 0x9AD4FF, 0x98D2FF, // 0.25
+  0x94D0FF, 0x92CFFF, 0x8ECCFF, 0x8BCAFF, 0x86C7FF, 0x83C4FF, // 0.39
+  0x7FC0FF, 0x7CBEFF, 0x77BAFF, 0x74B8FF, 0x70B4FF, 0x6DB2FF, // 0.60
+  0x68AEFF, 0x65ACFF, 0x5CA9FF, 0x55A7FF, 0x4AA4FF, 0x42A2FF, // 0.93
+  0x37A0FF, 0x309EFF, 0x259BFF, 0x1E9AFF, 0x1397FF, 0x0B95FF, // 1.43
+  0x0192FF, 0x0190FF, 0x018CFF, 0x018AFF, 0x0186FF, 0x0183FF, // 2.21
+  0x017FFF, 0x017DFF, 0x0179FF, 0x0177FF, 0x0173FF, 0x0170FF, // 3.40
+  0x016DFF, 0x016BFF, 0x0168FF, 0x0166FF, 0x0163FF, 0x0161FF, // 5.23
+  0x015EFF, 0x015CFF, 0x0159FF, 0x0157FF, 0x0153FF, 0x0151FF, // 8.06
+  0x014DFF, 0x014AFF, 0x0147FF, 0x0144FF, 0x0141FF, 0x013EFF, // 12.4
+  0x013BFF, 0x0138FF, 0x0134FF, 0x0334FD, 0x0734F9, 0x0B34F7, // 19.1
+  0x0F34F3, 0x1234F0, 0x1734EC, 0x1A34EA, 0x1F34E6, 0x2234E4, // 29.4
+  0x2734E0, 0x2934DC, 0x2B34D9, 0x2C34D7, 0x2E34D1, 0x2F34CF, // 45.3
+  0x3134CD, // 69.8
+];
+
+/// The KNMI ramp past the bytes seen ([knmiColours]): its colours at about
+/// 85 and 100 mm an hour as the legend graphic draws them, the radar's
+/// 75–100 and 100–150 mm classes.
+const List<int> _knmiHeaviest = <int>[0x3534C3, 0x3834BD];
+
+/// The KNMI radar's legend as the soft rain reads it: each colour drawn as
+/// the DWD radar's class for its rate ([knmiRateOf]), so the Dutch radar
+/// reads like the German one beside it.
+final RainLegend knmiRadarLegend = RainLegend.recoloured(
+  <int>[...knmiColours, ..._knmiHeaviest],
+  <int>[
+    for (var i = 0; i < knmiColours.length; i++)
+      math.max(0, dwdRadarClassOf(knmiRateOf(knmiLowestValue + i))),
+    12,
+    13,
+  ],
+  drawnIn: dwdRadarLegend,
+);
+
+/// The FMI's rain rate composite (`Radar:suomi_rr_eureffin`): its colour
+/// map, `…/geoserver/Radar/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&layer=suomi_rr_eureffin&format=application/json`,
+/// read 2026-10-11, a ramp between these colours at these values in
+/// hundredths of a mm an hour. Under 0.07 mm an hour it is transparent, as
+/// dry is; past 63 mm it runs on towards the "no data" grey, fading.
+const List<(int, int)> fmiRampStops = <(int, int)>[
+  (7, 0x6CEBF3),
+  (14, 0x58C797),
+  (34, 0x409857),
+  (86, 0xF1F35A),
+  (216, 0xDFC40A),
+  (398, 0xEB951A),
+  (1000, 0xE85616),
+  (2513, 0xCE0202),
+  (6313, 0x830A46),
+  // "No data", which the ramp fades into; under the alpha that counts as
+  // rain from about 210 mm an hour.
+  (65530, 0xCCCCCC),
+];
+
+/// The highest value of the FMI's ramp still drawn opaque enough to count
+/// as rain ([rainLegendMinAlpha]), hundredths of a mm an hour: past it the
+/// ramp fades towards "no data" at 15 %.
+const int _fmiHighestValue = 21000;
+
+/// The FMI ramp's colour at [value], hundredths of a mm an hour: each
+/// channel interpolated between the stops around it, as GeoServer draws a
+/// ramp.
+int fmiColourAt(int value) {
+  for (var i = 1; i < fmiRampStops.length; i++) {
+    final (to, c1) = fmiRampStops[i];
+    if (value > to) continue;
+    final (from, c0) = fmiRampStops[i - 1];
+    final t = (value - from) / (to - from);
+    int channel(int shift) {
+      final a = c0 >> shift & 0xFF;
+      final b = c1 >> shift & 0xFF;
+      return (a + (b - a) * t).round();
+    }
+
+    return channel(16) << 16 | channel(8) << 8 | channel(0);
+  }
+  return fmiRampStops.last.$2;
+}
+
+/// Every colour of the FMI's ramp from its lowest value to
+/// [_fmiHighestValue], each once, with the value (hundredths of a mm an
+/// hour) in the middle of the run it is drawn for.
+final List<(int, double)> _fmiRamp = () {
+  final out = <(int, double)>[];
+  final seen = <int>{};
+  var start = fmiRampStops.first.$1;
+  var colour = fmiColourAt(start);
+  for (var v = start + 1; v <= _fmiHighestValue + 1; v++) {
+    final next = v > _fmiHighestValue ? -1 : fmiColourAt(v);
+    if (next == colour) continue;
+    if (seen.add(colour)) out.add((colour, (start + v - 1) / 2));
+    start = v;
+    colour = next;
+  }
+  return out;
+}();
+
+/// The FMI radar's legend as the soft rain reads it: each colour of its
+/// ramp drawn as the DWD radar's class for its rate (under 0.1 mm an hour
+/// no rain, as on the DWD's radar); "no data" the grey `#CCCCCC` the
+/// service draws at 15 % beyond its radars' reach.
+final RainLegend fmiRadarLegend = RainLegend.recoloured(
+  <int>[for (final (colour, _) in _fmiRamp) colour],
+  <int>[for (final (_, value) in _fmiRamp) dwdRadarClassOf(value / 100)],
+  drawnIn: dwdRadarLegend,
+  noData: 0xCCCCCC,
+);

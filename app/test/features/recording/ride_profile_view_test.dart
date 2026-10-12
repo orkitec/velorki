@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:fl_chart/fl_chart.dart' show LineChart;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,7 @@ import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/recording/presentation/ride_profile_view.dart';
 
 import '../../support/app.dart';
+import '../../support/chart_cursor.dart';
 
 /// A 12 km route: a climb to a pass at 6 km, a descent, a bump at the end.
 List<ElevationSample> _route() => <ElevationSample>[
@@ -125,5 +127,59 @@ void main() {
       const RideProfileView(samples: <ElevationSample>[], alongM: 0),
     );
     expect(find.text(l10n.recordingProfileNoRoute), findsOneWidget);
+  });
+
+  testWidgets('a tap on the profile puts the cursor where along the route it '
+      'is, and it stays; a pinch zooms it until "Whole route" shows it all '
+      'again, the handle moving the cursor meanwhile', (tester) async {
+    final cursor = ValueNotifier<double?>(null);
+    addTearDown(cursor.dispose);
+    await pump(
+      tester,
+      RideProfileView(samples: _route(), alongM: 4000, cursor: cursor),
+    );
+    final units = ProviderScope.containerOf(
+      tester.element(find.byType(RideProfileView)),
+    ).read(unitSystemProvider);
+    final rect = tester.getRect(find.byType(LineChart));
+    Offset at(double share) =>
+        Offset(rect.left + 40 + (rect.width - 40) * share, rect.center.dy);
+
+    await tester.tapAt(at(0.25));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(cursor.value, closeTo(3000, 20));
+    expect(chartCursorHandles, findsOneWidget);
+
+    final a = await tester.createGesture();
+    final b = await tester.createGesture();
+    await a.down(at(0.5) - const Offset(50, 0));
+    await b.down(at(0.5) + const Offset(50, 0));
+    await tester.pump();
+    for (var i = 0; i < 10; i++) {
+      await a.moveBy(const Offset(-10, 0));
+      await b.moveBy(const Offset(10, 0));
+      await tester.pump();
+    }
+    await a.up();
+    await b.up();
+    await tester.pump(const Duration(milliseconds: 400));
+    final whole = units == UnitSystem.metric ? 12.0 : 12000 / 1609.344;
+    var data = tester.widget<LineChart>(find.byType(LineChart)).data;
+    expect(data.maxX - data.minX, lessThan(whole * 0.6));
+
+    // The pinch left the cursor at the window's left edge; the handle
+    // drags it in.
+    final edge = cursor.value!;
+    await dragChartCursor(tester, const Offset(60, 0));
+    expect(cursor.value, greaterThan(edge + 200));
+    expect(
+      tester.widget<LineChart>(find.byType(LineChart)).data.minX,
+      data.minX,
+    );
+
+    await tester.tap(find.text(l10n.chartResetZoomRoute));
+    await tester.pumpAndSettle();
+    data = tester.widget<LineChart>(find.byType(LineChart)).data;
+    expect(data.maxX - data.minX, closeTo(whole, 1e-6));
   });
 }

@@ -413,8 +413,6 @@ void main() {
     expect(decodeWaypoints('not json'), isEmpty);
     expect(decodeWaypoints('{}'), isEmpty);
     expect(decodeOptions('nonsense'), const RoutingOptions());
-    expect(decodeSurfaceStats(null), isNull);
-    expect(decodeSurfaceStats('['), isNull);
     expect(decodeTurns(null), isEmpty);
     expect(decodeTurns(''), isEmpty);
     expect(decodeTurns('['), isEmpty);

@@ -16,6 +16,7 @@ import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/covering_sheets.dart';
 import '../../shared/presentation/error_text.dart';
+import '../../shared/presentation/metric_chart.dart' show DistanceWindow;
 import '../../shared/presentation/stat_tile.dart';
 import '../../subscription/application/plus_access.dart';
 import '../application/route_weather_controller.dart';
@@ -39,9 +40,25 @@ const Duration weatherDepartureStep = Duration(minutes: 15);
 /// whether the rider has Velorki Plus; a short teaser for a rider without
 /// it. While the forecast is on its way the section keeps the height it will
 /// have, so the sheet's content does not jump when it arrives.
+///
+/// Its strip shares the elevation profile's [window] and [cursor].
 class RouteWeatherSection extends ConsumerWidget {
   /// Creates the section.
-  const RouteWeatherSection({super.key});
+  const RouteWeatherSection({
+    super.key,
+    this.window,
+    this.onWindow,
+    this.cursor,
+  });
+
+  /// See [RouteWeatherStrip.window].
+  final DistanceWindow? window;
+
+  /// See [RouteWeatherStrip.onWindow].
+  final ValueChanged<DistanceWindow?>? onWindow;
+
+  /// See [RouteWeatherStrip.cursor].
+  final ValueNotifier<double?>? cursor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -60,7 +77,14 @@ class RouteWeatherSection extends ConsumerWidget {
       AsyncData(:final value) =>
         value == null
             ? const SizedBox.shrink()
-            : _Frame(child: _WeatherBody(state: value)),
+            : _Frame(
+                child: _WeatherBody(
+                  state: value,
+                  window: window,
+                  onWindow: onWindow,
+                  cursor: cursor,
+                ),
+              ),
     };
   }
 }
@@ -162,9 +186,17 @@ class _Best {
 /// The forecast: the summary, the strip, the departure and the switches.
 /// Without [state], the same rows, empty, at the same height.
 class _WeatherBody extends ConsumerWidget {
-  const _WeatherBody({required this.state});
+  const _WeatherBody({
+    required this.state,
+    this.window,
+    this.onWindow,
+    this.cursor,
+  });
 
   final RouteWeatherState? state;
+  final DistanceWindow? window;
+  final ValueChanged<DistanceWindow?>? onWindow;
+  final ValueNotifier<double?>? cursor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -188,6 +220,9 @@ class _WeatherBody extends ConsumerWidget {
         const SizedBox(height: 12),
         RouteWeatherStrip(
           weather: s?.weather,
+          window: window,
+          onWindow: onWindow,
+          cursor: cursor,
           maxTempLabel: summary?.maxTemp == null
               ? null
               : formatTemperature(l10n, system, summary!.maxTemp!),

@@ -9,6 +9,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../app/router.dart';
 import '../../../core/geo/ride_stats.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../map/application/route_cursor.dart';
 import '../../map/domain/map_controller.dart';
 import '../../navigation/application/route_cues.dart';
 import '../../planner/domain/route_poi.dart';
@@ -69,10 +70,20 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
   };
   MapController? _map;
   bool _drawn = false;
+
+  /// The profile's cursor, and the rider badge it puts on the track.
+  late final RouteCursor _cursor = RouteCursor()
+    ..setLine(
+      widget.candidate?.track,
+      () => widget.candidate!.track.points
+          .map((p) => p.pos)
+          .toList(growable: false),
+    );
   bool _saving = false;
 
   @override
   void dispose() {
+    _cursor.dispose();
     _name.dispose();
     super.dispose();
   }
@@ -80,6 +91,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
   // Called from the map widget's build, so it must not call setState.
   void _onMapReady(MapController controller) {
     _map = controller;
+    _cursor.map = controller;
     _drawn = false;
     unawaited(_showOnMap());
   }
@@ -384,6 +396,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                 child: ElevationProfileChart(
                   samples: elevationProfile(track.points),
                   height: 220,
+                  cursor: _cursor,
                 ),
               ),
               if (_cues.length > 1)

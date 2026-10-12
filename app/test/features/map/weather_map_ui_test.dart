@@ -166,6 +166,8 @@ void main() {
         prefs: <String, Object>{
           'map.weather.override': encodeWeatherOverride([
             {'id': 'radar_dwd', 'enabled': false},
+            {'id': 'radar_knmi', 'enabled': false},
+            {'id': 'radar_fmi', 'enabled': false},
             {'id': 'radar_noaa', 'enabled': false},
             {'id': 'rain_hsaf', 'enabled': false},
             {'id': 'rain_icon_eu', 'enabled': false},

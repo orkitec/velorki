@@ -13,13 +13,17 @@ import 'route_format.dart';
 ///
 /// The samples are thinned by [elevationProfile] before they get here, so the
 /// chart never draws more than [elevationProfileMaxPoints] points no matter
-/// how long the route is. Touching the line reads out that point. The axes
-/// carry bare numbers, in kilometres and metres or in miles and feet.
+/// how long the route is. A tap, a sweep or the cursor's handle reads out a
+/// point, and a pinch zooms it. The axes carry bare numbers, in kilometres and metres or
+/// in miles and feet.
 class ElevationProfileChart extends ConsumerWidget {
   /// Creates the chart.
   const ElevationProfileChart({
     required this.samples,
     this.height = 140,
+    this.window,
+    this.onWindow,
+    this.cursor,
     super.key,
   });
 
@@ -28,6 +32,18 @@ class ElevationProfileChart extends ConsumerWidget {
 
   /// Height of the chart area.
   final double height;
+
+  /// The stretch of the route the chart is zoomed to, or `null` for all of
+  /// it; see [MetricChart.window]. Only read while [onWindow] is set.
+  final DistanceWindow? window;
+
+  /// Called with the stretch a pinch, a drag or a double tap asks for; see
+  /// [MetricChart.onWindow]. Without it the chart keeps its own.
+  final ValueChanged<DistanceWindow?>? onWindow;
+
+  /// Where the cursor stands, in metres along the route; see
+  /// [MetricChart.cursor].
+  final ValueNotifier<double?>? cursor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -57,6 +73,13 @@ class ElevationProfileChart extends ConsumerWidget {
       spots: spots,
       height: height,
       yAxis: (lowest, highest) => elevationAxis(system, lowest, highest),
+      zoomable: true,
+      window: chartWindow(system, window),
+      onWindow: distanceWindowCallback(system, onWindow),
+      cursor: cursor,
+      metresPerUnit: units.displayToMeters(system, 1),
+      cursorLabel: l10n.chartCursorRoute,
+      resetLabel: l10n.chartResetZoomRoute,
       readoutAt: (index) => l10n.elevationPoint(
         formatDistance(l10n, system, samples[index].distanceM),
         formatHeight(l10n, system, samples[index].elevationM),

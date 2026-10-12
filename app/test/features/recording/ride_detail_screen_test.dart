@@ -32,6 +32,7 @@ import 'package:velorki_brouter/velorki_brouter.dart' show SurfaceStats;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
+import '../../support/chart_cursor.dart';
 import '../../support/format.dart';
 import 'support/pump.dart';
 
@@ -994,6 +995,82 @@ void main() {
     expect(_axisOf(tester, elevation), _wholeRide());
     expect(_axisOf(tester, speed), _wholeRide());
     expect(find.text(l10n.chartResetZoom), findsNothing);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a tap on any chart puts the cursor and the rider badge on the '
+      'track where the ride was then, on every chart at once; a sweep moves '
+      'them, they stay, and a double tap on a handle hides them', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _threeKilometres());
+
+    for (final chart in <Finder>[
+      find.byType(RideSpeedChart),
+      find.byType(RideElevationChart),
+    ]) {
+      final plot = find.descendant(of: chart, matching: find.byType(LineChart));
+      await tester.ensureVisible(plot);
+      await tester.pumpAndSettle();
+      Offset at(double share) {
+        final rect = tester.getRect(plot);
+        final left =
+            rect.left +
+            tester
+                .widget<MetricChart>(
+                  find.descendant(
+                    of: chart,
+                    matching: find.byType(MetricChart),
+                  ),
+                )
+                .leftReservedSize;
+        return Offset(left + (rect.right - left) * share, rect.center.dy);
+      }
+
+      await tester.tapAt(at(0.2));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(
+        haversineMeters(harness.map.routeCursor!, const LatLng(48, 11)),
+        closeTo(600, 30),
+      );
+      // One cursor for all the charts: every one has its handle.
+      expect(
+        find.descendant(
+          of: find.byType(RideSpeedChart),
+          matching: chartCursorHandles,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(RideElevationChart),
+          matching: chartCursorHandles,
+        ),
+        findsOneWidget,
+      );
+
+      final finger = await tester.startGesture(at(0.4));
+      await tester.pump();
+      await finger.moveTo(at(0.6));
+      await tester.pump();
+      await finger.moveTo(at(0.9));
+      await tester.pump();
+      await finger.up();
+      await tester.pump(const Duration(seconds: 3));
+      final badge = harness.map.routeCursor!;
+      expect(haversineMeters(badge, const LatLng(48, 11)), closeTo(2700, 30));
+      expect(badge.lon, closeTo(11, 1e-6), reason: 'on the track');
+
+      await doubleTapChartCursor(
+        tester,
+        handle: find.descendant(of: chart, matching: chartCursorHandles),
+      );
+      expect(harness.map.routeCursor, isNull);
+      expect(chartCursorHandles, findsNothing);
+      await tester.pump(const Duration(milliseconds: 400));
+    }
 
     await unmountApp(tester);
   });

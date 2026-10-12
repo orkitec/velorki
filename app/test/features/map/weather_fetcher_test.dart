@@ -562,9 +562,9 @@ void main() {
   // Pixels as the services draw them, read from their GetMap images of
   // 2026-10-11 (DWD `dwd:Niederschlagsradar`, EUMETSAT `mtg_fd:h40b`, NOAA
   // `exportImage` nearest-neighbour, the DWD's ICON layers).
-  group('softenRadarPixels: the DWD legend', () {
+  group('softenRainPixels: the DWD legend', () {
     int alphaOf(int r, int g, int b, [int a = 255]) =>
-        softenRadarPixels(1, 1, _pixel(r, g, b, a))[3];
+        softenRainPixels(1, 1, _pixel(r, g, b, a), RainPalette.dwd)[3];
 
     int level(double alpha) => (alpha * 255).round();
 
@@ -575,10 +575,11 @@ void main() {
       var last = 0;
       for (var k = 0; k < legend.colours.length; k++) {
         final c = legend.colours[k];
-        final out = softenRadarPixels(
+        final out = softenRainPixels(
           1,
           1,
           _pixel(c >> 16 & 0xFF, c >> 8 & 0xFF, c & 0xFF, 255),
+          RainPalette.dwd,
         );
         expect(out.sublist(0, 3), <int>[
           c >> 16 & 0xFF,
@@ -651,10 +652,11 @@ void main() {
 
     test('edges soften: the alpha alone, averaged over its 3 × 3 box', () {
       // Green, under a millimetre, beside yellow, 5 to 7.5; the rest dry.
-      final out = softenRadarPixels(
+      final out = softenRainPixels(
         5,
         5,
         image({(2, 2): 0x019934, (3, 2): 0xFFFF01}),
+        RainPalette.dwd,
       );
       expect(
         alphaAt(out, 2, 2),
@@ -670,13 +672,14 @@ void main() {
     });
 
     test('inside a field of rain the alpha stays', () {
-      final out = softenRadarPixels(
+      final out = softenRainPixels(
         5,
         5,
         image({
           for (var y = 0; y < 5; y++)
             for (var x = 0; x < 5; x++) (x, y): 0x019934,
         }),
+        RainPalette.dwd,
       );
       expect(alphaAt(out, 2, 2), level(legend.alphaOf(2)));
       // At the image's border too: beyond it counts as the border.
@@ -688,12 +691,21 @@ void main() {
       expect(legend.alphaOf(11), greaterThanOrEqualTo(rainAlphaHeavy));
       expect(legend.alphaOf(10), lessThan(rainAlphaHeavy));
       expect(
-        alphaAt(softenRadarPixels(5, 5, image({(2, 2): 0xE5004C})), 2, 2),
+        alphaAt(
+          softenRainPixels(5, 5, image({(2, 2): 0xE5004C}), RainPalette.dwd),
+          2,
+          2,
+        ),
         level(legend.alphaOf(11)),
       );
       expect(
         alphaAt(
-          softenRadarPixels(5, 5, image({(2, 2): 0x0000FE, (2, 3): 0x019934})),
+          softenRainPixels(
+            5,
+            5,
+            image({(2, 2): 0x0000FE, (2, 3): 0x019934}),
+            RainPalette.dwd,
+          ),
           2,
           2,
         ),
@@ -701,13 +713,17 @@ void main() {
       );
       // 30 to 45 mm an hour is not heavy: it fades at the edge.
       expect(
-        alphaAt(softenRadarPixels(5, 5, image({(2, 2): 0xFE0000})), 2, 2),
+        alphaAt(
+          softenRainPixels(5, 5, image({(2, 2): 0xFE0000}), RainPalette.dwd),
+          2,
+          2,
+        ),
         (legend.alphaOf(10) / 9 * 255).round(),
       );
     });
 
     test('light rain beside heavy is lifted, never the other way', () {
-      final out = softenRadarPixels(
+      final out = softenRainPixels(
         5,
         5,
         image({
@@ -716,6 +732,7 @@ void main() {
           (3, 2): 0xCC0098,
           (2, 1): 0xCC0098,
         }),
+        RainPalette.dwd,
       );
       expect(alphaAt(out, 1, 2), level(legend.alphaOf(12)));
       expect(
@@ -1100,9 +1117,21 @@ void main() {
       expect(soft(0xFF, 0x89, 0x01).sublist(0, 3), <int>[0x4D, 0xB3, 0x1B]);
       expect(dwdModel1hLegend.classify(0xFF, 0x45, 0x01, 255), 4);
       expect(dwdModel1hLegend.classify(0x00, 0x00, 0xFE, 255), 10);
-      // Its two lightest, under 0.08 mm an hour, are no rain.
+      // Its three lightest, under 0.17 mm an hour, are no rain: the
+      // drizzle the satellite at "Now" never shows.
       expect(dwdModel1hLegend.classify(0x33, 0xFF, 0xFF, 255), rainNone);
       expect(soft(0x1A, 0xCC, 0x9A)[3], 0);
+      expect(dwdModel1hLegend.classify(0x01, 0x99, 0x34, 255), rainNone);
+      expect(soft(0x01, 0x99, 0x34)[3], 0);
+      expect(
+        measuredRainPixels(
+          _pixel(0x01, 0x99, 0x34, 255),
+          RainPalette.dwdModel1h,
+        )[3],
+        0,
+      );
+      // From 0.17 mm an hour on, the radar's 0.2–0.4 mm.
+      expect(dwdModel1hLegend.classify(0x4D, 0xB3, 0x1B, 255), 1);
       // As measured, the same colours are drawn as their rates too.
       expect(
         measuredRainPixels(
@@ -1155,12 +1184,15 @@ void main() {
       expect(soft(0, 0, 0, 20)[3], 0);
       // 0.1–0.5 mm in six hours, under 0.1 an hour: no rain.
       expect(soft(0xDC, 0xF7, 0xC3)[3], 0);
-      // 0.5–1 mm: the radar's lightest cyan.
-      expect(soft(0xB9, 0xF7, 0x7C), <int>[
-        0x33,
-        0xFF,
-        0xFF,
-        level(rainAlphaLightest),
+      // 0.5–1 mm, under 0.17 an hour: drizzle, no rain either.
+      expect(dwdModel6hLegend.classify(0xB9, 0xF7, 0x7C, 255), rainNone);
+      expect(soft(0xB9, 0xF7, 0x7C)[3], 0);
+      // 1–2 mm: the radar's 0.2–0.4 mm.
+      expect(soft(0x00, 0xE6, 0x01), <int>[
+        0x1A,
+        0xCC,
+        0x9A,
+        level(dwdRadarLegend.alphaOf(1)),
       ]);
       // 2–5 mm: under a millimetre an hour, the radar's dark green.
       expect(soft(0x00, 0xBF, 0x01).sublist(0, 3), <int>[0x01, 0x99, 0x34]);
@@ -1253,6 +1285,106 @@ void main() {
       );
       expect(rainLegendOf(RainPalette.n0q), same(n0qLegend));
       expect(hrrrRain.palette, RainPalette.n0q);
+    });
+
+    test('KNMI: its blue ramp read as the rate of each byte, drawn as the '
+        'radar\'s class for it', () {
+      final legend = knmiRadarLegend;
+      int classOf(int colour) => legend.classify(
+        colour >> 16 & 0xFF,
+        colour >> 8 & 0xFF,
+        colour & 0xFF,
+        255,
+      );
+      int at(int value) => classOf(knmiColours[value - knmiLowestValue]);
+
+      expect(knmiColours, hasLength(91));
+      expect(knmiRateOf(109), 1);
+      expect(knmiRateOf(78), closeTo(0.107, 0.001));
+      // Read off the service: 0.11 mm an hour the palest blue, 1 mm #65ACFF.
+      expect(knmiColours.first, 0xCDF3FF);
+      expect(knmiColours[109 - knmiLowestValue], 0x65ACFF);
+      expect(at(78), 0); // 0.11 mm/h
+      expect(at(90), 1); // 0.25
+      expect(at(100), 2); // 0.52
+      expect(at(109), 3); // 1.0
+      expect(at(120), 4); // 2.2
+      expect(at(132), 6); // 5.2
+      expect(at(150), 9); // 19
+      expect(at(158), 10); // 34
+      expect(at(168), 11); // 70
+      // Past the bytes seen, the legend graphic's top: 75 mm and more.
+      expect(classOf(0x3534C3), 12);
+      expect(classOf(0x3834BD), 13);
+      // Every colour of the ramp reads as its own byte's class.
+      for (var i = 0; i < knmiColours.length; i++) {
+        expect(
+          classOf(knmiColours[i]),
+          math.max(0, dwdRadarClassOf(knmiRateOf(knmiLowestValue + i))),
+          reason: 'byte ${knmiLowestValue + i}',
+        );
+      }
+      // Dry and beyond the reach are transparent; another colour nothing.
+      expect(legend.classify(0, 0, 0, 0), rainNone);
+      expect(classOf(0xFF8000), rainNone);
+      expect(legend.noData, isNull);
+      // Drawn soft in the DWD radar's colours.
+      expect(
+        softenRainPixels(1, 1, _pixel(0x65, 0xAC, 0xFF, 255), RainPalette.knmi),
+        <int>[0x4D, 0xB3, 0x1B, level(dwdRadarLegend.alphaOf(3))],
+      );
+      expect(rainLegendOf(RainPalette.knmi), same(knmiRadarLegend));
+      expect(knmiRadar.palette, RainPalette.knmi);
+    });
+
+    test('FMI: its rain rate ramp read by value, drawn as the radar\'s '
+        'class for it; its grey "no data"', () {
+      final legend = fmiRadarLegend;
+      int at(int value) {
+        final c = fmiColourAt(value);
+        return legend.classify(c >> 16 & 0xFF, c >> 8 & 0xFF, c & 0xFF, 255);
+      }
+
+      // The colour map's own stops.
+      expect(fmiColourAt(7), 0x6CEBF3);
+      expect(fmiColourAt(86), 0xF1F35A);
+      expect(fmiColourAt(1000), 0xE85616);
+      expect(fmiColourAt(6313), 0x830A46);
+      // Between two stops, each channel in between.
+      expect(fmiColourAt(24), 0x4CB077);
+      // Under 0.1 mm an hour, no rain, as on the DWD's radar.
+      expect(at(7), rainNone);
+      expect(at(12), 0); // 0.12 mm/h
+      expect(at(34), 1); // 0.34, green
+      expect(at(86), 2); // 0.86, yellow
+      expect(at(216), 4); // 2.2
+      expect(at(398), 5); // 4
+      expect(at(1000), 8); // 10, orange-red
+      expect(at(2513), 9); // 25, red
+      expect(at(6313), 11); // 63, purple
+      expect(at(12000), 13); // 120, fading to grey
+      // "No data", the grey at 15 %, and a colour the ramp lacks.
+      expect(legend.classify(0xCC, 0xCC, 0xCC, 38), rainNoData);
+      expect(legend.classify(0x00, 0x00, 0xFF, 255), rainNone);
+      // Colours of the service's 256-colour image, a few off the ramp:
+      // those of its nearest.
+      expect(legend.classify(0x64, 0xDC, 0xCC, 255), 0);
+      expect(legend.classify(0x67, 0xE2, 0xDB, 255), rainNone);
+      expect(
+        softenRainPixels(1, 1, _pixel(0xF1, 0xF3, 0x5A, 255), RainPalette.fmi),
+        <int>[0x01, 0x99, 0x34, level(dwdRadarLegend.alphaOf(2))],
+      );
+      expect(
+        softenRainPixels(
+          1,
+          1,
+          _pixel(0xCC, 0xCC, 0xCC, 38),
+          RainPalette.fmi,
+        )[3],
+        0,
+      );
+      expect(rainLegendOf(RainPalette.fmi), same(fmiRadarLegend));
+      expect(fmiRadar.palette, RainPalette.fmi);
     });
 
     test('the radars keep their own legends', () {

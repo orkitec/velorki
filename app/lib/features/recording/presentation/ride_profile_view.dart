@@ -9,6 +9,8 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/domain/elevation_profile.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
+import '../../shared/presentation/chart_gestures.dart';
+import '../../shared/presentation/metric_chart.dart' show ChartWindow;
 import '../../shared/presentation/stat_tile.dart';
 
 /// The followed route as a profile: the second page of the record sheet.
@@ -17,6 +19,11 @@ import '../../shared/presentation/stat_tile.dart';
 /// the part already ridden filled in the accent, the rider as a line across
 /// it, and above it what is left — the distance and the climbing. A swipe on
 /// the figures brings it up; the same swipe back brings the figures back.
+///
+/// A tap puts the [cursor] on it, with the rider badge on the map, and its
+/// handle drags it; a pinch zooms it, as every chart along a route does
+/// ([ChartGestures]). A sideways swipe stays the page's, but on a zoomed
+/// profile, where one finger pans, and on the handle.
 class RideProfileView extends ConsumerWidget {
   /// Creates the page.
   const RideProfileView({
@@ -24,6 +31,7 @@ class RideProfileView extends ConsumerWidget {
     required this.alongM,
     this.etaAt,
     this.height = 150,
+    this.cursor,
     super.key,
   });
 
@@ -40,6 +48,10 @@ class RideProfileView extends ConsumerWidget {
 
   /// Height of the chart area.
   final double height;
+
+  /// Where the cursor stands, in metres along the route; see
+  /// [ChartGestures.cursor].
+  final ValueNotifier<double?>? cursor;
 
   /// The climbing left from [alongM] to the end: the positive steps between
   /// the samples ahead.
@@ -145,7 +157,22 @@ class RideProfileView extends ConsumerWidget {
         ),
         _secondLine(context, l10n, system),
         const SizedBox(height: 10),
-        SizedBox(height: height, child: _chart(context, system)),
+        SizedBox(
+          height: chartCursorBandHeight + height,
+          child: ChartGestures(
+            extent: (
+              start: units.distanceToDisplay(system, samples.first.distanceM),
+              end: units.distanceToDisplay(system, samples.last.distanceM),
+            ),
+            zoomable: true,
+            leftInset: _leftReservedSize,
+            bottomInset: _bottomReservedSize,
+            cursor: cursor,
+            metresPerUnit: units.displayToMeters(system, 1),
+            resetLabel: l10n.chartResetZoomRoute,
+            builder: (context, window) => _chart(context, system, window),
+          ),
+        ),
       ],
     );
   }
@@ -189,7 +216,11 @@ class RideProfileView extends ConsumerWidget {
     );
   }
 
-  Widget _chart(BuildContext context, units.UnitSystem system) {
+  Widget _chart(
+    BuildContext context,
+    units.UnitSystem system,
+    ChartWindow? window,
+  ) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final accent = theme.velorki.accent;
@@ -218,9 +249,15 @@ class RideProfileView extends ConsumerWidget {
     if (ridden.isEmpty || ridden.last.x < alongX) ridden.add(here);
     if (ahead.isEmpty || ahead.first.x > alongX) ahead.insert(0, here);
 
-    var minY = spots.first.y;
-    var maxY = spots.first.y;
-    for (final s in spots) {
+    // The height axis fits the part shown, so a zoomed profile fills it.
+    final shown = <FlSpot>[
+      for (final s in spots)
+        if (window == null || (s.x >= window.start && s.x <= window.end)) s,
+    ];
+    final fitted = shown.isEmpty ? spots : shown;
+    var minY = fitted.first.y;
+    var maxY = fitted.first.y;
+    for (final s in fitted) {
       if (s.y < minY) minY = s.y;
       if (s.y > maxY) maxY = s.y;
     }
@@ -244,8 +281,13 @@ class RideProfileView extends ConsumerWidget {
       LineChartData(
         minY: minY - padding,
         maxY: maxY + padding,
-        minX: spots.first.x,
-        maxX: spots.last.x,
+        minX: window?.start ?? spots.first.x,
+        maxX: window?.end ?? spots.last.x,
+        // A zoomed profile runs on past both edges; it is cut there rather
+        // than drawn over the axis labels.
+        clipData: window == null
+            ? const FlClipData.none()
+            : const FlClipData.all(),
         gridData: const FlGridData(show: false),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
@@ -254,14 +296,14 @@ class RideProfileView extends ConsumerWidget {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 24,
+              reservedSize: _bottomReservedSize,
               getTitlesWidget: (value, meta) => label(meta.formattedValue),
             ),
           ),
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 40,
+              reservedSize: _leftReservedSize,
               getTitlesWidget: (value, meta) => label(value.round().toString()),
             ),
           ),
@@ -299,6 +341,12 @@ class RideProfileView extends ConsumerWidget {
       duration: Duration.zero,
     );
   }
+
+  /// The room the height labels get.
+  static const double _leftReservedSize = 40;
+
+  /// The room the distance labels get.
+  static const double _bottomReservedSize = 24;
 
   /// The height of the line at [x], between the two spots around it.
   static FlSpot _interpolate(List<FlSpot> spots, double x) {

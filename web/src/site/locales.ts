@@ -10,11 +10,15 @@ import { LOCALES } from './paths';
  * every other language's file before it could be listed.
  *
  * A locale with no entry falls back to its code, so merging a translation
- * (messages/fr.json) lists it as "FR" rather than dropping it.
+ * (messages/pt.json) lists it as "PT" rather than dropping it.
  */
 const NATIVE_NAMES: Record<string, string> = {
   en: 'English',
   de: 'Deutsch',
+  es: 'Español',
+  fr: 'Français',
+  it: 'Italiano',
+  nl: 'Nederlands',
 };
 
 /** The name of `locale` in `locale`, or its upper-cased code. */

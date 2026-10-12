@@ -26,6 +26,7 @@ import '../../sensors/application/sensors_seen.dart';
 import 'ride_profile_view.dart';
 import 'ride_cue_sheet.dart';
 import '../../map/data/heading_smoother.dart';
+import '../../map/application/route_cursor.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
 import '../../map/presentation/map_chrome.dart';
@@ -187,6 +188,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// Whether this tab's layers and camera idle handler are on the shared
   /// map right now: while it is the tab on screen and the map is usable.
   bool _drawing = false;
+
+  /// The cursor of the route's profile, and the rider badge it puts on the
+  /// route.
+  final RouteCursor _cursor = RouteCursor();
 
   /// Whether the map still has to be turned back north for a ride that
   /// ended while this tab was away.
@@ -575,6 +580,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     if (_dimmed) unawaited(_dimmer?.reset());
     _glanceTimer?.cancel();
     if (_drawing) _map?.onCameraIdle = null;
+    _cursor.dispose();
     _stops.dispose();
     _idleSheet.dispose();
     _liveSheet.dispose();
@@ -652,6 +658,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       _map?.onCameraIdle = null;
       _drawing = false;
     }
+    _cursor.map = null;
     _stops.detach(clear: false);
     _map = map;
     _updateMapUse();
@@ -667,6 +674,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final wanted = _active && map != null;
     if (wanted == _drawing) return;
     _drawing = wanted;
+    _cursor.map = wanted ? map : null;
     if (!wanted) {
       if (map == null) return;
       map.onCameraIdle = null;
@@ -1024,6 +1032,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// asking for a style only to watch the map stay put would be a riddle.
   void _setSheetPage(int page) {
     if (!mounted || page == _sheetPage) return;
+    // The profile's cursor goes with the profile.
+    _cursor.clear();
     setState(() => _sheetPage = page);
   }
 
@@ -1108,7 +1118,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       _followTarget = null;
       _followCamera = null;
       _followStarts = true;
-      if (ended) _sheetPage = 0;
+      if (ended) {
+        _sheetPage = 0;
+        _cursor.clear();
+      }
     }
     final map = _map;
     if (map == null) return;
@@ -2087,6 +2100,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                           bottomInset: bottomInset,
                           page: _sheetPage,
                           onPage: _setSheetPage,
+                          cursor: _cursor,
                           keepScreenOn: keepScreenOn,
                           onKeepScreenOn: (v) => unawaited(
                             ref
@@ -2421,9 +2435,13 @@ class _LivePanel extends ConsumerWidget {
     required this.onPause,
     required this.onResume,
     required this.onStop,
+    required this.cursor,
   });
 
   final RecordingUiState state;
+
+  /// The profile's cursor and the rider badge it puts on the route.
+  final RouteCursor cursor;
 
   /// The ride's figures, in order: the grid shows them all.
   final List<LiveFigureReading> figures;
@@ -2437,6 +2455,14 @@ class _LivePanel extends ConsumerWidget {
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onStop;
+
+  /// The profile's cursor, on the route the profile is of: the one being
+  /// followed.
+  RouteCursor _profileCursor(WidgetRef ref) {
+    final route = ref.watch(guidedRouteProvider);
+    cursor.setLine(route, () => route!.line);
+    return cursor;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2562,6 +2588,7 @@ class _LivePanel extends ConsumerWidget {
             ),
             if (page == 1)
               RideProfileView(
+                cursor: _profileCursor(ref),
                 // Watched only while the page is up: the samples come from
                 // the route's geometry, once per route, and a rider who
                 // never swipes never pays for them.

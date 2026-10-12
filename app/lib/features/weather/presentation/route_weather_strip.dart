@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
+import '../../shared/presentation/chart_gestures.dart';
+import '../../shared/presentation/metric_chart.dart';
 import '../domain/route_weather.dart';
 
 /// The left inset of the strip's plot: the elevation chart's
@@ -30,6 +32,12 @@ const double _arrowSpacingPx = 14;
 ///
 /// Without [weather] it draws the empty rows, the placeholder of the same
 /// size while the forecast is on its way.
+///
+/// It shows the [window] of the route the elevation profile above it shows,
+/// and a pinch on it zooms that same window; it shares the profile's
+/// [cursor] too, the rider badge on the map with it. Its touches are a
+/// chart's, [ChartGestures], and so is the band over it that the cursor's
+/// handle sits in.
 class RouteWeatherStrip extends StatelessWidget {
   /// Creates the strip.
   const RouteWeatherStrip({
@@ -37,6 +45,9 @@ class RouteWeatherStrip extends StatelessWidget {
     required this.semanticsLabel,
     this.maxTempLabel,
     this.minTempLabel,
+    this.window,
+    this.onWindow,
+    this.cursor,
     super.key,
   });
 
@@ -52,40 +63,76 @@ class RouteWeatherStrip extends StatelessWidget {
   /// The lowest temperature, written beside the bottom of the line.
   final String? minTempLabel;
 
+  /// The stretch of the route drawn, in metres; `null` for all of it. Only
+  /// read while [onWindow] is set.
+  final DistanceWindow? window;
+
+  /// Called with the stretch a pinch, a drag or a double tap asks for, in
+  /// metres; without it the strip keeps its own.
+  final ValueChanged<DistanceWindow?>? onWindow;
+
+  /// Where the cursor stands, in metres along the route; see
+  /// [ChartGestures.cursor].
+  final ValueNotifier<double?>? cursor;
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.velorki;
+    final w = weather;
+    final total = w == null || w.samples.isEmpty
+        ? 0.0
+        : w.samples.last.distanceM;
+    Widget strip(BuildContext context, DistanceWindow? window) => SizedBox(
+      height: weatherStripHeight,
+      width: double.infinity,
+      child: _paint(context, window),
+    );
     return Semantics(
       container: true,
       label: semanticsLabel,
-      child: SizedBox(
-        height: weatherStripHeight,
-        width: double.infinity,
-        child: CustomPaint(
-          painter: RouteWeatherStripPainter(
-            weather: weather,
-            colors: RouteWeatherStripColors(
-              head: colors.windHead,
-              cross: colors.windCross,
-              tail: colors.windTail,
-              calm: colors.windCalm,
-              rain: colors.rain,
-              temperature: colors.temperature,
-              baseline: theme.colorScheme.outlineVariant,
-              label: theme.colorScheme.onSurfaceVariant,
+      child: total <= 0
+          // The placeholder keeps the band the handle will sit in.
+          ? Padding(
+              padding: const EdgeInsets.only(top: chartCursorBandHeight),
+              child: strip(context, null),
+            )
+          : ChartGestures(
+              extent: (start: 0, end: total),
+              zoomable: true,
+              window: window,
+              onWindow: onWindow,
+              leftInset: weatherStripLeftInset,
+              rightInset: weatherStripRightInset,
+              cursor: cursor,
+              builder: strip,
             ),
-            labelStyle: (theme.textTheme.labelSmall ?? const TextStyle())
-                .copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 10,
-                  height: 1,
-                ),
-            maxTempLabel: maxTempLabel,
-            minTempLabel: minTempLabel,
-            textDirection: Directionality.of(context),
-          ),
+    );
+  }
+
+  Widget _paint(BuildContext context, DistanceWindow? window) {
+    final theme = Theme.of(context);
+    final colors = theme.velorki;
+    return CustomPaint(
+      painter: RouteWeatherStripPainter(
+        weather: weather,
+        window: window,
+        colors: RouteWeatherStripColors(
+          head: colors.windHead,
+          cross: colors.windCross,
+          tail: colors.windTail,
+          calm: colors.windCalm,
+          rain: colors.rain,
+          temperature: colors.temperature,
+          baseline: theme.colorScheme.outlineVariant,
+          label: theme.colorScheme.onSurfaceVariant,
         ),
+        labelStyle: (theme.textTheme.labelSmall ?? const TextStyle()).copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontSize: 10,
+          height: 1,
+        ),
+        maxTempLabel: maxTempLabel,
+        minTempLabel: minTempLabel,
+        textDirection: Directionality.of(context),
       ),
     );
   }
@@ -152,11 +199,15 @@ class RouteWeatherStripPainter extends CustomPainter {
     required this.colors,
     required this.labelStyle,
     required this.textDirection,
+    this.window,
     this.maxTempLabel,
     this.minTempLabel,
   });
 
   final RouteWeather? weather;
+
+  /// The stretch of the route drawn, in metres; `null` for all of it.
+  final DistanceWindow? window;
   final RouteWeatherStripColors colors;
   final TextStyle labelStyle;
   final TextDirection textDirection;
@@ -191,13 +242,21 @@ class RouteWeatherStripPainter extends CustomPainter {
 
     final w = weather;
     if (w == null || w.samples.isEmpty) return;
-    final total = w.samples.last.distanceM;
+    final from = window?.start ?? 0;
+    final to = window?.end ?? w.samples.last.distanceM;
     double xOf(double d) =>
-        total > 0 ? left + (d / total) * (right - left) : left;
+        to > from ? left + (d - from) / (to - from) * (right - left) : left;
 
-    _paintRain(canvas, w, xOf, left, right);
+    // A window cuts the rows at the plot's edges, as the profile above it
+    // cuts its line.
+    canvas.save();
+    if (window != null) {
+      canvas.clipRect(Rect.fromLTRB(left, 0, right, size.height));
+    }
+    _paintRain(canvas, w, xOf);
     _paintTemperature(canvas, w, xOf);
     _paintWind(canvas, w, xOf);
+    canvas.restore();
   }
 
   void _paintGutter(Canvas canvas) {
@@ -252,14 +311,10 @@ class RouteWeatherStripPainter extends CustomPainter {
     );
   }
 
-  void _paintRain(
-    Canvas canvas,
-    RouteWeather w,
-    double Function(double) xOf,
-    double left,
-    double right,
-  ) {
+  void _paintRain(Canvas canvas, RouteWeather w, double Function(double) xOf) {
     final samples = w.samples;
+    final left = xOf(samples.first.distanceM);
+    final right = xOf(samples.last.distanceM);
     final bottom = _rainTop + _rainHeight;
     for (var i = 0; i < samples.length; i++) {
       final s = i < w.weather.length ? w.weather[i] : null;
@@ -387,6 +442,7 @@ class RouteWeatherStripPainter extends CustomPainter {
   @override
   bool shouldRepaint(RouteWeatherStripPainter old) =>
       !identical(old.weather, weather) ||
+      old.window != window ||
       old.colors != colors ||
       old.labelStyle != labelStyle ||
       old.textDirection != textDirection ||

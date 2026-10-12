@@ -140,6 +140,9 @@ void main() {
           // The wind on the route, over every route line.
           MapLayerIds.routeWindSource,
           MapLayerIds.routeWindLayer,
+          // The rider dot of a chart: over the routes, under the puck.
+          MapLayerIds.routeCursorSource,
+          MapLayerIds.routeCursorLayer,
           MapLayerIds.positionSource,
           // The ring is the bottom of the puck, the dot the top, so a route
           // line inserted below the ring stays under the whole puck.
@@ -1996,6 +1999,95 @@ void main() {
       await adapter.attachToStyle();
 
       expect(_featuresOf(ops, MapLayerIds.searchPinSource), hasLength(1));
+    });
+  });
+
+  group('setRouteCursor', () {
+    test('the badge is a picture of its own, registered before the layer '
+        'that shows it as drawn, and drawn again in a new palette', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      final image = ops.calls.indexWhere(
+        (c) => c.name == 'addImage' && c.id == MapLayerIds.routeCursorImage,
+      );
+      final layer = ops.calls.indexWhere(
+        (c) =>
+            c.name == 'addLayer' && c.layerId == MapLayerIds.routeCursorLayer,
+      );
+      expect(image, isNonNegative);
+      expect(image, lessThan(layer));
+      final before = ops.calls[image].imageBytes!;
+      expect(before, isNotEmpty);
+      final properties = ops
+          .addLayerOf(MapLayerIds.routeCursorLayer)!
+          .properties!;
+      expect(properties['icon-image'], MapLayerIds.routeCursorImage);
+      expect(properties['icon-allow-overlap'], isTrue);
+      expect(properties['icon-ignore-placement'], isTrue);
+      // Shown as drawn, a device pixel to a pixel: never scaled.
+      expect(properties.containsKey('icon-size'), isFalse);
+
+      ops.clearCalls();
+      await adapter.setPalette(_repainted);
+      final redrawn = ops
+          .callsNamed('addImage')
+          .where((c) => c.id == MapLayerIds.routeCursorImage);
+      expect(redrawn, hasLength(1));
+      expect(redrawn.single.imageBytes, isNot(before));
+    });
+
+    test('draws the dot, takes it away, and comes back after a style '
+        'reload', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      await adapter.setRouteCursor(const LatLng(47.5, 8.5));
+      final features = _featuresOf(ops, MapLayerIds.routeCursorSource);
+      expect(features, hasLength(1));
+      expect(
+        (features.single['geometry'] as Map<String, dynamic>)['coordinates'],
+        <double>[8.5, 47.5],
+      );
+
+      ops.clearCalls();
+      await adapter.attachToStyle();
+      expect(_featuresOf(ops, MapLayerIds.routeCursorSource), hasLength(1));
+
+      await adapter.setRouteCursor(null);
+      expect(_featuresOf(ops, MapLayerIds.routeCursorSource), isEmpty);
+    });
+
+    test('a sweep faster than the map draws writes the last place, not '
+        'every one', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      // Five moves before the first write is done: one write for the
+      // first, one more for the last, none for the three in between.
+      final writes = <Future<void>>[
+        for (var i = 0; i < 5; i++)
+          adapter.setRouteCursor(LatLng(47.0 + i / 100, 8.0)),
+      ];
+      await Future.wait(writes);
+
+      final cursorWrites = ops.calls
+          .where(
+            (c) =>
+                c.name == 'setGeoJsonSource' &&
+                c.id == MapLayerIds.routeCursorSource,
+          )
+          .toList();
+      expect(cursorWrites, hasLength(2));
+      expect(
+        (_featuresOf(ops, MapLayerIds.routeCursorSource).single['geometry']
+            as Map<String, dynamic>)['coordinates'],
+        <double>[8.0, 47.04],
+      );
     });
   });
 

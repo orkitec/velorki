@@ -6,7 +6,6 @@ import '../common/data/connected_accounts_repository.dart';
 import '../common/data/external_route_cache.dart';
 import '../common/domain/connected_account.dart';
 import '../common/domain/external_route.dart';
-import '../common/domain/integration_exception.dart';
 import '../rwgps/data/rwgps_client.dart';
 import '../rwgps/data/rwgps_providers.dart';
 import '../strava/data/strava_client.dart';
@@ -178,10 +177,3 @@ final externalRoutesLoaderProvider =
         cache: ref.watch(externalRouteListCacheProvider),
       );
     });
-
-/// The exception shown when a route screen is opened without a connection.
-IntegrationException notConnectedException(IntegrationService service) =>
-    IntegrationException(
-      IntegrationFailure.notConnected,
-      (l10n) => l10n.integrationNotConnected(service.brand),
-    );

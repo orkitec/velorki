@@ -122,4 +122,41 @@ void main() {
       expect(alongs[3], closeTo(1000, 1));
     });
   });
+
+  group('pointAlong', () {
+    // Two kilometres north, then one east.
+    final line = <LatLng>[
+      const LatLng(48, 11),
+      destinationPoint(const LatLng(48, 11), 0, 2000),
+      destinationPoint(
+        destinationPoint(const LatLng(48, 11), 0, 2000),
+        90,
+        1000,
+      ),
+    ];
+    final cumulative = cumulativeDistances(line);
+
+    test('lands between the two points around the distance', () {
+      expect(
+        haversineMeters(pointAlong(line, cumulative, 500), line[0]),
+        closeTo(500, 1),
+      );
+      final onSecond = pointAlong(line, cumulative, 2400);
+      expect(haversineMeters(onSecond, line[1]), closeTo(400, 1));
+      expect(haversineMeters(onSecond, line[2]), closeTo(600, 1));
+      expect(
+        haversineMeters(pointAlong(line, cumulative, 2000), line[1]),
+        lessThan(0.01),
+      );
+    });
+
+    test('before the start is the start, past the end the end', () {
+      expect(pointAlong(line, cumulative, -50), line.first);
+      expect(pointAlong(line, cumulative, 99999), line.last);
+      expect(
+        pointAlong(<LatLng>[line.first], const <double>[0], 10),
+        line.first,
+      );
+    });
+  });
 }

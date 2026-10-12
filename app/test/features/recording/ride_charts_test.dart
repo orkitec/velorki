@@ -10,6 +10,7 @@ import 'package:velorki/features/recording/presentation/ride_charts.dart';
 import 'package:velorki/features/shared/presentation/metric_chart.dart';
 
 import '../../support/app.dart';
+import '../../support/chart_cursor.dart';
 import '../../support/units.dart';
 
 /// A sample every 100 m; the heart rate is there for the first kilometre,
@@ -158,37 +159,41 @@ void main() {
     expect(_axis(tester), (min: 0.0, max: 10.0));
   });
 
-  testWidgets('one finger dragging sweeps the read-out over the whole line, '
+  testWidgets('one finger dragging sweeps the cursor over the whole line, '
       'and pans once zoomed', (tester) async {
     await _pumpZoomable(tester);
 
-    // Over the whole line fl_chart's own pan keeps the finger: the read-out
-    // follows it, and the axis stays put.
+    // Over the whole line the sweep moves the cursor and its read-out, and
+    // the axis stays put.
     final gesture = await tester.startGesture(
       _pixelOf(tester, _axis(tester), 2),
     );
     await tester.pump();
-    expect(find.text('sample 2'), findsOneWidget);
+    await gesture.moveTo(_pixelOf(tester, _axis(tester), 3));
+    await tester.pump();
+    expect(find.text('sample 3'), findsOneWidget);
     await gesture.moveTo(_pixelOf(tester, _axis(tester), 5));
     await tester.pump();
     expect(find.text('sample 5'), findsOneWidget);
     await gesture.up();
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(_axis(tester), (min: 0.0, max: 10.0));
+    expect(find.text('sample 5'), findsOneWidget, reason: 'it stays');
 
     await _pinchOut(tester);
     final zoomed = _axis(tester);
 
     // Zoomed, the same drag moves the window with the finger — dragging
-    // left shows what lies to the right — and leaves no read-out behind.
+    // left shows what lies to the right — and the cursor stays on its
+    // sample, or at the window's edge once the window has left it.
     await tester.drag(find.byType(LineChart), const Offset(-200, 0));
     await tester.pump();
     final panned = _axis(tester);
     expect(panned.min, greaterThan(zoomed.min));
     expect(panned.max - panned.min, closeTo(zoomed.max - zoomed.min, 1e-6));
-    expect(find.textContaining('sample'), findsNothing);
+    expect(chartCursorHandles, findsOneWidget);
 
-    // A tap still reads out the sample under the finger.
+    // A tap still puts the cursor on the sample under the finger.
     final sample = panned.min.ceilToDouble() + 1;
     await tester.tapAt(_pixelOf(tester, panned, sample));
     await tester.pump();
@@ -203,7 +208,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final prefs = await SharedPreferences.getInstance();
-    final asked = <RideWindow?>[];
+    final asked = <DistanceWindow?>[];
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

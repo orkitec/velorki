@@ -1,6 +1,10 @@
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki/features/weather/application/route_weather_controller.dart'
+    show departureSpan;
+import 'package:velorki/features/weather/domain/route_sampling.dart';
+import 'package:velorki/features/weather/domain/route_weather_state.dart';
 
 /// A route from [start] straight along [bearingDeg] for [lengthM] metres,
 /// a point every [stepM], with [times] when given (seconds per point).
@@ -75,3 +79,33 @@ WeatherForecast uniformForecast(int cells, List<WeatherHour> hours) =>
       ],
       sources: const [metno],
     );
+
+/// A forecast along [route] for a departure at [earliest]: 12 °C rising by
+/// a degree an hour, a breeze from the north, and rain from 14:00 UTC.
+RouteWeatherState weatherAlong(
+  RouteResult route, {
+  required DateTime earliest,
+}) {
+  final samples = sampleRoute(route, typicalSpeedKmh: 18);
+  final cells = cellsFor(samples);
+  final window = requestWindow(
+    earliest,
+    samples.last.offset,
+    sliderSpan: departureSpan,
+  );
+  return RouteWeatherState.evaluated(
+    departure: earliest,
+    earliestDeparture: earliest,
+    window: window,
+    forecast: uniformForecast(
+      cells.cells.length,
+      hours(
+        window.from,
+        window.hours,
+        (t, i) => hour(t, temp: 12.0 + i, precip: t.hour >= 14 ? 2 : 0),
+      ),
+    ),
+    samples: samples,
+    cells: cells,
+  );
+}

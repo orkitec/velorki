@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/text_entry_dialog.dart';
 
 /// A dialog with one text field, for a route's description or its link.
 ///
@@ -57,7 +58,7 @@ class _EditTextDialogState extends State<_EditTextDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
+    return TextEntryDialog(
       title: Text(widget.title),
       content: TextField(
         controller: _text,
