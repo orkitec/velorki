@@ -98,6 +98,14 @@ abstract class MapController {
   /// Takes the wind off the route.
   Future<void> clearRouteWind();
 
+  /// The rain along the planned route, drawn over the route line in the
+  /// colour of how hard it rains there; replaces what the last call drew.
+  /// Remembered across a style reload like the route lines.
+  Future<void> setRouteRain(List<RainSegment> segments);
+
+  /// Takes the rain off the route.
+  Future<void> clearRouteRain();
+
   /// User position puck. `null` hides it.
   ///
   /// [headingDeg] is a course over ground, so [speedMps] comes with it: the
@@ -242,6 +250,62 @@ class WindSegment {
   @override
   String toString() =>
       'WindSegment(${points.length} points, ${windClass.name})';
+}
+
+/// One stretch of the route with the same rain.
+@immutable
+class RainSegment {
+  /// Creates a segment.
+  const RainSegment({required this.points, required this.colour});
+
+  /// The polyline, in riding order.
+  final List<LatLng> points;
+
+  /// The colour it is drawn in, 0xRRGGBB: the rain map's colour for the
+  /// rain expected there.
+  final int colour;
+
+  @override
+  bool operator ==(Object other) =>
+      other is RainSegment &&
+      other.colour == colour &&
+      listEquals(other.points, points);
+
+  @override
+  int get hashCode => Object.hash(colour, Object.hashAll(points));
+
+  @override
+  String toString() =>
+      'RainSegment(${points.length} points, '
+      '#${colour.toRadixString(16).padLeft(6, '0')})';
+}
+
+/// The weather drawn on the route: the wind or the rain, or nothing.
+@immutable
+class RouteWeatherLines {
+  /// Creates the lines.
+  const RouteWeatherLines({
+    this.wind = const <WindSegment>[],
+    this.rain = const <RainSegment>[],
+  });
+
+  /// Nothing on the route.
+  static const RouteWeatherLines none = RouteWeatherLines();
+
+  /// The wind's stretches.
+  final List<WindSegment> wind;
+
+  /// The rain's stretches.
+  final List<RainSegment> rain;
+
+  @override
+  bool operator ==(Object other) =>
+      other is RouteWeatherLines &&
+      listEquals(other.wind, wind) &&
+      listEquals(other.rain, rain);
+
+  @override
+  int get hashCode => Object.hash(Object.hashAll(wind), Object.hashAll(rain));
 }
 
 /// How a route line is drawn: the route, a variant beside it, a preview

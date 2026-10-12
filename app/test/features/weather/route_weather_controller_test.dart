@@ -5,7 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
+import 'package:velorki/core/db/tables/routes.dart' show RouteSource;
+import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/planner_state.dart';
+import 'package:velorki/features/planner/domain/route_profile.dart';
+import 'package:velorki/features/planner/domain/routing_options.dart';
+import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/weather/application/route_weather_controller.dart';
 import 'package:velorki/features/weather/domain/route_weather_state.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
@@ -78,7 +83,10 @@ class _Harness {
       ],
     );
     container.read(plusEntitledProvider.notifier).value = entitled;
-    container.listen(routeWeatherControllerProvider, (_, _) {});
+    container.listen(
+      routeWeatherControllerProvider(plannerWeatherRoute),
+      (_, _) {},
+    );
   }
 
   final FakeAsync async;
@@ -97,10 +105,11 @@ class _Harness {
       container.read(plusEntitledProvider.notifier).value = entitled;
 
   AsyncValue<RouteWeatherState?> get state =>
-      container.read(routeWeatherControllerProvider);
+      container.read(routeWeatherControllerProvider(plannerWeatherRoute));
 
-  RouteWeatherController get controller =>
-      container.read(routeWeatherControllerProvider.notifier);
+  RouteWeatherController get controller => container.read(
+    routeWeatherControllerProvider(plannerWeatherRoute).notifier,
+  );
 
   void answerEveryCell({Duration delay = Duration.zero}) =>
       relay.replyWeather(WeatherReply.answering(_answer, delay: delay));
@@ -320,6 +329,81 @@ void main() {
       final h = _Harness(async, entitled: false);
       expect(h.controller.suggestBestDeparture(), isNull);
       h.container.dispose();
+    });
+  });
+
+  test('a saved route\'s weather is asked for its own line, leaving now, '
+      'and the same route in the planner reuses the answer', () {
+    runFake((async) {
+      final relay = MockRelay(schemas: OpenApi.load().check)
+        ..replyWeather(WeatherReply.answering(_answer));
+      final saved = SavedRoute(
+        id: 'r1',
+        name: 'North',
+        source: RouteSource.importedGpx,
+        profile: RouteProfile.trekking,
+        createdAt: DateTime.utc(2026, 9, 1),
+        updatedAt: DateTime.utc(2026, 9, 1),
+        distanceM: 10000,
+        ascentM: 0,
+        descentM: 0,
+        bounds: BoundingBox.fromPoints(_north.positions),
+        geometryBlob: PackedTrack.encode(_north.geometry),
+        waypoints: const [],
+        options: const RoutingOptions(),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          relayClientProvider.overrideWith((ref) {
+            final client = relay.client();
+            ref.onDispose(client.close);
+            return client;
+          }),
+          plannerControllerProvider.overrideWith(() => _StubPlanner(null)),
+          savedRouteProvider.overrideWith(
+            (ref, id) => Stream<SavedRoute?>.value(id == 'r1' ? saved : null),
+          ),
+          weatherClockProvider.overrideWithValue(
+            () => _Harness.start.add(async.elapsed),
+          ),
+        ],
+      );
+      container.read(plusEntitledProvider.notifier).value = true;
+      const key = SavedWeatherRoute('r1');
+      container.listen(routeWeatherControllerProvider(key), (_, _) {});
+      async.flushMicrotasks();
+      async.elapse(weatherDebounce);
+      async.flushMicrotasks();
+
+      final request = relay.weatherRequests.single;
+      expect(request.from, DateTime.utc(2026, 10, 11, 8));
+      final state = container.read(routeWeatherControllerProvider(key)).value!;
+      expect(state.departure, DateTime.utc(2026, 10, 11, 8));
+      expect(state.samples.last.distanceM, closeTo(10000, 1));
+      // Nothing asked for the planner, which has no route.
+      expect(
+        container.read(routeWeatherControllerProvider(plannerWeatherRoute)),
+        const AsyncData<RouteWeatherState?>(null),
+      );
+
+      // The same line planned: the answer is there already.
+      container.listen(
+        routeWeatherControllerProvider(plannerWeatherRoute),
+        (_, _) {},
+      );
+      (container.read(plannerControllerProvider.notifier) as _StubPlanner).show(
+        _north,
+      );
+      async.elapse(weatherDebounce);
+      async.flushMicrotasks();
+      expect(relay.weatherRequests, hasLength(1));
+      expect(
+        container
+            .read(routeWeatherControllerProvider(plannerWeatherRoute))
+            .value,
+        isNotNull,
+      );
+      container.dispose();
     });
   });
 }

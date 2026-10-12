@@ -29,9 +29,10 @@ final RouteResult _route = straightRoute(start: _start);
 /// The forecast along [_route], whatever is asked.
 class _Weather extends RouteWeatherController {
   @override
-  AsyncValue<RouteWeatherState?> build() => AsyncData<RouteWeatherState?>(
-    weatherAlong(_route, earliest: DateTime.utc(2026, 10, 11, 8)),
-  );
+  AsyncValue<RouteWeatherState?> build(WeatherRoute route) =>
+      AsyncData<RouteWeatherState?>(
+        weatherAlong(_route, earliest: DateTime.utc(2026, 10, 11, 8)),
+      );
 }
 
 /// The planner with [_route] planned, the forecast along it, and the
@@ -43,7 +44,7 @@ Future<PlannerHarness> _pump(WidgetTester tester) async {
     extraOverrides: [
       relayClientProvider.overrideWithValue(MockRelay().client()),
       plusAccessProvider.overrideWith((ref, feature) => PlusAccess.granted),
-      routeWeatherControllerProvider.overrideWith(_Weather.new),
+      routeWeatherControllerProvider.overrideWith2((_) => _Weather()),
     ],
   );
   ProviderScope.containerOf(tester.element(find.byType(PlannerScreen)))

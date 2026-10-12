@@ -5835,33 +5835,6 @@
   "@weatherTitle": {
     "description": "Caption of the planner sheet's section with the forecast along the route"
   },
-  "weatherHeadwind": "Headwind {percent}",
-  "@weatherHeadwind": {
-    "description": "Weather summary: the share of the route ridden into a headwind, e.g. 'Headwind 60%'",
-    "placeholders": {
-      "percent": {
-        "type": "String"
-      }
-    }
-  },
-  "weatherTailwind": "Tailwind {percent}",
-  "@weatherTailwind": {
-    "description": "Weather summary: the share of the route ridden with a tailwind",
-    "placeholders": {
-      "percent": {
-        "type": "String"
-      }
-    }
-  },
-  "weatherCrosswind": "Crosswind {percent}",
-  "@weatherCrosswind": {
-    "description": "Weather summary: the share of the route ridden in a crosswind",
-    "placeholders": {
-      "percent": {
-        "type": "String"
-      }
-    }
-  },
   "weatherMostlyCalm": "Mostly calm",
   "@weatherMostlyCalm": {
     "description": "Weather summary: hardly any wind on most of the route"
@@ -5869,15 +5842,6 @@
   "weatherDry": "Dry",
   "@weatherDry": {
     "description": "Weather summary: no rain expected on the route"
-  },
-  "weatherRainFrom": "Rain from {distance}",
-  "@weatherRainFrom": {
-    "description": "Weather summary: where along the route the rain starts, e.g. 'Rain from 34 km'",
-    "placeholders": {
-      "distance": {
-        "type": "String"
-      }
-    }
   },
   "weatherGusts": "Gusts up to {speed}",
   "@weatherGusts": {
@@ -5946,10 +5910,6 @@
   "@weatherBestTimeNow": {
     "description": "Disabled button: the chosen departure already is the best one"
   },
-  "weatherWindOnMap": "Show wind on the route",
-  "@weatherWindOnMap": {
-    "description": "Switch: colour the route on the map by how the wind meets the rider"
-  },
   "weatherAttribution": "Weather: {sources}",
   "@weatherAttribution": {
     "description": "Attribution line under the forecast, naming the weather services, e.g. 'Weather: MET Norway · Deutscher Wetterdienst'",
@@ -5981,5 +5941,105 @@
         "type": "String"
       }
     }
+  },
+  "weatherMostlyHeadwind": "Mostly headwind",
+  "@weatherMostlyHeadwind": {
+    "description": "Weather summary line: a headwind on at least half of the route"
+  },
+  "weatherMostlyTailwind": "Mostly tailwind",
+  "@weatherMostlyTailwind": {
+    "description": "Weather summary line: a tailwind on at least half of the route"
+  },
+  "weatherMostlyCrosswind": "Mostly crosswind",
+  "@weatherMostlyCrosswind": {
+    "description": "Weather summary line: a crosswind on at least half of the route"
+  },
+  "weatherMixedWind": "Mixed wind",
+  "@weatherMixedWind": {
+    "description": "Weather summary line: no kind of wind (head, cross, tail, calm) on as much as half of the route"
+  },
+  "weatherRainLikelyFrom": "Rain likely from {time} at {distance}",
+  "@weatherRainLikelyFrom": {
+    "description": "Weather summary line: when and where along the route the rain starts, e.g. 'Rain likely from 14:30 at 32 km'",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherLightRainLikelyFrom": "Light rain likely from {time} at {distance}",
+  "@weatherLightRainLikelyFrom": {
+    "description": "Weather summary line: when and where along the route light rain (under 1 mm an hour) starts, e.g. 'Light rain likely from 14:30 at 32 km'",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherRainLikelyAtStart": "Rain likely from the start",
+  "@weatherRainLikelyAtStart": {
+    "description": "Weather summary line: the rain starts where the ride starts"
+  },
+  "weatherLightRainLikelyAtStart": "Light rain likely from the start",
+  "@weatherLightRainLikelyAtStart": {
+    "description": "Weather summary line: light rain (under 1 mm an hour) from where the ride starts"
+  },
+  "weatherWind": "Wind",
+  "@weatherWind": {
+    "description": "Weather on the route: the wind, as the label of the strip's row of wind arrows and as a choice of what the route on the map is coloured by"
+  },
+  "weatherRain": "Rain",
+  "@weatherRain": {
+    "description": "Weather on the route: the rain, as the label of the strip's row of rain bars and as a choice of what the route on the map is coloured by"
+  },
+  "weatherTemperatureShort": "Temp",
+  "@weatherTemperatureShort": {
+    "description": "Weather strip: very short label of the row with the temperature line; at most 5 characters"
+  },
+  "weatherKeyHeadwind": "Headwind",
+  "@weatherKeyHeadwind": {
+    "description": "Colour key of the wind arrows and the wind on the route: the colour of a headwind"
+  },
+  "weatherKeyCrosswind": "Crosswind",
+  "@weatherKeyCrosswind": {
+    "description": "Colour key: the colour of a crosswind"
+  },
+  "weatherKeyTailwind": "Tailwind",
+  "@weatherKeyTailwind": {
+    "description": "Colour key: the colour of a tailwind"
+  },
+  "weatherKeyCalm": "Calm",
+  "@weatherKeyCalm": {
+    "description": "Colour key: the colour of calm air (hardly any wind)"
+  },
+  "weatherRouteOverlay": "Colour the route by",
+  "@weatherRouteOverlay": {
+    "description": "Weather section: label over the choice of what the route on the map is coloured by: nothing, the wind or the rain"
+  },
+  "weatherOverlayOff": "Off",
+  "@weatherOverlayOff": {
+    "description": "Choice of what the route on the map is coloured by: nothing, the route in its own colour. Keep it short"
+  },
+  "weatherRainLight": "Light",
+  "@weatherRainLight": {
+    "description": "Colour key of the rain on the route: light rain, under 2 mm an hour"
+  },
+  "weatherRainModerate": "Moderate",
+  "@weatherRainModerate": {
+    "description": "Colour key of the rain on the route: moderate rain, 2 to 7.5 mm an hour"
+  },
+  "weatherRainHeavy": "Heavy",
+  "@weatherRainHeavy": {
+    "description": "Colour key of the rain on the route: heavy rain, 7.5 mm an hour and more"
+  },
+  "weatherRainNoneOnRoute": "No rain on the route",
+  "@weatherRainNoneOnRoute": {
+    "description": "Chip over the map while the route is coloured by the rain and no rain is expected anywhere on it"
   }
 }

@@ -13,6 +13,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/presentation/describe_route_sheet.dart';
 import '../../integrations/presentation/route_send_menu.dart';
 import '../../map/application/route_cursor.dart';
+import '../../map/application/route_weather_drawer.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/shared_map_layers.dart';
 import '../../planner/application/planner_controller.dart';
@@ -46,6 +47,11 @@ import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/sheet_header.dart';
 import '../../sharing/presentation/share_link_button.dart';
 import '../../shared/presentation/error_text.dart';
+import '../../shared/presentation/metric_chart.dart' show DistanceWindow;
+import '../../weather/application/route_overlay.dart';
+import '../../weather/application/route_weather_controller.dart';
+import '../../weather/application/route_wind.dart';
+import '../../weather/presentation/route_weather_section.dart';
 
 /// Id of a saved route's line on the shared map, while its card shows.
 const String libraryRouteLineId = 'library-route';
@@ -79,6 +85,19 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
   /// The profile's cursor, and the rider badge it puts on the route.
   final RouteCursor _cursor = RouteCursor();
 
+  /// The stretch the profile and the weather strip are zoomed to, in
+  /// metres; `null` for all of it.
+  DistanceWindow? _window;
+
+  /// The wind or the rain on the route, as the weather section's choice
+  /// colours it.
+  final RouteWeatherDrawer _weatherOnMap = RouteWeatherDrawer();
+
+  /// The route's line as last drawn, for the weather on it.
+  List<LatLng>? _drawnLine;
+
+  WeatherRoute get _weatherRoute => SavedWeatherRoute(widget.routeId);
+
   @override
   String get layersTab => libraryRoute;
 
@@ -110,7 +129,9 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
   @override
   void clearLayers(MapController map) {
     _shownRouteId = null;
+    _drawnLine = null;
     _cursor.map = null;
+    unawaited(_weatherOnMap.clear(map));
     map.onPoiTapped = null;
     map.onTurnTapped = null;
     unawaited(map.removeRouteLine(libraryRouteLineId));
@@ -158,6 +179,8 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     _cuesRouteId = route.id;
     final ready = map.isReady;
     await map.setRouteLine(libraryRouteLineId, positions);
+    _drawnLine = positions;
+    unawaited(_drawWeather());
     // The card may have closed while the line went on, and the map is the
     // next screen's then: nothing more to draw or fit.
     if (!mounted || _wantedVersion != version) return;
@@ -189,6 +212,21 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
         onCueTapped: (index) => _selectCue(index),
       );
     }
+  }
+
+  /// Draws the weather on the route the way the rider chose, or takes it
+  /// off.
+  Future<void> _drawWeather() async {
+    final map = layersMap;
+    if (map == null || !mounted) return;
+    await _weatherOnMap.draw(
+      map,
+      routeWeatherLinesFor(
+        _drawnLine,
+        ref.read(routeWeatherControllerProvider(_weatherRoute)),
+        ref.read(routeOverlayChoiceProvider),
+      ),
+    );
   }
 
   /// What the Surface section shows: the router's own figures for a route
@@ -324,6 +362,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     }
   }
 
+  void _setWindow(DistanceWindow? window) {
+    if (window != _window) setState(() => _window = window);
+  }
+
   void _openInPlanner(SavedRoute route) {
     ref.read(plannerControllerProvider.notifier).loadSavedRoute(route);
     context.go(plannerRoute);
@@ -332,6 +374,11 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
   @override
   Widget build(BuildContext context) {
     listenLayers();
+    ref.listen(
+      routeWeatherControllerProvider(_weatherRoute),
+      (_, _) => unawaited(_drawWeather()),
+    );
+    ref.listen(routeOverlayChoiceProvider, (_, _) => unawaited(_drawWeather()));
     final l10n = AppLocalizations.of(context);
     final units = ref.watch(unitSystemProvider);
     final route = ref.watch(savedRouteProvider(widget.routeId));
@@ -500,6 +547,17 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                     ElevationProfileChart(
                       samples: elevationProfile(geometry),
                       height: 220,
+                      window: _window,
+                      onWindow: _setWindow,
+                      cursor: _cursor,
+                    ),
+                    // The weather on the way for a ride leaving now; it
+                    // brings its own space above it, and takes none when
+                    // there is nothing to show.
+                    RouteWeatherSection(
+                      route: _weatherRoute,
+                      window: _window,
+                      onWindow: _setWindow,
                       cursor: _cursor,
                     ),
                     if (cues.length > 1) ...[

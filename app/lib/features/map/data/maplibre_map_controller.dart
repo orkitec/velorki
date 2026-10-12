@@ -63,6 +63,8 @@ abstract final class MapLayerIds {
   static const String turnsLayer = 'velorki-turns-dot';
   static const String routeWindSource = 'velorki-route-wind';
   static const String routeWindLayer = 'velorki-route-wind-line';
+  static const String routeRainSource = 'velorki-route-rain';
+  static const String routeRainLayer = 'velorki-route-rain-line';
 
   /// The rider badge a chart's cursor puts on the route, and its picture:
   /// the cursor's handle, a disc in the chart's colour with the rider on it
@@ -874,6 +876,8 @@ class MaplibreMapControllerAdapter implements MapController {
   bool _trackColoured = false;
   // The wind on the planned route, replayed after a style reload.
   List<WindSegment> _routeWind = const <WindSegment>[];
+  // The rain on the planned route, the same.
+  List<RainSegment> _routeRain = const <RainSegment>[];
   // Hysteresis and circular averaging for the heading cone, so it neither
   // blinks nor spins while the rider rolls along at walking pace.
   final HeadingSmoother _headingSmoother = HeadingSmoother();
@@ -1064,6 +1068,12 @@ class MaplibreMapControllerAdapter implements MapController {
       emptyFeatureCollection(),
     );
     await add(MapLayerIds.routeWindSource, MapLayerIds.routeWindLayer);
+    // The rain on it, in the same place: only one of the two is drawn.
+    await _ops.addGeoJsonSource(
+      MapLayerIds.routeRainSource,
+      emptyFeatureCollection(),
+    );
+    await add(MapLayerIds.routeRainSource, MapLayerIds.routeRainLayer);
 
     // The rider badge of a chart's cursor: over the route lines, the wind
     // on them and the track, under the puck and the markers. A symbol, so
@@ -1170,6 +1180,7 @@ class MaplibreMapControllerAdapter implements MapController {
     if (_track.isNotEmpty) await setTrackLine(_track);
     if (_trackSegments.isNotEmpty) await setTrackSegments(_trackSegments);
     if (_routeWind.isNotEmpty) await setRouteWind(_routeWind);
+    if (_routeRain.isNotEmpty) await setRouteRain(_routeRain);
     final lines = Map<String, List<LatLng>>.of(_routePoints);
     for (final entry in lines.entries) {
       await setRouteLine(
@@ -1881,6 +1892,17 @@ class MaplibreMapControllerAdapter implements MapController {
         lineCap: 'round',
         lineJoin: 'round',
       ),
+      // The rain map's own colours, which each stretch carries.
+      MapLayerIds.routeRainLayer: ml.LineLayerProperties(
+        lineColor: <Object>[
+          'to-color',
+          <Object>['get', 'c'],
+        ],
+        lineWidth: 5.0,
+        lineOpacity: 1.0,
+        lineCap: 'round',
+        lineJoin: 'round',
+      ),
       // The badge as drawn, never scaled, and always shown: it is where
       // the rider's finger is, whatever it covers.
       MapLayerIds.routeCursorLayer: ml.SymbolLayerProperties(
@@ -2154,6 +2176,23 @@ class MaplibreMapControllerAdapter implements MapController {
 
   @override
   Future<void> clearRouteWind() => setRouteWind(const <WindSegment>[]);
+
+  @override
+  Future<void> setRouteRain(List<RainSegment> segments) async {
+    _routeRain = List<RainSegment>.unmodifiable(segments);
+    if (!_attached) return;
+    if (await _hasSource(MapLayerIds.routeRainSource) == false) {
+      await attachToStyle();
+      return;
+    }
+    await _writeBaseSource(
+      MapLayerIds.routeRainSource,
+      rainSegmentsFeatureCollection(segments),
+    );
+  }
+
+  @override
+  Future<void> clearRouteRain() => setRouteRain(const <RainSegment>[]);
 
   /// Switches the track layer between the flat colour and the speed ramp,
   /// writing the paint only when it actually changes.

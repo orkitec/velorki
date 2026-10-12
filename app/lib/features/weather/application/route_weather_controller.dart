@@ -12,6 +12,8 @@ import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
 import '../../planner/application/planner_controller.dart';
+import '../../planner/data/route_repository.dart';
+import '../../planner/domain/saved_route.dart';
 import '../../planner/domain/route_profile.dart';
 import '../domain/route_sampling.dart';
 import '../domain/route_weather.dart';
@@ -84,8 +86,56 @@ WeatherProblem weatherProblemFor(RelayException e) => WeatherProblem(
   retryAfterS: e.error.retryAfterS,
 );
 
-/// The weather along the route on the Plan tab, for the time the rider
-/// gets to each part of it.
+/// The relay's answers, kept for [weatherCacheTtl] by the cells and hours
+/// asked about, for every route's weather: the card of a saved route opened
+/// again, or the same route in the planner, asks nothing.
+class WeatherForecastCache {
+  final Map<String, _CachedForecast> _entries = <String, _CachedForecast>{};
+}
+
+/// The one [WeatherForecastCache].
+@Riverpod(keepAlive: true)
+WeatherForecastCache weatherForecastCache(Ref ref) => WeatherForecastCache();
+
+/// Which route's weather a [RouteWeatherController] is about.
+sealed class WeatherRoute {
+  const WeatherRoute();
+}
+
+/// The route on the Plan tab.
+class PlannerWeatherRoute extends WeatherRoute {
+  /// The one key: see [plannerWeatherRoute].
+  const PlannerWeatherRoute._();
+
+  @override
+  bool operator ==(Object other) => other is PlannerWeatherRoute;
+
+  @override
+  int get hashCode => (PlannerWeatherRoute).hashCode;
+}
+
+/// The route on the Plan tab.
+const WeatherRoute plannerWeatherRoute = PlannerWeatherRoute._();
+
+/// A route saved in the Library, by its id.
+class SavedWeatherRoute extends WeatherRoute {
+  /// The saved route [id].
+  const SavedWeatherRoute(this.id);
+
+  /// Its id in the `routes` table.
+  final String id;
+
+  @override
+  bool operator ==(Object other) =>
+      other is SavedWeatherRoute && other.id == id;
+
+  @override
+  int get hashCode => Object.hash(SavedWeatherRoute, id);
+}
+
+/// The weather along a route, for the time the rider gets to each part of
+/// it: the Plan tab's route ([plannerWeatherRoute]), or a saved one on its
+/// card in the Library ([SavedWeatherRoute]), for a ride leaving now.
 ///
 /// `data(null)` while there is no route, no relay in this build, or no
 /// Velorki Plus: nothing is asked of the relay for a rider without it. A new
@@ -93,7 +143,10 @@ WeatherProblem weatherProblemFor(RelayException e) => WeatherProblem(
 /// the answer to the latest request is shown. Answers are kept for
 /// [weatherCacheTtl], so going back to a route asks nothing. Moving the
 /// departure inside the hours fetched is worked out on the phone.
-@Riverpod(keepAlive: true)
+///
+/// The planner's lives as long as the app; a saved route's as long as its
+/// card shows it.
+@riverpod
 class RouteWeatherController extends _$RouteWeatherController {
   Timer? _debounce;
 
@@ -103,22 +156,33 @@ class RouteWeatherController extends _$RouteWeatherController {
   /// The departure the rider picked; `null` for "as soon as possible".
   DateTime? _departure;
 
-  final Map<String, _CachedForecast> _cache = <String, _CachedForecast>{};
+  /// A saved route as the sampling reads it, and the version it is of.
+  (String, RouteResult)? _saved;
 
   @override
-  AsyncValue<RouteWeatherState?> build() {
+  AsyncValue<RouteWeatherState?> build(WeatherRoute route) {
+    if (route is PlannerWeatherRoute) ref.keepAlive();
     ref.onDispose(() {
       _debounce?.cancel();
       _generation++;
     });
-    ref.listen(
-      plannerControllerProvider.select((s) => s.result),
-      (_, _) => _changed(),
-    );
-    ref.listen(
-      plannerControllerProvider.select((s) => s.options.profile),
-      (_, _) => _changed(),
-    );
+    switch (route) {
+      case PlannerWeatherRoute():
+        ref.listen(
+          plannerControllerProvider.select((s) => s.result),
+          (_, _) => _changed(),
+        );
+        ref.listen(
+          plannerControllerProvider.select((s) => s.options.profile),
+          (_, _) => _changed(),
+        );
+      case SavedWeatherRoute(:final id):
+        // A route edited in the planner meanwhile is a new version.
+        ref.listen(
+          savedRouteProvider(id).select((r) => r.value?.updatedAt),
+          (_, _) => _changed(),
+        );
+    }
     // Bought meanwhile: a "part of Velorki Plus" error is not true any
     // more, and the weather is asked for at once.
     ref.listen(plusFeatureProvider(PlusFeature.weather), (_, _) => _changed());
@@ -135,10 +199,39 @@ class RouteWeatherController extends _$RouteWeatherController {
     final relay = ref.read(relayClientProvider);
     if (relay == null) return null;
     if (!ref.read(plusFeatureProvider(PlusFeature.weather))) return null;
-    final planner = ref.read(plannerControllerProvider);
-    final route = planner.result;
-    if (route == null || route.geometry.length < 2) return null;
-    return (route: route, profile: planner.options.profile, relay: relay);
+    final (RouteResult? result, RouteProfile? profile) = switch (route) {
+      PlannerWeatherRoute() => (
+        ref.read(plannerControllerProvider).result,
+        ref.read(plannerControllerProvider).options.profile,
+      ),
+      SavedWeatherRoute(:final id) => switch (ref
+          .read(savedRouteProvider(id))
+          .value) {
+        null => (null, null),
+        final saved => (_resultOf(saved), saved.profile),
+      },
+    };
+    if (result == null || profile == null || result.geometry.length < 2) {
+      return null;
+    }
+    return (route: result, profile: profile, relay: relay);
+  }
+
+  /// [saved]'s line as a route, decoded once per version.
+  RouteResult _resultOf(SavedRoute saved) {
+    final version = '${saved.id}@${saved.updatedAt.microsecondsSinceEpoch}';
+    final known = _saved;
+    if (known != null && known.$1 == version) return known.$2;
+    final result = RouteResult(
+      geometry: saved.geometry,
+      lengthM: saved.distanceM,
+      ascentM: saved.ascentM,
+      descentM: saved.descentM,
+      messages: const <SegmentMessage>[],
+      raw: const <String, dynamic>{},
+    );
+    _saved = (version, result);
+    return result;
   }
 
   void _changed() {
@@ -269,6 +362,9 @@ class RouteWeatherController extends _$RouteWeatherController {
       ),
     );
   }
+
+  Map<String, _CachedForecast> get _cache =>
+      ref.read(weatherForecastCacheProvider)._entries;
 
   bool _current(int generation) => ref.mounted && generation == _generation;
 

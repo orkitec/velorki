@@ -6,6 +6,7 @@ import '../../../app/theme.dart';
 import '../../shared/presentation/chart_gestures.dart';
 import '../../shared/presentation/metric_chart.dart';
 import '../domain/route_weather.dart';
+import '../application/route_wind.dart';
 
 /// The left inset of the strip's plot: the elevation chart's
 /// `MetricChart.leftReservedSize`, so a stretch of the strip sits under the
@@ -21,8 +22,26 @@ const double weatherStripHeight = 96;
 /// Rain this heavy, in mm/h, fills a rain bar.
 const double weatherStripFullRainMm = 4;
 
+/// The words in the strip's left inset, one a row, so the rows say what they
+/// are: wind, rain, temperature.
+typedef WeatherStripRowLabels = ({
+  String wind,
+  String rain,
+  String temperature,
+});
+
 /// The narrowest gap between two wind arrows, in logical pixels.
 const double _arrowSpacingPx = 14;
+
+/// The colour of [w]'s rain bar in the strip: the colour the route and the
+/// weather map give that rain, at [opacity]; a trace under what counts as
+/// rain stays faint in the strip's own [trace] colour.
+Color weatherStripRainColour(SampleWeather w, Color trace, double opacity) {
+  final k = rainClassOnRoute(w);
+  return k == null
+      ? trace.withValues(alpha: 0.35)
+      : Color(0xFF000000 | rainClassColour(k)).withValues(alpha: opacity);
+}
 
 /// The weather along the route over distance, under the elevation profile
 /// and on its x-axis: the wind at each sample as an arrow pointing where it
@@ -45,11 +64,16 @@ class RouteWeatherStrip extends StatelessWidget {
     required this.semanticsLabel,
     this.maxTempLabel,
     this.minTempLabel,
+    this.rowLabels,
     this.window,
     this.onWindow,
     this.cursor,
     super.key,
   });
+
+  /// The rows' names in the left inset; without them, an icon for the wind
+  /// and the rain and nothing for the temperature but its figures.
+  final WeatherStripRowLabels? rowLabels;
 
   /// The weather to draw; `null` for the placeholder.
   final RouteWeather? weather;
@@ -132,6 +156,7 @@ class RouteWeatherStrip extends StatelessWidget {
         ),
         maxTempLabel: maxTempLabel,
         minTempLabel: minTempLabel,
+        rowLabels: rowLabels,
         textDirection: Directionality.of(context),
       ),
     );
@@ -202,6 +227,7 @@ class RouteWeatherStripPainter extends CustomPainter {
     this.window,
     this.maxTempLabel,
     this.minTempLabel,
+    this.rowLabels,
   });
 
   final RouteWeather? weather;
@@ -213,6 +239,7 @@ class RouteWeatherStripPainter extends CustomPainter {
   final TextDirection textDirection;
   final String? maxTempLabel;
   final String? minTempLabel;
+  final WeatherStripRowLabels? rowLabels;
 
   // The three rows, top to bottom.
   static const double _windTop = 0;
@@ -260,14 +287,46 @@ class RouteWeatherStripPainter extends CustomPainter {
   }
 
   void _paintGutter(Canvas canvas) {
-    _icon(canvas, Icons.air, _windTop + _windHeight / 2);
-    _icon(canvas, Icons.water_drop_outlined, _rainTop + _rainHeight / 2);
+    final labels = rowLabels;
+    if (labels == null) {
+      _icon(canvas, Icons.air, _windTop + _windHeight / 2);
+      _icon(canvas, Icons.water_drop_outlined, _rainTop + _rainHeight / 2);
+    } else {
+      _label(canvas, labels.wind, _windTop + _windHeight / 2);
+      _label(canvas, labels.rain, _rainTop + _rainHeight / 2);
+      _label(canvas, labels.temperature, _tempTop + _tempHeight / 2);
+    }
     final max = maxTempLabel;
     final min = minTempLabel;
     if (max != null) _text(canvas, max, _tempTop, top: true);
     if (min != null && min != max) {
       _text(canvas, min, _tempTop + _tempHeight, top: false);
     }
+  }
+
+  /// A row's name, right-aligned against the plot and centred on
+  /// [centerY]; set smaller where a language's word is too long for the
+  /// inset, never cut.
+  void _label(Canvas canvas, String text, double centerY) {
+    // Clear of the first arrow, which reaches 6 px left of the plot.
+    const room = weatherStripLeftInset - 10;
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: labelStyle.copyWith(fontWeight: FontWeight.w600),
+      ),
+      textDirection: textDirection,
+      maxLines: 1,
+    )..layout();
+    final scale = painter.width > room ? room / painter.width : 1.0;
+    canvas.save();
+    canvas.translate(
+      room - painter.width * scale,
+      centerY - painter.height * scale / 2,
+    );
+    canvas.scale(scale);
+    painter.paint(canvas, Offset.zero);
+    canvas.restore();
   }
 
   void _icon(Canvas canvas, IconData icon, double centerY) {
@@ -331,9 +390,10 @@ class RouteWeatherStripPainter extends CustomPainter {
       final opacity = prob == null
           ? 1.0
           : (0.25 + 0.75 * (prob / 100)).clamp(0.25, 1.0);
+      final colour = weatherStripRainColour(s, colors.rain, opacity);
       canvas.drawRect(
         Rect.fromLTRB(x0, bottom - height, math.max(x1, x0 + 1), bottom),
-        Paint()..color = colors.rain.withValues(alpha: opacity),
+        Paint()..color = colour,
       );
     }
   }
@@ -447,5 +507,6 @@ class RouteWeatherStripPainter extends CustomPainter {
       old.labelStyle != labelStyle ||
       old.textDirection != textDirection ||
       old.maxTempLabel != maxTempLabel ||
-      old.minTempLabel != minTempLabel;
+      old.minTempLabel != minTempLabel ||
+      old.rowLabels != rowLabels;
 }

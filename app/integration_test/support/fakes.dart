@@ -537,6 +537,13 @@ class RecordingMapController implements MapController {
   Future<void> clearRouteWind() => inner.clearRouteWind();
 
   @override
+  Future<void> setRouteRain(List<RainSegment> segments) =>
+      inner.setRouteRain(segments);
+
+  @override
+  Future<void> clearRouteRain() => inner.clearRouteRain();
+
+  @override
   Future<void> setPosition(
     LatLng? position, {
     double? accuracyM,

@@ -7,14 +7,16 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
+import 'package:velorki/core/units/units.dart' show formatSpeed;
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/subscription/application/plus_access.dart';
 import 'package:velorki/features/weather/application/route_weather_controller.dart';
-import 'package:velorki/features/weather/application/wind_on_map.dart';
+import 'package:velorki/features/weather/application/route_overlay.dart';
 import 'package:velorki/features/weather/domain/route_sampling.dart';
 import 'package:velorki/features/weather/domain/route_weather_state.dart';
 import 'package:velorki/features/weather/presentation/route_weather_section.dart';
 import 'package:velorki/features/weather/presentation/route_weather_strip.dart';
+import 'package:velorki/features/weather/presentation/weather_keys.dart';
 import 'package:velorki_api/velorki_api.dart';
 
 import '../../support/app.dart';
@@ -30,6 +32,7 @@ RouteWeatherState weatherState({
   DateTime? departure,
   int Function(int hour)? windDir,
   double Function(int hour)? precip,
+  double? gust = 12,
 }) {
   final samples = sampleRoute(straightRoute(), typicalSpeedKmh: 18);
   final cells = cellsFor(samples);
@@ -48,7 +51,7 @@ RouteWeatherState weatherState({
         temp: 12.0 + i,
         windDir: windDir?.call(i) ?? 0,
         precip: precip?.call(i) ?? (t.hour >= 14 ? 2 : 0),
-        gust: 12,
+        gust: gust,
       ),
     ),
   );
@@ -76,7 +79,11 @@ class _FakeWeather extends RouteWeatherController {
   final _Asked _asked;
 
   @override
-  AsyncValue<RouteWeatherState?> build() => _initial;
+  AsyncValue<RouteWeatherState?> build(WeatherRoute route) {
+    // As the planner's own does: a tree pumped over this one leaves it be.
+    ref.keepAlive();
+    return _initial;
+  }
 
   @override
   void setDeparture(DateTime time) {
@@ -118,6 +125,7 @@ Future<_Pumped> _pump(
           body: ListView(
             padding: const EdgeInsets.all(20),
             children: const [
+              RouteOverlayLegend(),
               SizedBox(key: Key('above'), height: 10),
               RouteWeatherSection(),
               SizedBox(key: Key('below'), height: 10),
@@ -138,7 +146,7 @@ Future<_Pumped> _pump(
       localeCountryProvider.overrideWithValue('DE'),
       relayClientProvider.overrideWithValue(withRelay ? relay.client() : null),
       plusAccessProvider.overrideWith((ref, feature) => access),
-      routeWeatherControllerProvider.overrideWith(() => fake),
+      routeWeatherControllerProvider.overrideWith2((_) => fake),
       weatherClockProvider.overrideWithValue(
         () => DateTime.utc(2026, 10, 11, 7, 50),
       ),
@@ -197,7 +205,12 @@ void main() {
     final loading = _gap(tester);
     expect(loading, greaterThan(weatherStripHeight));
 
-    await _pump(tester);
+    // A line of two lines: the test's font, a full em a letter, makes the
+    // gusts' line three.
+    await _pump(
+      tester,
+      weather: AsyncData<RouteWeatherState?>(weatherState(gust: null)),
+    );
     expect(_gap(tester), loading);
   });
 
@@ -214,32 +227,71 @@ void main() {
     expect(pumped.weather.retries, 1);
   });
 
-  testWidgets('the forecast: summary, strip and attribution', (tester) async {
+  testWidgets('the forecast: the line that sums it up, the strip with its '
+      'rows named and its key, and the attribution', (tester) async {
     await _pump(tester);
-    // 12 °C at 08:00, 13 °C by the end of the ride at 08:33.
-    expect(
-      find.text(
-        l10n.weatherTemperatureRange(
-          '12',
-          formatTemperature(l10n, UnitSystem.metric, 13),
-        ),
+    // Dry, the wind from the north on a route north, 12 °C at 08:00 and
+    // 13 °C by the end at 08:33, gusts of 12 m/s.
+    final line = [
+      l10n.weatherDry,
+      l10n.weatherMostlyHeadwind,
+      l10n.weatherTemperatureRange(
+        '12',
+        formatTemperature(l10n, UnitSystem.metric, 13),
       ),
-      findsOneWidget,
-    );
-    // The wind from the north, the route heading north: all of it ahead.
-    expect(
-      find.text(l10n.weatherHeadwind(formatPercent(l10n, 1))),
-      findsOneWidget,
-    );
-    expect(find.text(l10n.weatherDry), findsOneWidget);
-    expect(find.textContaining(l10n.weatherGusts('').trim()), findsOneWidget);
+      l10n.weatherGusts(
+        formatMeasure(l10n, formatSpeed(UnitSystem.metric, 12)),
+      ),
+    ].join(' · ');
+    expect(find.text(line), findsOneWidget);
     expect(find.byType(RouteWeatherStrip), findsOneWidget);
+    final strip = tester.widget<RouteWeatherStrip>(
+      find.byType(RouteWeatherStrip),
+    );
+    expect(strip.rowLabels, (
+      wind: l10n.weatherWind,
+      rain: l10n.weatherRain,
+      temperature: l10n.weatherTemperatureShort,
+    ));
+    // The key to the arrows' colours, under the strip.
+    expect(find.byType(WindColourKey), findsOneWidget);
+    for (final name in [
+      l10n.weatherKeyHeadwind,
+      l10n.weatherKeyCrosswind,
+      l10n.weatherKeyTailwind,
+    ]) {
+      expect(find.text(name), findsOneWidget);
+    }
+    expect(
+      tester.getTopLeft(find.byType(WindColourKey)).dy,
+      greaterThan(tester.getBottomLeft(find.byType(RouteWeatherStrip)).dy),
+    );
     expect(find.text(l10n.weatherAttribution('MET Norway')), findsOneWidget);
     expect(
       tester.getSemantics(find.byType(RouteWeatherStrip)).label,
       contains(l10n.weatherDry),
     );
     expectNoClippedText(tester);
+  });
+
+  testWidgets('rain on the way leads the line, with when and where', (
+    tester,
+  ) async {
+    // Rain from 08:00 UTC's next hour on: 3 mm/h from 09:00, interpolated
+    // up from nothing at 08:00.
+    await _pump(
+      tester,
+      weather: AsyncData<RouteWeatherState?>(
+        weatherState(precip: (i) => i == 0 ? 0 : 3),
+      ),
+    );
+    final text = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((t) => t.data ?? '')
+        .firstWhere((t) => t.contains(' · '));
+    final rainy = l10n.weatherRainLikelyFrom('', '').split(' ').first;
+    expect(text, startsWith(rainy));
+    expect(text, isNot(contains(l10n.weatherDry)));
   });
 
   testWidgets('the attribution opens the licences', (tester) async {
@@ -296,13 +348,80 @@ void main() {
     expect(button.onPressed, isNull);
   });
 
-  testWidgets('the wind switch is remembered', (tester) async {
+  testWidgets('the route is coloured by the wind, the rain or nothing; the '
+      'choice is remembered and the key over the map follows it', (
+    tester,
+  ) async {
     final pumped = await _pump(tester);
-    expect(pumped.container.read(windOnMapProvider), isFalse);
-    await tester.tap(find.text(l10n.weatherWindOnMap));
+    RouteOverlay choice() => pumped.container.read(routeOverlayChoiceProvider);
+    expect(choice(), RouteOverlay.off);
+    expect(find.byKey(const ValueKey('route-overlay-legend')), findsNothing);
+
+    await tester.tap(find.text(l10n.weatherWind));
     await tester.pump();
-    expect(pumped.container.read(windOnMapProvider), isTrue);
-    expect(pumped.prefs.getBool('weather.wind_on_map'), isTrue);
+    expect(choice(), RouteOverlay.wind);
+    expect(pumped.prefs.getString('weather.route_overlay'), 'wind');
+    expect(find.byKey(const ValueKey('route-overlay-legend')), findsOneWidget);
+    // Over the map and under the strip.
+    expect(find.byType(WindColourKey), findsNWidgets(2));
+
+    await tester.tap(find.text(l10n.weatherRain));
+    await tester.pump();
+    expect(choice(), RouteOverlay.rain);
+    // A dry ride: the key says there is no rain rather than show colours.
+    expect(find.text(l10n.weatherRainNoneOnRoute), findsOneWidget);
+    expect(find.byType(RainColourKey), findsNothing);
+
+    await tester.tap(find.text(l10n.weatherOverlayOff));
+    await tester.pump();
+    expect(choice(), RouteOverlay.off);
+    expect(find.byKey(const ValueKey('route-overlay-legend')), findsNothing);
+  });
+
+  testWidgets('the rain key names the strengths while rain is on the way', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      weather: AsyncData<RouteWeatherState?>(weatherState(precip: (_) => 3)),
+    );
+    await tester.tap(find.text(l10n.weatherRain));
+    await tester.pump();
+    expect(find.byType(RainColourKey), findsOneWidget);
+    for (final name in [
+      l10n.weatherRainLight,
+      l10n.weatherRainModerate,
+      l10n.weatherRainHeavy,
+    ]) {
+      expect(find.text(name), findsOneWidget);
+    }
+  });
+
+  testWidgets('no key over the map while the forecast is on its way', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    await _pump(tester, weather: const AsyncLoading<RouteWeatherState?>());
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RouteWeatherSection)),
+    );
+    await container
+        .read(routeOverlayChoiceProvider.notifier)
+        .set(RouteOverlay.wind);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('route-overlay-legend')), findsNothing);
+  });
+
+  test('the wind switch of before comes back as the wind', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'weather.wind_on_map': true,
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    addTearDown(container.dispose);
+    expect(container.read(routeOverlayChoiceProvider), RouteOverlay.wind);
   });
 
   test('the fixture is from MET Norway', () {

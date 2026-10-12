@@ -142,6 +142,27 @@ Map<String, dynamic> windSegmentsFeatureCollection(List<WindSegment> segments) {
   return <String, dynamic>{'type': 'FeatureCollection', 'features': features};
 }
 
+/// The rain on the route, one line feature per segment, its colour in `c`
+/// (`#rrggbb`).
+Map<String, dynamic> rainSegmentsFeatureCollection(List<RainSegment> segments) {
+  final features = <Map<String, dynamic>>[
+    for (final segment in segments)
+      if (segment.points.length >= 2)
+        <String, dynamic>{
+          'type': 'Feature',
+          'properties': <String, dynamic>{
+            'c': '#${segment.colour.toRadixString(16).padLeft(6, '0')}',
+          },
+          'geometry': <String, dynamic>{
+            'type': 'LineString',
+            'coordinates': segment.points.map(lngLat).toList(),
+          },
+        },
+  ];
+  if (features.isEmpty) return emptyFeatureCollection();
+  return <String, dynamic>{'type': 'FeatureCollection', 'features': features};
+}
+
 /// The wind arrows, one point feature each: where the wind blows to in
 /// `dir` (degrees clockwise from north) and its speed in `ms` (m/s).
 Map<String, dynamic> windArrowsFeatureCollection(List<WindArrow> arrows) {

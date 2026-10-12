@@ -140,6 +140,9 @@ void main() {
           // The wind on the route, over every route line.
           MapLayerIds.routeWindSource,
           MapLayerIds.routeWindLayer,
+          // The rain on the route, in the same place.
+          MapLayerIds.routeRainSource,
+          MapLayerIds.routeRainLayer,
           // The rider dot of a chart: over the routes, under the puck.
           MapLayerIds.routeCursorSource,
           MapLayerIds.routeCursorLayer,
@@ -1718,6 +1721,46 @@ void main() {
 
       await adapter.clearRouteWind();
       expect(_featuresOf(ops, MapLayerIds.routeWindSource), isEmpty);
+    });
+  });
+
+  group('setRouteRain', () {
+    const rain = <RainSegment>[
+      RainSegment(
+        points: <LatLng>[LatLng(47.0, 8.0), LatLng(47.1, 8.1)],
+        colour: 0x019934,
+      ),
+      RainSegment(
+        points: <LatLng>[LatLng(47.1, 8.1), LatLng(47.2, 8.2)],
+        colour: 0xFFC401,
+      ),
+    ];
+
+    test('writes one line per segment in its own colour, over the route '
+        'lines, and comes back after a style reload', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      final layer = ops.addLayerOf(MapLayerIds.routeRainLayer)!;
+      expect(layer.properties!['line-color'], <Object>[
+        'to-color',
+        <Object>['get', 'c'],
+      ]);
+      await adapter.setRouteRain(rain);
+      expect(
+        _featuresOf(
+          ops,
+          MapLayerIds.routeRainSource,
+        ).map((f) => (f as Map<String, dynamic>)['properties']['c']),
+        <String>['#019934', '#ffc401'],
+      );
+
+      ops.reloadStyle();
+      await adapter.attachToStyle();
+      expect(_featuresOf(ops, MapLayerIds.routeRainSource), hasLength(2));
+
+      await adapter.clearRouteRain();
+      expect(_featuresOf(ops, MapLayerIds.routeRainSource), isEmpty);
     });
   });
 

@@ -238,6 +238,16 @@ class TestMapController implements MapController {
   }
 
   @override
+  Future<void> setRouteRain(List<RainSegment> segments) async {
+    calls.add(MapCall('setRouteRain', [segments]));
+  }
+
+  @override
+  Future<void> clearRouteRain() async {
+    calls.add(const MapCall('clearRouteRain', []));
+  }
+
+  @override
   Future<void> setPosition(
     LatLng? position, {
     double? accuracyM,

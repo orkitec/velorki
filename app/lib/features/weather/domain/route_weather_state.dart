@@ -2,6 +2,7 @@ import 'package:velorki_api/velorki_api.dart' show WeatherForecast;
 
 import 'route_sampling.dart';
 import 'route_weather.dart';
+import 'route_weather_digest.dart';
 
 /// The weather along the planned route, as the Plan tab shows it.
 class RouteWeatherState {
@@ -15,6 +16,7 @@ class RouteWeatherState {
     required this.cells,
     required this.weather,
     required this.summary,
+    required this.digest,
   });
 
   /// Evaluates [forecast] for [departure].
@@ -36,6 +38,7 @@ class RouteWeatherState {
       cells: cells,
       weather: weather,
       summary: RouteWeatherSummary.of(weather),
+      digest: RouteWeatherDigest.of(weather),
     );
   }
 
@@ -63,6 +66,9 @@ class RouteWeatherState {
 
   /// [weather] in a few figures.
   final RouteWeatherSummary summary;
+
+  /// [weather] in the few facts the section's first line says.
+  final RouteWeatherDigest digest;
 
   /// How long the ride takes.
   Duration get rideTime =>
