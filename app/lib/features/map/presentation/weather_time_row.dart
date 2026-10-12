@@ -403,18 +403,12 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
 
 /// The weather's short lines over the map: that a layer (the rain, the
 /// clouds, the wind) is unavailable where its service did not answer, which
-/// would otherwise look like a dry, clear day. With [rainTime], also the
-/// rain's moment, for the Library tab, which has no time control. Nothing
-/// when there is nothing to say. (The clouds' time is in the Layers sheet.)
+/// would otherwise look like a dry, clear day. Nothing when there is nothing
+/// to say. (The rain's and the clouds' moments are in the Layers sheet.)
 class WeatherMapHints extends ConsumerWidget {
   /// Creates the hints, with [padding] around them while there are any.
-  const WeatherMapHints({
-    super.key,
-    this.rainTime = false,
-    this.padding = EdgeInsets.zero,
-  });
+  const WeatherMapHints({super.key, this.padding = EdgeInsets.zero});
 
-  final bool rainTime;
   final EdgeInsetsGeometry padding;
 
   @override
@@ -429,7 +423,6 @@ class WeatherMapHints extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final status = ref.watch(sharedWeatherMapStatusProvider);
     final chips = <Widget>[
-      if (rain && rainTime) _rainChip(context, ref, sources, status),
       if (rain)
         for (final role in RainRole.values)
           if (status.failedRain.contains(role))
@@ -470,32 +463,9 @@ class WeatherMapHints extends ConsumerWidget {
       ),
     );
   }
-
-  Widget _rainChip(
-    BuildContext context,
-    WidgetRef ref,
-    List<WeatherMapSource> sources,
-    WeatherMapStatus status,
-  ) {
-    final l10n = AppLocalizations.of(context);
-    final offset = ref.watch(weatherRadarOffsetProvider);
-    final rain = weatherRainAt(sources, status, offset);
-    return WeatherMapChip(
-      key: const ValueKey<String>('weather-rain-chip'),
-      text: <String>[
-        l10n.mapLayersRainRadar,
-        if (offset > 0) weatherStepText(l10n, offset),
-        if (rain != null) weatherClockTime(context, rain.time),
-        if (rain != null && _tagged(offset, rain.role))
-          ?weatherSourceTag(l10n, rain.role),
-      ].join(' · '),
-      icon: Icons.water_drop_outlined,
-    );
-  }
 }
 
-/// A short glass line over the map: the rain's time, or that a layer is
-/// unavailable.
+/// A short glass line over the map: that a layer is unavailable.
 class WeatherMapChip extends StatelessWidget {
   /// Creates the chip.
   const WeatherMapChip({

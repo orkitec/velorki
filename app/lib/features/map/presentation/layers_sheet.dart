@@ -19,7 +19,8 @@ import '../data/weather_map_preferences.dart';
 import '../domain/cycle_map.dart';
 import '../domain/weather_map.dart';
 import 'map_chrome.dart';
-import 'weather_time_row.dart' show weatherClockTime;
+import 'weather_time_row.dart'
+    show weatherClockTime, weatherRainAt, weatherRainLabel;
 
 /// The groups whose kinds the sheet offers as stops, in this order.
 const List<SearchGroup> stopGroups = <SearchGroup>[
@@ -144,7 +145,7 @@ class LayersSheet extends ConsumerWidget {
             SwitchListTile(
               secondary: const Icon(Icons.water_drop_outlined),
               title: Text(l10n.mapLayersRainRadar),
-              subtitle: Text(l10n.mapLayersRainRadarSubtitle),
+              subtitle: _RainSubtitle(on: weather.radar),
               value: weather.radar,
               onChanged: (value) => unawaited(weatherPrefs.setRadar(value)),
             ),
@@ -299,6 +300,35 @@ class LayersSheet extends ConsumerWidget {
 
 /// The Clouds switch's subtitle: where the layer exists, and while it is on
 /// the moment of the cloud image in view, where the service names one.
+/// The rain's subtitle and, while it is on, the moment it shows: the only
+/// place the Library tab, which has no time control, says it.
+class _RainSubtitle extends ConsumerWidget {
+  const _RainSubtitle({required this.on});
+
+  final bool on;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    if (!on) return Text(l10n.mapLayersRainRadarSubtitle);
+    final offset = ref.watch(weatherRadarOffsetProvider);
+    final rain = weatherRainAt(
+      ref.watch(weatherMapSourcesProvider),
+      ref.watch(sharedWeatherMapStatusProvider),
+      offset,
+    );
+    if (rain == null) return Text(l10n.mapLayersRainRadarSubtitle);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(l10n.mapLayersRainRadarSubtitle),
+        Text(weatherRainLabel(context, offset, rain), key: rainImageTimeKey),
+      ],
+    );
+  }
+}
+
 class _CloudsSubtitle extends ConsumerWidget {
   const _CloudsSubtitle({required this.on});
 
@@ -398,6 +428,9 @@ class _OpacitySlider extends StatelessWidget {
 /// sheet, for the tests.
 const Key radarOpacityKey = ValueKey<String>('layers-radar-opacity');
 const Key cloudsOpacityKey = ValueKey<String>('layers-clouds-opacity');
+
+/// The key of the rain's moment in the Layers sheet, for the tests.
+const Key rainImageTimeKey = ValueKey<String>('layers-rain-time');
 
 /// The key of the cloud image's time in the Layers sheet, for the tests.
 const Key cloudsImageTimeKey = ValueKey<String>('layers-clouds-time');

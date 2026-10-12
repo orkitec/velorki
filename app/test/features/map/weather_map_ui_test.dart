@@ -635,41 +635,49 @@ void main() {
       expect(find.text(l10n.mapLayersCloudsSubtitle), findsOneWidget);
     });
 
-    testWidgets('the Library\'s chip: the rain\'s moment, no slider', (
+    testWidgets('the rain\'s moment is in the Layers sheet, not over the map', (
       tester,
     ) async {
       final (_, container) = await _pump(
         tester,
-        const WeatherMapHints(rainTime: true),
+        const Column(
+          children: [
+            WeatherMapHints(),
+            Expanded(child: LayersSheet()),
+          ],
+        ),
         prefs: <String, Object>{'map.weather.radar': true},
       );
       container.read(sharedWeatherMapStatusProvider.notifier).set(berlin);
       await tester.pump();
-      final context = tester.element(find.byType(WeatherMapHints));
+      final context = tester.element(find.byType(LayersSheet));
+      expect(find.byType(WeatherMapChip), findsNothing);
       expect(
-        find.text(
-          '${l10n.mapLayersRainRadar} · '
-          '${weatherClockTime(context, DateTime.utc(2026, 10, 10, 14, 35))}',
+        find.descendant(
+          of: _switch(l10n.mapLayersRainRadar),
+          matching: find.text(
+            '${l10n.mapWeatherNow} · '
+            '${weatherClockTime(context, DateTime.utc(2026, 10, 10, 14, 35))}',
+          ),
         ),
         findsOneWidget,
       );
-      expect(find.byType(Slider), findsNothing);
       container.read(weatherRadarOffsetProvider.notifier).set(180);
       await tester.pump();
       expect(
         find.text(
-          '${l10n.mapLayersRainRadar} · ${l10n.mapWeatherHoursAhead(3)} · '
+          '${l10n.mapWeatherHoursAhead(3)} · '
           '${weatherClockTime(context, DateTime.utc(2026, 10, 10, 17))} · '
           '${l10n.mapWeatherForecast}',
         ),
         findsOneWidget,
       );
-      // The rain off: no chip.
+      // The rain off: no moment.
       await container
           .read(weatherMapPreferencesProvider.notifier)
           .setRadar(false);
       await tester.pump();
-      expect(find.byType(WeatherMapChip), findsNothing);
+      expect(find.byKey(rainImageTimeKey), findsNothing);
     });
   });
 

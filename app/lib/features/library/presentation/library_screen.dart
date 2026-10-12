@@ -463,7 +463,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       ),
                       child: Align(
                         alignment: Alignment.topLeft,
-                        child: const WeatherMapHints(rainTime: true),
+                        child: const WeatherMapHints(),
                       ),
                     ),
                   ),
