@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/text_entry_dialog.dart';
 
 /// Asks for a new name for a saved route. Returns `null` when cancelled.
 Future<String?> showRenameRouteDialog(
@@ -45,7 +46,7 @@ class _RenameRouteDialogState extends State<_RenameRouteDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
+    return TextEntryDialog(
       title: Text(l10n.libraryRenameTitle),
       content: TextField(
         controller: _controller,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/text_entry_dialog.dart';
 
 /// Asks for the name a route is saved under.
 ///
@@ -44,7 +45,7 @@ class _SaveRouteDialogState extends State<_SaveRouteDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
+    return TextEntryDialog(
       title: Text(l10n.plannerSaveDialogTitle),
       content: TextField(
         controller: _controller,
