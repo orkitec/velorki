@@ -64,6 +64,12 @@ abstract final class MapLayerIds {
   static const String routeWindSource = 'velorki-route-wind';
   static const String routeWindLayer = 'velorki-route-wind-line';
 
+  /// The rider dot a finger on a chart puts on the route: a dark edge
+  /// under a disc ringed in the chart's colour.
+  static const String routeCursorSource = 'velorki-route-cursor';
+  static const String routeCursorEdgeLayer = 'velorki-route-cursor-edge';
+  static const String routeCursorLayer = 'velorki-route-cursor-dot';
+
   /// The wind arrows over the map, and the arrow they are drawn with.
   static const String windSource = 'velorki-weather-wind';
   static const String windLayer = 'velorki-weather-wind-arrows';
@@ -121,6 +127,7 @@ class MapPalette {
     this.stopCluster = '#1565C0',
     this.stopClusterLabel = '#FFFFFF',
     this.cycle = CycleMapColors.light,
+    this.routeCursor = '#1565C0',
     this.windHead = '#D62C45',
     this.windCross = '#C77800',
     this.windTail = '#1C9A57',
@@ -153,6 +160,10 @@ class MapPalette {
 
   /// The offline cycle map's colours.
   final CycleMapColors cycle;
+
+  /// The ring of the rider dot a finger on a chart puts on the route: the
+  /// colour the chart's line is drawn in, so the two read as one.
+  final String routeCursor;
 
   /// A bubble standing for several stops close together, in the accent,
   /// and the count written on it.
@@ -196,6 +207,7 @@ class MapPalette {
       stopCluster = '#1565C0',
       stopClusterLabel = '#FFFFFF',
       cycle = CycleMapColors.light,
+      routeCursor = '#1565C0',
       windHead = '#D62C45',
       windCross = '#C77800',
       windTail = '#1C9A57',
@@ -263,6 +275,7 @@ class MapPalette {
       stopCluster: VelorkiColors.hex(colors.accent),
       stopClusterLabel: VelorkiColors.hex(theme.colorScheme.onPrimary),
       cycle: dark ? CycleMapColors.dark : CycleMapColors.light,
+      routeCursor: VelorkiColors.hex(colors.accent),
       windHead: VelorkiColors.hex(colors.windHead),
       windCross: VelorkiColors.hex(colors.windCross),
       windTail: VelorkiColors.hex(colors.windTail),
@@ -331,6 +344,7 @@ class MapPalette {
       other.stopCluster == stopCluster &&
       other.stopClusterLabel == stopClusterLabel &&
       other.cycle == cycle &&
+      other.routeCursor == routeCursor &&
       other.windHead == windHead &&
       other.windCross == windCross &&
       other.windTail == windTail &&
@@ -367,6 +381,7 @@ class MapPalette {
       stopCluster,
       stopClusterLabel,
       cycle,
+      routeCursor,
       windHead,
       windCross,
       windTail,
@@ -831,6 +846,13 @@ class MaplibreMapControllerAdapter implements MapController {
   void Function(int index)? onTurnTapped;
   LatLng? _searchPin;
   String? _searchPinLabel;
+
+  // The rider dot as last asked for, and whether a write of it is on its
+  // way: a sweeping finger asks far faster than the platform draws, so the
+  // asks that come during a write make one more write, of the last of them.
+  LatLng? _routeCursor;
+  bool _routeCursorWriting = false;
+  bool _routeCursorAgain = false;
   List<LatLng> _track = const <LatLng>[];
   // The two ways of drawing the track share one source and one layer, so only
   // one of them is ever set; `_trackColoured` is what the layer currently
@@ -1030,6 +1052,15 @@ class MaplibreMapControllerAdapter implements MapController {
     );
     await add(MapLayerIds.routeWindSource, MapLayerIds.routeWindLayer);
 
+    // The rider dot of a chart: over the route lines, the wind on them and
+    // the track, under the puck and the markers.
+    await _ops.addGeoJsonSource(
+      MapLayerIds.routeCursorSource,
+      emptyFeatureCollection(),
+    );
+    await add(MapLayerIds.routeCursorSource, MapLayerIds.routeCursorEdgeLayer);
+    await add(MapLayerIds.routeCursorSource, MapLayerIds.routeCursorLayer);
+
     await _ops.addGeoJsonSource(
       MapLayerIds.positionSource,
       emptyFeatureCollection(),
@@ -1121,6 +1152,7 @@ class MaplibreMapControllerAdapter implements MapController {
     if (_searchPin != null) {
       await setSearchPin(_searchPin, label: _searchPinLabel);
     }
+    if (_routeCursor != null) await setRouteCursor(_routeCursor);
     if (_track.isNotEmpty) await setTrackLine(_track);
     if (_trackSegments.isNotEmpty) await setTrackSegments(_trackSegments);
     if (_routeWind.isNotEmpty) await setRouteWind(_routeWind);
@@ -1810,6 +1842,21 @@ class MaplibreMapControllerAdapter implements MapController {
         lineOpacity: 1.0,
         lineCap: 'round',
         lineJoin: 'round',
+      ),
+      // A dark edge, then a disc in the map's label colour ringed in the
+      // chart's: it holds up on the route line, which may wear that same
+      // colour, on a light map and a dark one, and it is neither the puck's
+      // filled dot nor a turn marker's small one.
+      MapLayerIds.routeCursorEdgeLayer: ml.CircleLayerProperties(
+        circleRadius: 11.0,
+        circleColor: palette.routeMainCasing,
+        circleOpacity: 0.9,
+      ),
+      MapLayerIds.routeCursorLayer: ml.CircleLayerProperties(
+        circleRadius: 6.0,
+        circleColor: palette.mapLabel,
+        circleStrokeWidth: 3.5,
+        circleStrokeColor: palette.routeCursor,
       ),
       MapLayerIds.positionAccuracyLayer: _accuracyProperties(),
       MapLayerIds.positionHeadingLayer: ml.SymbolLayerProperties(
@@ -2841,6 +2888,43 @@ class MaplibreMapControllerAdapter implements MapController {
               ],
             },
     );
+  }
+
+  @override
+  Future<void> setRouteCursor(LatLng? position) async {
+    _routeCursor = position;
+    if (!_attached) return;
+    if (_routeCursorWriting) {
+      _routeCursorAgain = true;
+      return;
+    }
+    _routeCursorWriting = true;
+    try {
+      do {
+        _routeCursorAgain = false;
+        final at = _routeCursor;
+        await _writeBaseSource(
+          MapLayerIds.routeCursorSource,
+          at == null
+              ? emptyFeatureCollection()
+              : <String, dynamic>{
+                  'type': 'FeatureCollection',
+                  'features': <Map<String, dynamic>>[
+                    <String, dynamic>{
+                      'type': 'Feature',
+                      'properties': const <String, dynamic>{},
+                      'geometry': <String, dynamic>{
+                        'type': 'Point',
+                        'coordinates': lngLat(at),
+                      },
+                    },
+                  ],
+                },
+        );
+      } while (_routeCursorAgain && _attached && !_disposed);
+    } finally {
+      _routeCursorWriting = false;
+    }
   }
 
   /// Whether the CyclOSM overlay is currently switched on.

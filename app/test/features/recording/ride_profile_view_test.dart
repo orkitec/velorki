@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:fl_chart/fl_chart.dart' show LineChart;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -125,5 +126,49 @@ void main() {
       const RideProfileView(samples: <ElevationSample>[], alongM: 0),
     );
     expect(find.text(l10n.recordingProfileNoRoute), findsOneWidget);
+  });
+
+  testWidgets('a finger on the profile says where along the route it is, '
+      'and a pinch zooms it until "Whole route" shows it all again', (
+    tester,
+  ) async {
+    final cursor = <double?>[];
+    await pump(
+      tester,
+      RideProfileView(samples: _route(), alongM: 4000, onCursor: cursor.add),
+    );
+    final units = ProviderScope.containerOf(
+      tester.element(find.byType(RideProfileView)),
+    ).read(unitSystemProvider);
+    final rect = tester.getRect(find.byType(LineChart));
+    Offset at(double share) =>
+        Offset(rect.left + 40 + (rect.width - 40) * share, rect.center.dy);
+
+    await tester.tapAt(at(0.25));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(cursor.first, closeTo(3000, 20));
+    expect(cursor.last, isNull);
+
+    final a = await tester.createGesture();
+    final b = await tester.createGesture();
+    await a.down(at(0.5) - const Offset(50, 0));
+    await b.down(at(0.5) + const Offset(50, 0));
+    await tester.pump();
+    for (var i = 0; i < 10; i++) {
+      await a.moveBy(const Offset(-10, 0));
+      await b.moveBy(const Offset(10, 0));
+      await tester.pump();
+    }
+    await a.up();
+    await b.up();
+    await tester.pump(const Duration(milliseconds: 400));
+    final whole = units == UnitSystem.metric ? 12.0 : 12000 / 1609.344;
+    var data = tester.widget<LineChart>(find.byType(LineChart)).data;
+    expect(data.maxX - data.minX, lessThan(whole * 0.6));
+
+    await tester.tap(find.text(l10n.chartResetZoomRoute));
+    await tester.pumpAndSettle();
+    data = tester.widget<LineChart>(find.byType(LineChart)).data;
+    expect(data.maxX - data.minX, closeTo(whole, 1e-6));
   });
 }

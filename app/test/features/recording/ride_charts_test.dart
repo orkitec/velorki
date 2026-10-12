@@ -203,7 +203,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final prefs = await SharedPreferences.getInstance();
-    final asked = <RideWindow?>[];
+    final asked = <DistanceWindow?>[];
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

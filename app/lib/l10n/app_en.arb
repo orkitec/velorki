@@ -5245,6 +5245,10 @@
   "@chartResetZoom": {
     "description": "Small button at the top right of a zoomed ride chart that zooms back out to the whole ride"
   },
+  "chartResetZoomRoute": "Whole route",
+  "@chartResetZoomRoute": {
+    "description": "Small button at the top right of a zoomed chart along a route that zooms back out to the whole route"
+  },
   "rideHighlightSplit": "Split {index}",
   "@rideHighlightSplit": {
     "description": "Name of the split a rider picked, in the chip over the ride map that says what the thick line is; the index counts from 1",

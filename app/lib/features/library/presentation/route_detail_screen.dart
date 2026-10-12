@@ -12,6 +12,7 @@ import '../../../core/files/track_exporter.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/presentation/describe_route_sheet.dart';
 import '../../integrations/presentation/route_send_menu.dart';
+import '../../map/application/route_cursor.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/shared_map_layers.dart';
 import '../../planner/application/planner_controller.dart';
@@ -75,6 +76,9 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
   /// The cue sheet, to scroll it into view when a marker is tapped.
   final GlobalKey _cueSheetKey = GlobalKey();
 
+  /// The rider dot a finger on the profile puts on the route.
+  final RouteCursor _cursor = RouteCursor();
+
   @override
   String get layersTab => libraryRoute;
 
@@ -91,12 +95,14 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
   @override
   void dispose() {
     disposeLayers();
+    _cursor.dispose();
     super.dispose();
   }
 
   @override
   void drawLayers(MapController map) {
     _shownRouteId = null;
+    _cursor.map = map;
     final route = ref.read(savedRouteProvider(widget.routeId)).value;
     if (route != null) unawaited(_showOnMap(route));
   }
@@ -104,6 +110,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
   @override
   void clearLayers(MapController map) {
     _shownRouteId = null;
+    _cursor.map = null;
     map.onPoiTapped = null;
     map.onTurnTapped = null;
     unawaited(map.removeRouteLine(libraryRouteLineId));
@@ -361,6 +368,11 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
             unawaited(_showOnMap(saved));
             final theme = Theme.of(context);
             final geometry = saved.geometry;
+            // Known by the route, as the build decodes a new geometry.
+            _cursor.setLine(
+              saved,
+              () => geometry.map((p) => p.pos).toList(growable: false),
+            );
             final bottom = MediaQuery.paddingOf(context).bottom + 24;
             final cues = _cuesFor(saved);
             // Built whole rather than lazily: the actions are below the
@@ -488,6 +500,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                     ElevationProfileChart(
                       samples: elevationProfile(geometry),
                       height: 220,
+                      onCursor: _cursor.show,
                     ),
                     if (cues.length > 1) ...[
                       const SizedBox(height: 28),

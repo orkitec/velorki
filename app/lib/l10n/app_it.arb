@@ -1025,6 +1025,7 @@
   "rideClimbVam": "{value} m/h",
   "unitPercent": "{value} %",
   "chartResetZoom": "Tutto il giro",
+  "chartResetZoomRoute": "Tutto il percorso",
   "rideHighlightSplit": "Parziale {index}",
   "rideHighlightClimb": "Salita {index}",
   "rideHighlightChip": "{name} · {range}",

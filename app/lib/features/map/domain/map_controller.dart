@@ -147,6 +147,14 @@ abstract class MapController {
   /// its name; `null` removes it.
   Future<void> setSearchPin(LatLng? position, {String? label});
 
+  /// The rider dot: the point of the route or track a finger rests on in a
+  /// chart along it, drawn over the route lines and the track and under the
+  /// puck and the markers; `null` takes it away. Called on every move of a
+  /// sweeping finger, so a call while the last one is still being written
+  /// is folded into the next write rather than queued. The camera stays
+  /// where it is.
+  Future<void> setRouteCursor(LatLng? position);
+
   /// Events from the map, set by the owning screen.
   set onTap(ValueChanged<LatLng>? handler);
   set onLongPress(ValueChanged<LatLng>? handler);

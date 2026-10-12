@@ -140,6 +140,10 @@ void main() {
           // The wind on the route, over every route line.
           MapLayerIds.routeWindSource,
           MapLayerIds.routeWindLayer,
+          // The rider dot of a chart: over the routes, under the puck.
+          MapLayerIds.routeCursorSource,
+          MapLayerIds.routeCursorEdgeLayer,
+          MapLayerIds.routeCursorLayer,
           MapLayerIds.positionSource,
           // The ring is the bottom of the puck, the dot the top, so a route
           // line inserted below the ring stays under the whole puck.
@@ -1996,6 +2000,60 @@ void main() {
       await adapter.attachToStyle();
 
       expect(_featuresOf(ops, MapLayerIds.searchPinSource), hasLength(1));
+    });
+  });
+
+  group('setRouteCursor', () {
+    test('draws the dot, takes it away, and comes back after a style '
+        'reload', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      await adapter.setRouteCursor(const LatLng(47.5, 8.5));
+      final features = _featuresOf(ops, MapLayerIds.routeCursorSource);
+      expect(features, hasLength(1));
+      expect(
+        (features.single['geometry'] as Map<String, dynamic>)['coordinates'],
+        <double>[8.5, 47.5],
+      );
+
+      ops.clearCalls();
+      await adapter.attachToStyle();
+      expect(_featuresOf(ops, MapLayerIds.routeCursorSource), hasLength(1));
+
+      await adapter.setRouteCursor(null);
+      expect(_featuresOf(ops, MapLayerIds.routeCursorSource), isEmpty);
+    });
+
+    test('a sweep faster than the map draws writes the last place, not '
+        'every one', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      // Five moves before the first write is done: one write for the
+      // first, one more for the last, none for the three in between.
+      final writes = <Future<void>>[
+        for (var i = 0; i < 5; i++)
+          adapter.setRouteCursor(LatLng(47.0 + i / 100, 8.0)),
+      ];
+      await Future.wait(writes);
+
+      final cursorWrites = ops.calls
+          .where(
+            (c) =>
+                c.name == 'setGeoJsonSource' &&
+                c.id == MapLayerIds.routeCursorSource,
+          )
+          .toList();
+      expect(cursorWrites, hasLength(2));
+      expect(
+        (_featuresOf(ops, MapLayerIds.routeCursorSource).single['geometry']
+            as Map<String, dynamic>)['coordinates'],
+        <double>[8.0, 47.04],
+      );
     });
   });
 

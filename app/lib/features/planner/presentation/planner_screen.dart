@@ -18,6 +18,7 @@ import '../../map/application/area_download_hint.dart';
 import '../../map/application/cycle_map_binding.dart';
 import '../../map/application/locate_on_open.dart';
 import '../../map/application/map_stops_controller.dart';
+import '../../map/application/route_cursor.dart';
 import '../../map/domain/visible_map.dart';
 import '../../map/presentation/weather_time_row.dart';
 import '../../map/presentation/stops_zoom_chip.dart';
@@ -40,6 +41,7 @@ import '../../shared/application/nav_bar_docking.dart';
 import '../../../app/shell_layout.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/docking_sheet.dart';
+import '../../shared/presentation/metric_chart.dart' show DistanceWindow;
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
 import '../../smart_loop/application/smart_loop_controller.dart';
@@ -84,6 +86,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   /// The shared map, while it can be driven.
   MapController? _map;
+
+  /// The rider dot a finger on the profile or the weather strip puts on
+  /// the route.
+  final RouteCursor _cursor = RouteCursor();
 
   /// The binding of the plan to [_map]; kept while the tab is away, so the
   /// plan's history is not lost between a leave and a return.
@@ -435,6 +441,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _binding?.detach();
+    _cursor.dispose();
     _stops.dispose();
     _areaHint.dispose();
     _sheet.dispose();
@@ -583,6 +590,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     _stops.detach(clear: false);
     _areaHint.detach();
     _drawing = false;
+    _cursor.map = null;
     _map = map;
     _updateMapUse();
   }
@@ -600,6 +608,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     if (!wanted) {
       if (!_drawing) return;
       _drawing = false;
+      _cursor.map = null;
       _stops.detach();
       _areaHint.detach();
       final binding = _binding;
@@ -653,6 +662,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     }
     binding.attach();
     unawaited(binding.sync(ref.read(plannerControllerProvider)));
+    _cursor.map = map;
     _stops.attach(map);
     _areaHint.attach(map);
     // A place whose card is open is still pinned.
@@ -1386,7 +1396,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                           onSave: _save,
                         ),
                         const SizedBox(height: 16),
-                        _SheetBody(state: state),
+                        _SheetBody(state: state, cursor: _cursor),
                       ],
                     ),
                   ),
@@ -1553,21 +1563,55 @@ class _SheetHeader extends ConsumerWidget {
 }
 
 /// Everything under the actions: chart, surfaces, alternatives.
-class _SheetBody extends StatelessWidget {
-  const _SheetBody({required this.state});
+///
+/// The profile and the weather strip run along the same distance and share
+/// one zoom window, and a finger on either puts the rider dot on the route.
+class _SheetBody extends StatefulWidget {
+  const _SheetBody({required this.state, required this.cursor});
 
   final PlannerState state;
 
+  /// The rider dot on the map.
+  final RouteCursor cursor;
+
+  @override
+  State<_SheetBody> createState() => _SheetBodyState();
+}
+
+class _SheetBodyState extends State<_SheetBody> {
+  /// The route the window is of; another route starts from the whole of it.
+  RouteResult? _route;
+
+  /// The stretch of the route the profile and the strip are zoomed to, in
+  /// metres; `null` for all of it.
+  DistanceWindow? _window;
+
+  void _setWindow(DistanceWindow? window) {
+    if (window == _window) return;
+    setState(() => _window = window);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final state = widget.state;
     final route = state.result;
+    if (!identical(route, _route)) {
+      _route = route;
+      _window = null;
+    }
+    widget.cursor.setLine(route, () => route!.positions);
     // A round trip comes with its start alone and is still a route: the
     // plan drops its route when the waypoints go under two by hand.
     if (route == null) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ElevationProfileChart(samples: elevationProfile(route.geometry)),
+        ElevationProfileChart(
+          samples: elevationProfile(route.geometry),
+          window: _window,
+          onWindow: _setWindow,
+          onCursor: widget.cursor.show,
+        ),
         const SizedBox(height: 20),
         // A route the router did not draw all of has its line matched
         // against the routing tiles; until that is done, the section says
@@ -1581,7 +1625,11 @@ class _SheetBody extends StatelessWidget {
           SurfaceStatsBar(stats: state.surfaceStats),
         // The weather on the way; it brings its own space above it, and
         // takes none when there is nothing to show.
-        const RouteWeatherSection(),
+        RouteWeatherSection(
+          window: _window,
+          onWindow: _setWindow,
+          onCursor: widget.cursor.show,
+        ),
       ],
     );
   }

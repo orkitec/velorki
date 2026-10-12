@@ -497,6 +497,18 @@ class FakeMapController implements MapController {
     searchPinLabel = position == null ? null : label;
   }
 
+  /// The rider dot shown, if any.
+  LatLng? routeCursor;
+
+  /// Every [setRouteCursor] call, in order.
+  final List<LatLng?> routeCursorCalls = <LatLng?>[];
+
+  @override
+  Future<void> setRouteCursor(LatLng? position) async {
+    routeCursor = position;
+    routeCursorCalls.add(position);
+  }
+
   @override
   Future<void> setCyclosmOverlay(bool visible) async {
     cyclosmOverlay = visible;

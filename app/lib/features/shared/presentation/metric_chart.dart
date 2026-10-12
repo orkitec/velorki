@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme.dart';
 import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
+import 'chart_gestures.dart';
 import 'stat_tile.dart';
 
 /// One measurement over the distance: the elevation of a route, the speed of a
@@ -18,17 +19,13 @@ import 'stat_tile.dart';
 ///
 /// A [zoomable] chart shows a [window] of its x axis: a horizontal pinch
 /// zooms around the fingers, a drag while zoomed pans, a double tap or the
-/// "Whole ride" button at the top right shows everything again. With
+/// [resetLabel] button at the top right shows everything again. With
 /// [onWindow] the caller owns the window and several charts can share one;
 /// without it the chart keeps its own.
 ///
-/// The touches are the chart's own rather than fl_chart's: its tap and pan
-/// recognizers would sit inside ours and reach the pointer router first,
-/// and a pinch clears the scale slop on the very move the pan clears its
-/// own, so the pan would win every pinch on registration order. With
-/// fl_chart's touch off, one [Listener] reads out the sample under a
-/// landing finger at once, and one scale recognizer tells a sweep, a pan
-/// and a pinch apart by how many fingers it has.
+/// The touches are [ChartGestures]', with fl_chart's own off; its doc says
+/// why. While a finger is on the line, [onTouched] tells the caller which
+/// sample it is on, for the rider dot on the map.
 class MetricChart extends StatefulWidget {
   /// Creates the chart.
   const MetricChart({
@@ -44,6 +41,8 @@ class MetricChart extends StatefulWidget {
     this.zoomable = false,
     this.window,
     this.onWindow,
+    this.onTouched,
+    this.resetLabel,
   });
 
   /// The caption above the chart; upper-cased by [SectionCaption].
@@ -89,6 +88,15 @@ class MetricChart extends StatefulWidget {
   /// without it the chart keeps its own window.
   final ValueChanged<ChartWindow?>? onWindow;
 
+  /// Called with the index of the sample a finger lands or sweeps on, and
+  /// with `null` once no finger is on one: lifted, or taken by a pinch or a
+  /// pan. The read-out itself stays after a lift; this does not.
+  final ValueChanged<int?>? onTouched;
+
+  /// The label of the button that shows the whole line again while zoomed,
+  /// "Whole ride" when left out.
+  final String? resetLabel;
+
   @override
   State<MetricChart> createState() => _MetricChartState();
 }
@@ -102,12 +110,54 @@ typedef ChartWindow = ({double start, double end});
 /// Where a [MetricChart]'s y axis runs from and to.
 typedef ChartAxis = ({double min, double max});
 
+/// A stretch of a route or a ride the charts along it are zoomed to, in
+/// metres from the start; one for all of them, so a pinch on one zooms the
+/// others to the same road.
+typedef DistanceWindow = ({double start, double end});
+
+/// [window] on a chart's x axis, which runs in the rider's distance unit,
+/// converted as the samples are; `null` for the whole line.
+ChartWindow? chartWindow(units.UnitSystem system, DistanceWindow? window) =>
+    window == null
+    ? null
+    : (
+        start: units.distanceToDisplay(system, window.start),
+        end: units.distanceToDisplay(system, window.end),
+      );
+
+/// [onWindow] as a [MetricChart] calls it: with the window in the axis'
+/// unit, handed on in metres. `null` when there is nobody to hand it to, so
+/// the chart keeps its own window.
+ValueChanged<ChartWindow?>? distanceWindowCallback(
+  units.UnitSystem system,
+  ValueChanged<DistanceWindow?>? onWindow,
+) => onWindow == null
+    ? null
+    : (window) => onWindow(
+        window == null
+            ? null
+            : (
+                start: units.displayToMeters(system, window.start),
+                end: units.displayToMeters(system, window.end),
+              ),
+      );
+
 /// How close to a mark, as a share of the axis width, the touched sample
 /// has to be for the mark's name to join the read-out.
 const double chartMarkReadoutShare = 0.01;
 
 /// The narrowest window a pinch can reach, as a share of the whole line.
 const double chartMinWindowShare = 0.05;
+
+/// [onCursor] as a [MetricChart] calls it: with a sample's index, handed on
+/// as the sample's distance along the line, [distanceOf] it; `null` when
+/// there is nobody to hand it to.
+ValueChanged<int?>? cursorCallback(
+  ValueChanged<double?>? onCursor,
+  double Function(int index) distanceOf,
+) => onCursor == null
+    ? null
+    : (index) => onCursor(index == null ? null : distanceOf(index));
 
 /// A tenth of the range of air above and below the line; a flat line still
 /// needs an axis to sit in the middle of.
@@ -153,175 +203,95 @@ ChartAxis elevationAxis(
 class _MetricChartState extends State<MetricChart> {
   int? _touched;
 
-  // The window last asked for; `null` for the whole line. The chart's own
-  // when it keeps it, and a step ahead of [widget.window] when the caller
-  // does, so two finger moves in one frame build on each other.
-  ChartWindow? _window;
-
-  // The window a pinch started from and where the fingers were, so the
-  // stretch under them stays under them as they move.
-  ChartWindow? _pinchFrom;
-  double _pinchFocalX = 0;
-
-  // How many fingers are on the chart: the first reads out, the second
-  // takes the read-out away again.
-  int _fingers = 0;
-
-  // How wide the plot is on screen, as of the last build, for turning a
-  // finger's pixels into the axis' unit.
-  double _plotWidth = 0;
-
-  bool get _controlled => widget.onWindow != null;
-
-  @override
-  void initState() {
-    super.initState();
-    _window = widget.window;
-  }
+  // Whether a finger is on the sample [_touched], as against a read-out
+  // that stayed after the finger lifted.
+  bool _held = false;
 
   @override
   void didUpdateWidget(MetricChart oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.spots, widget.spots)) _touched = null;
-    if (_controlled) _window = widget.window;
-  }
-
-  /// The whole line, from the first sample to the last.
-  ChartWindow get _extent =>
-      (start: widget.spots.first.x, end: widget.spots.last.x);
-
-  /// The window as asked for, cut to the line; `null` when it is the whole
-  /// line anyway.
-  ChartWindow? _clamp(ChartWindow? window) {
-    if (window == null) return null;
-    final extent = _extent;
-    final full = extent.end - extent.start;
-    final width = (window.end - window.start).clamp(
-      full * chartMinWindowShare,
-      full,
-    );
-    if (width >= full || full <= 0) return null;
-    final start = window.start.clamp(extent.start, extent.end - width);
-    return (start: start, end: start + width);
-  }
-
-  /// The window drawn.
-  ChartWindow? get _shown => _clamp(_controlled ? widget.window : _window);
-
-  /// The window the fingers work from: the one last asked for.
-  ChartWindow? get _current => _clamp(_window);
-
-  void _setWindow(ChartWindow? window) {
-    final next = _clamp(window);
-    if (next == _current) return;
-    _window = next;
-    if (_controlled) {
-      widget.onWindow!(next);
-    } else {
-      setState(() {});
+    if (!identical(oldWidget.spots, widget.spots) && _touched != null) {
+      _touched = null;
+      _report(null);
     }
   }
 
-  /// The plot's x of a pixel [dx] in the chart, 0 to 1 across the plot.
-  double _plotShare(double dx) =>
-      _plotWidth <= 0 ? 0 : (dx - widget.leftReservedSize) / _plotWidth;
-
-  void _onPointerDown(PointerDownEvent event) {
-    _fingers++;
-    if (_fingers == 1) {
-      _readAt(event.localPosition.dx);
-    } else if (_touched != null) {
-      // A second finger is a pinch on its way, not a place to read out.
-      setState(() => _touched = null);
-    }
+  @override
+  void dispose() {
+    // A chart that goes while a finger is on it still owes its caller the
+    // lift; the caller only draws with it, it does not build.
+    if (_held) widget.onTouched?.call(null);
+    super.dispose();
   }
 
-  void _onPointerUp(PointerEvent event) {
-    if (_fingers > 0) _fingers--;
+  void _report(int? index) {
+    _held = index != null;
+    widget.onTouched?.call(index);
   }
 
-  /// Reads out the sample nearest to the pixel [dx] in the chart, in the
-  /// window shown.
-  void _readAt(double dx) {
-    final shown = _current;
-    final minX = shown?.start ?? widget.spots.first.x;
-    final maxX = shown?.end ?? widget.spots.last.x;
-    final x = minX + _plotShare(dx) * (maxX - minX);
+  /// Reads out the sample nearest to [x] on the axis.
+  void _readAt(double x) {
     int? nearest;
     var distance = double.infinity;
     for (final (i, spot) in widget.spots.indexed) {
       if (spot.isNull()) continue;
-      if (shown != null && (spot.x < minX || spot.x > maxX)) continue;
       final d = (spot.x - x).abs();
       if (d < distance) {
         distance = d;
         nearest = i;
       }
     }
-    if (nearest == null || nearest == _touched) return;
-    setState(() => _touched = nearest);
+    if (nearest == null || (nearest == _touched && _held)) return;
+    if (nearest != _touched) setState(() => _touched = nearest);
+    _report(nearest);
   }
 
-  void _onScaleStart(ScaleStartDetails details) {
-    _pinchFrom = _current ?? _extent;
-    _pinchFocalX = details.localFocalPoint.dx;
-    // A pinch or a pan moves the line under the finger: whatever it landed
-    // on is not what the rider is after.
-    final moves =
-        details.pointerCount >= 2 || (widget.zoomable && _current != null);
-    if (moves && _touched != null) setState(() => _touched = null);
-  }
-
-  void _onScaleUpdate(ScaleUpdateDetails details) {
-    if (details.pointerCount < 2) {
-      // One finger: a sweep of the read-out over the whole line, a pan of
-      // the window once zoomed.
-      if (widget.zoomable && _current != null) {
-        _pan(details.focalPointDelta.dx);
-      } else {
-        _readAt(details.localFocalPoint.dx);
-      }
-      return;
-    }
-    if (!widget.zoomable) return;
-    final from = _pinchFrom;
-    if (from == null || _plotWidth <= 0) return;
-    final extent = _extent;
-    final full = extent.end - extent.start;
-    final fromWidth = from.end - from.start;
-    final width = (fromWidth / details.horizontalScale).clamp(
-      full * chartMinWindowShare,
-      full,
-    );
-    // The point of the line the fingers closed on stays under them.
-    final anchor = from.start + _plotShare(_pinchFocalX) * fromWidth;
-    final start = anchor - _plotShare(details.localFocalPoint.dx) * width;
-    _setWindow((start: start, end: start + width));
-  }
-
-  void _onScaleEnd(ScaleEndDetails details) => _pinchFrom = null;
-
-  /// Moves the window by a finger's [dx] pixels, the line following the
-  /// finger.
-  void _pan(double dx) {
-    final current = _current;
-    if (current == null || _plotWidth <= 0) return;
-    final shift = -dx / _plotWidth * (current.end - current.start);
-    _setWindow((start: current.start + shift, end: current.end + shift));
+  void _endRead({required bool lifted}) {
+    // A lifted finger leaves its read-out; a pinch or a pan takes it.
+    if (!lifted && _touched != null) setState(() => _touched = null);
+    if (_held) _report(null);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.velorki;
     final spots = widget.spots;
     if (spots.length < 2) return const SizedBox.shrink();
+    return ChartGestures(
+      extent: (start: spots.first.x, end: spots.last.x),
+      zoomable: widget.zoomable,
+      window: widget.window,
+      onWindow: widget.onWindow,
+      leftInset: widget.leftReservedSize,
+      onRead: _readAt,
+      onReadEnd: _endRead,
+      resetLabel:
+          widget.resetLabel ?? AppLocalizations.of(context).chartResetZoom,
+      header: _header,
+      builder: _plot,
+    );
+  }
 
-    final window = _shown;
+  /// What the window shows of the x axis, and the marks inside it.
+  ({double minX, double maxX, List<ChartMark> marks}) _visible(
+    ChartWindow? window,
+  ) {
+    final spots = widget.spots;
     final minX = window?.start ?? spots.first.x;
     final maxX = window?.end ?? spots.last.x;
-    // The axis fits the samples in the window, so a zoomed line fills the
-    // height; a window between two samples falls back to the whole line.
+    return (
+      minX: minX,
+      maxX: maxX,
+      marks: <ChartMark>[
+        for (final mark in widget.marks)
+          if (mark.x >= minX && mark.x <= maxX) mark,
+      ],
+    );
+  }
+
+  /// The y axis for the samples in the window, so a zoomed line fills the
+  /// height; a window between two samples falls back to the whole line.
+  ChartAxis _yAxis(ChartWindow? window, double minX, double maxX) {
+    final spots = widget.spots;
     double? lowest;
     double? highest;
     for (final spot in spots) {
@@ -337,21 +307,16 @@ class _MetricChartState extends State<MetricChart> {
         if (highest == null || spot.y > highest) highest = spot.y;
       }
     }
-    final axis = widget.yAxis(lowest ?? 0, highest ?? 0);
-    final touched = _touched;
-    // The band never widens the axis: it is cut to the window, and a stretch
-    // that lies wholly outside it is not drawn at all.
-    final band = widget.highlight;
-    final bandStart = band?.start.clamp(minX, maxX);
-    final bandEnd = band?.end.clamp(minX, maxX);
-    final marks = <ChartMark>[
-      for (final mark in widget.marks)
-        if (mark.x >= minX && mark.x <= maxX) mark,
-    ];
-    final markLabelStyle = theme.textTheme.labelSmall?.copyWith(
-      color: colors.accent,
-    );
+    return widget.yAxis(lowest ?? 0, highest ?? 0);
+  }
 
+  /// The caption, and the read-out of the sample touched.
+  Widget _header(BuildContext context, ChartWindow? window) {
+    final theme = Theme.of(context);
+    final colors = theme.velorki;
+    final spots = widget.spots;
+    final (:minX, :maxX, :marks) = _visible(window);
+    final touched = _touched;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -374,161 +339,126 @@ class _MetricChartState extends State<MetricChart> {
           ],
         ),
         const SizedBox(height: 10),
-        SizedBox(
-          height: widget.height,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              _plotWidth = constraints.maxWidth - widget.leftReservedSize;
-              final chart = LineChart(
-                // A pinch wants the axis where the fingers are, not on its
-                // way there.
-                duration: widget.zoomable
-                    ? Duration.zero
-                    : const Duration(milliseconds: 150),
-                LineChartData(
-                  minY: axis.min,
-                  maxY: axis.max,
-                  minX: minX,
-                  maxX: maxX,
-                  // A windowed line runs on past both edges; it is cut
-                  // there rather than drawn over the axis labels.
-                  clipData: window == null
-                      ? const FlClipData.none()
-                      : const FlClipData.all(),
-                  gridData: const FlGridData(show: false),
-                  borderData: FlBorderData(show: false),
-                  extraLinesData: ExtraLinesData(
-                    verticalLines: [
-                      for (final mark in marks)
-                        VerticalLine(
-                          x: mark.x,
-                          color: colors.accent.withValues(alpha: 0.6),
-                          strokeWidth: 1,
-                          dashArray: const <int>[4, 3],
-                          label: VerticalLineLabel(
-                            show: true,
-                            // The name hangs off the line towards the
-                            // middle of the chart, so it never runs off
-                            // the edge.
-                            alignment: mark.x - minX > (maxX - minX) * 0.7
-                                ? Alignment.topLeft
-                                : Alignment.topRight,
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            style: markLabelStyle,
-                            labelResolver: (_) => mark.label,
-                          ),
-                        ),
-                    ],
-                  ),
-                  rangeAnnotations: RangeAnnotations(
-                    verticalRangeAnnotations: [
-                      if (bandStart != null &&
-                          bandEnd != null &&
-                          bandEnd > bandStart)
-                        VerticalRangeAnnotation(
-                          x1: bandStart,
-                          x2: bandEnd,
-                          color: colors.accent.withValues(alpha: 0.18),
-                        ),
-                    ],
-                  ),
-                  titlesData: FlTitlesData(
-                    topTitles: const AxisTitles(),
-                    rightTitles: const AxisTitles(),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 24,
-                        // Only the evenly spaced steps: the ends of the axis
-                        // are rarely round and sit on top of the step
-                        // beside them ("13" over "13.6").
-                        minIncluded: false,
-                        maxIncluded: false,
-                        getTitlesWidget: (_, meta) => _axisLabel(context, meta),
-                      ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: widget.leftReservedSize,
-                        // Round steps, about one per 40 points of height;
-                        // left to itself fl_chart halves the range
-                        // ("429.1").
-                        interval: niceAxisStep(
-                          axis.max - axis.min,
-                          math.max(2, widget.height ~/ 40),
-                        ),
-                        // Only the evenly spaced steps: the ends of the axis
-                        // are rarely round and sit on top of the step
-                        // beside them ("13" over "13.6").
-                        minIncluded: false,
-                        maxIncluded: false,
-                        getTitlesWidget: (_, meta) => _axisLabel(context, meta),
-                      ),
-                    ),
-                  ),
-                  lineTouchData: const LineTouchData(enabled: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: spots,
-                      isCurved: false,
-                      barWidth: 2.5,
-                      color: colors.accent,
-                      dotData: const FlDotData(show: false),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: colors.chartFill,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-              // The read-out lands with the finger, before any arena is
-              // decided; the sweep, the pan and the pinch are one scale
-              // recognizer's, which a scrollable around the chart beats
-              // on a vertical drag as it would beat a pan. The double tap
-              // holds the arena for a moment, which only a zoomable chart
-              // pays for.
-              final touchable = Listener(
-                onPointerDown: _onPointerDown,
-                onPointerUp: _onPointerUp,
-                onPointerCancel: _onPointerUp,
-                child: GestureDetector(
-                  onScaleStart: _onScaleStart,
-                  onScaleUpdate: _onScaleUpdate,
-                  onScaleEnd: _onScaleEnd,
-                  onDoubleTap: widget.zoomable ? () => _setWindow(null) : null,
-                  child: chart,
-                ),
-              );
-              if (!widget.zoomable) return touchable;
-              return Stack(
-                children: [
-                  touchable,
-                  if (window != null)
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: TextButton(
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          textStyle: theme.textTheme.labelSmall,
-                        ),
-                        onPressed: () => _setWindow(null),
-                        child: Text(
-                          AppLocalizations.of(context).chartResetZoom,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        ),
       ],
+    );
+  }
+
+  /// The plot of the window shown.
+  Widget _plot(BuildContext context, ChartWindow? window) {
+    final theme = Theme.of(context);
+    final colors = theme.velorki;
+    final spots = widget.spots;
+    final (:minX, :maxX, :marks) = _visible(window);
+    final axis = _yAxis(window, minX, maxX);
+    // The band never widens the axis: it is cut to the window, and a stretch
+    // that lies wholly outside it is not drawn at all.
+    final band = widget.highlight;
+    final bandStart = band?.start.clamp(minX, maxX);
+    final bandEnd = band?.end.clamp(minX, maxX);
+    final markLabelStyle = theme.textTheme.labelSmall?.copyWith(
+      color: colors.accent,
+    );
+    return SizedBox(
+      height: widget.height,
+      child: LineChart(
+        // A pinch wants the axis where the fingers are, not on its
+        // way there.
+        duration: widget.zoomable
+            ? Duration.zero
+            : const Duration(milliseconds: 150),
+        LineChartData(
+          minY: axis.min,
+          maxY: axis.max,
+          minX: minX,
+          maxX: maxX,
+          // A windowed line runs on past both edges; it is cut
+          // there rather than drawn over the axis labels.
+          clipData: window == null
+              ? const FlClipData.none()
+              : const FlClipData.all(),
+          gridData: const FlGridData(show: false),
+          borderData: FlBorderData(show: false),
+          extraLinesData: ExtraLinesData(
+            verticalLines: [
+              for (final mark in marks)
+                VerticalLine(
+                  x: mark.x,
+                  color: colors.accent.withValues(alpha: 0.6),
+                  strokeWidth: 1,
+                  dashArray: const <int>[4, 3],
+                  label: VerticalLineLabel(
+                    show: true,
+                    // The name hangs off the line towards the
+                    // middle of the chart, so it never runs off
+                    // the edge.
+                    alignment: mark.x - minX > (maxX - minX) * 0.7
+                        ? Alignment.topLeft
+                        : Alignment.topRight,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    style: markLabelStyle,
+                    labelResolver: (_) => mark.label,
+                  ),
+                ),
+            ],
+          ),
+          rangeAnnotations: RangeAnnotations(
+            verticalRangeAnnotations: [
+              if (bandStart != null && bandEnd != null && bandEnd > bandStart)
+                VerticalRangeAnnotation(
+                  x1: bandStart,
+                  x2: bandEnd,
+                  color: colors.accent.withValues(alpha: 0.18),
+                ),
+            ],
+          ),
+          titlesData: FlTitlesData(
+            topTitles: const AxisTitles(),
+            rightTitles: const AxisTitles(),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 24,
+                // Only the evenly spaced steps: the ends of the axis
+                // are rarely round and sit on top of the step
+                // beside them ("13" over "13.6").
+                minIncluded: false,
+                maxIncluded: false,
+                getTitlesWidget: (_, meta) => _axisLabel(context, meta),
+              ),
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: widget.leftReservedSize,
+                // Round steps, about one per 40 points of height;
+                // left to itself fl_chart halves the range
+                // ("429.1").
+                interval: niceAxisStep(
+                  axis.max - axis.min,
+                  math.max(2, widget.height ~/ 40),
+                ),
+                // Only the evenly spaced steps: the ends of the axis
+                // are rarely round and sit on top of the step
+                // beside them ("13" over "13.6").
+                minIncluded: false,
+                maxIncluded: false,
+                getTitlesWidget: (_, meta) => _axisLabel(context, meta),
+              ),
+            ),
+          ),
+          lineTouchData: const LineTouchData(enabled: false),
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: false,
+              barWidth: 2.5,
+              color: colors.accent,
+              dotData: const FlDotData(show: false),
+              belowBarData: BarAreaData(show: true, color: colors.chartFill),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

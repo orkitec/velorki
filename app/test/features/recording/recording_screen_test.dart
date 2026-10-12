@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:velorki/features/navigation/application/route_geometry.dart';
+import 'package:velorki/features/map/application/route_cursor.dart';
+import 'package:fl_chart/fl_chart.dart' show LineChart;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -379,6 +382,43 @@ void main() {
       expect(h.map.waypoints.where((w) => w.passed), isEmpty);
       expect(h.map.pois.single.name, 'Tap');
 
+      await unmountApp(tester);
+    });
+
+    testWidgets('a finger on the profile page puts the rider dot on the '
+        'route being followed', (tester) async {
+      final h = await following(tester);
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.005, 11.005)),
+      );
+      await tester.fling(
+        find.text(l10n.statDistance.toUpperCase()),
+        const Offset(-300, 0),
+        1200,
+      );
+      await tester.pumpAndSettle();
+      final plot = find.descendant(
+        of: find.byType(RideProfileView),
+        matching: find.byType(LineChart),
+      );
+      expect(plot, findsOneWidget);
+
+      // Halfway along the plot is halfway along the route.
+      final rect = tester.getRect(plot);
+      final finger = await tester.startGesture(
+        Offset(rect.left + 40 + (rect.width - 40) / 2, rect.center.dy),
+      );
+      await tester.pump();
+      final line = syntheticRoute().positions;
+      final cumulative = cumulativeDistances(line);
+      final half = pointAlong(line, cumulative, cumulative.last / 2);
+      expect(haversineMeters(h.map.routeCursor!, half), lessThan(30));
+
+      await finger.up();
+      await tester.pump(routeCursorLinger + const Duration(milliseconds: 400));
+      expect(h.map.routeCursor, isNull);
       await unmountApp(tester);
     });
 

@@ -8,6 +8,7 @@ import 'package:velorki/app/router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/core/db/database.dart' show RouteSource;
 import 'package:velorki/core/files/track_exporter.dart';
+import 'package:velorki/features/map/application/route_cursor.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
@@ -994,6 +995,55 @@ void main() {
     expect(_axisOf(tester, elevation), _wholeRide());
     expect(_axisOf(tester, speed), _wholeRide());
     expect(find.text(l10n.chartResetZoom), findsNothing);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a finger on any chart puts the rider dot on the track where '
+      'the ride was then, and a lifted one takes it away', (tester) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _threeKilometres());
+
+    for (final chart in <Finder>[
+      find.byType(RideSpeedChart),
+      find.byType(RideElevationChart),
+    ]) {
+      final plot = find.descendant(of: chart, matching: find.byType(LineChart));
+      await tester.ensureVisible(plot);
+      await tester.pumpAndSettle();
+      Offset at(double share) {
+        final rect = tester.getRect(plot);
+        final left =
+            rect.left +
+            tester
+                .widget<MetricChart>(
+                  find.descendant(
+                    of: chart,
+                    matching: find.byType(MetricChart),
+                  ),
+                )
+                .leftReservedSize;
+        return Offset(left + (rect.right - left) * share, rect.center.dy);
+      }
+
+      final finger = await tester.startGesture(at(0.2));
+      await tester.pump();
+      expect(
+        haversineMeters(harness.map.routeCursor!, const LatLng(48, 11)),
+        closeTo(600, 30),
+      );
+      await finger.moveTo(at(0.5));
+      await tester.pump();
+      await finger.moveTo(at(0.9));
+      await tester.pump();
+      final dot = harness.map.routeCursor!;
+      expect(haversineMeters(dot, const LatLng(48, 11)), closeTo(2700, 30));
+      expect(dot.lon, closeTo(11, 1e-6), reason: 'on the track');
+
+      await finger.up();
+      await tester.pump(routeCursorLinger + const Duration(milliseconds: 400));
+      expect(harness.map.routeCursor, isNull);
+    }
 
     await unmountApp(tester);
   });

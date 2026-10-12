@@ -1025,6 +1025,7 @@
   "rideClimbVam": "{value} m/h",
   "unitPercent": "{value} %",
   "chartResetZoom": "Toute la sortie",
+  "chartResetZoomRoute": "Tout l’itinéraire",
   "rideHighlightSplit": "Tronçon {index}",
   "rideHighlightClimb": "Montée {index}",
   "rideHighlightChip": "{name} · {range}",

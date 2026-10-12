@@ -1025,6 +1025,7 @@
   "rideClimbVam": "{value} m/h",
   "unitPercent": "{value} %",
   "chartResetZoom": "Hele rit",
+  "chartResetZoomRoute": "Hele route",
   "rideHighlightSplit": "Split {index}",
   "rideHighlightClimb": "Klim {index}",
   "rideHighlightChip": "{name} · {range}",

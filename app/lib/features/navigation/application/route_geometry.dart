@@ -147,3 +147,28 @@ List<LatLng> remainingWaypoints(
   }
   return ahead;
 }
+
+/// The point [alongM] metres along [line], between the two points around it;
+/// [cumulative] is [cumulativeDistances] of [line]. Before the start is the
+/// start, past the end the end.
+LatLng pointAlong(List<LatLng> line, List<double> cumulative, double alongM) {
+  assert(line.isNotEmpty && cumulative.length == line.length);
+  if (alongM <= cumulative.first || line.length == 1) return line.first;
+  if (alongM >= cumulative.last) return line.last;
+  // The segment lo → lo + 1 that holds alongM.
+  var lo = 0;
+  var hi = cumulative.length - 1;
+  while (hi - lo > 1) {
+    final mid = (lo + hi) >> 1;
+    if (cumulative[mid] <= alongM) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  final span = cumulative[hi] - cumulative[lo];
+  final t = span > 0 ? (alongM - cumulative[lo]) / span : 0.0;
+  final a = line[lo];
+  final b = line[hi];
+  return LatLng(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t);
+}
