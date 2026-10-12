@@ -185,6 +185,34 @@ void main() {
     expect(none.workerStarted, isFalse);
   });
 
+  test('a worker that dies answers what is waiting, and is replaced', () async {
+    realFixture.copySync('${dir.path}/E5_N45.gaz');
+    final here = await open(background: false);
+    final there = await open(background: true);
+    final expected = (await here.lookup('vaduz', near: vaduz)).results;
+    expect((await there.lookup('vaduz', near: vaduz)).results, expected);
+
+    // Killed with a search on its way: the search still answers, from the
+    // calling isolate, instead of waiting for ever.
+    final pending = there.lookup('vaduz', near: vaduz);
+    await there.debugKillWorker();
+    expect(
+      (await pending.timeout(const Duration(seconds: 10))).results,
+      expected,
+    );
+
+    // The next search gets a new worker and the same answer.
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    expect(
+      (await there
+              .lookup('vaduz', near: vaduz)
+              .timeout(const Duration(seconds: 10)))
+          .results,
+      expected,
+    );
+    expect(there.workerStarted, isTrue);
+  });
+
   test('a slow search does not hold up the calling isolate', () async {
     buildGazetteer(
       dir,

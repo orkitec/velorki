@@ -1024,17 +1024,27 @@ class GazetteerStore {
 
   /// The worker, started on first use; `null` without [background], without
   /// a directory, or when it could not be started.
-  Future<_GazetteerWorker?> _workerOrNull() {
+  ///
+  /// A worker whose isolate ended is replaced by a new one, once per call.
+  Future<_GazetteerWorker?> _workerOrNull({bool again = true}) async {
     final dir = directory;
-    if (!background || dir == null || _closed) return Future.value();
-    return _worker ??= _GazetteerWorker.spawn(dir).then<_GazetteerWorker?>(
-      (worker) => worker,
-      onError: (Object e) {
-        debugPrint('velorki: gazetteer worker did not start: $e');
-        return null;
-      },
-    );
+    if (!background || dir == null || _closed) return null;
+    final worker = await (_worker ??= _GazetteerWorker.spawn(dir)
+        .then<_GazetteerWorker?>(
+          (worker) => worker,
+          onError: (Object e) {
+            debugPrint('velorki: gazetteer worker did not start: $e');
+            return null;
+          },
+        ));
+    if (worker == null || !worker.isClosed || _closed) return worker;
+    _worker = null;
+    return again ? _workerOrNull(again: false) : null;
   }
+
+  /// Ends the worker's isolate as a crash would, for tests.
+  @visibleForTesting
+  Future<void> debugKillWorker() async => (await _worker)?.kill();
 
   /// Closes every open file and the worker. The store answers nothing
   /// afterwards.
@@ -2311,26 +2321,45 @@ class _GazetteerWorker {
   /// first, then the answers, each matched to its question by id.
   static Future<_GazetteerWorker> spawn(Directory directory) async {
     final replies = ReceivePort();
+    // Told when the isolate ends, however it ends: a worker that died
+    // answers nothing, and whoever waits on it would wait for ever.
+    final exits = ReceivePort();
     final port = Completer<SendPort>();
-    late final _GazetteerWorker worker;
+    _GazetteerWorker? worker;
     replies.listen((message) {
       if (!port.isCompleted) {
         if (message is SendPort) port.complete(message);
         return;
       }
-      worker._onReply(message);
+      worker?._onReply(message);
+    });
+    exits.listen((_) {
+      exits.close();
+      if (!port.isCompleted) {
+        port.completeError(StateError('gazetteer worker exited at start'));
+      }
+      worker?._onExit();
     });
     final Isolate isolate;
     try {
-      isolate = await Isolate.spawn(_run, (
-        replies.sendPort,
-        directory.path,
-      ), debugName: 'gazetteer');
+      isolate = await Isolate.spawn(
+        _run,
+        (replies.sendPort, directory.path),
+        debugName: 'gazetteer',
+        onExit: exits.sendPort,
+      );
+    } on Object {
+      replies.close();
+      exits.close();
+      rethrow;
+    }
+    final SendPort send;
+    try {
+      send = await port.future;
     } on Object {
       replies.close();
       rethrow;
     }
-    final send = await port.future;
     return worker = _GazetteerWorker._(isolate, send, replies);
   }
 
@@ -2358,6 +2387,25 @@ class _GazetteerWorker {
       debugPrint('velorki: gazetteer worker failed: ${answer.error}');
     }
   }
+
+  /// Whether the worker answers no more: closed, or its isolate ended.
+  bool get isClosed => _closed;
+
+  /// The isolate ended without being closed: every question still waiting
+  /// is failed, so its caller searches without the worker.
+  void _onExit() {
+    if (_closed) return;
+    _closed = true;
+    debugPrint('velorki: gazetteer worker exited');
+    for (final waiting in _waiting.values) {
+      waiting.complete(const _Failed('worker exited'));
+    }
+    _waiting.clear();
+    _replies.close();
+  }
+
+  /// Ends the isolate as a crash would, for tests.
+  void kill() => _isolate.kill(priority: Isolate.immediate);
 
   void close() {
     if (_closed) return;
