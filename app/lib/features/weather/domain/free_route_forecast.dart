@@ -15,11 +15,13 @@ import 'route_weather.dart';
 // four grid points around the sample, as the wind map's arrows are; not in
 // time, as the grids are hourly and the route's colours do not need more.
 //
-// Each grid is asked for over a box of its own: the samples that read it
-// (for the global rain, the samples of the hour that starts and of the
-// hour that ends at it), [freeForecastMargin] around them and snapped out
-// to [freeForecastSnap], so a long ride does not ask for its whole extent
-// every hour, and a route moved a little asks for the same boxes again.
+// Every grid is asked for over the same box: the route's samples within
+// [freeForecastSpan], [freeForecastMargin] around them and snapped out to
+// [freeForecastSnap]. So the grid of an hour serves every departure the
+// time control can set (they are fetched ahead, and a drag colours the
+// route from them), and a route moved a little asks for the same boxes
+// again. A long ride asks for its whole extent every hour; the grids are
+// small (a few thousand values for a day's ride).
 
 /// How far beyond the samples a grid's box reaches, in degrees: two cells
 /// of the coarse model, so every sample has grid points around it.
@@ -89,21 +91,23 @@ FreeForecastPlan planFreeForecast(
         s.position.lon < europe.east - 0.125,
   );
   final rain = inEurope ? FreeRain.europe : FreeRain.global;
-  final windPoints = <DateTime, List<LatLng>>{};
-  final rainPoints = <DateTime, List<LatLng>>{};
+  final windHours = <DateTime>{};
+  final rainHours = <DateTime>{};
+  final points = <LatLng>[];
   for (final (i, s) in samples.indexed) {
     final h = hours[i];
     if (h == null) continue;
-    final next = h.add(const Duration(hours: 1));
-    (windPoints[h] ??= <LatLng>[]).add(s.position);
-    (rainPoints[next] ??= <LatLng>[]).add(s.position);
-    if (rain == FreeRain.global) (rainPoints[h] ??= <LatLng>[]).add(s.position);
+    points.add(s.position);
+    windHours.add(h);
+    rainHours.add(h.add(const Duration(hours: 1)));
+    if (rain == FreeRain.global) rainHours.add(h);
   }
+  final box = points.isEmpty ? null : _boxAround(points);
   return FreeForecastPlan(
     hours: List<DateTime?>.unmodifiable(hours),
     rain: rain,
-    wind: {for (final e in windPoints.entries) e.key: _boxAround(e.value)},
-    rainGrids: {for (final e in rainPoints.entries) e.key: _boxAround(e.value)},
+    wind: {for (final h in windHours) h: box!},
+    rainGrids: {for (final h in rainHours) h: box!},
   );
 }
 

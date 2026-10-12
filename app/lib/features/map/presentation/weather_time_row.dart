@@ -11,13 +11,20 @@ import '../data/weather_map_preferences.dart';
 import '../domain/weather_map.dart';
 
 /// What the time control calls the step [offsetMinutes] from now: "Now",
-/// "+45 min", "+2 h".
-String weatherStepText(AppLocalizations l10n, int offsetMinutes) {
-  if (offsetMinutes <= 0) return l10n.mapWeatherNow;
-  if (offsetMinutes % 60 == 0) {
-    return l10n.mapWeatherHoursAhead(offsetMinutes ~/ 60);
+/// "+45 min", "+2 h"; as a planned route's departure ([leave]), "Leave
+/// now", "Leave +45 min", "Leave +2 h".
+String weatherStepText(
+  AppLocalizations l10n,
+  int offsetMinutes, {
+  bool leave = false,
+}) {
+  if (offsetMinutes <= 0) {
+    return leave ? l10n.mapWeatherLeaveNow : l10n.mapWeatherNow;
   }
-  return l10n.mapWeatherMinutesAhead(offsetMinutes);
+  final step = offsetMinutes % 60 == 0
+      ? l10n.mapWeatherHoursAhead(offsetMinutes ~/ 60)
+      : l10n.mapWeatherMinutesAhead(offsetMinutes);
+  return leave ? l10n.mapWeatherLeaveAhead(step) : step;
 }
 
 /// [utc] in the phone's own clock format, local time.
@@ -57,15 +64,17 @@ String? weatherSourceTag(AppLocalizations l10n, RainRole role) =>
 /// The time control's label: the step, the moment the rain over the
 /// middle of the view shows, and ahead what that is. "Now · 20:25",
 /// "+45 min · 21:30 · Nowcast", "+3 h · 23:00 · Forecast"; and "Now · 20:00
-/// · Forecast" where the model stands in for the satellite.
+/// · Forecast" where the model stands in for the satellite. As a planned
+/// route's departure ([leave]) the step says so: "Leave now · 20:25".
 String weatherRainLabel(
   BuildContext context,
   int offsetMinutes,
-  ({RainRole role, DateTime time})? rain,
-) {
+  ({RainRole role, DateTime time})? rain, {
+  bool leave = false,
+}) {
   final l10n = AppLocalizations.of(context);
   return <String>[
-    weatherStepText(l10n, offsetMinutes),
+    weatherStepText(l10n, offsetMinutes, leave: leave),
     if (rain != null) weatherClockTime(context, rain.time),
     if (rain != null && _tagged(offsetMinutes, rain.role))
       ?weatherSourceTag(l10n, rain.role),
@@ -114,23 +123,41 @@ DateTime? weatherWindAt(
 
 /// The time control's label with the wind alone on: the step, the hour
 /// the wind shows and, ahead, that it is a forecast. "Now · 20:00",
-/// "+3 h · 23:00 · Forecast".
+/// "+3 h · 23:00 · Forecast"; as a planned route's departure ([leave]),
+/// "Leave +3 h · 23:00 · Forecast".
 String weatherWindLabel(
   BuildContext context,
   int offsetMinutes,
-  DateTime? wind,
-) {
+  DateTime? wind, {
+  bool leave = false,
+}) {
   final l10n = AppLocalizations.of(context);
   return <String>[
-    weatherStepText(l10n, offsetMinutes),
+    weatherStepText(l10n, offsetMinutes, leave: leave),
     if (wind != null) weatherClockTime(context, wind),
     if (wind != null && offsetMinutes > 0) l10n.mapWeatherForecast,
   ].join(' · ');
 }
 
+/// The time control's label with the map's rain and wind off, shown as a
+/// planned route's departure: the step and the moment it stands for, [now]
+/// plus the step. "Leave now · 20:27", "Leave +45 min · 21:12".
+String weatherDepartureLabel(
+  BuildContext context,
+  int offsetMinutes,
+  DateTime now,
+) => <String>[
+  weatherStepText(AppLocalizations.of(context), offsetMinutes, leave: true),
+  weatherClockTime(context, now.add(Duration(minutes: offsetMinutes))),
+].join(' · ');
+
 /// The rain's and the wind's time control, for the Plan and Record sheets
 /// while either is on, nothing while both are off (with the rain off, its
-/// label tells the wind's hour): the drop, the label and the slider in
+/// label tells the wind's hour). On the Plan tab with a route it is also
+/// the route's departure ([leave]: "Leave now", "Leave +45 min"), which the
+/// route's forecast follows, and shown ([shown]) while the route's weather
+/// is, the map's rain and wind on or not (then its label tells the
+/// departure's time, [weatherDepartureLabel]). The drop, the label and the slider in
 /// one line, the label as wide as the widest it can get
 /// ([weatherTimeLabelWidth]) and the slider in all the room that is left;
 /// where that would leave the slider less than [weatherSliderMinShare] of
@@ -142,9 +169,21 @@ String weatherWindLabel(
 /// label says which.
 class WeatherTimeRow extends ConsumerStatefulWidget {
   /// Creates the row, with [padding] around it while it shows.
-  const WeatherTimeRow({super.key, this.padding = EdgeInsets.zero});
+  const WeatherTimeRow({
+    super.key,
+    this.padding = EdgeInsets.zero,
+    this.leave = false,
+    this.shown = false,
+  });
 
   final EdgeInsetsGeometry padding;
+
+  /// Whether the control is a planned route's departure: its steps read
+  /// "Leave now", "Leave +45 min".
+  final bool leave;
+
+  /// Whether it shows while the map's rain and wind are off.
+  final bool shown;
 
   @override
   ConsumerState<WeatherTimeRow> createState() => _WeatherTimeRowState();
@@ -179,28 +218,38 @@ TextStyle? weatherTimeLabelStyle(ThemeData theme) =>
 /// the finger: of every step, the label with the frame over the view's
 /// middle now and each tag a moment ahead can carry, measured at the
 /// label's style and the phone's text scale. Measured again only when one
-/// of those changes.
+/// of those changes. [leave] measures the departure's steps; [departure]
+/// the labels with the map's rain and wind off ([weatherDepartureLabel]).
 double weatherTimeLabelWidth(
   BuildContext context,
   List<WeatherMapSource> sources,
   WeatherMapStatus status, {
   bool wind = false,
+  bool leave = false,
+  bool departure = false,
 }) {
   final l10n = AppLocalizations.of(context);
   final labels = <String>{};
   for (final offset in weatherRadarOffsets) {
+    if (departure) {
+      labels.add(
+        weatherDepartureLabel(context, offset, status.at ?? DateTime.now()),
+      );
+      continue;
+    }
     if (wind) {
       labels.add(
         weatherWindLabel(
           context,
           offset,
           weatherWindAt(sources, status, offset),
+          leave: leave,
         ),
       );
     }
     final rain = weatherRainAt(sources, status, offset);
     final parts = <String>[
-      weatherStepText(l10n, offset),
+      weatherStepText(l10n, offset, leave: leave),
       if (rain != null) weatherClockTime(context, rain.time),
     ];
     labels.add(parts.join(' · '));
@@ -267,39 +316,59 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
 
   @override
   Widget build(BuildContext context) {
-    if (!weatherTimeOn(ref)) return const SizedBox.shrink();
+    final layers = weatherTimeOn(ref);
+    if (!layers && !widget.shown) return const SizedBox.shrink();
+    final leave = widget.leave;
     final theme = Theme.of(context);
     final sources = ref.watch(weatherMapSourcesProvider);
     final status = ref.watch(sharedWeatherMapStatusProvider);
     final committed = ref.watch(weatherRadarOffsetProvider);
     final dragging = _dragging;
     // The slider under the finger; the label the step the map shows, which
-    // while dragging is the nearest one loaded.
+    // while dragging is the nearest one loaded (with no layer on, the one
+    // under the finger).
     final offset = dragging ?? committed;
     final labelOffset = dragging == null
         ? committed
-        : status.shownOffset ?? dragging;
-    // With the rain on the label tells the rain's moment, else the wind's.
+        : layers
+        ? status.shownOffset ?? dragging
+        : dragging;
+    // With the rain on the label tells the rain's moment, else the wind's,
+    // and with neither on the departure's.
     final rainOn = weatherRainOn(ref);
-    final label = rainOn
+    final label = !layers
+        ? weatherDepartureLabel(
+            context,
+            labelOffset,
+            status.at ?? DateTime.now(),
+          )
+        : rainOn
         ? weatherRainLabel(
             context,
             labelOffset,
             weatherRainAt(sources, status, labelOffset),
+            leave: leave,
           )
         : weatherWindLabel(
             context,
             labelOffset,
             weatherWindAt(sources, status, labelOffset),
+            leave: leave,
           );
     final labelWidth = weatherTimeLabelWidth(
       context,
       sources,
       status,
       wind: !rainOn,
+      leave: leave,
+      departure: !layers,
     );
     final drop = Icon(
-      rainOn ? Icons.water_drop_outlined : Icons.air,
+      !layers
+          ? Icons.schedule
+          : rainOn
+          ? Icons.water_drop_outlined
+          : Icons.air,
       size: 18,
       color: theme.colorScheme.primary,
     );
@@ -313,7 +382,16 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
       padding: widget.padding,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final slider = _slider(context, offset, label, rainOn: rainOn);
+          final slider = _slider(
+            context,
+            offset,
+            label,
+            semantics: leave
+                ? AppLocalizations.of(context).mapWeatherDepartureTime
+                : rainOn
+                ? AppLocalizations.of(context).mapWeatherRadarTime
+                : AppLocalizations.of(context).mapWeatherWindTime,
+          );
           if (weatherTimeRowStacks(constraints.maxWidth, labelWidth)) {
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -366,9 +444,8 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
     BuildContext context,
     int offset,
     String label, {
-    required bool rainOn,
+    required String semantics,
   }) {
-    final l10n = AppLocalizations.of(context);
     return SliderTheme(
       data: SliderTheme.of(context).copyWith(
         overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
@@ -376,7 +453,7 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
       child: SizedBox(
         height: weatherTimeRowHeight,
         child: Semantics(
-          label: rainOn ? l10n.mapWeatherRadarTime : l10n.mapWeatherWindTime,
+          label: semantics,
           child: Slider(
             value: weatherSliderIndexOf(offset).toDouble(),
             max: (weatherRadarOffsets.length - 1).toDouble(),

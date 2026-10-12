@@ -11,6 +11,8 @@ import '../../../core/links/link_opener.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
+import '../../map/data/weather_map_preferences.dart';
+import '../../map/domain/weather_map.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/covering_sheets.dart';
@@ -24,12 +26,6 @@ import '../domain/route_weather_state.dart';
 import 'route_weather_strip.dart';
 import 'weather_digest_text.dart';
 import 'weather_keys.dart';
-
-/// The departure can be moved this far past the earliest one.
-const Duration weatherDepartureRange = Duration(hours: 24);
-
-/// The departure moves in steps of this.
-const Duration weatherDepartureStep = Duration(minutes: 15);
 
 /// The weather on the way, in the planner's sheet under the surfaces.
 ///
@@ -177,15 +173,18 @@ class _WeatherError extends ConsumerWidget {
   }
 }
 
-/// The best departure of each forecast, worked out once: it does not depend
-/// on the departure chosen, only on the forecast and where it starts.
+/// The best departure of each forecast, worked out once for where its
+/// steps start and the departure chosen.
 final Expando<_Best> _bestDepartures = Expando<_Best>('bestDeparture');
 
 class _Best {
-  const _Best(this.from, this.at);
+  const _Best(this.from, this.departure, this.offset);
 
   final DateTime from;
-  final DateTime? at;
+  final DateTime departure;
+
+  /// The time control's step it is at, minutes from [from].
+  final int? offset;
 }
 
 /// The forecast: the line that sums it up, the strip with its key, the
@@ -330,42 +329,60 @@ class _SummaryLine extends StatelessWidget {
   }
 }
 
-/// When the rider leaves: the time, a slider over the next twelve hours in
-/// quarter hours, and the best time. Without [state], the same row, idle.
-class _Departure extends ConsumerWidget {
+/// When the rider leaves: the time and the best time. The departure is the
+/// time control's ([weatherRadarOffsetProvider]): on the Plan tab the one
+/// over the map, so here only the time is said; on a saved route's page,
+/// which has none, a slider on the same steps ([weatherRadarOffsets]), set
+/// when it is let go as the map's is. Best time moves the control to its
+/// step with the least rain and headwind. Without [state], the same row,
+/// idle.
+class _Departure extends ConsumerStatefulWidget {
   const _Departure({required this.route, required this.state});
 
   final WeatherRoute route;
   final RouteWeatherState? state;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Departure> createState() => _DepartureState();
+}
+
+class _DepartureState extends ConsumerState<_Departure> {
+  /// The slider's step while a finger moves it.
+  int? _dragging;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final s = state;
-    final controller = ref.read(routeWeatherControllerProvider(route).notifier);
-    final steps =
-        weatherDepartureRange.inMinutes ~/ weatherDepartureStep.inMinutes;
+    final s = widget.state;
+    final controller = ref.read(
+      routeWeatherControllerProvider(widget.route).notifier,
+    );
+    final committed = ref.watch(weatherRadarOffsetProvider);
+    final offset = _dragging ?? committed;
 
     String? when;
-    var value = 0.0;
-    DateTime? best;
+    int? best;
     if (s != null) {
       final now = ref.read(weatherClockProvider)();
-      when = _formatDeparture(context, l10n, s.departure, now);
-      value =
-          (s.departure.difference(s.earliestDeparture).inMinutes /
-                  weatherDepartureStep.inMinutes)
-              .clamp(0, steps)
-              .toDouble();
+      final shown = _dragging == null
+          ? s.departure
+          : s.earliestDeparture.add(Duration(minutes: offset));
+      when = _formatDeparture(context, l10n, shown, now);
       var cached = _bestDepartures[s.forecast];
-      if (cached == null || cached.from != s.earliestDeparture) {
-        cached = _Best(s.earliestDeparture, controller.suggestBestDeparture());
+      if (cached == null ||
+          cached.from != s.earliestDeparture ||
+          cached.departure != s.departure) {
+        cached = _Best(
+          s.earliestDeparture,
+          s.departure,
+          controller.suggestBestOffset(),
+        );
         _bestDepartures[s.forecast] = cached;
       }
-      best = cached.at;
+      best = cached.offset;
     }
-    final bestIsNow = s != null && best != null && best == s.departure;
+    final bestIsNow = s != null && best != null && best == s.offsetMinutes;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -399,28 +416,40 @@ class _Departure extends ConsumerWidget {
             TextButton(
               onPressed: s == null || best == null || bestIsNow
                   ? null
-                  : () => controller.setDeparture(best!),
+                  : () => ref
+                        .read(weatherRadarOffsetProvider.notifier)
+                        .set(best!),
               child: Text(
                 bestIsNow ? l10n.weatherBestTimeNow : l10n.weatherBestTime,
               ),
             ),
           ],
         ),
-        Slider(
-          value: value,
-          max: steps.toDouble(),
-          divisions: steps,
-          label: when,
-          semanticFormatterCallback: (_) => when ?? '',
-          onChanged: s == null
-              ? null
-              : (v) {
-                  final time = s.earliestDeparture.add(
-                    weatherDepartureStep * v.round(),
-                  );
-                  if (time != s.departure) controller.setDeparture(time);
-                },
-        ),
+        // The Plan tab's departure is the time control over the map.
+        if (widget.route is! PlannerWeatherRoute)
+          Semantics(
+            label: l10n.mapWeatherDepartureTime,
+            child: Slider(
+              value: weatherSliderIndexOf(offset).toDouble(),
+              max: (weatherRadarOffsets.length - 1).toDouble(),
+              divisions: weatherRadarOffsets.length - 1,
+              label: when,
+              semanticFormatterCallback: (_) => when ?? '',
+              onChanged: s == null
+                  ? null
+                  : (v) => setState(
+                      () => _dragging = weatherOffsetOfSliderIndex(v.round()),
+                    ),
+              onChangeEnd: s == null
+                  ? null
+                  : (v) {
+                      setState(() => _dragging = null);
+                      ref
+                          .read(weatherRadarOffsetProvider.notifier)
+                          .set(weatherOffsetOfSliderIndex(v.round()));
+                    },
+            ),
+          ),
       ],
     );
   }

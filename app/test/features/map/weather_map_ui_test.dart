@@ -485,6 +485,72 @@ void main() {
       );
     });
 
+    testWidgets('as a planned route\'s departure each step says so; without '
+        'a route the label is the map\'s', (tester) async {
+      final (_, container) = await _pump(
+        tester,
+        const WeatherTimeRow(leave: true),
+        prefs: <String, Object>{'map.weather.radar': true},
+      );
+      container.read(sharedWeatherMapStatusProvider.notifier).set(berlin);
+      await tester.pump();
+      expect(
+        label(tester),
+        '${l10n.mapWeatherLeaveNow} · '
+        '${clock(tester, DateTime.utc(2026, 10, 10, 14, 35))}',
+      );
+      expect(
+        tester.getSemantics(find.byType(Slider)).label,
+        contains(l10n.mapWeatherDepartureTime),
+      );
+      container.read(weatherRadarOffsetProvider.notifier).set(45);
+      await tester.pump();
+      expect(
+        label(tester),
+        '${l10n.mapWeatherLeaveAhead(l10n.mapWeatherMinutesAhead(45))} · '
+        '${clock(tester, DateTime.utc(2026, 10, 10, 15, 20))} · '
+        '${l10n.mapWeatherNowcast}',
+      );
+
+      // No route: the same moment, as the map's.
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: testApp(home: const Scaffold(body: WeatherTimeRow())),
+        ),
+      );
+      await tester.pump();
+      expect(
+        label(tester),
+        '${l10n.mapWeatherMinutesAhead(45)} · '
+        '${clock(tester, DateTime.utc(2026, 10, 10, 15, 20))} · '
+        '${l10n.mapWeatherNowcast}',
+      );
+    });
+
+    testWidgets('shown for a route\'s weather with the rain and the wind off: '
+        'the departure and its time', (tester) async {
+      final (_, container) = await _pump(
+        tester,
+        const WeatherTimeRow(leave: true, shown: true),
+      );
+      container.read(sharedWeatherMapStatusProvider.notifier).set(berlin);
+      await tester.pump();
+      expect(find.byType(Slider), findsOneWidget);
+      expect(find.byIcon(Icons.schedule), findsOneWidget);
+      expect(
+        label(tester),
+        '${l10n.mapWeatherLeaveNow} · ${clock(tester, at)}',
+      );
+      container.read(weatherRadarOffsetProvider.notifier).set(60);
+      await tester.pump();
+      expect(
+        label(tester),
+        '${l10n.mapWeatherLeaveAhead(l10n.mapWeatherHoursAhead(1))} · '
+        '${clock(tester, at.add(const Duration(hours: 1)))}',
+      );
+    });
+
     testWidgets('where the model stands in for the satellite, "Now" says it '
         'is a forecast', (tester) async {
       final (_, container) = await _pump(

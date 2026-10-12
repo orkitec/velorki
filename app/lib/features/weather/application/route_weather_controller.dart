@@ -11,6 +11,9 @@ import '../../../core/l10n/relay_error_text.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
+import '../../map/data/weather_map_preferences.dart';
+import '../../map/domain/weather_map.dart'
+    show snapWeatherOffset, weatherRadarOffsets;
 import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
@@ -32,7 +35,7 @@ const Duration weatherDebounce = Duration(seconds: 1);
 const Duration weatherCacheTtl = Duration(minutes: 30);
 
 /// How far past the first departure the rider can move it without another
-/// request.
+/// request: the time control's last step ([weatherRadarOffsets]).
 const Duration departureSpan = Duration(hours: 24);
 
 /// The clock the departure and the cache are measured against.
@@ -135,14 +138,18 @@ class SavedWeatherRoute extends WeatherRoute {
 
 /// The weather along a route, for the time the rider gets to each part of
 /// it: the Plan tab's route ([plannerWeatherRoute]), or a saved one on its
-/// card in the Library ([SavedWeatherRoute]), for a ride leaving now.
+/// card in the Library ([SavedWeatherRoute]), for a ride leaving when the
+/// time control says ([weatherRadarOffsetProvider], minutes from now: see
+/// [departureAfter]), the same control the map's rain and wind follow.
 ///
 /// `data(null)` while there is no route, no relay in this build, or no
 /// Velorki Plus: nothing is asked of the relay for a rider without it. A new
 /// route is asked about [weatherDebounce] after it stops changing, and only
 /// the answer to the latest request is shown. Answers are kept for
-/// [weatherCacheTtl], so going back to a route asks nothing. Moving the
-/// departure inside the hours fetched is worked out on the phone.
+/// [weatherCacheTtl], so going back to a route asks nothing. The hours asked
+/// for reach from now past the control's last step, so moving the control
+/// is worked out on the phone; it is set only when its slider is let go, so
+/// a drag asks nothing on the way.
 ///
 /// The planner's lives as long as the app; a saved route's as long as its
 /// card shows it.
@@ -152,9 +159,6 @@ class RouteWeatherController extends _$RouteWeatherController {
 
   /// Bumped by every change that makes an answer on its way stale.
   int _generation = 0;
-
-  /// The departure the rider picked; `null` for "as soon as possible".
-  DateTime? _departure;
 
   /// A saved route as the sampling reads it, and the version it is of.
   (String, RouteResult)? _saved;
@@ -187,6 +191,7 @@ class RouteWeatherController extends _$RouteWeatherController {
     // more, and the weather is asked for at once.
     ref.listen(plusFeatureProvider(PlusFeature.weather), (_, _) => _changed());
     ref.listen(relayClientProvider, (_, _) => _changed());
+    ref.listen(weatherRadarOffsetProvider, (_, _) => _follow());
     if (_inputs() == null) return const AsyncData<RouteWeatherState?>(null);
     final generation = _generation;
     _debounce = Timer(weatherDebounce, () => unawaited(_fetch(generation)));
@@ -255,15 +260,18 @@ class RouteWeatherController extends _$RouteWeatherController {
     unawaited(_fetch(generation));
   }
 
-  /// Moves the departure to [time].
-  ///
-  /// Inside the hours already fetched this is worked out on the phone;
-  /// outside them the forecast is asked for again.
-  void setDeparture(DateTime time) {
-    _departure = time;
+  /// The time control moved: the departure follows it, now plus its
+  /// offset, worked out on the phone inside the hours fetched and asked for
+  /// again outside them. An answer on its way reads the control itself.
+  void _follow() {
+    if (state.isLoading) return;
+    final now = ref.read(weatherClockProvider)();
+    final departure = departureAfter(now, ref.read(weatherRadarOffsetProvider));
     final current = state.value;
-    if (current != null && current.covers(time)) {
-      state = AsyncData<RouteWeatherState?>(current.withDeparture(time));
+    if (current != null && current.covers(departure)) {
+      state = AsyncData<RouteWeatherState?>(
+        current.withDeparture(departure, earliest: departureAfter(now, 0)),
+      );
       return;
     }
     if (_inputs() == null) return;
@@ -273,45 +281,48 @@ class RouteWeatherController extends _$RouteWeatherController {
     unawaited(_fetch(generation));
   }
 
-  /// The departure within [departureSpan] of the earliest one with the
-  /// least rain and headwind on the way (see [departureScore]); `null`
-  /// without a forecast, or when none covers the whole route.
-  DateTime? suggestBestDeparture() {
+  /// The step of the time control ([weatherRadarOffsets], minutes from the
+  /// earliest departure) with the least rain and headwind on the way (see
+  /// [bestDeparture]); `null` without a forecast, or when no step's ride
+  /// has weather for the whole route. Only the control's own steps are
+  /// scanned, so the answer is one the control can stand on.
+  int? suggestBestOffset() {
     final current = state.value;
     if (current == null) return null;
     final start = current.samples.first.position;
     final rideTime = current.samples.last.offset;
-    return bestDeparture(
+    final from = current.earliestDeparture;
+    final best = bestDeparture(
       current.forecast,
       current.samples,
       current.cells.sampleToCell,
-      from: current.earliestDeparture,
-      within: departureSpan,
+      from: from,
+      offsets: [for (final m in weatherRadarOffsets) Duration(minutes: m)],
       current: current.departure,
       // Only rides that start and end in daylight: the calmest hour is often
       // the middle of the night, which is no advice for a rider.
       usable: (departure) =>
           inDaylight(departure, departure.add(rideTime), start.lat, start.lon),
     );
+    return best == null
+        ? null
+        : snapWeatherOffset(best.difference(from).inMinutes);
   }
 
   Future<void> _fetch(int generation) async {
     final inputs = _inputs();
     if (inputs == null || generation != _generation) return;
     final now = ref.read(weatherClockProvider)();
-    final earliest = defaultDeparture(now);
-    // A departure the rider picked that has passed meanwhile is now.
-    final picked = _departure;
-    final departure = picked == null || picked.isBefore(earliest)
-        ? earliest
-        : picked;
+    final earliest = departureAfter(now, 0);
+    final departure = departureAfter(now, ref.read(weatherRadarOffsetProvider));
     final samples = sampleRoute(
       inputs.route,
       typicalSpeedKmh: inputs.profile.typicalSpeedKmh,
     );
     final cells = cellsFor(samples);
+    // From now, whatever the control says: every step is in one answer.
     final window = requestWindow(
-      departure,
+      earliest,
       samples.last.offset,
       sliderSpan: departureSpan,
     );

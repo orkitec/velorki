@@ -23,6 +23,9 @@ import 'package:velorki/features/integrations/common/data/relay_client_provider.
 import 'package:velorki/features/subscription/application/plus_access.dart';
 import 'package:velorki/features/weather/application/route_weather_controller.dart';
 import 'package:velorki/features/weather/domain/route_weather_state.dart';
+import 'package:velorki/features/map/data/weather_map_preferences.dart';
+import 'package:velorki/features/map/domain/weather_map.dart';
+import 'package:velorki/features/weather/presentation/route_weather_section.dart';
 import 'package:velorki/features/weather/presentation/route_weather_strip.dart';
 import 'package:velorki/features/weather/presentation/weather_keys.dart';
 import 'package:velorki/core/geo/route_gradient.dart';
@@ -588,6 +591,29 @@ void main() {
         hasLength(coloured),
       );
       expect(find.text(l10n.weatherRainNoneOnRoute), findsOneWidget);
+      await unmountApp(tester);
+    });
+
+    testWidgets('the departure slider stands on the time control\'s steps '
+        'and sets the step all tabs share', (tester) async {
+      await pumpWeather(tester, access: PlusAccess.granted);
+      final slider = find.descendant(
+        of: find.byType(RouteWeatherSection),
+        matching: find.byType(Slider),
+      );
+      await tester.ensureVisible(slider);
+      await tester.pumpAndSettle();
+      expect(slider, findsOneWidget);
+      expect(
+        tester.widget<Slider>(slider).divisions,
+        weatherRadarOffsets.length - 1,
+      );
+      final container = ProviderScope.containerOf(tester.element(slider));
+      tester.widget<Slider>(slider).onChangeEnd!(
+        weatherSliderIndexOf(120).toDouble(),
+      );
+      await tester.pump();
+      expect(container.read(weatherRadarOffsetProvider), 120);
       await unmountApp(tester);
     });
 

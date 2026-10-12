@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
+import 'package:velorki/features/map/data/weather_map_preferences.dart';
+import 'package:velorki/features/map/domain/weather_map.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/core/db/tables/routes.dart' show RouteSource;
 import 'package:velorki/features/planner/data/route_repository.dart';
@@ -93,7 +95,7 @@ class _Harness {
   final MockRelay relay = MockRelay(schemas: OpenApi.load().check);
   late final ProviderContainer container;
 
-  /// 07:50 UTC: the first departure is 08:00.
+  /// 07:50 UTC: the first departure, "Leave now".
   static final DateTime start = DateTime.utc(2026, 10, 11, 7, 50);
 
   void show(RouteResult? route) =>
@@ -110,6 +112,10 @@ class _Harness {
   RouteWeatherController get controller => container.read(
     routeWeatherControllerProvider(plannerWeatherRoute).notifier,
   );
+
+  /// Lets go of the time control at [minutes] from now.
+  void leaveIn(int minutes) =>
+      container.read(weatherRadarOffsetProvider.notifier).set(minutes);
 
   void answerEveryCell({Duration delay = Duration.zero}) =>
       relay.replyWeather(WeatherReply.answering(_answer, delay: delay));
@@ -160,12 +166,13 @@ void main() {
       h.settle(const Duration(milliseconds: 1));
 
       final request = h.relay.weatherRequests.single;
-      expect(request.from, DateTime.utc(2026, 10, 11, 8));
-      // 10 km at 18 km/h, 24 h of slider and the hour it ends in.
-      expect(request.hours, 26);
+      expect(request.from, DateTime.utc(2026, 10, 11, 7));
+      // 50 min into the hour, 10 km at 18 km/h, the time control's 24 h and
+      // the hour it ends in.
+      expect(request.hours, 27);
       expect((request.cells.first['lat']! as num).toDouble(), 50);
       final state = h.state.value!;
-      expect(state.departure, DateTime.utc(2026, 10, 11, 8));
+      expect(state.departure, _Harness.start);
       expect(state.weather.complete, isTrue);
       // A north wind, riding north.
       expect(state.summary.headwindShare, 1);
@@ -198,7 +205,23 @@ void main() {
     });
   });
 
-  test('moves the departure on the phone inside the hours fetched', () {
+  test('departs at now plus the time control\'s step', () {
+    runFake((async) {
+      final h = _Harness(async);
+      h.answerEveryCell();
+      h.leaveIn(45);
+      h.show(_north);
+      h.settle();
+      final state = h.state.value!;
+      expect(state.earliestDeparture, _Harness.start);
+      expect(state.departure, DateTime.utc(2026, 10, 11, 8, 35));
+      expect(state.offsetMinutes, 45);
+      expect(state.weather.weather.first!.at, state.departure);
+      h.container.dispose();
+    });
+  });
+
+  test('follows the time control on the phone inside the hours fetched', () {
     runFake((async) {
       final h = _Harness(async);
       h
@@ -206,20 +229,27 @@ void main() {
         ..answerEveryCell();
       h.show(_north);
       h.settle();
-      final later = DateTime.utc(2026, 10, 11, 14, 30);
-      h.controller.setDeparture(later);
+      // Every step of the control is in the one answer.
+      for (final step in weatherRadarOffsets) {
+        h.leaveIn(step);
+        expect(h.state.isLoading, isFalse);
+        expect(
+          h.state.value!.departure,
+          _Harness.start.add(Duration(minutes: step)),
+        );
+      }
       expect(h.relay.weatherRequests, hasLength(1));
-      expect(h.state.value!.departure, later);
-      expect(h.state.value!.weather.weather.first!.at, later);
 
-      // A day later is outside them: asked for again, at once.
-      final tomorrow = DateTime.utc(2026, 10, 12, 9);
-      h.controller.setDeparture(tomorrow);
+      // Two hours on, a day ahead is past the hours fetched: asked for
+      // again, at once, from the new now.
+      h.leaveIn(0);
+      async.elapse(const Duration(hours: 2));
+      h.leaveIn(1440);
       expect(h.state.isLoading, isTrue);
       async.flushMicrotasks();
       expect(h.relay.weatherRequests, hasLength(2));
-      expect(h.relay.weatherRequests.last.from, tomorrow);
-      expect(h.state.value!.departure, tomorrow);
+      expect(h.relay.weatherRequests.last.from, DateTime.utc(2026, 10, 11, 9));
+      expect(h.state.value!.departure, DateTime.utc(2026, 10, 12, 9, 50));
       h.container.dispose();
     });
   });
@@ -316,10 +346,8 @@ void main() {
       h.show(_north);
       h.settle();
       expect(h.state.value!.summary.firstRainM, 0);
-      expect(
-        h.controller.suggestBestDeparture(),
-        DateTime.utc(2026, 10, 11, 12),
-      );
+      // The first step of the control whose ride is dry.
+      expect(h.controller.suggestBestOffset(), 240);
       h.container.dispose();
     });
   });
@@ -327,7 +355,7 @@ void main() {
   test('scores nothing without a forecast', () {
     runFake((async) {
       final h = _Harness(async, entitled: false);
-      expect(h.controller.suggestBestDeparture(), isNull);
+      expect(h.controller.suggestBestOffset(), isNull);
       h.container.dispose();
     });
   });
@@ -376,9 +404,9 @@ void main() {
       async.flushMicrotasks();
 
       final request = relay.weatherRequests.single;
-      expect(request.from, DateTime.utc(2026, 10, 11, 8));
+      expect(request.from, DateTime.utc(2026, 10, 11, 7));
       final state = container.read(routeWeatherControllerProvider(key)).value!;
-      expect(state.departure, DateTime.utc(2026, 10, 11, 8));
+      expect(state.departure, _Harness.start);
       expect(state.samples.last.distanceM, closeTo(10000, 1));
       // Nothing asked for the planner, which has no route.
       expect(

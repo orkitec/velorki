@@ -246,11 +246,18 @@ DateTime floorToUtcHour(DateTime time) {
   return DateTime.utc(utc.year, utc.month, utc.day, utc.hour);
 }
 
-/// [now] rounded up to the next quarter hour, unless it is on one: the
-/// departure the weather assumes until the rider picks another.
-DateTime defaultDeparture(DateTime now) {
-  const quarter = 15 * Duration.millisecondsPerMinute;
-  final ms = now.toUtc().millisecondsSinceEpoch;
-  final up = (ms + quarter - 1) ~/ quarter * quarter;
-  return DateTime.fromMillisecondsSinceEpoch(up, isUtc: true);
+/// The departure [offsetMinutes] after [now], to the minute: the moment the
+/// planner's time control stands for ("Leave now", "Leave +45 min"). The
+/// map reads its layers at the same [now] plus the same offset, each layer
+/// flooring that to its own frames; the route's forecasts take the moment
+/// itself, so the departure line reads the clock, not a frame.
+DateTime departureAfter(DateTime now, int offsetMinutes) {
+  final utc = now.toUtc();
+  return DateTime.utc(
+    utc.year,
+    utc.month,
+    utc.day,
+    utc.hour,
+    utc.minute,
+  ).add(Duration(minutes: offsetMinutes));
 }

@@ -219,18 +219,18 @@ void main() {
     });
   });
 
-  test('defaultDeparture rounds up to the next quarter hour', () {
+  test('departureAfter is now to the minute plus the offset', () {
     expect(
-      defaultDeparture(DateTime.utc(2026, 10, 11, 9, 0, 1)),
-      DateTime.utc(2026, 10, 11, 9, 15),
+      departureAfter(DateTime.utc(2026, 10, 11, 9, 0, 41), 0),
+      DateTime.utc(2026, 10, 11, 9),
     );
     expect(
-      defaultDeparture(DateTime.utc(2026, 10, 11, 9, 52)),
-      DateTime.utc(2026, 10, 11, 10),
+      departureAfter(DateTime.utc(2026, 10, 11, 9, 52, 3), 45),
+      DateTime.utc(2026, 10, 11, 10, 37),
     );
     expect(
-      defaultDeparture(DateTime.utc(2026, 10, 11, 9, 30)),
-      DateTime.utc(2026, 10, 11, 9, 30),
+      departureAfter(DateTime.utc(2026, 10, 11, 23, 30), 1440),
+      DateTime.utc(2026, 10, 12, 23, 30),
     );
   });
 }

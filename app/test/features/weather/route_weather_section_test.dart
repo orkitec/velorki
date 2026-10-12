@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
+import 'package:velorki/features/map/data/weather_map_preferences.dart';
+import 'package:velorki/features/map/domain/weather_map.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
 import 'package:velorki/core/units/units.dart' show formatSpeed;
 import 'package:velorki/features/settings/data/units.dart';
@@ -66,7 +68,6 @@ RouteWeatherState weatherState({
 
 /// What the section asked of the controller.
 class _Asked {
-  final List<DateTime> departures = <DateTime>[];
   int retries = 0;
 }
 
@@ -81,13 +82,14 @@ class _FakeWeather extends RouteWeatherController {
   AsyncValue<RouteWeatherState?> build(WeatherRoute route) {
     // As the planner's own does: a tree pumped over this one leaves it be.
     ref.keepAlive();
+    // As the real one does: the departure follows the time control.
+    ref.listen(weatherRadarOffsetProvider, (_, offset) {
+      final s = state.value!;
+      state = AsyncData<RouteWeatherState?>(
+        s.withDeparture(s.earliestDeparture.add(Duration(minutes: offset))),
+      );
+    });
     return _initial;
-  }
-
-  @override
-  void setDeparture(DateTime time) {
-    _asked.departures.add(time);
-    state = AsyncData<RouteWeatherState?>(state.value!.withDeparture(time));
   }
 
   @override
@@ -107,6 +109,7 @@ Future<_Pumped> _pump(
   AsyncValue<RouteWeatherState?>? weather,
   PlusAccess access = PlusAccess.granted,
   bool withRelay = true,
+  WeatherRoute route = plannerWeatherRoute,
 }) async {
   SharedPreferences.setMockInitialValues(<String, Object>{});
   final prefs = await SharedPreferences.getInstance();
@@ -123,10 +126,10 @@ Future<_Pumped> _pump(
         builder: (_, _) => Scaffold(
           body: ListView(
             padding: const EdgeInsets.all(20),
-            children: const [
-              SizedBox(key: Key('above'), height: 10),
-              RouteWeatherSection(),
-              SizedBox(key: Key('below'), height: 10),
+            children: [
+              const SizedBox(key: Key('above'), height: 10),
+              RouteWeatherSection(route: route),
+              const SizedBox(key: Key('below'), height: 10),
             ],
           ),
         ),
@@ -301,26 +304,47 @@ void main() {
     expect(find.text(metno.url), findsOneWidget);
   });
 
-  testWidgets('the slider moves the departure in quarter hours', (
-    tester,
-  ) async {
+  testWidgets('on the Plan tab the departure is the time control over the '
+      'map: the section says it, with no slider of its own', (tester) async {
     final pumped = await _pump(tester);
-    final slider = tester.widget<Slider>(find.byType(Slider));
-    expect(slider.value, 0);
-    expect(slider.divisions, 96);
-    slider.onChanged!(4);
+    expect(find.byType(Slider), findsNothing);
+    final today = find.textContaining(l10n.weatherDepartureToday('').trim());
+    expect(today, findsOneWidget);
+    final before = tester.widget<Text>(today).data;
+    pumped.container.read(weatherRadarOffsetProvider.notifier).set(60);
     await tester.pump();
-    expect(pumped.weather.departures, [
-      _earliest.add(const Duration(hours: 1)),
-    ]);
-    expect(tester.widget<Slider>(find.byType(Slider)).value, 4);
+    expect(tester.widget<Text>(today).data, isNot(before));
   });
 
-  testWidgets('Best time moves to the best departure, then says so', (
-    tester,
-  ) async {
+  testWidgets('on a saved route\'s page a slider on the time control\'s '
+      'steps sets the shared step when let go', (tester) async {
+    final pumped = await _pump(tester, route: const SavedWeatherRoute('r1'));
+    final slider = tester.widget<Slider>(find.byType(Slider));
+    expect(slider.value, 0);
+    expect(slider.divisions, weatherRadarOffsets.length - 1);
+    final index = weatherSliderIndexOf(60);
+    slider.onChanged!(index.toDouble());
+    await tester.pump();
+    // Nothing set while the finger is down.
+    expect(pumped.container.read(weatherRadarOffsetProvider), 0);
+    expect(tester.widget<Slider>(find.byType(Slider)).value, index.toDouble());
+    tester.widget<Slider>(find.byType(Slider)).onChangeEnd!(index.toDouble());
+    await tester.pump();
+    expect(pumped.container.read(weatherRadarOffsetProvider), 60);
+
+    // Set elsewhere (the Plan tab's control), the slider follows.
+    pumped.container.read(weatherRadarOffsetProvider.notifier).set(180);
+    await tester.pump();
+    expect(
+      tester.widget<Slider>(find.byType(Slider)).value,
+      weatherSliderIndexOf(180).toDouble(),
+    );
+  });
+
+  testWidgets('Best time moves the time control to the best step, then says '
+      'so', (tester) async {
     // Rain until 12:00 UTC, dry after: the best departure is the first dry
-    // one.
+    // step.
     final pumped = await _pump(
       tester,
       weather: AsyncData<RouteWeatherState?>(
@@ -329,13 +353,9 @@ void main() {
     );
     await tester.tap(find.text(l10n.weatherBestTime));
     await tester.pump();
-    expect(pumped.weather.departures, hasLength(1));
-    expect(
-      pumped.weather.departures.single.isAfter(
-        _earliest.add(const Duration(hours: 3)),
-      ),
-      isTrue,
-    );
+    final step = pumped.container.read(weatherRadarOffsetProvider);
+    expect(weatherRadarOffsets, contains(step));
+    expect(step, greaterThan(180));
     expect(find.text(l10n.weatherBestTimeNow), findsOneWidget);
     final button = tester.widget<TextButton>(
       find.ancestor(

@@ -4514,6 +4514,24 @@
       }
     }
   },
+  "mapWeatherLeaveNow": "Leave now",
+  "@mapWeatherLeaveNow": {
+    "description": "The planner's time control at the present moment while a route is planned: the route's departure, and the moment the rain and wind map show, e.g. 'Leave now · 20:25'. Keep it short."
+  },
+  "mapWeatherLeaveAhead": "Leave {step}",
+  "@mapWeatherLeaveAhead": {
+    "description": "The planner's time control at a moment ahead while a route is planned: the route's departure, e.g. 'Leave +45 min · 21:30 · Nowcast'. {step} is the time control's step, '+45 min' or '+3 h'. Keep it short.",
+    "placeholders": {
+      "step": {
+        "type": "String",
+        "example": "+45 min"
+      }
+    }
+  },
+  "mapWeatherDepartureTime": "Departure time",
+  "@mapWeatherDepartureTime": {
+    "description": "Screen-reader label of the time slider that sets a route's departure (in the planner, or on a saved route's weather)."
+  },
   "mapWeatherNowcast": "Nowcast",
   "@mapWeatherNowcast": {
     "description": "Ending the rain time control's label when the step ahead shows the weather service's nowcast (the radar's rain moved ahead, up to two hours), e.g. '+45 min · 21:30 · Nowcast'. Keep it short."
@@ -6060,7 +6078,7 @@
   },
   "weatherFreeForecastTitle": "Free wind and rain forecast",
   "@weatherFreeForecastTitle": {
-    "description": "Title of the dialog shown the first time a rider without Velorki Plus colours the route by wind or rain"
+    "description": "Title of the dialog shown each time a rider without Velorki Plus picks the wind or the rain to colour the route"
   },
   "weatherFreeForecastBody": "This free forecast comes from a coarser public weather model: about 28 km for wind, finer for rain in Europe. It has no gusts and no chance of rain.",
   "@weatherFreeForecastBody": {

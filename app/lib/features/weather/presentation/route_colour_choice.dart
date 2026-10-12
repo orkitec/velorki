@@ -110,11 +110,10 @@ List<DistanceBand> routeColouringBands(
 ///
 /// The wind and the rain come from the relay's forecast with Velorki Plus,
 /// and from the free forecast the phone loads itself without it (or in a
-/// build without the relay). The first time a rider without Plus picks
-/// either, a dialog says what the free forecast is
-/// ([showFreeForecastDialog]); only once they accept it is the choice made.
-/// A pick while the store has not said whether the rider has Plus asks
-/// nothing and counts as accepting it.
+/// build without the relay). Each time a rider without Plus picks either, a
+/// dialog says what the free forecast is ([showFreeForecastDialog]); only
+/// once they accept it is the choice made. A pick while the store has not
+/// said whether the rider has Plus asks nothing.
 class RouteColourChoice extends ConsumerWidget {
   /// Creates the choice.
   const RouteColourChoice({super.key});
@@ -140,18 +139,14 @@ class RouteColourChoice extends ConsumerWidget {
     Future<void> choose(RouteOverlay overlay) async {
       final choice = ref.read(routeOverlayChoiceProvider.notifier);
       if (isWeatherOverlay(overlay) &&
-          !ref.read(routeWeatherFromRelayProvider) &&
-          !ref.read(freeRouteForecastAcceptedProvider)) {
+          !ref.read(routeWeatherFromRelayProvider)) {
         final relay = ref.read(relayClientProvider) != null;
         if (relay &&
             ref.read(plusAccessProvider(PlusFeature.weather)) ==
                 PlusAccess.unknown) {
           // The store has not said yet: no question for what may be a
           // Plus rider. The free forecast meanwhile, the relay's once Plus
-          // is granted; and the pick stands for an acceptance, so no
-          // dialog comes later out of nowhere should Plus turn out
-          // missing.
-          await ref.read(freeRouteForecastAcceptedProvider.notifier).accept();
+          // is granted.
           await choice.set(overlay);
           return;
         }
@@ -159,7 +154,7 @@ class RouteColourChoice extends ConsumerWidget {
         if (!context.mounted) return;
         switch (answer) {
           case FreeForecastAnswer.use:
-            await ref.read(freeRouteForecastAcceptedProvider.notifier).accept();
+            break;
           case FreeForecastAnswer.seePlus:
             unawaited(context.push(paywallRoute));
             return;

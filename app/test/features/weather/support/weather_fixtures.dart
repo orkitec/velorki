@@ -120,12 +120,21 @@ RouteWeatherState weatherAlong(
 /// while [down].
 class FakeDwdClient implements DwdForecastClient {
   /// Creates the service.
-  FakeDwdClient({this.u = 0, this.v = -5, this.rain = 0, this.down = false});
+  FakeDwdClient({
+    this.u = 0,
+    this.v = -5,
+    this.rain = 0,
+    this.down = false,
+    this.missing,
+  });
 
   final double u;
   final double v;
   final double rain;
   final bool down;
+
+  /// The hours the service has nothing for, if any.
+  final bool Function(DateTime time)? missing;
 
   /// The grids asked for: coverage and hour.
   final List<(String, DateTime)> requests = <(String, DateTime)>[];
@@ -143,7 +152,47 @@ class FakeDwdClient implements DwdForecastClient {
     int bands = 1,
   }) async {
     requests.add((coverageId, time));
-    if (down) return null;
+    if (down || (missing?.call(time) ?? false)) return null;
+    return _loaded[_key(coverageId, box, time, run)] = _gridOf(
+      coverageId,
+      box,
+      time,
+      run,
+      bands,
+    );
+  }
+
+  /// The grids answered, as the real client keeps them.
+  final Map<String, WcsGrid> _loaded = <String, WcsGrid>{};
+
+  static String _key(
+    String coverageId,
+    BoundingBox box,
+    DateTime time,
+    DateTime run,
+  ) =>
+      '$coverageId|${box.south},${box.west},${box.north},${box.east}|'
+      '${time.toIso8601String()}|${run.toIso8601String()}';
+
+  @override
+  DateTime? knownRun(String coverageId) =>
+      down ? null : DateTime.utc(2026, 10, 11);
+
+  @override
+  WcsGrid? loadedGrid(
+    String coverageId,
+    BoundingBox box,
+    DateTime time,
+    DateTime run,
+  ) => _loaded[_key(coverageId, box, time, run)];
+
+  WcsGrid _gridOf(
+    String coverageId,
+    BoundingBox box,
+    DateTime time,
+    DateTime run,
+    int bands,
+  ) {
     // The global rain is a sum from the run's start: [rain] an hour.
     final value = coverageId == dwdRainGlobalCoverage
         ? rain * time.difference(run).inHours

@@ -1378,10 +1378,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       ),
                       children: [
                         _SheetHeader(state: state),
-                        // The rain's time control right under the figures,
-                        // in view at the resting height, while the rain is
-                        // on.
-                        const WeatherTimeRow(padding: EdgeInsets.only(top: 10)),
+                        // The time control right under the figures, in view
+                        // at the resting height, while the rain or the wind
+                        // is on, or the route's weather is shown: with a
+                        // route it is the route's departure.
+                        const _PlannerTimeRow(),
                         const SizedBox(height: 14),
                         // The variants right under the figures, where the sheet
                         // grows to show them; then the actions, so Loop and Save
@@ -1795,6 +1796,23 @@ class _PlannerActions extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The map's time control on the Plan tab: with a route, also the route's
+/// departure, and shown while the route's weather is
+/// ([plannerTimeControlProvider]).
+class _PlannerTimeRow extends ConsumerWidget {
+  const _PlannerTimeRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final control = ref.watch(plannerTimeControlProvider);
+    return WeatherTimeRow(
+      padding: const EdgeInsets.only(top: 10),
+      leave: control != PlannerTimeControl.map,
+      shown: control == PlannerTimeControl.departureShown,
     );
   }
 }

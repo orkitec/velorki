@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../map/data/weather_map_preferences.dart';
+
 import '../../../core/geo/route_gradient.dart';
 import '../../map/domain/map_controller.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../recording/domain/ride_range.dart';
 import '../domain/route_weather_state.dart';
+import '../data/dwd_route_forecast.dart';
 import 'free_route_weather.dart';
 import 'route_overlay.dart';
 import 'route_weather_controller.dart';
@@ -133,14 +136,70 @@ List<TrackPoint>? weatherRouteGeometry(Ref ref, WeatherRoute route) =>
 
 /// The weather [route] is coloured by: the relay's forecast with Velorki
 /// Plus ([routeWeatherFromRelayProvider]), the free one the phone loads
-/// itself without ([freeRouteWeatherProvider]).
+/// itself without ([freeRouteWeatherProvider]); for the moment the time
+/// control stands on, and while it is dragged
+/// ([weatherRadarPreviewProvider]) for the step under the finger, live.
+///
+/// Dragged, the relay's answer is evaluated for that step on the phone; the
+/// free forecast is worked out from the grids already loaded, fetched ahead
+/// for every step while this is watched ([FreeForecastPrefetch]). A step
+/// they do not cover keeps the colours shown last, and the step let go is
+/// asked for as ever. While the free forecast loads again for the same line
+/// (a new step, another speed), the grids loaded colour it if they can, else
+/// the colours shown last stand; for another line they are cleared.
 @riverpod
-AsyncValue<RouteWeatherState?> routeColourWeather(
-  Ref ref,
-  WeatherRoute route,
-) => ref.watch(routeWeatherFromRelayProvider)
-    ? ref.watch(routeWeatherControllerProvider(route))
-    : ref.watch(freeRouteWeatherProvider(route));
+class RouteColourWeather extends _$RouteColourWeather {
+  @override
+  AsyncValue<RouteWeatherState?> build(WeatherRoute route) {
+    final last = stateOrNull?.value;
+    final preview = ref.watch(weatherRadarPreviewProvider);
+    if (ref.watch(routeWeatherFromRelayProvider)) {
+      final plus = ref.watch(routeWeatherControllerProvider(route));
+      final s = plus.value;
+      if (preview == null || plus.isLoading || plus.hasError || s == null) {
+        return plus;
+      }
+      final departure = s.earliestDeparture.add(Duration(minutes: preview));
+      if (departure == s.departure) return plus;
+      if (s.covers(departure)) {
+        return AsyncData<RouteWeatherState?>(s.withDeparture(departure));
+      }
+      return AsyncData<RouteWeatherState?>(last ?? s);
+    }
+    ref.watch(freeForecastPrefetchProvider(route));
+    final committed = ref.watch(freeRouteWeatherProvider(route));
+    if (preview == null && !committed.isLoading) return committed;
+    final geometry = ref.watch(weatherRouteGeometryProvider(route));
+    final samples = ref.watch(freeRouteSamplesProvider(route));
+    if (geometry == null || samples == null) return committed;
+    final live = freeWeatherFromLoaded(
+      ref.watch(dwdForecastClientProvider),
+      samples,
+      ref.read(weatherClockProvider)(),
+      preview ?? ref.watch(weatherRadarOffsetProvider),
+    );
+    if (live != null) {
+      freeForecastGeometry[live] = geometry;
+      return AsyncData<RouteWeatherState?>(live);
+    }
+    for (final shown in [last, committed.value]) {
+      if (shown != null && _sameLine(freeForecastGeometry[shown], geometry)) {
+        return AsyncData<RouteWeatherState?>(shown);
+      }
+    }
+    return committed;
+  }
+}
+
+/// Whether [a] and [b] are the same line, point for point.
+bool _sameLine(List<TrackPoint>? a, List<TrackPoint>? b) {
+  if (identical(a, b)) return a != null;
+  if (a == null || b == null || a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i].pos != b[i].pos) return false;
+  }
+  return true;
+}
 
 /// What [route] is coloured by, on the map and under its elevation chart:
 /// [routeColouringFor] with what is shown ([routeOverlayShownProvider]).
@@ -157,4 +216,32 @@ RouteColouring routeColouring(Ref ref, WeatherRoute route) {
         : const AsyncData<RouteWeatherState?>(null),
     overlay,
   );
+}
+
+/// What the Plan tab's time control is (`weatherRadarOffsetProvider`).
+enum PlannerTimeControl {
+  /// No route: the moment the map's rain and wind show, while either is on.
+  map,
+
+  /// A route: also its departure ("Leave now", "Leave +45 min"), which the
+  /// route's forecast follows; shown while the map's rain or wind is on.
+  departure,
+
+  /// A route whose weather is shown, coloured on it by the wind or the rain
+  /// or in the Plus section under it: the departure, shown whether the
+  /// map's rain and wind are on or not.
+  departureShown,
+}
+
+/// What the Plan tab's time control is: [PlannerTimeControl].
+@riverpod
+PlannerTimeControl plannerTimeControl(Ref ref) {
+  final geometry = ref.watch(weatherRouteGeometryProvider(plannerWeatherRoute));
+  if (geometry == null || geometry.length < 2) return PlannerTimeControl.map;
+  final shown =
+      isWeatherOverlay(ref.watch(routeOverlayShownProvider)) ||
+      ref.watch(routeWeatherFromRelayProvider);
+  return shown
+      ? PlannerTimeControl.departureShown
+      : PlannerTimeControl.departure;
 }

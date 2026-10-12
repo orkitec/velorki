@@ -108,6 +108,19 @@ abstract class DwdForecastClient {
     DateTime run, {
     int bands = 1,
   });
+
+  /// The newest run of [coverageId] as last read, without asking; `null`
+  /// while it is not known.
+  DateTime? knownRun(String coverageId);
+
+  /// [grid]'s answer if it has come, without asking; `null` while it has
+  /// not been asked for, is on its way, or could not be had.
+  WcsGrid? loadedGrid(
+    String coverageId,
+    BoundingBox box,
+    DateTime time,
+    DateTime run,
+  );
 }
 
 /// [DwdForecastClient] over HTTP: the newest runs kept for
@@ -136,6 +149,9 @@ class HttpDwdForecastClient implements DwdForecastClient {
       <String, (DateTime, DateTime)>{};
   final LinkedHashMap<String, Future<WcsGrid?>> _grids =
       LinkedHashMap<String, Future<WcsGrid?>>();
+
+  /// The grids of [_grids] that have come.
+  final Map<String, WcsGrid> _loaded = <String, WcsGrid>{};
   int _running = 0;
   final Queue<Completer<void>> _waiting = Queue<Completer<void>>();
 
@@ -170,16 +186,38 @@ class HttpDwdForecastClient implements DwdForecastClient {
     final future = _fetchGrid(url, bands);
     _grids[url] = future;
     while (_grids.length > dwdGridCacheSize) {
+      _loaded.remove(_grids.keys.first);
       _grids.remove(_grids.keys.first);
     }
     // A failure is not kept: it is asked again next time.
     unawaited(
       future.then((grid) {
-        if (grid == null) _grids.remove(url);
+        if (grid == null) {
+          _grids.remove(url);
+        } else if (identical(_grids[url], future)) {
+          _loaded[url] = grid;
+        }
       }),
     );
     return future;
   }
+
+  @override
+  DateTime? knownRun(String coverageId) {
+    final known = _runs[coverageId];
+    if (known == null || now().difference(known.$1) >= dwdRunCacheAge) {
+      return null;
+    }
+    return known.$2;
+  }
+
+  @override
+  WcsGrid? loadedGrid(
+    String coverageId,
+    BoundingBox box,
+    DateTime time,
+    DateTime run,
+  ) => _loaded[dwdCoverageUrl(coverageId, box, time, run)];
 
   Future<WcsGrid?> _fetchGrid(String url, int bands) async {
     final text = await _get(url);

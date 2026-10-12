@@ -141,7 +141,7 @@ void main() {
 
   group('planFreeForecast', () {
     test('in Europe: the hour each sample falls in, ICON-EU rain at the end '
-        'of that hour, boxes snapped out around the samples', () {
+        'of that hour, one box snapped out around the whole route', () {
       final departure = DateTime.utc(2026, 10, 13, 11, 40);
       final samples = [
         _sample(const LatLng(50.1, 8.1)),
@@ -163,10 +163,10 @@ void main() {
         DateTime.utc(2026, 10, 13, 12),
         DateTime.utc(2026, 10, 13, 13),
       ]);
-      expect(
-        plan.wind[DateTime.utc(2026, 10, 13, 11)],
-        const BoundingBox(south: 49.5, west: 7.5, north: 51, east: 9),
-      );
+      // The same box every hour, so one grid serves every departure.
+      const box = BoundingBox(south: 49.5, west: 7.5, north: 51.5, east: 9);
+      expect(plan.wind.values, everyElement(box));
+      expect(plan.rainGrids.values, everyElement(box));
     });
 
     test('outside Europe the global sums: both ends of every hour', () {
@@ -323,6 +323,22 @@ void main() {
         expect(adapter.requests, hasLength(3));
       },
     );
+
+    test('what has come is there at once, without asking', () async {
+      expect(client.knownRun(dwdRainEuCoverage), isNull);
+      expect(client.loadedGrid(dwdRainEuCoverage, box, _noon, _run), isNull);
+      await client.newestRun(dwdRainEuCoverage);
+      expect(client.knownRun(dwdRainEuCoverage), _run);
+      final grid = await client.grid(dwdRainEuCoverage, box, _noon, _run);
+      expect(client.loadedGrid(dwdRainEuCoverage, box, _noon, _run), grid);
+      // A failed one is not.
+      adapter.contentType = (_) => 'application/xml';
+      final later = _noon.add(const Duration(hours: 1));
+      await client.grid(dwdRainEuCoverage, box, later, _run);
+      expect(client.loadedGrid(dwdRainEuCoverage, box, later, _run), isNull);
+      now = now.add(dwdRunCacheAge);
+      expect(client.knownRun(dwdRainEuCoverage), isNull);
+    });
 
     test('at most a few requests at once', () async {
       adapter.gate = Completer<void>();

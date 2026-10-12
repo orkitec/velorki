@@ -45,8 +45,9 @@ class RouteWeatherState {
   /// When the rider leaves.
   final DateTime departure;
 
-  /// The earliest departure offered: now, rounded up to the quarter hour,
-  /// when the forecast was asked for.
+  /// The earliest departure offered, the one the time control's "Leave now"
+  /// stands for: now, to the minute, when the departure was last set
+  /// (`departureAfter`). [departure] is this plus the control's offset.
   final DateTime earliestDeparture;
 
   /// The hours [forecast] was asked for.
@@ -81,13 +82,18 @@ class RouteWeatherState {
     return !time.isBefore(window.from) && !time.add(rideTime).isAfter(last);
   }
 
-  /// The same forecast for a ride leaving at [time].
-  RouteWeatherState withDeparture(DateTime time) => RouteWeatherState.evaluated(
-    departure: time,
-    earliestDeparture: earliestDeparture,
-    window: window,
-    forecast: forecast,
-    samples: samples,
-    cells: cells,
-  );
+  /// The time control's offset [departure] is at, in minutes.
+  int get offsetMinutes => departure.difference(earliestDeparture).inMinutes;
+
+  /// The same forecast for a ride leaving at [time], the time control's
+  /// offset counted from [earliest] (unchanged without it).
+  RouteWeatherState withDeparture(DateTime time, {DateTime? earliest}) =>
+      RouteWeatherState.evaluated(
+        departure: time,
+        earliestDeparture: earliest ?? earliestDeparture,
+        window: window,
+        forecast: forecast,
+        samples: samples,
+        cells: cells,
+      );
 }
