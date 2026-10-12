@@ -13,6 +13,7 @@ import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/shared/presentation/floating_bar.dart';
 import 'package:velorki/features/shared/presentation/gesture_zone_guard.dart';
+import 'package:velorki/features/shared/presentation/stat_tile.dart';
 
 import 'support/harness.dart';
 
@@ -82,16 +83,20 @@ void main() {
     // With the sheet docked into the bar, the map's attribution chip is in
     // view in the band under the bar: in the zone where there is one; where
     // there is none (a home button, three-button navigation) the bar stands
-    // higher and the chip sits on the safe area's edge under it. It is text
-    // only: a tap on it opens nothing, and without a zone the map under it
-    // gets the tap (in the zone the guard keeps it from everything).
+    // higher and the chip sits on the safe area's edge under it. Its credit
+    // is text only: a tap on it opens nothing, and without a zone the map
+    // under it gets the tap (in the zone the guard keeps it from
+    // everything). The round (i) beside it opens the credits. Measured is
+    // the credit's pill, not the (i)'s finger-sized target above it.
     await tester.dragFrom(
       tester.getCenter(find.byType(SheetHandle)),
       Offset(0, size.height),
     );
     await pumpFor(tester, const Duration(seconds: 1));
     final chip = find.byType(MapAttributionChip);
-    final chipRect = tester.getRect(chip);
+    final chipRect = tester.getRect(
+      find.descendant(of: chip, matching: find.byType(GlassPanel)).first,
+    );
     final bar = tester.getRect(
       find
           .descendant(
@@ -142,7 +147,18 @@ void main() {
       await tester.tapAt(chipRect.center);
       await pumpFor(tester, const Duration(seconds: 1));
       expect(find.byType(Dialog), findsNothing);
+      expect(find.byType(MapCreditsSheet), findsNothing);
     }
+    // The (i) opens the credits, in the zone too.
+    await tester.tapAt(
+      tester.getCenter(
+        find.descendant(of: chip, matching: find.byIcon(Icons.info_outline)),
+      ),
+    );
+    await pumpFor(tester, const Duration(seconds: 1));
+    expect(find.byType(MapCreditsSheet), findsOneWidget);
+    Navigator.of(tester.element(find.byType(MapCreditsSheet))).pop();
+    await pumpFor(tester, const Duration(seconds: 1));
 
     await tapAndPump(tester, _tab(1));
     await pumpFor(tester, const Duration(seconds: 1));
