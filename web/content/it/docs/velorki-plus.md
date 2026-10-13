@@ -1,6 +1,6 @@
 ---
 title: Velorki Plus
-description: Tutto quello che gira sul telefono è gratis. Plus è un piccolo abbonamento per le quattro funzioni che richiedono i nostri server o l'account di un partner.
+description: Tutto quello che gira sul telefono è gratis. Plus è un piccolo abbonamento per le funzioni che richiedono i nostri server o l'account di un partner.
 order: 15
 ---
 
@@ -20,13 +20,15 @@ Gratis, per tutti, per sempre:
 - registrare giri, anche a schermo spento e in background,
 - i pannelli dei giri con i grafici, i parziali e la traccia colorata per velocità,
 - importazione ed esportazione GPX, FIT e TCX, in ogni direzione,
+- la mappa meteo: radar pioggia, nuvole e vento, con il cursore del tempo,
+- il meteo lungo il percorso da una previsione pubblica più grossolana, il modello ICON del Deutscher Wetterdienst: vento, pioggia, temperatura, una riga che li riassume e l'ora migliore per partire, e il percorso colorato secondo pendenza, vento o pioggia,
 - aprire il link di condivisione di qualcun altro.
 
 I dati di routing e l'indice di ricerca sono messi a disposizione sul mirror gratuitamente.
 
 ## Cosa aggiunge Plus
 
-Quattro funzioni, come elencate nella pagina dell'abbonamento:
+Cinque funzioni, come elencate nella pagina dell'abbonamento:
 
 | Funzione | Cos'è |
 |---|---|
@@ -34,8 +36,11 @@ Quattro funzioni, come elencate nella pagina dell'abbonamento:
 | **Connessione Ride with GPS** | "Invia percorsi e giri in entrambe le direzioni." |
 | **Assistente IA** | "Descrivi il giro che vuoi; Velorki lo trasforma in un percorso e lo pianifica sul tuo telefono." |
 | **Condivisione link** | "Trasforma un percorso o un giro in un link che chiunque può aprire nel browser." |
+| **Meteo più preciso sul percorso e radar pioggia** | "Meteo più preciso lungo il percorso da servizi meteo locali, con raffiche e probabilità di pioggia, e un vero radar pioggia in tutta Europa." |
 
 Ognuna di queste richiede un server che paghiamo noi, oppure un account presso qualcun altro che solo un'applicazione registrata può raggiungere.
+
+Il meteo più preciso sul percorso viene dal National Weather Service negli Stati Uniti, dalle previsioni per stazione del Deutscher Wetterdienst in Germania e da MET Norway altrove, con raffiche e probabilità di pioggia, e il percorso si può colorare secondo questo. Il radar viene da EUMETNET OPERA e Radar-DPC (Italia), dove la mappa gratuita ha solo stime da satellite, come in Francia, Spagna, Italia, Regno Unito, Svizzera e Scandinavia: celle di 1 km, una nuova immagine ogni 5 minuti, le ultime 2 ore.
 
 ## Abbonarsi
 

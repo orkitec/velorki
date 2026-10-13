@@ -1,6 +1,6 @@
 ---
 title: Velorki Plus
-description: Alles, was auf dem Handy läuft, ist kostenlos. Plus ist ein kleines Abo für die vier Funktionen, die unsere Server oder ein Partnerkonto brauchen.
+description: Alles, was auf dem Handy läuft, ist kostenlos. Plus ist ein kleines Abo für die Funktionen, die unsere Server oder ein Partnerkonto brauchen.
 order: 15
 ---
 
@@ -20,13 +20,15 @@ Kostenlos, für alle, auf Dauer:
 - Fahrten aufzeichnen, auch mit ausgeschaltetem Bildschirm und im Hintergrund,
 - Blätter der Fahrten mit Diagrammen, Splits und dem nach Tempo eingefärbten Track,
 - GPX-, FIT- und TCX-Import und -Export, in jede Richtung,
+- die Wetterkarte: Regenradar, Wolken und Wind, mit dem Zeitregler,
+- das Wetter entlang der Route aus einer gröberen öffentlichen Vorhersage, dem ICON-Modell des Deutschen Wetterdienstes: Wind, Regen, Temperatur, eine Zeile, die sie zusammenfasst, die beste Zeit zum Losfahren und die Route nach Steigung, Wind oder Regen eingefärbt,
 - den Teilen-Link von jemand anderem öffnen.
 
 Die Routing-Daten und der Suchindex werden für dich kostenlos gespiegelt.
 
 ## Was Plus dazugibt
 
-Vier Funktionen, wie auf der Abo-Seite aufgeführt:
+Fünf Funktionen, wie auf der Abo-Seite aufgeführt:
 
 | Funktion | Was sie ist |
 |---|---|
@@ -34,8 +36,11 @@ Vier Funktionen, wie auf der Abo-Seite aufgeführt:
 | **Verbindung zu Ride with GPS** | "Routen und Fahrten in beide Richtungen übertragen." |
 | **KI-Assistent** | "Beschreibe die gewünschte Fahrt; Velorki macht daraus eine Route und plant sie auf dem Handy." |
 | **Links teilen** | "Aus einer Route oder Fahrt einen Link machen, den jeder im Browser öffnen kann." |
+| **Genaueres Wetter auf der Route und Regenradar** | "Genaueres Wetter entlang der Route von lokalen Wetterdiensten, mit Böen und Regenwahrscheinlichkeit, und echtes Regenradar in ganz Europa." |
 
 Jede davon braucht entweder einen Server, den wir bezahlen, oder ein Konto bei jemand anderem, das nur eine registrierte Anwendung erreicht.
+
+Das genauere Wetter auf der Route kommt vom US National Weather Service, aus den Stationsvorhersagen des Deutschen Wetterdienstes in Deutschland und überall sonst von MET Norway, mit Böen und Regenwahrscheinlichkeit, und die Route lässt sich danach einfärben. Das Radar kommt von EUMETNET OPERA und Radar-DPC (Italien), wo die kostenlose Karte nur Schätzungen aus Satellitendaten hat, etwa in Frankreich, Spanien, Italien, Großbritannien, der Schweiz und Skandinavien: 1-km-Zellen, alle 5 Minuten ein neues Bild, die letzten 2 Stunden.
 
 ## Abonnieren
 

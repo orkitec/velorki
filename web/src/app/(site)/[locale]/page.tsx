@@ -38,7 +38,7 @@ const FEATURES: ReadonlyArray<{ id: string; screen: Screen | null }> = [
 const BULLETS = ['one', 'two', 'three'] as const;
 
 /** What Plus adds, from the app's gate list (`PlusFeature` in lib/core/plus/plus_gate.dart). */
-const PLUS_ITEMS = ['describe', 'ask', 'write', 'connect'] as const;
+const PLUS_ITEMS = ['describe', 'ask', 'write', 'connect', 'weather', 'radar'] as const;
 
 /** The cycle map's parts, in the Layers sheet's order (`CycleMapPart` in lib/features/map/domain/cycle_map.dart). */
 const CYCLE_MAP_PARTS = [
@@ -60,7 +60,7 @@ const CYCLE_MAP_PARTS = [
 /** The groups the Layers sheet offers stops from (`stopGroups` in layers_sheet.dart). */
 const STOP_GROUPS = ['cyclingStops', 'overnight', 'landmarks'] as const;
 
-const FREE_ITEMS = ['routing', 'loops', 'search', 'maps', 'navigation', 'recording', 'sensors', 'files'] as const;
+const FREE_ITEMS = ['routing', 'loops', 'search', 'maps', 'navigation', 'recording', 'sensors', 'files', 'weather'] as const;
 
 /** Free vs Plus, from docs/ARCHITECTURE.md: free is everything on the phone. */
 const COMPARISON: ReadonlyArray<{ id: string; free: boolean }> = [
@@ -74,6 +74,10 @@ const COMPARISON: ReadonlyArray<{ id: string; free: boolean }> = [
   { id: 'sensors', free: true },
   { id: 'library', free: true },
   { id: 'files', free: true },
+  { id: 'weatherMap', free: true },
+  { id: 'routeColours', free: true },
+  { id: 'routeWeather', free: false },
+  { id: 'radarEurope', free: false },
   { id: 'assistant', free: false },
   { id: 'strava', free: false },
   { id: 'rwgps', free: false },

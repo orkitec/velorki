@@ -1,6 +1,6 @@
 ---
 title: Velorki Plus
-description: Alles wat op je telefoon draait, is gratis. Plus is een klein abonnement voor de vier functies die onze servers of een partneraccount nodig hebben.
+description: Alles wat op je telefoon draait, is gratis. Plus is een klein abonnement voor de functies die onze servers of een partneraccount nodig hebben.
 order: 15
 ---
 
@@ -20,13 +20,15 @@ Gratis, voor iedereen, voorgoed:
 - ritten opnemen, ook met het scherm uit en op de achtergrond,
 - ritkaarten met de grafieken, de splits en de op snelheid gekleurde track,
 - importeren en exporteren van GPX, FIT en TCX, in alle richtingen,
+- de weerkaart: regenradar, wolken en wind, met de tijdregelaar,
+- het weer langs de route uit een grovere openbare verwachting, het ICON-model van de Deutscher Wetterdienst: wind, regen, temperatuur, een regel die ze samenvat en de beste vertrektijd, en de route gekleurd naar helling, wind of regen,
 - de gedeelde link van iemand anders openen.
 
 De routeringsgegevens en de zoekindex worden kosteloos voor je gespiegeld.
 
 ## Wat Plus toevoegt
 
-Vier functies, zoals ze op de abonnementspagina staan:
+Vijf functies, zoals ze op de abonnementspagina staan:
 
 | Functie | Wat het is |
 |---|---|
@@ -34,8 +36,11 @@ Vier functies, zoals ze op de abonnementspagina staan:
 | **Ride with GPS-koppeling** | "Routes en ritten in beide richtingen uitwisselen." |
 | **AI-assistent** | "Beschrijf de rit die je wilt; Velorki maakt er een route van en plant die op je telefoon." |
 | **Links delen** | "Maak van een route of rit een link die iedereen in een browser kan openen." |
+| **Fijner weer op de route en regenradar** | "Fijner weer langs de route van lokale weerdiensten, met windstoten en regenkans, en echte regenradar in heel Europa." |
 
 Elk daarvan heeft ofwel een server nodig waarvoor wij betalen, ofwel een account bij iemand anders dat alleen een geregistreerde applicatie kan bereiken.
+
+Het fijnere weer op de route komt van de National Weather Service in de VS, uit de stationsverwachtingen van de Deutscher Wetterdienst in Duitsland en elders van MET Norway, met windstoten en regenkans, en de route kan ernaar gekleurd worden. De radar komt van EUMETNET OPERA en Radar-DPC (Italië), waar de gratis kaart alleen schattingen via satelliet heeft, zoals in Frankrijk, Spanje, Italië, het Verenigd Koninkrijk, Zwitserland en Scandinavië: cellen van 1 km, elke 5 minuten een nieuw beeld, de laatste 2 uur.
 
 ## Abonneren
 

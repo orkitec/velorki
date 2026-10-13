@@ -56,7 +56,7 @@
       "offline": "Offline-Downloads: Karten- und Routing-Regionen auf dem Handy mit ihrer Größe und ihrem Status.",
       "settings": "Einstellungen: der Bereich Darstellung mit dem Schalter für Hell, Dunkel und System und den fünf Akzentfarben.",
       "assistant": "Der Assistent im Tab Planen: die Bitte um eine 40-km-Gravel-Runde mit Café-Stopp, was er verstanden hat, und die Runde, die er auf der Karte geplant hat.",
-      "paywall": "Die Seite Velorki Plus, wie Abonnenten sie sehen: die vier enthaltenen Funktionen und das aktive Abo.",
+      "paywall": "Die Seite Velorki Plus, wie Abonnenten sie sehen: die enthaltenen Funktionen und das aktive Abo.",
       "cyclemap": "Die Radkarte in Chelsea, New York: der Hudson River Greenway, geschützte Radstreifen auf den Avenues, lokale Radrouten, Einbahn-Pfeile und Stopps für Café und Trinkwasser auf der Karte.",
       "layers": "Das Ebenen-Blatt: die Radkarte eingeschaltet, mit einem Chip für jeden Teil, die Online-Radkarte und die Stopps mit ihren Arten."
     }
@@ -81,7 +81,7 @@
     },
     "free": {
       "title": "Alles auf dem Handy ist kostenlos",
-      "body": "Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Sensoren und Apple Watch, Fahrtstatistik, GPX-, FIT- und TCX-Dateien, für alle, für immer. Die Routing-Daten und den Suchindex spiegeln wir kostenlos für dich.",
+      "body": "Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Sensoren und Apple Watch, Fahrtstatistik, die Wetterkarte und das Wetter entlang der Route, GPX-, FIT- und TCX-Dateien, für alle, für immer. Die Routing-Daten und den Suchindex spiegeln wir kostenlos für dich.",
       "items": {
         "routing": "Routing auf dem Handy",
         "loops": "Runden",
@@ -90,7 +90,8 @@
         "navigation": "Abbiegehinweise",
         "recording": "Aufnahme",
         "sensors": "Sensoren und Uhr",
-        "files": "GPX, FIT und TCX"
+        "files": "GPX, FIT und TCX",
+        "weather": "Wetterkarte und Routenwetter"
       }
     },
     "features": {
@@ -230,6 +231,14 @@
         "connect": {
           "title": "Strava, Ride with GPS und Teilen-Links",
           "body": "Lade Fahrten zu Strava hoch und importiere deine Routen, schick Routen und Trips in beide Richtungen mit Ride with GPS, und teile eine Route oder Fahrt als Link, der in jedem Browser aufgeht."
+        },
+        "weather": {
+          "title": "Genaueres Wetter entlang der Route",
+          "body": "Das kostenlose Wetter entlang der Route stammt aus einer gröberen öffentlichen Vorhersage. Plus fragt stattdessen lokale Wetterdienste — den US National Weather Service, die Stationsvorhersagen des Deutschen Wetterdienstes in Deutschland, MET Norway überall sonst — nach feinerem Wind, Regen und Temperatur, mit Böen und Regenwahrscheinlichkeit, und färbt die Route danach ein."
+        },
+        "radar": {
+          "title": "Regenradar in ganz Europa",
+          "body": "Wo die kostenlose Karte nur Schätzungen aus Satellitendaten hat, etwa in Frankreich, Spanien, Italien, Großbritannien, der Schweiz und Skandinavien, zeigt Plus echtes Radar von EUMETNET OPERA und Radar-DPC (Italien): 1-km-Zellen, alle 5 Minuten ein neues Bild, die letzten 2 Stunden."
         }
       },
       "privacy": "Der Assistent fragt, bevor er etwas sendet: was du tippst und, nur wenn du es erlaubst, deine Position auf etwa einen Kilometer gerundet. Kein Konto, kein Routenverlauf.",
@@ -257,6 +266,10 @@
         "sensors": "Puls, Trittfrequenz und Leistung von Sensoren, Uhr und Health-App",
         "library": "Bibliothek mit Routen und Fahrten",
         "files": "GPX-, FIT- und TCX-Import und -Export",
+        "weatherMap": "Wetterkarte: Regenradar, Wolken und Wind, mit Zeitregler",
+        "routeColours": "Wetter entlang der Route aus einer gröberen öffentlichen Vorhersage: Wind, Regen, Temperatur, eine Zusammenfassung und die beste Abfahrtszeit, und die Route nach Steigung, Wind oder Regen eingefärbt",
+        "routeWeather": "Genaueres Wetter entlang der Route von lokalen Wetterdiensten, mit Böen und Regenwahrscheinlichkeit",
+        "radarEurope": "Echtes Regenradar in ganz Europa, wo die kostenlose Karte nur Schätzungen aus Satellitendaten hat",
         "assistant": "Der Assistent: ein Satz wird zur Route",
         "strava": "Strava: Fahrten hochladen, Routen importieren",
         "rwgps": "Ride with GPS: Routen und Fahrten in beide Richtungen",
@@ -281,15 +294,15 @@
         },
         "offline": {
           "q": "Funktioniert das wirklich ohne Verbindung?",
-          "a": "Ja. Lade eine Region einmal herunter und die Karte, das Routing, die Ortssuche und die gesprochenen Abbiegehinweise laufen alle auf dem Handy. Nur der Assistent, die Verbindungen zu Strava und Ride with GPS und die Teilen-Links brauchen Netz, und genau das sind die Plus-Funktionen."
+          "a": "Ja. Lade eine Region einmal herunter und die Karte, das Routing, die Ortssuche und die gesprochenen Abbiegehinweise laufen alle auf dem Handy. Nur das Wetter, der Assistent, die Verbindungen zu Strava und Ride with GPS und die Teilen-Links brauchen Netz."
         },
         "price": {
           "q": "Was kostet Velorki?",
-          "a": "Alles, was auf dem Handy läuft, ist kostenlos: Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Puls, Trittfrequenz und Leistung von deinen Sensoren, Fahrtstatistik sowie GPX-, FIT- und TCX-Dateien. Velorki Plus ist ein Abo für die serverseitigen Funktionen; den aktuellen Preis zeigt dir der Store in der App, in deiner Währung."
+          "a": "Alles, was auf dem Handy läuft, ist kostenlos: Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Puls, Trittfrequenz und Leistung von deinen Sensoren, Fahrtstatistik, die Wetterkarte, das Wetter entlang der Route aus einer öffentlichen Vorhersage sowie GPX-, FIT- und TCX-Dateien. Velorki Plus ist ein Abo für die serverseitigen Funktionen; den aktuellen Preis zeigt dir der Store in der App, in deiner Währung."
         },
         "plus": {
           "q": "Was ist Velorki Plus?",
-          "a": "Ein kleines Abo für die Teile, die unsere Server oder ein Partnerkonto brauchen: den Assistenten, die Strava-Verbindung, die Verbindung zu Ride with GPS und die Teilen-Links. Gekauft, verwaltet und gekündigt wird es im App Store oder bei Google Play."
+          "a": "Ein kleines Abo für die Teile, die unsere Server oder ein Partnerkonto brauchen: den Assistenten, die Strava-Verbindung, die Verbindung zu Ride with GPS, die Teilen-Links, genaueres Wetter entlang der Route von lokalen Wetterdiensten und Regenradar in ganz Europa. Gekauft, verwaltet und gekündigt wird es im App Store oder bei Google Play."
         },
         "data": {
           "q": "Was verlässt mein Handy?",
@@ -319,7 +332,7 @@
   "plus": {
     "meta": {
       "title": "Velorki Plus",
-      "description": "Velorki Plus ist ein kleines Abo für die Teile, die unsere Server oder ein Partnerkonto brauchen: den Assistenten, Strava, Ride with GPS und die Teilen-Links."
+      "description": "Velorki Plus ist ein kleines Abo für die Teile, die unsere Server oder ein Partnerkonto brauchen: den Assistenten, Strava, Ride with GPS, die Teilen-Links, genaueres Wetter entlang der Route und Regenradar in ganz Europa."
     },
     "eyebrow": "Abo",
     "title": "Velorki Plus",
@@ -341,10 +354,18 @@
       "sharing": {
         "title": "Teilen-Links",
         "body": "Mach aus einer Route oder einer Fahrt einen Link, den jeder im Browser öffnen kann, mit der Karte, der Statistik und einem GPX-Download."
+      },
+      "weather": {
+        "title": "Genaueres Wetter entlang der Route",
+        "body": "Das kostenlose Wetter entlang der Route stammt aus einer gröberen öffentlichen Vorhersage. Plus fragt stattdessen lokale Wetterdienste — den US National Weather Service, die Stationsvorhersagen des Deutschen Wetterdienstes in Deutschland, MET Norway überall sonst — nach feinerem Wind, Regen und Temperatur, mit Böen und Regenwahrscheinlichkeit, und färbt die Route danach ein."
+      },
+      "radar": {
+        "title": "Regenradar in ganz Europa",
+        "body": "Wo die kostenlose Karte nur Schätzungen aus Satellitendaten hat, etwa in Frankreich, Spanien, Italien, Großbritannien, der Schweiz und Skandinavien, zeigt Plus echtes Radar von EUMETNET OPERA und Radar-DPC (Italien): 1-km-Zellen, alle 5 Minuten ein neues Bild, die letzten 2 Stunden."
       }
     },
     "freeTitle": "Was kostenlos bleibt",
-    "freeBody": "Planen, Runden, Offline-Karten und -Routing, Suche, Abbiegenavigation, Aufnahme, Fahrtstatistik sowie GPX-, FIT- und TCX-Dateien bleiben kostenlos, mit oder ohne Plus.",
+    "freeBody": "Planen, Runden, Offline-Karten und -Routing, Suche, Abbiegenavigation, Aufnahme, Fahrtstatistik, die Wetterkarte, das Wetter entlang der Route aus einer gröberen öffentlichen Vorhersage (Wind, Regen, Temperatur, die beste Abfahrtszeit) mit der nach Steigung, Wind oder Regen eingefärbten Route sowie GPX-, FIT- und TCX-Dateien bleiben kostenlos, mit oder ohne Plus.",
     "priceTitle": "Was es kostet",
     "priceBody": "Den Preis siehst du in der App. Der Store zeigt den aktuellen Monats- und Jahrespreis in deiner eigenen Währung, mit kostenloser Testphase, und hier steht er nie, damit er nicht veralten kann.",
     "restoreTitle": "Ein Abo wiederherstellen",

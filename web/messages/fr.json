@@ -56,7 +56,7 @@
       "offline": "Téléchargements hors ligne : les régions de carte et de routage sur le téléphone, avec leur taille et leur état.",
       "settings": "Réglages : la section Apparence avec le choix clair, sombre ou système et les cinq couleurs d’accent.",
       "assistant": "L’assistant dans l’onglet Planifier : une demande de boucle gravel de 40 km avec une pause café, ce qu’il a compris et la boucle calculée sur la carte.",
-      "paywall": "La page Velorki Plus telle qu’un abonné la voit : les quatre fonctions incluses et l’abonnement actif.",
+      "paywall": "La page Velorki Plus telle qu’un abonné la voit : les fonctions incluses et l’abonnement actif.",
       "cyclemap": "La carte vélo à Chelsea, New York : la Hudson River Greenway, des pistes protégées sur les avenues, des itinéraires locaux, des flèches de sens unique et des haltes café et eau potable sur la carte.",
       "layers": "Le panneau Calques : la carte vélo activée avec une puce pour chaque élément, la carte vélo en ligne, et les haltes avec leurs types."
     }
@@ -81,7 +81,7 @@
     },
     "free": {
       "title": "Tout ce qui tourne sur le téléphone est gratuit",
-      "body": "Planification, boucles, cartes et routage hors ligne, recherche, navigation, enregistrement, capteurs et Apple Watch, statistiques de sortie, fichiers GPX, FIT et TCX — pour tout le monde, pour de bon. Les données de routage et l’index de recherche sont hébergés pour vous, gratuitement.",
+      "body": "Planification, boucles, cartes et routage hors ligne, recherche, navigation, enregistrement, capteurs et Apple Watch, statistiques de sortie, carte météo et météo le long de l’itinéraire, fichiers GPX, FIT et TCX — pour tout le monde, pour de bon. Les données de routage et l’index de recherche sont hébergés pour vous, gratuitement.",
       "items": {
         "routing": "Routage sur le téléphone",
         "loops": "Boucles",
@@ -90,7 +90,8 @@
         "navigation": "Navigation guidée",
         "recording": "Enregistrement",
         "sensors": "Capteurs et montre",
-        "files": "GPX, FIT et TCX"
+        "files": "GPX, FIT et TCX",
+        "weather": "Carte météo et météo de l’itinéraire"
       }
     },
     "features": {
@@ -230,6 +231,14 @@
         "connect": {
           "title": "Strava, Ride with GPS et liens de partage",
           "body": "Envoyez vos sorties sur Strava et importez vos itinéraires, échangez itinéraires et trips dans les deux sens avec Ride with GPS, et partagez un itinéraire ou une sortie sous forme de lien qui s’ouvre dans n’importe quel navigateur."
+        },
+        "weather": {
+          "title": "Une météo plus fine le long de l’itinéraire",
+          "body": "La météo gratuite le long de l’itinéraire vient d’une prévision publique plus grossière. Plus interroge à la place des services météo locaux — le National Weather Service aux États-Unis, les prévisions par station du Deutscher Wetterdienst en Allemagne, MET Norway ailleurs — pour un vent, une pluie et une température plus fins, avec rafales et probabilité de pluie, et colore l’itinéraire selon eux."
+        },
+        "radar": {
+          "title": "Radar de pluie dans toute l’Europe",
+          "body": "Là où la carte gratuite n’a que des estimations par satellite, comme en France, en Espagne, en Italie, au Royaume-Uni, en Suisse et en Scandinavie, Plus affiche un vrai radar d’EUMETNET OPERA et de Radar-DPC (Italie) : des cellules de 1 km, une nouvelle image toutes les 5 minutes, les 2 dernières heures."
         }
       },
       "privacy": "L’assistant demande avant d’envoyer quoi que ce soit : ce que vous tapez et, seulement si vous l’autorisez, votre position arrondie à environ un kilomètre. Pas de compte, pas d’historique d’itinéraires.",
@@ -257,6 +266,10 @@
         "sensors": "Fréquence cardiaque, cadence et puissance depuis capteurs, montre et app santé",
         "library": "Bibliothèque d’itinéraires et de sorties",
         "files": "Import et export GPX, FIT et TCX",
+        "weatherMap": "Carte météo : radar de pluie, nuages et vent, avec curseur de temps",
+        "routeColours": "La météo le long de l’itinéraire d’une prévision publique plus grossière : vent, pluie, température, un résumé et la meilleure heure de départ, et l’itinéraire coloré selon la pente, le vent ou la pluie",
+        "routeWeather": "Une météo plus fine le long de l’itinéraire par des services météo locaux, avec rafales et probabilité de pluie",
+        "radarEurope": "Un vrai radar de pluie dans toute l’Europe là où la carte gratuite n’a que des estimations par satellite",
         "assistant": "L’assistant : une phrase devient un itinéraire",
         "strava": "Strava : envoyer vos sorties, importer des itinéraires",
         "rwgps": "Ride with GPS : itinéraires et sorties dans les deux sens",
@@ -281,15 +294,15 @@
         },
         "offline": {
           "q": "Ça marche vraiment sans connexion ?",
-          "a": "Oui. Téléchargez une région une fois, et la carte, le routage, la recherche de lieux et les instructions vocales tournent tous sur le téléphone. Seuls l’assistant, les connexions Strava et Ride with GPS et les liens de partage ont besoin du réseau, et ce sont les fonctions Plus."
+          "a": "Oui. Téléchargez une région une fois, et la carte, le routage, la recherche de lieux et les instructions vocales tournent tous sur le téléphone. Seuls la météo, l’assistant, les connexions Strava et Ride with GPS et les liens de partage ont besoin du réseau."
         },
         "price": {
           "q": "Combien coûte Velorki ?",
-          "a": "Tout ce qui tourne sur le téléphone est gratuit : planification, boucles, cartes et routage hors ligne, recherche, navigation, enregistrement, fréquence cardiaque, cadence et puissance depuis vos capteurs, statistiques de sortie et fichiers GPX, FIT et TCX. Velorki Plus est un abonnement pour les fonctions côté serveur ; le prix actuel est affiché dans l’application, dans votre devise, par le store."
+          "a": "Tout ce qui tourne sur le téléphone est gratuit : planification, boucles, cartes et routage hors ligne, recherche, navigation, enregistrement, fréquence cardiaque, cadence et puissance depuis vos capteurs, statistiques de sortie, carte météo, la météo le long de l’itinéraire d’une prévision publique et fichiers GPX, FIT et TCX. Velorki Plus est un abonnement pour les fonctions côté serveur ; le prix actuel est affiché dans l’application, dans votre devise, par le store."
         },
         "plus": {
           "q": "Qu’est-ce que Velorki Plus ?",
-          "a": "Un petit abonnement pour ce qui a besoin de nos serveurs ou d’un compte partenaire : l’assistant, la connexion Strava, la connexion Ride with GPS et les liens de partage. Il s’achète, se gère et se résilie dans l’App Store ou sur Google Play."
+          "a": "Un petit abonnement pour ce qui a besoin de nos serveurs ou d’un compte partenaire : l’assistant, la connexion Strava, la connexion Ride with GPS, les liens de partage, une météo plus fine le long de l’itinéraire par des services météo locaux et le radar de pluie dans toute l’Europe. Il s’achète, se gère et se résilie dans l’App Store ou sur Google Play."
         },
         "data": {
           "q": "Qu’est-ce qui quitte mon téléphone ?",
@@ -319,7 +332,7 @@
   "plus": {
     "meta": {
       "title": "Velorki Plus",
-      "description": "Velorki Plus est un petit abonnement pour ce qui a besoin de nos serveurs ou d’un compte partenaire : l’assistant, Strava, Ride with GPS et les liens de partage."
+      "description": "Velorki Plus est un petit abonnement pour ce qui a besoin de nos serveurs ou d’un compte partenaire : l’assistant, Strava, Ride with GPS, les liens de partage, une météo plus fine sur l’itinéraire et le radar de pluie dans toute l’Europe."
     },
     "eyebrow": "Abonnement",
     "title": "Velorki Plus",
@@ -341,10 +354,18 @@
       "sharing": {
         "title": "Liens de partage",
         "body": "Transformez un itinéraire ou une sortie en un lien que chacun peut ouvrir dans un navigateur, avec la carte, les statistiques et le GPX à télécharger."
+      },
+      "weather": {
+        "title": "Une météo plus fine le long de l’itinéraire",
+        "body": "La météo gratuite le long de l’itinéraire vient d’une prévision publique plus grossière. Plus interroge à la place des services météo locaux — le National Weather Service aux États-Unis, les prévisions par station du Deutscher Wetterdienst en Allemagne, MET Norway ailleurs — pour un vent, une pluie et une température plus fins, avec rafales et probabilité de pluie, et colore l’itinéraire selon eux."
+      },
+      "radar": {
+        "title": "Radar de pluie dans toute l’Europe",
+        "body": "Là où la carte gratuite n’a que des estimations par satellite, comme en France, en Espagne, en Italie, au Royaume-Uni, en Suisse et en Scandinavie, Plus affiche un vrai radar d’EUMETNET OPERA et de Radar-DPC (Italie) : des cellules de 1 km, une nouvelle image toutes les 5 minutes, les 2 dernières heures."
       }
     },
     "freeTitle": "Ce qui reste gratuit",
-    "freeBody": "Planification, boucles, cartes et routage hors ligne, recherche, navigation guidée, enregistrement, statistiques de sortie et fichiers GPX, FIT et TCX restent gratuits, avec ou sans Plus.",
+    "freeBody": "Planification, boucles, cartes et routage hors ligne, recherche, navigation guidée, enregistrement, statistiques de sortie, carte météo, météo le long de l’itinéraire d’une prévision publique plus grossière (vent, pluie, température, meilleure heure de départ) avec l’itinéraire coloré selon la pente, le vent ou la pluie, et fichiers GPX, FIT et TCX restent gratuits, avec ou sans Plus.",
     "priceTitle": "Combien ça coûte",
     "priceBody": "Le prix est indiqué dans l’application. Le store affiche le prix mensuel et annuel en vigueur dans votre devise, avec un essai gratuit. Nous ne l’indiquons jamais ici, pour qu’il ne soit jamais périmé.",
     "restoreTitle": "Restaurer un abonnement",
