@@ -109,6 +109,9 @@ Future<ProviderContainer> _pump(
           body: ListView(
             padding: const EdgeInsets.all(20),
             children: [
+              // As the planner and a saved route's page have them: the
+              // choice and its key over the profile.
+              const RouteColourControls(route: plannerWeatherRoute),
               RouteElevationProfile(
                 route: plannerWeatherRoute,
                 samples: elevationProfile(_geometry),
@@ -185,7 +188,7 @@ List<({double start, double end, Color colour})> _bands(WidgetTester tester) =>
 
 void main() {
   testWidgets('with Plus: a switch, and Gradient, Surface, Wind and Rain '
-      'under the profile, the gradient first; each colours the chart and has '
+      'over the profile, the gradient first; each colours the chart and has '
       'its key; switched off, nothing is coloured and the choice is kept', (
     tester,
   ) async {
@@ -201,11 +204,11 @@ void main() {
       expect(_segment(label), findsOneWidget);
     }
     expect(find.byIcon(Icons.lock_outline), findsNothing);
-    // Under the chart.
-    expect(
-      tester.getTopLeft(find.byType(SegmentedButton<RouteOverlay>)).dy,
-      greaterThan(tester.getBottomLeft(find.byType(ElevationProfileChart)).dy),
-    );
+    // The key right under the choice.
+    final choice = tester.getRect(find.byType(SegmentedButton<RouteOverlay>));
+    final key = tester.getRect(find.byType(RouteColourKey));
+    expect(key.top, greaterThanOrEqualTo(choice.bottom));
+    expect(key.top - choice.bottom, lessThanOrEqualTo(8));
 
     // The gradient by default: the chart in its colours, and its key.
     expect(chosen(), RouteOverlay.gradient);

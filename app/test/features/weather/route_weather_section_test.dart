@@ -72,6 +72,9 @@ RouteWeatherState weatherState({
 /// What the section asked of the controller.
 class _Asked {
   int retries = 0;
+
+  /// New departures asked for while there was no forecast to move.
+  int refetches = 0;
 }
 
 /// The controller, holding whatever the test gives it.
@@ -87,7 +90,12 @@ class _FakeWeather extends RouteWeatherController {
     ref.keepAlive();
     // As the real one does: the departure follows the time control.
     ref.listen(weatherRadarOffsetProvider, (_, offset) {
-      final s = state.value!;
+      final s = state.value;
+      // Without a forecast the real one asks for it again.
+      if (s == null) {
+        _asked.refetches++;
+        return;
+      }
       state = AsyncData<RouteWeatherState?>(
         s.withDeparture(s.earliestDeparture.add(Duration(minutes: offset))),
       );
@@ -131,6 +139,9 @@ Future<_Pumped> _pump(
           body: ListView(
             padding: const EdgeInsets.all(20),
             children: [
+              // A saved route's page has its departure under its actions.
+              if (route is! PlannerWeatherRoute)
+                RouteDepartureSlider(route: route),
               const SizedBox(key: Key('above'), height: 10),
               RouteWeatherSection(route: route),
               const SizedBox(key: Key('below'), height: 10),
@@ -494,6 +505,58 @@ void main() {
       weatherSliderIndexOf(180).toDouble(),
     );
   });
+
+  // A saved route's departure slider, the page's only time control: there
+  // and movable whenever there is a route, the forecast on its way or
+  // failed too; gone without a route and while Plus is not known.
+  for (final (name, weather, access, shown) in [
+    (
+      'loading',
+      const AsyncLoading<RouteWeatherState?>(),
+      PlusAccess.granted,
+      true,
+    ),
+    (
+      'failed',
+      AsyncError<RouteWeatherState?>(Exception('down'), StackTrace.empty),
+      PlusAccess.granted,
+      true,
+    ),
+    (
+      'no route',
+      const AsyncData<RouteWeatherState?>(null),
+      PlusAccess.granted,
+      false,
+    ),
+    ('Plus unknown', null, PlusAccess.unknown, false),
+    ('a forecast', null, PlusAccess.granted, true),
+  ]) {
+    testWidgets('a saved route\'s departure slider, $name', (tester) async {
+      final pumped = await _pump(
+        tester,
+        weather: weather,
+        access: access,
+        route: const SavedWeatherRoute('r1'),
+      );
+      expect(find.byType(Slider), shown ? findsOneWidget : findsNothing);
+      if (shown) {
+        final slider = find.byType(Slider);
+        expect(tester.widget<Slider>(slider).onChanged, isNotNull);
+        // Moved, it sets the departure, which asks for the forecast anew.
+        final container = ProviderScope.containerOf(tester.element(slider));
+        tester.widget<Slider>(slider).onChangeEnd!(
+          weatherSliderIndexOf(60).toDouble(),
+        );
+        await tester.pump();
+        expect(container.read(weatherRadarOffsetProvider), 60);
+        if (weather != null && !weather.hasValue) {
+          expect(pumped.weather.refetches, 1);
+        }
+      }
+      // The free forecast's wait runs out.
+      await tester.pump(const Duration(seconds: 2));
+    });
+  }
 
   testWidgets('Best time moves the time control to the best step, then says '
       'so', (tester) async {

@@ -158,7 +158,7 @@ String weatherDepartureLabel(
 /// the route's departure ([leave]: "Leave now", "Leave +45 min"), which the
 /// route's forecast follows, and shown ([shown]) while the route's weather
 /// is, the map's rain and wind on or not (then its label tells the
-/// departure's time, [weatherDepartureLabel]). The drop, the label and the slider in
+/// departure's time, [weatherDepartureLabel]). The icons, the label and the slider in
 /// one line, the label as wide as the widest it can get
 /// ([weatherTimeLabelWidth]) and the slider in all the room that is left;
 /// where that would leave the slider less than [weatherSliderMinShare] of
@@ -171,8 +171,11 @@ String weatherDepartureLabel(
 ///
 /// While what the map shows for the step set is still being fetched
 /// ([WeatherMapStatus.loading]), or the route's forecast the caller says
-/// is ([forecastLoading]), a small spinner stands in the drop's place,
+/// is ([forecastLoading]), a small spinner stands in the clock's place,
 /// once that has taken [weatherLoadingDelay]: a quick answer shows none.
+///
+/// Its leading icons say what it moves: a clock, and after it a drop with
+/// the rain on and the wind's sign with the wind on.
 class WeatherTimeRow extends ConsumerStatefulWidget {
   /// Creates the row, with [padding] around it while it shows.
   const WeatherTimeRow({
@@ -220,8 +223,21 @@ const double weatherTimeRowStackedHeight =
 /// the row stacks.
 const double weatherSliderMinShare = 0.55;
 
-/// The drop and the room after it, before the label.
-const double _weatherTimeLead = 18 + 8;
+/// How large each of the time control's leading icons is.
+const double _weatherTimeIconSize = 18;
+
+/// The room between two of the leading icons.
+const double _weatherTimeIconGap = 4;
+
+/// The leading icons, [icons] of them, and the room after them, before the
+/// label.
+double _weatherTimeLead(int icons) =>
+    icons * _weatherTimeIconSize + (icons - 1) * _weatherTimeIconGap + 8;
+
+/// How many icons lead the time control: the clock, and the drop with the
+/// rain on and the wind's with the wind on.
+int weatherTimeIconCount(WidgetRef ref) =>
+    1 + (weatherRainOn(ref) ? 1 : 0) + (weatherWindOn(ref) ? 1 : 0);
 
 /// The key of the time control's label, for the tests.
 const Key weatherTimeLabelKey = ValueKey<String>('weather-time-label');
@@ -303,10 +319,16 @@ double weatherTimeLabelWidth(
 final Map<int, double> _labelWidths = <int, double>{};
 
 /// Whether a time control [rowWidth] wide puts its label on a line of its
-/// own: beside a label [labelWidth] wide the slider would get less than
-/// [weatherSliderMinShare] of the row.
-bool weatherTimeRowStacks(double rowWidth, double labelWidth) =>
-    rowWidth - _weatherTimeLead - labelWidth < rowWidth * weatherSliderMinShare;
+/// own: beside [icons] leading icons ([weatherTimeIconCount]) and a label
+/// [labelWidth] wide the slider would get less than [weatherSliderMinShare]
+/// of the row.
+bool weatherTimeRowStacks(
+  double rowWidth,
+  double labelWidth, {
+  int icons = 1,
+}) =>
+    rowWidth - _weatherTimeLead(icons) - labelWidth <
+    rowWidth * weatherSliderMinShare;
 
 /// How tall [WeatherTimeRow] is [rowWidth] wide, without its padding: 0
 /// while the rain and the wind are off.
@@ -322,7 +344,7 @@ double weatherTimeRowHeightFor(
     ref.watch(sharedWeatherMapStatusProvider),
     wind: !weatherRainOn(ref),
   );
-  return weatherTimeRowStacks(rowWidth, width)
+  return weatherTimeRowStacks(rowWidth, width, icons: weatherTimeIconCount(ref))
       ? weatherTimeRowStackedHeight
       : weatherTimeRowHeight;
 }
@@ -384,6 +406,7 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
     // which the rider plans by (the rain's own moment is in the Layers
     // sheet); otherwise the rain's moment with the rain on, else the wind's.
     final rainOn = weatherRainOn(ref);
+    final windOn = weatherWindOn(ref);
     final label = !layers || leave
         ? weatherDepartureLabel(
             context,
@@ -412,28 +435,39 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
       departure: !layers || leave,
     );
     _follow((layers && status.loading) || widget.forecastLoading);
-    // The spinner in the drop's place, as large, so nothing moves.
-    final drop = SizedBox.square(
-      dimension: 18,
-      child: _spinning
-          ? Padding(
-              padding: const EdgeInsets.all(2),
-              child: CircularProgressIndicator(
-                key: weatherTimeLoadingKey,
-                strokeWidth: 2,
-                color: theme.colorScheme.primary,
-                semanticsLabel: AppLocalizations.of(context).mapWeatherLoading,
-              ),
-            )
-          : Icon(
-              !layers
-                  ? Icons.schedule
-                  : rainOn
-                  ? Icons.water_drop_outlined
-                  : Icons.air,
-              size: 18,
-              color: theme.colorScheme.primary,
+    final colour = theme.colorScheme.primary;
+    Widget icon(IconData data) =>
+        Icon(data, size: _weatherTimeIconSize, color: colour);
+    // The clock, then what the map shows of the weather: the drop with the
+    // rain on, the wind's with the wind on. Loading, the spinner stands in
+    // the clock's place, as large, so nothing moves.
+    final icons = <Widget>[
+      if (_spinning)
+        SizedBox.square(
+          dimension: _weatherTimeIconSize,
+          child: Padding(
+            padding: const EdgeInsets.all(2),
+            child: CircularProgressIndicator(
+              key: weatherTimeLoadingKey,
+              strokeWidth: 2,
+              color: colour,
+              semanticsLabel: AppLocalizations.of(context).mapWeatherLoading,
             ),
+          ),
+        )
+      else
+        icon(Icons.schedule),
+      if (rainOn) icon(Icons.water_drop_outlined),
+      if (windOn) icon(Icons.air),
+    ];
+    final lead = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final (i, child) in icons.indexed) ...[
+          if (i > 0) const SizedBox(width: _weatherTimeIconGap),
+          child,
+        ],
+      ],
     );
     // A label longer than measured (another font) is scaled down to fit.
     Widget text(TextStyle? style) => FittedBox(
@@ -455,7 +489,11 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
                 ? AppLocalizations.of(context).mapWeatherRadarTime
                 : AppLocalizations.of(context).mapWeatherWindTime,
           );
-          if (weatherTimeRowStacks(constraints.maxWidth, labelWidth)) {
+          if (weatherTimeRowStacks(
+            constraints.maxWidth,
+            labelWidth,
+            icons: icons.length,
+          )) {
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -464,7 +502,7 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
                   height: weatherTimeLabelLineHeight,
                   child: Row(
                     children: [
-                      drop,
+                      lead,
                       const SizedBox(width: 8),
                       Expanded(
                         child: Align(
@@ -485,7 +523,7 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
           }
           return Row(
             children: [
-              drop,
+              lead,
               const SizedBox(width: 8),
               SizedBox(
                 width: labelWidth,

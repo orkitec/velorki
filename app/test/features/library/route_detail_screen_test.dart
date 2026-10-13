@@ -31,6 +31,11 @@ import 'package:velorki/features/weather/presentation/route_weather_section.dart
 import 'package:velorki/features/weather/presentation/route_weather_strip.dart';
 import 'package:velorki/features/weather/presentation/weather_keys.dart';
 import 'package:velorki/core/geo/route_gradient.dart';
+import 'package:velorki/core/files/track_exporter.dart';
+import 'package:velorki/features/planner/presentation/route_stats_row.dart';
+import 'package:velorki/features/planner/presentation/surface_section.dart';
+import 'package:velorki/features/shared/presentation/button_menu.dart';
+import 'package:velorki/features/weather/application/route_overlay.dart';
 
 import '../../support/app.dart';
 import '../../support/chart_cursor.dart';
@@ -610,11 +615,59 @@ void main() {
       await unmountApp(tester);
     });
 
+    testWidgets('the page in the planner\'s order: figures, Open in '
+        'planner and the actions, the departure, the colour choice and its '
+        'key, the profile, then the surfaces and the weather', (tester) async {
+      await pumpWeather(tester, access: PlusAccess.granted);
+      // The departure is the only slider, under the actions; the weather
+      // section has none of its own.
+      expect(find.byType(Slider), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(RouteDepartureSlider),
+          matching: find.byType(Slider),
+        ),
+        findsOneWidget,
+      );
+      final order = [
+        find.byType(RouteStatsRow),
+        find.widgetWithText(FilledButton, l10n.routeDetailOpenInPlanner),
+        find.widgetWithText(ButtonMenu<TrackFormat>, l10n.routeDetailExport),
+        find.byType(RouteDepartureSlider),
+        find.byType(SegmentedButton<RouteOverlay>),
+        find.byType(RouteColourKey),
+        find.byType(ElevationProfileChart),
+        find.byType(SurfaceSection),
+        find.byType(RouteWeatherStrip),
+      ];
+      for (var i = 1; i < order.length; i++) {
+        expect(
+          tester.getRect(order[i]).top,
+          greaterThanOrEqualTo(tester.getRect(order[i - 1]).bottom),
+          reason: '${order[i]} under ${order[i - 1]}',
+        );
+      }
+      // Directly under the actions, and the key right under the choice.
+      final actions = tester.getRect(
+        find.ancestor(of: order[2], matching: find.byType(Wrap)).first,
+      );
+      expect(
+        tester.getRect(find.byType(RouteDepartureSlider)).top - actions.bottom,
+        lessThan(12),
+      );
+      expect(
+        tester.getRect(find.byType(RouteColourKey)).top -
+            tester.getRect(find.byType(SegmentedButton<RouteOverlay>)).bottom,
+        lessThanOrEqualTo(8),
+      );
+      await unmountApp(tester);
+    });
+
     testWidgets('the departure slider stands on the time control\'s steps '
         'and sets the step all tabs share', (tester) async {
       await pumpWeather(tester, access: PlusAccess.granted);
       final slider = find.descendant(
-        of: find.byType(RouteWeatherSection),
+        of: find.byType(RouteDepartureSlider),
         matching: find.byType(Slider),
       );
       await tester.ensureVisible(slider);

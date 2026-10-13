@@ -43,10 +43,14 @@ class _Weather extends RouteWeatherController {
 
 /// The planner with [_route] planned, the forecast along it, and the
 /// profile and the strip scrolled into view.
-Future<PlannerHarness> _pump(WidgetTester tester) async {
+Future<PlannerHarness> _pump(
+  WidgetTester tester, {
+  Size surfaceSize = const Size(1000, 2000),
+}) async {
   final h = await pumpScreen(
     tester,
     const PlannerScreen(),
+    surfaceSize: surfaceSize,
     extraOverrides: [
       relayClientProvider.overrideWithValue(MockRelay().client()),
       plusAccessProvider.overrideWith((ref, feature) => PlusAccess.granted),
@@ -123,7 +127,7 @@ Finder get _stripHandle => find.descendant(
 
 void main() {
   testWidgets('the route is coloured by its gradient from the start: on the '
-      'map and under the profile, with the choice and its key under the '
+      'map and under the profile, with the choice and its key over the '
       'profile; Off takes it off and the wind draws the wind', (tester) async {
     final h = await _pump(tester);
     List<MapCall> callsOf(String method) =>
@@ -144,22 +148,18 @@ void main() {
     expect(bands(), hasLength(1));
     expect(bands().single.end, closeTo(10000, 1));
 
-    // The choice and the key between the profile and the weather.
+    // The choice, its key right under it, then the profile, then the
+    // weather.
     final choice = find.byType(RouteColourChoice);
-    // Its heading's touch target starts where the profile ends.
+    final key = tester.getRect(find.byType(GradientColourKey));
+    expect(key.top, greaterThan(tester.getBottomLeft(choice).dy));
     expect(
-      tester.getTopLeft(choice).dy,
-      greaterThanOrEqualTo(
-        tester.getBottomLeft(find.byType(ElevationProfileChart)).dy,
-      ),
-    );
-    expect(
-      tester.getTopLeft(find.byType(GradientColourKey)).dy,
-      greaterThan(tester.getBottomLeft(choice).dy),
+      tester.getTopLeft(find.byType(ElevationProfileChart)).dy,
+      greaterThan(key.bottom),
     );
     expect(
       tester.getTopLeft(find.byType(RouteWeatherStrip)).dy,
-      greaterThan(tester.getBottomLeft(find.byType(GradientColourKey)).dy),
+      greaterThan(tester.getBottomLeft(find.byType(ElevationProfileChart)).dy),
     );
 
     Finder segment(String label) =>
@@ -296,7 +296,9 @@ void main() {
 
   testWidgets('a vertical drag on the profile still goes to the sheet and '
       'puts no cursor down', (tester) async {
-    final h = await _pump(tester);
+    // Tall enough for the sheet's content to fit: content that has nothing
+    // to scroll is a grip all over.
+    final h = await _pump(tester, surfaceSize: const Size(1000, 2400));
     final before = tester.getRect(_profile).top;
 
     // Measured with the finger still down: let go, the sheet may settle

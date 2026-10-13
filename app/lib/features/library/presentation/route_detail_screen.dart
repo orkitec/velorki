@@ -498,7 +498,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                     // The one thing a saved route is usually opened for gets
                     // the full-width pill, right under the figures so it is
                     // in view at the card's resting height; the rest wraps
-                    // underneath, and the surfaces follow.
+                    // underneath, and the departure follows.
                     SizedBox(
                       height: primaryButtonHeight,
                       child: FilledButton.icon(
@@ -549,6 +549,22 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                         DescribeRouteButton(route: saved),
                       ],
                     ),
+                    // The departure, which the colours and the weather
+                    // below follow, right under the actions.
+                    const SizedBox(height: 4),
+                    RouteDepartureSlider(route: _weatherRoute),
+                    // What the route on the map is coloured by, and the
+                    // profile under it coloured alike.
+                    RouteColourControls(route: _weatherRoute),
+                    const SizedBox(height: 12),
+                    RouteElevationProfile(
+                      route: _weatherRoute,
+                      samples: elevationProfile(geometry),
+                      height: 220,
+                      window: _window,
+                      onWindow: _setWindow,
+                      cursor: _cursor,
+                    ),
                     const SizedBox(height: 16),
                     // The route's own words and where it came from, each
                     // a row the rider can change: a description typed
@@ -579,17 +595,6 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                     SurfaceSection(
                       surface: _surfaceOf(saved),
                       hideWithoutRouting: false,
-                    ),
-                    const SizedBox(height: 28),
-                    // The profile, coloured as the route on the map is,
-                    // and the choice of what that is under it.
-                    RouteElevationProfile(
-                      route: _weatherRoute,
-                      samples: elevationProfile(geometry),
-                      height: 220,
-                      window: _window,
-                      onWindow: _setWindow,
-                      cursor: _cursor,
                     ),
                     // The weather on the way for a ride leaving now; it
                     // brings its own space above it, and takes none when

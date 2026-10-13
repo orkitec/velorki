@@ -23,7 +23,8 @@ import 'free_forecast_dialog.dart';
 import 'weather_keys.dart';
 
 /// A route's elevation profile with the fill under the line coloured as the
-/// route on the map is, and under it the choice of what that is.
+/// route on the map is. The choice of what that is, [RouteColourControls],
+/// stands above it.
 class RouteElevationProfile extends ConsumerWidget {
   /// Creates the profile of [route], whose heights are [samples].
   const RouteElevationProfile({
@@ -57,17 +58,32 @@ class RouteElevationProfile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colouring = ref.watch(routeColouringProvider(route));
+    return ElevationProfileChart(
+      samples: samples,
+      height: height,
+      window: window,
+      onWindow: onWindow,
+      cursor: cursor,
+      bands: routeColouringBands(colouring, Theme.of(context)),
+    );
+  }
+}
+
+/// What [route] on the map and its profile are coloured by
+/// ([RouteColourChoice]), and right under it what the colours mean
+/// ([RouteColourKey]).
+class RouteColourControls extends StatelessWidget {
+  /// Creates the controls of [route]'s colours.
+  const RouteColourControls({required this.route, super.key});
+
+  /// Whose colours they are: the planner's route, or a saved one.
+  final WeatherRoute route;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ElevationProfileChart(
-          samples: samples,
-          height: height,
-          window: window,
-          onWindow: onWindow,
-          cursor: cursor,
-          bands: routeColouringBands(colouring, Theme.of(context)),
-        ),
         // The choice's heading takes the room above it as its touch target.
         const RouteColourChoice(),
         const SizedBox(height: 8),
@@ -137,7 +153,7 @@ RouteColourLines routeColourLinesOf(RouteColouring colouring, ThemeData theme) {
   );
 }
 
-/// Whether the route on the map and the profile above are coloured, a
+/// Whether the route on the map and the profile under it are coloured, a
 /// switch at the end of the heading, and by what: the gradient, the
 /// surface, the wind or the rain. Switched off, the choice stays, greyed,
 /// for when it is switched on again.
