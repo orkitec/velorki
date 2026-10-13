@@ -249,7 +249,7 @@ void main() {
       expect(source['clusterRadius'], stopsClusterRadiusPx);
       // MapLibre gathers stops in the source's tiles up to this whole zoom;
       // from the next one, the zoom the map opens at, every stop is its own.
-      expect(source['clusterMaxZoom'], 13);
+      expect(source['clusterMaxZoom'], 14);
       expect(locateOnOpenZoom, greaterThan(stopsClusterMaxZoom + 1));
 
       const bubble = <Object>['has', 'point_count'];

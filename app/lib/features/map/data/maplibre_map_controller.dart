@@ -471,9 +471,10 @@ const double stopsClusterRadiusPx = 50;
 
 /// The last zoom at which stops are gathered into bubbles; from the next
 /// zoom on every stop is its own pin. MapLibre gathers them in the source's
-/// tiles of each whole zoom up to this one, so from 14.0 (the zoom the map
-/// opens at) every stop is drawn on its own.
-const double stopsClusterMaxZoom = 13;
+/// tiles of each whole zoom up to this one, so from 15.0 (the zoom the map
+/// opens at) every stop is drawn on its own: at 14, with every stop of the
+/// chosen kinds loaded, a town centre was a heap of pins.
+const double stopsClusterMaxZoom = 14;
 
 /// How close to a tap, in logical pixels, the bubble tapped is looked for:
 /// as wide as the widest bubble.

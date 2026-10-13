@@ -24,10 +24,10 @@ const Duration locateOnOpenAway = Duration(minutes: 30);
 const Duration locateOnOpenFixTimeout = Duration(seconds: 10);
 
 /// The zoom the map goes to when it was further out than
-/// [locateOnOpenMinZoom]: a hair past 14, where the map's stops stop
+/// [locateOnOpenMinZoom]: a hair past 15, where the map's stops stop
 /// being grouped, as iOS can settle a little short of the zoom it was
 /// asked for and would show the groups.
-const double locateOnOpenZoom = 14.05;
+const double locateOnOpenZoom = 15.05;
 
 /// A map at this zoom or closer keeps its zoom when it moves to the rider.
 const double locateOnOpenMinZoom = 12;
