@@ -87,7 +87,8 @@ tags:
       National Weather Service in the US, the Deutscher Wetterdienst (through
       Bright Sky) in and around Germany, MET Norway everywhere else and as the
       fallback whenever one of those fails. And, for the map, the EUMETNET
-      OPERA radar composite over Europe as images.
+      OPERA radar composite over Europe and the Dipartimento della Protezione
+      Civile's rainfall over Italy as images.
 
 paths:
   /health:
@@ -825,7 +826,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OperaFrames'
+                $ref: '#/components/schemas/RadarFrames'
               examples:
                 frames:
                   value:
@@ -884,6 +885,131 @@ paths:
           schema:
             type: string
           example: '-626172.1,5009377.1,1252344.3,6887893.5'
+        - name: width
+          in: query
+          required: true
+          description: Pixels, 1 to 1536; one pixel's width and height in metres within a factor of 32 of each other.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1536
+        - name: height
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1536
+      responses:
+        '200':
+          description: The image.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/XRequestId'
+            Cache-Control:
+              description: '`private, max-age=3600`.'
+              schema:
+                type: string
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /weather/radar/dpc/frames:
+    get:
+      tags: [weather]
+      operationId: getDpcFrames
+      summary: The DPC radar's frames over Italy of the last two hours.
+      description: |
+        The surface rainfall intensity (SRI, mm an hour, radars adjusted by
+        rain gauges) of the Dipartimento della Protezione Civile's Radar-DPC
+        platform over Italy (CC BY-SA 4.0), every five minutes, some ten
+        minutes behind the clock. The platform's API names its newest frame,
+        asked at most once a minute for the whole cluster; the frames are the
+        five-minute steps of the last two hours up to it. `newest` is the
+        last of them, and the app asks for no image past it.
+
+        Rate limits as for the OPERA radar's, counted apart: 1200 per hour per
+        IP, charged before the entitlement is checked, then 60 per minute and
+        3000 per day per app user, shared with the image below. 502
+        `upstream_error` when the platform does not answer.
+      responses:
+        '200':
+          description: The frames, oldest first.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RadarFrames'
+              examples:
+                frames:
+                  value:
+                    frames: ['2026-10-12T20:50:00.000Z', '2026-10-12T20:55:00.000Z', '2026-10-12T21:00:00.000Z']
+                    newest: '2026-10-12T21:00:00.000Z'
+                    stepMinutes: 5
+                    attribution: 'Radar: Radar-DPC, Dipartimento della Protezione Civile (CC BY-SA 4.0)'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /weather/radar/dpc/image:
+    get:
+      tags: [weather]
+      operationId: getDpcImage
+      summary: One image of a Web Mercator box at one DPC frame.
+      description: |
+        The rain of one frame over `bbox`, as an indexed PNG of
+        `width` x `height`, drawn from the DPC's data alone (CC BY-SA 4.0:
+        never put together with another source) in the Deutscher Wetterdienst
+        radar's fifteen classes and colours (the rates as they are; the
+        classes are the app's `dwdRadarLegend`), where the radars do not reach
+        `#7E7E7E` at alpha 77, dry and beyond the grid transparent. Nothing is
+        dropped as clutter: the product comes cleaned.
+
+        `time` has to be one of the frames listed: nothing the client sends
+        names a file or a URL. The first request for a frame asks the
+        platform for it once for the whole cluster, and follows its link only
+        to that frame's file on the platform's bucket; it is kept for two and
+        a half hours. A frame never changes, so the answer may be kept
+        (`Cache-Control: private`).
+
+        Rate limits as for the frames.
+      parameters:
+        - name: time
+          in: query
+          required: true
+          description: A frame of `GET /weather/radar/dpc/frames`, ISO 8601 UTC.
+          schema:
+            type: string
+            format: date-time
+          example: '2026-10-12T21:00:00.000Z'
+        - name: bbox
+          in: query
+          required: true
+          description: |
+            `west,south,east,north` in EPSG:3857 metres, inside Web Mercator
+            and meeting the grid (4.5° to 20.5° E, 35° to 47.9° N).
+          schema:
+            type: string
+          example: '1252344.3,4865942.3,1669792.4,5160979.4'
         - name: width
           in: query
           required: true
@@ -1559,7 +1685,7 @@ components:
           type: string
           description: The attribution the app shows beside the forecast.
 
-    OperaFrames:
+    RadarFrames:
       type: object
       required: [frames, newest, stepMinutes, attribution]
       additionalProperties: false

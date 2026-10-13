@@ -2,6 +2,7 @@
 import { cache } from '@orkify/cache';
 import { loadConfig, type Config } from '@/config';
 import { ShareStore } from '@/share/store';
+import { DpcStore } from '@/weather/dpc/store';
 import { OperaStore } from '@/weather/opera/store';
 import { userAgent } from '@/weather/upstream';
 import {
@@ -33,6 +34,7 @@ export interface Singletons {
   prompts: Prompts;
   budget: DailyBudget;
   opera: OperaStore;
+  dpc: DpcStore;
 }
 
 const KEY = Symbol.for('velorki.singletons');
@@ -109,6 +111,19 @@ export function getOpera(): OperaStore {
     log: getLogger(),
   });
   return b.opera;
+}
+
+/** The DPC radar's frames over Italy, shared through the counters. */
+export function getDpc(): DpcStore {
+  const b = bag();
+  if (b.dpc !== undefined) return b.dpc;
+  const config = getConfig();
+  b.dpc = new DpcStore({
+    counters: getCounters(),
+    userAgent: userAgent(config.APP_VERSION, config.PUBLIC_BASE_URL, config.WEATHER_CONTACT),
+    log: getLogger(),
+  });
+  return b.dpc;
 }
 
 /** Tests only: replace part of the bag. Anything left out is built lazily. */

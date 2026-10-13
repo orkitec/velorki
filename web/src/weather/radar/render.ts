@@ -3,7 +3,6 @@ import { promisify } from 'node:util';
 import { crc32, deflate } from 'node:zlib';
 import { CLASS_NO_DATA, DWD_CLASS_COLOURS, NO_DATA_ALPHA, NO_DATA_RGB } from './classes';
 import type { ClassGrid } from './grid';
-import { Laea } from './laea';
 
 const deflateAsync = promisify(deflate);
 
@@ -21,14 +20,18 @@ export function mercatorOf(lon: number, lat: number): [number, number] {
 }
 
 /**
- * The box around the composite's grid, 39.5° W to 57.8° E and 31.7° to
- * 73.9° N (its corners and edges, worked out from the grid of 2026-10-12),
- * in Web Mercator: the app's coverage box of the source, and what an image
- * request has to meet.
+ * A grid's projection as drawing needs it: given the latitudes of an image's
+ * rows and the longitudes of its columns (degrees), the projected x and y
+ * (metres, the grid's) of each (row, column), `null` where the projection
+ * has no point. What depends on the row or the column alone is worked out
+ * once for it, so a pixel costs a few multiplications.
  */
-const [DOMAIN_WEST, DOMAIN_SOUTH] = mercatorOf(-39.5, 31.7);
-const [DOMAIN_EAST, DOMAIN_NORTH] = mercatorOf(57.8, 73.9);
-export const OPERA_DOMAIN: MercatorBox = [DOMAIN_WEST, DOMAIN_SOUTH, DOMAIN_EAST, DOMAIN_NORTH];
+export interface GridProjection {
+  lattice(
+    lats: Float64Array,
+    lons: Float64Array,
+  ): (row: number, col: number) => { x: number; y: number } | null;
+}
 
 /**
  * The palette index of each pixel: 0 transparent (dry, or outside the
@@ -43,19 +46,19 @@ const MAX_SUPERSAMPLE = 3;
  * Which class lies under each pixel of a `width` x `height` image of `box`:
  * each pixel's middle (and, where a pixel spans more than a cell and a half
  * on the ground, a few points across it) projected into the composite's
- * grid, the heaviest rain among them kept, so rain a cell wide still shows
- * zoomed out. A pixel with no sample on the grid is transparent; one whose
+ * grid by `projection`, the heaviest rain among them kept, so rain a cell
+ * wide still shows zoomed out. A pixel with no sample on the grid is transparent; one whose
  * samples are all no data is no data.
  */
 export function classesOfArea(
-  grid: ClassGrid,
+  grid: ClassGrid<unknown>,
+  projection: GridProjection,
   box: MercatorBox,
   width: number,
   height: number,
 ): Uint8Array {
   const [west, south, east, north] = box;
   const out = new Uint8Array(width * height);
-  const laea = new Laea(grid.proj);
   const pxX = (east - west) / width;
   const pxY = (north - south) / height;
   const midLat = latOf((north + south) / 2);
@@ -65,23 +68,14 @@ export function classesOfArea(
 
   // The longitude depends on the column alone, the latitude on the row.
   const cols = width * ss;
-  const sinL = new Float64Array(cols);
-  const cosL = new Float64Array(cols);
+  const lons = new Float64Array(cols);
   for (let c = 0; c < cols; c += 1) {
-    const x = west + ((c + 0.5) / ss) * pxX;
-    const dl = laea.dLon((x / MERCATOR_HALF) * 180);
-    sinL[c] = Math.sin(dl);
-    cosL[c] = Math.cos(dl);
+    lons[c] = ((west + ((c + 0.5) / ss) * pxX) / MERCATOR_HALF) * 180;
   }
   const rows = height * ss;
-  const sinB = new Float64Array(rows);
-  const cosB = new Float64Array(rows);
-  for (let r = 0; r < rows; r += 1) {
-    const y = north - ((r + 0.5) / ss) * pxY;
-    const beta = laea.beta(latOf(y));
-    sinB[r] = beta.sin;
-    cosB[r] = beta.cos;
-  }
+  const lats = new Float64Array(rows);
+  for (let r = 0; r < rows; r += 1) lats[r] = latOf(north - ((r + 0.5) / ss) * pxY);
+  const project = projection.lattice(lats, lons);
 
   const { x0, y0, dx, dy, width: gw, height: gh, cells } = grid;
   for (let j = 0; j < height; j += 1) {
@@ -92,7 +86,7 @@ export function classesOfArea(
         const r = j * ss + sr;
         for (let sc = 0; sc < ss; sc += 1) {
           const c = i * ss + sc;
-          const p = laea.forwardParts(sinB[r] ?? 0, cosB[r] ?? 0, sinL[c] ?? 0, cosL[c] ?? 1);
+          const p = project(r, c);
           if (p === null) continue;
           const col = Math.floor((p.x - x0) / dx);
           const row = Math.floor((y0 - p.y) / dy);

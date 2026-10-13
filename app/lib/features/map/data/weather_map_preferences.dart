@@ -235,8 +235,9 @@ class WeatherRadarPreview extends _$WeatherRadarPreview {
 
 /// The weather sources in force: the built-in ones, as the tile mirror's
 /// `weatherLayers` last said (kept, so it holds offline); with Velorki Plus
-/// granted, in a build with the relay, the OPERA radar across Europe as well
-/// ([withOperaRadar]), which the mirror can switch off by its id as any
+/// granted, in a build with the relay, the relay's radars as well: the
+/// DPC's over Italy and OPERA across Europe ([withDpcRadar],
+/// [withOperaRadar]), which the mirror can switch off by their ids as any
 /// other.
 @Riverpod(keepAlive: true)
 class WeatherMapSources extends _$WeatherMapSources {
@@ -257,9 +258,17 @@ class WeatherMapSources extends _$WeatherMapSources {
     required RelayClient? relay,
     required PlusAccess access,
   }) {
-    final defaults = relay != null && access == PlusAccess.granted
-        ? withOperaRadar(defaultWeatherMapSources, relay.uriFor('/').toString())
-        : defaultWeatherMapSources;
+    if (relay == null || access != PlusAccess.granted) {
+      return applyWeatherOverride(
+        defaultWeatherMapSources,
+        decodeWeatherOverride(stored),
+      );
+    }
+    final base = relay.uriFor('/').toString();
+    final defaults = withDpcRadar(
+      withOperaRadar(defaultWeatherMapSources, base),
+      base,
+    );
     return applyWeatherOverride(defaults, decodeWeatherOverride(stored));
   }
 
@@ -287,8 +296,8 @@ class WeatherMapSources extends _$WeatherMapSources {
 bool weatherKindAvailable(List<WeatherMapSource> sources, WeatherKind kind) =>
     sources.any((s) => s.enabled && s.kind == kind);
 
-/// The network the weather layers are fetched over. Only the OPERA radar's
-/// requests to the relay carry the rider's credentials ([relayAuthFor]).
+/// The network the weather layers are fetched over. Only the requests to
+/// the relay's radars carry the rider's credentials ([relayAuthFor]).
 @Riverpod(keepAlive: true)
 WeatherFetcher weatherFetcher(Ref ref) {
   final dio = velorkiDio();

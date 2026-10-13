@@ -1651,57 +1651,97 @@ const String operaRadarPath = '/weather/radar/opera';
 /// drawn by the relay at [relayBase] (`{base}/weather/radar/opera/image`,
 /// the same query as the other radars' WMS GetMap) in the DWD radar's
 /// classes and colours ([RainPalette.dwd]), its "no data" grey; the past
-/// two hours, no forecast. Listed after the free radars, so the DWD's,
-/// KNMI's and FMI's draw where they reach and OPERA around them; before
-/// the satellite, which it replaces where it measures.
+/// two hours, no forecast. Listed after the national radars, so the
+/// DWD's, KNMI's, FMI's and the DPC's ([dpcRadar]) draw where they reach
+/// and OPERA around them; before the satellite, which it replaces where it
+/// measures.
 ///
 /// The image is the relay's, so it is drawn as an image in either look
 /// ([WeatherMapSource.servesTiles] is false): MapLibre would load tiles
 /// without the rider's Plus credentials. The newest frame is read off the
 /// relay's frame list ([timesUrl], `parseFramesNewest`). Every request
-/// carries the relay's credentials (see `relayAuthFor`), only this source's.
+/// carries the relay's credentials (see `relayAuthFor`), only the relay's
+/// radars' ([relayRadarPaths]).
 ///
 /// The composite's grid (Lambert azimuthal equal-area, 3800 × 4400 km)
 /// bounds its images ([operaRadarExtent]); where its radars reach
 /// ([operaRadarReach]) each frame says itself in its grey, so the sources
 /// after it are cut by the frame, as beside the DWD's radar.
-WeatherMapSource operaRadar(String relayBase) {
-  final base = relayBase.endsWith('/')
-      ? relayBase.substring(0, relayBase.length - 1)
-      : relayBase;
-  final image =
-      '$base$operaRadarPath/image?time={time}&bbox={bbox-epsg-3857}'
-      '&width={width}&height={height}';
-  return WeatherMapSource(
-    id: operaRadarId,
-    kind: WeatherKind.radar,
-    urlTemplate: image,
-    imageUrlTemplate: image,
-    // The composite's grid's box, as the relay checks it.
-    coverage: <BoundingBox>[_box(-39.5, 31.7, 57.8, 73.9)],
-    reach: operaRadarReach,
-    extent: operaRadarExtent,
-    timeFormat: WeatherTimeFormat.iso,
-    nativeMetresPerPixel: 1000,
-    attribution: 'Radar: EUMETNET OPERA (CC BY 4.0)',
-    timesUrl: '$base$operaRadarPath/frames',
-  );
-}
+WeatherMapSource operaRadar(String relayBase) => _relayRadar(
+  relayBase,
+  id: operaRadarId,
+  path: operaRadarPath,
+  // The composite's grid's box, as the relay checks it.
+  coverage: _box(-39.5, 31.7, 57.8, 73.9),
+  reach: operaRadarReach,
+  extent: operaRadarExtent,
+  attribution: 'Radar: EUMETNET OPERA (CC BY 4.0)',
+);
 
 /// [sources] with [operaRadar] of [relayBase] put after the radars, before
 /// the first rain source that is not one (the satellite).
 List<WeatherMapSource> withOperaRadar(
   List<WeatherMapSource> sources,
   String relayBase,
-) {
+) => _withRelayRadar(sources, operaRadar(relayBase));
+
+/// The paths under the relay its radars are served from: the only requests
+/// that carry the rider's credentials (see `relayAuthFor`).
+const List<String> relayRadarPaths = <String>[operaRadarPath, dpcRadarPath];
+
+/// A radar the relay at [relayBase] draws under [path] (`{base}{path}/image`,
+/// the same query as the other radars' WMS GetMap; its frames at
+/// `{base}{path}/frames`): Velorki Plus, the DWD radar's classes and
+/// colours, 1 km, every five minutes, the past two hours.
+WeatherMapSource _relayRadar(
+  String relayBase, {
+  required String id,
+  required String path,
+  required BoundingBox coverage,
+  required List<List<LatLng>> reach,
+  required List<LatLng> extent,
+  required String attribution,
+}) {
+  final base = relayBase.endsWith('/')
+      ? relayBase.substring(0, relayBase.length - 1)
+      : relayBase;
+  final image =
+      '$base$path/image?time={time}&bbox={bbox-epsg-3857}'
+      '&width={width}&height={height}';
+  return WeatherMapSource(
+    id: id,
+    kind: WeatherKind.radar,
+    urlTemplate: image,
+    imageUrlTemplate: image,
+    coverage: <BoundingBox>[coverage],
+    reach: reach,
+    extent: extent,
+    timeFormat: WeatherTimeFormat.iso,
+    nativeMetresPerPixel: 1000,
+    attribution: attribution,
+    timesUrl: '$base$path/frames',
+  );
+}
+
+/// [sources] with [radar] put before the source [before] where there is
+/// one, else after the radars, before the first rain source that is not
+/// one (the satellite); any source of its id before taken out.
+List<WeatherMapSource> _withRelayRadar(
+  List<WeatherMapSource> sources,
+  WeatherMapSource radar, {
+  String? before,
+}) {
   final out = <WeatherMapSource>[
     for (final s in sources)
-      if (s.id != operaRadarId) s,
+      if (s.id != radar.id) s,
   ];
-  final at = out.indexWhere(
-    (s) => s.kind == WeatherKind.radar && s.role != RainRole.radar,
-  );
-  return out..insert(at < 0 ? out.length : at, operaRadar(relayBase));
+  var at = before == null ? -1 : out.indexWhere((s) => s.id == before);
+  if (at < 0) {
+    at = out.indexWhere(
+      (s) => s.kind == WeatherKind.radar && s.role != RainRole.radar,
+    );
+  }
+  return out..insert(at < 0 ? out.length : at, radar);
 }
 
 /// The OPERA composite's grid, the ring its images are drawn in: its box in
@@ -2194,6 +2234,397 @@ const List<LatLng> _operaReachGreece = <LatLng>[
   LatLng(38.50, 19.44),
   LatLng(38.97, 19.79),
   LatLng(39.40, 20.60),
+];
+
+/// The id of the DPC's radar over Italy ([dpcRadar]).
+const String dpcRadarId = 'radar_dpc';
+
+/// The path under the relay the DPC's radar is served from.
+const String dpcRadarPath = '/weather/radar/dpc';
+
+/// Rain radar over Italy for Velorki Plus: the surface rainfall intensity
+/// (SRI, mm an hour, the national radar network adjusted by rain gauges) of
+/// the Dipartimento della Protezione Civile's Radar-DPC platform, CC BY-SA
+/// 4.0, every five minutes, drawn by the relay at [relayBase] from the
+/// DPC's data alone (`{base}/weather/radar/dpc/image`) in the DWD radar's
+/// classes and colours ([RainPalette.dwd]), its "no data" grey; the past
+/// two hours, no forecast. Listed with the national radars, before
+/// [operaRadar], so over Italy and its seas the DPC's radar draws and OPERA
+/// around it; before the satellite. Requested as [operaRadar] is, with the
+/// relay's credentials (see `relayAuthFor`).
+///
+/// The product's grid (Transverse Mercator about 42° N 12.5° E, 1200 × 1400
+/// km) bounds its images ([dpcRadarExtent]); where its radars reach
+/// ([dpcRadarReach]) each frame says itself in its grey.
+WeatherMapSource dpcRadar(String relayBase) => _relayRadar(
+  relayBase,
+  id: dpcRadarId,
+  path: dpcRadarPath,
+  // The product's grid's box, as the relay checks it.
+  coverage: _box(4.5, 35, 20.5, 47.9),
+  reach: dpcRadarReach,
+  extent: dpcRadarExtent,
+  attribution:
+      'Radar: Radar-DPC, Dipartimento della Protezione Civile (CC BY-SA 4.0)',
+);
+
+/// [sources] with [dpcRadar] of [relayBase] put with the national radars:
+/// before [operaRadar] where it is there, else before the first rain source
+/// that is not a radar (the satellite).
+List<WeatherMapSource> withDpcRadar(
+  List<WeatherMapSource> sources,
+  String relayBase,
+) => _withRelayRadar(sources, dpcRadar(relayBase), before: operaRadarId);
+
+/// The DPC's grid, the ring its images are drawn in: its box in its own
+/// projection (1200 × 1400 cells of 1 km from 600 km west and 650 km north
+/// of 42° N 12.5° E), kept 3 km inside, 40 points an edge.
+const List<LatLng> dpcRadarExtent = <LatLng>[
+  LatLng(47.547, 4.567),
+  LatLng(47.574, 4.960),
+  LatLng(47.599, 5.354),
+  LatLng(47.623, 5.748),
+  LatLng(47.646, 6.142),
+  LatLng(47.667, 6.537),
+  LatLng(47.687, 6.933),
+  LatLng(47.705, 7.329),
+  LatLng(47.723, 7.725),
+  LatLng(47.738, 8.122),
+  LatLng(47.753, 8.519),
+  LatLng(47.766, 8.916),
+  LatLng(47.778, 9.314),
+  LatLng(47.788, 9.711),
+  LatLng(47.797, 10.109),
+  LatLng(47.805, 10.507),
+  LatLng(47.811, 10.906),
+  LatLng(47.816, 11.304),
+  LatLng(47.819, 11.703),
+  LatLng(47.821, 12.101),
+  LatLng(47.822, 12.500),
+  LatLng(47.821, 12.899),
+  LatLng(47.819, 13.297),
+  LatLng(47.816, 13.696),
+  LatLng(47.811, 14.094),
+  LatLng(47.805, 14.493),
+  LatLng(47.797, 14.891),
+  LatLng(47.788, 15.289),
+  LatLng(47.778, 15.686),
+  LatLng(47.766, 16.084),
+  LatLng(47.753, 16.481),
+  LatLng(47.738, 16.878),
+  LatLng(47.723, 17.275),
+  LatLng(47.705, 17.671),
+  LatLng(47.687, 18.067),
+  LatLng(47.667, 18.463),
+  LatLng(47.646, 18.858),
+  LatLng(47.623, 19.252),
+  LatLng(47.599, 19.646),
+  LatLng(47.574, 20.040),
+  LatLng(47.547, 20.433),
+  LatLng(47.236, 20.386),
+  LatLng(46.926, 20.340),
+  LatLng(46.615, 20.295),
+  LatLng(46.305, 20.251),
+  LatLng(45.994, 20.207),
+  LatLng(45.683, 20.164),
+  LatLng(45.373, 20.122),
+  LatLng(45.062, 20.080),
+  LatLng(44.751, 20.039),
+  LatLng(44.440, 19.999),
+  LatLng(44.129, 19.959),
+  LatLng(43.818, 19.920),
+  LatLng(43.507, 19.881),
+  LatLng(43.196, 19.844),
+  LatLng(42.885, 19.806),
+  LatLng(42.574, 19.770),
+  LatLng(42.262, 19.734),
+  LatLng(41.951, 19.698),
+  LatLng(41.640, 19.663),
+  LatLng(41.328, 19.629),
+  LatLng(41.017, 19.595),
+  LatLng(40.706, 19.562),
+  LatLng(40.394, 19.529),
+  LatLng(40.083, 19.497),
+  LatLng(39.771, 19.465),
+  LatLng(39.460, 19.433),
+  LatLng(39.148, 19.403),
+  LatLng(38.836, 19.372),
+  LatLng(38.525, 19.342),
+  LatLng(38.213, 19.313),
+  LatLng(37.901, 19.284),
+  LatLng(37.589, 19.255),
+  LatLng(37.277, 19.227),
+  LatLng(36.966, 19.200),
+  LatLng(36.654, 19.172),
+  LatLng(36.342, 19.146),
+  LatLng(36.030, 19.119),
+  LatLng(35.718, 19.093),
+  LatLng(35.406, 19.068),
+  LatLng(35.094, 19.042),
+  LatLng(35.111, 18.717),
+  LatLng(35.127, 18.391),
+  LatLng(35.143, 18.065),
+  LatLng(35.157, 17.739),
+  LatLng(35.171, 17.413),
+  LatLng(35.184, 17.086),
+  LatLng(35.196, 16.760),
+  LatLng(35.207, 16.433),
+  LatLng(35.217, 16.106),
+  LatLng(35.226, 15.778),
+  LatLng(35.235, 15.451),
+  LatLng(35.242, 15.123),
+  LatLng(35.249, 14.796),
+  LatLng(35.255, 14.468),
+  LatLng(35.260, 14.140),
+  LatLng(35.264, 13.812),
+  LatLng(35.267, 13.484),
+  LatLng(35.269, 13.156),
+  LatLng(35.270, 12.828),
+  LatLng(35.271, 12.500),
+  LatLng(35.270, 12.172),
+  LatLng(35.269, 11.844),
+  LatLng(35.267, 11.516),
+  LatLng(35.264, 11.188),
+  LatLng(35.260, 10.860),
+  LatLng(35.255, 10.532),
+  LatLng(35.249, 10.204),
+  LatLng(35.242, 9.877),
+  LatLng(35.235, 9.549),
+  LatLng(35.226, 9.222),
+  LatLng(35.217, 8.894),
+  LatLng(35.207, 8.567),
+  LatLng(35.196, 8.240),
+  LatLng(35.184, 7.914),
+  LatLng(35.171, 7.587),
+  LatLng(35.157, 7.261),
+  LatLng(35.143, 6.935),
+  LatLng(35.127, 6.609),
+  LatLng(35.111, 6.283),
+  LatLng(35.094, 5.958),
+  LatLng(35.406, 5.932),
+  LatLng(35.718, 5.907),
+  LatLng(36.030, 5.881),
+  LatLng(36.342, 5.854),
+  LatLng(36.654, 5.828),
+  LatLng(36.966, 5.800),
+  LatLng(37.277, 5.773),
+  LatLng(37.589, 5.745),
+  LatLng(37.901, 5.716),
+  LatLng(38.213, 5.687),
+  LatLng(38.525, 5.658),
+  LatLng(38.836, 5.628),
+  LatLng(39.148, 5.597),
+  LatLng(39.460, 5.567),
+  LatLng(39.771, 5.535),
+  LatLng(40.083, 5.503),
+  LatLng(40.394, 5.471),
+  LatLng(40.706, 5.438),
+  LatLng(41.017, 5.405),
+  LatLng(41.328, 5.371),
+  LatLng(41.640, 5.337),
+  LatLng(41.951, 5.302),
+  LatLng(42.262, 5.266),
+  LatLng(42.574, 5.230),
+  LatLng(42.885, 5.194),
+  LatLng(43.196, 5.156),
+  LatLng(43.507, 5.119),
+  LatLng(43.818, 5.080),
+  LatLng(44.129, 5.041),
+  LatLng(44.440, 5.001),
+  LatLng(44.751, 4.961),
+  LatLng(45.062, 4.920),
+  LatLng(45.373, 4.878),
+  LatLng(45.683, 4.836),
+  LatLng(45.994, 4.793),
+  LatLng(46.305, 4.749),
+  LatLng(46.615, 4.705),
+  LatLng(46.926, 4.660),
+  LatLng(47.236, 4.614),
+];
+
+/// Where the DPC's radars reach: the cells measured (dry or rain, not "no
+/// data") in any of twelve frames of 2026-10-08 to 10-13, on an 8 km grid
+/// (half its cells measured), eroded by a cell and simplified to within 6
+/// km: the mainland, Sardinia and Corsica, Sicily and the seas between, in
+/// one ring. A ring has no holes: the gaps inside where no radar reaches
+/// count as reached here, and each frame's grey says where it actually
+/// measures.
+const List<List<LatLng>> dpcRadarReach = <List<LatLng>>[_dpcReach];
+
+const List<LatLng> _dpcReach = <LatLng>[
+  LatLng(47.77, 11.11),
+  LatLng(47.76, 14.74),
+  LatLng(47.61, 14.95),
+  LatLng(47.46, 14.94),
+  LatLng(47.39, 15.15),
+  LatLng(47.10, 15.24),
+  LatLng(47.09, 15.35),
+  LatLng(46.23, 15.40),
+  LatLng(46.23, 15.30),
+  LatLng(45.16, 15.15),
+  LatLng(45.16, 15.04),
+  LatLng(44.73, 14.82),
+  LatLng(44.66, 14.62),
+  LatLng(44.52, 14.61),
+  LatLng(44.38, 14.31),
+  LatLng(44.16, 14.30),
+  LatLng(44.02, 14.60),
+  LatLng(43.87, 14.59),
+  LatLng(43.65, 14.88),
+  LatLng(43.56, 15.47),
+  LatLng(43.49, 15.47),
+  LatLng(43.41, 15.86),
+  LatLng(43.26, 15.95),
+  LatLng(43.26, 16.15),
+  LatLng(42.96, 16.52),
+  LatLng(42.81, 16.51),
+  LatLng(42.73, 16.70),
+  LatLng(42.08, 16.95),
+  LatLng(42.06, 17.24),
+  LatLng(42.14, 17.24),
+  LatLng(42.12, 17.53),
+  LatLng(42.20, 17.54),
+  LatLng(42.18, 17.92),
+  LatLng(42.25, 17.93),
+  LatLng(42.22, 18.51),
+  LatLng(42.15, 18.50),
+  LatLng(42.05, 18.97),
+  LatLng(41.83, 19.05),
+  LatLng(41.65, 19.60),
+  LatLng(39.08, 19.34),
+  LatLng(39.09, 19.15),
+  LatLng(38.95, 19.05),
+  LatLng(38.96, 18.87),
+  LatLng(38.83, 18.67),
+  LatLng(38.27, 18.35),
+  LatLng(37.93, 17.87),
+  LatLng(37.94, 17.69),
+  LatLng(37.74, 17.40),
+  LatLng(37.68, 16.94),
+  LatLng(36.75, 16.98),
+  LatLng(36.75, 16.89),
+  LatLng(36.32, 16.78),
+  LatLng(36.26, 16.59),
+  LatLng(36.11, 16.59),
+  LatLng(35.63, 15.94),
+  LatLng(35.63, 15.77),
+  LatLng(35.49, 15.59),
+  LatLng(35.50, 15.32),
+  LatLng(35.43, 15.32),
+  LatLng(35.37, 14.61),
+  LatLng(35.44, 14.61),
+  LatLng(35.45, 14.17),
+  LatLng(35.52, 14.18),
+  LatLng(35.67, 13.65),
+  LatLng(36.25, 12.95),
+  LatLng(36.83, 12.77),
+  LatLng(36.83, 12.68),
+  LatLng(37.48, 12.68),
+  LatLng(37.48, 12.77),
+  LatLng(37.69, 12.77),
+  LatLng(37.69, 12.86),
+  LatLng(38.13, 13.05),
+  LatLng(38.55, 13.60),
+  LatLng(38.55, 13.78),
+  LatLng(38.62, 13.79),
+  LatLng(38.62, 13.97),
+  LatLng(38.76, 14.16),
+  LatLng(38.76, 14.43),
+  LatLng(39.26, 14.45),
+  LatLng(39.27, 14.35),
+  LatLng(40.06, 14.47),
+  LatLng(40.06, 14.00),
+  LatLng(40.14, 14.00),
+  LatLng(40.21, 13.63),
+  LatLng(40.36, 13.54),
+  LatLng(40.36, 13.07),
+  LatLng(40.29, 13.06),
+  LatLng(40.29, 12.78),
+  LatLng(40.22, 12.78),
+  LatLng(40.21, 11.75),
+  LatLng(39.64, 11.75),
+  LatLng(39.64, 11.66),
+  LatLng(39.20, 11.57),
+  LatLng(38.99, 11.30),
+  LatLng(38.84, 11.30),
+  LatLng(38.55, 10.94),
+  LatLng(38.55, 10.76),
+  LatLng(38.40, 10.67),
+  LatLng(38.40, 10.49),
+  LatLng(38.25, 10.31),
+  LatLng(38.24, 9.94),
+  LatLng(38.17, 9.94),
+  LatLng(38.15, 9.21),
+  LatLng(38.23, 9.21),
+  LatLng(38.21, 8.85),
+  LatLng(38.29, 8.84),
+  LatLng(38.41, 8.29),
+  LatLng(38.96, 7.61),
+  LatLng(38.95, 7.33),
+  LatLng(39.15, 7.04),
+  LatLng(39.14, 6.86),
+  LatLng(39.41, 6.46),
+  LatLng(39.56, 6.45),
+  LatLng(39.62, 6.26),
+  LatLng(39.76, 6.25),
+  LatLng(39.89, 6.05),
+  LatLng(40.18, 6.02),
+  LatLng(40.17, 5.93),
+  LatLng(41.04, 5.94),
+  LatLng(41.04, 6.03),
+  LatLng(41.34, 6.10),
+  LatLng(41.42, 6.28),
+  LatLng(41.56, 6.27),
+  LatLng(41.87, 6.62),
+  LatLng(41.88, 6.81),
+  LatLng(42.03, 6.90),
+  LatLng(42.20, 7.66),
+  LatLng(42.28, 7.65),
+  LatLng(42.31, 8.43),
+  LatLng(42.23, 8.43),
+  LatLng(42.24, 8.72),
+  LatLng(42.17, 8.72),
+  LatLng(42.18, 9.01),
+  LatLng(42.11, 9.02),
+  LatLng(42.06, 9.99),
+  LatLng(42.35, 9.98),
+  LatLng(42.48, 9.39),
+  LatLng(42.82, 8.88),
+  LatLng(42.79, 7.81),
+  LatLng(42.86, 7.80),
+  LatLng(42.91, 7.31),
+  LatLng(43.05, 7.20),
+  LatLng(43.04, 7.00),
+  LatLng(43.24, 6.69),
+  LatLng(43.38, 6.68),
+  LatLng(43.44, 6.47),
+  LatLng(43.80, 6.34),
+  LatLng(43.79, 6.24),
+  LatLng(44.15, 6.20),
+  LatLng(44.14, 6.10),
+  LatLng(44.29, 6.09),
+  LatLng(44.42, 5.87),
+  LatLng(44.63, 5.85),
+  LatLng(44.63, 5.75),
+  LatLng(45.27, 5.67),
+  LatLng(45.28, 5.77),
+  LatLng(45.64, 5.83),
+  LatLng(46.26, 6.59),
+  LatLng(46.63, 6.75),
+  LatLng(46.93, 7.14),
+  LatLng(47.10, 7.65),
+  LatLng(47.25, 7.74),
+  LatLng(47.26, 8.06),
+  LatLng(47.41, 8.26),
+  LatLng(47.43, 8.79),
+  LatLng(47.50, 8.78),
+  LatLng(47.52, 9.53),
+  LatLng(47.45, 9.53),
+  LatLng(47.46, 10.06),
+  LatLng(47.39, 10.06),
+  LatLng(47.40, 10.70),
+  LatLng(47.48, 10.70),
+  LatLng(47.55, 11.01),
 ];
 
 /// Base reflectivity over the US from the National Weather Service: the

@@ -112,6 +112,12 @@ Rain radar over Finland: Finnish Meteorological Institute (FMI), CC BY 4.0.
 Rain radar across Europe, with Velorki Plus: EUMETNET OPERA, CC BY 4.0. Drawn
 by the Velorki relay from the radar network's open archive, so the relay
 sees the map area requested.
+Rain radar over Italy, with Velorki Plus: Radar-DPC, Dipartimento della
+Protezione Civile, CC BY-SA 4.0
+(https://creativecommons.org/licenses/by-sa/4.0/). Its surface rainfall
+intensity, drawn by the Velorki relay in the map's rain colours from the
+DPC's data alone, so the relay sees the map area requested; those images
+are shared under the same licence.
 Rain radar over the US: NOAA National Weather Service, public domain. Not
 endorsed by NOAA.
 Rain from satellite over Europe, Africa and the Atlantic: contains modified

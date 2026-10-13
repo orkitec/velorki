@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * The rain classes the OPERA radar is drawn in: the DWD radar's legend, so
- * the phone reads an OPERA image exactly as it reads the DWD's
- * (`RainPalette.dwd`) and the two look the same side by side.
+ * The rain classes the relay's radars (OPERA, DPC) are drawn in: the DWD
+ * radar's legend, so the phone reads their images exactly as it reads the
+ * DWD's (`RainPalette.dwd`) and they look the same side by side.
  *
  * The one source of truth is the app: `dwdRadarLegend` and
  * `dwdRadarClassFloors` in `app/lib/features/map/data/rain_legend.dart`.
@@ -35,6 +35,16 @@ export const CLASS_DRY = 0;
 /** A cell of the class grid: outside every radar's reach. */
 export const CLASS_NO_DATA = 255;
 // Classes 1..15 are DWD_CLASS_FLOORS[k - 1].
+
+/** The class grid's value of a rain rate in mm an hour: 0 dry, 1..15 the class. */
+export function classOfRate(rate: number): number {
+  let k = CLASS_DRY;
+  for (let i = 0; i < DWD_CLASS_FLOORS.length; i += 1) {
+    if (rate >= (DWD_CLASS_FLOORS[i] ?? Infinity)) k = i + 1;
+    else break;
+  }
+  return k;
+}
 
 /** The rain rate, mm an hour, of `dbz` by Marshall-Palmer, Z = 200 R^1.6. */
 export function marshallPalmerRate(dbz: number): number {

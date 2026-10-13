@@ -107,6 +107,8 @@ export const API_ROUTES: readonly ({ method: string } & ({ path: string } | { pr
     { method: 'POST', path: '/weather' },
     { method: 'GET', path: '/weather/radar/opera/frames' },
     { method: 'GET', path: '/weather/radar/opera/image' },
+    { method: 'GET', path: '/weather/radar/dpc/frames' },
+    { method: 'GET', path: '/weather/radar/dpc/image' },
   ];
 
 export function isApiRoute(method: string, pathname: string): boolean {
