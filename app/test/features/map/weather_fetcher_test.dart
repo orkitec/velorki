@@ -63,19 +63,34 @@ void main() {
     });
 
     test('between the two, linear in luminance', () {
-      const mid = (cloudLuminanceLow + cloudLuminanceHigh) / 2;
+      final low = defaultCloudLuminance.clear;
+      final mid = (low + defaultCloudLuminance.full) / 2;
       final v = mid.round();
       final out = whitenCloudPixels(_pixel(v, v, v, 255));
       expect(out[3], closeTo(cloudMaxAlpha * 255 / 2, 1.5));
       final atLow = whitenCloudPixels(
-        _pixel(
-          cloudLuminanceLow.round(),
-          cloudLuminanceLow.round(),
-          cloudLuminanceLow.round(),
-          255,
-        ),
+        _pixel(low.round(), low.round(), low.round(), 255),
       );
       expect(atLow[3], 0);
+    });
+
+    test("Meteosat's darker grey reads as the same cloud as GOES'", () {
+      // The same cold, matched where the two overlap: GOES 150 is about
+      // Meteosat 66, and Meteosat 128 is where GOES turns to colour.
+      final goes = whitenCloudPixels(_pixel(150, 150, 150, 255));
+      final meteosat = whitenCloudPixels(
+        _pixel(66, 66, 66, 255),
+        luminance: eumetsatClouds.cloudLuminance,
+      );
+      expect(meteosat[3], closeTo(goes[3], 4));
+      expect(
+        whitenCloudPixels(
+          _pixel(128, 128, 128, 255),
+          luminance: eumetsatClouds.cloudLuminance,
+        )[3],
+        (cloudMaxAlpha * 255).round(),
+      );
+      expect(goesEastClouds.cloudLuminance, defaultCloudLuminance);
     });
 
     test('a transparent pixel stays transparent', () {
