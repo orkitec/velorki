@@ -6,9 +6,13 @@ import 'package:velorki/features/map/application/area_download_hint.dart';
 import 'package:velorki/features/map/application/cycle_map_binding.dart';
 import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
+import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/stops_ahead_line.dart';
+import 'package:velorki/features/map/presentation/stops_zoom_chip.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/offline/presentation/offline_screen.dart';
+import 'package:velorki/features/planner/application/planner_controller.dart';
+import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
@@ -303,6 +307,61 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
     expect(find.text(l10n.mapStopsZoomIn), findsOneWidget);
+  });
+
+  testWidgets('Plan: the control column stays where it is when the area '
+      'chip comes, and the screen builds again under it', (tester) async {
+    final harness = PlannerHarness();
+    // The whole shell: the column is the shell's.
+    final h = await pumpApp(
+      tester,
+      initialLocation: plannerRoute,
+      harness: harness,
+      surfaceSize: const Size(390, 844),
+    );
+    h.map
+      ..zoom = 13
+      ..center = const LatLng(48.05, 11.05)
+      ..visibleBounds = const BoundingBox(
+        south: 48.0,
+        west: 11.0,
+        north: 48.1,
+        east: 11.1,
+      );
+    await tester.pumpAndSettle();
+    final column = find.byType(MapControls);
+    final top = tester.getTopLeft(column).dy;
+    final right = tester.getTopLeft(column).dx;
+
+    // The chip comes on its own, from the camera coming to rest over an
+    // area not downloaded; the screen around it builds again later, for a
+    // change of its own (another profile), and measures its chrome then.
+    harness.stopsCoverage.changed((_) => false);
+    for (final listener in [...h.map.cameraIdleListeners]) {
+      listener();
+    }
+    await tester.pumpAndSettle();
+    final chip = find.text(l10n.searchAreaNotDownloaded);
+    expect(chip, findsOneWidget);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    container
+        .read(plannerControllerProvider.notifier)
+        .setProfile(RouteProfile.gravel);
+    await tester.pumpAndSettle();
+    expect(chip, findsOneWidget);
+    expect(tester.getTopLeft(column).dy, top);
+    // Beside it, not over it.
+    expect(
+      tester.getRect(find.byType(StopsDownloadChip)).right,
+      lessThan(right),
+    );
+
+    harness.stopsCoverage.changed((_) => true);
+    await tester.pumpAndSettle();
+    expect(chip, findsNothing);
+    expect(tester.getTopLeft(column).dy, top);
   });
 
   testWidgets('Plan: with no layer on, an area not downloaded is said too, '

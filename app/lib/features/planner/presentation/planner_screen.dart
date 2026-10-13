@@ -121,10 +121,24 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   final GlobalKey _chromeKey = GlobalKey();
   double _chromeHeight = 8 + 56 + 10 + 44;
 
+  /// Upright, the rows of the chrome that run the full width, over the
+  /// column's side: the search field and the profile chips. The chips and
+  /// hints under them keep clear of the column, so it stands beside them
+  /// rather than below, and does not move as they come and go.
+  final GlobalKey _acrossKey = GlobalKey();
+  double _acrossHeight = 8 + 56 + 10 + 44;
+
   void _measureChrome() {
     final height = _chromeKey.currentContext?.size?.height;
-    if (height == null || (height - _chromeHeight).abs() < 0.5) return;
-    setState(() => _chromeHeight = height);
+    final across = _acrossKey.currentContext?.size?.height;
+    if ((height == null || (height - _chromeHeight).abs() < 0.5) &&
+        (across == null || (across - _acrossHeight).abs() < 0.5)) {
+      return;
+    }
+    setState(() {
+      if (height != null) _chromeHeight = height;
+      if (across != null) _acrossHeight = across;
+    });
   }
 
   /// The air between the things in the row at the top sideways.
@@ -1171,7 +1185,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     }
     final stopsWanted = ref.watch(mapStopsPreferencesProvider);
     _stops.update(shown: stopsWanted.shown, kinds: stopsWanted.kinds);
-    _ownControlsTop = _chromeHeight + 12;
+    final sideways = ShellLayout.of(context).sideRail;
+    // Upright, the column stands under the rows that run over its side,
+    // beside the chips under them; the banner of a missing routing server
+    // runs the full width too, and the column goes under it. Sideways the
+    // controls are a row of their own at the top.
+    _ownControlsTop =
+        (sideways || !hasBackend ? _chromeHeight : _acrossHeight) + 12;
     final controlsTop = ref.read(mapControlsTopProvider);
     if (active && (controlsTop.target - _ownControlsTop).abs() >= 0.5) {
       // A change of this tab's own chrome, on screen: the column glides,
@@ -1193,7 +1213,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       if (mounted) _measureChrome();
     });
 
-    final sideways = ShellLayout.of(context).sideRail;
     final setProfile = ref.read(plannerControllerProvider.notifier).setProfile;
     // Keyed, so a search under way survives the phone turning, which moves
     // the field from its own row into the row with the controls. Sideways
@@ -1275,7 +1294,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       // and gone with it.
       if (state.differsFromOriginal)
         Padding(
-          padding: const EdgeInsets.only(top: 10),
+          // Clear of the control column, as the chip above.
+          padding: EdgeInsetsDirectional.only(
+            top: 10,
+            end: sideways ? 0 : mapControlButtonSize + 14,
+          ),
           child: Align(
             alignment: AlignmentDirectional.centerStart,
             child: OriginalRouteChip(
@@ -1288,7 +1311,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       // Shown with the dashed lines of the stretches the router keeps off.
       if (state.avoid.isNotEmpty)
         Padding(
-          padding: const EdgeInsets.only(top: 10),
+          // Clear of the control column, as the chip above.
+          padding: EdgeInsetsDirectional.only(
+            top: 10,
+            end: sideways ? 0 : mapControlButtonSize + 14,
+          ),
           child: Align(
             alignment: AlignmentDirectional.centerStart,
             child: AvoidedStretchesChip(
@@ -1342,12 +1369,19 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            search,
-                            const SizedBox(height: 10),
-                            ProfileChipRow(
-                              glass: true,
-                              selected: state.options.profile,
-                              onSelected: setProfile,
+                            Column(
+                              key: _acrossKey,
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                search,
+                                const SizedBox(height: 10),
+                                ProfileChipRow(
+                                  glass: true,
+                                  selected: state.options.profile,
+                                  onSelected: setProfile,
+                                ),
+                              ],
                             ),
                             ...below,
                           ],
