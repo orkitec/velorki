@@ -236,6 +236,9 @@ class GazetteerStore {
 
   /// Every place of [placeKinds] and every POI of [poiKinds] inside [box],
   /// at most [limit] of each per open file, in no particular order.
+  /// What the limit keeps is the nearest to [near] (the box's middle when
+  /// `null`), or with [ranked] the most important, then the first in the
+  /// file: the same rows wherever the map stands.
   ///
   /// The raw rows a route is matched against: a place carries
   /// [SearchKind.place], a POI [SearchKind.poi], both with their kind in
@@ -248,6 +251,7 @@ class GazetteerStore {
     List<String> poiKinds = const <String>[],
     int limit = _kindFetchLimit,
     LatLng? near,
+    bool ranked = false,
   }) async {
     if (_closed || _open.isEmpty) return const <SearchResult>[];
     final worker = await _workerOrNull();
@@ -258,10 +262,11 @@ class GazetteerStore {
         poiKinds,
         limit,
         near,
+        ranked,
       ));
       if (answer case _Answered(:final List<SearchResult> value)) return value;
     }
-    return _inBoxHere(box, placeKinds, poiKinds, limit, near);
+    return _inBoxHere(box, placeKinds, poiKinds, limit, near, ranked);
   }
 
   List<SearchResult> _inBoxHere(
@@ -270,12 +275,22 @@ class GazetteerStore {
     List<String> poiKinds,
     int limit, [
     LatLng? near,
+    bool ranked = false,
   ]) {
     if (_closed || _open.isEmpty) return const <SearchResult>[];
     final found = <SearchResult>[];
     for (final file in _open.values) {
       try {
-        found.addAll(file.inBox(box, placeKinds, poiKinds, limit, near: near));
+        found.addAll(
+          file.inBox(
+            box,
+            placeKinds,
+            poiKinds,
+            limit,
+            near: near,
+            ranked: ranked,
+          ),
+        );
       } on Object catch (e) {
         debugPrint('velorki: gazetteer ${file.tile} has no position index: $e');
       }
@@ -1564,7 +1579,9 @@ class _GazetteerFile {
 
   /// The rows of [placeKinds] in `places` and of [poiKinds] in `pois` inside
   /// [box], at most [limit] from each table, the nearest to [near] (the
-  /// box's middle when `null`) first.
+  /// box's middle when `null`) first, or with [ranked] the most important
+  /// first and then in the file's order, which does not depend on where the
+  /// map stands.
   ///
   /// The order is what the limit keeps: without it the position index hands
   /// the rows back south to north, and a full box kept its southern part —
@@ -1575,6 +1592,7 @@ class _GazetteerFile {
     List<String> poiKinds,
     int limit, {
     LatLng? near,
+    bool ranked = false,
   }) {
     final bounds = <Object?>[
       (box.south * 1e7).round(),
@@ -1582,10 +1600,16 @@ class _GazetteerFile {
       (box.west * 1e7).round(),
       (box.east * 1e7).round(),
     ];
-    final order = _nearestFirst(near ?? box.center);
+    final nearest = _nearestFirst(near ?? box.center);
     final found = <SearchResult>[];
     void query(String table, SearchKind kind, List<String> kinds) {
       if (kinds.isEmpty) return;
+      final order = ranked
+          ? (
+              sql: table == 'pois' ? _rankedPois : _rankedPlaces,
+              args: const <Object?>[],
+            )
+          : nearest;
       final placeholders = List<String>.filled(kinds.length, '?').join(', ');
       final osm = table == 'pois' ? _osmPois : _osmPlaces;
       final rows = _db.select(
@@ -1904,6 +1928,17 @@ class _GazetteerFile {
         ? 'osm_type, osm_id'
         : 'NULL AS osm_type, NULL AS osm_id';
   }
+
+  /// The `ORDER BY` of [table] that puts its most important rows first and
+  /// the rest in the file's order; the file's order alone in a file built
+  /// before the `importance` column.
+  static String _rankedOrder(Database db, String table) =>
+      _fame(db, table) == 'importance'
+      ? 'ORDER BY importance DESC, id'
+      : 'ORDER BY id';
+
+  late final String _rankedPlaces = _rankedOrder(_db, 'places');
+  late final String _rankedPois = _rankedOrder(_db, 'pois');
 
   late final String _osmPlaces = _osm(_db, 'places');
   late final String _osmPois = _osm(_db, 'pois');
@@ -2487,9 +2522,16 @@ class _GazetteerWorker {
           keywords: keywords,
         );
       case _Ask.inBox:
-        final (box, placeKinds, poiKinds, limit, near) =
-            args! as (BoundingBox, List<String>, List<String>, int, LatLng?);
-        return store._inBoxHere(box, placeKinds, poiKinds, limit, near);
+        final (
+          box,
+          placeKinds,
+          poiKinds,
+          limit,
+          near,
+          ranked,
+        ) = args!
+            as (BoundingBox, List<String>, List<String>, int, LatLng?, bool);
+        return store._inBoxHere(box, placeKinds, poiKinds, limit, near, ranked);
       case _Ask.nearestSettlement:
         final (point, maxKm) = args! as (LatLng, double);
         return store._nearestSettlementHere(point, maxKm);

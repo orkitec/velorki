@@ -435,7 +435,8 @@ void main() {
         preferences: const <String, Object>{'map.stops.shown': true},
         extraOverrides: [
           mapStopsFinderProvider.overrideWithValue(
-            (box, kinds, limit, {near}) async => const <SearchResult>[],
+            (box, kinds, limit, {ranked = false}) async =>
+                const <SearchResult>[],
           ),
         ],
       );

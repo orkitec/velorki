@@ -454,6 +454,47 @@ void main() {
     expect(north.map((r) => r.name), <String>['Café 9', 'Café 8', 'Café 7']);
   });
 
+  test('a ranked box keeps the most important rows, then the first in the '
+      'file, wherever the map stands', () async {
+    buildGazetteer(
+      dir,
+      'W20_N30',
+      pois: <GazPoi>[
+        for (var i = 0; i < 10; i++)
+          GazPoi(
+            100 + i,
+            'Café $i',
+            'cafe',
+            32.60 + i * 0.01,
+            -16.90,
+            importance: i == 7 ? 40 : null,
+          ),
+      ],
+    );
+    final store = await openStore();
+    const box = BoundingBox(
+      south: 32.59,
+      west: -16.95,
+      north: 32.70,
+      east: -16.85,
+    );
+
+    for (final near in const <LatLng?>[
+      null,
+      LatLng(32.69, -16.90),
+      LatLng(32.60, -16.90),
+    ]) {
+      final kept = await store.inBox(
+        box,
+        poiKinds: const ['cafe'],
+        limit: 3,
+        near: near,
+        ranked: true,
+      );
+      expect(kept.map((r) => r.name), <String>['Café 7', 'Café 0', 'Café 1']);
+    }
+  });
+
   test('the limit is honoured', () async {
     buildGazetteer(
       dir,

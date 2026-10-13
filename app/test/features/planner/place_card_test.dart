@@ -69,7 +69,7 @@ Future<PlannerHarness> _pumpWithStops(
     surfaceSize: surfaceSize,
     extraOverrides: [
       mapStopsFinderProvider.overrideWithValue(
-        (box, kinds, limit, {near}) async => const [_cafe, _tap],
+        (box, kinds, limit, {ranked = false}) async => const [_cafe, _tap],
       ),
       if (positionKnown) ..._positionKnown,
     ],

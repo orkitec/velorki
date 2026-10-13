@@ -8,6 +8,8 @@ import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter/widgets.dart' show IconData;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
+import 'package:velorki/features/map/application/locate_on_open.dart'
+    show locateOnOpenZoom;
 import 'package:velorki/features/map/data/cyclosm_tone.dart';
 import 'package:velorki/features/map/data/geojson.dart';
 import 'package:velorki/features/map/data/heading_cone.dart';
@@ -245,7 +247,10 @@ void main() {
       expect(source['type'], 'geojson');
       expect(source['cluster'], isTrue);
       expect(source['clusterRadius'], stopsClusterRadiusPx);
-      expect(source['clusterMaxZoom'], 14);
+      // MapLibre gathers stops in the source's tiles up to this whole zoom;
+      // from the next one, the zoom the map opens at, every stop is its own.
+      expect(source['clusterMaxZoom'], 13);
+      expect(locateOnOpenZoom, greaterThan(stopsClusterMaxZoom + 1));
 
       const bubble = <Object>['has', 'point_count'];
       const single = <Object>[

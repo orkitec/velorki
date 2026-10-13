@@ -13,6 +13,7 @@ import '../../search/domain/search_result.dart';
 import '../../search/presentation/search_field.dart' show poiKindIcon;
 import '../domain/map_controller.dart';
 import '../domain/stops_along_route.dart';
+import '../domain/stops_tiles.dart';
 
 part 'map_stops_controller.g.dart';
 
@@ -21,15 +22,30 @@ part 'map_stops_controller.g.dart';
 /// close together into counted bubbles.
 const double stopsMinZoom = 11;
 
-/// The most stops one query for the area on screen asks for, per gazetteer,
-/// and the most drawn: the ones nearest the middle, so a limit drops the
-/// far ones.
-const int stopsAreaLimit = 500;
+/// The most stops one square of the finest grid ([StopsTile],
+/// [stopsTileMaxZoom]) holds, per gazetteer: the most important, then the
+/// first in the file, so a square holds the same stops wherever the camera
+/// is.
+const int stopsTileLimit = 200;
 
-/// How far beyond the visible part of the map the stops are asked for, as a
-/// share of its width and height on each side: stops come in and go out
-/// off screen while the map is panned, not in the middle of it.
+/// The most stops one square of the grid at [tileZoom] holds: twice as many
+/// a level up, for a square four times the size, so the bubbles zoomed out
+/// over a town count more than one fine square's worth while a phone's view
+/// still holds a few thousand at most.
+@visibleForTesting
+int stopsTileLimitAt(int tileZoom) =>
+    stopsTileLimit << (stopsTileMaxZoom - tileZoom).clamp(0, 8);
+
+/// How far beyond the visible part of the map the stops are loaded, as a
+/// share of its width and height on each side: every square of the grid
+/// this reaches is loaded, so stops come in off screen while the map is
+/// panned, not in the middle of it.
 const double stopsAreaMargin = 0.5;
+
+/// How far beyond the visible part of the map a square already loaded is
+/// kept, as the same share: further than [stopsAreaMargin], so panning to
+/// and fro across a square's edge does not load and drop it each time.
+const double stopsKeepMargin = 1;
 
 /// The part of [bounds] that [share] of the map shows (the whole of it when
 /// `null` or empty): shares of the width from the west and of the height
@@ -96,21 +112,24 @@ const double stopsChunkM = 5000;
 /// again, in metres: the far end of the search then moves on with them.
 const double stopsRefetchM = 1000;
 
-/// Finds the stops of [kinds] inside [box], at most [limit] per gazetteer.
+/// Finds the stops of [kinds] inside [box], at most [limit] per gazetteer:
+/// the nearest the box's middle, or with `ranked` the most important, then
+/// the first in the file.
 typedef StopsFinder = Future<List<SearchResult>> Function(
   BoundingBox box,
   List<String> kinds,
   int limit, {
-  LatLng? near,
+  bool ranked,
 });
 
 /// The stops come from the gazetteers on the device, on the store's worker
 /// isolate.
 @Riverpod(keepAlive: true)
-StopsFinder mapStopsFinder(Ref ref) => (box, kinds, limit, {near}) async {
-  final store = await ref.read(gazetteerStoreProvider.future);
-  return store.inBox(box, poiKinds: kinds, limit: limit, near: near);
-};
+StopsFinder mapStopsFinder(Ref ref) =>
+    (box, kinds, limit, {ranked = false}) async {
+      final store = await ref.read(gazetteerStoreProvider.future);
+      return store.inBox(box, poiKinds: kinds, limit: limit, ranked: ranked);
+    };
 
 /// Where the device has stops to show: the areas its gazetteers cover.
 ///
@@ -200,8 +219,12 @@ enum MapStopsMode {
 /// shared map and takes it back through [detach], which takes the stops off
 /// again so the other tab does not inherit them.
 ///
-/// In the area on screen the stops are asked for once the camera has rested
-/// for [debounce]; along a route whenever the route or the kinds change and
+/// In the area on screen the stops are loaded once the camera has rested
+/// for [debounce], by the squares of a grid ([StopsTile]) around the part of
+/// the map in view: a square is asked for once and its stops kept while it
+/// stays within [stopsKeepMargin], so a pan inside the squares loaded leaves
+/// the map's stops as they are, and its bubbles where they were. Along a
+/// route whenever the route or the kinds change and
 /// every [stopsRefetchM] the rider rides. An answer that comes back after a
 /// newer question was asked is dropped.
 class MapStopsController extends ChangeNotifier {
@@ -249,7 +272,17 @@ class MapStopsController extends ChangeNotifier {
   Set<String>? _askedKinds;
   double? _askedAtM;
 
-  List<SearchResult> _area = const <SearchResult>[];
+  /// The stops of each square of the grid loaded, in the order drawn.
+  final Map<StopsTile, List<SearchResult>> _tiles =
+      <StopsTile, List<SearchResult>>{};
+
+  /// The squares whose stops are on the map.
+  Set<StopsTile> _drawnTiles = const <StopsTile>{};
+
+  /// Counts up whenever what the squares loaded hold goes stale (other
+  /// kinds, a gazetteer came or went), so an answer asked before is not
+  /// kept.
+  int _tilesEpoch = 0;
   List<StopAlongRoute<SearchResult>> _placed =
       const <StopAlongRoute<SearchResult>>[];
 
@@ -343,6 +376,7 @@ class MapStopsController extends ChangeNotifier {
   /// again, and what can now be found is asked for.
   void _handleCoverageChanged() {
     if (_disposed || _map == null) return;
+    _forgetTiles();
     _checkCoverage();
     switch (mode) {
       case MapStopsMode.off:
@@ -450,6 +484,7 @@ class MapStopsController extends ChangeNotifier {
         if (modeBefore != MapStopsMode.off) _stop();
       case MapStopsMode.area:
         if (modeBefore != MapStopsMode.area || kindsChanged || shownChanged) {
+          _forgetTiles();
           _placed = const <StopAlongRoute<SearchResult>>[];
           _askedRoute = null;
           _scheduleArea();
@@ -555,10 +590,18 @@ class MapStopsController extends ChangeNotifier {
     _askedRoute = null;
     _askedKinds = null;
     _askedAtM = null;
-    _area = const <SearchResult>[];
+    _forgetTiles();
     _placed = const <StopAlongRoute<SearchResult>>[];
     _drawnStops = const <SearchResult>[];
     _drawn = const <MapPoi>[];
+  }
+
+  /// The squares loaded hold what is no longer wanted: they are asked for
+  /// again, and what is on its way for them dropped.
+  void _forgetTiles() {
+    _tilesEpoch++;
+    _tiles.clear();
+    _drawnTiles = const <StopsTile>{};
   }
 
   /// Stops are off: everything on its way is dropped and the map cleared.
@@ -596,39 +639,54 @@ class MapStopsController extends ChangeNotifier {
     final generation = ++_generation;
     final zoom = map.zoom;
     if (zoom == null || _belowStopsZoom(zoom)) {
-      _area = const <SearchResult>[];
-      _draw(_area);
+      _forgetTiles();
+      _draw(const <SearchResult>[]);
       return;
     }
     final bounds = map.visibleBounds;
     if (bounds == null) return;
     final visible = visiblePart(bounds, visibleShare?.call());
-    final List<SearchResult> found;
-    try {
-      // Nearest the visible middle first: what the limit keeps of a full
-      // box is what the rider sees, not the margin or what the sheet covers.
-      found = await find(
-        grownBox(visible, stopsAreaMargin),
-        _kinds.toList()..sort(),
-        stopsAreaLimit,
-        near: visible.center,
-      );
-    } on Object catch (e) {
-      debugPrint('velorki: stops in the area failed: $e');
-      return;
+    final grid = stopsTileZoom(zoom);
+    final wanted = tilesCovering(grownBox(visible, stopsAreaMargin), grid);
+    final reach = tilesCovering(grownBox(visible, stopsKeepMargin), grid);
+    _tiles.removeWhere((tile, _) => !reach.contains(tile));
+    final missing = <StopsTile>[
+      for (final tile in wanted)
+        if (!_tiles.containsKey(tile)) tile,
+    ]..sort();
+    if (missing.isNotEmpty) {
+      final epoch = _tilesEpoch;
+      final kinds = _kinds.toList()..sort();
+      final List<List<SearchResult>> answers;
+      try {
+        answers = await Future.wait(<Future<List<SearchResult>>>[
+          for (final tile in missing)
+            find(tile.box, kinds, stopsTileLimitAt(tile.zoom), ranked: true),
+        ]);
+      } on Object catch (e) {
+        debugPrint('velorki: stops in the area failed: $e');
+        return;
+      }
+      if (epoch != _tilesEpoch || !identical(map, _map)) return;
+      // Kept even when a newer question overtook this one: a square holds
+      // the same stops whoever asked for it.
+      for (var i = 0; i < missing.length; i++) {
+        _tiles[missing[i]] = answers[i];
+      }
     }
-    if (generation != _generation || !identical(map, _map)) return;
-    if (mode != MapStopsMode.area) return;
-    final middle = visible.center;
-    final nearest = <SearchResult>[...found]
-      ..sort(
-        (a, b) => haversineMeters(
-          a.position,
-          middle,
-        ).compareTo(haversineMeters(b.position, middle)),
-      );
-    _area = onePerPlace(nearest).take(stopsAreaLimit).toList();
-    _draw(_area);
+    if (generation != _generation || mode != MapStopsMode.area) return;
+    final shown = <StopsTile>{
+      for (final tile in _tiles.keys)
+        if (reach.contains(tile)) tile,
+    };
+    // A pan inside what is loaded: the map's stops stay as they are.
+    if (setEquals(shown, _drawnTiles)) return;
+    _drawnTiles = shown;
+    _draw(
+      onePerPlace(<SearchResult>[
+        for (final tile in shown.toList()..sort()) ..._tiles[tile]!,
+      ]),
+    );
   }
 
   bool _needsRouteFetch() {

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -52,10 +54,16 @@ void main() {
           box,
           kinds,
           limit, {
-          near,
+          ranked = false,
         }) async {
           asked.add(box);
-          return [fountain];
+          final at = fountain.position;
+          final inside =
+              at.lat >= box.south &&
+              at.lat <= box.north &&
+              at.lon >= box.west &&
+              at.lon <= box.east;
+          return [if (inside) fountain];
         }),
       ],
     );
@@ -72,13 +80,12 @@ void main() {
     await tester.pump(stopsDebounce * 2);
     await tester.pumpAndSettle();
 
-    // Around what the rider sees: the sheet covers the lower part, so the
-    // box's middle sits higher than the whole map's.
-    expect(asked, hasLength(1));
-    expect(
-      (asked.single.north + asked.single.south) / 2,
-      greaterThan((view.north + view.south) / 2),
-    );
+    // Around what the rider sees, square by square: the sheet covers the
+    // lower part, so what is asked for reaches further north than south.
+    expect(asked, isNotEmpty);
+    final north = asked.map((b) => b.north).reduce(math.max);
+    final south = asked.map((b) => b.south).reduce(math.min);
+    expect(north - view.north, greaterThan(view.south - south));
     expect(h.map.stops.single.name, 'Brunnen');
 
     h.map.onStopTapped!(0);
@@ -104,7 +111,7 @@ void main() {
       const PlannerScreen(),
       extraOverrides: [
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit, {near}) async => const <SearchResult>[],
+          (box, kinds, limit, {ranked = false}) async => const <SearchResult>[],
         ),
       ],
     );
@@ -168,7 +175,7 @@ void main() {
           GuidedRoute(key: 'r1', line: line, turns: const []),
         ),
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit, {near}) async => [
+          (box, kinds, limit, {ranked = false}) async => [
             for (final s in [tap, cafe])
               if (box.contains(s.position) && kinds.contains(s.detail)) s,
           ],
@@ -263,7 +270,7 @@ void main() {
       surfaceSize: const Size(360, 780),
       extraOverrides: [
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit, {near}) async => const <SearchResult>[],
+          (box, kinds, limit, {ranked = false}) async => const <SearchResult>[],
         ),
       ],
     );
@@ -467,7 +474,7 @@ void main() {
       surfaceSize: const Size(360, 780),
       extraOverrides: [
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit, {near}) async => const <SearchResult>[],
+          (box, kinds, limit, {ranked = false}) async => const <SearchResult>[],
         ),
       ],
     );
@@ -595,7 +602,7 @@ void main() {
           GuidedRoute(key: 'r1', line: line, turns: const []),
         ),
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit, {near}) async => const <SearchResult>[],
+          (box, kinds, limit, {ranked = false}) async => const <SearchResult>[],
         ),
       ],
     );
@@ -635,7 +642,7 @@ void main() {
           GuidedRoute(key: 'r1', line: line, turns: const []),
         ),
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit, {near}) async => const <SearchResult>[],
+          (box, kinds, limit, {ranked = false}) async => const <SearchResult>[],
         ),
       ],
     );
