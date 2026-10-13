@@ -56,7 +56,7 @@ Host separation is strict and enforced before any handler runs, in
 | `POST /ai/plan` | Server-Sent Events. `step=plan` turns a rider's sentence into structured routing parameters via one forced tool call; `step=describe` streams a short prose description of a computed route. |
 | `POST /share` | Stores a GPX plus a summary and returns a public link on the site host. |
 | `POST /weather` | Hourly forecasts for up to 150 grid cells from NWS (US), DWD via Bright Sky (Germany and around) or MET Norway (everywhere, and the fallback), cached across the cluster. Providers are one module each in `src/weather/`; `WEATHER_PROVIDERS` orders them. |
-| `GET /weather/radar/opera/frames` · `/image` | The EUMETNET OPERA radar composite for the map's Plus rain radar: its frames of the last two hours, and one PNG of a Web Mercator box at a listed frame, in the DWD radar's classes and colours. Each frame is fetched from the open archive once for the cluster, kept on disk as a grid of classes (`OPERA_CACHE_DIR`, two and a half hours) and drawn per request (`src/weather/opera/`). |
+| `GET /weather/radar/opera/frames` · `/image` | The EUMETNET OPERA radar composite for the map's Plus rain radar: its frames of the last two hours, and one PNG of a Web Mercator box at a listed frame, in the DWD radar's classes and colours. Each frame is fetched from the open archive once for the cluster, kept as a deflated grid of classes in the shared cache for two and a half hours and drawn per request (`src/weather/opera/`). |
 | `GET /s/<id>` · `/s/<id>.gpx` | The public share page and the raw GPX, on `velorki.com`. No auth. |
 
 Everything under `/oauth/*`, `/proxy/*`, `/ai/*`, `/weather/*`, `POST /share` and `POST /weather` requires
@@ -218,7 +218,7 @@ imports the route module and calls its exported `GET`/`POST` with a real
 | `wellknown.test.ts` | The association files, configured and unconfigured. |
 | `contract/sse.test.ts` | Replays the three `text/event-stream` examples from `openapi.yaml` byte for byte. |
 | `weather.test.ts` · `weather-parse.test.ts` | `/weather` against stubbed upstreams (`fixtures/weather/`): gate, routing, units, MET interpolation, fallback, cache and `If-Modified-Since`, the MET concurrency cap, logs without coordinates; the parsers on their own. |
-| `opera.test.ts` | The OPERA radar: the classes against the app's legend, the projection against EPSG's worked example, decoding a GeoTIFF built at test time in the composite's projection, the clutter filter, a known place on its cell, the store's single fetch, disk reuse, pruning and failure back-off, and both routes' gate, limits and validation. |
+| `opera.test.ts` | The OPERA radar: the classes against the app's legend, the projection against EPSG's worked example, decoding a GeoTIFF built at test time in the composite's projection, the clutter filter, a known place on its cell, the store's single fetch across workers through the shared cache, its versioned keys and TTL, the oversize fallback and the failure back-off, and both routes' gate, limits and validation. |
 | `contract/weather.test.ts` | The `/weather` examples and a real answer against `openapi.yaml`'s schemas, with the keywords the app's checker knows. |
 | `sharepage.test.tsx` | The page's markup and escaping, and `loadShare()`: live, unknown, malformed and expired ids. |
 

@@ -96,7 +96,6 @@ production shape):
 | `SHARE_DB_PATH` | the share-link SQLite file. It must be on a persistent volume outside the release tree, or every deploy breaks the links already handed out |
 | `WEATHER_CONTACT` | contact email in the User-Agent of weather upstream calls; MET Norway asks for one |
 | `WEATHER_PROVIDERS` | forecast providers in the order tried (default `nws,dwd,metno`); `none` turns `/weather` off |
-| `OPERA_CACHE_DIR` | where the OPERA radar's decoded frames are kept (default `./data/opera`, a cache); `none` turns `/weather/radar/opera/*` off |
 | `COUNTERS` | `orkify` for the shared cross-worker cache, `memory` for a single process |
 
 That file and the segment tiles are the only server-side state. There is no

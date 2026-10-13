@@ -158,17 +158,6 @@ const envSchema = z
         .filter((s) => s !== '' && s !== 'none'),
     ),
 
-    /**
-     * Where the OPERA radar frames are kept, decoded (some 30 files of a few
-     * hundred KB, pruned as new ones come; see `src/weather/opera/store.ts`).
-     * Outside the release tree in production, like the share database.
-     * `none` switches the OPERA endpoints off (503).
-     */
-    OPERA_CACHE_DIR: optionalStr.transform((v) => {
-      const dir = v ?? './data/opera';
-      return dir.toLowerCase() === 'none' ? undefined : dir;
-    }),
-
     /* -------------------------------------------------------- app linking */
 
     /** Apple Developer team id; without it no apple-app-site-association is served. */

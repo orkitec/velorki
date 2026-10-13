@@ -12,7 +12,7 @@ const inflateAsync = promisify(inflate);
  * One OPERA frame as the relay keeps it: the composite's grid, one byte a
  * cell, already in the DWD radar's classes (`classes.ts`): 0 dry or no echo,
  * 1..15 a class, 255 no data (beyond every radar's reach). 3800 x 4400 cells
- * of a kilometre, some 17 MB in memory and a few hundred KB deflated on disk.
+ * of a kilometre, some 17 MB in memory and a few hundred KB deflated.
  */
 export interface ClassGrid {
   width: number;
@@ -188,16 +188,16 @@ export async function decodeOperaTiff(
 }
 
 /**
- * The version of the grid files: bumped whenever what a grid holds changes
- * (2: [dropClutter]), so files of an older one are fetched and decoded anew
- * and pruned.
+ * The version of the shared grids: bumped whenever what a grid holds
+ * changes (2: [dropClutter]), so those of an older one are fetched and
+ * decoded anew (their cache keys name it) and expire unread.
  */
 export const GRID_VERSION = 2;
 
-/** What heads a grid file: format, then the grid's shape as JSON. */
+/** What heads a serialised grid: format, then the grid's shape as JSON. */
 const MAGIC = `velorki-opera-grid-${String(GRID_VERSION)}\n`;
 
-/** A grid as its file on disk: a header line and the cells deflated. */
+/** A grid as it is shared: a header line and the cells deflated. */
 export async function serialiseGrid(grid: ClassGrid): Promise<Buffer> {
   const { cells, ...shape } = grid;
   const head = Buffer.from(`${MAGIC}${JSON.stringify(shape)}\n`, 'utf8');
@@ -205,7 +205,7 @@ export async function serialiseGrid(grid: ClassGrid): Promise<Buffer> {
   return Buffer.concat([head, body]);
 }
 
-/** A grid back from its file; throws on anything that is not one. */
+/** A grid back from its bytes; throws on anything that is not one. */
 export async function parseGrid(file: Buffer): Promise<ClassGrid> {
   if (file.subarray(0, MAGIC.length).toString('utf8') !== MAGIC) {
     throw new Error('not an OPERA grid file');

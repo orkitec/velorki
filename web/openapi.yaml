@@ -814,9 +814,8 @@ paths:
 
         Rate limits, shared with the image below: 1200 per hour per IP,
         charged before the entitlement is checked, then 60 per minute and 3000
-        per day per app user. 503 `unavailable` where the server keeps no
-        radar (`OPERA_CACHE_DIR=none`); 502 `upstream_error` when the archive
-        does not answer.
+        per day per app user. 502 `upstream_error` when the archive does not
+        answer.
       responses:
         '200':
           description: The frames, oldest first.

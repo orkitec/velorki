@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,7 +32,9 @@ import {
 } from '@/weather/opera/render';
 import {
   OPERA_BUCKET,
+  MAX_SHARED_BYTES,
   OperaStore,
+  operaGridKey,
   operaKey,
   operaStamp,
   parseListing,
@@ -117,10 +118,6 @@ const everyFrame = (): number[] => {
   for (let t = NEWEST; t > NOW - 2 * 3_600_000; t -= 300_000) out.push(t);
   return out.reverse();
 };
-
-function cacheEnv(): Record<string, string> {
-  return { OPERA_CACHE_DIR: mkdtempSync(join(tmpdir(), 'velorki-opera-')) };
-}
 
 function imageQuery(params: Record<string, string>): Request {
   const url = new URL(IMAGE_URL);
@@ -226,15 +223,17 @@ describe('OPERA: clutter', () => {
     expect(half).toEqual(['7', '7', '1', '1']);
   });
 
-  it('decodes into grids of a new version, and prunes those of an old one', async () => {
+  it('shares grids under a key of the current version, an old one unread', async () => {
     expect(GRID_VERSION).toBeGreaterThan(1);
-    stubBucket({ frames: everyFrame() });
-    const dir = mkdtempSync(join(tmpdir(), 'velorki-opera-'));
+    const calls = stubBucket({ frames: everyFrame() });
+    const counters = new MemoryCounters();
     // A grid of version 1, unfiltered, of the frame asked for.
-    writeFileSync(join(dir, `${operaStamp(NEWEST)}.grid`), 'old');
-    const store = new OperaStore({ dir, counters: new MemoryCounters(), userAgent: 'test' });
+    await counters.set(`opera:grid:v1:${operaStamp(NEWEST)}`, new Uint8Array([1, 2, 3]));
+    const store = new OperaStore({ counters, userAgent: 'test' });
     await store.grid(NEWEST);
-    expect(readdirSync(dir)).toEqual([`${operaStamp(NEWEST)}.v${String(GRID_VERSION)}.grid`]);
+    expect(calls.filter((u) => u.endsWith('.tiff'))).toHaveLength(1);
+    expect(operaGridKey(NEWEST)).toBe(`opera:grid:v${String(GRID_VERSION)}:${operaStamp(NEWEST)}`);
+    expect(counters.keys()).toContain(operaGridKey(NEWEST));
   });
 });
 
@@ -337,11 +336,7 @@ describe('OPERA: projection and decoding', () => {
 describe('OPERA: the store', () => {
   it('reads the frames off the bucket listing, one listing per hour', async () => {
     const calls = stubBucket({ frames: everyFrame() });
-    const store = new OperaStore({
-      dir: mkdtempSync(join(tmpdir(), 'velorki-opera-')),
-      counters: new MemoryCounters(),
-      userAgent: 'test',
-    });
+    const store = new OperaStore({ counters: new MemoryCounters(), userAgent: 'test' });
     const got = await store.frames();
     expect(got).toEqual(everyFrame().filter((t) => t >= NOW - 2 * 3_600_000));
     expect(got.at(-1)).toBe(NEWEST);
@@ -354,9 +349,8 @@ describe('OPERA: the store', () => {
 
   it('fetches a frame once, for concurrent requests and for another worker', async () => {
     const calls = stubBucket({ frames: everyFrame() });
-    const dir = mkdtempSync(join(tmpdir(), 'velorki-opera-'));
     const counters = new MemoryCounters();
-    const store = new OperaStore({ dir, counters, userAgent: 'test' });
+    const store = new OperaStore({ counters, userAgent: 'test' });
     await Promise.all([
       store.image(NEWEST, PARIS_BOX, 5, 5),
       store.image(NEWEST, PARIS_BOX, 5, 5),
@@ -364,35 +358,83 @@ describe('OPERA: the store', () => {
     ]);
     const tiffs = () => calls.filter((u) => u.endsWith('.tiff'));
     expect(tiffs()).toEqual([`${OPERA_BUCKET}/${operaKey(NEWEST)}`]);
-    expect(readdirSync(dir)).toEqual([`${operaStamp(NEWEST)}.v${String(GRID_VERSION)}.grid`]);
-    // Another worker: the same disk and cache, its own memory.
-    const other = new OperaStore({ dir, counters, userAgent: 'test' });
+    const shared = await counters.get<Uint8Array>(operaGridKey(NEWEST));
+    expect(shared).toBeInstanceOf(Uint8Array);
+    expect(shared?.length).toBeLessThan(MAX_SHARED_BYTES);
+    // Another worker: the same shared cache, its own memory.
+    const other = new OperaStore({ counters, userAgent: 'test' });
+    expect(await other.grid(NEWEST)).toEqual(await store.grid(NEWEST));
     await other.image(NEWEST, PARIS_BOX, 5, 5);
     expect(tiffs()).toHaveLength(1);
   });
 
-  it('prunes grids older than two and a half hours', async () => {
+  it('waits for the worker that fetches, instead of fetching too', async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const calls = stubBucket({ frames: everyFrame() });
+    const counters = new MemoryCounters();
+    const slow = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      await gate;
+      return fetch(input, init);
+    });
+    const first = new OperaStore({ counters, userAgent: 'test', fetch: slow });
+    const second = new OperaStore({ counters, userAgent: 'test' });
+    const a = first.grid(NEWEST);
+    await vi.waitFor(() => expect(slow).toHaveBeenCalled());
+    const b = second.grid(NEWEST);
+    release();
+    expect(await b).toEqual(await a);
+    expect(calls.filter((u) => u.endsWith('.tiff'))).toHaveLength(1);
+  });
+
+  it('keeps a grid two and a half hours in the shared cache', async () => {
     stubBucket({ frames: everyFrame() });
-    const dir = mkdtempSync(join(tmpdir(), 'velorki-opera-'));
-    const old = NOW - 3 * 3_600_000;
-    writeFileSync(join(dir, `${operaStamp(old)}.grid`), 'x');
-    writeFileSync(join(dir, `${operaStamp(old)}.grid.123.tmp`), 'x');
-    writeFileSync(join(dir, 'unrelated.txt'), 'x');
-    const store = new OperaStore({ dir, counters: new MemoryCounters(), userAgent: 'test' });
-    await store.grid(NEWEST);
-    expect(readdirSync(dir).sort()).toEqual([
-      `${operaStamp(NEWEST)}.v${String(GRID_VERSION)}.grid`,
-      'unrelated.txt',
-    ]);
+    let clock = NOW;
+    const counters = new MemoryCounters({ now: () => clock });
+    await new OperaStore({ counters, userAgent: 'test' }).grid(NEWEST);
+    clock += 149 * 60_000;
+    expect(await counters.get(operaGridKey(NEWEST))).toBeDefined();
+    clock += 2 * 60_000;
+    expect(await counters.get(operaGridKey(NEWEST))).toBeUndefined();
+  });
+
+  it('serves a grid too large to share from memory, sharing nothing', async () => {
+    const calls = stubBucket({ frames: everyFrame() });
+    const counters = new MemoryCounters();
+    const warn = vi.fn();
+    const store = new OperaStore({
+      counters,
+      userAgent: 'test',
+      maxSharedBytes: 10,
+      log: { info: () => undefined, warn },
+    });
+    const png = await store.image(NEWEST, PARIS_BOX, 5, 5);
+    expect(png.length).toBeGreaterThan(0);
+    expect(await counters.get(operaGridKey(NEWEST))).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ frame: operaStamp(NEWEST) }),
+      'opera grid too large to share',
+    );
+    // Another worker fetches its own.
+    await new OperaStore({ counters, userAgent: 'test', maxSharedBytes: 10 }).grid(NEWEST);
+    expect(calls.filter((u) => u.endsWith('.tiff'))).toHaveLength(2);
+  });
+
+  it('serves a grid the shared cache refuses', async () => {
+    stubBucket({ frames: everyFrame() });
+    const counters = new MemoryCounters();
+    vi.spyOn(counters, 'set').mockImplementation(async (key) => {
+      if (key.startsWith('opera:grid:')) throw new Error('exceeds max 1048576 bytes');
+    });
+    const store = new OperaStore({ counters, userAgent: 'test' });
+    expect((await store.grid(NEWEST)).width).toBe(20);
   });
 
   it('does not ask again for a frame that just failed', async () => {
     const calls = stubBucket({ frames: everyFrame(), tiff: () => new Response('nope', { status: 500 }) });
-    const store = new OperaStore({
-      dir: mkdtempSync(join(tmpdir(), 'velorki-opera-')),
-      counters: new MemoryCounters(),
-      userAgent: 'test',
-    });
+    const store = new OperaStore({ counters: new MemoryCounters(), userAgent: 'test' });
     await expect(store.grid(NEWEST)).rejects.toThrow();
     await expect(store.grid(NEWEST)).rejects.toThrow();
     expect(calls.filter((u) => u.endsWith('.tiff'))).toHaveLength(1);
@@ -408,7 +450,7 @@ describe('GET /weather/radar/opera/*: the gate', () => {
 
   it('refuses without a bearer, before anything else', async () => {
     const calls = stubBucket({ frames: everyFrame() });
-    await withEnv({ REVENUECAT_MODE: 'live', REVENUECAT_SECRET_KEY: 'sk', ...cacheEnv() }, async () => {
+    await withEnv({ REVENUECAT_MODE: 'live', REVENUECAT_SECRET_KEY: 'sk' }, async () => {
       for (const call of bare) {
         const res = await call();
         expect(res.status).toBe(401);
@@ -430,7 +472,7 @@ describe('GET /weather/radar/opera/*: the gate', () => {
       () => new Response('{}', { status: 404 }),
     ]) {
       const calls = stubBucket({ frames: everyFrame(), revenueCat });
-      await withEnv({ REVENUECAT_MODE: 'live', REVENUECAT_SECRET_KEY: 'sk', ...cacheEnv() }, async () => {
+      await withEnv({ REVENUECAT_MODE: 'live', REVENUECAT_SECRET_KEY: 'sk' }, async () => {
         for (const call of both) {
           const res = await call();
           expect(res.status).toBe(401);
@@ -450,14 +492,14 @@ describe('GET /weather/radar/opera/*: the gate', () => {
           headers: { 'content-type': 'application/json' },
         }),
     });
-    await withEnv({ REVENUECAT_MODE: 'live', REVENUECAT_SECRET_KEY: 'sk', ...cacheEnv() }, async () => {
+    await withEnv({ REVENUECAT_MODE: 'live', REVENUECAT_SECRET_KEY: 'sk' }, async () => {
       for (const call of both) expect((await call()).status).toBe(200);
     });
   });
 
   it('rate limits per rider', async () => {
     stubBucket({ frames: everyFrame() });
-    await withEnv(cacheEnv(), async () => {
+    await withEnv({}, async () => {
       for (let i = 0; i < 60; i += 1) {
         expect((await frames(new Request(FRAMES_URL, { headers: AUTH }))).status).toBe(200);
       }
@@ -468,19 +510,12 @@ describe('GET /weather/radar/opera/*: the gate', () => {
     });
   });
 
-  it('answers 503 where the server keeps no radar', async () => {
-    const calls = stubBucket({ frames: everyFrame() });
-    await withEnv({ OPERA_CACHE_DIR: 'none' }, async () => {
-      expect((await frames(new Request(FRAMES_URL, { headers: AUTH }))).status).toBe(503);
-    });
-    expect(calls).toHaveLength(0);
-  });
 });
 
 describe('GET /weather/radar/opera/frames', () => {
   it('lists the frames and the newest, not to be cached', async () => {
     stubBucket({ frames: everyFrame() });
-    await withEnv(cacheEnv(), async () => {
+    await withEnv({}, async () => {
       const res = await frames(new Request(FRAMES_URL, { headers: AUTH }));
       expect(res.status).toBe(200);
       expect(res.headers.get('cache-control')).toBe('no-store');
@@ -495,7 +530,7 @@ describe('GET /weather/radar/opera/frames', () => {
 
   it('answers 502 without the archive’s words when the bucket fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('<Error>internal detail</Error>', { status: 503 })));
-    await withEnv(cacheEnv(), async () => {
+    await withEnv({}, async () => {
       const res = await frames(new Request(FRAMES_URL, { headers: AUTH }));
       expect(res.status).toBe(502);
       const err = await errOf(res);
@@ -508,7 +543,7 @@ describe('GET /weather/radar/opera/frames', () => {
 describe('GET /weather/radar/opera/image', () => {
   it('draws the frame over the box: Paris in its class, private cache', async () => {
     const calls = stubBucket({ frames: everyFrame() });
-    await withEnv(cacheEnv(), async () => {
+    await withEnv({}, async () => {
       const res = await image(imageQuery(goodQuery));
       expect(res.status).toBe(200);
       expect(res.headers.get('content-type')).toBe('image/png');
@@ -530,7 +565,7 @@ describe('GET /weather/radar/opera/image', () => {
 
   it('refuses a time that is not a listed frame, asking the bucket for no frame', async () => {
     const calls = stubBucket({ frames: everyFrame() });
-    await withEnv(cacheEnv(), async () => {
+    await withEnv({}, async () => {
       for (const time of [
         '2026-10-12T21:10:00.000Z', // not yet listed
         '2026-10-12T18:00:00.000Z', // older than the window
@@ -550,7 +585,7 @@ describe('GET /weather/radar/opera/image', () => {
   it('refuses a box or a size out of bounds', async () => {
     const calls = stubBucket({ frames: everyFrame() });
     const far = boxAround(-30, 140, 100).join(','); // Australia: beyond the composite
-    await withEnv(cacheEnv(), async () => {
+    await withEnv({}, async () => {
       const bad: Record<string, string>[] = [
         { bbox: '1,2,3' },
         { bbox: 'a,b,c,d' },
@@ -576,7 +611,7 @@ describe('GET /weather/radar/opera/image', () => {
 
   it('answers 502 when the frame cannot be had, and does not storm the bucket', async () => {
     const calls = stubBucket({ frames: everyFrame(), tiff: () => new Response('x', { status: 500 }) });
-    await withEnv(cacheEnv(), async () => {
+    await withEnv({}, async () => {
       for (let i = 0; i < 3; i += 1) {
         const res = await image(imageQuery(goodQuery));
         expect(res.status).toBe(502);
