@@ -70,6 +70,13 @@ export const LIMITS = {
   radarPerDay: { name: 'radar_day', limit: 3_000, windowS: 86_400 },
   /** Charged before the entitlement is checked, like the share route's. */
   radarPerIpHour: { name: 'radar_ip_hour', limit: 1_200, windowS: 3_600 },
+  /**
+   * The DPC radar over Italy: the same numbers as OPERA's, counted apart,
+   * since a view of Italy asks both for each image.
+   */
+  dpcRadarPerMin: { name: 'radar_dpc_min', limit: 60, windowS: 60 },
+  dpcRadarPerDay: { name: 'radar_dpc_day', limit: 3_000, windowS: 86_400 },
+  dpcRadarPerIpHour: { name: 'radar_dpc_ip_hour', limit: 1_200, windowS: 3_600 },
 } as const satisfies Record<string, LimitSpec>;
 
 /** The counter key of one window. Exported so tests can assert the shape. */

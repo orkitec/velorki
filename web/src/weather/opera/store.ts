@@ -1,28 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import type { Counters } from '@/server/counters';
-import { GRID_VERSION, decodeOperaTiff, parseGrid, serialiseGrid, type ClassGrid } from './grid';
-import { classesOfArea, encodeClassPng, type MercatorBox } from './render';
+import { mercatorOf, type MercatorBox } from '../radar/render';
+import {
+  RadarStore,
+  RadarUpstreamError,
+  type RadarSource,
+  type RadarStoreOptions,
+  type RadarUpstream,
+} from '../radar/store';
+import { GRID_VERSION, OPERA_GRID_FORMAT, decodeOperaTiff } from './grid';
+import { Laea, type LaeaParams } from './laea';
 
 /**
- * The OPERA radar composite, fetched lazily from EUMETNET's open bucket and
- * kept on this box.
- *
- * - The frames: the bucket's listing of the last [OPERA_HISTORY_MS], one
- *   S3 ListObjectsV2 per UTC hour it spans, shared by the cluster for
- *   [LISTING_TTL_S] through the counters.
- * - A frame's grid: the first request that needs one fetches its GeoTIFF
- *   once, decodes it into the class grid (`grid.ts`) and puts it, deflated
- *   (some 350 KB), into the cluster's shared cache (the counters, `@orkify/
- *   cache` in production) under a versioned key for [OPERA_KEEP_MS]; every
- *   later request, on any worker, reads it from there. In one worker a
- *   request already fetching is joined; across workers a lock in the
- *   counters lets one fetch while the others wait for its entry. A grid
- *   over [MAX_SHARED_BYTES] is not shared (the cache refuses values over
- *   1 MB): each worker then keeps its own.
- * - In memory, per worker: the last [GRIDS_IN_MEMORY] grids decoded (17 MB
- *   each) and the images drawn, up to [IMAGE_CACHE_BYTES].
- *
- * No timer and no cron: nothing is fetched that no rider asked for.
+ * The OPERA radar composite, fetched lazily from EUMETNET's open bucket
+ * (see `RadarStore` for the caching): the frames are the bucket's listing,
+ * one S3 ListObjectsV2 per UTC hour the last two hours span; a frame's grid
+ * (3800 x 4400 cells, some 17 MB in memory, some 350 KB deflated) is the
+ * reflectivity composite's GeoTIFF of its time.
  */
 
 /** The bucket, anonymous and read-only. */
@@ -38,46 +31,20 @@ export const OPERA_KEEP_MS = 150 * 60 * 1000;
 /** The composite's step. */
 export const OPERA_STEP_MS = 5 * 60 * 1000;
 
-const LISTING_TTL_S = 60;
-const LISTING_KEY = 'opera:frames';
-const LISTING_FAIL_KEY = 'opera:frames:fail';
-/** How many frames one worker fetches from the bucket at once. */
-const MAX_FETCHES = 2;
-const LOCK_TTL_S = 60;
-const LOCK_WAIT_MS = 30_000;
-const LOCK_POLL_MS = 250;
-/** How long a frame that failed is not asked for again. */
-const FAIL_TTL_S = 30;
 const FETCH_TIMEOUT_MS = 30_000;
 const LIST_TIMEOUT_MS = 10_000;
 /** A composite file is some 3 MB; refuse anything absurd. */
 const MAX_TIFF_BYTES = 32 * 1024 * 1024;
-const GRIDS_IN_MEMORY = 2;
+
 /**
- * The largest grid shared, deflated: under the cache's 1 MB a value, with
- * room for its serialisation.
+ * The box around the composite's grid, 39.5° W to 57.8° E and 31.7° to
+ * 73.9° N (its corners and edges, worked out from the grid of 2026-10-12),
+ * in Web Mercator: the app's coverage box of the source, and what an image
+ * request has to meet.
  */
-export const MAX_SHARED_BYTES = 1_000_000;
-const IMAGE_CACHE_BYTES = 32 * 1024 * 1024;
-
-/** A failure of the bucket: the route answers 502. */
-export class OperaUpstreamError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'OperaUpstreamError';
-  }
-}
-
-export interface OperaStoreOptions {
-  counters: Counters;
-  /** For tests; [MAX_SHARED_BYTES] otherwise. */
-  maxSharedBytes?: number;
-  userAgent: string;
-  now?: () => number;
-  /** For tests; `globalThis.fetch` at call time otherwise. */
-  fetch?: typeof fetch;
-  log?: { info: (obj: object, msg: string) => void; warn: (obj: object, msg: string) => void };
-}
+const [DOMAIN_WEST, DOMAIN_SOUTH] = mercatorOf(-39.5, 31.7);
+const [DOMAIN_EAST, DOMAIN_NORTH] = mercatorOf(57.8, 73.9);
+export const OPERA_DOMAIN: MercatorBox = [DOMAIN_WEST, DOMAIN_SOUTH, DOMAIN_EAST, DOMAIN_NORTH];
 
 function pad(n: number, width = 2): string {
   return String(n).padStart(width, '0');
@@ -126,248 +93,39 @@ export function parseListing(xml: string): number[] {
   return out;
 }
 
-export class OperaStore {
-  readonly #maxSharedBytes: number;
-  readonly #counters: Counters;
-  readonly #userAgent: string;
-  readonly #now: () => number;
-  readonly #fetch: typeof fetch;
-  readonly #log: OperaStoreOptions['log'];
-  readonly #inFlight = new Map<number, Promise<ClassGrid>>();
-  readonly #grids = new Map<number, ClassGrid>();
-  readonly #images = new Map<string, Buffer>();
-  #imageBytes = 0;
-  #listing: { at: number; frames: number[] } | undefined;
-  #listingInFlight: Promise<number[]> | undefined;
-  #fetching = 0;
-  readonly #queue: (() => void)[] = [];
+/** EUMETNET OPERA's maximum reflectivity composite over Europe. */
+export const OPERA_SOURCE: RadarSource<LaeaParams> = {
+  name: 'opera',
+  label: 'OPERA composite',
+  attribution: OPERA_ATTRIBUTION,
+  stepMs: OPERA_STEP_MS,
+  historyMs: OPERA_HISTORY_MS,
+  keepMs: OPERA_KEEP_MS,
+  gridVersion: GRID_VERSION,
+  gridFormat: OPERA_GRID_FORMAT,
+  maxFileBytes: MAX_TIFF_BYTES,
+  domain: OPERA_DOMAIN,
+  stamp: operaStamp,
+  async list(upstream: RadarUpstream, from: number, now: number): Promise<number[]> {
+    const found: number[] = [];
+    for (let hour = from - (from % 3_600_000); hour <= now; hour += 3_600_000) {
+      const prefix = `${dayPath(hour)}/OPERA/COMP/OPERA@${operaStamp(hour).slice(0, 11)}`;
+      const url = `${OPERA_BUCKET}?list-type=2&prefix=${encodeURIComponent(prefix)}`;
+      const res = await upstream.request(url, { timeoutMs: LIST_TIMEOUT_MS });
+      if (!res.ok) throw new RadarUpstreamError(`listing answered ${String(res.status)}`);
+      found.push(...parseListing(await res.text()));
+    }
+    return found;
+  },
+  fetchFrame: (upstream, time) =>
+    upstream.request(`${OPERA_BUCKET}/${operaKey(time)}`, { timeoutMs: FETCH_TIMEOUT_MS }),
+  decode: (bytes) => decodeOperaTiff(bytes),
+  projection: (proj) => new Laea(proj),
+};
 
-  constructor(opts: OperaStoreOptions) {
-    this.#maxSharedBytes = opts.maxSharedBytes ?? MAX_SHARED_BYTES;
-    this.#counters = opts.counters;
-    this.#userAgent = opts.userAgent;
-    this.#now = opts.now ?? Date.now;
-    this.#fetch = opts.fetch ?? ((input, init) => globalThis.fetch(input, init));
-    this.#log = opts.log;
-  }
-
-  /** The frames of the last [OPERA_HISTORY_MS], oldest first, epoch ms. */
-  async frames(): Promise<number[]> {
-    const now = this.#now();
-    const mine = this.#listing;
-    if (mine !== undefined && now - mine.at < LISTING_TTL_S * 1000) return mine.frames;
-    this.#listingInFlight ??= this.#list().finally(() => {
-      this.#listingInFlight = undefined;
-    });
-    return this.#listingInFlight;
-  }
-
-  async #list(): Promise<number[]> {
-    const now = this.#now();
-    const shared = await this.#counters.get<{ at: number; frames: number[] }>(LISTING_KEY);
-    if (shared !== undefined && now - shared.at < LISTING_TTL_S * 1000) {
-      this.#listing = shared;
-      return shared.frames;
-    }
-    if ((await this.#counters.get<boolean>(LISTING_FAIL_KEY)) === true) {
-      throw new OperaUpstreamError('listing failed a moment ago');
-    }
-    const from = now - OPERA_HISTORY_MS;
-    const hours: number[] = [];
-    for (let h = from - (from % 3_600_000); h <= now; h += 3_600_000) hours.push(h);
-    const found = new Set<number>();
-    try {
-      for (const hour of hours) {
-        const prefix = `${dayPath(hour)}/OPERA/COMP/OPERA@${operaStamp(hour).slice(0, 11)}`;
-        const url = `${OPERA_BUCKET}?list-type=2&prefix=${encodeURIComponent(prefix)}`;
-        const res = await this.#get(url, LIST_TIMEOUT_MS);
-        if (!res.ok) throw new OperaUpstreamError(`listing answered ${String(res.status)}`);
-        for (const t of parseListing(await res.text())) {
-          if (t >= from && t <= now) found.add(t);
-        }
-      }
-    } catch (err) {
-      await this.#counters.set(LISTING_FAIL_KEY, true, FAIL_TTL_S);
-      throw err;
-    }
-    const frames = [...found].sort((a, b) => a - b);
-    const listing = { at: now, frames };
-    this.#listing = listing;
-    await this.#counters.set(LISTING_KEY, listing, LISTING_TTL_S);
-    return frames;
-  }
-
-  /** The PNG of the area `box` at frame `time`, `width` x `height`. */
-  async image(time: number, box: MercatorBox, width: number, height: number): Promise<Buffer> {
-    const key = `${String(time)}:${box.map((v) => v.toFixed(1)).join(',')}:${String(width)}x${String(height)}`;
-    const cached = this.#images.get(key);
-    if (cached !== undefined) {
-      // Most recently used last.
-      this.#images.delete(key);
-      this.#images.set(key, cached);
-      return cached;
-    }
-    const grid = await this.grid(time);
-    const png = await encodeClassPng(width, height, classesOfArea(grid, box, width, height));
-    // Two requests for the same image may have drawn it both; count it once.
-    const earlier = this.#images.get(key);
-    if (earlier !== undefined) this.#imageBytes -= earlier.length;
-    this.#images.set(key, png);
-    this.#imageBytes += png.length;
-    for (const [k, v] of this.#images) {
-      if (this.#imageBytes <= IMAGE_CACHE_BYTES) break;
-      this.#images.delete(k);
-      this.#imageBytes -= v.length;
-    }
-    return png;
-  }
-
-  /** The class grid of frame `time`: memory, the shared cache, or the bucket once. */
-  async grid(time: number): Promise<ClassGrid> {
-    const held = this.#grids.get(time);
-    if (held !== undefined) {
-      this.#grids.delete(time);
-      this.#grids.set(time, held);
-      return held;
-    }
-    let pending = this.#inFlight.get(time);
-    if (pending === undefined) {
-      pending = this.#load(time).finally(() => this.#inFlight.delete(time));
-      this.#inFlight.set(time, pending);
-    }
-    const grid = await pending;
-    this.#grids.set(time, grid);
-    while (this.#grids.size > GRIDS_IN_MEMORY) {
-      const oldest = this.#grids.keys().next().value;
-      if (oldest === undefined) break;
-      this.#grids.delete(oldest);
-    }
-    return grid;
-  }
-
-  async #readShared(time: number): Promise<ClassGrid | undefined> {
-    try {
-      const bytes = await this.#counters.get<Uint8Array>(operaGridKey(time));
-      return bytes === undefined ? undefined : await parseGrid(Buffer.from(bytes));
-    } catch {
-      return undefined;
-    }
-  }
-
-  async #load(time: number): Promise<ClassGrid> {
-    const shared = await this.#readShared(time);
-    if (shared !== undefined) return shared;
-    const failKey = `opera:fail:${String(time)}`;
-    if ((await this.#counters.get<boolean>(failKey)) === true) {
-      throw new OperaUpstreamError('frame failed a moment ago');
-    }
-    // One worker fetches; the others wait for its entry, and fetch
-    // themselves only if it never comes, or cannot be shared.
-    const unsharedKey = `opera:unshared:${String(time)}`;
-    const unshared = async () => (await this.#counters.get<boolean>(unsharedKey)) === true;
-    const lock = (await unshared())
-      ? 1
-      : await this.#counters.incr(`opera:lock:${String(time)}`, 1, { ttlIfNew: LOCK_TTL_S });
-    if (lock > 1) {
-      const deadline = Date.now() + LOCK_WAIT_MS;
-      while (Date.now() < deadline) {
-        await new Promise((resolve) => setTimeout(resolve, LOCK_POLL_MS));
-        const theirs = await this.#readShared(time);
-        if (theirs !== undefined) return theirs;
-        if ((await this.#counters.get<boolean>(failKey)) === true) {
-          throw new OperaUpstreamError('frame failed on another worker');
-        }
-        if (await unshared()) break;
-      }
-    }
-    let grid: ClassGrid;
-    try {
-      grid = await this.#bounded(() => this.#fetchGrid(time));
-    } catch (err) {
-      // Not asked again for a while, by any worker.
-      await this.#counters.set(failKey, true, FAIL_TTL_S);
-      throw err;
-    }
-    await this.#share(time, grid);
-    return grid;
-  }
-
-  /** Runs `job` once fewer than [MAX_FETCHES] are running in this worker. */
-  async #bounded<T>(job: () => Promise<T>): Promise<T> {
-    if (this.#fetching >= MAX_FETCHES) {
-      // The slot is handed over by the job that ends, never taken twice.
-      await new Promise<void>((resolve) => this.#queue.push(resolve));
-    } else {
-      this.#fetching += 1;
-    }
-    try {
-      return await job();
-    } finally {
-      const next = this.#queue.shift();
-      if (next === undefined) this.#fetching -= 1;
-      else next();
-    }
-  }
-
-  async #fetchGrid(time: number): Promise<ClassGrid> {
-    const started = this.#now();
-    const res = await this.#get(`${OPERA_BUCKET}/${operaKey(time)}`, FETCH_TIMEOUT_MS);
-    if (!res.ok) throw new OperaUpstreamError(`frame answered ${String(res.status)}`);
-    const body = new Uint8Array(await res.arrayBuffer());
-    if (body.length === 0 || body.length > MAX_TIFF_BYTES) {
-      throw new OperaUpstreamError('frame of unexpected size');
-    }
-    let grid: ClassGrid;
-    try {
-      grid = await decodeOperaTiff(body);
-    } catch (err) {
-      throw new OperaUpstreamError(`frame not readable: ${err instanceof Error ? err.message : String(err)}`);
-    }
-    this.#log?.info(
-      { frame: operaStamp(time), bytes: body.length, ms: this.#now() - started },
-      'opera frame fetched',
-    );
-    return grid;
-  }
-
-  async #share(time: number, grid: ClassGrid): Promise<void> {
-    try {
-      const bytes = await serialiseGrid(grid);
-      if (bytes.length > this.#maxSharedBytes) {
-        // The cache would refuse it: this worker keeps it in memory, the
-        // others fetch their own.
-        this.#log?.warn(
-          { frame: operaStamp(time), bytes: bytes.length },
-          'opera grid too large to share',
-        );
-        await this.#markUnshared(time);
-        return;
-      }
-      await this.#counters.set(operaGridKey(time), new Uint8Array(bytes), OPERA_KEEP_MS / 1000);
-    } catch (err) {
-      this.#log?.warn({ err: String(err) }, 'opera grid not shared');
-      await this.#markUnshared(time);
-    }
-  }
-
-  /** Tells the other workers not to wait for this frame's grid. */
-  async #markUnshared(time: number): Promise<void> {
-    try {
-      await this.#counters.set(`opera:unshared:${String(time)}`, true, OPERA_KEEP_MS / 1000);
-    } catch {
-      // They wait out the lock instead.
-    }
-  }
-
-  async #get(url: string, timeoutMs: number): Promise<Response> {
-    try {
-      return await this.#fetch(url, {
-        method: 'GET',
-        headers: { 'user-agent': this.#userAgent },
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-    } catch (err) {
-      throw new OperaUpstreamError(`bucket unreachable: ${err instanceof Error ? err.name : 'error'}`);
-    }
+/** The OPERA composite's frames, grids and images. */
+export class OperaStore extends RadarStore<LaeaParams> {
+  constructor(opts: RadarStoreOptions) {
+    super(OPERA_SOURCE, opts);
   }
 }

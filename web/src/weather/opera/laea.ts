@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import type { GridProjection } from '../radar/render';
 
 /**
  * Lambert Azimuthal Equal Area on an ellipsoid (Snyder, "Map Projections - A
@@ -27,7 +28,7 @@ export interface LaeaParams {
 const DEG = Math.PI / 180;
 
 /** The constants of one projection, worked out once. */
-export class Laea {
+export class Laea implements GridProjection {
   readonly params: LaeaParams;
   readonly #e: number;
   readonly #e2: number;
@@ -105,5 +106,27 @@ export class Laea {
     const { sin, cos } = this.beta(lat);
     const dl = this.dLon(lon);
     return this.forwardParts(sin, cos, Math.sin(dl), Math.cos(dl));
+  }
+
+  /** See [GridProjection.lattice]: the latitudes' [beta] and longitudes' [dLon] once each. */
+  lattice(
+    lats: Float64Array,
+    lons: Float64Array,
+  ): (row: number, col: number) => { x: number; y: number } | null {
+    const sinL = new Float64Array(lons.length);
+    const cosL = new Float64Array(lons.length);
+    lons.forEach((lon, c) => {
+      const dl = this.dLon(lon);
+      sinL[c] = Math.sin(dl);
+      cosL[c] = Math.cos(dl);
+    });
+    const sinB = new Float64Array(lats.length);
+    const cosB = new Float64Array(lats.length);
+    lats.forEach((lat, r) => {
+      const beta = this.beta(lat);
+      sinB[r] = beta.sin;
+      cosB[r] = beta.cos;
+    });
+    return (r, c) => this.forwardParts(sinB[r] ?? 0, cosB[r] ?? 0, sinL[c] ?? 0, cosL[c] ?? 1);
   }
 }

@@ -17,22 +17,26 @@ import 'rain_legend.dart';
 
 /// The headers a weather request to [url] carries besides the fetcher's
 /// own: the relay's credentials ([RelayClient.proxyHeaders]) for a request
-/// to the OPERA radar on [relay] ([operaRadarPath], on its scheme, host and
-/// port); none for anything else, so no third-party weather service ever
-/// sees them, nor one a mirror's override pointed the source at.
+/// to one of the relay's radars on [relay] ([relayRadarPaths]: OPERA's and
+/// the DPC's, on its scheme, host and port); none for anything else, so no
+/// third-party weather service ever sees them, nor one a mirror's override
+/// pointed the source at.
 Map<String, String> relayAuthFor(RelayClient? relay, String url) {
   if (relay == null) return const <String, String>{};
   final target = Uri.tryParse(url);
-  final base = relay.uriFor(operaRadarPath);
-  if (target == null ||
-      target.scheme != base.scheme ||
-      target.host != base.host ||
-      target.port != base.port ||
-      target.userInfo.isNotEmpty ||
-      !target.path.startsWith('${base.path}/')) {
+  if (target == null || target.userInfo.isNotEmpty) {
     return const <String, String>{};
   }
-  return relay.proxyHeaders;
+  for (final path in relayRadarPaths) {
+    final base = relay.uriFor(path);
+    if (target.scheme == base.scheme &&
+        target.host == base.host &&
+        target.port == base.port &&
+        target.path.startsWith('${base.path}/')) {
+      return relay.proxyHeaders;
+    }
+  }
+  return const <String, String>{};
 }
 
 /// How long a probe of one radar tile may take before the radar counts as
@@ -1043,7 +1047,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
   });
 
   /// The headers a request to a URL carries besides the defaults: the
-  /// relay's credentials for the OPERA radar ([relayAuthFor]); none
+  /// relay's credentials for the relay's radars ([relayAuthFor]); none
   /// where unset.
   final Map<String, String> Function(String url)? headersFor;
 

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parse } from 'yaml';
+import { GET as dpcFrames } from '@/app/(api)/weather/radar/dpc/frames/route';
 import { GET as operaFrames } from '@/app/(api)/weather/radar/opera/frames/route';
 import { POST as weather } from '@/app/(api)/weather/route';
 import { AUTH, jsonRequest, withEnv } from '../helpers';
@@ -180,7 +181,7 @@ describe('GET /weather/radar/opera/frames contract', () => {
   it('has an example that matches the schema', () => {
     const answers = examples((op().responses as Record<string, Schema>)['200'] as Schema);
     expect(Object.keys(answers)).not.toHaveLength(0);
-    for (const value of Object.values(answers)) expect(problemsOf('OperaFrames', value)).toEqual([]);
+    for (const value of Object.values(answers)) expect(problemsOf('RadarFrames', value)).toEqual([]);
   });
 
   it('answers with a body that matches the schema', async () => {
@@ -200,7 +201,39 @@ describe('GET /weather/radar/opera/frames contract', () => {
         new Request('https://api.velorki.com/weather/radar/opera/frames', { headers: AUTH }),
       );
       expect(res.status).toBe(200);
-      expect(problemsOf('OperaFrames', await res.json())).toEqual([]);
+      expect(problemsOf('RadarFrames', await res.json())).toEqual([]);
+    });
+  });
+});
+
+describe('GET /weather/radar/dpc/frames contract', () => {
+  const op = () =>
+    (doc.paths as Record<string, Schema>)['/weather/radar/dpc/frames']?.get as Schema;
+
+  it('has an example that matches the schema', () => {
+    const answers = examples((op().responses as Record<string, Schema>)['200'] as Schema);
+    expect(Object.keys(answers)).not.toHaveLength(0);
+    for (const value of Object.values(answers)) expect(problemsOf('RadarFrames', value)).toEqual([]);
+  });
+
+  it('answers with a body that matches the schema', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.parse('2026-10-12T21:07:30Z'));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          total: 1,
+          lastProducts: [{ productType: 'SRI', time: Date.parse('2026-10-12T21:00:00Z'), period: 'PT5M' }],
+        }),
+      ),
+    );
+    await withEnv({}, async () => {
+      const res = await dpcFrames(
+        new Request('https://api.velorki.com/weather/radar/dpc/frames', { headers: AUTH }),
+      );
+      expect(res.status).toBe(200);
+      expect(problemsOf('RadarFrames', await res.json())).toEqual([]);
     });
   });
 });

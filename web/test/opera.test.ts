@@ -13,15 +13,9 @@ import {
   DWD_CLASS_FLOORS,
   classOfDbz,
   marshallPalmerRate,
-} from '@/weather/opera/classes';
-import {
-  GRID_VERSION,
-  HEAVY_CLASS,
-  dropClutter,
-  decodeOperaTiff,
-  parseGrid,
-  serialiseGrid,
-} from '@/weather/opera/grid';
+} from '@/weather/radar/classes';
+import { GRID_VERSION, OPERA_GRID_FORMAT, decodeOperaTiff } from '@/weather/opera/grid';
+import { HEAVY_CLASS, dropClutter, parseGrid, serialiseGrid } from '@/weather/radar/grid';
 import { Laea } from '@/weather/opera/laea';
 import {
   PALETTE_NO_DATA,
@@ -29,10 +23,10 @@ import {
   encodeClassPng,
   mercatorOf,
   type MercatorBox,
-} from '@/weather/opera/render';
+} from '@/weather/radar/render';
+import { MAX_SHARED_BYTES } from '@/weather/radar/store';
 import {
   OPERA_BUCKET,
-  MAX_SHARED_BYTES,
   OperaStore,
   operaGridKey,
   operaKey,
@@ -279,7 +273,7 @@ describe('OPERA: projection and decoding', () => {
     expect(raw.cells[FIXTURE.spoke.row * 20 + FIXTURE.spoke.fromCol + 2]).toBe(classOfDbz(50));
     expect(raw.cells[FIXTURE.speck.row * 20 + FIXTURE.speck.col]).toBe(3);
 
-    const back = await parseGrid(await serialiseGrid(grid));
+    const back = await parseGrid(await serialiseGrid(grid, OPERA_GRID_FORMAT), OPERA_GRID_FORMAT);
     expect(back).toEqual(grid);
   });
 
@@ -298,7 +292,7 @@ describe('OPERA: projection and decoding', () => {
   it('puts a known place on its cell: Paris on the rain, south of it no data', async () => {
     const grid = await decodeOperaTiff(fixtureTiff());
     const one = (lat: number, lon: number) =>
-      classesOfArea(grid, boxAround(lat, lon, 0.2), 1, 1)[0];
+      classesOfArea(grid, new Laea(grid.proj), boxAround(lat, lon, 0.2), 1, 1)[0];
     expect(one(FIXTURE.paris.lat, FIXTURE.paris.lon)).toBe(9);
     // A kilometre and a half east is the next cell: the shower's light rim.
     expect(one(FIXTURE.paris.lat, FIXTURE.paris.lon + 0.02)).toBe(3);
@@ -313,7 +307,8 @@ describe('OPERA: projection and decoding', () => {
   it('keeps a cell of rain when a pixel spans several cells', async () => {
     const grid = await decodeOperaTiff(fixtureTiff());
     // 3 x 3 pixels over some 30 km: each pixel some 10 km, more than one cell.
-    const px = classesOfArea(grid, boxAround(FIXTURE.paris.lat, FIXTURE.paris.lon, 30), 3, 3);
+    const box = boxAround(FIXTURE.paris.lat, FIXTURE.paris.lon, 30);
+    const px = classesOfArea(grid, new Laea(grid.proj), box, 3, 3);
     expect(px[4]).toBe(9);
   });
 
