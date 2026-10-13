@@ -47,6 +47,27 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
 
 [data]: https://github.com/orkitec/velorki-data
 
+## Weather
+
+- [ ] **Clouds, Europe against the US**: the Meteosat infrared images draw the
+      same cold far darker than the GOES ones, so the same cloud is fainter
+      over Europe. A per-source luminance window matched over the Atlantic
+      overlap (Meteosat about 30–128 for GOES's 110–220) is set aside until
+      screenshots of both show which way it should go.
+- [ ] **OPERA radar**: the edge of its coverage leaves a pale wedge of
+      satellite estimate west of Ireland. A MeteoGate API key
+      (devportal.meteogate.eu) as a relay secret once the open bucket is not
+      enough; the anonymous API is rate-limited.
+- [ ] **More radar countries for Plus**: Austria from GeoSphere's 1 km
+      nowcast (CC BY 4.0, 240 requests an hour); Latvia, the Balkans and
+      Greece's gaps not yet looked into.
+- [ ] **Plus forecast maps**: 2 km regional models for 2–60 h — DMI's
+      HARMONIE DINI over most of Europe (CC BY 4.0, simple-packed GRIB2 from
+      its EDR API) and DWD's ICON-D2 over central Europe — and the chance of
+      rain as a map (DINI's ensemble percentiles, NOAA's NBM in the US).
+- [ ] **WeatherKit** for the Plus route forecast worldwide, minute by minute
+      for the first hour; Apple's terms on caching and attribution first.
+
 ## On the Mac (Xcode)
 
 - [ ] **Apple Watch app** (`app/ios/VelorkiWatch`): no complications. A ride on the
@@ -99,6 +120,10 @@ stopped ride, the Library's rides list.
 ## Store consoles
 
 Everything still unticked in [STORE_CHECKLIST.md](STORE_CHECKLIST.md).
+
+- [ ] **Store texts**: the free and Plus sections of the store descriptions
+      say nothing of the weather yet; the French iOS description is 5
+      characters short of Apple's 4000, so something has to go there.
 
 ## Later
 
