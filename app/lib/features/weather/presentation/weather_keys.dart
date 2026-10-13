@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:velorki_brouter/velorki_brouter.dart' show SurfaceKind;
 
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
 import '../../../core/geo/route_gradient.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
+import '../../planner/presentation/surface_stats_bar.dart';
 import '../application/free_route_weather.dart';
 import '../application/route_colouring.dart';
 import '../application/route_overlay.dart';
@@ -112,6 +114,34 @@ class GradientColourKey extends StatelessWidget {
   }
 }
 
+/// What the surface's colours mean: the Surface section's five, with its
+/// names.
+class SurfaceColourKey extends StatelessWidget {
+  /// Creates the key.
+  const SurfaceColourKey({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return _Key(
+      entries: [
+        for (final kind in const [
+          SurfaceKind.paved,
+          SurfaceKind.unpaved,
+          SurfaceKind.unknown,
+          SurfaceKind.bikeInfrastructure,
+          SurfaceKind.busy,
+        ])
+          (
+            <Color>[surfaceKindColour(theme, kind)],
+            surfaceKindLabel(l10n, kind),
+          ),
+      ],
+    );
+  }
+}
+
 class _Key extends StatelessWidget {
   const _Key({required this.entries, this.style, this.spacing = 12});
 
@@ -170,14 +200,14 @@ class _Swatch extends StatelessWidget {
 }
 
 /// The key to what the route is coloured by, under the choice of it: the
-/// gradient's colours, the wind's, the rain's, or that no rain is on the
-/// way. Nothing while the route is in its own colour, while there is no
+/// gradient's colours, the surface's, the wind's, the rain's, or that no
+/// rain is on the way; while the surface is being matched, that it is, and
+/// that there are no surface figures where there are none. Nothing while
+/// colouring is off, while there is no
 /// route to colour, or while its weather is on its way or not there; the
 /// relay's forecast failing says so in the weather section, the free
-/// forecast failing says so here.
-///
-/// Coloured from the free forecast, a line under the key names its source
-/// ([FreeForecastSourceLine]).
+/// forecast failing says so here. The free forecast's source is named once,
+/// in the weather section ([FreeForecastSourceLine]), not here.
 class RouteColourKey extends ConsumerWidget {
   /// Creates the key to [route]'s colouring.
   const RouteColourKey({this.route = plannerWeatherRoute, super.key});
@@ -187,14 +217,24 @@ class RouteColourKey extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(routeColouringOnProvider)) return const SizedBox.shrink();
     final overlay = ref.watch(routeOverlayShownProvider);
     final theme = Theme.of(context);
     final muted = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
     switch (overlay) {
-      case RouteOverlay.off:
-        return const SizedBox.shrink();
+      case RouteOverlay.surface:
+        if (ref.watch(weatherRouteGeometryProvider(route)) == null) {
+          return const SizedBox.shrink();
+        }
+        final l10n = AppLocalizations.of(context);
+        final runs = ref.watch(routeSurfaceRunsProvider(route));
+        if (runs.isLoading) {
+          return Text(l10n.rideSurfaceComputing, style: muted);
+        }
+        if (runs.value?.isNotEmpty ?? false) return const SurfaceColourKey();
+        return Text(l10n.surfaceUnavailable, style: muted);
       case RouteOverlay.gradient:
         return ref.watch(routeColouringProvider(route)).isEmpty
             ? const SizedBox.shrink()
@@ -231,18 +271,13 @@ class RouteColourKey extends ConsumerWidget {
         } else {
           key = Text(l10n.weatherRainNoneOnRoute, style: muted);
         }
-        if (!free) return key;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [key, const SizedBox(height: 4), FreeForecastSourceLine()],
-        );
+        return key;
     }
   }
 }
 
-/// The attribution of the free forecast the route is coloured by, one
-/// small muted line: "Free forecast · Deutscher Wetterdienst (CC BY 4.0)".
+/// The attribution of the free forecast, in the route's weather section
+/// (which the route's colours share), one small muted line: "Free forecast · Deutscher Wetterdienst (CC BY 4.0)".
 /// In a build that offers Velorki Plus a tap on it shows what Plus is,
 /// whose forecast is finer; a chevron says so. Scaled down rather than
 /// wrapped or cut where it does not fit, so the source is always read in

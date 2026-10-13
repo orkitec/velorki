@@ -2603,14 +2603,16 @@ class MaplibreMapControllerAdapter implements MapController {
       // Never an image MapLibre cannot draw; setWeatherLayers left those
       // out already.
       assert(safeImageBox(box), 'unsafe weather image box $box');
+      // Kept off the antimeridian, where MapLibre smears it ([drawnImageBox]).
+      final at = drawnImageBox(box);
       await _ops.addImageSource(
         source,
         image,
         ml.LatLngQuad(
-          topLeft: ml.LatLng(box.north, box.west),
-          topRight: ml.LatLng(box.north, box.east),
-          bottomRight: ml.LatLng(box.south, box.east),
-          bottomLeft: ml.LatLng(box.south, box.west),
+          topLeft: ml.LatLng(at.north, at.west),
+          topRight: ml.LatLng(at.north, at.east),
+          bottomRight: ml.LatLng(at.south, at.east),
+          bottomLeft: ml.LatLng(at.south, at.west),
         ),
       );
     } else {

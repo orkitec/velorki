@@ -7,6 +7,8 @@ import 'package:velorki_api/velorki_api.dart'
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../core/l10n/localized_text.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../map/data/weather_map_preferences.dart';
 import '../../map/domain/weather_map.dart' show weatherRadarOffsets;
 import '../../map/domain/wind_field.dart';
@@ -36,9 +38,12 @@ const WeatherSource dwdIconSource = WeatherSource(
 
 /// The free forecast could not be had: the service did not answer, or
 /// answered with nothing for the route.
-class FreeForecastUnavailable implements Exception {
+class FreeForecastUnavailable implements LocalizedException {
   /// Creates the failure.
   const FreeForecastUnavailable();
+
+  @override
+  String describe(AppLocalizations l10n) => l10n.weatherForecastUnavailable;
 
   @override
   String toString() => 'FreeForecastUnavailable';
@@ -84,12 +89,14 @@ List<RouteWeatherSample>? freeRouteSamples(Ref ref, WeatherRoute route) {
   );
 }
 
-/// The wind and the rain along [route] from the free forecast (the DWD's
-/// ICON models, see `dwd_route_forecast.dart`), for a ride leaving when the
-/// time control says ([weatherRadarOffsetProvider], see [departureAfter]):
-/// each sample takes the hour the rider gets there. In the shape the
-/// relay's forecast has, so the route is coloured from either the same way.
-/// Without temperatures, gusts or rain chances.
+/// The wind, the rain and the temperature along [route] from the free
+/// forecast (the DWD's ICON models, see `dwd_route_forecast.dart`), for a
+/// ride leaving when the time control says ([weatherRadarOffsetProvider],
+/// see [departureAfter]): each sample takes the hour the rider gets there.
+/// In the shape the relay's forecast has, so the route is coloured and its
+/// weather section shown from either the same way. Without gusts or rain
+/// chances; a temperature grid that could not be had leaves the samples
+/// without temperatures rather than failing.
 ///
 /// `null` while there is no route. Asked for [weatherDebounce] after the
 /// route or the control stops changing; the control is set only when its
@@ -106,16 +113,23 @@ Future<RouteWeatherState?> freeRouteWeather(Ref ref, WeatherRoute route) async {
   final samples = ref.watch(freeRouteSamplesProvider(route));
   final offset = ref.watch(weatherRadarOffsetProvider);
   if (geometry == null || samples == null) return null;
-  // A dragged waypoint routes many times a second.
-  await Future<void>.delayed(weatherDebounce);
-  if (!ref.mounted) return null;
+  // A dragged waypoint routes many times a second. The wait ends with the
+  // provider: nothing is asked for a route that has gone meanwhile.
+  final waited = Completer<bool>();
+  final debounce = Timer(weatherDebounce, () => waited.complete(true));
+  ref.onDispose(() {
+    debounce.cancel();
+    if (!waited.isCompleted) waited.complete(false);
+  });
+  if (!await waited.future || !ref.mounted) return null;
   final client = ref.read(dwdForecastClientProvider);
   final now = ref.read(weatherClockProvider)();
   final departure = departureAfter(now, offset);
   final plan = planFreeForecast(samples, departure, europe: dwdRainEuArea);
-  final (windRun, rainRun) = await (
+  final (windRun, rainRun, tempRun) = await (
     client.newestRun(dwdWindCoverage),
     client.newestRun(_rainCoverage(plan)),
+    client.newestRun(dwdTemperatureCoverage),
   ).wait;
   if (windRun == null || rainRun == null) {
     throw const FreeForecastUnavailable();
@@ -134,9 +148,12 @@ Future<RouteWeatherState?> freeRouteWeather(Ref ref, WeatherRoute route) async {
     return {for (final (i, e) in entries.indexed) e.key: grids[i]};
   }
 
-  final (wind, rain) = await (
+  final (wind, rain, temperature) = await (
     fetch(dwdWindCoverage, plan.wind, windRun, 2),
     fetch(_rainCoverage(plan), plan.rainGrids, rainRun, 1),
+    tempRun == null
+        ? Future.value(const <DateTime, WcsGrid?>{})
+        : fetch(dwdTemperatureCoverage, plan.wind, tempRun, 1),
   ).wait;
   if (!ref.mounted) return null;
   final state = _freeState(
@@ -146,6 +163,7 @@ Future<RouteWeatherState?> freeRouteWeather(Ref ref, WeatherRoute route) async {
     now,
     wind: (hour) => wind[hour],
     rain: (hour) => rain[hour],
+    temperature: (hour) => temperature[hour],
   );
   if (state == null) throw const FreeForecastUnavailable();
   freeForecastGeometry[state] = geometry;
@@ -156,7 +174,8 @@ String _rainCoverage(FreeForecastPlan plan) =>
     plan.rain == FreeRain.europe ? dwdRainEuCoverage : dwdRainGlobalCoverage;
 
 /// [plan]'s weather for [samples] leaving at [departure], from the grids
-/// [wind] and [rain] give; `null` when no sample has weather.
+/// [wind], [rain] and [temperature] give; `null` when no sample has
+/// weather.
 RouteWeatherState? _freeState(
   List<RouteWeatherSample> samples,
   FreeForecastPlan plan,
@@ -164,6 +183,7 @@ RouteWeatherState? _freeState(
   DateTime now, {
   required WcsGrid? Function(DateTime hour) wind,
   required WcsGrid? Function(DateTime hour) rain,
+  required WcsGrid? Function(DateTime hour) temperature,
 }) {
   final weather = freeSampleWeather(
     samples,
@@ -171,6 +191,7 @@ RouteWeatherState? _freeState(
     departure,
     wind: wind,
     rain: rain,
+    temperature: temperature,
   );
   if (!weather.any((w) => w != null)) return null;
   final routeWeather = RouteWeather(
@@ -197,15 +218,30 @@ RouteWeatherState? _freeState(
 
 /// The free forecast for [samples] leaving [offsetMinutes] after [now],
 /// worked out at once from the grids [client] has already loaded, for the
-/// route's colours while the time control is dragged; `null` while any
-/// grid it needs has not come (the route then keeps the colours it has).
+/// route's colours and its section while the time control is dragged;
+/// `null` while any wind or rain grid it needs has not come (the route then
+/// keeps the colours it has). The temperature is taken where its grid has
+/// come.
 RouteWeatherState? freeWeatherFromLoaded(
   DwdForecastClient client,
   List<RouteWeatherSample> samples,
   DateTime now,
   int offsetMinutes,
+) => _freeFromLoaded(
+  client,
+  samples,
+  departureAfter(now, offsetMinutes),
+  departureAfter(now, 0),
+);
+
+/// [freeWeatherFromLoaded] for a ride leaving at [departure], the time
+/// control's "Leave now" being [earliest].
+RouteWeatherState? _freeFromLoaded(
+  DwdForecastClient client,
+  List<RouteWeatherSample> samples,
+  DateTime departure,
+  DateTime earliest,
 ) {
-  final departure = departureAfter(now, offsetMinutes);
   final plan = planFreeForecast(samples, departure, europe: dwdRainEuArea);
   final rainCoverage = _rainCoverage(plan);
   final windRun = client.knownRun(dwdWindCoverage);
@@ -223,15 +259,44 @@ RouteWeatherState? freeWeatherFromLoaded(
     if (grid == null) return null;
     rain[e.key] = grid;
   }
+  final tempRun = client.knownRun(dwdTemperatureCoverage);
   return _freeState(
     samples,
     plan,
     departure,
-    now,
+    earliest,
     wind: (hour) => wind[hour],
     rain: (hour) => rain[hour],
+    temperature: (hour) => tempRun == null
+        ? null
+        : client.loadedGrid(
+            dwdTemperatureCoverage,
+            plan.wind[hour]!,
+            hour,
+            tempRun,
+          ),
   );
 }
+
+/// The step of the time control ([weatherRadarOffsets], minutes from
+/// [current]'s earliest departure) with the least rain and headwind on the
+/// way, from the free forecast's grids [client] has loaded (fetched ahead by
+/// [FreeForecastPrefetch]): [bestOffsetOf] over them. A step whose
+/// grids have not come is not a candidate. The free forecast has no chance
+/// of rain, so a stretch is wet or dry by its amount alone
+/// ([departureScore]).
+int? suggestFreeBestOffset(
+  DwdForecastClient client,
+  RouteWeatherState current,
+) => bestOffsetOf(
+  current,
+  (departure) => _freeFromLoaded(
+    client,
+    current.samples,
+    departure,
+    current.earliestDeparture,
+  )?.weather,
+);
 
 /// The free forecast's grids fetched ahead, for every hour the time
 /// control can reach plus the ride, while [route] is coloured by the wind
@@ -268,6 +333,7 @@ class FreeForecastPrefetch extends _$FreeForecastPrefetch {
     final wind = <DateTime, BoundingBox>{};
     final rain = <DateTime, BoundingBox>{};
     String? rainCoverage;
+    // The temperature at the wind's hours, over the wind's boxes.
     for (final step in weatherRadarOffsets) {
       final plan = planFreeForecast(
         samples,
@@ -278,9 +344,10 @@ class FreeForecastPrefetch extends _$FreeForecastPrefetch {
       wind.addAll(plan.wind);
       rain.addAll(plan.rainGrids);
     }
-    final (windRun, rainRun) = await (
+    final (windRun, rainRun, tempRun) = await (
       client.newestRun(dwdWindCoverage),
       client.newestRun(rainCoverage!),
+      client.newestRun(dwdTemperatureCoverage),
     ).wait;
     if (!live() || windRun == null || rainRun == null) return;
     // In time order, the steps nearest now first.
@@ -290,6 +357,8 @@ class FreeForecastPrefetch extends _$FreeForecastPrefetch {
         ...[
           if (wind[hour] case final box?)
             client.grid(dwdWindCoverage, box, hour, windRun, bands: 2),
+          if ((wind[hour], tempRun) case (final box?, final run?))
+            client.grid(dwdTemperatureCoverage, box, hour, run),
           if (rain[hour] case final box?)
             client.grid(rainCoverage, box, hour, rainRun),
         ].map(

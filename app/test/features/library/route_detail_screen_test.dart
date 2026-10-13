@@ -16,6 +16,8 @@ import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki/core/links/link_opener.dart';
 import 'package:velorki/features/library/presentation/route_detail_screen.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/navigation/presentation/cue_sheet_list.dart';
+import 'package:velorki/features/weather/presentation/route_colour_choice.dart';
 import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
 import 'package:velorki/features/shared/presentation/metric_chart.dart';
 import 'package:fl_chart/fl_chart.dart' show LineChart;
@@ -106,7 +108,13 @@ void main() {
     // moves the map.
     expect(find.text(l10n.elevationTitle.toUpperCase()), findsOneWidget);
     expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsOneWidget);
-    expect(find.text(l10n.cueSheetStart), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(CueSheetList),
+        matching: find.text(l10n.cueSheetStart),
+      ),
+      findsOneWidget,
+    );
     expect(h.map.waypoints, hasLength(2), reason: 'start and finish drawn');
     expect(find.text('Right at the barn'), findsOneWidget);
     expect(find.text('All riders must dismount'), findsNothing);
@@ -173,7 +181,12 @@ void main() {
     await finger.up();
     await tester.pump(const Duration(seconds: 3));
     expect(haversineMeters(h.map.routeCursor!, start), closeTo(3000, 20));
-    expect(chartCursorHandles, findsOneWidget);
+    // The profile's handle; the weather strip under it shares the cursor.
+    final handle = find.descendant(
+      of: find.byType(RouteElevationProfile),
+      matching: chartCursorHandles,
+    );
+    expect(handle, findsOneWidget);
 
     // Two fingers apart: the profile zooms.
     final centre = at(0.5);
@@ -194,10 +207,13 @@ void main() {
     expect(data.maxX - data.minX, lessThan(3));
     expect(find.text(l10n.chartResetZoomRoute), findsOneWidget);
 
-    // Zoomed, the handle drags the cursor back towards the middle.
+    // Zoomed, the handle drags the cursor back towards the middle; the
+    // profile in the middle of the card, its handle clear of the header.
+    await Scrollable.ensureVisible(tester.element(chart), alignment: 0.5);
+    await tester.pumpAndSettle();
     final kmPerPixel = (data.maxX - data.minX) / (at(1).dx - at(0).dx);
     final from = haversineMeters(h.map.routeCursor!, start);
-    await dragChartCursor(tester, const Offset(-40, 0));
+    await dragChartCursor(tester, const Offset(-40, 0), handle: handle);
     expect(
       haversineMeters(h.map.routeCursor!, start),
       closeTo(from - 40 * kmPerPixel * 1000, 20),
@@ -617,12 +633,19 @@ void main() {
       await unmountApp(tester);
     });
 
-    testWidgets('without Plus: the teaser', (tester) async {
+    testWidgets('without Plus: the free forecast, its gusts and chance of '
+        'rain locked', (tester) async {
       await pumpWeather(tester, access: PlusAccess.missing);
-      final body = find.text(l10n.plusFeatureWeatherBody);
-      await tester.ensureVisible(body);
-      expect(body, findsOneWidget);
-      expect(find.byType(RouteWeatherStrip), findsNothing);
+      // The free forecast is asked for once the route has stood a moment.
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      final strip = find.byType(RouteWeatherStrip);
+      await tester.ensureVisible(strip);
+      await tester.pumpAndSettle();
+      expect(tester.widget<RouteWeatherStrip>(strip).weather, isNotNull);
+      expect(find.textContaining(l10n.weatherDry), findsOneWidget);
+      expect(find.text(l10n.weatherPlusExtrasLocked), findsOneWidget);
+      expect(find.text(l10n.plusFeatureWeatherBody), findsNothing);
       await unmountApp(tester);
     });
   });

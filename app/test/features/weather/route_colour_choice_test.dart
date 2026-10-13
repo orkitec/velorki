@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
+import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/geo/route_gradient.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
@@ -21,6 +22,8 @@ import 'package:velorki/features/weather/domain/route_sampling.dart';
 import 'package:velorki/features/weather/domain/route_weather_state.dart';
 import 'package:velorki/features/weather/presentation/route_colour_choice.dart';
 import 'package:velorki/features/weather/presentation/weather_keys.dart';
+import 'package:velorki_brouter/velorki_brouter.dart'
+    show SurfaceKind, SurfaceRun;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
@@ -92,6 +95,8 @@ Future<ProviderContainer> _pump(
   AsyncValue<RouteWeatherState?>? weather,
   FakeDwdClient? free,
   PlusAccess Function(Ref ref)? accessOf,
+  List<SurfaceRun>? surface,
+  bool surfaceLoading = false,
 }) async {
   SharedPreferences.setMockInitialValues(prefs);
   final stored = await SharedPreferences.getInstance();
@@ -129,6 +134,11 @@ Future<ProviderContainer> _pump(
       weatherRouteGeometryProvider(plannerWeatherRoute)
           .overrideWithValue(_geometry),
       weatherRouteSpeedProvider(plannerWeatherRoute).overrideWithValue(18),
+      routeSurfaceRunsProvider(plannerWeatherRoute).overrideWithValue(
+        surfaceLoading
+            ? const AsyncLoading<List<SurfaceRun>?>()
+            : AsyncData<List<SurfaceRun>?>(surface),
+      ),
       dwdForecastClientProvider.overrideWithValue(free ?? FakeDwdClient()),
       weatherClockProvider.overrideWithValue(() => _earliest),
       routeWeatherControllerProvider.overrideWith2(
@@ -156,6 +166,11 @@ Finder _segment(String label) => find.descendant(
   matching: find.text(label),
 );
 
+Finder get _switch => find.descendant(
+  of: find.byType(RouteColourChoice),
+  matching: find.byType(Switch),
+);
+
 RouteOverlay _selected(WidgetTester tester) => tester
     .widget<SegmentedButton<RouteOverlay>>(
       find.byType(SegmentedButton<RouteOverlay>),
@@ -169,15 +184,17 @@ List<({double start, double end, Color colour})> _bands(WidgetTester tester) =>
         .bands;
 
 void main() {
-  testWidgets('with Plus: Off, Gradient, Wind and Rain under the profile, '
-      'the gradient first; each colours the chart and has its key', (
+  testWidgets('with Plus: a switch, and Gradient, Surface, Wind and Rain '
+      'under the profile, the gradient first; each colours the chart and has '
+      'its key; switched off, nothing is coloured and the choice is kept', (
     tester,
   ) async {
     final container = await _pump(tester);
     RouteOverlay chosen() => container.read(routeOverlayChoiceProvider);
+    expect(tester.widget<Switch>(_switch).value, isTrue);
     for (final label in [
-      l10n.weatherOverlayOff,
       l10n.colourByGradient,
+      l10n.surfaceTitle,
       l10n.weatherWind,
       l10n.weatherRain,
     ]) {
@@ -224,14 +241,144 @@ void main() {
     expect(find.byType(RainColourKey), findsNothing);
     expect(_bands(tester), isEmpty);
 
-    await tester.tap(_segment(l10n.weatherOverlayOff));
+    await tester.tap(_switch);
     await tester.pump();
-    expect(chosen(), RouteOverlay.off);
+    expect(tester.widget<Switch>(_switch).value, isFalse);
+    expect(container.read(routeColouringOnProvider), isFalse);
+    expect(
+      container
+          .read(sharedPreferencesProvider)
+          .getBool('weather.route_colouring_on'),
+      isFalse,
+    );
+    // The choice is kept, greyed.
+    expect(chosen(), RouteOverlay.rain);
+    expect(_selected(tester), RouteOverlay.rain);
+    expect(
+      tester
+          .widget<SegmentedButton<RouteOverlay>>(
+            find.byType(SegmentedButton<RouteOverlay>),
+          )
+          .onSelectionChanged,
+      isNull,
+    );
+    expect(
+      container.read(routeColouringProvider(plannerWeatherRoute)).isEmpty,
+      isTrue,
+    );
+    expect(find.text(l10n.weatherRainNoneOnRoute), findsNothing);
+    await tester.tap(_segment(l10n.colourByGradient));
+    await tester.pump();
+    expect(chosen(), RouteOverlay.rain);
     expect(_bands(tester), isEmpty);
     expect(find.byType(GradientColourKey), findsNothing);
     expect(find.byType(WindColourKey), findsNothing);
     final plain = tester.widget<LineChart>(find.byType(LineChart)).data;
     expect(plain.lineBarsData.single.belowBarData.gradient, isNull);
+
+    // On again: the rain as it was, no question with Plus.
+    await tester.tap(_switch);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.weatherFreeForecastTitle), findsNothing);
+    expect(container.read(routeColouringOnProvider), isTrue);
+    expect(find.text(l10n.weatherRainNoneOnRoute), findsOneWidget);
+  });
+
+  testWidgets('a tap anywhere on the heading row toggles the switch, a '
+      'target as wide as the card and at least 48 high', (tester) async {
+    final container = await _pump(tester);
+    final row = find.ancestor(of: _switch, matching: find.byType(InkWell));
+    expect(row, findsOneWidget);
+    final rect = tester.getRect(row);
+    expect(rect.height, greaterThanOrEqualTo(48));
+    expect(
+      rect.width,
+      tester.getSize(find.byType(SegmentedButton<RouteOverlay>)).width,
+    );
+    await tester.tap(find.text(l10n.weatherRouteOverlay));
+    await tester.pump();
+    expect(container.read(routeColouringOnProvider), isFalse);
+    // Its top edge, above the words.
+    await tester.tapAt(rect.topCenter + const Offset(0, 2));
+    await tester.pump();
+    expect(container.read(routeColouringOnProvider), isTrue);
+    // One toggle for a screen reader, named by the heading.
+    final node = tester.getSemantics(_switch);
+    expect(node.label, contains(l10n.weatherRouteOverlay));
+    expect(node.flagsCollection.isToggled, isNotNull);
+  });
+
+  testWidgets('the surface colours the chart in the Surface section\'s '
+      'colours, with its five names as the key', (tester) async {
+    final container = await _pump(
+      tester,
+      surface: const [
+        (startM: 0.0, endM: 4000.0, kind: SurfaceKind.paved),
+        (startM: 4000.0, endM: 6000.0, kind: SurfaceKind.bikeInfrastructure),
+        (startM: 6000.0, endM: 10000.0, kind: SurfaceKind.unpaved),
+      ],
+    );
+    await tester.tap(_segment(l10n.surfaceTitle));
+    await tester.pump();
+    expect(container.read(routeOverlayChoiceProvider), RouteOverlay.surface);
+    expect(
+      container
+          .read(sharedPreferencesProvider)
+          .getString('weather.route_overlay'),
+      'surface',
+    );
+    final theme = Theme.of(tester.element(find.byType(RouteColourChoice)));
+    expect(_bands(tester).map((b) => (b.start, b.end, b.colour)), [
+      (0.0, 4000.0, theme.velorki.accent),
+      (4000.0, 6000.0, theme.colorScheme.secondary),
+      (6000.0, 10000.0, theme.colorScheme.tertiary),
+    ]);
+    expect(find.byType(SurfaceColourKey), findsOneWidget);
+    for (final label in [
+      l10n.surfacePaved,
+      l10n.surfaceUnpaved,
+      l10n.surfaceUnknown,
+      l10n.surfaceBikeInfrastructure,
+      l10n.surfaceBusy,
+    ]) {
+      expect(
+        find.descendant(
+          of: find.byType(SurfaceColourKey),
+          matching: find.text(label),
+        ),
+        findsOneWidget,
+      );
+    }
+    expect(find.byType(GradientColourKey), findsNothing);
+    // The map's stretches, in the same colours.
+    final lines = routeColourLinesOf(
+      container.read(routeColouringProvider(plannerWeatherRoute)),
+      theme,
+    );
+    expect(lines.colours.map((s) => s.colour), [
+      theme.velorki.accent.toARGB32() & 0xFFFFFF,
+      theme.colorScheme.secondary.toARGB32() & 0xFFFFFF,
+      theme.colorScheme.tertiary.toARGB32() & 0xFFFFFF,
+    ]);
+    expectNoClippedText(tester);
+  });
+
+  testWidgets('without surface figures the surface says so, and colours '
+      'nothing', (tester) async {
+    await _pump(tester, surface: null);
+    await tester.tap(_segment(l10n.surfaceTitle));
+    await tester.pump();
+    expect(find.text(l10n.surfaceUnavailable), findsOneWidget);
+    expect(find.byType(SurfaceColourKey), findsNothing);
+    expect(_bands(tester), isEmpty);
+  });
+
+  testWidgets('while the track is matched the key says so', (tester) async {
+    await _pump(tester, surfaceLoading: true);
+    await tester.tap(_segment(l10n.surfaceTitle));
+    await tester.pump();
+    expect(find.text(l10n.rideSurfaceComputing), findsOneWidget);
+    expect(_bands(tester), isEmpty);
   });
 
   testWidgets('the rain key names the strengths while rain is on the way', (
@@ -293,11 +440,8 @@ void main() {
     );
     expect(_bands(tester), isNotEmpty);
     expect(find.byType(WindColourKey), findsOneWidget);
-    expect(find.byType(FreeForecastSourceLine), findsOneWidget);
-    expect(
-      find.text(l10n.weatherFreeForecastSource(dwdAttribution)),
-      findsOneWidget,
-    );
+    // Its source is named once, in the weather section, not under the key.
+    expect(find.byType(FreeForecastSourceLine), findsNothing);
     expectNoClippedText(tester);
 
     // The rain: asked again, the wind kept until the rider says.
@@ -309,12 +453,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(container.read(routeOverlayChoiceProvider), RouteOverlay.rain);
     expect(find.text(l10n.weatherRainNoneOnRoute), findsOneWidget);
-    expect(find.byType(FreeForecastSourceLine), findsOneWidget);
-
-    // The source line shows what Plus is.
-    await tester.tap(find.byType(FreeForecastSourceLine));
-    await tester.pumpAndSettle();
-    expect(find.text('paywall'), findsOneWidget);
+    expect(find.byType(FreeForecastSourceLine), findsNothing);
   });
 
   testWidgets('"See Plus" shows the paywall and changes nothing', (
@@ -398,8 +537,9 @@ void main() {
     );
   });
 
-  testWidgets('without Plus the wind and the rain last the launch; Off and '
-      'the gradient are kept', (tester) async {
+  testWidgets('without Plus the wind and the rain last the launch; the '
+      'gradient and the switch are kept; switched on with the rain chosen, '
+      'it asks again', (tester) async {
     final container = await _pump(tester, access: PlusAccess.missing);
     String? kept() => container
         .read(sharedPreferencesProvider)
@@ -410,18 +550,40 @@ void main() {
     await tester.pumpAndSettle();
     expect(container.read(routeOverlayShownProvider), RouteOverlay.rain);
     expect(kept(), isNull);
-    await tester.tap(_segment(l10n.weatherOverlayOff));
+    await tester.tap(_switch);
     await tester.pumpAndSettle();
-    expect(kept(), 'off');
-    // Off to the rain: asked again.
-    await tester.tap(_segment(l10n.weatherRain));
+    expect(container.read(routeColouringOnProvider), isFalse);
+
+    // On again with the rain chosen: asked; dismissed, it stays off.
+    await tester.tap(_switch);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.weatherFreeForecastTitle), findsOneWidget);
+    await tester.tap(find.text(l10n.commonCancel));
+    await tester.pumpAndSettle();
+    expect(container.read(routeColouringOnProvider), isFalse);
+    expect(tester.widget<Switch>(_switch).value, isFalse);
+
+    // Asked again, and accepted: on, with the rain.
+    await tester.tap(_switch);
     await tester.pumpAndSettle();
     expect(find.text(l10n.weatherFreeForecastTitle), findsOneWidget);
     await tester.tap(find.text(l10n.weatherFreeForecastUse));
     await tester.pumpAndSettle();
+    expect(container.read(routeColouringOnProvider), isTrue);
     expect(container.read(routeOverlayChoiceProvider), RouteOverlay.rain);
-    expect(kept(), 'off');
+    expect(kept(), isNull);
     await tester.pump(weatherDebounce);
+
+    // The gradient is kept; switched off and on with it, nothing asks.
+    await tester.tap(_segment(l10n.colourByGradient));
+    await tester.pumpAndSettle();
+    expect(kept(), 'gradient');
+    await tester.tap(_switch);
+    await tester.pumpAndSettle();
+    await tester.tap(_switch);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.weatherFreeForecastTitle), findsNothing);
+    expect(container.read(routeColouringOnProvider), isTrue);
   });
 
   testWidgets('a build without the relay offers the wind and the rain from '
@@ -447,7 +609,7 @@ void main() {
     expect(container.read(routeOverlayShownProvider), RouteOverlay.rain);
     expect(find.byType(RainColourKey), findsOneWidget);
     expect(_bands(tester), isNotEmpty);
-    expect(find.byType(FreeForecastSourceLine), findsOneWidget);
+    expect(find.byType(FreeForecastSourceLine), findsNothing);
     expect(find.byIcon(Icons.chevron_right), findsNothing);
   });
 
@@ -470,7 +632,7 @@ void main() {
     await tester.pump(weatherDebounce);
     await tester.pumpAndSettle();
     expect(free.requests, isNotEmpty);
-    expect(find.byType(FreeForecastSourceLine), findsOneWidget);
+    expect(find.byType(FreeForecastSourceLine), findsNothing);
 
     container.read(_access.notifier).set(PlusAccess.granted);
     await tester.pumpAndSettle();
@@ -491,7 +653,7 @@ void main() {
     await tester.pump(weatherDebounce);
     await tester.pumpAndSettle();
     expect(container.read(routeOverlayShownProvider), RouteOverlay.rain);
-    expect(find.byType(FreeForecastSourceLine), findsOneWidget);
+    expect(find.byType(FreeForecastSourceLine), findsNothing);
     await tester.tap(_segment(l10n.weatherWind));
     await tester.pumpAndSettle();
     expect(find.text(l10n.weatherFreeForecastTitle), findsOneWidget);
@@ -518,6 +680,37 @@ void main() {
     expect(find.text(l10n.mapWeatherWindUnavailable), findsOneWidget);
     expect(_bands(tester), isEmpty);
     expect(find.byType(FreeForecastSourceLine), findsNothing);
+  });
+
+  test('"Off" kept from when it was a choice comes back as colouring off, '
+      'with the gradient chosen', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'weather.route_overlay': 'off',
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    addTearDown(container.dispose);
+    expect(container.read(routeColouringOnProvider), isFalse);
+    expect(container.read(routeOverlayChoiceProvider), RouteOverlay.gradient);
+    expect(container.read(routeOverlayShownProvider), RouteOverlay.gradient);
+
+    // Turned on, it stays on, whatever the old value says.
+    await container.read(routeColouringOnProvider.notifier).set(on: true);
+    container.invalidate(routeColouringOnProvider);
+    expect(container.read(routeColouringOnProvider), isTrue);
+  });
+
+  test('colouring is on by default', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    addTearDown(container.dispose);
+    expect(container.read(routeColouringOnProvider), isTrue);
+    expect(container.read(routeOverlayChoiceProvider), RouteOverlay.gradient);
   });
 
   test('the wind switch of before comes back as the wind', () async {

@@ -65,6 +65,8 @@ import 'surface_stats_bar.dart';
 import 'waypoint_edit_sheet.dart';
 import '../../weather/application/route_weather_controller.dart';
 import '../../weather/application/route_colouring.dart';
+import '../../weather/application/free_route_weather.dart';
+import '../../weather/application/route_overlay.dart';
 import '../../weather/presentation/route_colour_choice.dart';
 import '../../weather/presentation/route_weather_section.dart';
 import '../../shared/presentation/error_text.dart';
@@ -105,6 +107,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
 
   /// Whether a draw is on its way, from the microtask it waits for.
   bool _drawPending = false;
+
+  /// The theme's colours the route's colouring was last drawn with
+  /// ([routeColourThemeKey]).
+  Object? _colourTheme;
 
   /// The place whose card is open: pinned on the map until the card closes.
   SearchResult? _shownPlace;
@@ -658,10 +664,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             null => null,
             final place => shownPoi(place),
           };
-      // What the route is coloured by: its gradient, or the wind or the
-      // rain on it, as the rider chose.
-      binding.routeColours = () =>
-          ref.read(routeColouringProvider(plannerWeatherRoute)).lines;
+      // What the route is coloured by: its gradient, its surface, or the
+      // wind or the rain on it, as the rider chose.
+      binding.routeColours = () => mounted
+          ? routeColourLinesOf(
+              ref.read(routeColouringProvider(plannerWeatherRoute)),
+              Theme.of(context),
+            )
+          : RouteColourLines.none;
       _binding = binding;
     }
     binding.attach();
@@ -1086,6 +1096,17 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     ref.listen(routeColouringProvider(plannerWeatherRoute), (_, _) {
       if (_drawing) unawaited(_binding?.syncColours());
     });
+    // Or the theme's colours it is drawn in: the accent, light or dark.
+    final colourTheme = routeColourThemeKey(Theme.of(context));
+    if (colourTheme != _colourTheme) {
+      final redraw = _colourTheme != null;
+      _colourTheme = colourTheme;
+      if (redraw) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _drawing) unawaited(_binding?.syncColours());
+        });
+      }
+    }
     ref.listen(plannerControllerProvider, (previous, next) {
       // Only while this tab's layers are on the map; a plan that changes
       // while the tab is away is drawn whole when it comes back.
@@ -1236,9 +1257,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               : Padding(
                   // Clear of the map's control column at the side: a long
                   // message wraps rather than run over its top button.
-                  padding: const EdgeInsetsDirectional.only(
+                  // Sideways the controls are in the row at the top, so the
+                  // chip has the width beside the sheet; kept clear of a
+                  // column that is not there it was a column of words.
+                  padding: EdgeInsetsDirectional.only(
                     top: 10,
-                    end: mapControlButtonSize + 14,
+                    end: sideways ? 0 : mapControlButtonSize + 14,
                   ),
                   child: Align(
                     alignment: AlignmentDirectional.centerStart,
@@ -1277,12 +1301,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         ),
       // The clouds' time, and a weather layer that did not answer: clear
       // of the control column, as the chips above.
-      const Align(
+      Align(
         alignment: AlignmentDirectional.centerStart,
         child: WeatherMapHints(
           padding: EdgeInsetsDirectional.only(
             top: 10,
-            end: mapControlButtonSize + 14,
+            end: sideways ? 0 : mapControlButtonSize + 14,
           ),
         ),
       ),
@@ -1380,8 +1404,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                         _SheetHeader(state: state),
                         // The time control right under the figures, in view
                         // at the resting height, while the rain or the wind
-                        // is on, or the route's weather is shown: with a
-                        // route it is the route's departure.
+                        // is on, and always with a route: then it is the
+                        // route's departure, whose weather the sheet shows.
                         const _PlannerTimeRow(),
                         const SizedBox(height: 14),
                         // The variants right under the figures, where the sheet
@@ -1801,8 +1825,8 @@ class _PlannerActions extends ConsumerWidget {
 }
 
 /// The map's time control on the Plan tab: with a route, also the route's
-/// departure, and shown while the route's weather is
-/// ([plannerTimeControlProvider]).
+/// departure, and then always shown ([plannerTimeControlProvider]). Its
+/// spinner also turns while the forecast the route is coloured by loads.
 class _PlannerTimeRow extends ConsumerWidget {
   const _PlannerTimeRow();
 
@@ -1813,6 +1837,23 @@ class _PlannerTimeRow extends ConsumerWidget {
       padding: const EdgeInsets.only(top: 10),
       leave: control != PlannerTimeControl.map,
       shown: control == PlannerTimeControl.departureShown,
+      forecastLoading: _forecastLoading(ref),
     );
+  }
+
+  /// Whether the route is coloured by the wind or the rain and the
+  /// forecast of the step set is being fetched: the relay's with Velorki
+  /// Plus, the free one otherwise, as [RouteColourWeather] picks. The free
+  /// grids of the other steps, fetched ahead, do not count.
+  static bool _forecastLoading(WidgetRef ref) {
+    if (!ref.watch(routeColouringOnProvider) ||
+        !isWeatherOverlay(ref.watch(routeOverlayShownProvider))) {
+      return false;
+    }
+    return ref.watch(routeWeatherFromRelayProvider)
+        ? ref
+              .watch(routeWeatherControllerProvider(plannerWeatherRoute))
+              .isLoading
+        : ref.watch(freeRouteWeatherProvider(plannerWeatherRoute)).isLoading;
   }
 }

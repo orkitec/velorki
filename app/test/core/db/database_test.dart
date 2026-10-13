@@ -121,8 +121,49 @@ void main() {
   setUp(() => db = VelorkiDatabase.memory());
   tearDown(() => db.close());
 
-  test('schema version is 9', () {
-    expect(db.schemaVersion, 9);
+  test('schema version is 10', () {
+    expect(db.schemaVersion, 10);
+  });
+
+  test('a schema 9 database gains the mark on turns made from the map, '
+      'off for every route it has', () async {
+    await db.close();
+
+    final v9 = VelorkiDatabase(
+      NativeDatabase.memory(
+        setup: (raw) {
+          raw
+            ..execute(_routesV1Ddl)
+            ..execute('ALTER TABLE routes ADD COLUMN turns_json TEXT NULL')
+            ..execute('ALTER TABLE routes ADD COLUMN pois_json TEXT NULL')
+            ..execute('ALTER TABLE routes ADD COLUMN link TEXT NULL')
+            ..execute('ALTER TABLE routes ADD COLUMN creator TEXT NULL')
+            ..execute('ALTER TABLE routes ADD COLUMN original_json TEXT NULL')
+            ..execute(
+              'ALTER TABLE routes ADD COLUMN original_geometry BLOB NULL',
+            )
+            ..execute(
+              "INSERT INTO routes VALUES ('old', 'Before the upgrade', NULL, "
+              "'importedGpx', 'trekking', '2026-09-12T10:00:00.000Z', "
+              "'2026-09-12T10:00:00.000Z', 1000.0, 10.0, 5.0, "
+              "48.0, 11.0, 48.1, 11.1, x'010203', '[]', '{}', "
+              "NULL, NULL, NULL, 0, '[{\"i\":3,\"k\":2}]', NULL, NULL, "
+              'NULL, NULL, NULL)',
+            )
+            ..userVersion = 9;
+        },
+      ),
+    );
+    addTearDown(v9.close);
+
+    final row = await v9.routesDao.routeById('old');
+
+    expect(row, isNotNull);
+    expect(row!.turnsGenerated, isFalse, reason: 'the file\'s own turns');
+    expect(row.turnsJson, '[{"i":3,"k":2}]');
+
+    await v9.routesDao.updateRoute(row.copyWith(turnsGenerated: true));
+    expect((await v9.routesDao.routeById('old'))!.turnsGenerated, isTrue);
   });
 
   test('a schema 1 database is upgraded and keeps its routes', () async {

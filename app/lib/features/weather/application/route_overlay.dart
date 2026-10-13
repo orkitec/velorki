@@ -13,14 +13,18 @@ const String _prefsRouteOverlay = 'weather.route_overlay';
 /// the wind on the route.
 const String _prefsWindOnMap = 'weather.wind_on_map';
 
-/// What the route on the map and the elevation chart under it are coloured
-/// by.
-enum RouteOverlay {
-  /// Nothing: the route in its own colour.
-  off,
+/// Whether the route is coloured at all ([RouteColouringOn]).
+const String _prefsRouteColouringOn = 'weather.route_colouring_on';
 
+/// What the route on the map and the elevation chart under it are coloured
+/// by while colouring is on ([routeColouringOnProvider]).
+enum RouteOverlay {
   /// How steep the road is: free, worked out from the route's own heights.
   gradient,
+
+  /// What the road is: paved, unpaved, a bike path, a busy road. Free,
+  /// read off the ways the route lies on.
+  surface,
 
   /// How the wind meets the rider.
   wind,
@@ -35,10 +39,39 @@ enum RouteOverlay {
 bool isWeatherOverlay(RouteOverlay overlay) =>
     overlay == RouteOverlay.wind || overlay == RouteOverlay.rain;
 
+/// Whether the route is coloured at all, on the Plan tab and on a saved
+/// route's card alike: on until the rider turns it off, remembered across
+/// launches. Off, the route is drawn in its own colour, with no key and no
+/// bands under its profile; [RouteOverlayChoice] keeps what it was coloured
+/// by for when it is turned on again. A rider who had chosen "Off" when it
+/// was one of the choices finds colouring off, and the gradient chosen.
+@Riverpod(keepAlive: true)
+class RouteColouringOn extends _$RouteColouringOn {
+  @override
+  bool build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getBool(_prefsRouteColouringOn) ??
+        prefs.getString(_prefsRouteOverlay) != _storedOff;
+  }
+
+  /// Turns colouring [on] or off, remembered across launches.
+  Future<void> set({required bool on}) async {
+    state = on;
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool(_prefsRouteColouringOn, on);
+  }
+}
+
+/// What [_prefsRouteOverlay] held for "Off" while it was one of the
+/// choices.
+const String _storedOff = 'off';
+
 /// What the route is coloured by as the rider chose it, on the Plan tab and
 /// on a saved route's card alike: the gradient until the rider picks
-/// another. Off and the gradient are remembered across launches, and so
-/// are the wind and the rain picked by a rider who may have Plus; picked
+/// another. The gradient and the surface are remembered across launches,
+/// and so are the wind and the rain picked by a rider who may have Plus;
+/// picked
 /// from the free forecast (no relay in this build, or the store says the
 /// rider has no Plus) they last until the app is closed, the choice kept
 /// in the store being the one before. A rider who had the wind switched
@@ -57,6 +90,9 @@ class RouteOverlayChoice extends _$RouteOverlayChoice {
     for (final overlay in RouteOverlay.values) {
       if (overlay.name == stored) return overlay;
     }
+    // "Off" is the switch now ([RouteColouringOn]); the choice behind it the
+    // gradient.
+    if (stored == _storedOff) return RouteOverlay.gradient;
     return prefs.getBool(_prefsWindOnMap) ?? false
         ? RouteOverlay.wind
         : RouteOverlay.gradient;
@@ -94,7 +130,8 @@ bool routeWeatherFromRelay(Ref ref) =>
     ref.watch(relayClientProvider) != null &&
     ref.watch(plusAccessProvider(PlusFeature.weather)) == PlusAccess.granted;
 
-/// What the route is coloured by: the rider's choice; but a wind or rain
+/// What the route is coloured by while colouring is on, and the choice
+/// shown selected: the rider's choice; but a wind or rain
 /// kept in the store from a launch before is drawn as the gradient once it
 /// is clear the rider has no Plus (no relay, or the store says so), as the
 /// free forecast is only drawn when the rider picked it in this launch,

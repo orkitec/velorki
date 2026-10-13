@@ -9,8 +9,10 @@ const double rainAtStartM = 1000;
 
 /// What the line over the weather strip says of [digest], fact by fact:
 /// the rain first when there is any, since it changes a ride most, then the
-/// wind, the temperature and a strong gust. Empty when the forecast had
-/// nothing for the ride. [clock] writes a time of day the way the phone
+/// wind, the temperature and a strong gust; the temperature and the gust only
+/// where the forecast has them (the free one has no gusts, and a temperature
+/// grid it could not load leaves none). Empty when the forecast had nothing
+/// for the ride. [clock] writes a time of day the way the phone
 /// does.
 List<String> weatherDigestParts(
   AppLocalizations l10n,
@@ -21,8 +23,8 @@ List<String> weatherDigestParts(
   final wind = digest.wind;
   if (wind == null) return const <String>[];
   final rain = digest.rain;
-  final lo = digest.minTemp!;
-  final hi = digest.maxTemp!;
+  final lo = digest.minTemp;
+  final hi = digest.maxTemp;
   return <String>[
     if (rain == null)
       l10n.weatherDry
@@ -44,7 +46,7 @@ List<String> weatherDigestParts(
       DigestWind.calm => l10n.weatherMostlyCalm,
       DigestWind.mixed => l10n.weatherMixedWind,
     },
-    weatherTemperatureText(l10n, system, lo, hi),
+    if (lo != null && hi != null) weatherTemperatureText(l10n, system, lo, hi),
     if (digest.gustMs case final gust?)
       l10n.weatherGusts(formatMeasure(l10n, units.formatSpeed(system, gust))),
   ];

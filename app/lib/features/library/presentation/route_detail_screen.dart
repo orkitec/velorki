@@ -36,6 +36,7 @@ import '../../planner/presentation/route_format.dart';
 import '../../planner/presentation/route_stats_row.dart';
 import '../../planner/presentation/surface_section.dart';
 import '../application/route_surface.dart';
+import '../data/route_turns_on_map.dart';
 import '../../settings/data/units.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../map/presentation/visible_map_padding.dart';
@@ -94,6 +95,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
 
   /// Whether the route's line is on the map, for the colouring on it.
   bool _lineDrawn = false;
+
+  /// The theme's colours the route's colouring was last drawn with
+  /// ([routeColourThemeKey]).
+  Object? _colourTheme;
 
   WeatherRoute get _weatherRoute => SavedWeatherRoute(widget.routeId);
 
@@ -188,6 +193,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
       _cues,
       pois: pois,
       onCueTapped: (index) => _selectCue(index),
+      showTurns: ref.read(routeTurnsOnMapProvider),
     );
     await map.fitBounds(
       BoundingBox.fromPoints(positions),
@@ -209,6 +215,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
         _cues,
         pois: pois,
         onCueTapped: (index) => _selectCue(index),
+        showTurns: ref.read(routeTurnsOnMapProvider),
       );
     }
   }
@@ -221,7 +228,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     await _coloursOnMap.draw(
       map,
       _lineDrawn
-          ? ref.read(routeColouringProvider(_weatherRoute)).lines
+          ? routeColourLinesOf(
+              ref.read(routeColouringProvider(_weatherRoute)),
+              Theme.of(context),
+            )
           : RouteColourLines.none,
     );
   }
@@ -263,8 +273,12 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
   /// Which version of a route the cues and the map layers were made from:
   /// the planner writes waypoint details back to a saved route while this
   /// card may be open, and the card has to show them.
+  ///
+  /// The turns count too: the ones worked out from the map arrive without
+  /// changing the route's date.
   static String _versionOf(SavedRoute route) =>
-      '${route.id}@${route.updatedAt.microsecondsSinceEpoch}';
+      '${route.id}@${route.updatedAt.microsecondsSinceEpoch}'
+      '#${route.turns.length}';
 
   /// The route's own points of interest and every waypoint the rider named
   /// or wrote a note on: the cue sheet, the map and the export tell them
@@ -291,6 +305,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
           pois: _cuePois,
           onCueTapped: _selectCue,
           turnLabel: cue.turn == null ? '' : turnLabel(cue.turn!, l10n),
+          showTurns: ref.read(routeTurnsOnMapProvider),
         ),
       );
     }
@@ -359,6 +374,21 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     }
   }
 
+  /// Marks the turns on the map, or takes them off, and remembers it.
+  void _setTurnsOnMap(bool show) {
+    unawaited(ref.read(routeTurnsOnMapProvider.notifier).set(show));
+    final map = layersMap;
+    if (map == null || _cues.isEmpty) return;
+    showCuesOnMap(
+      map,
+      _cues,
+      pois: _cuePois,
+      onCueTapped: _selectCue,
+      selected: _selectedCue,
+      showTurns: show,
+    );
+  }
+
   void _setWindow(DistanceWindow? window) {
     if (window != _window) setState(() => _window = window);
   }
@@ -375,6 +405,17 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
       routeColouringProvider(_weatherRoute),
       (_, _) => unawaited(_drawColours()),
     );
+    // Or the theme's colours it is drawn in: the accent, light or dark.
+    final colourTheme = routeColourThemeKey(Theme.of(context));
+    if (colourTheme != _colourTheme) {
+      final redraw = _colourTheme != null;
+      _colourTheme = colourTheme;
+      if (redraw) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) unawaited(_drawColours());
+        });
+      }
+    }
     final l10n = AppLocalizations.of(context);
     final units = ref.watch(unitSystemProvider);
     final route = ref.watch(savedRouteProvider(widget.routeId));
@@ -566,6 +607,14 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                         cues: cues,
                         selected: _selectedCue,
                         onSelect: _selectCue,
+                        // The switch only where there are turns to mark.
+                        showOnMap: ref.watch(routeTurnsOnMapProvider),
+                        onShowOnMap: cues.any((c) => c.turnIndex != null)
+                            ? _setTurnsOnMap
+                            : null,
+                        note: saved.turnsGenerated
+                            ? l10n.cueSheetTurnsFromMap
+                            : null,
                       ),
                     ],
                     // The places the file knew that are not on the way:

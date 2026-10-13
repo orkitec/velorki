@@ -76,6 +76,7 @@ class WeatherMapStatus {
     this.failedRain = const <RainRole>{},
     this.newest = const <String, DateTime>{},
     this.missing = const <String>{},
+    this.loading = false,
   });
 
   /// The middle of the view, whose rain the time control's label describes
@@ -109,6 +110,12 @@ class WeatherMapStatus {
   /// in (see [rainStandIn]).
   final Set<String> missing;
 
+  /// Whether what the map shows now is still being fetched: the rain's
+  /// images or the wind's grid of the time control's step set over the
+  /// view, the clouds' images, or a newest frame they wait for. What is
+  /// asked for in the background for the other steps does not count.
+  final bool loading;
+
   @override
   bool operator ==(Object other) =>
       other is WeatherMapStatus &&
@@ -119,7 +126,8 @@ class WeatherMapStatus {
       setEquals(other.failed, failed) &&
       setEquals(other.failedRain, failedRain) &&
       mapEquals(other.newest, newest) &&
-      setEquals(other.missing, missing);
+      setEquals(other.missing, missing) &&
+      other.loading == loading;
 
   @override
   int get hashCode => Object.hash(
@@ -134,13 +142,14 @@ class WeatherMapStatus {
         Object.hash(key, value),
     ]),
     Object.hashAllUnordered(missing),
+    loading,
   );
 
   @override
   String toString() =>
       'WeatherMapStatus(centre: $centre, at: $at, clouds: $cloudsFrame, '
       'shown: $shownOffset, failed: $failed, failedRain: $failedRain, '
-      'newest: $newest, missing: $missing)';
+      'newest: $newest, missing: $missing, loading: $loading)';
 }
 
 /// Keeps one map drawing the weather layers the settings ask for: the
@@ -268,6 +277,9 @@ class WeatherMapDriver {
   /// refresh, not with every move of the map.
   final Map<String, WeatherLayer> _images = <String, WeatherLayer>{};
   final Map<String, String> _attempted = <String, String>{};
+
+  /// The cloud images of the regions being fetched, by region.
+  final Set<String> _cloudInFlight = <String>{};
 
   /// Each cloud source's detail image, the request in flight for it (its
   /// key) and the last one that failed, which is not asked again for until
@@ -565,7 +577,10 @@ class WeatherMapDriver {
   void _update({bool recheck = false}) {
     if (_disposed) return;
     final map = _map;
-    if (map == null) return;
+    if (map == null) {
+      _publish();
+      return;
+    }
     final view = map.visibleBounds;
     final now = _clock();
     final layers = <WeatherLayer>[];
@@ -624,6 +639,7 @@ class WeatherMapDriver {
         if (shown != null) layers.add(shown);
         if (shown?.frameKey != frameKey && _attempted[key] != frameKey) {
           _attempted[key] = frameKey;
+          _cloudInFlight.add(key);
           unawaited(
             _loadCloud(source, region, frame, now, key, frameKey, fades),
           );
@@ -991,6 +1007,7 @@ class WeatherMapDriver {
     if (_windFailed.contains(key)) return;
     _windInFlight = key;
     unawaited(_loadWind(source, request, frame, key, now));
+    _publish();
   }
 
   static String _windKey(
@@ -1098,6 +1115,7 @@ class WeatherMapDriver {
     _newestAskedAt[source.id] = now;
     _newestInFlight.add(source.id);
     unawaited(_loadNewest(source, url, force: force));
+    _publish();
   }
 
   /// [source]'s newest frame, then the frames that keep to it. One that
@@ -1112,11 +1130,16 @@ class WeatherMapDriver {
   }) async {
     final time = await _fetcher.newestFrame(source);
     _newestInFlight.remove(source.id);
-    if (_disposed || time == null) return;
+    if (_disposed) return;
     // Switched to another source of times, or none, meanwhile.
-    if (!_sources.any((s) => s.id == source.id && s.timesUrl == url)) return;
+    if (time == null ||
+        !_sources.any((s) => s.id == source.id && s.timesUrl == url)) {
+      _publish();
+      return;
+    }
     final known = _newest[source.id];
     if (time == known || (known != null && !force && time.isBefore(known))) {
+      _publish();
       return;
     }
     _newest[source.id] = time;
@@ -1161,6 +1184,7 @@ class WeatherMapDriver {
       now,
       fades: fades,
     );
+    _cloudInFlight.remove(key);
     if (_disposed) return;
     if (image == null) {
       _failed.add(source.id);
@@ -1231,6 +1255,7 @@ class WeatherMapDriver {
       if (!planned.fits(view, zoom)) continue;
       _detailInFlight[source.id] = key;
       unawaited(_loadDetail(source, planned, frame, now));
+      _publish();
     }
   }
 
@@ -1439,6 +1464,7 @@ class WeatherMapDriver {
         unawaited(_loadRadar(p, slot, planned, now));
       }
     }
+    _publish();
     _retrySatellites(view, map.zoom, now);
     _prefetch();
   }
@@ -1714,6 +1740,14 @@ class WeatherMapDriver {
       },
       newest: Map<String, DateTime>.unmodifiable(_newest),
       missing: Set<String>.unmodifiable(_satellitesDown),
+      loading:
+          (_settings.radar && _radarInFlight.isNotEmpty) ||
+          (_settings.wind && _windInFlight != null) ||
+          (_settings.clouds &&
+              (_cloudInFlight.isNotEmpty || _detailInFlight.isNotEmpty)) ||
+          _sources.any(
+            (s) => _newestInFlight.contains(s.id) && _settings.shows(s.kind),
+          ),
     );
   }
 }

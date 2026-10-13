@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
@@ -6,6 +8,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../core/db/daos/rides_dao.dart';
 import '../../../core/db/database.dart';
 import '../../../core/geo/ride_stats.dart';
+import '../../navigation/application/route_turn_generator.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../recording/domain/ride.dart';
@@ -24,8 +27,13 @@ class ImportRepository {
     this._rides, {
     Uuid? uuid,
     DateTime Function()? clock,
+    this._onRouteSaved,
   }) : _uuid = uuid ?? const Uuid(),
        _clock = clock ?? DateTime.now;
+
+  /// Told about every route saved here, once it is in the table: what
+  /// starts the turns from the map for a file that had none.
+  final void Function(SavedRoute route)? _onRouteSaved;
 
   final RouteRepository _routes;
   final RidesDao _rides;
@@ -67,6 +75,7 @@ class ImportRepository {
         fetchedAt: externalFetchedAt ?? _clock(),
       );
     }
+    _onRouteSaved?.call(saved);
     return saved;
   }
 
@@ -177,4 +186,8 @@ class ImportRepository {
 ImportRepository importRepository(Ref ref) => ImportRepository(
   ref.watch(routeRepositoryProvider),
   ref.watch(ridesDaoProvider),
+  // A file without turns gets the map's, in the background, when its tiles
+  // are on the phone.
+  onRouteSaved: (route) =>
+      unawaited(ref.read(routeTurnGeneratorProvider).fillAfterImport(route)),
 );

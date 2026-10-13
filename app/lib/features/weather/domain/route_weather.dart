@@ -396,10 +396,35 @@ DateTime? bestDeparture(
   Iterable<Duration>? offsets,
   DateTime? current,
   bool Function(DateTime departure)? usable,
+}) => bestDepartureOf(
+  (departure) => evaluate(forecast, samples, sampleToCell, departure),
+  from: from,
+  within: within,
+  step: step,
+  offsets: offsets,
+  current: current,
+  usable: usable,
+);
+
+/// [bestDeparture] over the weather [weatherAt] gives a ride leaving at a
+/// time, `null` where it has none: the relay's forecast evaluated, or the
+/// free forecast's grids. Without a chance of rain (the free forecast) a
+/// stretch counts as wet only by its amount ([departureScore]).
+DateTime? bestDepartureOf(
+  RouteWeather? Function(DateTime departure) weatherAt, {
+  required DateTime from,
+  Duration within = const Duration(hours: 12),
+  Duration step = const Duration(minutes: 30),
+  Iterable<Duration>? offsets,
+  DateTime? current,
+  bool Function(DateTime departure)? usable,
 }) {
   assert(step > Duration.zero, 'step must move forward');
-  double? scoreAt(DateTime departure) =>
-      departureScore(evaluate(forecast, samples, sampleToCell, departure));
+  double? scoreAt(DateTime departure) {
+    final weather = weatherAt(departure);
+    return weather == null ? null : departureScore(weather);
+  }
+
   DateTime? best;
   double? bestScore;
   final departures =

@@ -223,4 +223,83 @@ void main() {
     expect(stats.unpavedShare, 0);
     expect(stats.bikeInfrastructureShare, isNull);
   });
+
+  group('surfaceKindOf', () {
+    SurfaceKind kind(Map<String, String> tags) => surfaceKindOf(tags);
+
+    test('a busy road wins over everything else', () {
+      expect(
+        kind({'highway': 'primary', 'surface': 'gravel', 'cycleway': 'track'}),
+        SurfaceKind.busy,
+      );
+      expect(kind({'highway': 'trunk_link'}), SurfaceKind.busy);
+    });
+
+    test('unpaved wins over bike infrastructure', () {
+      expect(
+        kind({'highway': 'cycleway', 'surface': 'gravel'}),
+        SurfaceKind.unpaved,
+      );
+      expect(kind({'highway': 'track'}), SurfaceKind.unpaved);
+    });
+
+    test('bike infrastructure wins over paved and unknown', () {
+      expect(
+        kind({'highway': 'cycleway', 'surface': 'asphalt'}),
+        SurfaceKind.bikeInfrastructure,
+      );
+      expect(
+        kind({'highway': 'residential', 'cycleway:right': 'lane'}),
+        SurfaceKind.bikeInfrastructure,
+      );
+      expect(kind({'highway': 'cycleway'}), SurfaceKind.bikeInfrastructure);
+    });
+
+    test('then paved, else unknown', () {
+      expect(
+        kind({'highway': 'residential', 'surface': 'asphalt'}),
+        SurfaceKind.paved,
+      );
+      expect(kind({'highway': 'residential'}), SurfaceKind.unknown);
+      expect(
+        kind({'highway': 'residential', 'surface': 'whatever'}),
+        SurfaceKind.unknown,
+      );
+      // A ferry: no road, no surface.
+      expect(kind({'route': 'ferry'}), SurfaceKind.unknown);
+    });
+  });
+
+  group('surfaceRunsOf', () {
+    test('one run per kind, neighbours joined, stretched onto the line', () {
+      final runs = surfaceRunsOf(
+        table([
+          ('highway=residential surface=asphalt', 100),
+          ('highway=tertiary surface=asphalt', 100),
+          ('highway=track', 200),
+          ('highway=primary', 100),
+        ]),
+        1000,
+      );
+      expect(runs, [
+        (startM: 0.0, endM: 400.0, kind: SurfaceKind.paved),
+        (startM: 400.0, endM: 800.0, kind: SurfaceKind.unpaved),
+        (startM: 800.0, endM: 1000.0, kind: SurfaceKind.busy),
+      ]);
+    });
+
+    test('messages without a length are left out', () {
+      final runs = surfaceRunsOf(
+        table([('highway=cycleway', 0), ('highway=residential', 50)]),
+        50,
+      );
+      expect(runs, [(startM: 0.0, endM: 50.0, kind: SurfaceKind.unknown)]);
+    });
+
+    test('nothing without messages or a length', () {
+      expect(surfaceRunsOf(const [], 1000), isEmpty);
+      expect(surfaceRunsOf(table([('highway=residential', 100)]), 0), isEmpty);
+      expect(surfaceRunsOf(table([('highway=residential', 0)]), 100), isEmpty);
+    });
+  });
 }

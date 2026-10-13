@@ -1185,6 +1185,33 @@ bool safeImageBox(BoundingBox b) {
       height >= weatherImageMinSpan;
 }
 
+// MapLibre also misdraws an image whose box ends on the antimeridian: with
+// a copy of the world beside the one in view (zoomed out further than the
+// map is wide, as sideways it can be), the image of 165° to 180° east was
+// smeared westward over the Pacific in streaks, each of its rows stretched
+// across tens of degrees. Pulled in from ±180° by a hair, it is drawn where
+// it belongs. The image itself is unchanged; the strip it loses is
+// [weatherImageAntimeridianInset] wide, about eleven metres at the equator,
+// far under a pixel at any zoom the image is drawn at.
+
+/// How far an image's box is pulled in from the antimeridian before it is
+/// drawn ([drawnImageBox]), in degrees.
+const double weatherImageAntimeridianInset = 1e-4;
+
+/// [b] as an image source is put on the map: a west edge on −180° or an
+/// east edge on +180° pulled in by [weatherImageAntimeridianInset] (see
+/// above), the rest as it is.
+BoundingBox drawnImageBox(BoundingBox b) {
+  const edge = 180 - weatherImageAntimeridianInset;
+  if (b.west > -edge && b.east < edge) return b;
+  return _box(
+    math.max(b.west, -edge),
+    b.south,
+    math.min(b.east, edge),
+    b.north,
+  );
+}
+
 /// The areas the rain's images of [view] at [zoom] are asked for: the
 /// view and [cloudDetailMargin] around it, on the grid of
 /// [cloudDetailArea], as at most two boxes each within ±180°, at most

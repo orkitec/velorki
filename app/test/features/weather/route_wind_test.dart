@@ -100,7 +100,7 @@ List<ColouredSegment> rainSegments(
 RouteColourLines lines(
   List<TrackPoint>? geometry,
   AsyncValue<RouteWeatherState?> weather,
-  RouteOverlay overlay,
+  RouteOverlay? overlay,
 ) => routeColouringFor(geometry, weather, overlay).lines;
 
 void main() {
@@ -183,7 +183,7 @@ void main() {
       expect(lines(line, data, RouteOverlay.wind).colours, isEmpty);
       expect(lines(line, data, RouteOverlay.rain).colours, isNotEmpty);
       expect(lines(line, data, RouteOverlay.rain).wind, isEmpty);
-      expect(lines(line, data, RouteOverlay.off), RouteColourLines.none);
+      expect(lines(line, data, null), RouteColourLines.none);
       expect(lines(null, data, RouteOverlay.wind), RouteColourLines.none);
       expect(
         lines(
@@ -266,7 +266,7 @@ void main() {
     late ProviderContainer container;
     late FakeMapController map;
     late PlannerMapBinding binding;
-    var overlay = RouteOverlay.off;
+    RouteOverlay? overlay;
     RouteResult? shown;
     AsyncValue<RouteWeatherState?> weather = const AsyncData(null);
 
@@ -281,7 +281,7 @@ void main() {
       );
       addTearDown(container.dispose);
       map = FakeMapController();
-      overlay = RouteOverlay.off;
+      overlay = null;
       shown = route;
       weather = AsyncData<RouteWeatherState?>(_weather(route));
       binding =
@@ -311,30 +311,33 @@ void main() {
       await binding.syncColours();
       expect(map.routeWindCalls, hasLength(1));
 
-      overlay = RouteOverlay.off;
+      overlay = null;
       await binding.syncColours();
       expect(map.routeWind, isEmpty);
       expect(map.routeColourCalls, isEmpty);
     });
 
-    test('the choice moves between the wind and the rain, and Off takes '
-        'either off', () async {
-      overlay = RouteOverlay.wind;
-      await binding.syncColours();
-      expect(map.routeWind, isNotEmpty);
-      expect(map.routeColours, isEmpty);
+    test(
+      'the choice moves between the wind and the rain, and colouring off takes '
+      'either off',
+      () async {
+        overlay = RouteOverlay.wind;
+        await binding.syncColours();
+        expect(map.routeWind, isNotEmpty);
+        expect(map.routeColours, isEmpty);
 
-      overlay = RouteOverlay.rain;
-      await binding.syncColours();
-      expect(map.routeWind, isEmpty);
-      expect(map.routeColours, isNotEmpty);
+        overlay = RouteOverlay.rain;
+        await binding.syncColours();
+        expect(map.routeWind, isEmpty);
+        expect(map.routeColours, isNotEmpty);
 
-      overlay = RouteOverlay.off;
-      await binding.syncColours();
-      expect(map.routeWind, isEmpty);
-      expect(map.routeColours, isEmpty);
-      expect(map.routeColourCalls.last, isEmpty);
-    });
+        overlay = null;
+        await binding.syncColours();
+        expect(map.routeWind, isEmpty);
+        expect(map.routeColours, isEmpty);
+        expect(map.routeColourCalls.last, isEmpty);
+      },
+    );
 
     test('takes the weather off when the route changes', () async {
       overlay = RouteOverlay.rain;
@@ -348,7 +351,7 @@ void main() {
       expect(map.routeColours, isEmpty);
     });
 
-    test('draws the gradient through the coloured stretches, and Off '
+    test('draws the gradient through the coloured stretches, and colouring off '
         'takes it off', () async {
       overlay = RouteOverlay.gradient;
       await binding.syncColours();
@@ -357,7 +360,7 @@ void main() {
         gradientClassColour(GradientClass.flat),
       ]);
 
-      overlay = RouteOverlay.off;
+      overlay = null;
       await binding.syncColours();
       expect(map.routeColours, isEmpty);
     });

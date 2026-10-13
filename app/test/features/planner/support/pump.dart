@@ -24,9 +24,11 @@ import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki/features/settings/data/units.dart';
+import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
 
 import '../../../support/app.dart';
 import '../../search/support/fake_http.dart';
+import '../../weather/support/weather_fixtures.dart';
 import 'fakes.dart';
 
 export '../../../support/units.dart' show imperialUnits, metricUnits;
@@ -158,6 +160,10 @@ class PlannerHarness {
   /// Where stops can be shown: everywhere, unless a test says otherwise.
   final FakeStopsCoverage stopsCoverage = FakeStopsCoverage();
 
+  /// The free forecast's service: every route's weather section asks it,
+  /// so no screen here reaches the network for it.
+  FakeDwdClient dwd = FakeDwdClient();
+
   /// What builds every map instead of a bare [TestMapView] over [map], for a
   /// test that needs something drawn over it.
   MapViewBuilder? mapViewBuilder;
@@ -188,6 +194,7 @@ class PlannerHarness {
     locateOnOpenProvider.overrideWith(StayPutOnOpen.new),
     velorkiDatabaseProvider.overrideWithValue(db),
     mapStopsCoverageProvider.overrideWithValue(stopsCoverage),
+    dwdForecastClientProvider.overrideWithValue(dwd),
   ];
 }
 

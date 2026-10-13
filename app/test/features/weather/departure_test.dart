@@ -330,21 +330,24 @@ void main() {
     });
 
     test(
-      'is the departure with a route, shown with the map\'s layers',
+      'with a route is its departure, shown whatever the layers, with '
+      'Plus or without: the route\'s weather is shown for everyone',
       () async {
-        expect(await control(), PlannerTimeControl.departure);
+        expect(await control(), PlannerTimeControl.departureShown);
+        expect(
+          await control(overlay: 'wind'),
+          PlannerTimeControl.departureShown,
+        );
+        expect(
+          await control(overlay: 'rain'),
+          PlannerTimeControl.departureShown,
+        );
+        expect(
+          await control(access: PlusAccess.granted),
+          PlannerTimeControl.departureShown,
+        );
       },
     );
-
-    test('shows whatever the layers while the route is coloured by the wind '
-        'or the rain, or the Plus forecast shows', () async {
-      expect(await control(overlay: 'wind'), PlannerTimeControl.departureShown);
-      expect(await control(overlay: 'rain'), PlannerTimeControl.departureShown);
-      expect(
-        await control(access: PlusAccess.granted),
-        PlannerTimeControl.departureShown,
-      );
-    });
   });
 }
 

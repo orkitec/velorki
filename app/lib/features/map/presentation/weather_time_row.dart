@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -167,6 +168,11 @@ String weatherDepartureLabel(
 /// is dragged the map shows the step under the finger where it is loaded,
 /// else the nearest one that is ([weatherRadarPreviewProvider]), and the
 /// label says which.
+///
+/// While what the map shows for the step set is still being fetched
+/// ([WeatherMapStatus.loading]), or the route's forecast the caller says
+/// is ([forecastLoading]), a small spinner stands in the drop's place,
+/// once that has taken [weatherLoadingDelay]: a quick answer shows none.
 class WeatherTimeRow extends ConsumerStatefulWidget {
   /// Creates the row, with [padding] around it while it shows.
   const WeatherTimeRow({
@@ -174,6 +180,7 @@ class WeatherTimeRow extends ConsumerStatefulWidget {
     this.padding = EdgeInsets.zero,
     this.leave = false,
     this.shown = false,
+    this.forecastLoading = false,
   });
 
   final EdgeInsetsGeometry padding;
@@ -185,9 +192,19 @@ class WeatherTimeRow extends ConsumerStatefulWidget {
   /// Whether it shows while the map's rain and wind are off.
   final bool shown;
 
+  /// Whether the forecast the route is coloured by is being fetched.
+  final bool forecastLoading;
+
   @override
   ConsumerState<WeatherTimeRow> createState() => _WeatherTimeRowState();
 }
+
+/// How long something is fetched before [WeatherTimeRow] shows its
+/// spinner.
+const Duration weatherLoadingDelay = Duration(milliseconds: 250);
+
+/// The key of the time control's spinner, for the tests.
+const Key weatherTimeLoadingKey = ValueKey<String>('weather-time-loading');
 
 /// How tall [WeatherTimeRow] is in one line, without its padding.
 const double weatherTimeRowHeight = 36;
@@ -314,10 +331,40 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
   /// The slider's step while a finger moves it.
   int? _dragging;
 
+  /// Whether the spinner shows, and the wait before it does.
+  bool _spinning = false;
+  Timer? _spinAfter;
+
+  /// Follows whether something is being fetched: the spinner after
+  /// [weatherLoadingDelay], gone at once when it is in. Called from
+  /// `build`, which shows what it leaves.
+  void _follow(bool loading) {
+    if (!loading) {
+      _spinAfter?.cancel();
+      _spinAfter = null;
+      _spinning = false;
+      return;
+    }
+    if (_spinning || _spinAfter != null) return;
+    _spinAfter = Timer(weatherLoadingDelay, () {
+      _spinAfter = null;
+      if (mounted) setState(() => _spinning = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _spinAfter?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final layers = weatherTimeOn(ref);
-    if (!layers && !widget.shown) return const SizedBox.shrink();
+    if (!layers && !widget.shown) {
+      _follow(false);
+      return const SizedBox.shrink();
+    }
     final leave = widget.leave;
     final theme = Theme.of(context);
     final sources = ref.watch(weatherMapSourcesProvider);
@@ -364,14 +411,29 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
       leave: leave,
       departure: !layers || leave,
     );
-    final drop = Icon(
-      !layers
-          ? Icons.schedule
-          : rainOn
-          ? Icons.water_drop_outlined
-          : Icons.air,
-      size: 18,
-      color: theme.colorScheme.primary,
+    _follow((layers && status.loading) || widget.forecastLoading);
+    // The spinner in the drop's place, as large, so nothing moves.
+    final drop = SizedBox.square(
+      dimension: 18,
+      child: _spinning
+          ? Padding(
+              padding: const EdgeInsets.all(2),
+              child: CircularProgressIndicator(
+                key: weatherTimeLoadingKey,
+                strokeWidth: 2,
+                color: theme.colorScheme.primary,
+                semanticsLabel: AppLocalizations.of(context).mapWeatherLoading,
+              ),
+            )
+          : Icon(
+              !layers
+                  ? Icons.schedule
+                  : rainOn
+                  ? Icons.water_drop_outlined
+                  : Icons.air,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
     );
     // A label longer than measured (another font) is scaled down to fit.
     Widget text(TextStyle? style) => FittedBox(

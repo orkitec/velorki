@@ -64,6 +64,12 @@ class Routes extends Table {
   /// it; null while [geometry] still is that line.
   BlobColumn get originalGeometry => blob().nullable()();
 
+  /// Whether [turnsJson] was worked out on the phone from the map, for a
+  /// route whose file had no turns, rather than given by the router or the
+  /// file.
+  BoolColumn get turnsGenerated =>
+      boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

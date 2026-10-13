@@ -588,7 +588,7 @@
   },
   "surfaceTitle": "Surface",
   "@surfaceTitle": {
-    "description": "Heading above the paved/unpaved bar"
+    "description": "Heading above the paved/unpaved bar; also the choice of colouring the route on the map by its surface. Keep it short"
   },
   "surfacePaved": "Paved",
   "@surfacePaved": {
@@ -1339,6 +1339,46 @@
   "cueSheetShowFewer": "Show fewer",
   "@cueSheetShowFewer": {
     "description": "Button under an expanded cue sheet"
+  },
+  "cueSheetShowOnMap": "Show on map",
+  "@cueSheetShowOnMap": {
+    "description": "Switch in the header of a route page's cue sheet: whether the turns are marked on the map"
+  },
+  "cueSheetTurnsFromMap": "Turns created from the map",
+  "@cueSheetTurnsFromMap": {
+    "description": "Small note under the cue sheet's caption when the route's turns were worked out on the phone from the map, because the imported file had none"
+  },
+  "turnsMissingTitle": "No turn instructions",
+  "@turnsMissingTitle": {
+    "description": "Title of the dialog when the rider starts a ride on a route that has no turn instructions"
+  },
+  "turnsMissingBody": "This route has no turn instructions, so there won't be spoken directions. Create them from the map? This needs the region downloaded.",
+  "@turnsMissingBody": {
+    "description": "Body of the dialog when the rider starts a ride on a route that has no turn instructions"
+  },
+  "turnsMissingRideWithout": "Ride without",
+  "@turnsMissingRideWithout": {
+    "description": "Button in that dialog: start the ride without turn instructions"
+  },
+  "turnsMissingCreate": "Create",
+  "@turnsMissingCreate": {
+    "description": "Button in that dialog: work out the turn instructions from the map, then start the ride"
+  },
+  "turnsCreating": "Creating turn instructions…",
+  "@turnsCreating": {
+    "description": "Progress dialog while the turn instructions are worked out from the map"
+  },
+  "turnsWaitingForDownload": "Waiting for the region to download…",
+  "@turnsWaitingForDownload": {
+    "description": "Progress dialog while the routing region the turn instructions need is still downloading"
+  },
+  "turnsCreateFailed": "The turn instructions could not be created from the map.",
+  "@turnsCreateFailed": {
+    "description": "Message when the turn instructions could not be worked out from the map"
+  },
+  "turnsCreateNoRegion": "This route's region isn't downloaded, so no turn instructions could be created.",
+  "@turnsCreateNoRegion": {
+    "description": "Message when the turn instructions could not be worked out because the region is not downloaded"
   },
   "recordingCuesTitle": "Upcoming turns",
   "@recordingCuesTitle": {
@@ -2280,15 +2320,15 @@
   "@plusFeatureLinkSharingBody": {
     "description": "Paywall feature detail: share links"
   },
-  "plusFeatureWeather": "Weather on your route",
+  "plusFeatureWeather": "Finer route weather and rain radar",
   "@plusFeatureWeather": {
-    "description": "Paywall feature: the forecast along the planned route"
+    "description": "Paywall feature: the finer forecast along the planned route from local weather services (the free one comes from a coarser public model), and the rain radar across Europe"
   },
-  "plusFeatureWeatherBody": "Wind, rain and temperature at the time you reach each part of your route.",
+  "plusFeatureWeatherBody": "Finer weather along the route from local weather services, with gusts and chance of rain, and real rain radar across Europe.",
   "@plusFeatureWeatherBody": {
-    "description": "Paywall feature detail: the forecast along the planned route"
+    "description": "Paywall feature detail: the finer forecast along the planned route from local weather services, with gusts and chance of rain (the free route weather from a coarser public model has neither), and real rain radar across Europe where the free map has only satellite estimates"
   },
-  "plusFreeAnyway": "Planning, recording, smart loops, offline maps and GPX/FIT files stay free, with or without Plus.",
+  "plusFreeAnyway": "Planning, recording, smart loops, offline maps, the weather map, route weather and GPX/FIT files stay free, with or without Plus.",
   "@plusFreeAnyway": {
     "description": "Reassurance under the feature list on the paywall"
   },
@@ -4465,9 +4505,9 @@
   "@mapLayersRainRadar": {
     "description": "Layers sheet: switch for the rain radar layer over the map."
   },
-  "mapLayersRainRadarSubtitle": "Now: radar in Germany and the US, a satellite estimate elsewhere in Europe and Africa. Ahead: radar forecast for 2 hours in Germany, model forecast up to 24 hours (hourly in Europe, every 6 hours elsewhere)",
+  "mapLayersRainRadarSubtitle": "Now: radar in Germany, the Netherlands, Finland and the US, a satellite estimate elsewhere in Europe and Africa. Ahead: radar forecast for 2 hours in Germany, model forecast up to 24 hours (hourly in Europe, every 6 hours elsewhere)",
   "@mapLayersRainRadarSubtitle": {
-    "description": "Under the Rain radar switch, where the rain shown comes from. Now: radar where it exists (Germany, the US), elsewhere in Europe and Africa an estimate of the rain from satellite data (less exact than radar). Ahead (the time slider moved into the future): in Germany the radar's own 2-hour forecast, beyond that and elsewhere a weather model's forecast up to 24 hours, in steps of one hour in Europe and of six hours elsewhere. Start with the word used for Now (mapWeatherNow)."
+    "description": "Under the Rain radar switch, where the rain shown comes from. Now: radar where it exists (Germany, the Netherlands, Finland, the US), elsewhere in Europe and Africa an estimate of the rain from satellite data (less exact than radar). Ahead (the time slider moved into the future): in Germany the radar's own 2-hour forecast, beyond that and elsewhere a weather model's forecast up to 24 hours, in steps of one hour in Europe and of six hours elsewhere. Start with the word used for Now (mapWeatherNow)."
   },
   "mapLayersClouds": "Clouds",
   "@mapLayersClouds": {
@@ -4585,6 +4625,10 @@
   "mapWeatherWindTime": "Wind time",
   "@mapWeatherWindTime": {
     "description": "Screen-reader label of the weather time slider while only the wind layer is on (the rain radar off)."
+  },
+  "mapWeatherLoading": "Loading weather",
+  "@mapWeatherLoading": {
+    "description": "Screen-reader label of the small spinner beside the weather time slider while the weather (rain, clouds, wind, or the route's forecast) for the chosen time is still being fetched."
   },
   "mapCyclePartInfrastructure": "Bike lanes & tracks",
   "@mapCyclePartInfrastructure": {
@@ -6046,11 +6090,7 @@
   },
   "weatherRouteOverlay": "Colour the route by",
   "@weatherRouteOverlay": {
-    "description": "Label over the choice, under the elevation chart, of what the route on the map is coloured by: nothing, the gradient, the wind or the rain"
-  },
-  "weatherOverlayOff": "Off",
-  "@weatherOverlayOff": {
-    "description": "Choice of what the route on the map is coloured by: nothing, the route in its own colour. Keep it short"
+    "description": "Label over the choice, under the elevation chart, of what the route on the map is coloured by (the gradient, the surface, the wind or the rain); it also names the switch beside it that turns the colouring on and off"
   },
   "colourByGradient": "Gradient",
   "@colourByGradient": {
@@ -6100,9 +6140,9 @@
   "@mapRainRadarPlusTitle": {
     "description": "Title of the dialog shown each time a rider without Velorki Plus switches the rain radar on in the map's Layers sheet"
   },
-  "mapRainRadarPlusBody": "Velorki Plus adds real radar across Europe where the free map only has satellite estimates, such as France, Spain, the UK, Switzerland and Scandinavia.",
+  "mapRainRadarPlusBody": "Velorki Plus adds real radar across Europe where the free map only has satellite estimates, such as France, Spain, Italy, the UK, Switzerland and Scandinavia.",
   "@mapRainRadarPlusBody": {
-    "description": "Body of that dialog: with Plus, measured radar (EUMETNET OPERA) replaces the satellite's estimate of the rain in much of Europe; the free map has radar of its own only in Germany, the Netherlands and Finland"
+    "description": "Body of that dialog: with Plus, measured radar (EUMETNET OPERA, and Radar-DPC over Italy) replaces the satellite's estimate of the rain in much of Europe; the free map has radar of its own only in Germany, the Netherlands and Finland"
   },
   "mapRainRadarPlusUseFree": "Use free radar",
   "@mapRainRadarPlusUseFree": {
@@ -6124,5 +6164,13 @@
   "weatherFreeForecastFiner": "Plus: finer forecast",
   "@weatherFreeForecastFiner": {
     "description": "Tooltip of that line, which opens the Velorki Plus page"
+  },
+  "weatherPlusExtrasLocked": "Gusts and chance of rain with Velorki Plus",
+  "@weatherPlusExtrasLocked": {
+    "description": "In the route weather section without Velorki Plus: a locked line under the wind key saying that gusts and the chance of rain come with Plus; a tap opens the Plus page"
+  },
+  "weatherForecastUnavailable": "Weather forecast unavailable right now",
+  "@weatherForecastUnavailable": {
+    "description": "In the route weather section when the free forecast (wind, rain, temperature from the DWD) could not be loaded"
   }
 }

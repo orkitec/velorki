@@ -36,7 +36,7 @@ class VelorkiDatabase extends _$VelorkiDatabase {
   factory VelorkiDatabase.open() => VelorkiDatabase(_openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -85,6 +85,9 @@ class VelorkiDatabase extends _$VelorkiDatabase {
         await m.addColumn(routes, routes.originalJson);
         await m.addColumn(routes, routes.originalGeometry);
       }
+      // 10 marked the turns the phone worked out from the map for a file
+      // that had none; older routes keep false.
+      if (from < 10) await m.addColumn(routes, routes.turnsGenerated);
     },
     beforeOpen: (_) async {
       // SQLite needs this per connection for the rides → routes foreign key.

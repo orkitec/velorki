@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/app/shell_layout.dart';
+import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
+import 'package:velorki/features/map/presentation/stops_zoom_chip.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
@@ -14,6 +16,7 @@ import 'package:velorki/features/recording/application/recording_controller.dart
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/presentation/live_figures_view.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
+import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/shared/application/nav_bar_docking.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
@@ -413,6 +416,61 @@ void main() {
     expect(inField, findsOneWidget);
     await unmountApp(tester);
   });
+
+  for (final side in RailSide.values) {
+    testWidgets('sideways, rail on the ${side.name}, the area chip is as wide '
+        'as the space beside the sheet lets it be, not a column of words', (
+      tester,
+    ) async {
+      _railOn(tester, side);
+      await _screen(tester, _sideways);
+      final harness = RecordingHarness();
+      harness.planner.stopsCoverage.covered = (_) => false;
+      await pumpRecordingApp(
+        tester,
+        harness: harness,
+        initialLocation: plannerRoute,
+        surfaceSize: _sideways,
+        expectTextFits: false,
+        preferences: const <String, Object>{'map.stops.shown': true},
+        extraOverrides: [
+          mapStopsFinderProvider.overrideWithValue(
+            (box, kinds, limit, {near}) async => const <SearchResult>[],
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+      harness.map
+        ..zoom = stopsMinZoom + 1
+        ..center = const LatLng(48.05, 11.05)
+        ..visibleBounds = const BoundingBox(
+          south: 47.9,
+          west: 10.9,
+          north: 48.2,
+          east: 11.2,
+        );
+      for (final listener in [...harness.map.cameraIdleListeners]) {
+        listener();
+      }
+      await tester.pump(stopsDebounce * 2);
+      await tester.pumpAndSettle();
+
+      final message = find.text(l10n.mapStopsNotDownloaded);
+      expect(message, findsOneWidget);
+      final chip = _rect(tester, find.byType(StopsDownloadChip));
+      final search = _rect(tester, find.byType(SearchField));
+      final sheet = _sheet(tester);
+      final text = _rect(tester, message);
+      // Beside the sheet, across nearly all the search field's width (less
+      // the island's safe area at the far edge), not kept clear of a
+      // control column that sideways is in the row at the top: it reads
+      // across, not down a column of a word or two a line.
+      expect(chip.overlaps(sheet), isFalse);
+      expect(chip.width, greaterThan(search.width * 0.75));
+      expect(text.width, greaterThan(text.height));
+      await unmountApp(tester);
+    });
+  }
 
   testWidgets('upright, the profiles stay a row of chips under the search, '
       'and the controls a column', (tester) async {

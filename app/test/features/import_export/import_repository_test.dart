@@ -1,11 +1,19 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/import_export/data/import_repository.dart';
 import 'package:velorki/features/import_export/data/track_decoder.dart';
 import 'package:velorki/features/import_export/domain/imported_track.dart';
+import 'package:velorki/features/navigation/application/route_turn_generator.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+
+import '../navigation/support/fake_turns.dart';
 
 import 'support/fixtures.dart';
 
@@ -108,5 +116,45 @@ void main() {
     );
     expect(await db.ridesDao.allRides(), isEmpty);
     expect(await db.routesDao.allRoutes(), isEmpty);
+  });
+
+  test('a plain GPX track gets its turns from the map after the import, '
+      'when its tiles are on the phone', () async {
+    final points = leggedTrack();
+    final gpx = StringBuffer(
+      '<?xml version="1.0"?><gpx version="1.1" creator="test" '
+      'xmlns="http://www.topografix.com/GPX/1/1"><trk><trkseg>',
+    );
+    for (final p in points) {
+      gpx.write('<trkpt lat="${p.lat}" lon="${p.lon}"></trkpt>');
+    }
+    gpx.write('</trkseg></trk></gpx>');
+    final track = decodeTrack(Uint8List.fromList(utf8.encode('$gpx')));
+    expect(track.turns, isEmpty, reason: 'the file has none');
+
+    final backend = TrackFollowingBackend();
+    final container = ProviderContainer(
+      overrides: [
+        velorkiDatabaseProvider.overrideWithValue(db),
+        trackTurnServiceProvider.overrideWithValue(fakeTurnService(backend)),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final saved = await container
+        .read(importRepositoryProvider)
+        .saveAsRoute(name: 'Plain', track: track);
+    expect(saved.turns, isEmpty);
+
+    // In the background, no dialog: wait for it.
+    final routes = RouteRepository(db.routesDao);
+    for (var i = 0; i < 50; i++) {
+      if ((await routes.routeById(saved.id))!.turnsGenerated) break;
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    final back = (await routes.routeById(saved.id))!;
+    expect(back.turnsGenerated, isTrue);
+    expect(back.turns.first.pointIndex, 30);
+    expect(back.turns.first.kind, TurnKind.right);
   });
 }

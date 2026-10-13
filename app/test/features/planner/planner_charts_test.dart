@@ -11,7 +11,6 @@ import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/shared/presentation/metric_chart.dart';
 import 'package:velorki/features/subscription/application/plus_access.dart';
 import 'package:velorki/features/weather/application/route_weather_controller.dart';
-import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
 import 'package:velorki/features/weather/domain/route_weather_state.dart';
 import 'package:velorki/features/weather/presentation/route_weather_strip.dart';
 import 'package:velorki/features/weather/presentation/route_colour_choice.dart';
@@ -147,9 +146,12 @@ void main() {
 
     // The choice and the key between the profile and the weather.
     final choice = find.byType(RouteColourChoice);
+    // Its heading's touch target starts where the profile ends.
     expect(
       tester.getTopLeft(choice).dy,
-      greaterThan(tester.getBottomLeft(find.byType(ElevationProfileChart)).dy),
+      greaterThanOrEqualTo(
+        tester.getBottomLeft(find.byType(ElevationProfileChart)).dy,
+      ),
     );
     expect(
       tester.getTopLeft(find.byType(GradientColourKey)).dy,
@@ -162,12 +164,18 @@ void main() {
 
     Finder segment(String label) =>
         find.descendant(of: choice, matching: find.text(label));
-    await tester.tap(segment(l10n.weatherOverlayOff));
+    await tester.tap(
+      find.descendant(of: choice, matching: find.byType(Switch)),
+    );
     await tester.pumpAndSettle();
     expect(callsOf('clearRouteColours'), isNotEmpty);
     expect(bands(), isEmpty);
     expect(find.byType(GradientColourKey), findsNothing);
 
+    await tester.tap(
+      find.descendant(of: choice, matching: find.byType(Switch)),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(segment(l10n.weatherWind));
     await tester.pumpAndSettle();
     expect(callsOf('setRouteWind'), isNotEmpty);
@@ -367,10 +375,10 @@ void main() {
     final h = await pumpScreen(
       tester,
       const PlannerScreen(),
+      harness: PlannerHarness()..dwd = free,
       extraOverrides: [
         relayClientProvider.overrideWithValue(MockRelay().client()),
         plusAccessProvider.overrideWith((ref, feature) => PlusAccess.missing),
-        dwdForecastClientProvider.overrideWithValue(free),
         weatherClockProvider.overrideWithValue(
           () => DateTime.utc(2026, 10, 11, 8),
         ),
@@ -415,6 +423,14 @@ void main() {
         ),
       ),
     );
+    // Named once in the sheet: in the weather section, not under the key.
     expect(find.byType(FreeForecastSourceLine), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(RouteColourKey),
+        matching: find.byType(FreeForecastSourceLine),
+      ),
+      findsNothing,
+    );
   });
 }

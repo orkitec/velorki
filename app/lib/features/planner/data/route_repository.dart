@@ -306,6 +306,35 @@ class RouteRepository {
     );
   }
 
+  /// Gives the route with [id] the [turns] worked out from the map, and
+  /// marks them so. Only while the route still has no turns of its own and
+  /// still has the line of [geometryBlob] they were worked out for: an
+  /// edit in the meantime, or turns from elsewhere, win. Returns whether
+  /// they were written.
+  ///
+  /// Not a change to the route itself, like the surface: the card's
+  /// "edited" date stays put.
+  Future<bool> setGeneratedTurns(
+    String id,
+    List<TurnHint> turns, {
+    required Uint8List geometryBlob,
+  }) async {
+    final row = await _dao.routeById(id);
+    if (row == null) return false;
+    if (!_sameBytes(Uint8List.fromList(row.geometry), geometryBlob)) {
+      return false;
+    }
+    if (!lacksTurns(decodeTurns(row.turnsJson))) return false;
+    await _dao.updateRoute(
+      row.copyWith(
+        turnsJson: Value(encodeTurns(turns)),
+        turnsGenerated: true,
+        updatedAt: row.updatedAt,
+      ),
+    );
+    return true;
+  }
+
   /// Replaces the points of interest of the route with [id], everything
   /// else as it is: what a change to a point beside the route needs, since
   /// it leaves the geometry and the waypoints alone. An unknown id changes
@@ -370,6 +399,7 @@ class RouteRepository {
     surfaceUnavailable:
         decodeTrackSurface(row.surfaceStatsJson)?.unavailable ?? false,
     turns: decodeTurns(row.turnsJson),
+    turnsGenerated: row.turnsGenerated,
     aiDescriptionGenerated: row.aiDescriptionGenerated,
     pois: decodePois(row.poisJson),
     link: row.link,
@@ -404,6 +434,7 @@ class RouteRepository {
           : jsonEncode(encodeSurfaceStats(route.surfaceStats!)),
     ),
     turnsJson: Value(encodeTurns(route.turns)),
+    turnsGenerated: Value(route.turnsGenerated),
     aiDescriptionGenerated: Value(route.aiDescriptionGenerated),
     poisJson: Value(encodePois(route.pois)),
     link: Value(route.link),
@@ -542,6 +573,11 @@ List<RoutePoi> decodePois(String? json) {
       if (entry is Map<String, dynamic>) RoutePoi.fromMap(entry),
   ];
 }
+
+/// Whether [turns] say nothing a rider could be told: none at all, or only
+/// the finish.
+bool lacksTurns(List<TurnHint> turns) =>
+    turns.every((t) => t.kind == TurnKind.end);
 
 /// The `turns_json` column: null rather than `[]` for a route without turn
 /// instructions, so the column stays empty for everything that never went

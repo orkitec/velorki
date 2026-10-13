@@ -1940,6 +1940,75 @@ void main() {
         live.dispose();
       });
     });
+
+    test('loading while the step set is fetched over the view, not while '
+        'the other steps are in the background', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        fetcher.holdRadar = true;
+        soft();
+        expect(live.status.value.loading, isFalse);
+        live.attach(map);
+        async.flushMicrotasks();
+        expect(live.status.value.loading, isTrue);
+        // The step's own is in: the background asks on, not loading.
+        final (_, box, _) = fetcher.radarImages.single;
+        fetcher.heldRadar.single.complete(_dwdFrame(box, (_) => true));
+        async.flushMicrotasks();
+        expect(fetcher.heldRadar.length, greaterThan(1));
+        expect(live.status.value.loading, isFalse);
+        // Another step set: loading until its own is in.
+        final own = fetcher.radarImages.length;
+        soft(offset: 180);
+        async.flushMicrotasks();
+        expect(live.status.value.loading, isTrue);
+        expect(fetcher.radarImages, hasLength(own + 1));
+        fetcher.heldRadar[own].complete(Uint8List.fromList(<int>[1]));
+        async.flushMicrotasks();
+        expect(live.status.value.loading, isFalse);
+        // A step under the finger asks nothing, and loads nothing.
+        live.preview(60);
+        expect(live.status.value.loading, isFalse);
+        for (final held in fetcher.heldRadar) {
+          if (!held.isCompleted) held.complete(null);
+        }
+        async.flushMicrotasks();
+        live.dispose();
+      });
+    });
+
+    test('loading while the wind of the step set is fetched; switched off, '
+        'not', () {
+      fakeAsync((async) {
+        map.zoom = 9;
+        fetcher.holdWind = true;
+        soft(radar: false, wind: true);
+        live.attach(map);
+        async.flushMicrotasks();
+        expect(live.status.value.loading, isTrue);
+        fetcher.heldWind.single.complete(
+          windGridOver(fetcher.winds.single.$1.box),
+        );
+        async.flushMicrotasks();
+        // The other hours are out in the background.
+        expect(fetcher.heldWind.length, greaterThan(1));
+        expect(live.status.value.loading, isFalse);
+        // Off to Paris: the new view's grid once the camera rests.
+        map.visibleBounds = _view(2.35, 48.85);
+        map.emitCameraIdle();
+        async.elapse(windDebounce);
+        expect(live.status.value.loading, isTrue);
+        // Switched off meanwhile: nothing shown waits for it.
+        soft(radar: false);
+        async.flushMicrotasks();
+        expect(live.status.value.loading, isFalse);
+        for (final held in fetcher.heldWind) {
+          if (!held.isCompleted) held.complete(null);
+        }
+        async.flushMicrotasks();
+        live.dispose();
+      });
+    });
   });
 
   group('wind', () {

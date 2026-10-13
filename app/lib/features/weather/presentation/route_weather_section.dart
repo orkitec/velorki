@@ -20,19 +20,34 @@ import '../../shared/presentation/error_text.dart';
 import '../../shared/presentation/metric_chart.dart' show DistanceWindow;
 import '../../shared/presentation/stat_tile.dart';
 import '../../subscription/application/plus_access.dart';
+import '../application/free_route_weather.dart';
+import '../application/route_colouring.dart';
+import '../application/route_overlay.dart';
 import '../application/route_weather_controller.dart';
+import '../data/dwd_route_forecast.dart';
 import '../domain/route_weather.dart';
 import '../domain/route_weather_state.dart';
 import 'route_weather_strip.dart';
 import 'weather_digest_text.dart';
 import 'weather_keys.dart';
 
-/// The weather on the way, in the planner's sheet under the surfaces.
+/// The weather on the way, in the planner's sheet under the surfaces and on
+/// a saved route's page.
 ///
-/// Nothing in a build without the relay, nor while the store has not said
-/// whether the rider has Velorki Plus; a short teaser for a rider without
-/// it. While the forecast is on its way the section keeps the height it will
-/// have, so the sheet's content does not jump when it arrives.
+/// For everyone: the weather [routeColourWeatherProvider] gives, the one the
+/// route is coloured by, so the section, the colours and their key always
+/// tell the same forecast. With Velorki Plus the relay's, finer, from local
+/// weather services, with gusts and the chance of rain; without it (or in a
+/// build without the relay) the free forecast the phone loads from the DWD
+/// itself: wind, rain and temperature. Then a locked line says what Plus
+/// adds, where the build offers Plus, and the source line under it leads to
+/// the Plus page.
+///
+/// Nothing while there is no route, nor, in a build with the relay, while
+/// the store has not said whether the rider has Plus (which forecast to
+/// show is not known yet). While the forecast is on its way the section
+/// keeps the height it will have, so the sheet's content does not jump
+/// when it arrives.
 ///
 /// Its strip shares the elevation profile's [window] and [cursor].
 class RouteWeatherSection extends ConsumerWidget {
@@ -59,26 +74,26 @@ class RouteWeatherSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(relayClientProvider) == null) return const SizedBox.shrink();
-    switch (ref.watch(plusAccessProvider(PlusFeature.weather))) {
-      case PlusAccess.unknown:
-        return const SizedBox.shrink();
-      case PlusAccess.missing:
-        return const _Frame(child: _LockedTeaser());
-      case PlusAccess.granted:
-        break;
+    if (ref.watch(relayClientProvider) != null &&
+        ref.watch(plusAccessProvider(PlusFeature.weather)) ==
+            PlusAccess.unknown) {
+      return const SizedBox.shrink();
     }
-    return switch (ref.watch(routeWeatherControllerProvider(route))) {
+    final plus = ref.watch(routeWeatherFromRelayProvider);
+    return switch (ref.watch(routeColourWeatherProvider(route))) {
       AsyncError(:final error) => _Frame(
-        child: _WeatherError(route: route, error: error),
+        child: _WeatherError(route: route, plus: plus, error: error),
       ),
-      AsyncLoading() => _Frame(child: _WeatherBody(route: route, state: null)),
+      AsyncLoading() => _Frame(
+        child: _WeatherBody(route: route, plus: plus, state: null),
+      ),
       AsyncData(:final value) =>
         value == null
             ? const SizedBox.shrink()
             : _Frame(
                 child: _WeatherBody(
                   route: route,
+                  plus: plus,
                   state: value,
                   window: window,
                   onWindow: onWindow,
@@ -100,51 +115,18 @@ class _Frame extends StatelessWidget {
       Padding(padding: const EdgeInsets.only(top: 24), child: child);
 }
 
-/// What a rider without Velorki Plus sees: what the section would show and
-/// the way to the paywall.
-class _LockedTeaser extends StatelessWidget {
-  const _LockedTeaser();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return Card(
-      margin: EdgeInsets.zero,
-      color: theme.colorScheme.surfaceContainerLow,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(child: SectionCaption(l10n.weatherTitle)),
-                // The product name, not a translatable label.
-                const SectionCaption('Plus', accent: true),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(l10n.plusFeatureWeatherBody, style: theme.textTheme.bodySmall),
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: TextButton(
-                onPressed: () => context.push(paywallRoute),
-                child: Text(l10n.plusSeeDetails),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// The forecast could not be had: why, and a way to ask again.
 class _WeatherError extends ConsumerWidget {
-  const _WeatherError({required this.route, required this.error});
+  const _WeatherError({
+    required this.route,
+    required this.plus,
+    required this.error,
+  });
 
   final WeatherRoute route;
+
+  /// Whether it is the relay's forecast that failed, or the free one.
+  final bool plus;
   final Object error;
 
   @override
@@ -164,8 +146,11 @@ class _WeatherError extends ConsumerWidget {
         ),
         TextButton(
           style: TextButton.styleFrom(padding: EdgeInsets.zero),
-          onPressed: () =>
-              ref.read(routeWeatherControllerProvider(route).notifier).retry(),
+          onPressed: plus
+              ? () => ref
+                    .read(routeWeatherControllerProvider(route).notifier)
+                    .retry()
+              : () => ref.invalidate(freeRouteWeatherProvider(route)),
           child: Text(l10n.weatherTryAgain),
         ),
       ],
@@ -173,26 +158,37 @@ class _WeatherError extends ConsumerWidget {
   }
 }
 
-/// The best departure of each forecast, worked out once for where its
-/// steps start and the departure chosen.
+/// The best departure of each route's samples, worked out once for the
+/// forecast, where its steps start, the departure chosen and, from the free
+/// forecast, how many of its grids had come.
 final Expando<_Best> _bestDepartures = Expando<_Best>('bestDeparture');
 
 class _Best {
-  const _Best(this.from, this.departure, this.offset);
+  const _Best(
+    this.forecast,
+    this.from,
+    this.departure,
+    this.loaded,
+    this.offset,
+  );
 
+  final Object forecast;
   final DateTime from;
   final DateTime departure;
+  final int loaded;
 
   /// The time control's step it is at, minutes from [from].
   final int? offset;
 }
 
 /// The forecast: the line that sums it up, the strip with its key, the
-/// departure and the attribution. Without [state], the same rows, empty, at
-/// the same height.
+/// departure and the attribution; from the free forecast, the line of what
+/// Plus adds over the departure and the free source line for the
+/// attribution. Without [state], the same rows, empty, at the same height.
 class _WeatherBody extends ConsumerWidget {
   const _WeatherBody({
     required this.route,
+    required this.plus,
     required this.state,
     this.window,
     this.onWindow,
@@ -200,6 +196,9 @@ class _WeatherBody extends ConsumerWidget {
   });
 
   final WeatherRoute route;
+
+  /// Whether [state] is the relay's forecast, not the free one.
+  final bool plus;
   final RouteWeatherState? state;
   final DistanceWindow? window;
   final ValueChanged<DistanceWindow?>? onWindow;
@@ -273,11 +272,21 @@ class _WeatherBody extends ConsumerWidget {
                 false,
           ),
         ),
+        // What the relay's forecast has and the free one has not.
+        if (!plus && ref.watch(relayClientProvider) != null) ...[
+          const SizedBox(height: 4),
+          const _LockedPlusRows(),
+        ],
         const SizedBox(height: 12),
-        _Departure(route: route, state: s),
+        _Departure(route: route, plus: plus, state: s),
         const SizedBox(height: 4),
         // Always there while the forecast is shown: the services ask for it.
-        if (s == null)
+        if (!plus)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 4),
+            child: FreeForecastSourceLine(),
+          )
+        else if (s == null)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Text(' ', style: muted),
@@ -337,9 +346,16 @@ class _SummaryLine extends StatelessWidget {
 /// step with the least rain and headwind. Without [state], the same row,
 /// idle.
 class _Departure extends ConsumerStatefulWidget {
-  const _Departure({required this.route, required this.state});
+  const _Departure({
+    required this.route,
+    required this.plus,
+    required this.state,
+  });
 
   final WeatherRoute route;
+
+  /// Whether [state] is the relay's forecast, not the free one.
+  final bool plus;
   final RouteWeatherState? state;
 
   @override
@@ -355,9 +371,11 @@ class _DepartureState extends ConsumerState<_Departure> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final s = widget.state;
-    final controller = ref.read(
-      routeWeatherControllerProvider(widget.route).notifier,
-    );
+    // The free forecast's best time is worked out from the grids fetched
+    // ahead, again as more of them come.
+    final loaded = widget.plus
+        ? 0
+        : ref.watch(freeForecastPrefetchProvider(widget.route));
     final committed = ref.watch(weatherRadarOffsetProvider);
     final offset = _dragging ?? committed;
 
@@ -369,16 +387,24 @@ class _DepartureState extends ConsumerState<_Departure> {
           ? s.departure
           : s.earliestDeparture.add(Duration(minutes: offset));
       when = _formatDeparture(context, l10n, shown, now);
-      var cached = _bestDepartures[s.forecast];
+      var cached = _bestDepartures[s.samples];
       if (cached == null ||
+          !identical(cached.forecast, s.forecast) ||
           cached.from != s.earliestDeparture ||
-          cached.departure != s.departure) {
+          cached.departure != s.departure ||
+          cached.loaded != loaded) {
         cached = _Best(
+          s.forecast,
           s.earliestDeparture,
           s.departure,
-          controller.suggestBestOffset(),
+          loaded,
+          widget.plus
+              ? ref
+                    .read(routeWeatherControllerProvider(widget.route).notifier)
+                    .suggestBestOffset()
+              : suggestFreeBestOffset(ref.read(dwdForecastClientProvider), s),
         );
-        _bestDepartures[s.forecast] = cached;
+        _bestDepartures[s.samples] = cached;
       }
       best = cached.offset;
     }
@@ -451,6 +477,49 @@ class _DepartureState extends ConsumerState<_Departure> {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// What the free forecast lacks and Velorki Plus has, the gusts and the
+/// chance of rain, as one locked line under the strip's key: a lock where
+/// the rows' names stand, the words on the plot's edge; a tap opens the
+/// Plus page.
+class _LockedPlusRows extends StatelessWidget {
+  const _LockedPlusRows();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colour = theme.colorScheme.onSurfaceVariant;
+    return InkWell(
+      onTap: () => unawaited(context.push(paywallRoute)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            SizedBox(
+              width: weatherStripLeftInset,
+              child: Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: Padding(
+                  // Where the rows' names end, clear of the plot.
+                  padding: const EdgeInsetsDirectional.only(end: 10),
+                  child: Icon(Icons.lock_outline, size: 14, color: colour),
+                ),
+              ),
+            ),
+            Flexible(
+              child: Text(
+                l10n.weatherPlusExtrasLocked,
+                style: theme.textTheme.labelSmall?.copyWith(color: colour),
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 14, color: colour),
+          ],
+        ),
+      ),
     );
   }
 }

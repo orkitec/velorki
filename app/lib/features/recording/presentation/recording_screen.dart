@@ -35,6 +35,7 @@ import '../../navigation/application/navigation_controller.dart';
 import '../../navigation/application/route_cues.dart';
 import '../../navigation/application/off_route_thresholds.dart';
 import '../../navigation/domain/navigation_progress.dart';
+import '../../navigation/presentation/missing_turns_dialog.dart';
 import '../../navigation/presentation/navigation_toggles.dart';
 import '../../navigation/presentation/turn_banner.dart';
 import '../../map/domain/visible_map.dart';
@@ -1442,6 +1443,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   Future<void> _start() async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    if (!await _ensureTurns()) return;
+    if (!mounted) return;
     if (!await _ensureLocation(l10n, messenger)) return;
     if (!mounted) return;
     await _ensureNotifications(l10n, messenger);
@@ -1457,6 +1460,16 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         SnackBar(content: Text(l10n.recordingFailed(error.describe(l10n)))),
       );
     }
+  }
+
+  /// A saved route without turn instructions is offered them from the map
+  /// before the ride starts; `false` when the rider backed out.
+  Future<bool> _ensureTurns() async {
+    final id = ref.read(recordingControllerProvider).followedRouteId;
+    if (id == null) return true;
+    final route = await ref.read(routeRepositoryProvider).routeById(id);
+    if (route == null || !mounted) return true;
+    return confirmRouteTurns(context, ref, route);
   }
 
   Future<bool> _ensureLocation(

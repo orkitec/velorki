@@ -16,7 +16,7 @@ typedef _W = ({
   WindClass wind,
   double precip,
   double? prob,
-  double temp,
+  double? temp,
   double? gust,
 });
 
@@ -24,7 +24,7 @@ _W _w({
   WindClass wind = WindClass.calm,
   double precip = 0,
   double? prob,
-  double temp = 12,
+  double? temp = 12,
   double? gust,
 }) => (wind: wind, precip: precip, prob: prob, temp: temp, gust: gust);
 
@@ -251,6 +251,17 @@ void main() {
           _w(wind: WindClass.calm),
         ]),
         contains(l10n.weatherMixedWind),
+      );
+    });
+
+    test('the free forecast\'s: no gusts, and without its temperature grid '
+        'no temperature, the rest as ever', () {
+      expect(
+        line([
+          _w(wind: WindClass.headwind, temp: null),
+          _w(wind: WindClass.headwind, temp: null),
+        ]),
+        [l10n.weatherDry, l10n.weatherMostlyHeadwind].join(' · '),
       );
     });
 

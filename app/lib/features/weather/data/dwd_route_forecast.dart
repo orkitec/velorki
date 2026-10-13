@@ -26,6 +26,9 @@ part 'dwd_route_forecast.g.dart';
 //   off the coverage's DescribeCoverage ([parseNewestRun]).
 // - `Icon_reg025_fd_sl_UV10M`: the wind 10 m up, u (east) and v (north) in
 //   m/s, at the hour, global on a 0.25° grid.
+// - `Icon_reg025_fd_sl_T2M`: the air temperature 2 m up at the hour, in °C
+//   (DescribeCoverage gives the unit as ℃; the values are what a thermometer
+//   reads, not kelvin), global on the same 0.25° grid, one band.
 // - `Icon-eu_reg00625_fd_sl_TOTPREC01H`: ICON-EU's rain in the hour up to
 //   the time asked for (kg/m², i.e. mm), on a 0.0625° grid over Europe.
 // - `Icon_reg025_fd_sl_TOTPREC` ("Niederschlag akkumuliert"): the global
@@ -39,6 +42,9 @@ const String dwdWcsUrl = 'https://maps.dwd.de/geoserver/ows';
 
 /// The global wind, u and v at 10 m, 0.25°, hourly.
 const String dwdWindCoverage = 'dwd__Icon_reg025_fd_sl_UV10M';
+
+/// The global temperature 2 m up, °C, 0.25°, hourly.
+const String dwdTemperatureCoverage = 'dwd__Icon_reg025_fd_sl_T2M';
 
 /// ICON-EU's rain of each hour, 0.0625°, over [dwdRainEuArea].
 const String dwdRainEuCoverage = 'dwd__Icon-eu_reg00625_fd_sl_TOTPREC01H';

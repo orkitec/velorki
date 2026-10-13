@@ -56,11 +56,14 @@ A Flutter app for iOS and Android. What it does:
 - Metric or imperial units; every string is localisable.
 
 **Everything on the phone is free, for everyone, for good**: planning, loops,
-offline maps and routing, search, navigation, recording, ride stats, GPX and
-FIT files. The routing data and the search index are mirrored for you at no
-charge. "Velorki Plus" is a small subscription only for the parts that need
-our servers or a partner account: the Strava and RideWithGPS connections, the
-assistant and link sharing. The code for all of it is here, so you can also
+offline maps and routing, search, navigation, recording, ride stats, the
+weather map, the weather along the route from a public forecast and the route
+coloured by gradient, surface, wind or rain, GPX and FIT files.
+The routing data and the search index are mirrored for you at no charge.
+"Velorki Plus" is a small subscription only for the parts that need our
+servers or a partner account: the Strava and RideWithGPS connections, the
+assistant, link sharing, finer weather along the route from local weather
+services and rain radar across Europe. The code for all of it is here, so you can also
 run your own and skip the subscription entirely.
 
 ## Status

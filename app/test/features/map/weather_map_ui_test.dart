@@ -551,6 +551,103 @@ void main() {
       );
     });
 
+    group('loading', () {
+      Finder spinner() => find.byKey(weatherTimeLoadingKey);
+
+      testWidgets('while the step\'s weather is fetched: a spinner in the '
+          'drop\'s place after a moment, said to a screen reader, gone when '
+          'it is in; nothing moves', (tester) async {
+        final handle = tester.ensureSemantics();
+        final (_, container) = await _pump(
+          tester,
+          const WeatherTimeRow(),
+          prefs: <String, Object>{'map.weather.radar': true},
+        );
+        final status = container.read(sharedWeatherMapStatusProvider.notifier)
+          ..set(berlin);
+        await tester.pump();
+        final row = tester.getRect(find.byType(WeatherTimeRow));
+        final labelRect = tester.getRect(find.byKey(weatherTimeLabelKey));
+        final sliderRect = tester.getRect(find.byType(Slider));
+        final dropRect = tester.getRect(find.byIcon(Icons.water_drop_outlined));
+        status.set(
+          WeatherMapStatus(centre: berlin.centre, at: at, loading: true),
+        );
+        await tester.pump();
+        await tester.pump(
+          weatherLoadingDelay - const Duration(milliseconds: 1),
+        );
+        expect(spinner(), findsNothing);
+        await tester.pump(const Duration(milliseconds: 1));
+        expect(spinner(), findsOneWidget);
+        expect(find.byIcon(Icons.water_drop_outlined), findsNothing);
+        expect(find.bySemanticsLabel(l10n.mapWeatherLoading), findsOneWidget);
+        // In the drop's place, the row as it was.
+        expect(
+          tester.getRect(spinner()).center,
+          offsetMoreOrLessEquals(dropRect.center),
+        );
+        expect(tester.getRect(find.byType(WeatherTimeRow)), row);
+        expect(tester.getRect(find.byKey(weatherTimeLabelKey)), labelRect);
+        expect(tester.getRect(find.byType(Slider)), sliderRect);
+        status.set(berlin);
+        await tester.pump();
+        expect(spinner(), findsNothing);
+        expect(find.byIcon(Icons.water_drop_outlined), findsOneWidget);
+        expect(tester.getRect(find.byType(WeatherTimeRow)), row);
+        handle.dispose();
+      });
+
+      testWidgets('a quick answer shows none', (tester) async {
+        final (_, container) = await _pump(
+          tester,
+          const WeatherTimeRow(),
+          prefs: <String, Object>{'map.weather.radar': true},
+        );
+        final status = container.read(sharedWeatherMapStatusProvider.notifier)
+          ..set(WeatherMapStatus(centre: berlin.centre, at: at, loading: true));
+        await tester.pump(const Duration(milliseconds: 100));
+        status.set(berlin);
+        await tester.pump(weatherLoadingDelay * 2);
+        expect(spinner(), findsNothing);
+      });
+
+      testWidgets('with the rain and the wind off, only the route\'s '
+          'forecast counts', (tester) async {
+        final (_, container) = await _pump(
+          tester,
+          const WeatherTimeRow(leave: true, shown: true),
+        );
+        // The clouds over the map have nothing to do with the departure.
+        container
+            .read(sharedWeatherMapStatusProvider.notifier)
+            .set(
+              WeatherMapStatus(centre: berlin.centre, at: at, loading: true),
+            );
+        await tester.pump(weatherLoadingDelay * 2);
+        expect(spinner(), findsNothing);
+        final row = tester.getRect(find.byType(WeatherTimeRow));
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: testApp(
+              home: const Scaffold(
+                body: WeatherTimeRow(
+                  leave: true,
+                  shown: true,
+                  forecastLoading: true,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump(weatherLoadingDelay);
+        expect(spinner(), findsOneWidget);
+        expect(find.byIcon(Icons.schedule), findsNothing);
+        expect(tester.getRect(find.byType(WeatherTimeRow)), row);
+      });
+    });
+
     testWidgets('where the model stands in for the satellite, "Now" says it '
         'is a forecast', (tester) async {
       final (_, container) = await _pump(

@@ -47,6 +47,10 @@ abstract class SavedRoute with _$SavedRoute {
     /// rows saved before the app stored them.
     @Default(<TurnHint>[]) List<TurnHint> turns,
 
+    /// Whether [turns] were worked out on the phone from the map, for a
+    /// route read from a file that had none.
+    @Default(false) bool turnsGenerated,
+
     /// Whether [description] was written by the model rather than by the
     /// rider. Shown next to the text and re-set when it is written again.
     @Default(false) bool aiDescriptionGenerated,
