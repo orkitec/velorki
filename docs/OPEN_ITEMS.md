@@ -14,7 +14,7 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
       the Orkify dashboard `ANDROID_CERT_SHA256` — the Play app signing key's
       SHA-256 from Play Console → App integrity, then the upload key's — so
       `/.well-known/assetlinks.json` stops answering 404 and Android's App
-      Links verify, and `WEATHER_CONTACT` for the relay's weather calls.
+      Links verify.
 - [ ] **Measure the battery saver**: everything [BATTERY.md](BATTERY.md)
       describes is in the app; the two comparison rides that would prove it are
       not. That file's "How to measure" is the procedure; write both numbers
@@ -27,8 +27,6 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
       API behind a partner programme (Garmin Courses via Connect, Wahoo Cloud
       API, Hammerhead dashboard) that needs a server-side secret, so it lives
       in the relay. Garmin first. GPX export into the makers' apps works today.
-- [ ] **velorki.com**: the `ride@velorki.com`
-      mailbox (support and security reports).
 - [ ] **Privacy policy, kept true**: the AI section says requests go through
       OpenRouter only to providers that neither train on nor retain them (keep
       those account settings on), and the log retention says 14 days for the
