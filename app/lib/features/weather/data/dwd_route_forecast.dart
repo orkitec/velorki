@@ -243,16 +243,25 @@ class HttpDwdForecastClient implements DwdForecastClient {
     await _acquire();
     requests.add(url);
     try {
-      final response = await dio
-          .get<String>(
-            url,
-            options: Options(
-              responseType: ResponseType.plain,
-              sendTimeout: timeout,
-              receiveTimeout: timeout,
-            ),
-          )
-          .timeout(timeout);
+      // Cancelled, not abandoned, when it runs over: a request left running
+      // past a bare `Future.timeout` could still fail its TLS handshake
+      // later, with nobody left to hear it.
+      final cancel = CancelToken();
+      final deadline = Timer(timeout, () => cancel.cancel('timeout'));
+      final Response<String> response;
+      try {
+        response = await dio.get<String>(
+          url,
+          cancelToken: cancel,
+          options: Options(
+            responseType: ResponseType.plain,
+            sendTimeout: timeout,
+            receiveTimeout: timeout,
+          ),
+        );
+      } finally {
+        deadline.cancel();
+      }
       final status = response.statusCode ?? 0;
       final type = (response.headers.value(Headers.contentTypeHeader) ?? '')
           .toLowerCase();
@@ -296,7 +305,7 @@ Future<WcsGrid?> _parseInBackground(String text, int bands) =>
 /// The one [DwdForecastClient].
 @Riverpod(keepAlive: true)
 DwdForecastClient dwdForecastClient(Ref ref) {
-  final dio = velorkiDio();
+  final dio = velorkiDio(BaseOptions(connectTimeout: dwdRouteForecastTimeout));
   ref.onDispose(dio.close);
   return HttpDwdForecastClient(dio: dio, now: DateTime.now);
 }

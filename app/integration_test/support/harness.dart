@@ -21,6 +21,9 @@ import 'package:velorki/features/map/presentation/map_view.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
+
+import 'fakes.dart';
 
 /// How long a step of the pump loop is. Short enough that a tap is picked up
 /// quickly, long enough that a few hundred of them cover a minute.
@@ -46,6 +49,8 @@ Future<ProviderContainer> pumpApp(
       // The emulator says en-US, which would open the app in miles; these
       // flows are written in metric.
       localeCountryProvider.overrideWithValue(null),
+      // No DWD on the emulator: see OfflineDwdClient.
+      dwdForecastClientProvider.overrideWithValue(const OfflineDwdClient()),
       if (realMap)
         mapViewBuilderProvider.overrideWithValue(
           (onReady) => MapView(onControllerReady: onReady),
