@@ -7,7 +7,7 @@ draft: true
 > **Opmerking over de vertaling.** Dit is een vertaling van de Engelse versie.
 > Bij verschillen geldt de Engelse versie.
 
-Ingangsdatum: 30 september 2026.
+Ingangsdatum: 13 oktober 2026.
 
 Velorki is een app voor het plannen van fietsroutes en het opnemen van ritten,
 gemaakt door Orkitec. Deze pagina legt uit wat er met je gegevens gebeurt.
@@ -92,6 +92,36 @@ De kaart wordt getekend uit tegels die worden opgehaald bij OpenFreeMap, en bij
 CyclOSM als je de fietslaag aanzet. Het ophalen van een tegel vertelt de
 tegelaanbieder naar welk deel van de kaart je kijkt, en daarbij komt je
 IP-adres kijken, zoals bij elk webverzoek. Kaartgegevens © OpenStreetMap-bijdragers.
+
+### Weer
+
+**De weerkaart en de gratis weersverwachting voor de route.** Wanneer je de
+regen, de wolken of de wind op de kaart aanzet, of zonder Velorki Plus een route
+naar de wind of de regen inkleurt, haalt de app beelden en verwachtingsgegevens
+rechtstreeks op bij openbare weerdiensten: de Deutscher Wetterdienst
+(Duitsland), de Amerikaanse National Oceanic and Atmospheric Administration en
+Iowa State University (VS), NASA, EUMETSAT, het KNMI (Nederland) en het Finse
+Meteorologisch Instituut. Elk verzoek noemt een deel van de kaart, of een kader
+rond je route, en een tijdstip, en daarbij komt je IP-adres kijken, zoals bij
+elk webverzoek. Je route zelf, je ritten en je identiteit worden niet verstuurd.
+
+**Gedetailleerder weer langs de route (Velorki Plus).** De app stuurt onze relay
+de punten langs de route, afgerond op een raster van ongeveer 2,5 km, elk met de
+hoogte afgerond op 50 m, en de uren waarin je daar fietst — niet de route, de
+naam ervan of je ritten. De relay controleert of je abonnement actief is en
+vraagt de Amerikaanse National Weather Service, Bright Sky (voor de
+verwachtingen van de Deutscher Wetterdienst) en MET Norway naar die
+rasterpunten. Zij zien onze server, niet je telefoon. Elk antwoord wordt per
+rasterpunt maximaal twee uur bewaard en gedeeld met iedereen die naar hetzelfde
+punt vraagt.
+
+**Regenradar voor heel Europa (Velorki Plus).** De app vraagt onze relay om het
+deel van de kaart waar je naar kijkt en een tijdstip. De relay haalt de radar
+één keer voor iedereen op uit het open archief van EUMETNET OPERA en, voor
+Italië, bij het Dipartimento della Protezione Civile, bewaart die maximaal
+tweeënhalf uur en stuurt een beeld van dat deel van de kaart terug. De
+aanbieders van de radar zien onze server, niet je telefoon, en de relay houdt
+niet bij naar welk deel van de kaart je hebt gevraagd.
 
 ### Strava en RideWithGPS (Velorki Plus)
 
@@ -289,6 +319,7 @@ lid 1 AVG:
 | De website en de deelpagina's leveren, de servers draaiende houden, fouten opsporen, snelheidsbeperkingen, verdediging tegen aanvallen | (f) gerechtvaardigd belang bij het draaien van een dienst die werkt en niet wordt misbruikt |
 | Online routeplanning en online zoeken, wanneer je daarom vraagt | (b) uitvoering van de dienst waar je om hebt gevraagd, en (f) voor de coördinaten die strikt nodig zijn om te antwoorden |
 | Velorki Plus: bij RevenueCat controleren of een abonnement actief is | (b) uitvoering van de overeenkomst |
+| Velorki Plus: het gedetailleerdere weer langs de route en de regenradar | (b) uitvoering van de overeenkomst |
 | Strava en RideWithGPS: een account koppelen en elke overdracht die je start | (b) uitvoering van de overeenkomst, plus (a) toestemming, gegeven door het account te koppelen |
 | Deellinks die je maakt | (b) uitvoering van de overeenkomst |
 | De AI-assistent | (a) toestemming, apart gevraagd in de app en in te trekken in de instellingen |
@@ -337,6 +368,11 @@ verantwoordelijk voor de eigen verwerking**
   gevraagd.
 - **OpenStreetMap** (`api.openstreetmap.org`) — de details van een plaats,
   wanneer je op "Details" op de kaart ervan tikt.
+- **Openbare weerdiensten** — de Deutscher Wetterdienst, NOAA, Iowa State
+  University, NASA, EUMETSAT, het KNMI en het Finse Meteorologisch Instituut —
+  het deel van de kaart of het kader rond je route waar je om vroeg, een
+  tijdstip en je IP-adres, alleen zolang een weerlaag of de gratis
+  weersverwachting voor de route aanstaat.
 - **Apple Inc.** en **Google Ireland Ltd** — de verkoop van Velorki Plus. Zij
   zijn de verkopers; wij zien je betaalgegevens nooit.
 - **Strava, Inc.** en **Ride with GPS** — alleen nadat je het account koppelt en

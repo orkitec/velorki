@@ -7,7 +7,7 @@ draft: true
 > **Nota sulla traduzione.** Questa è una traduzione della versione inglese.
 > In caso di discrepanze prevale la versione inglese.
 
-In vigore dal: 30 settembre 2026.
+In vigore dal: 13 ottobre 2026.
 
 Velorki è un'app per pianificare percorsi in bici e registrare giri, realizzata
 da Orkitec. Questa pagina spiega cosa succede ai tuoi dati.
@@ -92,6 +92,37 @@ attivi il livello ciclabile, da CyclOSM. Recuperare un riquadro comunica al
 fornitore dei riquadri quale parte della mappa stai guardando e comporta il tuo
 indirizzo IP, come ogni richiesta web. Dati della mappa © collaboratori di
 OpenStreetMap.
+
+### Meteo
+
+**La mappa meteo e la previsione gratuita del percorso.** Quando attivi la
+pioggia, le nuvole o il vento sulla mappa, o colori un percorso in base al vento
+o alla pioggia senza Velorki Plus, l'app recupera immagini e dati di previsione
+direttamente da servizi meteorologici pubblici: il Deutscher Wetterdienst
+(Germania), la National Oceanic and Atmospheric Administration statunitense e la
+Iowa State University (USA), la NASA, EUMETSAT, il KNMI (Paesi Bassi) e
+l'Istituto meteorologico finlandese. Ogni richiesta indica una parte della
+mappa, o un rettangolo attorno al tuo percorso, e un orario, e comporta il tuo
+indirizzo IP, come ogni richiesta web. Il percorso in sé, i tuoi giri e la tua
+identità non vengono inviati.
+
+**Meteo più dettagliato lungo il percorso (Velorki Plus).** L'app invia al
+nostro relay i punti lungo il percorso arrotondati a una griglia di circa 2,5
+km, ciascuno con la sua altitudine arrotondata a 50 m, e le ore in cui ci
+passerai — non il percorso, il suo nome né i tuoi giri. Il relay verifica che il
+tuo abbonamento sia attivo e chiede le previsioni per quei punti della griglia
+al National Weather Service statunitense, a Bright Sky (per le previsioni del
+Deutscher Wetterdienst) e a MET Norway. Questi vedono il nostro server, non il
+tuo telefono. Ogni risposta viene conservata fino a due ore per punto della
+griglia e condivisa con chiunque chieda lo stesso punto.
+
+**Radar della pioggia in tutta Europa (Velorki Plus).** L'app chiede al nostro
+relay la parte della mappa che stai guardando e un orario. Il relay recupera il
+radar una sola volta per tutti dall'archivio aperto di EUMETNET OPERA e, per
+l'Italia, dal Dipartimento della Protezione Civile, lo conserva fino a due ore e
+mezza e restituisce un'immagine di quella parte della mappa. I fornitori del
+radar vedono il nostro server, non il tuo telefono, e il relay non tiene traccia
+di quale parte della mappa hai chiesto.
 
 ### Strava e RideWithGPS (Velorki Plus)
 
@@ -291,6 +322,7 @@ par. 1, GDPR sono:
 | Erogazione del sito web e delle pagine condivise, mantenimento dei server, individuazione dei guasti, limiti di frequenza, difesa dagli attacchi | lett. f) legittimo interesse a gestire un servizio che funziona e non viene abusato |
 | Calcolo del percorso e ricerca online, quando li richiedi | lett. b) esecuzione del servizio che hai richiesto, e lett. f) per le coordinate strettamente necessarie a rispondere |
 | Velorki Plus: verifica presso RevenueCat che un abbonamento sia attivo | lett. b) esecuzione del contratto |
+| Velorki Plus: il meteo più dettagliato lungo il percorso e il radar della pioggia | lett. b) esecuzione del contratto |
 | Strava e RideWithGPS: collegamento di un account e ogni trasferimento che avvii | lett. b) esecuzione del contratto, più lett. a) consenso, prestato collegando l'account |
 | Link di condivisione che crei | lett. b) esecuzione del contratto |
 | L'assistente IA | lett. a) consenso, richiesto separatamente nell'app e revocabile nelle impostazioni |
@@ -338,6 +370,11 @@ responsabile del proprio trattamento**
   `photon.komoot.io`, e solo per una ricerca online che hai richiesto.
 - **OpenStreetMap** (`api.openstreetmap.org`) — i dettagli di un luogo, quando
   tocchi "Dettagli" sulla sua scheda.
+- **Servizi meteorologici pubblici** — il Deutscher Wetterdienst, la NOAA, la
+  Iowa State University, la NASA, EUMETSAT, il KNMI e l'Istituto meteorologico
+  finlandese — la parte della mappa o il rettangolo attorno al tuo percorso che
+  hai richiesto, un orario e il tuo indirizzo IP, solo mentre un livello meteo o
+  la previsione gratuita del percorso è attivo.
 - **Apple Inc.** e **Google Ireland Ltd** — la vendita di Velorki Plus. Sono loro
   i venditori; non vediamo mai i tuoi dati di pagamento.
 - **Strava, Inc.** e **Ride with GPS** — solo dopo che hai collegato l'account e
