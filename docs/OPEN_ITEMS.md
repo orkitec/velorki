@@ -8,13 +8,6 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
 
 ## Servers and accounts (Steffen)
 
-- [ ] **Website settings**: `NEXT_PUBLIC_STORE_URL_ANDROID` once Play is
-      live, in `web/orkify.yml`'s `buildEnv` beside the iOS one (read at build
-      time; the dashboard's environment only reaches the processes); and in
-      the Orkify dashboard `ANDROID_CERT_SHA256` — the Play app signing key's
-      SHA-256 from Play Console → App integrity, then the upload key's — so
-      `/.well-known/assetlinks.json` stops answering 404 and Android's App
-      Links verify.
 - [ ] **Measure the battery saver**: everything [BATTERY.md](BATTERY.md)
       describes is in the app; the two comparison rides that would prove it are
       not. That file's "How to measure" is the procedure; write both numbers
