@@ -251,15 +251,18 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   static const double _maxRestingSheetSize = 0.7;
 
   /// Measures where the time control under Save ends in the sheet, and
-  /// grows the resting sheet to show it where it does not.
+  /// grows the resting sheet to show it where it does not: a sheet at rest
+  /// rises to the new resting size there and then, once, so nothing later
+  /// (the AI's card, a tab change) moves it there by the way. A sheet the
+  /// rider has left elsewhere stays.
   void _measureRestingContent() {
-    final context = _restingEnd;
-    if (context == null || !context.mounted) return;
-    final box = context.findRenderObject();
+    final end = _restingEnd;
+    if (end == null || !end.mounted) return;
+    final box = end.findRenderObject();
     if (box is! RenderBox || !box.hasSize) return;
     // No control (no route's weather): nothing more to show.
     if (box.size.height <= 0) return;
-    final scrollable = Scrollable.maybeOf(context);
+    final scrollable = Scrollable.maybeOf(end);
     final viewport = scrollable?.context.findRenderObject();
     if (scrollable == null || viewport is! RenderBox) return;
     // Its bottom in the list's content, wherever the list is scrolled.
@@ -268,7 +271,26 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         scrollable.position.pixels;
     final dp = sheetHandleDp + bottom + _restingAirDp;
     if (dp <= _restingContentDp + 0.5) return;
+    final before = _restingSheetSize;
     setState(() => _restingContentDp = dp);
+    // After the build that gives the sheet its new resting size.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_sheet.isAttached) return;
+      final target = _restingSheetSize;
+      if ((target - before).abs() < 0.001) return;
+      if ((_sheet.size - before).abs() >= 0.005) return;
+      if (MediaQuery.disableAnimationsOf(context)) {
+        _sheet.jumpTo(target);
+        return;
+      }
+      unawaited(
+        _sheet.animateTo(
+          target,
+          duration: tabSheetSettleDuration,
+          curve: tabChromeSlideCurve,
+        ),
+      );
+    });
   }
 
   /// How far the sheet opens.
@@ -1464,8 +1486,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 child: AdaptiveDockingSheet(
                   controller: _sheet,
                   // Enough for the headline, the toolbar and Save above the
-                  // floating navigation bar on a 20:9 phone.
-                  initialExtent: restingSheetSize,
+                  // floating navigation bar on a 20:9 phone. The shared
+                  // resting size, not the one grown for the time control:
+                  // an untouched sheet given a new initial size jumps to it
+                  // at its next build, whatever that build is for. The
+                  // growth moves the sheet itself ([_measureRestingContent]).
+                  initialExtent: geometry.resting,
                   collapsedExtent: collapsedSheetSize,
                   maxExtent: _maxSheetSize,
                   // One resting height, not one per state: with two in the list

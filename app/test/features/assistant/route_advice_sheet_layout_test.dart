@@ -263,6 +263,121 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  /// The Plan tab on an iPhone SE, 375 by 667 points, its safe areas
+  /// included, with no route yet.
+  Future<void> seApp(WidgetTester tester) async {
+    const size = Size(375, 667);
+    await tester.binding.setSurfaceSize(size);
+    tester.view.devicePixelRatio = 2;
+    tester.view.physicalSize = size * 2;
+    tester.view.viewPadding = const FakeViewPadding(top: 20 * 2);
+    tester.view.padding = tester.view.viewPadding;
+    addTearDown(() {
+      tester.view
+        ..resetPhysicalSize()
+        ..resetDevicePixelRatio()
+        ..resetViewPadding()
+        ..resetPadding();
+    });
+    await pumpRecordingApp(
+      tester,
+      initialLocation: plannerRoute,
+      surfaceSize: size,
+      expectTextFits: false,
+      extraOverrides: [
+        relayClientProvider.overrideWithValue(
+          FakeRelayClient(
+            planEvents: const <PlanEvent>[
+              RouteAdviceEvent(_advice),
+              DoneEvent(),
+            ],
+          ),
+        ),
+        routeDigestServiceProvider.overrideWithValue(
+          FakeRouteDigestService(digest: _digest),
+        ),
+      ],
+    );
+    await tester.pumpAndSettle();
+    final container = _container(tester);
+    container.read(plusEntitledProvider.notifier).value = true;
+    await container
+        .read(aiConsentControllerProvider.notifier)
+        .set(AiConsent.textOnly);
+    await tester.pumpAndSettle();
+  }
+
+  double restingSize(WidgetTester tester) => tester
+      .widget<DraggableScrollableSheet>(
+        find.byType(DraggableScrollableSheet).first,
+      )
+      .snapSizes!
+      .single;
+
+  Rect planCard(WidgetTester tester) =>
+      tester.getRect(find.byType(DockingSheetShell).first);
+
+  testWidgets('on a short screen a route takes the planner\'s card up to '
+      'its grown resting height there and then, gliding, and the AI\'s card '
+      'coming and going leaves it there', (tester) async {
+    await seApp(tester);
+    final before = restingSize(tester);
+    final start = planCard(tester).top;
+    expect(start, closeTo(667 * (1 - before), 0.5));
+
+    _container(tester)
+        .read(plannerControllerProvider.notifier)
+        .loadSavedRoute(_route());
+    // Frame by frame: the card glides up, it does not jump.
+    final tops = <double>[];
+    for (var i = 0; i < 60; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      tops.add(planCard(tester).top);
+    }
+    await tester.pumpAndSettle();
+    final grown = restingSize(tester);
+    // The SE's resting sheet grows for the time control under Save.
+    expect(grown, greaterThan(before + 0.01));
+    final atRest = planCard(tester);
+    expect(atRest.top, closeTo(667 * (1 - grown), 0.5));
+    // There within the route's own frames, not at some later event.
+    expect(tops.last, closeTo(atRest.top, 0.5));
+    expect(
+      tops.where((top) => top < start - 1 && top > atRest.top + 1),
+      isNotEmpty,
+      reason: 'on its way between $start and ${atRest.top}: $tops',
+    );
+
+    await _open(tester);
+    expect(planCard(tester), atRest);
+    await _dismiss(tester);
+    expect(planCard(tester), atRest);
+  });
+
+  testWidgets('on a short screen a planner\'s card pulled open stays open '
+      'when a route grows its resting height', (tester) async {
+    await seApp(tester);
+    await tester.drag(
+      find.descendant(
+        of: find.byType(DockingSheetShell).first,
+        matching: find.byType(SheetHandle),
+      ),
+      const Offset(0, -600),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+    final open = planCard(tester);
+    expect(open.top, closeTo(667 * (1 - sheetMaxExtent), 0.5));
+    final before = restingSize(tester);
+
+    _container(tester)
+        .read(plannerControllerProvider.notifier)
+        .loadSavedRoute(_route());
+    await tester.pumpAndSettle();
+    expect(restingSize(tester), greaterThan(before + 0.01));
+    expect(planCard(tester), open);
+  });
+
   for (final side in RailSide.values) {
     testWidgets('sideways, rail on the ${side.name}: the sheet comes out from '
         'the rail\'s side as far as the planner\'s card rests, and its '

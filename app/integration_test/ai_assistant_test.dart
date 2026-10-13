@@ -148,6 +148,9 @@ Future<void> _planRoute(WidgetTester tester, ProviderContainer c) async {
     ..addWaypoint(region.end);
   await pumpFor(tester, const Duration(milliseconds: 400));
   await _waitRouted(tester, c, 'the route');
+  // The planner's card glides to its resting height for the route, which
+  // on a short screen grows to keep the time control in view.
+  await pumpFor(tester, const Duration(milliseconds: 600));
 }
 
 Future<void> _openAssistant(WidgetTester tester) async {
