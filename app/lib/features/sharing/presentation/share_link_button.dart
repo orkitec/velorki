@@ -122,7 +122,7 @@ class _ShareLinkButtonState extends ConsumerState<ShareLinkButton> {
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.link),
+          : Icon(Icons.adaptive.share),
       label: Text(l10n.shareLinkAction),
     );
   }

@@ -603,7 +603,7 @@
   "describeSaved": "De beschrijving is opgeslagen.",
   "describeFailed": "De beschrijving kon niet worden geschreven: {message}",
   "describeAgain": "Opnieuw schrijven",
-  "shareLinkAction": "Link delen",
+  "shareLinkAction": "Delen",
   "shareLinkTitle": "Link delen",
   "shareLinkCreating": "Link maken…",
   "shareLinkBody": "Iedereen met deze link kan de route op een kaart zien en de GPX downloaden. Bekijken kan zonder account.",

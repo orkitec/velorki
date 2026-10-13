@@ -3122,9 +3122,9 @@
   "@describeAgain": {
     "description": "Button that runs the description again"
   },
-  "shareLinkAction": "Share link",
+  "shareLinkAction": "Share",
   "@shareLinkAction": {
-    "description": "Button that creates a public link for a route or ride"
+    "description": "Short button label (one word where possible, it sits in a row of export buttons) that creates a public link for a route or ride"
   },
   "shareLinkTitle": "Share link",
   "@shareLinkTitle": {

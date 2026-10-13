@@ -603,7 +603,7 @@
   "describeSaved": "La description a été enregistrée.",
   "describeFailed": "La description n’a pas pu être rédigée : {message}",
   "describeAgain": "Réécrire",
-  "shareLinkAction": "Partager un lien",
+  "shareLinkAction": "Partager",
   "shareLinkTitle": "Partager un lien",
   "shareLinkCreating": "Création du lien…",
   "shareLinkBody": "Toute personne disposant de ce lien peut voir l’itinéraire sur une carte et télécharger le GPX. Aucun compte n’est nécessaire pour le consulter.",

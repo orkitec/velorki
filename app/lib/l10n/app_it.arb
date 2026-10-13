@@ -603,7 +603,7 @@
   "describeSaved": "Descrizione salvata.",
   "describeFailed": "Impossibile scrivere la descrizione: {message}",
   "describeAgain": "Riscrivi",
-  "shareLinkAction": "Condividi link",
+  "shareLinkAction": "Condividi",
   "shareLinkTitle": "Condividi link",
   "shareLinkCreating": "Creazione del link…",
   "shareLinkBody": "Chiunque abbia questo link può vedere il percorso su una mappa e scaricare il GPX. Per vederlo non serve un account.",
