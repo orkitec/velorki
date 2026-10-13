@@ -1,11 +1,8 @@
 ---
 title: Condizioni d'uso
 description: Le condizioni per l'uso dell'app e del sito web Velorki, dell'abbonamento Velorki Plus, dei link di condivisione e dell'assistente.
-draft: true
+draft: false
 ---
-
-> **Nota sulla traduzione.** Questa è una traduzione della versione inglese.
-> In caso di discrepanze prevale la versione inglese.
 
 In vigore dal: 27 settembre 2026.
 
@@ -72,8 +69,7 @@ sui dati esportati.
 
 "Velorki", il logo Velorki e l'icona dell'app Velorki sono marchi di Orkitec e
 **non** sono coperti dalle licenze open source. Se compili e pubblichi una tua
-versione del codice, devi cambiarne il marchio e puntarla verso i tuoi server.
-La
+versione del codice, devi cambiarne il marchio e puntarla verso i tuoi server. La
 [politica sui marchi](https://github.com/orkitec/velorki/blob/main/TRADEMARK.md)
 è vincolante.
 
@@ -111,14 +107,16 @@ diventa un abbonamento a pagamento.
 La disdetta avviene tramite lo store, non tramite noi: su iOS nelle impostazioni
 degli abbonamenti del tuo Account Apple, su Android in Google Play sotto
 Abbonamenti. Il pulsante **Gestisci** dell'app in **Opzioni → Abbonamento** apre
-quella pagina per te. La disdetta ferma il prossimo rinnovo; Plus resta attivo
+quella pagina per te.
+La disdetta ferma il prossimo rinnovo; Plus resta attivo
 fino alla fine del periodo che hai già pagato.
 
 ### 4.3 Rimborsi
 
 **I rimborsi sono gestiti dallo store**, secondo la politica di rimborso di Apple
 o di Google. Non possiamo emettere un rimborso per un acquisto di cui non abbiamo
-incassato il pagamento. I tuoi diritti di consumatore previsti dalla legge non ne
+incassato il pagamento.
+I tuoi diritti di consumatore previsti dalla legge non ne
 sono pregiudicati.
 
 ### 4.4 Ripristinare un acquisto
@@ -142,8 +140,7 @@ offline, e i tuoi percorsi e giri restano sul tuo telefono ed esportabili.
 
 Acquisti Velorki Plus da Apple o Google, non da noi: il venditore è lo store, e
 un diritto di recesso previsto dalla legge per un abbonamento digitale si
-esercita lì, secondo le condizioni dello store e nel termine da esso indicato.
-Gli acquisti Apple sono gestiti da Apple Distribution International Ltd in
+esercita lì, secondo le condizioni dello store e nel termine da esso indicato. Gli acquisti Apple sono gestiti da Apple Distribution International Ltd in
 Irlanda, quelli Google da Google Ireland Ltd, ed entrambe danno ai consumatori
 nell'UE un modo per richiedere un rimborso direttamente allo store. Noi non
 possiamo concederlo né rifiutarlo, ma scrivi a ride@velorki.com se uno store
@@ -175,8 +172,7 @@ Possiamo bloccare una richiesta, un dispositivo o un indirizzo IP che viola
 queste regole, e possiamo rimuovere contenuti condivisi, senza preavviso dove la
 violazione è evidente.
 
-Velorki non è rivolto ai minori, e si applicano i requisiti di età dello store.
-Se sei minorenne, usa Velorki solo con il consenso di un genitore o di chi
+Velorki non è rivolto ai minori, e si applicano i requisiti di età dello store. Se sei minorenne, usa Velorki solo con il consenso di un genitore o di chi
 esercita la responsabilità genitoriale.
 
 ## 6. I tuoi contenuti e i link di condivisione
@@ -193,11 +189,13 @@ contenuto allo scopo di servire il link, e nient'altro.
 
 Un link di condivisione è un **capability URL**: non porta alcuna password, e
 chiunque abbia il link può vedere il contenuto, compreso dove la traccia inizia e
-finisce. Tratta un link come pubblico. Non condividere un giro che parte dal tuo
+finisce.
+Tratta un link come pubblico. Non condividere un giro che parte dal tuo
 indirizzo di casa a meno che non ti vada bene che sia visibile.
 
 Un elemento condiviso viene eliminato automaticamente **un anno** dopo la sua
-creazione. Attualmente non c'è modo di ritirare un link prima di allora
+creazione.
+Attualmente non c'è modo di ritirare un link prima di allora
 dall'interno dell'app, quindi tratta un link che hai distribuito come pubblico
 per quell'anno; scrivici se uno deve essere rimosso prima.
 
@@ -235,18 +233,18 @@ Velorki usa servizi gestiti da altri. Usarli significa che a quella parte del
 traffico si applicano le loro condizioni e le loro informative sulla privacy, e
 noi non siamo responsabili di come si comportano né della loro disponibilità:
 
-| Servizio | Cosa fa |
-|---|---|
-| [OpenStreetMap](https://www.openstreetmap.org/copyright) | i dati della mappa su cui tutto è costruito (ODbL) |
-| [OpenFreeMap](https://openfreemap.org) | i riquadri vettoriali da cui viene disegnata la mappa |
-| [CyclOSM](https://www.cyclosm.org) | il livello ciclabile opzionale |
-| [BRouter](https://brouter.de) | il motore di routing e i dati di routing |
-| [Photon](https://photon.komoot.io) | ricerca di luoghi online |
-| [Strava](https://www.strava.com/legal/terms) | caricamento dei giri e importazione dei percorsi, se lo colleghi |
-| [Ride with GPS](https://ridewithgps.com/terms) | percorsi e giri, se lo colleghi |
-| il fornitore di IA | il modello dietro l'assistente (nominato nell'informativa sulla privacy) |
-| Apple, Google | gli store, il pagamento e la gestione degli abbonamenti |
-| RevenueCat | la verifica che un abbonamento sia attivo |
+| Servizio                                                 | Cosa fa                                                                                     |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| [OpenStreetMap](https://www.openstreetmap.org/copyright) | i dati della mappa su cui tutto è costruito (ODbL)                       |
+| [OpenFreeMap](https://openfreemap.org)                   | i riquadri vettoriali da cui viene disegnata la mappa                                       |
+| [CyclOSM](https://www.cyclosm.org)                       | il livello ciclabile opzionale                                                              |
+| [BRouter](https://brouter.de)                            | il motore di routing e i dati di routing                                                    |
+| [Photon](https://photon.komoot.io)                       | ricerca di luoghi online                                                                    |
+| [Strava](https://www.strava.com/legal/terms)             | caricamento dei giri e importazione dei percorsi, se lo colleghi                            |
+| [Ride with GPS](https://ridewithgps.com/terms)           | percorsi e giri, se lo colleghi                                                             |
+| il fornitore di IA                                       | il modello dietro l'assistente (nominato nell'informativa sulla privacy) |
+| Apple, Google                                            | gli store, il pagamento e la gestione degli abbonamenti                                     |
+| RevenueCat                                               | la verifica che un abbonamento sia attivo                                                   |
 
 Collegare Strava o Ride with GPS significa anche rispettare le **loro**
 condizioni. Ciò che carichi lì è regolato dalle loro politiche, non dalle nostre.
@@ -282,7 +280,8 @@ prestato una garanzia.
 Per colpa lieve rispondiamo solo in caso di violazione di un obbligo il cui
 adempimento rende anzitutto possibile la corretta esecuzione di questo contratto
 e sul cui adempimento puoi regolarmente fare affidamento (un "obbligo
-cardinale"). In tal caso la responsabilità è limitata al danno tipico per questo
+cardinale").
+In tal caso la responsabilità è limitata al danno tipico per questo
 genere di contratto e prevedibile al momento della sua conclusione.
 
 Ogni ulteriore responsabilità per colpa lieve è esclusa. Ciò vale allo stesso

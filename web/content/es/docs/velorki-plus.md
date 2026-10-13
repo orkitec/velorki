@@ -28,12 +28,12 @@ Los datos de rutas y el índice de búsqueda se replican para ti sin coste.
 
 Cuatro funciones, tal como aparecen en la página de la suscripción:
 
-| Función | Qué es |
-|---|---|
-| **Conexión con Strava** | «Sube tus salidas grabadas e importa tus rutas de Strava.» |
-| **Conexión con Ride with GPS** | «Envía rutas y salidas en ambos sentidos.» |
-| **Asistente de IA** | «Describe la salida que quieres; Velorki la convierte en una ruta y la planifica en tu teléfono.» |
-| **Compartir enlaces** | «Convierte una ruta o una salida en un enlace que cualquiera puede abrir en un navegador.» |
+| Función                        | Qué es                                                                                                            |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| **Conexión con Strava**        | «Sube tus salidas grabadas e importa tus rutas de Strava.»                                        |
+| **Conexión con Ride with GPS** | «Envía rutas y salidas en ambos sentidos.»                                                        |
+| **Asistente de IA**            | «Describe la salida que quieres; Velorki la convierte en una ruta y la planifica en tu teléfono.» |
+| **Compartir enlaces**          | «Convierte una ruta o una salida en un enlace que cualquiera puede abrir en un navegador.»        |
 
 Cada una de ellas necesita o bien un servidor que pagamos nosotros, o bien una cuenta en otro servicio a la que solo llega una aplicación registrada.
 

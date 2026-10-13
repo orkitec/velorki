@@ -1,11 +1,8 @@
 ---
 title: Gebruiksvoorwaarden
 description: De voorwaarden voor het gebruik van de Velorki-app en de website, het abonnement Velorki Plus, deellinks en de assistent.
-draft: true
+draft: false
 ---
-
-> **Opmerking over de vertaling.** Dit is een vertaling van de Engelse versie.
-> Bij verschillen geldt de Engelse versie.
 
 Ingangsdatum: 27 september 2026.
 
@@ -37,8 +34,7 @@ Velorki plant fietsroutes, maakt rondritten, zoekt plaatsen, leidt je met
 afslaginstructies en neemt ritten op. Het is gebouwd op gegevens van
 OpenStreetMap.
 
-Velorki is een hulpmiddel bij het plannen, geen veiligheidssysteem.
-Kaartgegevens, routeringsgegevens, hoogtegegevens en plaatsgegevens komen uit
+Velorki is een hulpmiddel bij het plannen, geen veiligheidssysteem. Kaartgegevens, routeringsgegevens, hoogtegegevens en plaatsgegevens komen uit
 open bronnen en kunnen verouderd, onvolledig of fout zijn. Een route kan over
 een afgesloten weg gaan, een privépad, een doorwaadplaats, een pad waar fietsen
 niet is toegestaan of niet veilig is, of een weg die is veranderd sinds de
@@ -57,8 +53,7 @@ telefoon, waarover wij geen controle hebben.
 ## 3. Licentie om de app te gebruiken
 
 Velorki is vrije software. De broncode van de app, de relay en de website is
-gepubliceerd onder de GNU Affero General Public License, uitsluitend versie 3.
-Het exemplaar dat je installeert uit de App Store of Google Play valt onder
+gepubliceerd onder de GNU Affero General Public License, uitsluitend versie 3. Het exemplaar dat je installeert uit de App Store of Google Play valt onder
 dezelfde opensourcelicentie, en niets in deze voorwaarden ontneemt je een recht
 dat de licentie je geeft.
 
@@ -112,14 +107,16 @@ opgezegd voordat die afloopt, wordt een betaald abonnement.
 Je zegt op via de store, niet via ons: op iOS in de abonnementsinstellingen van
 je Apple-account, op Android in Google Play onder Abonnementen. De knop
 **Beheren** in **Instellingen → Abonnement** in de app opent die pagina voor
-je. Opzeggen stopt de volgende verlenging; Plus blijft actief tot het einde van
+je.
+Opzeggen stopt de volgende verlenging; Plus blijft actief tot het einde van
 de periode die je al hebt betaald.
 
 ### 4.3 Terugbetalingen
 
 **Terugbetalingen worden door de store afgehandeld**, volgens het eigen
 terugbetalingsbeleid van Apple of Google. We kunnen geen terugbetaling doen
-voor een aankoop waarvoor wij de betaling niet hebben ontvangen. Je wettelijke
+voor een aankoop waarvoor wij de betaling niet hebben ontvangen.
+Je wettelijke
 rechten als consument worden hierdoor niet aangetast.
 
 ### 4.4 Een aankoop herstellen
@@ -197,11 +194,13 @@ leveren, en voor niets anders.
 
 Een deellink is een **capability-URL**: hij heeft geen wachtwoord, en iedereen
 die de link heeft kan de inhoud zien, inclusief waar de track begint en
-eindigt. Behandel een link als openbaar. Deel geen rit die bij je thuisadres
+eindigt.
+Behandel een link als openbaar. Deel geen rit die bij je thuisadres
 begint, tenzij je het goed vindt dat dat zichtbaar is.
 
 Een gedeeld item wordt automatisch verwijderd **één jaar** nadat het is
-gemaakt. Er is op dit moment geen manier om een link daarvoor vanuit de app in
+gemaakt.
+Er is op dit moment geen manier om een link daarvoor vanuit de app in
 te trekken, dus behandel een link die je weggeeft dat jaar lang als openbaar;
 schrijf ons als er een eerder offline moet.
 
@@ -240,18 +239,18 @@ betekent dat hun voorwaarden en hun privacybeleid gelden voor dat deel van het
 verkeer, en we zijn niet verantwoordelijk voor hoe ze zich gedragen of of ze
 beschikbaar blijven:
 
-| Dienst | Wat die doet |
-|---|---|
-| [OpenStreetMap](https://www.openstreetmap.org/copyright) | de kaartgegevens waarop alles is gebouwd (ODbL) |
-| [OpenFreeMap](https://openfreemap.org) | de vectortegels waaruit de kaart wordt getekend |
-| [CyclOSM](https://www.cyclosm.org) | de optionele fietslaag |
-| [BRouter](https://brouter.de) | de routeringsengine en de routeringsgegevens |
-| [Photon](https://photon.komoot.io) | online plaatsen zoeken |
-| [Strava](https://www.strava.com/legal/terms) | ritten uploaden en routes importeren, als je het koppelt |
-| [Ride with GPS](https://ridewithgps.com/terms) | routes en trips, als je het koppelt |
-| de AI-aanbieder | het model achter de assistent (genoemd in de privacyverklaring) |
-| Apple, Google | de stores, betaling en abonnementsbeheer |
-| RevenueCat | controleren of een abonnement actief is |
+| Dienst                                                   | Wat die doet                                                                       |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| [OpenStreetMap](https://www.openstreetmap.org/copyright) | de kaartgegevens waarop alles is gebouwd (ODbL)                 |
+| [OpenFreeMap](https://openfreemap.org)                   | de vectortegels waaruit de kaart wordt getekend                                    |
+| [CyclOSM](https://www.cyclosm.org)                       | de optionele fietslaag                                                             |
+| [BRouter](https://brouter.de)                            | de routeringsengine en de routeringsgegevens                                       |
+| [Photon](https://photon.komoot.io)                       | online plaatsen zoeken                                                             |
+| [Strava](https://www.strava.com/legal/terms)             | ritten uploaden en routes importeren, als je het koppelt                           |
+| [Ride with GPS](https://ridewithgps.com/terms)           | routes en trips, als je het koppelt                                                |
+| de AI-aanbieder                                          | het model achter de assistent (genoemd in de privacyverklaring) |
+| Apple, Google                                            | de stores, betaling en abonnementsbeheer                                           |
+| RevenueCat                                               | controleren of een abonnement actief is                                            |
 
 Strava of Ride with GPS koppelen betekent ook dat je je aan **hun**
 voorwaarden houdt. Wat je naar hen uploadt valt onder hun beleid, niet onder
@@ -288,7 +287,8 @@ waar we een garantie hebben gegeven.
 Bij lichte nalatigheid zijn we alleen aansprakelijk als een verplichting is
 geschonden waarvan de nakoming de juiste uitvoering van deze overeenkomst
 überhaupt mogelijk maakt en op de nakoming waarvan je regelmatig mag vertrouwen
-(een "wezenlijke verplichting"). In dat geval is de aansprakelijkheid beperkt
+(een "wezenlijke verplichting").
+In dat geval is de aansprakelijkheid beperkt
 tot de schade die voor dit soort overeenkomst typisch is en die bij het sluiten
 ervan voorzienbaar was.
 
