@@ -494,7 +494,10 @@ class RecordingMapController implements MapController {
       inner.removeCameraIdleListener(listener);
 
   @override
-  Future<void> setStops(List<MapPoi> stops) => inner.setStops(stops);
+  Future<void> setStops(
+    List<MapPoi> stops, {
+    List<String> groups = const <String>[],
+  }) => inner.setStops(stops, groups: groups);
 
   @override
   set onStopTapped(void Function(int index)? handler) =>

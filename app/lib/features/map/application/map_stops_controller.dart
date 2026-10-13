@@ -9,6 +9,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../navigation/application/route_geometry.dart';
 import '../../search/data/gazetteer_store.dart';
+import '../../search/domain/search_kinds.dart' show searchPoiKinds;
 import '../../search/domain/search_result.dart';
 import '../../search/presentation/search_field.dart' show poiKindIcon;
 import '../domain/map_controller.dart';
@@ -198,7 +199,24 @@ MapPoi stopMarker(SearchResult stop, {bool selected = false}) => MapPoi(
   kind: mapPoiKindOfStop(stop.detail),
   icon: poiKindIcon(stop.detail),
   selected: selected,
+  group: stop.detail,
 );
+
+/// The order the stops of [kinds] are drawn in on the map, each kind's
+/// bubbles a layer of their own: the order the app knows the kinds in
+/// ([searchPoiKinds]), any it does not know after them by name. The same
+/// kinds always give the same order, so a kind's bubbles keep their place.
+List<String> stopGroupOrder(Iterable<String> kinds) {
+  int rank(String kind) {
+    final i = searchPoiKinds.indexOf(kind);
+    return i < 0 ? searchPoiKinds.length : i;
+  }
+
+  return kinds.toList()..sort((a, b) {
+    final byRank = rank(a).compareTo(rank(b));
+    return byRank != 0 ? byRank : a.compareTo(b);
+  });
+}
 
 /// Where the stops come from right now.
 enum MapStopsMode {
@@ -288,6 +306,7 @@ class MapStopsController extends ChangeNotifier {
 
   List<SearchResult> _drawnStops = const <SearchResult>[];
   List<MapPoi> _drawn = const <MapPoi>[];
+  List<String> _drawnGroups = const <String>[];
   SearchResult? _selected;
 
   /// Where the stops come from right now.
@@ -594,6 +613,7 @@ class MapStopsController extends ChangeNotifier {
     _placed = const <StopAlongRoute<SearchResult>>[];
     _drawnStops = const <SearchResult>[];
     _drawn = const <MapPoi>[];
+    _drawnGroups = const <String>[];
   }
 
   /// The squares loaded hold what is no longer wanted: they are asked for
@@ -763,9 +783,11 @@ class MapStopsController extends ChangeNotifier {
     final markers = <MapPoi>[
       for (final stop in stops) stopMarker(stop, selected: stop == _selected),
     ];
-    if (!listEquals(markers, _drawn)) {
+    final groups = stopGroupOrder(_kinds);
+    if (!listEquals(markers, _drawn) || !listEquals(groups, _drawnGroups)) {
       _drawn = List<MapPoi>.unmodifiable(markers);
-      unawaited(map.setStops(_drawn));
+      _drawnGroups = List<String>.unmodifiable(groups);
+      unawaited(map.setStops(_drawn, groups: _drawnGroups));
     }
     _changed();
   }

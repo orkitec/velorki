@@ -73,7 +73,15 @@ abstract class MapController {
   /// cafes, toilets — drawn smaller than [setPois]' markers and under them
   /// and the waypoints; an empty list takes them away. A tap on one reports
   /// through [onStopTapped] with its index.
-  Future<void> setStops(List<MapPoi> stops);
+  ///
+  /// Zoomed out, the stops of each of [groups] are gathered into bubbles of
+  /// their own ([MapPoi.group]), drawn in that order, the first lowest;
+  /// a stop of a group not among them is gathered with the rest of its
+  /// group after them.
+  Future<void> setStops(
+    List<MapPoi> stops, {
+    List<String> groups = const <String>[],
+  });
 
   /// Small markers on the turns of a route, for a screen that reads the
   /// route rather than rides it; an empty list takes them away. A tap on one
@@ -364,11 +372,17 @@ class MapPoi {
     required this.kind,
     this.icon,
     this.selected = false,
+    this.group,
   });
 
   final LatLng position;
   final String name;
   final MapPoiKind kind;
+
+  /// What a stop is, as the gazetteer names it (`cafe`): the map gathers
+  /// the stops of each group into bubbles of their own. `null` for a point
+  /// that is not one of a group, which is gathered with the other such.
+  final String? group;
 
   /// The icon drawn on the marker, from the app's own icon table; `null`
   /// leaves the plain disc. [kind] still picks the colour.
@@ -387,10 +401,11 @@ class MapPoi {
           other.name == name &&
           other.kind == kind &&
           other.icon == icon &&
-          other.selected == selected;
+          other.selected == selected &&
+          other.group == group;
 
   @override
-  int get hashCode => Object.hash(position, name, kind, icon, selected);
+  int get hashCode => Object.hash(position, name, kind, icon, selected, group);
 }
 
 @immutable

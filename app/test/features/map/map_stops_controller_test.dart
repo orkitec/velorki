@@ -139,6 +139,12 @@ void main() {
           stops.stops.map((s) => s.name),
           containsAll(<String>['Tap', 'Café']),
         );
+        // Each kind its own group, in the order the app knows them in.
+        expect(map.stopGroups, <String>['drinking_water', 'cafe']);
+        expect(
+          map.stops.map((s) => s.group),
+          containsAll(<String>['drinking_water', 'cafe']),
+        );
         stops.dispose();
       });
     });

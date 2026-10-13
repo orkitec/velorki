@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:ui' show Offset, Rect;
+
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 
 import 'marker_glyph.dart';
@@ -220,6 +223,101 @@ class MarkerLayers {
     textIgnorePlacement: true,
     textAnchor: 'center',
   );
+
+  /// How much smaller the glyph on a group's bubble is than the chosen
+  /// point's: a little larger than a single stop's ([stopGlyphScale]), so a
+  /// bubble reads as more than one stop of its kind.
+  static const double groupGlyphScale = 0.75;
+
+  /// The disc of a group's bubble, the glyph of its kind on it.
+  static final double groupDiscRadiusPx = markerDiscRadiusFor(
+    markerGlyphOnDiscSizePx * groupGlyphScale,
+  );
+
+  /// The count on a group's bubble: its text size and the pill under it,
+  /// as wide as a count of one, two and three characters ("99+") needs.
+  static const double groupCountPx = 9;
+  static const double groupBadgeHeightPx = 12;
+  static const List<double> groupBadgeWidthsPx = <double>[12, 15, 20];
+
+  /// The counts at which a group's bubble takes its next wider pill.
+  static const List<int> groupBadgeSteps = <int>[10, 100];
+
+  /// Where the middle of the count's pill sits on a group's bubble: over
+  /// its upper right shoulder.
+  static Offset get groupBadgeCentre =>
+      Offset(groupDiscRadiusPx * 0.8, -groupDiscRadiusPx * 0.8);
+
+  /// The pill for a count of [characters] (1–3), relative to the middle of
+  /// the bubble's disc.
+  static Rect groupBadge(int characters) => Rect.fromCenter(
+    center: groupBadgeCentre,
+    width: groupBadgeWidthsPx[(characters - 1).clamp(0, 2)],
+    height: groupBadgeHeightPx,
+  );
+
+  /// How far, in logical pixels, a group's bubbles stand off the middle of
+  /// the stops they gather, each group in its own direction round a
+  /// circle: the bubbles of different groups gathered at much the same
+  /// place fan out instead of covering one another.
+  static const double groupFanRadiusPx = 16;
+
+  /// The offset of the bubbles of the group at [index] of [count]: none
+  /// for a lone group, else a step round the circle from straight up,
+  /// clockwise as the screen reads.
+  static Offset groupFanOffset(int index, int count) {
+    if (count < 2) return Offset.zero;
+    final angle = -math.pi / 2 + index * 2 * math.pi / count;
+    // Rounded to a tenth of a pixel: the same offset every time.
+    double tenth(double v) => (v * 10).roundToDouble() / 10;
+    return Offset(
+      tenth(math.cos(angle) * groupFanRadiusPx),
+      tenth(math.sin(angle) * groupFanRadiusPx),
+    );
+  }
+
+  /// What the picture of a bubble of [group] with a count of [characters]
+  /// is called in the style.
+  static String groupImageName(String group, int characters) =>
+      'velorki-stop-group-$group-$characters';
+
+  /// The picture of a bubble of [group], its pill as wide as its count.
+  static List<Object> groupImage(String group) => <Object>[
+    'step',
+    <Object>['get', 'point_count'],
+    groupImageName(group, 1),
+    groupBadgeSteps[0],
+    groupImageName(group, 2),
+    groupBadgeSteps[1],
+    groupImageName(group, 3),
+  ];
+
+  /// The bubble of a group of stops of one kind: the kind's disc and glyph,
+  /// a little larger than a single stop's, with the count on a pill over
+  /// its shoulder, stood off by [offset] ([groupFanOffset]).
+  ///
+  /// Forced, like the stops: every bubble shows wherever the others are,
+  /// so none goes missing behind another group's and nothing is placed
+  /// anew as the map pans.
+  ml.SymbolLayerProperties groupBubble(String group, Offset offset) {
+    final count = offset + groupBadgeCentre;
+    return ml.SymbolLayerProperties(
+      iconImage: groupImage(group),
+      iconAnchor: 'center',
+      iconOffset: <Object>[offset.dx, offset.dy],
+      iconAllowOverlap: true,
+      iconIgnorePlacement: true,
+      textField: clusterCount(),
+      textFont: waypointLabelFont,
+      textSize: groupCountPx,
+      textColor: palette.stopClusterLabel,
+      // Ems of the count's own size.
+      textOffset: <Object>[count.dx / groupCountPx, count.dy / groupCountPx],
+      textAllowOverlap: true,
+      textIgnorePlacement: true,
+      textAnchor: 'center',
+    );
+  }
 
   /// The disc itself. [color] is the colour of what the point is; the
   /// chosen point takes the chosen colour instead.

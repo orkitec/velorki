@@ -188,6 +188,9 @@ class FakeMapController implements MapController {
   /// Every [setStops] call, in order.
   final List<List<MapPoi>> stopCalls = <List<MapPoi>>[];
 
+  /// The groups of the last [setStops] call.
+  List<String> stopGroups = const <String>[];
+
   /// The turn markers of the last [setTurnMarkers] call.
   List<MapTurnMarker> turnMarkers = const <MapTurnMarker>[];
 
@@ -433,9 +436,13 @@ class FakeMapController implements MapController {
   }
 
   @override
-  Future<void> setStops(List<MapPoi> stops) async {
+  Future<void> setStops(
+    List<MapPoi> stops, {
+    List<String> groups = const <String>[],
+  }) async {
     final copy = List<MapPoi>.unmodifiable(stops);
     this.stops = copy;
+    stopGroups = List<String>.unmodifiable(groups);
     stopCalls.add(copy);
   }
 
