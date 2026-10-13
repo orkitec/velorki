@@ -10,7 +10,7 @@ import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/stops_ahead_line.dart';
-import 'package:velorki/features/map/presentation/stops_zoom_chip.dart';
+import 'package:velorki/features/map/presentation/stops_download_chip.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/offline/presentation/offline_screen.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
@@ -104,8 +104,8 @@ void main() {
     expect(h.map.onStopTapped, isNull);
   });
 
-  testWidgets('Plan: zoomed out too far, a chip says to zoom in, and a tap '
-      'zooms in to where the stops show', (tester) async {
+  testWidgets('Plan: zoomed out too far, nothing is drawn and nothing '
+      'said', (tester) async {
     final h = await pumpScreen(
       tester,
       const PlannerScreen(),
@@ -127,34 +127,15 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(PlannerScreen)),
     );
-    // Not while stops are off.
-    for (final listener in [...h.map.cameraIdleListeners]) {
-      listener();
-    }
-    await tester.pumpAndSettle();
-    expect(find.text(l10n.mapStopsZoomIn), findsNothing);
-
     await container.read(mapStopsPreferencesProvider.notifier).setShown(true);
     for (final listener in [...h.map.cameraIdleListeners]) {
       listener();
     }
     await tester.pump(stopsDebounce * 2);
     await tester.pumpAndSettle();
-    expect(find.text(l10n.mapStopsZoomIn), findsOneWidget);
-
-    await tester.tap(find.text(l10n.mapStopsZoomIn));
-    await tester.pump();
-    expect(h.map.zoom, stopsMinZoom);
-    // The middle of what is visible stays put: above the sheet, so the
-    // map's own middle moves up towards it.
-    expect(h.map.center!.lat, greaterThan(48.05));
-
-    for (final listener in [...h.map.cameraIdleListeners]) {
-      listener();
-    }
-    await tester.pump(stopsDebounce * 2);
-    await tester.pumpAndSettle();
-    expect(find.text(l10n.mapStopsZoomIn), findsNothing);
+    expect(h.map.stops, isEmpty);
+    expect(find.byType(StopsDownloadChip), findsNothing);
+    expect(find.byIcon(Icons.zoom_in_rounded), findsNothing);
   });
 
   testWidgets('Record: along a followed route the next stops ahead are '
@@ -257,8 +238,8 @@ void main() {
     expect(h.map.stops[0].selected, isFalse);
   });
 
-  testWidgets('Plan: over an area not downloaded a chip says so, ahead of '
-      'the zoom chip, opens the download, and goes once the area is '
+  testWidgets('Plan: over an area not downloaded a chip says so, also '
+      'zoomed out, opens the download, and goes once the area is '
       'covered', (tester) async {
     final harness = PlannerHarness();
     harness.stopsCoverage.covered = (_) => false;
@@ -300,7 +281,6 @@ void main() {
     await tester.pump(stopsDebounce * 2);
     await tester.pumpAndSettle();
     expect(find.text(l10n.mapStopsNotDownloaded), findsOneWidget);
-    expect(find.text(l10n.mapStopsZoomIn), findsNothing);
     expectNoClippedText(tester);
 
     await tester.tap(find.text(l10n.mapStopsDownload));
@@ -313,7 +293,8 @@ void main() {
     await tester.pump(stopsDebounce * 2);
     await tester.pumpAndSettle();
     expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
-    expect(find.text(l10n.mapStopsZoomIn), findsOneWidget);
+    // Zoomed out too far: nothing said in its place.
+    expect(find.byType(StopsDownloadChip), findsNothing);
   });
 
   testWidgets('Plan: the control column stays where it is when the area '
@@ -514,7 +495,6 @@ void main() {
     // No other chip about the same area takes its place.
     expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
     expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
-    expect(find.text(l10n.mapStopsZoomIn), findsNothing);
 
     // Panned within the same downloadable area: still closed.
     await lookAt(13.8, 46.2);

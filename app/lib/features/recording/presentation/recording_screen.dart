@@ -14,8 +14,8 @@ import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/application/area_download_hint.dart';
 import '../../map/application/map_stops_controller.dart';
+import '../../map/presentation/stops_download_chip.dart';
 import '../../map/presentation/weather_time_row.dart';
-import '../../map/presentation/stops_zoom_chip.dart';
 import '../../map/data/compass_heading.dart';
 import '../../map/data/map_preferences.dart';
 import '../../map/presentation/stops_ahead_line.dart';
@@ -2024,9 +2024,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                                 ListenableBuilder(
                                   listenable: _stops,
                                   // Where nothing is downloaded: offered the
-                                  // download. In the area on screen, zoomed out
-                                  // too far: told to zoom in. Both where the
-                                  // line would be.
+                                  // download, where the line would be.
                                   builder: (context, _) => _stops.needsDownload
                                       ? dismissedAreas.contains(
                                               _stops.missingArea,
@@ -2036,11 +2034,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                                                 onDownload: _openOfflineData,
                                                 onClose: _closeStopsHint,
                                               )
-                                      : _stops.needsZoom
-                                      ? StopsZoomChip(
-                                          onZoomIn: () =>
-                                              unawaited(_stops.zoomIn()),
-                                        )
                                       : StopsAheadLine(
                                           entries: _stops.nextPerKind(),
                                           onTap: _onStopAheadTapped,

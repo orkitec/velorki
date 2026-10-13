@@ -4690,10 +4690,6 @@
   "@mapLayersStops": {
     "description": "Switch in the layers sheet that shows places to stop at (taps, cafes, toilets) on the map"
   },
-  "mapStopsZoomIn": "Zoom in to see stops",
-  "@mapStopsZoomIn": {
-    "description": "Chip over the map while stops are switched on but the map is zoomed out too far to show them; tapping it zooms in"
-  },
   "mapStopsNotDownloaded": "No stops here — area not downloaded",
   "@mapStopsNotDownloaded": {
     "description": "Chip over the map while stops are switched on but the area on screen (or the route ahead) has no downloaded offline data, so no stops can be shown"

@@ -20,8 +20,8 @@ import '../../map/application/locate_on_open.dart';
 import '../../map/application/map_stops_controller.dart';
 import '../../map/application/route_cursor.dart';
 import '../../map/domain/visible_map.dart';
+import '../../map/presentation/stops_download_chip.dart';
 import '../../map/presentation/weather_time_row.dart';
-import '../../map/presentation/stops_zoom_chip.dart';
 import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
@@ -1323,10 +1323,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final dismissedAreas = ref.watch(areaHintDismissalsProvider);
     // What the chrome shows under its first rows, now and then.
     final below = <Widget>[
-      // The area is not downloaded, or stops are on and the map is too far
-      // out for them. The download first, since zooming in would show
-      // nothing either; said for the stops or the cycle map where those
-      // are on, for the area where neither is. Closed over an area, none of
+      // The area is not downloaded: said for the stops or the cycle map
+      // where those are on, for the area where neither is. Closed over an area, none of
       // them shows there again this session.
       ListenableBuilder(
         listenable: Listenable.merge(<Listenable>[_stops, _areaHint]),
@@ -1352,10 +1350,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   message: l10n.searchAreaNotDownloaded,
                   onClose: () => _closeAreaHint(_areaHint.missingArea),
                 )
-              // Not after the stops' own chip was closed: zooming in would
-              // show none either.
-              : _stops.needsZoom && stopsMissing == null
-              ? StopsZoomChip(onZoomIn: () => unawaited(_stops.zoomIn()))
               : null;
           return chip == null
               ? const SizedBox.shrink()

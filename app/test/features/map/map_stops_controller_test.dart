@@ -121,7 +121,7 @@ void main() {
         expect(store.asks, hasLength(squares(_view, 14).length));
         for (final ask in store.asks) {
           expect(ask.kinds, <String>['cafe', 'drinking_water']);
-          expect(ask.limit, stopsTileLimitAt(13));
+          expect(ask.limit, stopsTileSafetyLimit);
           expect(ask.ranked, isTrue);
         }
 
@@ -149,17 +149,91 @@ void main() {
       });
     });
 
-    test('a coarser grid zoomed out holds more stops a square', () {
-      expect(stopsTileLimitAt(stopsTileMaxZoom), stopsTileLimit);
-      expect(stopsTileLimitAt(stopsTileMaxZoom - 1), 2 * stopsTileLimit);
-      expect(stopsTileLimitAt(stopsTileMinZoom), 8 * stopsTileLimit);
+    test('a square draws every stop of the kinds shown, a numerous kind '
+        'beside a rare one', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = 14
+          ..visibleBounds = _view;
+        final stops = MapStopsController(find: store.find)
+          ..update(shown: true, kinds: const {'bicycle_parking', 'restaurant'})
+          ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        store.answerAll(<SearchResult>[
+          for (var i = 0; i < 1000; i++)
+            _stop(
+              'Rack $i',
+              LatLng(48.005 + (i % 40) * 0.0002, 11.005 + (i ~/ 40) * 0.0002),
+              kind: 'bicycle_parking',
+            ),
+          for (var i = 0; i < 20; i++)
+            _stop(
+              'Restaurant $i',
+              LatLng(48.01, 11.01 + i * 0.0002),
+              kind: 'restaurant',
+            ),
+        ]);
+        async.flushMicrotasks();
+
+        int drawn(String kind) =>
+            map.stops.where((s) => s.group == kind).length;
+        expect(drawn('bicycle_parking'), 1000);
+        expect(drawn('restaurant'), 20);
+        stops.dispose();
+      });
+    });
+
+    test('a pathological area draws no more than the bound, the squares '
+        'on screen first', () {
+      fakeAsync((async) {
+        final onScreen = tilesCovering(_view, stopsTileZoom(14));
+        final margin = tilesCovering(
+          grownBox(_view, stopsAreaMargin),
+          stopsTileZoom(14),
+        ).difference(onScreen).toList()..sort();
+        // A square of the margin that comes before the ones on screen.
+        final early = margin.first.box;
+        expect(margin.first.compareTo(onScreen.reduce(_first)), isNegative);
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = 14
+          ..visibleBounds = _view;
+        final stops = MapStopsController(find: store.find)
+          ..update(shown: true, kinds: const {'bicycle_parking', 'restaurant'})
+          ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        final dLat = (early.north - early.south) / 210;
+        final dLon = (early.east - early.west) / 110;
+        store.answerAll(<SearchResult>[
+          for (var i = 0; i < stopsDrawSafetyLimit + 100; i++)
+            _stop(
+              'Rack $i',
+              LatLng(
+                early.south + (1 + i % 200) * dLat,
+                early.west + (1 + i ~/ 200) * dLon,
+              ),
+              kind: 'bicycle_parking',
+            ),
+          for (var i = 0; i < 20; i++)
+            _stop(
+              'Restaurant $i',
+              LatLng(48.01, 11.01 + i * 0.0002),
+              kind: 'restaurant',
+            ),
+        ]);
+        async.flushMicrotasks();
+
+        expect(map.stops, hasLength(stopsDrawSafetyLimit));
+        expect(map.stops.where((s) => s.group == 'restaurant'), hasLength(20));
+        stops.dispose();
+      });
     });
 
     test('a square holds the same stops wherever the camera stands', () {
       fakeAsync((async) {
-        // Busier than a square holds, so the limit has to choose.
         final world = <SearchResult>[
-          for (var i = 0; i < stopsTileLimitAt(13) + 50; i++)
+          for (var i = 0; i < 250; i++)
             _stop(
               'Café $i',
               LatLng(48.0 + (i % 20) * 0.001, 11.0 + (i ~/ 20) * 0.001),
@@ -199,7 +273,7 @@ void main() {
         final here = seenFrom(_view).where(inSquare).toList();
         final there = seenFrom(moved(_view, 0.006, -0.009)).where(inSquare);
         expect(here, isNotEmpty);
-        expect(here.length, lessThanOrEqualTo(stopsTileLimitAt(13)));
+        expect(here, hasLength(world.where(inSquare).length));
         expect(there.toList(), here);
       });
     });
@@ -322,7 +396,7 @@ void main() {
         async.elapse(stopsDebounce * 2);
         final coarser = store.asks.skip(asked).toList();
         expect(coarser.map((a) => a.box).toSet(), squares(_view, 12.5));
-        expect(coarser.first.limit, stopsTileLimitAt(11));
+        expect(coarser.first.limit, stopsTileSafetyLimit);
         stops.dispose();
       });
     });
@@ -418,7 +492,6 @@ void main() {
           ..update(shown: true, kinds: const {'cafe'})
           ..attach(map);
         async.elapse(stopsDebounce * 2);
-        expect(stops.needsZoom, isFalse);
         expect(store.asks, isNotEmpty);
         stops.dispose();
       });
@@ -461,13 +534,12 @@ void main() {
           ..attach(map);
         async.elapse(stopsDebounce * 2);
         expect(store.asks, isEmpty);
-        expect(stops.needsZoom, isTrue);
+        expect(map.stops, isEmpty);
 
         map.zoom = stopsMinZoom;
         map.emitCameraIdle();
         async.elapse(stopsDebounce * 2);
         expect(store.asks, isNotEmpty);
-        expect(stops.needsZoom, isFalse);
         stops.dispose();
       });
     });
@@ -818,7 +890,6 @@ void main() {
         expect(stops.needsDownload, isTrue);
         // The chip speaks of the tile under the middle.
         expect(stops.missingArea, const TileName(10, 45));
-        expect(stops.needsZoom, isFalse);
         final asked = store.asks.length;
 
         // The download finished and the store re-scanned.
@@ -868,8 +939,8 @@ void main() {
       },
     );
 
-    test('zoomed out over an uncovered area, the download wins over the '
-        'zoom', () {
+    test('zoomed out over an uncovered area, the download is still '
+        'offered', () {
       fakeAsync((async) {
         final store = _FakeStore();
         final map = FakeMapController()
@@ -884,7 +955,6 @@ void main() {
               ..update(shown: true, kinds: const {'cafe'})
               ..attach(map);
         async.elapse(stopsDebounce * 2);
-        expect(stops.needsZoom, isTrue);
         expect(stops.needsDownload, isTrue);
         stops.dispose();
       });
@@ -957,3 +1027,5 @@ void main() {
     });
   });
 }
+
+StopsTile _first(StopsTile a, StopsTile b) => a.compareTo(b) <= 0 ? a : b;

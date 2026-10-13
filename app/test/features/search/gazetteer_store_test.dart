@@ -495,6 +495,140 @@ void main() {
     }
   });
 
+  group('a ranked box shares its limit fairly between the kinds', () {
+    const box = BoundingBox(
+      south: 32.59,
+      west: -16.95,
+      north: 32.70,
+      east: -16.85,
+    );
+    // A thousand bike racks, many of them more important than any
+    // restaurant, beside twenty restaurants and five cafés.
+    final pois = <GazPoi>[
+      for (var i = 0; i < 1000; i++)
+        GazPoi(
+          1000 + i,
+          'Rack $i',
+          'bicycle_parking',
+          32.60 + (i % 100) * 0.001,
+          -16.90 + (i ~/ 100) * 0.001,
+          importance: i.isEven ? 30 : null,
+        ),
+      for (var i = 0; i < 20; i++)
+        GazPoi(
+          5000 + i,
+          'Restaurant $i',
+          'restaurant',
+          32.65,
+          -16.91 + i * 0.001,
+          importance: i == 3 ? 10 : null,
+        ),
+      for (var i = 0; i < 5; i++)
+        GazPoi(6000 + i, 'Café $i', 'cafe', 32.66, -16.92 + i * 0.001),
+    ];
+    const kinds = <String>['bicycle_parking', 'cafe', 'restaurant'];
+
+    Map<String, int> countByKind(List<SearchResult> rows) => <String, int>{
+      for (final kind in kinds)
+        kind: rows.where((r) => r.detail == kind).length,
+    };
+
+    test('a numerous kind does not crowd out the rest', () async {
+      buildGazetteer(dir, 'W20_N30', pois: pois);
+      final store = await openStore();
+
+      final kept = await store.inBox(
+        box,
+        poiKinds: kinds,
+        limit: 200,
+        ranked: true,
+      );
+
+      expect(kept, hasLength(200), reason: 'the limit still bounds the total');
+      expect(countByKind(kept), <String, int>{
+        'bicycle_parking': 175,
+        'cafe': 5,
+        'restaurant': 20,
+      });
+    });
+
+    test('each kind keeps its share, its most important first', () async {
+      buildGazetteer(dir, 'W20_N30', pois: pois);
+      final store = await openStore();
+
+      final kept = await store.inBox(
+        box,
+        poiKinds: kinds,
+        limit: 12,
+        ranked: true,
+      );
+
+      expect(countByKind(kept), <String, int>{
+        'bicycle_parking': 4,
+        'cafe': 4,
+        'restaurant': 4,
+      });
+      expect(
+        kept.where((r) => r.detail == 'restaurant').map((r) => r.name),
+        <String>[
+          'Restaurant 3',
+          'Restaurant 0',
+          'Restaurant 1',
+          'Restaurant 2',
+        ],
+      );
+      expect(
+        kept.where((r) => r.detail == 'bicycle_parking').map((r) => r.name),
+        <String>['Rack 0', 'Rack 2', 'Rack 4', 'Rack 6'],
+      );
+    });
+
+    test('the same rows wherever the map stands', () async {
+      buildGazetteer(dir, 'W20_N30', pois: pois);
+      final store = await openStore();
+
+      Future<List<String>> keptNear(LatLng? near) async => <String>[
+        for (final r in await store.inBox(
+          box,
+          poiKinds: kinds,
+          limit: 50,
+          near: near,
+          ranked: true,
+        ))
+          r.name,
+      ];
+
+      final first = await keptNear(null);
+      expect(await keptNear(const LatLng(32.69, -16.86)), first);
+      expect(await keptNear(const LatLng(32.60, -16.94)), first);
+    });
+
+    test('a file built before importance shares the same way', () async {
+      buildGazetteer(
+        dir,
+        'W20_N30',
+        pois: <GazPoi>[
+          for (final poi in pois)
+            GazPoi(poi.id, poi.name!, poi.kind, poi.lat, poi.lon),
+        ],
+      );
+      final store = await openStore();
+
+      final kept = await store.inBox(
+        box,
+        poiKinds: kinds,
+        limit: 30,
+        ranked: true,
+      );
+
+      expect(countByKind(kept), <String, int>{
+        'bicycle_parking': 13,
+        'cafe': 5,
+        'restaurant': 12,
+      });
+    });
+  });
+
   test('the limit is honoured', () async {
     buildGazetteer(
       dir,

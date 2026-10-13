@@ -237,8 +237,9 @@ class GazetteerStore {
   /// Every place of [placeKinds] and every POI of [poiKinds] inside [box],
   /// at most [limit] of each per open file, in no particular order.
   /// What the limit keeps is the nearest to [near] (the box's middle when
-  /// `null`), or with [ranked] the most important, then the first in the
-  /// file: the same rows wherever the map stands.
+  /// `null`), or with [ranked] the kinds taking turns, each kind's most
+  /// important first, then the first in the file: the same rows wherever
+  /// the map stands, and a numerous kind cannot crowd the others out.
   ///
   /// The raw rows a route is matched against: a place carries
   /// [SearchKind.place], a POI [SearchKind.poi], both with their kind in
@@ -1579,9 +1580,9 @@ class _GazetteerFile {
 
   /// The rows of [placeKinds] in `places` and of [poiKinds] in `pois` inside
   /// [box], at most [limit] from each table, the nearest to [near] (the
-  /// box's middle when `null`) first, or with [ranked] the most important
-  /// first and then in the file's order, which does not depend on where the
-  /// map stands.
+  /// box's middle when `null`) first, or with [ranked] the kinds taking
+  /// turns, each kind's most important first and then in the file's order,
+  /// which does not depend on where the map stands.
   ///
   /// The order is what the limit keeps: without it the position index hands
   /// the rows back south to north, and a full box kept its southern part —
@@ -1612,12 +1613,25 @@ class _GazetteerFile {
           : nearest;
       final placeholders = List<String>.filled(kinds.length, '?').join(', ');
       final osm = table == 'pois' ? _osmPois : _osmPlaces;
-      final rows = _db.select(
-        'SELECT name, kind, lat, lon, $osm FROM $table '
-        'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? '
-        'AND kind IN ($placeholders) ${order.sql} LIMIT ?',
-        <Object?>[...bounds, ...kinds, ...order.args, limit],
-      );
+      const where =
+          'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? AND kind IN ';
+      // Ranked, the kinds take turns: each one's first row, then each one's
+      // second and so on, so a kind with thousands of rows cannot crowd the
+      // others out of what the limit keeps.
+      final rows = ranked
+          ? _db.select(
+              'SELECT name, kind, lat, lon, $osm FROM ('
+              'SELECT *, ROW_NUMBER() OVER (PARTITION BY kind ${order.sql}) '
+              'AS turn FROM $table $where($placeholders)) '
+              'ORDER BY turn, ${order.sql.substring('ORDER BY '.length)} '
+              'LIMIT ?',
+              <Object?>[...bounds, ...kinds, limit],
+            )
+          : _db.select(
+              'SELECT name, kind, lat, lon, $osm FROM $table '
+              '$where($placeholders) ${order.sql} LIMIT ?',
+              <Object?>[...bounds, ...kinds, ...order.args, limit],
+            );
       for (final row in rows) {
         final position = _position(row);
         if (position == null) continue;

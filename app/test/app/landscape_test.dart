@@ -6,7 +6,7 @@ import 'package:velorki/app/router.dart';
 import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
-import 'package:velorki/features/map/presentation/stops_zoom_chip.dart';
+import 'package:velorki/features/map/presentation/stops_download_chip.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
