@@ -6132,6 +6132,38 @@
   "@weatherFreeForecastSeePlus": {
     "description": "Button of that dialog: open the Velorki Plus page"
   },
+  "weatherTimeHintTitle": "Weather over time",
+  "@weatherTimeHintTitle": {
+    "description": "Title of the dialog shown once when a rider on the Plan tab moves the route's departure slider while nothing in view shows its effect (route not coloured by wind or rain, map's rain radar and wind off)"
+  },
+  "weatherTimeHintBody": "This slider sets when you leave and moves the weather through time: on the map (rain radar, wind) and along the route (coloured by wind or rain). The weather section below follows it too.",
+  "@weatherTimeHintBody": {
+    "description": "Body of that dialog: what the slider does and where its effect shows"
+  },
+  "weatherTimeHintRainRadar": "Show rain radar",
+  "@weatherTimeHintRainRadar": {
+    "description": "Action of that dialog: switch the map's rain radar on"
+  },
+  "weatherTimeHintWind": "Show wind",
+  "@weatherTimeHintWind": {
+    "description": "Action of that dialog: switch the map's wind arrows on"
+  },
+  "weatherTimeHintColourWind": "Colour route by wind",
+  "@weatherTimeHintColourWind": {
+    "description": "Action of that dialog: colour the route by the wind"
+  },
+  "weatherTimeHintColourRain": "Colour route by rain",
+  "@weatherTimeHintColourRain": {
+    "description": "Action of that dialog: colour the route by the rain"
+  },
+  "weatherTimeHintDontShowAgain": "Don't show again",
+  "@weatherTimeHintDontShowAgain": {
+    "description": "Checkbox of that dialog: never show it again"
+  },
+  "weatherTimeHintClose": "Close",
+  "@weatherTimeHintClose": {
+    "description": "Action of that dialog: close it without changing anything"
+  },
   "mapRainRadarPlusTitle": "Rain radar",
   "@mapRainRadarPlusTitle": {
     "description": "Title of the dialog shown each time a rider without Velorki Plus switches the rain radar on in the map's Layers sheet"

@@ -153,6 +153,50 @@ RouteColourLines routeColourLinesOf(RouteColouring colouring, ThemeData theme) {
   );
 }
 
+/// Whether [overlay] may be drawn: asked of a rider without Plus about the
+/// wind and the rain from the free forecast ([showFreeForecastDialog]); a
+/// rider the store has not answered for yet is asked nothing.
+Future<bool> confirmRouteOverlay(
+  BuildContext context,
+  WidgetRef ref,
+  RouteOverlay overlay,
+) async {
+  if (!isWeatherOverlay(overlay) || ref.read(routeWeatherFromRelayProvider)) {
+    return true;
+  }
+  final relay = ref.read(relayClientProvider) != null;
+  if (relay &&
+      ref.read(plusAccessProvider(PlusFeature.weather)) == PlusAccess.unknown) {
+    // The store has not said yet: no question for what may be a Plus
+    // rider. The free forecast meanwhile, the relay's once Plus is granted.
+    return true;
+  }
+  final answer = await showFreeForecastDialog(context, offerPlus: relay);
+  if (!context.mounted) return false;
+  switch (answer) {
+    case FreeForecastAnswer.use:
+      return true;
+    case FreeForecastAnswer.seePlus:
+      unawaited(context.push(paywallRoute));
+      return false;
+    case null:
+      return false;
+  }
+}
+
+/// Colours the route by [overlay], switching the colouring on, as picking
+/// it in [RouteColourChoice] with the colouring on would: a rider without
+/// Plus is asked about the free forecast first ([confirmRouteOverlay]).
+Future<void> colourRouteBy(
+  BuildContext context,
+  WidgetRef ref,
+  RouteOverlay overlay,
+) async {
+  if (!await confirmRouteOverlay(context, ref, overlay)) return;
+  await ref.read(routeOverlayChoiceProvider.notifier).set(overlay);
+  await ref.read(routeColouringOnProvider.notifier).set(on: true);
+}
+
 /// Whether the route on the map and the profile under it are coloured, a
 /// switch at the end of the heading, and by what: the gradient, the
 /// surface, the wind or the rain. Switched off, the choice stays, greyed,
@@ -188,44 +232,15 @@ class RouteColourChoice extends ConsumerWidget {
       icon: Icon(icon, size: 18),
       label: label(text),
     );
-    // Whether [overlay] may be drawn: asked of a rider without Plus about
-    // the wind and the rain from the free forecast.
-    Future<bool> confirmed(RouteOverlay overlay) async {
-      if (!isWeatherOverlay(overlay) ||
-          ref.read(routeWeatherFromRelayProvider)) {
-        return true;
-      }
-      final relay = ref.read(relayClientProvider) != null;
-      if (relay &&
-          ref.read(plusAccessProvider(PlusFeature.weather)) ==
-              PlusAccess.unknown) {
-        // The store has not said yet: no question for what may be a Plus
-        // rider. The free forecast meanwhile, the relay's once Plus is
-        // granted.
-        return true;
-      }
-      final answer = await showFreeForecastDialog(context, offerPlus: relay);
-      if (!context.mounted) return false;
-      switch (answer) {
-        case FreeForecastAnswer.use:
-          return true;
-        case FreeForecastAnswer.seePlus:
-          unawaited(context.push(paywallRoute));
-          return false;
-        case null:
-          return false;
-      }
-    }
-
     Future<void> choose(RouteOverlay overlay) async {
-      if (!await confirmed(overlay)) return;
+      if (!await confirmRouteOverlay(context, ref, overlay)) return;
       await ref.read(routeOverlayChoiceProvider.notifier).set(overlay);
     }
 
     Future<void> switchTo({required bool on}) async {
       if (on) {
         final overlay = ref.read(routeOverlayShownProvider);
-        if (!await confirmed(overlay)) return;
+        if (!await confirmRouteOverlay(context, ref, overlay)) return;
         // The wind or the rain from the free forecast, now asked for in this
         // launch.
         if (isWeatherOverlay(overlay)) {

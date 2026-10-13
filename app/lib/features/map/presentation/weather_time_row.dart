@@ -184,6 +184,7 @@ class WeatherTimeRow extends ConsumerStatefulWidget {
     this.leave = false,
     this.shown = false,
     this.forecastLoading = false,
+    this.onMoved,
   });
 
   final EdgeInsetsGeometry padding;
@@ -197,6 +198,9 @@ class WeatherTimeRow extends ConsumerStatefulWidget {
 
   /// Whether the forecast the route is coloured by is being fetched.
   final bool forecastLoading;
+
+  /// Called when the slider is let go at another step than it had.
+  final VoidCallback? onMoved;
 
   @override
   ConsumerState<WeatherTimeRow> createState() => _WeatherTimeRowState();
@@ -567,10 +571,11 @@ class _WeatherTimeRowState extends ConsumerState<WeatherTimeRow> {
             },
             onChangeEnd: (value) {
               setState(() => _dragging = null);
-              ref
-                  .read(weatherRadarOffsetProvider.notifier)
-                  .set(weatherOffsetOfSliderIndex(value.round()));
+              final step = weatherOffsetOfSliderIndex(value.round());
+              final moved = step != ref.read(weatherRadarOffsetProvider);
+              ref.read(weatherRadarOffsetProvider.notifier).set(step);
               ref.read(weatherRadarPreviewProvider.notifier).set(null);
+              if (moved) widget.onMoved?.call();
             },
           ),
         ),

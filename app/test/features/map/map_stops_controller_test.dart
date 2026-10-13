@@ -795,6 +795,104 @@ void main() {
       });
     });
 
+    test('a stretch asks for every stop of the kinds shown, the kinds '
+        'taking turns should it reach the bound', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final stops = MapStopsController(find: store.find)
+          ..update(
+            shown: true,
+            kinds: const {'cafe', 'bicycle_parking'},
+            routeKey: 'r1',
+            routeLine: line,
+          )
+          ..attach(FakeMapController());
+        async.flushMicrotasks();
+        expect(store.asks, isNotEmpty);
+        for (final ask in store.asks) {
+          expect(ask.limit, stopsChunkSafetyLimit);
+          expect(ask.ranked, isTrue);
+        }
+        stops.dispose();
+      });
+    });
+
+    test('a stretch with a thousand bike racks still shows its cafés', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController();
+        final stops = MapStopsController(find: store.find)
+          ..update(
+            shown: true,
+            kinds: const {'cafe', 'bicycle_parking'},
+            routeKey: 'r1',
+            routeLine: line,
+          )
+          ..attach(map);
+        async.flushMicrotasks();
+        // The racks come first in the file, so a capped answer would hold
+        // nothing else.
+        store.answerAll(<SearchResult>[
+          for (var i = 0; i < 1000; i++)
+            _stop('Rack $i', beside(1 + i * 0.002), kind: 'bicycle_parking'),
+          for (var i = 0; i < 20; i++)
+            _stop('Café $i', beside(1.5 + i * 0.1), kind: 'cafe'),
+        ]);
+        async.flushMicrotasks();
+
+        int drawn(String kind) =>
+            map.stops.where((s) => s.group == kind).length;
+        expect(drawn('cafe'), 20);
+        expect(drawn('bicycle_parking'), 1000);
+        expect(
+          stops.nextPerKind().map((s) => s.stop.detail),
+          containsAll(<String>['cafe', 'bicycle_parking']),
+        );
+        stops.dispose();
+      });
+    });
+
+    test('the same route and stops give the same stops, in whatever order '
+        'the stretches answer', () {
+      final world = <SearchResult>[
+        for (var i = 0; i < 300; i++)
+          _stop(
+            'Stop $i',
+            beside(0.5 + i * 0.15),
+            kind: i.isEven ? 'cafe' : 'drinking_water',
+          ),
+      ];
+      List<String> run({required bool reversed}) {
+        late List<String> names;
+        fakeAsync((async) {
+          final store = _FakeStore();
+          final stops = MapStopsController(find: store.find)
+            ..update(
+              shown: true,
+              kinds: const {'cafe', 'drinking_water'},
+              routeKey: 'r1',
+              routeLine: line,
+            )
+            ..attach(FakeMapController());
+          async.flushMicrotasks();
+          _FakeStore.answer(reversed ? store.asks.reversed : store.asks, world);
+          async.flushMicrotasks();
+          names = <String>[for (final s in stops.stops) s.name];
+          stops.dispose();
+        });
+        return names;
+      }
+
+      final first = run(reversed: false);
+      // Every stop within the fifty kilometres ahead, none capped away.
+      expect(
+        first,
+        hasLength(world.where((s) => s.position.lon <= beside(50).lon).length),
+      );
+      expect(run(reversed: true), first);
+      expect(run(reversed: false), first);
+    });
+
     test('a new route asks again and drops the old route\'s answer', () {
       fakeAsync((async) {
         final store = _FakeStore();

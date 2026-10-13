@@ -51,7 +51,7 @@ List<String> stopKindsOf(AppLocalizations l10n, SearchGroup group) => <String>[
 /// once they choose the free one; "See Plus" opens the Plus page and leaves
 /// it off. Plus riders, riders the store has not answered for, and builds
 /// without the relay are asked nothing.
-Future<void> _switchRainRadar(
+Future<void> switchRainRadar(
   BuildContext context,
   WidgetRef ref, {
   required bool on,
@@ -183,7 +183,7 @@ class LayersSheet extends ConsumerWidget {
               subtitle: _RainSubtitle(on: weather.radar),
               value: weather.radar,
               onChanged: (value) =>
-                  unawaited(_switchRainRadar(context, ref, on: value)),
+                  unawaited(switchRainRadar(context, ref, on: value)),
             ),
           if (weatherKindAvailable(weatherSources, WeatherKind.radar))
             _OpacitySlider(

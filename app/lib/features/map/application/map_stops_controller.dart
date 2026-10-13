@@ -97,8 +97,11 @@ List<SearchResult> onePerPlace(List<SearchResult> stops) {
   ];
 }
 
-/// The most stops one stretch of the route ahead asks for, per gazetteer.
-const int stopsChunkLimit = 200;
+/// The most stops one stretch of the route ahead ([stopsChunkM]) asks a
+/// gazetteer for: a bound against a pathological stretch, not a share. A
+/// stretch otherwise holds every stop of the kinds shown; one that reaches
+/// the bound keeps the kinds taking turns, each kind's most important first.
+const int stopsChunkSafetyLimit = 20000;
 
 /// How long the camera has to rest before the area on screen is asked for
 /// its stops: a pan that stops and goes on is not asked about.
@@ -717,7 +720,8 @@ class MapStopsController extends ChangeNotifier {
     final List<List<SearchResult>> answers;
     try {
       answers = await Future.wait(<Future<List<SearchResult>>>[
-        for (final box in boxes) find(box, kinds, stopsChunkLimit),
+        for (final box in boxes)
+          find(box, kinds, stopsChunkSafetyLimit, ranked: true),
       ]);
     } on Object catch (e) {
       debugPrint('velorki: stops along the route failed: $e');
@@ -726,16 +730,32 @@ class MapStopsController extends ChangeNotifier {
       return;
     }
     if (generation != _generation || !identical(map, _map)) return;
+    for (var i = 0; i < answers.length; i++) {
+      if (answers[i].length >= stopsChunkSafetyLimit) {
+        debugPrint(
+          'velorki: stops along the route: stretch ${boxes[i]} reached the '
+          'bound of $stopsChunkSafetyLimit',
+        );
+      }
+    }
     final candidates = onePerPlace(<SearchResult>[
       for (final a in answers) ...a,
     ]);
-    _placed = stopsAlongRoute<SearchResult>(
+    var placed = stopsAlongRoute<SearchResult>(
       line: line,
       cumulative: cumulative,
       alongM: from,
       candidates: candidates,
       positionOf: (stop) => stop.position,
     );
+    if (placed.length > stopsDrawSafetyLimit) {
+      debugPrint(
+        'velorki: ${placed.length} stops along the route, keeping the '
+        '$stopsDrawSafetyLimit nearest ahead',
+      );
+      placed = placed.take(stopsDrawSafetyLimit).toList();
+    }
+    _placed = placed;
     _drawAhead(force: true);
   }
 

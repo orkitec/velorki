@@ -69,6 +69,7 @@ import '../../weather/application/free_route_weather.dart';
 import '../../weather/application/route_overlay.dart';
 import '../../weather/presentation/route_colour_choice.dart';
 import '../../weather/presentation/route_weather_section.dart';
+import '../../weather/presentation/weather_time_hint_dialog.dart';
 import '../../shared/presentation/error_text.dart';
 
 /// The Plan tab: the search and profile controls at the top and the route
@@ -1968,6 +1969,11 @@ class _PlannerTimeRow extends ConsumerWidget {
       leave: control != PlannerTimeControl.map,
       shown: control == PlannerTimeControl.departureShown,
       forecastLoading: _forecastLoading(ref),
+      // With a route, moved where nothing in view follows it: what it
+      // moves, once.
+      onMoved: control == PlannerTimeControl.departureShown
+          ? () => unawaited(showWeatherTimeHint(context, ref))
+          : null,
     );
   }
 
