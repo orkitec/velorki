@@ -1190,7 +1190,7 @@
   "weatherFreeForecastUse": "Usa la previsione gratuita",
   "weatherFreeForecastSeePlus": "Vedi Plus",
   "weatherTimeHintTitle": "Il meteo nel tempo",
-  "weatherTimeHintBody": "Questo cursore imposta quando parti e sposta il meteo nel tempo: sulla mappa (radar pioggia, vento) e lungo il percorso (colorato secondo vento o pioggia). Anche la sezione meteo più in basso lo segue.",
+  "weatherTimeHintBody": "Questo cursore imposta quando parti e sposta il meteo nel tempo: sulla mappa (radar pioggia, vento) e lungo il percorso (colorato secondo vento o pioggia). Pendenza e fondo restano uguali a ogni ora. Anche la sezione meteo più in basso segue il cursore.",
   "weatherTimeHintRainRadar": "Mostra radar pioggia",
   "weatherTimeHintWind": "Mostra vento",
   "weatherTimeHintColourWind": "Colora il percorso secondo il vento",

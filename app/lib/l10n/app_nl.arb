@@ -1190,7 +1190,7 @@
   "weatherFreeForecastUse": "Gratis verwachting gebruiken",
   "weatherFreeForecastSeePlus": "Plus bekijken",
   "weatherTimeHintTitle": "Het weer door de tijd",
-  "weatherTimeHintBody": "Deze schuifregelaar stelt in wanneer je vertrekt en beweegt het weer door de tijd: op de kaart (regenradar, wind) en langs de route (gekleurd naar wind of regen). Het weergedeelte verderop volgt hem ook.",
+  "weatherTimeHintBody": "Deze schuifregelaar stelt in wanneer je vertrekt en beweegt het weer door de tijd: op de kaart (regenradar, wind) en langs de route (gekleurd naar wind of regen). Helling en wegdek blijven op elk moment gelijk. Het weergedeelte verderop volgt de schuifregelaar ook.",
   "weatherTimeHintRainRadar": "Regenradar tonen",
   "weatherTimeHintWind": "Wind tonen",
   "weatherTimeHintColourWind": "Route kleuren naar wind",

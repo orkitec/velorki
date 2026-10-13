@@ -1190,7 +1190,7 @@
   "weatherFreeForecastUse": "Utiliser la prévision gratuite",
   "weatherFreeForecastSeePlus": "Voir Plus",
   "weatherTimeHintTitle": "La météo au fil des heures",
-  "weatherTimeHintBody": "Ce curseur fixe l’heure de votre départ et fait avancer la météo dans le temps : sur la carte (radar de pluie, vent) et le long de l’itinéraire (coloré selon le vent ou la pluie). La section météo plus bas le suit aussi.",
+  "weatherTimeHintBody": "Ce curseur fixe l’heure de votre départ et fait avancer la météo dans le temps : sur la carte (radar de pluie, vent) et le long de l’itinéraire (coloré selon le vent ou la pluie). La pente et le revêtement restent les mêmes à toute heure. La section météo plus bas suit aussi le curseur.",
   "weatherTimeHintRainRadar": "Afficher le radar de pluie",
   "weatherTimeHintWind": "Afficher le vent",
   "weatherTimeHintColourWind": "Colorer l’itinéraire selon le vent",

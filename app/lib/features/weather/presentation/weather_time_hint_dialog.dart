@@ -53,14 +53,14 @@ bool weatherTimeMovesNothingInView(WidgetRef ref) {
 /// The Plan tab's time control was let go at another step: where that
 /// changes nothing in view ([weatherTimeMovesNothingInView]), a dialog says
 /// what it moves and offers to show it ([showWeatherTimeHintDialog]), each
-/// choice made as its own control would make it. At most once a run, and
-/// never again once the rider ticks "Don't show again" ([WeatherTimeHint]).
+/// choice made as its own control would make it. Each time, until the
+/// rider ticks "Don't show again" ([WeatherTimeHint]).
 Future<void> showWeatherTimeHint(BuildContext context, WidgetRef ref) async {
   if (!ref.read(weatherTimeHintProvider) ||
       !weatherTimeMovesNothingInView(ref)) {
     return;
   }
-  final hint = ref.read(weatherTimeHintProvider.notifier)..shown();
+  final hint = ref.read(weatherTimeHintProvider.notifier);
   final sources = ref.read(weatherMapSourcesProvider);
   final action = await showWeatherTimeHintDialog(
     context,

@@ -1190,7 +1190,7 @@
   "weatherFreeForecastUse": "Usar previsión gratuita",
   "weatherFreeForecastSeePlus": "Ver Plus",
   "weatherTimeHintTitle": "El tiempo a lo largo del día",
-  "weatherTimeHintBody": "Este control fija cuándo sales y mueve el tiempo por las horas: en el mapa (radar de lluvia, viento) y a lo largo de la ruta (coloreada según el viento o la lluvia). La sección del tiempo más abajo también lo sigue.",
+  "weatherTimeHintBody": "Este control fija cuándo sales y mueve el tiempo por las horas: en el mapa (radar de lluvia, viento) y a lo largo de la ruta (coloreada según el viento o la lluvia). La pendiente y el firme son iguales a cualquier hora. La sección del tiempo más abajo también sigue el control.",
   "weatherTimeHintRainRadar": "Mostrar radar de lluvia",
   "weatherTimeHintWind": "Mostrar viento",
   "weatherTimeHintColourWind": "Colorear la ruta según el viento",

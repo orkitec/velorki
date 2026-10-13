@@ -145,7 +145,7 @@ void main() {
   setUp(() => debugShellLayoutOverride = ShellLayout.bottomBar);
 
   testWidgets('let go where nothing in view follows it, the time control '
-      'says what it moves, once a run', (tester) async {
+      'says what it moves, each time', (tester) async {
     final container = await _pump(tester, preferences: _gradient);
     expect(_slider, findsOneWidget);
     await _move(tester);
@@ -168,9 +168,11 @@ void main() {
     expect(container.read(weatherMapPreferencesProvider).any, isFalse);
     expect(container.read(routeOverlayShownProvider), RouteOverlay.gradient);
 
-    // Moved again in the same run: no dialog.
+    // Moved again without "Don't show again" ticked: it says it again.
     await _move(tester, by: -80);
-    expect(_dialog, findsNothing);
+    expect(_dialog, findsOneWidget);
+    await tester.tap(find.text(l10n.weatherTimeHintClose));
+    await tester.pumpAndSettle();
     await _settle(tester);
   });
 

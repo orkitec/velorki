@@ -1190,7 +1190,7 @@
   "weatherFreeForecastUse": "Kostenlose Vorhersage nutzen",
   "weatherFreeForecastSeePlus": "Plus ansehen",
   "weatherTimeHintTitle": "Wetter im Zeitverlauf",
-  "weatherTimeHintBody": "Dieser Regler legt fest, wann du losfährst, und bewegt das Wetter durch die Zeit: auf der Karte (Regenradar, Wind) und entlang der Route (nach Wind oder Regen eingefärbt). Der Wetterbereich weiter unten folgt ihm auch.",
+  "weatherTimeHintBody": "Dieser Regler legt fest, wann du losfährst, und bewegt das Wetter durch die Zeit: auf der Karte (Regenradar, Wind) und entlang der Route (nach Wind oder Regen eingefärbt). Steigung und Belag bleiben zu jeder Zeit gleich. Der Wetterbereich weiter unten folgt dem Regler auch.",
   "weatherTimeHintRainRadar": "Regenradar zeigen",
   "weatherTimeHintWind": "Wind zeigen",
   "weatherTimeHintColourWind": "Route nach Wind einfärben",
