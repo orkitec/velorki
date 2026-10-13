@@ -7,7 +7,7 @@ draft: true
 > **Note sur la traduction.** Ceci est une traduction de la version anglaise.
 > En cas de divergence, la version anglaise prévaut.
 
-Date d'entrée en vigueur : 30 septembre 2026.
+Date d'entrée en vigueur : 13 octobre 2026.
 
 Velorki est une application de planification d'itinéraires vélo et
 d'enregistrement de sorties, développée par Orkitec. Cette page explique ce
@@ -98,6 +98,39 @@ auprès de CyclOSM si vous activez la surcouche vélo. Récupérer une tuile ind
 au fournisseur de tuiles quelle partie de la carte vous regardez et implique
 votre adresse IP, comme toute requête web. Données cartographiques
 © contributeurs d'OpenStreetMap.
+
+### Météo
+
+**La carte météo et les prévisions gratuites de l'itinéraire.** Lorsque vous
+activez la pluie, les nuages ou le vent sur la carte, ou que vous colorez un
+itinéraire selon le vent ou la pluie sans Velorki Plus, l'application récupère
+des images et des données de prévision directement auprès de services
+météorologiques publics : le Deutscher Wetterdienst (Allemagne), la National
+Oceanic and Atmospheric Administration américaine et l'Iowa State University
+(États-Unis), la NASA, EUMETSAT, le KNMI (Pays-Bas) et l'Institut météorologique
+finlandais. Chaque requête indique une partie de la carte, ou un cadre autour de
+votre itinéraire, et une heure, et implique votre adresse IP, comme toute
+requête web. Votre itinéraire lui-même, vos sorties et votre identité ne sont
+pas transmis.
+
+**Une météo plus fine le long de l'itinéraire (Velorki Plus).** L'application
+envoie à notre relais les points le long de l'itinéraire arrondis à une grille
+d'environ 2,5 km, chacun avec son altitude arrondie à 50 m, et les heures
+auxquelles vous y passerez — pas l'itinéraire, ni son nom, ni vos sorties. Le
+relais vérifie que votre abonnement est actif et interroge le National Weather
+Service américain, Bright Sky (pour les prévisions du Deutscher Wetterdienst) et
+MET Norway sur ces points de grille. Ceux-ci voient notre serveur, pas votre
+téléphone. Chaque réponse est conservée jusqu'à deux heures par point de grille
+et partagée avec tous ceux qui demandent le même point.
+
+**Radar de pluie sur toute l'Europe (Velorki Plus).** L'application demande à
+notre relais la partie de la carte que vous regardez et une heure. Le relais
+récupère le radar une seule fois pour tout le monde dans l'archive ouverte
+d'EUMETNET OPERA et, pour l'Italie, auprès du Dipartimento della Protezione
+Civile, le conserve jusqu'à deux heures et demie et renvoie une image de cette
+partie de la carte. Les fournisseurs du radar voient notre serveur, pas votre
+téléphone, et le relais ne garde aucune trace de la partie de la carte que vous
+avez demandée.
 
 ### Strava et RideWithGPS (Velorki Plus)
 
@@ -308,6 +341,7 @@ sens de l'article 6, paragraphe 1, du RGPD sont les suivantes :
 | Servir le site web et les pages de partage, maintenir les serveurs en fonctionnement, détecter les pannes, limiter le débit, se défendre contre les attaques | f) intérêt légitime à exploiter un service qui fonctionne et dont il n'est pas fait un usage abusif |
 | Routage en ligne et recherche en ligne, lorsque vous les demandez | b) exécution du service que vous avez demandé, et f) pour les coordonnées strictement nécessaires pour répondre |
 | Velorki Plus : vérification auprès de RevenueCat qu'un abonnement est actif | b) exécution du contrat |
+| Velorki Plus : la météo plus fine le long de l'itinéraire et le radar de pluie | b) exécution du contrat |
 | Strava et RideWithGPS : connexion d'un compte et chaque transfert que vous déclenchez | b) exécution du contrat, ainsi que a) consentement, donné en connectant le compte |
 | Liens de partage que vous créez | b) exécution du contrat |
 | L'assistant IA | a) consentement, demandé séparément dans l'application et révocable dans les réglages |
@@ -361,6 +395,12 @@ sous-traitance**
   demandée.
 - **OpenStreetMap** (`api.openstreetmap.org`) — les détails d'un lieu, lorsque
   vous touchez « Détails » sur sa fiche.
+- **Services météorologiques publics** — le Deutscher Wetterdienst, la NOAA,
+  l'Iowa State University, la NASA, EUMETSAT, le KNMI et l'Institut
+  météorologique finlandais — la partie de la carte ou le cadre autour de votre
+  itinéraire que vous avez demandé, une heure et votre adresse IP, uniquement
+  lorsqu'une couche météo ou les prévisions gratuites de l'itinéraire sont
+  activées.
 - **Apple Inc.** et **Google Ireland Ltd** — la vente de Velorki Plus. Ce sont
   eux les vendeurs ; nous ne voyons jamais vos données de paiement.
 - **Strava, Inc.** et **Ride with GPS** — uniquement après que vous avez

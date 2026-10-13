@@ -7,7 +7,7 @@ draft: true
 > **Nota sobre la traducción.** Esta es una traducción de la versión en inglés.
 > En caso de discrepancia, prevalece la versión en inglés.
 
-Fecha de entrada en vigor: 30 de septiembre de 2026.
+Fecha de entrada en vigor: 13 de octubre de 2026.
 
 Velorki es una app para planificar rutas en bici y grabar salidas creada por
 Orkitec. Esta página explica qué ocurre con tus datos.
@@ -91,6 +91,37 @@ El mapa se dibuja con teselas obtenidas de OpenFreeMap y, si activas la capa
 ciclista, de CyclOSM. Al obtener una tesela, el proveedor de teselas sabe qué
 parte del mapa estás mirando, y en ello interviene tu dirección IP, como en
 cualquier petición web. Datos del mapa © colaboradores de OpenStreetMap.
+
+### El tiempo
+
+**El mapa del tiempo y el pronóstico gratuito de la ruta.** Cuando activas la
+lluvia, las nubes o el viento en el mapa, o coloreas una ruta según el viento o
+la lluvia sin Velorki Plus, la app obtiene imágenes y datos de pronóstico
+directamente de servicios meteorológicos públicos: el Deutscher Wetterdienst
+(Alemania), la National Oceanic and Atmospheric Administration de EE. UU. y la
+Iowa State University (EE. UU.), la NASA, EUMETSAT, el KNMI (Países Bajos) y el
+Instituto Meteorológico de Finlandia. Cada petición indica una parte del mapa, o
+un recuadro alrededor de tu ruta, y una hora, y en ella interviene tu dirección
+IP, como en cualquier petición web. No se envían ni tu ruta en sí, ni tus
+salidas, ni tu identidad.
+
+**Un tiempo más detallado a lo largo de la ruta (Velorki Plus).** La app envía a
+nuestro relay los puntos a lo largo de la ruta redondeados a una cuadrícula de
+unos 2,5 km, cada uno con su altitud redondeada a 50 m, y las horas en que
+pasarás por allí; no la ruta, ni su nombre, ni tus salidas. El relay comprueba
+que tu suscripción está activa y pide el pronóstico de esos puntos de la
+cuadrícula al National Weather Service de EE. UU., a Bright Sky (para los
+pronósticos del Deutscher Wetterdienst) y a MET Norway. Ellos ven nuestro
+servidor, no tu teléfono. Cada respuesta se conserva hasta dos horas por punto
+de la cuadrícula y se comparte con todos los que piden el mismo punto.
+
+**Radar de lluvia en toda Europa (Velorki Plus).** La app pide a nuestro relay
+la parte del mapa que estás mirando y una hora. El relay obtiene el radar una
+sola vez para todos del archivo abierto de EUMETNET OPERA y, para Italia, del
+Dipartimento della Protezione Civile, lo conserva hasta dos horas y media y
+devuelve una imagen de esa parte del mapa. Los proveedores del radar ven nuestro
+servidor, no tu teléfono, y el relay no guarda ningún registro de qué parte del
+mapa pediste.
 
 ### Strava y RideWithGPS (Velorki Plus)
 
@@ -293,6 +324,7 @@ artículo 6 (1) del RGPD son:
 | Servir la web y las páginas compartidas, mantener los servidores en marcha, encontrar fallos, límites de frecuencia, defensa frente a ataques | (f) interés legítimo en ofrecer un servicio que funcione y del que no se abuse |
 | Enrutamiento en línea y búsqueda en línea, cuando los pides | (b) ejecución del servicio que solicitaste, y (f) para las coordenadas estrictamente necesarias para responder |
 | Velorki Plus: comprobar con RevenueCat que una suscripción está activa | (b) ejecución del contrato |
+| Velorki Plus: el tiempo más detallado a lo largo de la ruta y el radar de lluvia | (b) ejecución del contrato |
 | Strava y RideWithGPS: conectar una cuenta y cada transferencia que inicias | (b) ejecución del contrato, más (a) consentimiento, dado al conectar la cuenta |
 | Enlaces compartidos que creas | (b) ejecución del contrato |
 | El asistente de IA | (a) consentimiento, solicitado por separado en la app y revocable en los ajustes |
@@ -342,6 +374,11 @@ uno responsable de su propio tratamiento**
   `photon.komoot.io`, y solo para una búsqueda en línea que hayas pedido.
 - **OpenStreetMap** (`api.openstreetmap.org`): los detalles de un lugar,
   cuando tocas «Detalles» en su ficha.
+- **Servicios meteorológicos públicos** (el Deutscher Wetterdienst, la NOAA, la
+  Iowa State University, la NASA, EUMETSAT, el KNMI y el Instituto Meteorológico
+  de Finlandia): la parte del mapa o el recuadro alrededor de tu ruta que
+  pediste, una hora y tu dirección IP, solo mientras una capa meteorológica o el
+  pronóstico gratuito de la ruta están activados.
 - **Apple Inc.** y **Google Ireland Ltd**: la venta de Velorki Plus. Ellos son
   los vendedores; nosotros nunca vemos tus datos de pago.
 - **Strava, Inc.** y **Ride with GPS**: solo después de que conectes la cuenta

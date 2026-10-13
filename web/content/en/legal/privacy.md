@@ -4,7 +4,7 @@ description: "What Velorki does with your data: no account, routes and rides sta
 draft: false
 ---
 
-Effective date: 30 September 2026.
+Effective date: 13 October 2026.
 
 Velorki is a bike route planning and ride recording app made by Orkitec. This
 page explains what happens to your data.
@@ -82,6 +82,35 @@ The map is drawn from tiles fetched from OpenFreeMap, and from CyclOSM if you
 turn the cycling overlay on. Fetching a tile tells the tile provider which part
 of the map you are looking at, and involves your IP address, as any web request
 does. Map data is © OpenStreetMap contributors.
+
+### Weather
+
+**The weather map and the route's free forecast.** When you switch on the rain,
+the clouds or the wind on the map, or colour a route by the wind or the rain
+without Velorki Plus, the app fetches pictures and forecast data directly from
+public weather services: the Deutscher Wetterdienst (Germany), the US National
+Oceanic and Atmospheric Administration and Iowa State University (USA), NASA,
+EUMETSAT, the KNMI (Netherlands) and the Finnish Meteorological Institute. Each
+request names a part of the map, or a box around your route, and a time, and
+involves your IP address, as any web request does. Your route itself, your rides
+and your identity are not sent.
+
+**Finer weather along the route (Velorki Plus).** The app sends our relay the
+points along the route rounded to a grid of about 2.5 km, each with its altitude
+rounded to 50 m, and the hours you ride there — not the route, its name or your
+rides. The relay checks that your subscription is active and asks the US
+National Weather Service, Bright Sky (for the Deutscher Wetterdienst's
+forecasts) and MET Norway for those grid points. They see our server, not your
+phone. Each answer is kept for up to two hours per grid point and shared by
+everyone who asks for the same point.
+
+**Rain radar across Europe (Velorki Plus).** The app asks our relay for the part
+of the map you are looking at and a time. The relay fetches the radar once for
+everyone from EUMETNET OPERA's open archive and, for Italy, from the
+Dipartimento della Protezione Civile, keeps it for up to two and a half hours,
+and sends back a picture of that part of the map. The radar's providers see our
+server, not your phone, and the relay keeps no record of which part of the map
+you asked for.
 
 ### Strava and RideWithGPS (Velorki Plus)
 
@@ -269,6 +298,7 @@ For readers in the EU and the UK, the legal bases under Article 6 (1) GDPR are:
 | Serving the website and the share pages, keeping the servers up, finding faults, rate limits, defending against attacks | (f) legitimate interest in running a service that works and is not abused |
 | Online routing and online search, when you ask for them | (b) performance of the service you requested, and (f) for the coordinates strictly needed to answer |
 | Velorki Plus: checking with RevenueCat that a subscription is active | (b) performance of the contract |
+| Velorki Plus: the finer weather along the route and the rain radar | (b) performance of the contract |
 | Strava and RideWithGPS: connecting an account and every transfer you trigger | (b) performance of the contract, plus (a) consent, given by connecting the account |
 | Share links you create | (b) performance of the contract |
 | The AI assistant | (a) consent, asked for separately in the app and revocable in the settings |
@@ -314,6 +344,11 @@ own processing**
   `photon.komoot.io`, and only for an online search you asked for.
 - **OpenStreetMap** (`api.openstreetmap.org`) — a place's details, when you
   tap "Details" on its card.
+- **Public weather services** — the Deutscher Wetterdienst, NOAA, Iowa State
+  University, NASA, EUMETSAT, the KNMI and the Finnish Meteorological Institute
+  — the part of the map or the box around your route you asked for, a time, and
+  your IP address, only while a weather layer or the route's free forecast is
+  on.
 - **Apple Inc.** and **Google Ireland Ltd** — the sale of Velorki Plus. They
   are the sellers; we never see your payment details.
 - **Strava, Inc.** and **Ride with GPS** — only after you connect the account
