@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parse } from 'yaml';
@@ -196,7 +195,7 @@ describe('GET /weather/radar/opera/frames contract', () => {
         ),
       ),
     );
-    await withEnv({ OPERA_CACHE_DIR: mkdtempSync(join(tmpdir(), 'velorki-opera-')) }, async () => {
+    await withEnv({}, async () => {
       const res = await operaFrames(
         new Request('https://api.velorki.com/weather/radar/opera/frames', { headers: AUTH }),
       );

@@ -1,6 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { mkdir, readdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import type { Counters } from '@/server/counters';
 import { GRID_VERSION, decodeOperaTiff, parseGrid, serialiseGrid, type ClassGrid } from './grid';
 import { classesOfArea, encodeClassPng, type MercatorBox } from './render';
@@ -13,12 +11,14 @@ import { classesOfArea, encodeClassPng, type MercatorBox } from './render';
  *   S3 ListObjectsV2 per UTC hour it spans, shared by the cluster for
  *   [LISTING_TTL_S] through the counters.
  * - A frame's grid: the first request that needs one fetches its GeoTIFF
- *   once, decodes it into the class grid (`grid.ts`) and writes it to [dir];
- *   every later request, on any worker, reads it from there. In one worker
- *   a request already fetching is joined; across workers a lock in the
- *   counters lets one fetch while the others wait for its file. Files older
- *   than [OPERA_KEEP_MS] are deleted whenever a new one is written, so the
- *   directory holds some 30 grids of a few hundred KB.
+ *   once, decodes it into the class grid (`grid.ts`) and puts it, deflated
+ *   (some 350 KB), into the cluster's shared cache (the counters, `@orkify/
+ *   cache` in production) under a versioned key for [OPERA_KEEP_MS]; every
+ *   later request, on any worker, reads it from there. In one worker a
+ *   request already fetching is joined; across workers a lock in the
+ *   counters lets one fetch while the others wait for its entry. A grid
+ *   over [MAX_SHARED_BYTES] is not shared (the cache refuses values over
+ *   1 MB): each worker then keeps its own.
  * - In memory, per worker: the last [GRIDS_IN_MEMORY] grids decoded (17 MB
  *   each) and the images drawn, up to [IMAGE_CACHE_BYTES].
  *
@@ -33,7 +33,7 @@ export const OPERA_ATTRIBUTION = 'Radar: EUMETNET OPERA (CC BY 4.0)';
 
 /** How far back the frames are offered. */
 export const OPERA_HISTORY_MS = 2 * 60 * 60 * 1000;
-/** How long a frame's grid stays on disk. */
+/** How long a frame's grid stays in the shared cache. */
 export const OPERA_KEEP_MS = 150 * 60 * 1000;
 /** The composite's step. */
 export const OPERA_STEP_MS = 5 * 60 * 1000;
@@ -53,6 +53,11 @@ const LIST_TIMEOUT_MS = 10_000;
 /** A composite file is some 3 MB; refuse anything absurd. */
 const MAX_TIFF_BYTES = 32 * 1024 * 1024;
 const GRIDS_IN_MEMORY = 2;
+/**
+ * The largest grid shared, deflated: under the cache's 1 MB a value, with
+ * room for its serialisation.
+ */
+export const MAX_SHARED_BYTES = 1_000_000;
 const IMAGE_CACHE_BYTES = 32 * 1024 * 1024;
 
 /** A failure of the bucket: the route answers 502. */
@@ -64,8 +69,9 @@ export class OperaUpstreamError extends Error {
 }
 
 export interface OperaStoreOptions {
-  dir: string;
   counters: Counters;
+  /** For tests; [MAX_SHARED_BYTES] otherwise. */
+  maxSharedBytes?: number;
   userAgent: string;
   now?: () => number;
   /** For tests; `globalThis.fetch` at call time otherwise. */
@@ -89,6 +95,11 @@ export function operaStamp(ms: number): string {
 function dayPath(ms: number): string {
   const d = new Date(ms);
   return `${String(d.getUTCFullYear())}/${pad(d.getUTCMonth() + 1)}/${pad(d.getUTCDate())}`;
+}
+
+/** The shared cache's key of a frame's grid, by [GRID_VERSION]. */
+export function operaGridKey(ms: number): string {
+  return `opera:grid:v${String(GRID_VERSION)}:${operaStamp(ms)}`;
 }
 
 /** The bucket key of the reflectivity composite at `ms`. */
@@ -116,7 +127,7 @@ export function parseListing(xml: string): number[] {
 }
 
 export class OperaStore {
-  readonly #dir: string;
+  readonly #maxSharedBytes: number;
   readonly #counters: Counters;
   readonly #userAgent: string;
   readonly #now: () => number;
@@ -132,7 +143,7 @@ export class OperaStore {
   readonly #queue: (() => void)[] = [];
 
   constructor(opts: OperaStoreOptions) {
-    this.#dir = opts.dir;
+    this.#maxSharedBytes = opts.maxSharedBytes ?? MAX_SHARED_BYTES;
     this.#counters = opts.counters;
     this.#userAgent = opts.userAgent;
     this.#now = opts.now ?? Date.now;
@@ -211,7 +222,7 @@ export class OperaStore {
     return png;
   }
 
-  /** The class grid of frame `time`: memory, disk, or the bucket once. */
+  /** The class grid of frame `time`: memory, the shared cache, or the bucket once. */
   async grid(time: number): Promise<ClassGrid> {
     const held = this.#grids.get(time);
     if (held !== undefined) {
@@ -234,39 +245,39 @@ export class OperaStore {
     return grid;
   }
 
-  #file(time: number): string {
-    return join(this.#dir, `${operaStamp(time)}.v${String(GRID_VERSION)}.grid`);
-  }
-
-  async #readFile(time: number): Promise<ClassGrid | undefined> {
+  async #readShared(time: number): Promise<ClassGrid | undefined> {
     try {
-      return await parseGrid(await readFile(this.#file(time)));
+      const bytes = await this.#counters.get<Uint8Array>(operaGridKey(time));
+      return bytes === undefined ? undefined : await parseGrid(Buffer.from(bytes));
     } catch {
       return undefined;
     }
   }
 
   async #load(time: number): Promise<ClassGrid> {
-    const onDisk = await this.#readFile(time);
-    if (onDisk !== undefined) return onDisk;
+    const shared = await this.#readShared(time);
+    if (shared !== undefined) return shared;
     const failKey = `opera:fail:${String(time)}`;
     if ((await this.#counters.get<boolean>(failKey)) === true) {
       throw new OperaUpstreamError('frame failed a moment ago');
     }
-    // One worker fetches; the others wait for its file, and fetch
-    // themselves only if it never comes.
-    const lock = await this.#counters.incr(`opera:lock:${String(time)}`, 1, {
-      ttlIfNew: LOCK_TTL_S,
-    });
+    // One worker fetches; the others wait for its entry, and fetch
+    // themselves only if it never comes, or cannot be shared.
+    const unsharedKey = `opera:unshared:${String(time)}`;
+    const unshared = async () => (await this.#counters.get<boolean>(unsharedKey)) === true;
+    const lock = (await unshared())
+      ? 1
+      : await this.#counters.incr(`opera:lock:${String(time)}`, 1, { ttlIfNew: LOCK_TTL_S });
     if (lock > 1) {
       const deadline = Date.now() + LOCK_WAIT_MS;
       while (Date.now() < deadline) {
         await new Promise((resolve) => setTimeout(resolve, LOCK_POLL_MS));
-        const theirs = await this.#readFile(time);
+        const theirs = await this.#readShared(time);
         if (theirs !== undefined) return theirs;
         if ((await this.#counters.get<boolean>(failKey)) === true) {
           throw new OperaUpstreamError('frame failed on another worker');
         }
+        if (await unshared()) break;
       }
     }
     let grid: ClassGrid;
@@ -277,7 +288,7 @@ export class OperaStore {
       await this.#counters.set(failKey, true, FAIL_TTL_S);
       throw err;
     }
-    await this.#write(time, grid);
+    await this.#share(time, grid);
     return grid;
   }
 
@@ -319,48 +330,32 @@ export class OperaStore {
     return grid;
   }
 
-  async #write(time: number, grid: ClassGrid): Promise<void> {
+  async #share(time: number, grid: ClassGrid): Promise<void> {
     try {
-      await mkdir(this.#dir, { recursive: true });
-      const file = this.#file(time);
-      const tmp = `${file}.${String(process.pid)}.tmp`;
-      await writeFile(tmp, await serialiseGrid(grid));
-      await rename(tmp, file);
-      await this.prune();
+      const bytes = await serialiseGrid(grid);
+      if (bytes.length > this.#maxSharedBytes) {
+        // The cache would refuse it: this worker keeps it in memory, the
+        // others fetch their own.
+        this.#log?.warn(
+          { frame: operaStamp(time), bytes: bytes.length },
+          'opera grid too large to share',
+        );
+        await this.#markUnshared(time);
+        return;
+      }
+      await this.#counters.set(operaGridKey(time), new Uint8Array(bytes), OPERA_KEEP_MS / 1000);
     } catch (err) {
-      // Served from memory all the same; the next worker fetches its own.
-      this.#log?.warn({ err: String(err) }, 'opera grid not written');
+      this.#log?.warn({ err: String(err) }, 'opera grid not shared');
+      await this.#markUnshared(time);
     }
   }
 
-  /** Deletes the grids older than [OPERA_KEEP_MS] and stray temporary files. */
-  async prune(): Promise<void> {
-    const cutoff = this.#now() - OPERA_KEEP_MS;
-    let names: string[];
+  /** Tells the other workers not to wait for this frame's grid. */
+  async #markUnshared(time: number): Promise<void> {
     try {
-      names = await readdir(this.#dir);
+      await this.#counters.set(`opera:unshared:${String(time)}`, true, OPERA_KEEP_MS / 1000);
     } catch {
-      return;
-    }
-    for (const name of names) {
-      const m = /^(\d{8}T\d{4})(?:\.v(\d+))?\.grid(\..+\.tmp)?$/.exec(name);
-      if (m === null) continue;
-      const s = m[1] ?? '';
-      const t = Date.UTC(
-        Number(s.slice(0, 4)),
-        Number(s.slice(4, 6)) - 1,
-        Number(s.slice(6, 8)),
-        Number(s.slice(9, 11)),
-        Number(s.slice(11, 13)),
-      );
-      // A grid of another version is never read again.
-      const current = Number(m[2] ?? '1') === GRID_VERSION;
-      if (current && t >= cutoff) continue;
-      try {
-        await unlink(join(this.#dir, name));
-      } catch {
-        // Another worker got there first.
-      }
+      // They wait out the lock instead.
     }
   }
 

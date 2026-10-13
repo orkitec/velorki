@@ -18,7 +18,11 @@ export interface Counters {
    */
   incr(key: string, delta?: number, opts?: { ttlIfNew?: number }): Promise<number>;
   get<T>(key: string): Promise<T | undefined>;
-  /** `ttl` in seconds; omitted means "until evicted". */
+  /**
+   * `ttl` in seconds; omitted means "until evicted". A value may be any
+   * structured-cloneable one, binary (`Uint8Array`) too, as the OPERA
+   * radar's grids are; the orkify backend refuses one over 1 MB (it throws).
+   */
   set(key: string, value: unknown, ttl?: number): Promise<void>;
 }
 
