@@ -9,9 +9,10 @@ import 'package:velorki_api/velorki_api.dart' show WeatherSource;
 import '../../../app/router.dart';
 import '../../../core/links/link_opener.dart';
 import '../../../core/plus/plus_gate.dart';
-import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
+import '../../map/data/weather_map_preferences.dart';
+import '../../map/domain/weather_map.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/covering_sheets.dart';
@@ -20,19 +21,11 @@ import '../../shared/presentation/metric_chart.dart' show DistanceWindow;
 import '../../shared/presentation/stat_tile.dart';
 import '../../subscription/application/plus_access.dart';
 import '../application/route_weather_controller.dart';
-import '../application/wind_on_map.dart';
 import '../domain/route_weather.dart';
 import '../domain/route_weather_state.dart';
 import 'route_weather_strip.dart';
-
-/// The gust from which the summary names it, m/s: a strong breeze, force 6.
-const double weatherGustShownMs = 10;
-
-/// The departure can be moved this far past the earliest one.
-const Duration weatherDepartureRange = Duration(hours: 24);
-
-/// The departure moves in steps of this.
-const Duration weatherDepartureStep = Duration(minutes: 15);
+import 'weather_digest_text.dart';
+import 'weather_keys.dart';
 
 /// The weather on the way, in the planner's sheet under the surfaces.
 ///
@@ -43,13 +36,17 @@ const Duration weatherDepartureStep = Duration(minutes: 15);
 ///
 /// Its strip shares the elevation profile's [window] and [cursor].
 class RouteWeatherSection extends ConsumerWidget {
-  /// Creates the section.
+  /// Creates the section of [route]'s weather.
   const RouteWeatherSection({
     super.key,
+    this.route = plannerWeatherRoute,
     this.window,
     this.onWindow,
     this.cursor,
   });
+
+  /// Whose weather it is: the planner's route, or a saved one.
+  final WeatherRoute route;
 
   /// See [RouteWeatherStrip.window].
   final DistanceWindow? window;
@@ -71,14 +68,17 @@ class RouteWeatherSection extends ConsumerWidget {
       case PlusAccess.granted:
         break;
     }
-    return switch (ref.watch(routeWeatherControllerProvider)) {
-      AsyncError(:final error) => _Frame(child: _WeatherError(error: error)),
-      AsyncLoading() => const _Frame(child: _WeatherBody(state: null)),
+    return switch (ref.watch(routeWeatherControllerProvider(route))) {
+      AsyncError(:final error) => _Frame(
+        child: _WeatherError(route: route, error: error),
+      ),
+      AsyncLoading() => _Frame(child: _WeatherBody(route: route, state: null)),
       AsyncData(:final value) =>
         value == null
             ? const SizedBox.shrink()
             : _Frame(
                 child: _WeatherBody(
+                  route: route,
                   state: value,
                   window: window,
                   onWindow: onWindow,
@@ -142,8 +142,9 @@ class _LockedTeaser extends StatelessWidget {
 
 /// The forecast could not be had: why, and a way to ask again.
 class _WeatherError extends ConsumerWidget {
-  const _WeatherError({required this.error});
+  const _WeatherError({required this.route, required this.error});
 
+  final WeatherRoute route;
   final Object error;
 
   @override
@@ -164,7 +165,7 @@ class _WeatherError extends ConsumerWidget {
         TextButton(
           style: TextButton.styleFrom(padding: EdgeInsets.zero),
           onPressed: () =>
-              ref.read(routeWeatherControllerProvider.notifier).retry(),
+              ref.read(routeWeatherControllerProvider(route).notifier).retry(),
           child: Text(l10n.weatherTryAgain),
         ),
       ],
@@ -172,27 +173,33 @@ class _WeatherError extends ConsumerWidget {
   }
 }
 
-/// The best departure of each forecast, worked out once: it does not depend
-/// on the departure chosen, only on the forecast and where it starts.
+/// The best departure of each forecast, worked out once for where its
+/// steps start and the departure chosen.
 final Expando<_Best> _bestDepartures = Expando<_Best>('bestDeparture');
 
 class _Best {
-  const _Best(this.from, this.at);
+  const _Best(this.from, this.departure, this.offset);
 
   final DateTime from;
-  final DateTime? at;
+  final DateTime departure;
+
+  /// The time control's step it is at, minutes from [from].
+  final int? offset;
 }
 
-/// The forecast: the summary, the strip, the departure and the switches.
-/// Without [state], the same rows, empty, at the same height.
+/// The forecast: the line that sums it up, the strip with its key, the
+/// departure and the attribution. Without [state], the same rows, empty, at
+/// the same height.
 class _WeatherBody extends ConsumerWidget {
   const _WeatherBody({
+    required this.route,
     required this.state,
     this.window,
     this.onWindow,
     this.cursor,
   });
 
+  final WeatherRoute route;
   final RouteWeatherState? state;
   final DistanceWindow? window;
   final ValueChanged<DistanceWindow?>? onWindow;
@@ -209,44 +216,66 @@ class _WeatherBody extends ConsumerWidget {
       color: theme.colorScheme.onSurfaceVariant,
     );
 
-    final facts = s == null ? null : _facts(l10n, system, s);
-    final temperature = summary == null ? null : _temperature(l10n, system, s!);
+    final parts = s == null
+        ? null
+        : weatherDigestParts(
+            l10n,
+            system,
+            s.digest,
+            clock: (at) => _clock(context, at),
+          );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SectionCaption(l10n.weatherTitle),
-        const SizedBox(height: 10),
-        _FactsRow(facts: facts),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
+        _SummaryLine(
+          text: parts == null
+              ? null
+              : parts.isEmpty
+              ? l10n.weatherNoForecast
+              : parts.join(' · '),
+        ),
+        const SizedBox(height: 8),
         RouteWeatherStrip(
           weather: s?.weather,
           window: window,
           onWindow: onWindow,
           cursor: cursor,
+          rowLabels: (
+            wind: l10n.weatherWind,
+            rain: l10n.weatherRain,
+            temperature: l10n.weatherTemperatureShort,
+          ),
           maxTempLabel: summary?.maxTemp == null
               ? null
               : formatTemperature(l10n, system, summary!.maxTemp!),
           minTempLabel: summary?.minTemp == null
               ? null
               : formatTemperature(l10n, system, summary!.minTemp!),
-          semanticsLabel: facts == null
+          semanticsLabel: parts == null || parts.isEmpty
               ? l10n.weatherTitle
               : l10n.weatherStripSemantics(
-                  facts.wind ?? '',
-                  facts.rain ?? '',
-                  temperature ?? '',
+                  parts[1],
+                  parts[0],
+                  parts.length > 2 ? parts[2] : '',
                 ),
         ),
-        const SizedBox(height: 8),
-        _Departure(state: s),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          dense: true,
-          title: Text(l10n.weatherWindOnMap),
-          value: ref.watch(windOnMapProvider),
-          onChanged: (on) =>
-              unawaited(ref.read(windOnMapProvider.notifier).set(on)),
+        const SizedBox(height: 6),
+        // The arrows' colours, under the plot as the profile's axis is.
+        Padding(
+          padding: const EdgeInsetsDirectional.only(
+            start: weatherStripLeftInset,
+          ),
+          child: WindColourKey(
+            calm:
+                s?.weather.weather.any((w) => w?.windClass == WindClass.calm) ??
+                false,
+          ),
         ),
+        const SizedBox(height: 12),
+        _Departure(route: route, state: s),
+        const SizedBox(height: 4),
         // Always there while the forecast is shown: the services ask for it.
         if (s == null)
           Padding(
@@ -264,220 +293,96 @@ class _WeatherBody extends ConsumerWidget {
     return used.isNotEmpty ? used : s.forecast.sources;
   }
 
-  static String? _temperature(
-    AppLocalizations l10n,
-    units.UnitSystem system,
-    RouteWeatherState s,
-  ) {
-    final lo = s.summary.minTemp;
-    final hi = s.summary.maxTemp;
-    if (lo == null || hi == null) return null;
-    final low = units.temperatureIn(system, lo).round();
-    final high = units.temperatureIn(system, hi).round();
-    if (low == high) return formatTemperature(l10n, system, hi);
-    return l10n.weatherTemperatureRange(
-      '$low',
-      formatTemperature(l10n, system, hi),
-    );
-  }
-
-  static _Facts _facts(
-    AppLocalizations l10n,
-    units.UnitSystem system,
-    RouteWeatherState s,
-  ) {
-    final summary = s.summary;
-    final temperature = _temperature(l10n, system, s);
-    if (temperature == null) return _Facts(none: l10n.weatherNoForecast);
-    final shares = <(WindClass, double)>[
-      (WindClass.headwind, summary.headwindShare),
-      (WindClass.crosswind, summary.crosswindShare),
-      (WindClass.tailwind, summary.tailwindShare),
-      (WindClass.calm, summary.calmShare),
-    ]..sort((a, b) => b.$2.compareTo(a.$2));
-    final (windClass, share) = shares.first;
-    final percent = formatPercent(l10n, share);
-    final wind = switch (windClass) {
-      WindClass.headwind => l10n.weatherHeadwind(percent),
-      WindClass.crosswind => l10n.weatherCrosswind(percent),
-      WindClass.tailwind => l10n.weatherTailwind(percent),
-      WindClass.calm => l10n.weatherMostlyCalm,
-    };
-    final firstRain = summary.firstRainM;
-    final rain = firstRain == null
-        ? l10n.weatherDry
-        : l10n.weatherRainFrom(formatDistance(l10n, system, firstRain));
-    final gust = summary.maxGustMs;
-    return _Facts(
-      temperature: temperature,
-      wind: wind,
-      windClass: windClass,
-      rain: rain,
-      wet: firstRain != null,
-      gusts: gust == null || gust < weatherGustShownMs
-          ? null
-          : l10n.weatherGusts(
-              formatMeasure(l10n, units.formatSpeed(system, gust)),
-            ),
-    );
-  }
-}
-
-/// The summary in words.
-class _Facts {
-  const _Facts({
-    this.temperature,
-    this.wind,
-    this.windClass,
-    this.rain,
-    this.wet = false,
-    this.gusts,
-    this.none,
-  });
-
-  final String? temperature;
-  final String? wind;
-  final WindClass? windClass;
-  final String? rain;
-  final bool wet;
-  final String? gusts;
-
-  /// Said instead, when the forecast has nothing for the ride.
-  final String? none;
-}
-
-/// The summary as small facts, an icon and a few words each, in the look of
-/// the surface section's legend: two rows of two, always, so the section is
-/// as tall with gusts as without, and as tall empty while the forecast is on
-/// its way.
-class _FactsRow extends StatelessWidget {
-  const _FactsRow({required this.facts});
-
-  final _Facts? facts;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final f = facts;
-    const blank = Opacity(
-      opacity: 0,
-      child: _Fact(icon: Icons.thermostat_rounded, text: ' '),
-    );
-    Widget grid(Widget a, Widget? b, Widget c, Widget? d) => Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(child: a),
-            if (b != null) ...[const SizedBox(width: 16), Expanded(child: b)],
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(child: c),
-            if (d != null) ...[const SizedBox(width: 16), Expanded(child: d)],
-          ],
-        ),
-      ],
-    );
-    if (f == null) return grid(blank, blank, blank, blank);
-    final none = f.none;
-    if (none != null) {
-      return grid(
-        _Fact(icon: Icons.cloud_off_outlined, text: none),
-        null,
-        blank,
-        null,
+  /// [at]'s time of day as the phone writes it, in its time zone.
+  static String _clock(BuildContext context, DateTime at) =>
+      MaterialLocalizations.of(context).formatTimeOfDay(
+        TimeOfDay.fromDateTime(at.toLocal()),
+        alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
       );
-    }
-    return grid(
-      _Fact(icon: Icons.thermostat_rounded, text: f.temperature!),
-      _Fact(icon: Icons.air, text: f.wind!),
-      _Fact(
-        icon: f.wet ? Icons.water_drop : Icons.water_drop_outlined,
-        text: f.rain!,
-      ),
-      f.gusts == null
-          ? const SizedBox.shrink()
-          : _Fact(
-              icon: Icons.storm_outlined,
-              text: f.gusts!,
-              color: theme.colorScheme.error,
-            ),
-    );
-  }
 }
 
-class _Fact extends StatelessWidget {
-  const _Fact({required this.icon, required this.text, this.color});
+/// The forecast in a line of words, mostly one or two; at least two lines'
+/// height, so the section does not grow when the forecast comes, nor when a
+/// line of one becomes a line of two.
+class _SummaryLine extends StatelessWidget {
+  const _SummaryLine({required this.text});
 
-  final IconData icon;
-  final String text;
-  final Color? color;
+  final String? text;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final muted = theme.colorScheme.onSurfaceVariant;
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: color ?? muted),
-        const SizedBox(width: 6),
-        // One line whatever the language: a fact too long for its half of
-        // the row is set a little smaller.
-        Flexible(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: AlignmentDirectional.centerStart,
-            child: Text(
-              text,
-              maxLines: 1,
-              softWrap: false,
-              style: theme.textTheme.labelMedium?.copyWith(color: muted),
-            ),
-          ),
-        ),
-      ],
+    final style = theme.textTheme.bodyMedium;
+    // Two lines' height whatever the text: the strip below stays put
+    // between a line of one and a line of two.
+    final painter = TextPainter(
+      text: TextSpan(text: ' \n ', style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final height = painter.height;
+    painter.dispose();
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: height),
+      child: Text(text ?? ' ', style: style),
     );
   }
 }
 
-/// When the rider leaves: the time, a slider over the next twelve hours in
-/// quarter hours, and the best time. Without [state], the same row, idle.
-class _Departure extends ConsumerWidget {
-  const _Departure({required this.state});
+/// When the rider leaves: the time and the best time. The departure is the
+/// time control's ([weatherRadarOffsetProvider]): on the Plan tab the one
+/// over the map, so here only the time is said; on a saved route's page,
+/// which has none, a slider on the same steps ([weatherRadarOffsets]), set
+/// when it is let go as the map's is. Best time moves the control to its
+/// step with the least rain and headwind. Without [state], the same row,
+/// idle.
+class _Departure extends ConsumerStatefulWidget {
+  const _Departure({required this.route, required this.state});
 
+  final WeatherRoute route;
   final RouteWeatherState? state;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Departure> createState() => _DepartureState();
+}
+
+class _DepartureState extends ConsumerState<_Departure> {
+  /// The slider's step while a finger moves it.
+  int? _dragging;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final s = state;
-    final controller = ref.read(routeWeatherControllerProvider.notifier);
-    final steps =
-        weatherDepartureRange.inMinutes ~/ weatherDepartureStep.inMinutes;
+    final s = widget.state;
+    final controller = ref.read(
+      routeWeatherControllerProvider(widget.route).notifier,
+    );
+    final committed = ref.watch(weatherRadarOffsetProvider);
+    final offset = _dragging ?? committed;
 
     String? when;
-    var value = 0.0;
-    DateTime? best;
+    int? best;
     if (s != null) {
       final now = ref.read(weatherClockProvider)();
-      when = _formatDeparture(context, l10n, s.departure, now);
-      value =
-          (s.departure.difference(s.earliestDeparture).inMinutes /
-                  weatherDepartureStep.inMinutes)
-              .clamp(0, steps)
-              .toDouble();
+      final shown = _dragging == null
+          ? s.departure
+          : s.earliestDeparture.add(Duration(minutes: offset));
+      when = _formatDeparture(context, l10n, shown, now);
       var cached = _bestDepartures[s.forecast];
-      if (cached == null || cached.from != s.earliestDeparture) {
-        cached = _Best(s.earliestDeparture, controller.suggestBestDeparture());
+      if (cached == null ||
+          cached.from != s.earliestDeparture ||
+          cached.departure != s.departure) {
+        cached = _Best(
+          s.earliestDeparture,
+          s.departure,
+          controller.suggestBestOffset(),
+        );
         _bestDepartures[s.forecast] = cached;
       }
-      best = cached.at;
+      best = cached.offset;
     }
-    final bestIsNow = s != null && best != null && best == s.departure;
+    final bestIsNow = s != null && best != null && best == s.offsetMinutes;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -511,28 +416,40 @@ class _Departure extends ConsumerWidget {
             TextButton(
               onPressed: s == null || best == null || bestIsNow
                   ? null
-                  : () => controller.setDeparture(best!),
+                  : () => ref
+                        .read(weatherRadarOffsetProvider.notifier)
+                        .set(best!),
               child: Text(
                 bestIsNow ? l10n.weatherBestTimeNow : l10n.weatherBestTime,
               ),
             ),
           ],
         ),
-        Slider(
-          value: value,
-          max: steps.toDouble(),
-          divisions: steps,
-          label: when,
-          semanticFormatterCallback: (_) => when ?? '',
-          onChanged: s == null
-              ? null
-              : (v) {
-                  final time = s.earliestDeparture.add(
-                    weatherDepartureStep * v.round(),
-                  );
-                  if (time != s.departure) controller.setDeparture(time);
-                },
-        ),
+        // The Plan tab's departure is the time control over the map.
+        if (widget.route is! PlannerWeatherRoute)
+          Semantics(
+            label: l10n.mapWeatherDepartureTime,
+            child: Slider(
+              value: weatherSliderIndexOf(offset).toDouble(),
+              max: (weatherRadarOffsets.length - 1).toDouble(),
+              divisions: weatherRadarOffsets.length - 1,
+              label: when,
+              semanticFormatterCallback: (_) => when ?? '',
+              onChanged: s == null
+                  ? null
+                  : (v) => setState(
+                      () => _dragging = weatherOffsetOfSliderIndex(v.round()),
+                    ),
+              onChangeEnd: s == null
+                  ? null
+                  : (v) {
+                      setState(() => _dragging = null);
+                      ref
+                          .read(weatherRadarOffsetProvider.notifier)
+                          .set(weatherOffsetOfSliderIndex(v.round()));
+                    },
+            ),
+          ),
       ],
     );
   }

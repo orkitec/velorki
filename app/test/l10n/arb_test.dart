@@ -203,6 +203,7 @@ const Map<String, String> sameAsEnglish = <String, String>{
   'rideHeartRateZoneLabel': 'Z for zone, the training abbreviation',
   'ridePowerZoneTopLabel': 'Z for zone, the training abbreviation',
   // Words the target languages use as they are.
+  'weatherWind': 'Wind is the word in German and Dutch',
   'settingsVersion': 'same word',
   'profileGravel': 'bike type, borrowed',
   'profileMtb': 'abbreviation',

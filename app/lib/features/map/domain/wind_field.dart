@@ -115,17 +115,20 @@ class WindRequest {
   }
 
   /// The request's URL from [source]'s template at [frame]: `{west}`,
-  /// `{south}`, `{east}`, `{north}` and `{time}` filled in, and where the
+  /// `{south}`, `{east}`, `{north}`, `{time}` and `{runTime}` (the frame's
+  /// run) filled in, and where the
   /// grid is thinned the size the service is to scale it to.
   String url(WeatherMapSource source, WeatherFrame frame) {
     String f(double v) => v.toStringAsFixed(3);
     final time = frame.time;
+    final run = frame.run;
     final base = source.urlTemplate
         .replaceAll('{west}', f(box.west))
         .replaceAll('{south}', f(box.south))
         .replaceAll('{east}', f(box.east))
         .replaceAll('{north}', f(box.north))
-        .replaceAll('{time}', time == null ? '' : formatWeatherTime(time));
+        .replaceAll('{time}', time == null ? '' : formatWeatherTime(time))
+        .replaceAll('{runTime}', run == null ? '' : formatWeatherTime(run));
     if (thinning <= 1) return base;
     return '$base&scalesize=i($columns),j($rows)';
   }
@@ -236,22 +239,21 @@ DateTime windFrameTime(
   return DateTime.fromMillisecondsSinceEpoch(wanted, isUtc: true);
 }
 
-/// The wind on a regular grid, as the service sent it: [columns] × [rows]
-/// points, the first at [lon0]/[lat0] (a cell's middle), [lonStep] east and
-/// [latStep] (negative: rows run south) apart; [u] and [v] in m/s, row by
-/// row from the north, NaN where the model has none.
-class WindGrid {
+/// A regular grid as GeoServer's WCS sent it: [columns] × [rows] points,
+/// the first at [lon0]/[lat0] (a cell's middle), [lonStep] east and
+/// [latStep] (negative: rows run south) apart; each of [bands] row by row
+/// from the north, NaN where the model has no value.
+class WcsGrid {
   /// Creates the grid.
-  WindGrid({
+  WcsGrid({
     required this.lon0,
     required this.lat0,
     required this.lonStep,
     required this.latStep,
     required this.columns,
     required this.rows,
-    required this.u,
-    required this.v,
-  }) : assert(u.length == columns * rows && v.length == columns * rows);
+    required this.bands,
+  }) : assert(bands.every((b) => b.length == columns * rows));
 
   final double lon0;
   final double lat0;
@@ -259,16 +261,16 @@ class WindGrid {
   final double latStep;
   final int columns;
   final int rows;
-  final Float32List u;
-  final Float32List v;
+  final List<Float32List> bands;
 
-  /// The wind (u, v) at [lat]/[lon], interpolated between the four grid
-  /// points around it, a point without a value left out and the others
-  /// weighed up (on a point without one, the four alike); `null` outside
-  /// the grid or where none of the four has one. A [lon] west of the grid is taken a turn further east, for a
-  /// grid across the antimeridian.
-  (double, double)? sample(double lat, double lon) {
-    if (columns < 1 || rows < 1) return null;
+  /// Every band at [lat]/[lon], interpolated between the four grid points
+  /// around it, a point without a value (in any band) left out and the
+  /// others weighed up (on a point without one, the four alike); `null`
+  /// outside the grid or where none of the four has one. A [lon] west of
+  /// the grid is taken a turn further east, for a grid across the
+  /// antimeridian.
+  List<double>? sampleBands(double lat, double lon) {
+    if (columns < 1 || rows < 1 || bands.isEmpty) return null;
     var x = (lon - lon0) / lonStep;
     if (x < -1e-9 && lonStep > 0) x = (lon + 360 - lon0) / lonStep;
     final y = (lat - lat0) / latStep;
@@ -280,17 +282,15 @@ class WindGrid {
     final y1 = math.min(y0 + 1, rows - 1);
     final fx = (x - x0).clamp(0.0, 1.0);
     final fy = (y - y0).clamp(0.0, 1.0);
-    var su = 0.0;
-    var sv = 0.0;
+    final sums = List<double>.filled(bands.length, 0);
     var sw = 0.0;
     void add(int cx, int cy, double w) {
       if (w <= 0) return;
       final i = cy * columns + cx;
-      final a = u[i];
-      final b = v[i];
-      if (a.isNaN || b.isNaN) return;
-      su += a * w;
-      sv += b * w;
+      if (bands.any((b) => b[i].isNaN)) return;
+      for (var k = 0; k < bands.length; k++) {
+        sums[k] += bands[k][i] * w;
+      }
       sw += w;
     }
 
@@ -307,7 +307,35 @@ class WindGrid {
       add(x1, y1, 1);
     }
     if (sw <= 0) return null;
-    return (su / sw, sv / sw);
+    return <double>[for (final s in sums) s / sw];
+  }
+}
+
+/// The wind on a regular grid, as the service sent it: a [WcsGrid] of two
+/// bands, [u] and [v] in m/s.
+class WindGrid extends WcsGrid {
+  /// Creates the grid.
+  WindGrid({
+    required super.lon0,
+    required super.lat0,
+    required super.lonStep,
+    required super.latStep,
+    required super.columns,
+    required super.rows,
+    required Float32List u,
+    required Float32List v,
+  }) : super(bands: <Float32List>[u, v]);
+
+  /// The wind's east component, m/s.
+  Float32List get u => bands[0];
+
+  /// The wind's north component, m/s.
+  Float32List get v => bands[1];
+
+  /// The wind (u, v) at [lat]/[lon], as [sampleBands] interpolates it.
+  (double, double)? sample(double lat, double lon) {
+    final s = sampleBands(lat, lon);
+    return s == null ? null : (s[0], s[1]);
   }
 }
 
@@ -316,9 +344,10 @@ class WindGrid {
 /// (`Grid range: GridEnvelope2D[741..760, 153..168]`, columns then rows,
 /// both ends in) and the affine from grid to degrees (`elt_0_0` and so on,
 /// a parameter equal to the identity's left out; the point it gives is a
-/// cell's middle), then `Band 0:` (u) and `Band 1:` (v), each a line of
-/// values per row, from the north. `null` where it is not such a grid.
-WindGrid? parseWcsWindGrid(String text) {
+/// cell's middle), then `Band 0:`, `Band 1:` and so on, [bands] of them,
+/// each a line of values per row, from the north. `null` where it is not
+/// such a grid.
+WcsGrid? parseWcsGrid(String text, {int bands = 1}) {
   final range = RegExp(
     r'Grid range:\s*\w+\[(-?\d+)\.\.(-?\d+),\s*(-?\d+)\.\.(-?\d+)\]',
   ).firstMatch(text);
@@ -349,33 +378,70 @@ WindGrid? parseWcsWindGrid(String text) {
   final lonStep = affine['elt_0_0']!;
   final latStep = affine['elt_1_1']!;
   if (lonStep == 0 || latStep == 0) return null;
-  final bands = <Float32List>[];
-  for (final band in <String>['Band 0:', 'Band 1:']) {
+  final values = <Float32List>[];
+  for (var k = 0; k < bands; k++) {
+    final band = 'Band $k:';
     final start = text.indexOf(band);
     if (start < 0) return null;
     final body = text.substring(start + band.length);
     final end = body.indexOf('Band ');
-    final values = (end < 0 ? body : body.substring(0, end))
+    final words = (end < 0 ? body : body.substring(0, end))
         .split(RegExp(r'\s+'))
         .where((s) => s.isNotEmpty)
         .toList();
-    if (values.length != columns * rows) return null;
+    if (words.length != columns * rows) return null;
     final out = Float32List(columns * rows);
-    for (var k = 0; k < values.length; k++) {
-      out[k] = double.tryParse(values[k]) ?? double.nan;
+    for (var n = 0; n < words.length; n++) {
+      out[n] = double.tryParse(words[n]) ?? double.nan;
     }
-    bands.add(out);
+    values.add(out);
   }
-  return WindGrid(
+  return WcsGrid(
     lon0: lonStep * i0 + affine['elt_0_2']!,
     lat0: latStep * j0 + affine['elt_1_2']!,
     lonStep: lonStep,
     latStep: latStep,
     columns: columns,
     rows: rows,
-    u: bands[0],
-    v: bands[1],
+    bands: values,
   );
+}
+
+/// The wind grid of [text] ([parseWcsGrid]): `Band 0:` is u, `Band 1:` v.
+WindGrid? parseWcsWindGrid(String text) {
+  final grid = parseWcsGrid(text, bands: 2);
+  if (grid == null) return null;
+  return WindGrid(
+    lon0: grid.lon0,
+    lat0: grid.lat0,
+    lonStep: grid.lonStep,
+    latStep: grid.latStep,
+    columns: grid.columns,
+    rows: grid.rows,
+    u: grid.bands[0],
+    v: grid.bands[1],
+  );
+}
+
+/// The newest run in a WCS DescribeCoverage answer: the latest
+/// `timePosition` of its `REFERENCE_TIME` dimension; `null` without one.
+///
+/// The DWD's model coverages hold several runs at once, and a GetCoverage
+/// that names none is answered from the *oldest* run that has the hour, a
+/// day or more behind; so a request names the newest run this reads.
+DateTime? parseNewestRun(String xml) {
+  final start = xml.indexOf('name="REFERENCE_TIME"');
+  if (start < 0) return null;
+  final end = xml.indexOf('DimensionDomain>', start);
+  final body = xml.substring(start, end < 0 ? xml.length : end);
+  DateTime? newest;
+  for (final m in RegExp(
+    r'<gml:timePosition>([^<]+)</gml:timePosition>',
+  ).allMatches(body)) {
+    final t = DateTime.tryParse(m.group(1)!.trim())?.toUtc();
+    if (t != null && (newest == null || t.isAfter(newest))) newest = t;
+  }
+  return newest;
 }
 
 /// One arrow on the map: where it stands, where the wind blows to (degrees

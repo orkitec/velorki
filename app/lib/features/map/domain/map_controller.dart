@@ -83,7 +83,8 @@ abstract class MapController {
   /// A recorded or recording track, drawn distinct from planned routes.
   Future<void> setTrackLine(List<LatLng> points);
 
-  /// The same track cut into pieces and coloured by how fast each was ridden.
+  /// The same track cut into pieces and coloured by how fast each was ridden,
+  /// or each in a colour of its own ([TrackSegment.coloured]).
   ///
   /// Replaces whatever [setTrackLine] drew, and vice versa: there is one
   /// track on the map. A finished ride is drawn this way, a running recording
@@ -97,6 +98,15 @@ abstract class MapController {
 
   /// Takes the wind off the route.
   Future<void> clearRouteWind();
+
+  /// Stretches of the planned route each in a colour of its own — the rain
+  /// expected there, or how steep it is — drawn over the route line;
+  /// replaces what the last call drew. Remembered across a style reload like
+  /// the route lines.
+  Future<void> setRouteColours(List<ColouredSegment> segments);
+
+  /// Takes the coloured stretches off the route.
+  Future<void> clearRouteColours();
 
   /// User position puck. `null` hides it.
   ///
@@ -190,28 +200,45 @@ abstract class MapController {
 }
 
 /// One piece of a coloured track: a polyline and where it sits between the
-/// ride's slowest and its fastest stretch.
+/// ride's slowest and its fastest stretch, or a colour of its own.
 @immutable
 class TrackSegment {
-  /// Creates a segment; [t] is clamped to 0..1.
+  /// Creates a segment coloured by speed; [t] is clamped to 0..1.
   TrackSegment({required this.points, required double t})
-    : t = t.clamp(0.0, 1.0);
+    : t = t.clamp(0.0, 1.0),
+      colour = null;
+
+  /// Creates a segment drawn in [colour] (0xRRGGBB): how steep the ride was
+  /// there.
+  const TrackSegment.coloured({required this.points, required int this.colour})
+    : t = 0;
 
   /// The polyline, in riding order.
   final List<LatLng> points;
 
-  /// 0 is the slow end of the colour ramp, 1 the fast end.
+  /// 0 is the slow end of the colour ramp, 1 the fast end. Not read while
+  /// [colour] is set.
   final double t;
+
+  /// The colour the segment is drawn in instead of the speed ramp's, or
+  /// `null` for the ramp's.
+  final int? colour;
 
   @override
   bool operator ==(Object other) =>
-      other is TrackSegment && other.t == t && listEquals(other.points, points);
+      other is TrackSegment &&
+      other.t == t &&
+      other.colour == colour &&
+      listEquals(other.points, points);
 
   @override
-  int get hashCode => Object.hash(t, Object.hashAll(points));
+  int get hashCode => Object.hash(t, colour, Object.hashAll(points));
 
   @override
-  String toString() => 'TrackSegment(${points.length} points, t: $t)';
+  String toString() => colour == null
+      ? 'TrackSegment(${points.length} points, t: $t)'
+      : 'TrackSegment(${points.length} points, '
+            '#${colour!.toRadixString(16).padLeft(6, '0')})';
 }
 
 /// How the wind meets the rider on a stretch of the route, as the map
@@ -242,6 +269,64 @@ class WindSegment {
   @override
   String toString() =>
       'WindSegment(${points.length} points, ${windClass.name})';
+}
+
+/// One stretch of the route in a colour of its own: the rain expected
+/// there, or how steep it is.
+@immutable
+class ColouredSegment {
+  /// Creates a segment.
+  const ColouredSegment({required this.points, required this.colour});
+
+  /// The polyline, in riding order.
+  final List<LatLng> points;
+
+  /// The colour it is drawn in, 0xRRGGBB.
+  final int colour;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ColouredSegment &&
+      other.colour == colour &&
+      listEquals(other.points, points);
+
+  @override
+  int get hashCode => Object.hash(colour, Object.hashAll(points));
+
+  @override
+  String toString() =>
+      'ColouredSegment(${points.length} points, '
+      '#${colour.toRadixString(16).padLeft(6, '0')})';
+}
+
+/// What the route is coloured by on the map: the wind, stretches in colours
+/// of their own (the rain, the gradient), or nothing.
+@immutable
+class RouteColourLines {
+  /// Creates the lines.
+  const RouteColourLines({
+    this.wind = const <WindSegment>[],
+    this.colours = const <ColouredSegment>[],
+  });
+
+  /// Nothing on the route.
+  static const RouteColourLines none = RouteColourLines();
+
+  /// The wind's stretches.
+  final List<WindSegment> wind;
+
+  /// The stretches each in its own colour.
+  final List<ColouredSegment> colours;
+
+  @override
+  bool operator ==(Object other) =>
+      other is RouteColourLines &&
+      listEquals(other.wind, wind) &&
+      listEquals(other.colours, colours);
+
+  @override
+  int get hashCode =>
+      Object.hash(Object.hashAll(wind), Object.hashAll(colours));
 }
 
 /// How a route line is drawn: the route, a variant beside it, a preview

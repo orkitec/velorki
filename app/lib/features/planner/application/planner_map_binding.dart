@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show ValueChanged, listEquals;
+import 'package:flutter/foundation.dart' show ValueChanged;
 import 'package:flutter/painting.dart' show EdgeInsets;
 
 import 'dart:async';
@@ -6,6 +6,7 @@ import 'dart:math' as math;
 
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../map/application/route_colour_drawer.dart';
 import '../../map/domain/map_controller.dart';
 import '../domain/planner_state.dart';
 import '../domain/route_poi.dart';
@@ -107,25 +108,18 @@ class PlannerMapBinding {
   /// Read at every [sync].
   RoutePoi? Function()? shownPlace;
 
-  /// The wind to draw on the chosen route; empty for none. Read at every
-  /// [sync] and [syncWind].
-  List<WindSegment> Function()? routeWind;
+  /// What the chosen route is coloured by: the gradient, the wind or the
+  /// rain, or nothing. Read at every [sync] and [syncColours].
+  RouteColourLines Function()? routeColours;
 
-  /// The wind on the map now, so an unchanged wind is not written again.
-  List<WindSegment> _windDrawn = const <WindSegment>[];
+  /// What of the colouring is on the map now, so it is not written again.
+  final RouteColourDrawer _colours = RouteColourDrawer();
 
-  /// Draws [routeWind] on the map, or takes the wind off when it has none.
-  /// A detached binding does nothing.
-  Future<void> syncWind() async {
+  /// Draws [routeColours] on the map, or takes the colouring off when there
+  /// is none. A detached binding does nothing.
+  Future<void> syncColours() async {
     if (!_attached) return;
-    final wind = routeWind?.call() ?? const <WindSegment>[];
-    if (listEquals(wind, _windDrawn)) return;
-    _windDrawn = wind;
-    if (wind.isEmpty) {
-      await map.clearRouteWind();
-    } else {
-      await map.setRouteWind(wind);
-    }
+    await _colours.draw(map, routeColours?.call() ?? RouteColourLines.none);
   }
 
   /// How many of the markers drawn are the plan's own places.
@@ -165,12 +159,10 @@ class PlannerMapBinding {
   Future<void> clear() async {
     final ids = List<String>.of(_lineIds);
     _lineIds.clear();
-    final wind = _windDrawn.isNotEmpty;
-    _windDrawn = const <WindSegment>[];
     await Future.wait(<Future<void>>[
       map.setWaypoints(const <MapWaypoint>[]),
       map.setPois(const <MapPoi>[]),
-      if (wind) map.clearRouteWind(),
+      _colours.clear(map),
       for (final id in ids) map.removeRouteLine(id),
     ]);
   }
@@ -277,7 +269,7 @@ class PlannerMapBinding {
     _lineIds
       ..clear()
       ..addAll(wanted);
-    await syncWind();
+    await syncColours();
     if (gone()) return;
 
     // Only a plan that went from nothing to a whole route in one step (a

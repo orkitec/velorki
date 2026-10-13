@@ -61,8 +61,9 @@ class SampleWeather {
   /// When the rider gets there, UTC.
   final DateTime at;
 
-  /// Air temperature, °C.
-  final double temp;
+  /// Air temperature, °C; `null` from a source without one (the free
+  /// forecast the route is coloured by).
+  final double? temp;
 
   /// Mean wind, m/s.
   final double windMs;
@@ -98,7 +99,7 @@ class SampleWeather {
 
   @override
   String toString() =>
-      'SampleWeather(${distanceM.round()} m at $at: ${temp.toStringAsFixed(1)} °C, '
+      'SampleWeather(${distanceM.round()} m at $at: ${temp?.toStringAsFixed(1)} °C, '
       'wind ${windMs.toStringAsFixed(1)} from ${windFromDeg.round()}° '
       '(${windClass.name}), rain $precipMm)';
 }
@@ -299,8 +300,10 @@ class RouteWeatherSummary {
       total += weights[i];
       if (w == null) continue;
       byClass[w.windClass] = (byClass[w.windClass] ?? 0) + weights[i];
-      minTemp = minTemp == null ? w.temp : math.min(minTemp, w.temp);
-      maxTemp = maxTemp == null ? w.temp : math.max(maxTemp, w.temp);
+      if (w.temp case final t?) {
+        minTemp = minTemp == null ? t : math.min(minTemp, t);
+        maxTemp = maxTemp == null ? t : math.max(maxTemp, t);
+      }
       if (firstRain == null && w.wet) firstRain = w.distanceM;
       if (w.gust != null) {
         maxGust = maxGust == null ? w.gust : math.max(maxGust, w.gust!);
@@ -376,7 +379,8 @@ const double bestDepartureGain = 0.2;
 /// improve on, whatever comes later.
 const double negligibleScore = 0.5;
 
-/// The departure between [from] and [from] + [within], in [step]s, with the
+/// The departure between [from] and [from] + [within], in [step]s (or, given
+/// [offsets], at [from] plus each of them, in their order), with the
 /// lowest [departureScore], the earliest of equals, among those [usable]
 /// allows (all, without it). [current] (the rider's departure) is returned
 /// instead unless the best scores at least [bestDepartureGain] lower than it,
@@ -389,6 +393,7 @@ DateTime? bestDeparture(
   required DateTime from,
   Duration within = const Duration(hours: 12),
   Duration step = const Duration(minutes: 30),
+  Iterable<Duration>? offsets,
   DateTime? current,
   bool Function(DateTime departure)? usable,
 }) {
@@ -397,11 +402,17 @@ DateTime? bestDeparture(
       departureScore(evaluate(forecast, samples, sampleToCell, departure));
   DateTime? best;
   double? bestScore;
-  for (
-    var departure = from;
-    !departure.isAfter(from.add(within));
-    departure = departure.add(step)
-  ) {
+  final departures =
+      offsets?.map(from.add) ??
+      <DateTime>[
+        for (
+          var departure = from;
+          !departure.isAfter(from.add(within));
+          departure = departure.add(step)
+        )
+          departure,
+      ];
+  for (final departure in departures) {
     if (usable != null && !usable(departure)) continue;
     final score = scoreAt(departure);
     if (score != null && (bestScore == null || score < bestScore - 1e-9)) {

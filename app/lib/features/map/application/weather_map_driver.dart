@@ -942,11 +942,13 @@ class WeatherMapDriver {
     double zoom,
     DateTime now,
   ) {
-    final time = source.frameAt(now, offsetMinutes: step)?.time;
+    final frame = _windFrame(source, now, step);
+    final time = frame?.time;
     if (time == null) return null;
     for (final grid in _windGrids.values.toList().reversed) {
       if (grid.source == source.id &&
           grid.time == time &&
+          grid.run == frame?.run &&
           now.difference(grid.fetchedAt) < windCacheMaxAge &&
           grid.request.fits(view, zoom)) {
         return grid;
@@ -968,8 +970,9 @@ class WeatherMapDriver {
     if (map == null || view == null || source == null) return;
     final zoom = _zoomOf(view, map.zoom);
     final now = _clock();
+    _askNewest(source, now);
     final request = windRequestFor(view, zoom);
-    final frame = source.frameAt(now, offsetMinutes: _offset);
+    final frame = _windFrame(source, now, _offset);
     final time = frame?.time;
     if (request == null || frame == null || time == null) return;
     if (_windFor(source, _offset, view, zoom, now) != null) {
@@ -983,7 +986,7 @@ class WeatherMapDriver {
     if (!request.fits(view, zoom)) return;
     // One request at a time: the next is planned when it is back.
     if (_windInFlight != null) return;
-    final key = _windKey(source, request, time);
+    final key = _windKey(source, request, frame);
     // Only a request that failed waits for the refresh.
     if (_windFailed.contains(key)) return;
     _windInFlight = key;
@@ -993,8 +996,24 @@ class WeatherMapDriver {
   static String _windKey(
     WeatherMapSource source,
     WindRequest request,
-    DateTime time,
-  ) => '${source.id}@${request.key}@${time.millisecondsSinceEpoch}';
+    WeatherFrame frame,
+  ) =>
+      '${source.id}@${request.key}@${frame.time?.millisecondsSinceEpoch}'
+      '@${frame.run?.millisecondsSinceEpoch}';
+
+  /// [source]'s wind frame [step] minutes from [now], of the newest run its
+  /// service named ([WeatherMapSource.frameAt]); `null` while a source
+  /// that names its runs has not said its newest: asked without one, the
+  /// DWD answers from its oldest.
+  WeatherFrame? _windFrame(WeatherMapSource source, DateTime now, int step) {
+    final frame = source.frameAt(
+      now,
+      offsetMinutes: step,
+      newest: _newest[source.id],
+    );
+    if (source.timesUrl != null && frame?.run == null) return null;
+    return frame;
+  }
 
   Future<void> _loadWind(
     WeatherMapSource source,
@@ -1028,6 +1047,7 @@ class WeatherMapDriver {
             source: source.id,
             request: request,
             time: frame.time!,
+            run: frame.run,
             grid: grid,
             fetchedAt: now,
             attribution: source.attributionFor(frame, now),
@@ -1103,6 +1123,7 @@ class WeatherMapDriver {
     _update();
     _planRadar();
     _planDetails();
+    if (source.kind == WeatherKind.wind) _planWind();
   }
 
   /// After an image of [source] failed: where the service refused it (a
@@ -1259,12 +1280,15 @@ class WeatherMapDriver {
   }
 
   /// Whether [source] is drawn as an image of the view rather than tiles:
-  /// one with an image request, a radar only when drawn soft. The
-  /// satellite and the models are always images, as measured too, since
-  /// their images are masked.
+  /// one with an image request, a radar only when drawn soft or when it
+  /// serves no tiles (the relay's OPERA radar). The satellite and the
+  /// models are always images, as measured too, since their images are
+  /// masked.
   bool _drawnAsImage(WeatherMapSource source) {
     if (source.imageUrlTemplate == null) return false;
-    return source.role != RainRole.radar || _radarStyle == RadarStyle.soft;
+    return source.role != RainRole.radar ||
+        _radarStyle == RadarStyle.soft ||
+        !source.servesTiles;
   }
 
   /// What tells one image of [part] from the next, besides its box: its
@@ -1518,11 +1542,11 @@ class WeatherMapDriver {
         }
       }
       if (wind != null && windRequest != null && windRequest.fits(view, zoom)) {
-        final frame = wind.frameAt(now, offsetMinutes: step);
+        final frame = _windFrame(wind, now, step);
         final time = frame?.time;
         if (frame == null || time == null) continue;
         if (_windFor(wind, step, view, zoom, now) != null) continue;
-        final key = _windKey(wind, windRequest, time);
+        final key = _windKey(wind, windRequest, frame);
         if (_windFailed.contains(key) || _prefetchInFlight.contains(key)) {
           continue;
         }
@@ -1702,6 +1726,7 @@ class _WindShown {
     required this.source,
     required this.request,
     required this.time,
+    required this.run,
     required this.grid,
     required this.fetchedAt,
     required this.attribution,
@@ -1710,6 +1735,7 @@ class _WindShown {
   final String source;
   final WindRequest request;
   final DateTime time;
+  final DateTime? run;
   final WindGrid grid;
   final DateTime fetchedAt;
   final String attribution;

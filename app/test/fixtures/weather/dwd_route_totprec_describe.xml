@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><wcs:CoverageDescriptions xmlns:wcs="http://www.opengis.net/wcs/2.0" xmlns:ows="http://www.opengis.net/ows/2.0" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:gmlcov="http://www.opengis.net/gmlcov/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:swe="http://www.opengis.net/swe/2.0" xmlns:wcsgs="http://www.geoserver.org/wcsgs/2.0" xsi:schemaLocation=" http://www.opengis.net/wcs/2.0 http://schemas.opengis.net/wcs/2.0/wcsDescribeCoverage.xsd http://www.geoserver.org/wcsgs/2.0 https://maps.dwd.de/geoserver/schemas/wcs/2.0/wcsgs.xsd">
+  <wcs:CoverageDescription gml:id="dwd__Icon_reg025_fd_sl_TOTPREC">
+    <gml:description>Generated from NinJo NWP Raster Store</gml:description>
+    <gml:name>Niederschlag akkumuliert aus ICON.</gml:name>
+    <gml:boundedBy>
+      <gml:EnvelopeWithTimePeriod srsName="http://www.opengis.net/def/crs/EPSG/0/4326" axisLabels="Lat Long time" uomLabels="Deg Deg s" srsDimension="2">
+        <gml:lowerCorner>-90.125 -180.125</gml:lowerCorner>
+        <gml:upperCorner>90.125 179.875</gml:upperCorner>
+        <gml:beginPosition>2026-10-11T06:00:00.000Z</gml:beginPosition>
+        <gml:endPosition>2026-10-20T00:00:00.000Z</gml:endPosition>
+      </gml:EnvelopeWithTimePeriod>
+    </gml:boundedBy>
+    <wcs:CoverageId>dwd__Icon_reg025_fd_sl_TOTPREC</wcs:CoverageId>
+    <gml:coverageFunction>
+      <gml:GridFunction>
+        <gml:sequenceRule axisOrder="+2 +1">Linear</gml:sequenceRule>
+        <gml:startPoint>0 0</gml:startPoint>
+      </gml:GridFunction>
+    </gml:coverageFunction>
+    <gmlcov:metadata>
+      <gmlcov:Extension>
+        <ows:Keywords>
+          <ows:Keyword>Bodenfläche</ows:Keyword>
+          <ows:Keyword>Bodenniveau</ows:Keyword>
+          <ows:Keyword>Gitterpunktsfeld</ows:Keyword>
+          <ows:Keyword>GRIB</ows:Keyword>
+          <ows:Keyword>Meteorologie</ows:Keyword>
+          <ows:Keyword>Niederschlag</ows:Keyword>
+          <ows:Keyword>Numerische Wettervorhersagen</ows:Keyword>
+          <ows:Keyword>Vorhersage</ows:Keyword>
+        </ows:Keywords>
+        <wcsgs:TimeDomain xmlns:wcsgs="http://www.geoserver.org/wcsgs/2.0" default="2026-10-20T00:00:00.000Z">
+          <gml:TimePeriod gml:id="dwd__Icon_reg025_fd_sl_TOTPREC_tp_0">
+            <gml:beginPosition>2026-10-11T06:00:00.000Z</gml:beginPosition>
+            <gml:endPosition>2026-10-20T00:00:00.000Z</gml:endPosition>
+            <gml:timeInterval unit="hour">1</gml:timeInterval>
+          </gml:TimePeriod>
+        </wcsgs:TimeDomain>
+        <wcsgs:DimensionDomain xmlns:wcsgs="http://www.geoserver.org/wcsgs/2.0" name="REFERENCE_TIME" default="2026-10-12T12:00:00.000Z">
+          <gml:TimeInstant gml:id="dwd__Icon_reg025_fd_sl_TOTPREC_dd_0_0">
+            <gml:timePosition>2026-10-11T06:00:00.000Z</gml:timePosition>
+          </gml:TimeInstant>
+          <gml:TimeInstant gml:id="dwd__Icon_reg025_fd_sl_TOTPREC_dd_0_1">
+            <gml:timePosition>2026-10-11T12:00:00.000Z</gml:timePosition>
+          </gml:TimeInstant>
+          <gml:TimeInstant gml:id="dwd__Icon_reg025_fd_sl_TOTPREC_dd_0_2">
+            <gml:timePosition>2026-10-11T18:00:00.000Z</gml:timePosition>
+          </gml:TimeInstant>
+          <gml:TimeInstant gml:id="dwd__Icon_reg025_fd_sl_TOTPREC_dd_0_3">
+            <gml:timePosition>2026-10-12T00:00:00.000Z</gml:timePosition>
+          </gml:TimeInstant>
+          <gml:TimeInstant gml:id="dwd__Icon_reg025_fd_sl_TOTPREC_dd_0_4">
+            <gml:timePosition>2026-10-12T06:00:00.000Z</gml:timePosition>
+          </gml:TimeInstant>
+          <gml:TimeInstant gml:id="dwd__Icon_reg025_fd_sl_TOTPREC_dd_0_5">
+            <gml:timePosition>2026-10-12T12:00:00.000Z</gml:timePosition>
+          </gml:TimeInstant>
+        </wcsgs:DimensionDomain>
+      </gmlcov:Extension>
+    </gmlcov:metadata>
+    <gml:domainSet>
+      <gml:RectifiedGrid gml:id="grid00__dwd__Icon_reg025_fd_sl_TOTPREC" dimension="2">
+        <gml:limits>
+          <gml:GridEnvelope>
+            <gml:low>0 0</gml:low>
+            <gml:high>1439 720</gml:high>
+          </gml:GridEnvelope>
+        </gml:limits>
+        <gml:axisLabels>i j</gml:axisLabels>
+        <gml:origin>
+          <gml:Point gml:id="p00_dwd__Icon_reg025_fd_sl_TOTPREC" srsName="http://www.opengis.net/def/crs/EPSG/0/4326">
+            <gml:pos>90.0 -180.0</gml:pos>
+          </gml:Point>
+        </gml:origin>
+        <gml:offsetVector srsName="http://www.opengis.net/def/crs/EPSG/0/4326">0.0 0.25</gml:offsetVector>
+        <gml:offsetVector srsName="http://www.opengis.net/def/crs/EPSG/0/4326">-0.25 0.0</gml:offsetVector>
+      </gml:RectifiedGrid>
+    </gml:domainSet>
+    <gmlcov:rangeType>
+      <swe:DataRecord xmlns:swe="http://www.opengis.net/swe/2.0">
+        <swe:field name="Total_precipitation_ground_or_water_surface">
+          <swe:Quantity>
+            <swe:description>Total_precipitation_ground_or_water_surface</swe:description>
+            <swe:uom code="kg/m²"/>
+            <swe:constraint>
+              <swe:AllowedValues>
+                <swe:interval>0.0 495.4453125</swe:interval>
+              </swe:AllowedValues>
+            </swe:constraint>
+          </swe:Quantity>
+        </swe:field>
+      </swe:DataRecord>
+    </gmlcov:rangeType>
+    <wcs:ServiceParameters>
+      <wcs:CoverageSubtype>RectifiedGridCoverage</wcs:CoverageSubtype>
+      <wcs:nativeFormat>image/tiff</wcs:nativeFormat>
+    </wcs:ServiceParameters>
+  </wcs:CoverageDescription>
+</wcs:CoverageDescriptions>

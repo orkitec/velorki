@@ -8,11 +8,32 @@ import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
+import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../domain/weather_map.dart';
 import '../domain/wind_field.dart';
 import 'rain_legend.dart';
+
+/// The headers a weather request to [url] carries besides the fetcher's
+/// own: the relay's credentials ([RelayClient.proxyHeaders]) for a request
+/// to the OPERA radar on [relay] ([operaRadarPath], on its scheme, host and
+/// port); none for anything else, so no third-party weather service ever
+/// sees them, nor one a mirror's override pointed the source at.
+Map<String, String> relayAuthFor(RelayClient? relay, String url) {
+  if (relay == null) return const <String, String>{};
+  final target = Uri.tryParse(url);
+  final base = relay.uriFor(operaRadarPath);
+  if (target == null ||
+      target.scheme != base.scheme ||
+      target.host != base.host ||
+      target.port != base.port ||
+      target.userInfo.isNotEmpty ||
+      !target.path.startsWith('${base.path}/')) {
+    return const <String, String>{};
+  }
+  return relay.proxyHeaders;
+}
 
 /// How long a probe of one radar tile may take before the radar counts as
 /// unavailable.
@@ -898,6 +919,11 @@ const int cloudImageVersion = 2;
 /// how they are prepared.
 const int rainImageVersion = 7;
 
+/// What tells the wind grids asked for now from those an older app left in
+/// the cache, which the age limit then clears: raised with each change to
+/// what a grid is of (2: of the newest run, named in the name).
+const int windGridVersion = 2;
+
 /// The width and height of [png] from its header; `null` where it is not
 /// a PNG.
 (int, int)? pngSize(Uint8List png) {
@@ -1013,7 +1039,18 @@ class HttpWeatherFetcher implements WeatherFetcher {
     this.parseWind = parseWindGridInBackground,
     this.cacheBudget = weatherCacheBudget,
     this.decodeTile = _decode,
+    this.headersFor,
   });
+
+  /// The headers a request to a URL carries besides the defaults: the
+  /// relay's credentials for the OPERA radar ([relayAuthFor]); none
+  /// where unset.
+  final Map<String, String> Function(String url)? headersFor;
+
+  Map<String, String>? _headersOf(String url) {
+    final headers = headersFor?.call(url);
+    return headers == null || headers.isEmpty ? null : headers;
+  }
 
   /// Decodes a tile of an image put together from tiles into straight
   /// RGBA (the engine's decoder by default).
@@ -1079,13 +1116,21 @@ class HttpWeatherFetcher implements WeatherFetcher {
               responseType: ResponseType.plain,
               sendTimeout: probeTimeout,
               receiveTimeout: probeTimeout,
+              headers: _headersOf(url),
             ),
           )
           .timeout(probeTimeout);
       final status = response.statusCode ?? 0;
       final data = response.data;
       if (status < 200 || status >= 300 || data == null) return null;
-      // A model named by its run says its newest run; a WMS its frames.
+      // A model named by its run says its newest run, and so does the
+      // wind's WCS; the relay's OPERA radar its frames as JSON; a WMS its
+      // frames.
+      if (source.kind == WeatherKind.wind) return parseNewestRun(data);
+      if (data.trimLeft().startsWith('{') &&
+          source.timeFormat != WeatherTimeFormat.modelRun) {
+        return parseFramesNewest(data);
+      }
       return source.timeFormat == WeatherTimeFormat.modelRun
           ? parseModelRunTime(data)
           : parseWmsNewestTime(data);
@@ -1227,8 +1272,11 @@ class HttpWeatherFetcher implements WeatherFetcher {
   ) async {
     final time = frame.time;
     if (time == null) return null;
-    final prefix = '${source.id}_';
-    final name = '$prefix${request.key}_${time.millisecondsSinceEpoch}.txt';
+    final run = frame.run;
+    final name =
+        '${source.id}_w${windGridVersion}_${request.key}'
+        '_${time.millisecondsSinceEpoch}'
+        '${run == null ? '' : '_${run.millisecondsSinceEpoch}'}.txt';
     Directory? dir;
     try {
       dir = await cacheDir();
@@ -1281,6 +1329,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
               responseType: ResponseType.plain,
               sendTimeout: timeout,
               receiveTimeout: timeout,
+              headers: _headersOf(url),
             ),
           )
           .timeout(timeout);
@@ -1369,6 +1418,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
               responseType: ResponseType.bytes,
               sendTimeout: timeout,
               receiveTimeout: timeout,
+              headers: _headersOf(url),
             ),
           )
           .timeout(timeout);
@@ -1447,12 +1497,17 @@ class _WeatherCacheIndex {
   int _bytes = 0;
 
   static final RegExp _cloudName = RegExp(r'^\w+?_v(\d+)_');
+  static final RegExp _windName = RegExp(r'^\w+?_w(\d+)_');
   static final RegExp _rainName = RegExp(r'^\w+?_(?:soft|measured)(\d+)_');
 
   /// Whether [name] is an image prepared otherwise than now: a cloud image
   /// of another [cloudImageVersion], a rain image of another
-  /// [rainImageVersion].
+  /// [rainImageVersion]; or a wind grid of another [windGridVersion].
   static bool _stale(String name) {
+    if (name.endsWith('.txt')) {
+      final wind = _windName.firstMatch(name);
+      return wind == null || int.parse(wind[1]!) != windGridVersion;
+    }
     if (!name.endsWith('.png')) return false;
     final cloud = _cloudName.firstMatch(name);
     if (cloud != null) return int.parse(cloud[1]!) != cloudImageVersion;

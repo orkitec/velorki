@@ -55,7 +55,6 @@ import '../domain/elevation_profile.dart';
 import '../domain/planner_state.dart';
 import '../domain/route_waypoints.dart' show projectOnTrack;
 import '../domain/routing_options.dart';
-import 'elevation_profile_chart.dart';
 import 'avoided_stretches_chip.dart';
 import 'original_route_chip.dart';
 import 'profile_chip_row.dart';
@@ -65,8 +64,8 @@ import 'surface_section.dart';
 import 'surface_stats_bar.dart';
 import 'waypoint_edit_sheet.dart';
 import '../../weather/application/route_weather_controller.dart';
-import '../../weather/application/route_wind.dart';
-import '../../weather/application/wind_on_map.dart';
+import '../../weather/application/route_colouring.dart';
+import '../../weather/presentation/route_colour_choice.dart';
 import '../../weather/presentation/route_weather_section.dart';
 import '../../shared/presentation/error_text.dart';
 
@@ -659,12 +658,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             null => null,
             final place => shownPoi(place),
           };
-      // The wind on the route, when the rider asked for it on the map.
-      binding.routeWind = () => routeWindFor(
-        ref.read(plannerControllerProvider).result,
-        ref.read(routeWeatherControllerProvider),
-        on: ref.read(windOnMapProvider),
-      );
+      // What the route is coloured by: its gradient, or the wind or the
+      // rain on it, as the rider chose.
+      binding.routeColours = () =>
+          ref.read(routeColouringProvider(plannerWeatherRoute)).lines;
       _binding = binding;
     }
     binding.attach();
@@ -1084,13 +1081,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         unawaited(_binding?.sync(ref.read(plannerControllerProvider)));
       }
     });
-    // The weather or the switch for the wind on the map changed.
-    void syncWind() {
-      if (_drawing) unawaited(_binding?.syncWind());
-    }
-
-    ref.listen(routeWeatherControllerProvider, (_, _) => syncWind());
-    ref.listen(windOnMapProvider, (_, _) => syncWind());
+    // What the route on the map is coloured by changed: the choice, the
+    // route or its weather.
+    ref.listen(routeColouringProvider(plannerWeatherRoute), (_, _) {
+      if (_drawing) unawaited(_binding?.syncColours());
+    });
     ref.listen(plannerControllerProvider, (previous, next) {
       // Only while this tab's layers are on the map; a plan that changes
       // while the tab is away is drawn whole when it comes back.
@@ -1383,10 +1378,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       ),
                       children: [
                         _SheetHeader(state: state),
-                        // The rain's time control right under the figures,
-                        // in view at the resting height, while the rain is
-                        // on.
-                        const WeatherTimeRow(padding: EdgeInsets.only(top: 10)),
+                        // The time control right under the figures, in view
+                        // at the resting height, while the rain or the wind
+                        // is on, or the route's weather is shown: with a
+                        // route it is the route's departure.
+                        const _PlannerTimeRow(),
                         const SizedBox(height: 14),
                         // The variants right under the figures, where the sheet
                         // grows to show them; then the actions, so Loop and Save
@@ -1642,7 +1638,10 @@ class _SheetBodyState extends State<_SheetBody> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ElevationProfileChart(
+        // The profile, coloured as the route on the map is, and the choice
+        // of what that is under it.
+        RouteElevationProfile(
+          route: plannerWeatherRoute,
           samples: elevationProfile(route.geometry),
           window: _window,
           onWindow: _setWindow,
@@ -1797,6 +1796,23 @@ class _PlannerActions extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The map's time control on the Plan tab: with a route, also the route's
+/// departure, and shown while the route's weather is
+/// ([plannerTimeControlProvider]).
+class _PlannerTimeRow extends ConsumerWidget {
+  const _PlannerTimeRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final control = ref.watch(plannerTimeControlProvider);
+    return WeatherTimeRow(
+      padding: const EdgeInsets.only(top: 10),
+      leave: control != PlannerTimeControl.map,
+      shown: control == PlannerTimeControl.departureShown,
     );
   }
 }

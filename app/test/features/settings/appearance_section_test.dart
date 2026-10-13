@@ -7,6 +7,7 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/settings/data/appearance_controller.dart';
 import 'package:velorki/features/settings/presentation/appearance_section.dart';
+import 'package:velorki/features/shared/application/shown_bar_style.dart';
 
 import '../../support/app.dart';
 
@@ -15,6 +16,7 @@ Future<ProviderContainer> _pump(
   Map<String, Object> initial = const <String, Object>{},
   String cyclosmTileUrl = '',
   bool expectTextFits = true,
+  BarStyleOverride? glassOverride,
 }) async {
   SharedPreferences.setMockInitialValues(initial);
   final prefs = await SharedPreferences.getInstance();
@@ -24,6 +26,7 @@ Future<ProviderContainer> _pump(
       effectiveConfigProvider.overrideWithValue(
         AppConfig(cyclosmTileUrl: cyclosmTileUrl),
       ),
+      barStyleOverrideProvider.overrideWithValue(glassOverride),
     ],
   );
   addTearDown(container.dispose);
@@ -402,6 +405,22 @@ void main() {
           )
           .selected,
       {RadarStyle.measured},
+    );
+  });
+
+  testWidgets('says why the glass is solid while power is being saved', (
+    tester,
+  ) async {
+    await _pump(tester);
+    expect(find.byKey(const ValueKey<String>('glass-override')), findsNothing);
+
+    await _pump(tester, glassOverride: BarStyleOverride.systemPowerSave);
+    expect(find.text(l10n.appearanceGlassSolidPowerSave), findsOneWidget);
+
+    await _pump(tester, glassOverride: BarStyleOverride.batterySaverRide);
+    expect(
+      find.text(l10n.appearanceGlassSolidBatterySaverRide),
+      findsOneWidget,
     );
   });
 }

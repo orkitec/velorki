@@ -11,7 +11,12 @@ import '../../../core/l10n/relay_error_text.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
+import '../../map/data/weather_map_preferences.dart';
+import '../../map/domain/weather_map.dart'
+    show snapWeatherOffset, weatherRadarOffsets;
 import '../../planner/application/planner_controller.dart';
+import '../../planner/data/route_repository.dart';
+import '../../planner/domain/saved_route.dart';
 import '../../planner/domain/route_profile.dart';
 import '../domain/route_sampling.dart';
 import '../domain/route_weather.dart';
@@ -30,7 +35,7 @@ const Duration weatherDebounce = Duration(seconds: 1);
 const Duration weatherCacheTtl = Duration(minutes: 30);
 
 /// How far past the first departure the rider can move it without another
-/// request.
+/// request: the time control's last step ([weatherRadarOffsets]).
 const Duration departureSpan = Duration(hours: 24);
 
 /// The clock the departure and the cache are measured against.
@@ -84,45 +89,109 @@ WeatherProblem weatherProblemFor(RelayException e) => WeatherProblem(
   retryAfterS: e.error.retryAfterS,
 );
 
-/// The weather along the route on the Plan tab, for the time the rider
-/// gets to each part of it.
+/// The relay's answers, kept for [weatherCacheTtl] by the cells and hours
+/// asked about, for every route's weather: the card of a saved route opened
+/// again, or the same route in the planner, asks nothing.
+class WeatherForecastCache {
+  final Map<String, _CachedForecast> _entries = <String, _CachedForecast>{};
+}
+
+/// The one [WeatherForecastCache].
+@Riverpod(keepAlive: true)
+WeatherForecastCache weatherForecastCache(Ref ref) => WeatherForecastCache();
+
+/// Which route's weather a [RouteWeatherController] is about.
+sealed class WeatherRoute {
+  const WeatherRoute();
+}
+
+/// The route on the Plan tab.
+class PlannerWeatherRoute extends WeatherRoute {
+  /// The one key: see [plannerWeatherRoute].
+  const PlannerWeatherRoute._();
+
+  @override
+  bool operator ==(Object other) => other is PlannerWeatherRoute;
+
+  @override
+  int get hashCode => (PlannerWeatherRoute).hashCode;
+}
+
+/// The route on the Plan tab.
+const WeatherRoute plannerWeatherRoute = PlannerWeatherRoute._();
+
+/// A route saved in the Library, by its id.
+class SavedWeatherRoute extends WeatherRoute {
+  /// The saved route [id].
+  const SavedWeatherRoute(this.id);
+
+  /// Its id in the `routes` table.
+  final String id;
+
+  @override
+  bool operator ==(Object other) =>
+      other is SavedWeatherRoute && other.id == id;
+
+  @override
+  int get hashCode => Object.hash(SavedWeatherRoute, id);
+}
+
+/// The weather along a route, for the time the rider gets to each part of
+/// it: the Plan tab's route ([plannerWeatherRoute]), or a saved one on its
+/// card in the Library ([SavedWeatherRoute]), for a ride leaving when the
+/// time control says ([weatherRadarOffsetProvider], minutes from now: see
+/// [departureAfter]), the same control the map's rain and wind follow.
 ///
 /// `data(null)` while there is no route, no relay in this build, or no
 /// Velorki Plus: nothing is asked of the relay for a rider without it. A new
 /// route is asked about [weatherDebounce] after it stops changing, and only
 /// the answer to the latest request is shown. Answers are kept for
-/// [weatherCacheTtl], so going back to a route asks nothing. Moving the
-/// departure inside the hours fetched is worked out on the phone.
-@Riverpod(keepAlive: true)
+/// [weatherCacheTtl], so going back to a route asks nothing. The hours asked
+/// for reach from now past the control's last step, so moving the control
+/// is worked out on the phone; it is set only when its slider is let go, so
+/// a drag asks nothing on the way.
+///
+/// The planner's lives as long as the app; a saved route's as long as its
+/// card shows it.
+@riverpod
 class RouteWeatherController extends _$RouteWeatherController {
   Timer? _debounce;
 
   /// Bumped by every change that makes an answer on its way stale.
   int _generation = 0;
 
-  /// The departure the rider picked; `null` for "as soon as possible".
-  DateTime? _departure;
-
-  final Map<String, _CachedForecast> _cache = <String, _CachedForecast>{};
+  /// A saved route as the sampling reads it, and the version it is of.
+  (String, RouteResult)? _saved;
 
   @override
-  AsyncValue<RouteWeatherState?> build() {
+  AsyncValue<RouteWeatherState?> build(WeatherRoute route) {
+    if (route is PlannerWeatherRoute) ref.keepAlive();
     ref.onDispose(() {
       _debounce?.cancel();
       _generation++;
     });
-    ref.listen(
-      plannerControllerProvider.select((s) => s.result),
-      (_, _) => _changed(),
-    );
-    ref.listen(
-      plannerControllerProvider.select((s) => s.options.profile),
-      (_, _) => _changed(),
-    );
+    switch (route) {
+      case PlannerWeatherRoute():
+        ref.listen(
+          plannerControllerProvider.select((s) => s.result),
+          (_, _) => _changed(),
+        );
+        ref.listen(
+          plannerControllerProvider.select((s) => s.options.profile),
+          (_, _) => _changed(),
+        );
+      case SavedWeatherRoute(:final id):
+        // A route edited in the planner meanwhile is a new version.
+        ref.listen(
+          savedRouteProvider(id).select((r) => r.value?.updatedAt),
+          (_, _) => _changed(),
+        );
+    }
     // Bought meanwhile: a "part of Velorki Plus" error is not true any
     // more, and the weather is asked for at once.
     ref.listen(plusFeatureProvider(PlusFeature.weather), (_, _) => _changed());
     ref.listen(relayClientProvider, (_, _) => _changed());
+    ref.listen(weatherRadarOffsetProvider, (_, _) => _follow());
     if (_inputs() == null) return const AsyncData<RouteWeatherState?>(null);
     final generation = _generation;
     _debounce = Timer(weatherDebounce, () => unawaited(_fetch(generation)));
@@ -135,10 +204,39 @@ class RouteWeatherController extends _$RouteWeatherController {
     final relay = ref.read(relayClientProvider);
     if (relay == null) return null;
     if (!ref.read(plusFeatureProvider(PlusFeature.weather))) return null;
-    final planner = ref.read(plannerControllerProvider);
-    final route = planner.result;
-    if (route == null || route.geometry.length < 2) return null;
-    return (route: route, profile: planner.options.profile, relay: relay);
+    final (RouteResult? result, RouteProfile? profile) = switch (route) {
+      PlannerWeatherRoute() => (
+        ref.read(plannerControllerProvider).result,
+        ref.read(plannerControllerProvider).options.profile,
+      ),
+      SavedWeatherRoute(:final id) => switch (ref
+          .read(savedRouteProvider(id))
+          .value) {
+        null => (null, null),
+        final saved => (_resultOf(saved), saved.profile),
+      },
+    };
+    if (result == null || profile == null || result.geometry.length < 2) {
+      return null;
+    }
+    return (route: result, profile: profile, relay: relay);
+  }
+
+  /// [saved]'s line as a route, decoded once per version.
+  RouteResult _resultOf(SavedRoute saved) {
+    final version = '${saved.id}@${saved.updatedAt.microsecondsSinceEpoch}';
+    final known = _saved;
+    if (known != null && known.$1 == version) return known.$2;
+    final result = RouteResult(
+      geometry: saved.geometry,
+      lengthM: saved.distanceM,
+      ascentM: saved.ascentM,
+      descentM: saved.descentM,
+      messages: const <SegmentMessage>[],
+      raw: const <String, dynamic>{},
+    );
+    _saved = (version, result);
+    return result;
   }
 
   void _changed() {
@@ -162,15 +260,18 @@ class RouteWeatherController extends _$RouteWeatherController {
     unawaited(_fetch(generation));
   }
 
-  /// Moves the departure to [time].
-  ///
-  /// Inside the hours already fetched this is worked out on the phone;
-  /// outside them the forecast is asked for again.
-  void setDeparture(DateTime time) {
-    _departure = time;
+  /// The time control moved: the departure follows it, now plus its
+  /// offset, worked out on the phone inside the hours fetched and asked for
+  /// again outside them. An answer on its way reads the control itself.
+  void _follow() {
+    if (state.isLoading) return;
+    final now = ref.read(weatherClockProvider)();
+    final departure = departureAfter(now, ref.read(weatherRadarOffsetProvider));
     final current = state.value;
-    if (current != null && current.covers(time)) {
-      state = AsyncData<RouteWeatherState?>(current.withDeparture(time));
+    if (current != null && current.covers(departure)) {
+      state = AsyncData<RouteWeatherState?>(
+        current.withDeparture(departure, earliest: departureAfter(now, 0)),
+      );
       return;
     }
     if (_inputs() == null) return;
@@ -180,45 +281,48 @@ class RouteWeatherController extends _$RouteWeatherController {
     unawaited(_fetch(generation));
   }
 
-  /// The departure within [departureSpan] of the earliest one with the
-  /// least rain and headwind on the way (see [departureScore]); `null`
-  /// without a forecast, or when none covers the whole route.
-  DateTime? suggestBestDeparture() {
+  /// The step of the time control ([weatherRadarOffsets], minutes from the
+  /// earliest departure) with the least rain and headwind on the way (see
+  /// [bestDeparture]); `null` without a forecast, or when no step's ride
+  /// has weather for the whole route. Only the control's own steps are
+  /// scanned, so the answer is one the control can stand on.
+  int? suggestBestOffset() {
     final current = state.value;
     if (current == null) return null;
     final start = current.samples.first.position;
     final rideTime = current.samples.last.offset;
-    return bestDeparture(
+    final from = current.earliestDeparture;
+    final best = bestDeparture(
       current.forecast,
       current.samples,
       current.cells.sampleToCell,
-      from: current.earliestDeparture,
-      within: departureSpan,
+      from: from,
+      offsets: [for (final m in weatherRadarOffsets) Duration(minutes: m)],
       current: current.departure,
       // Only rides that start and end in daylight: the calmest hour is often
       // the middle of the night, which is no advice for a rider.
       usable: (departure) =>
           inDaylight(departure, departure.add(rideTime), start.lat, start.lon),
     );
+    return best == null
+        ? null
+        : snapWeatherOffset(best.difference(from).inMinutes);
   }
 
   Future<void> _fetch(int generation) async {
     final inputs = _inputs();
     if (inputs == null || generation != _generation) return;
     final now = ref.read(weatherClockProvider)();
-    final earliest = defaultDeparture(now);
-    // A departure the rider picked that has passed meanwhile is now.
-    final picked = _departure;
-    final departure = picked == null || picked.isBefore(earliest)
-        ? earliest
-        : picked;
+    final earliest = departureAfter(now, 0);
+    final departure = departureAfter(now, ref.read(weatherRadarOffsetProvider));
     final samples = sampleRoute(
       inputs.route,
       typicalSpeedKmh: inputs.profile.typicalSpeedKmh,
     );
     final cells = cellsFor(samples);
+    // From now, whatever the control says: every step is in one answer.
     final window = requestWindow(
-      departure,
+      earliest,
       samples.last.offset,
       sliderSpan: departureSpan,
     );
@@ -269,6 +373,9 @@ class RouteWeatherController extends _$RouteWeatherController {
       ),
     );
   }
+
+  Map<String, _CachedForecast> get _cache =>
+      ref.read(weatherForecastCacheProvider)._entries;
 
   bool _current(int generation) => ref.mounted && generation == _generation;
 

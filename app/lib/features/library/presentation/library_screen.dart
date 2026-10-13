@@ -461,9 +461,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             ? 12
                             : mapControlsWidth(context) + 8,
                       ),
-                      child: const Align(
+                      child: Align(
                         alignment: Alignment.topLeft,
-                        child: WeatherMapHints(rainTime: true),
+                        child: const WeatherMapHints(),
                       ),
                     ),
                   ),

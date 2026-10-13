@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/shared/presentation/metric_chart.dart';
+import 'package:velorki/features/weather/application/route_wind.dart';
+import 'package:velorki/features/weather/domain/route_weather.dart';
 import 'package:velorki/features/weather/presentation/route_weather_strip.dart';
 
 import '../../support/app.dart';
@@ -161,5 +163,34 @@ void main() {
     expect(last.end - last.start, lessThan(6000));
     expect(last.start, greaterThan(1000));
     expect(last.end, lessThan(9000));
+  });
+
+  test('a rain bar has the colour the route and the weather map give that '
+      'rain; a trace stays faint', () {
+    SampleWeather rain(double mm) => SampleWeather(
+      distanceM: 0,
+      at: DateTime.utc(2026, 10, 12, 9),
+      temp: 15,
+      windMs: 3,
+      windFromDeg: 0,
+      precipMm: mm,
+      headwindMs: 0,
+      crosswindMs: 0,
+      windClass: WindClass.calm,
+    );
+    const trace = Color(0xFF3399FF);
+    for (final mm in <double>[0.5, 3, 12]) {
+      final k = rainClassOnRoute(rain(mm))!;
+      expect(
+        weatherStripRainColour(rain(mm), trace, 1).toARGB32(),
+        0xFF000000 | rainClassColour(k),
+        reason: '$mm mm/h',
+      );
+    }
+    expect(rainClassOnRoute(rain(0.05)), isNull);
+    expect(
+      weatherStripRainColour(rain(0.05), trace, 1),
+      trace.withValues(alpha: 0.35),
+    );
   });
 }

@@ -1,0 +1,21 @@
+Grid bounds: GeneralBounds[(23.625, 40.375), (24.625, 40.875)]
+Grid CRS: GEOGCS["WGS84(DD)", 
+  DATUM["WGS84", 
+    SPHEROID["WGS84", 6378137.0, 298.257223563]], 
+  PRIMEM["Greenwich", 0.0], 
+  UNIT["degree", 0.017453292519943295], 
+  AXIS["Geodetic longitude", EAST], 
+  AXIS["Geodetic latitude", NORTH], 
+  AUTHORITY["EPSG","4326"]]
+Grid range: GridEnvelope2D[815..818, 197..198]
+Grid to world: PARAM_MT["Affine", 
+  PARAMETER["num_row", 3], 
+  PARAMETER["num_col", 3], 
+  PARAMETER["elt_0_0", 0.25], 
+  PARAMETER["elt_0_2", -180.0], 
+  PARAMETER["elt_1_1", -0.25], 
+  PARAMETER["elt_1_2", 90.0]]
+Contents:
+Band 0:
+5.7421875 4.40625 4.1484375 4.6015625
+12.0390625 7.9921875 13.5859375 15.734375

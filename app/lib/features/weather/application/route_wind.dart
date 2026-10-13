@@ -1,60 +1,112 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:velorki_brouter/velorki_brouter.dart';
-import 'package:velorki_geo/velorki_geo.dart';
+import 'dart:math' as math;
 
+import '../../map/data/rain_legend.dart';
 import '../../map/domain/map_controller.dart';
 import '../domain/route_weather.dart';
 import '../domain/route_weather_state.dart';
+import 'route_colouring.dart';
 
 /// How far the route may be from the samples' length, in metres, for the
 /// weather to count as the weather of that route.
 const double _sameRouteToleranceM = 1;
 
-/// The wind on [route], for the map: one segment per run of samples with the
-/// same [WindClass], each sample standing for the route halfway to its
-/// neighbours. Samples without weather leave a gap. Empty when [weather] was
-/// not worked out for [route] (a route that changed since, or another
-/// alternative).
-List<WindSegment> windSegments(RouteResult route, RouteWeatherState weather) {
+/// The wind on a route [totalM] long, in metres along it: one run per run
+/// of samples with the same [WindClass], each sample standing for the route
+/// halfway to its neighbours. Samples without weather leave a gap. Empty
+/// when [weather] was not worked out for this route (a route that changed
+/// since, or another alternative).
+List<RouteRun<WindClassOnMap>> windRuns(
+  double totalM,
+  RouteWeatherState weather,
+) => <RouteRun<WindClassOnMap>>[
+  for (final run in _runs(totalM, weather, (w) => w.windClass))
+    (startM: run.startM, endM: run.endM, key: mapWindClass(run.key)),
+];
+
+/// The rain on a route [totalM] long, the way [windRuns] cuts the wind: one
+/// run per run of samples in the same class of the DWD radar's legend
+/// ([rainClassOnRoute]), keyed by that class's colour (0xRRGGBB), so the
+/// route reads like the rain map. A dry stretch has no run.
+List<RouteRun<int>> rainRuns(double totalM, RouteWeatherState weather) =>
+    <RouteRun<int>>[
+      for (final run in _runs(totalM, weather, rainClassOnRoute))
+        (startM: run.startM, endM: run.endM, key: rainClassColour(run.key)),
+    ];
+
+/// The class of the DWD radar's legend ([dwdRadarLegend]) the rain of [w]
+/// falls in, `null` for a dry stretch: only a [SampleWeather.wet] one is
+/// rain, as the section's line and the strip's bars say, so a few
+/// hundredths of a mm do not colour the route. A stretch wet by its chance
+/// alone, its amount under the legend's lightest class, is the lightest.
+int? rainClassOnRoute(SampleWeather w) =>
+    w.wet ? math.max(0, dwdRadarClassOf(w.precipMm)) : null;
+
+/// The colour (0xRRGGBB) of the DWD radar's class [k].
+int rainClassColour(int k) =>
+    dwdRadarLegend.colours[dwdRadarLegend.classOf.indexOf(k)];
+
+/// How hard it rains, as the map's key names it.
+enum RainStrength {
+  /// Under 2 mm an hour: the DWD radar's four lightest classes.
+  light,
+
+  /// 2 to 7.5 mm an hour.
+  moderate,
+
+  /// 7.5 mm an hour and more.
+  heavy,
+}
+
+/// The DWD radar's classes each [RainStrength] spans, lightest first.
+List<int> rainStrengthClasses(RainStrength strength) => switch (strength) {
+  RainStrength.light => const <int>[0, 1, 2, 3],
+  RainStrength.moderate => const <int>[4, 5, 6],
+  RainStrength.heavy => <int>[
+    for (var k = 7; k < dwdRadarLegend.classCount; k++) k,
+  ],
+};
+
+/// The runs of samples with the same [keyOf], each with the stretch of a
+/// route [totalM] long it stands for; a sample without weather, or whose
+/// key is `null`, leaves a gap.
+List<RouteRun<K>> _runs<K extends Object>(
+  double totalM,
+  RouteWeatherState weather,
+  K? Function(SampleWeather w) keyOf,
+) {
   final samples = weather.samples;
   final values = weather.weather.weather;
-  final positions = route.positions;
-  if (samples.isEmpty || positions.length < 2) return const <WindSegment>[];
-  final cumulative = cumulativeDistancesMeters(positions);
-  final total = cumulative.last;
-  if ((samples.last.distanceM - total).abs() > _sameRouteToleranceM) {
-    return const <WindSegment>[];
+  if (samples.isEmpty || totalM <= 0) return const [];
+  if ((samples.last.distanceM - totalM).abs() > _sameRouteToleranceM) {
+    return const [];
+  }
+  K? keyAt(int i) {
+    final w = i < values.length ? values[i] : null;
+    return w == null ? null : keyOf(w);
   }
 
-  final segments = <WindSegment>[];
+  final runs = <RouteRun<K>>[];
   var i = 0;
   while (i < samples.length) {
-    final w = i < values.length ? values[i] : null;
-    if (w == null) {
+    final key = keyAt(i);
+    if (key == null) {
       i++;
       continue;
     }
     var j = i;
-    while (j + 1 < samples.length &&
-        j + 1 < values.length &&
-        values[j + 1]?.windClass == w.windClass) {
+    while (j + 1 < samples.length && keyAt(j + 1) == key) {
       j++;
     }
     final from = i == 0
         ? 0.0
         : (samples[i - 1].distanceM + samples[i].distanceM) / 2;
     final to = j == samples.length - 1
-        ? total
+        ? totalM
         : (samples[j].distanceM + samples[j + 1].distanceM) / 2;
-    final points = _slice(positions, cumulative, from, to);
-    if (points.length >= 2) {
-      segments.add(
-        WindSegment(points: points, windClass: mapWindClass(w.windClass)),
-      );
-    }
+    if (to > from) runs.add((startM: from, endM: to, key: key));
     i = j + 1;
   }
-  return segments;
+  return runs;
 }
 
 /// [WindClass] as the map knows it.
@@ -64,46 +116,3 @@ WindClassOnMap mapWindClass(WindClass windClass) => switch (windClass) {
   WindClass.tailwind => WindClassOnMap.tail,
   WindClass.calm => WindClassOnMap.calm,
 };
-
-/// The part of [line] from [from] to [to] metres along it.
-List<LatLng> _slice(
-  List<LatLng> line,
-  List<double> cumulative,
-  double from,
-  double to,
-) {
-  if (to <= from) return const <LatLng>[];
-  LatLng at(double d) {
-    var k = 0;
-    while (k + 2 < cumulative.length && cumulative[k + 1] < d) {
-      k++;
-    }
-    final span = cumulative[k + 1] - cumulative[k];
-    final t = span > 0 ? ((d - cumulative[k]) / span).clamp(0.0, 1.0) : 0.0;
-    final a = line[k];
-    final b = line[k + 1];
-    return LatLng(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t);
-  }
-
-  return <LatLng>[
-    at(from),
-    for (var k = 0; k < line.length; k++)
-      if (cumulative[k] > from && cumulative[k] < to) line[k],
-    at(to),
-  ];
-}
-
-/// The wind to draw on [route]: none while [on] is off, while [weather] is
-/// on its way or failed, or when it is not [route]'s.
-List<WindSegment> routeWindFor(
-  RouteResult? route,
-  AsyncValue<RouteWeatherState?> weather, {
-  required bool on,
-}) {
-  if (!on || route == null || weather.isLoading || weather.hasError) {
-    return const <WindSegment>[];
-  }
-  final value = weather.value;
-  if (value == null) return const <WindSegment>[];
-  return windSegments(route, value);
-}

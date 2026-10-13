@@ -14,10 +14,15 @@ import 'package:velorki/features/map/presentation/weather_time_row.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
+import 'package:velorki/features/weather/application/route_colouring.dart';
+import 'package:velorki/features/weather/application/route_overlay.dart';
+import 'package:velorki/features/weather/application/route_weather_controller.dart';
+import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
 import '../recording/support/pump.dart';
+import '../weather/support/weather_fixtures.dart';
 
 /// Never reaches the network: every service answers, with nothing.
 class _QuietFetcher implements WeatherFetcher {
@@ -142,6 +147,57 @@ void main() {
     expect(slider.bottom, lessThan(size.height - 90));
     await _rain(tester, false);
     expect(_row, findsNothing);
+  });
+
+  testWidgets('Plan: with a route coloured by the wind, the time control '
+      'is its departure, shown with the map\'s rain and wind off', (
+    tester,
+  ) async {
+    const size = Size(402, 874);
+    await _screen(tester, size);
+    await pumpRecordingApp(
+      tester,
+      initialLocation: plannerRoute,
+      surfaceSize: size,
+      extraOverrides: [
+        ..._quiet,
+        weatherRouteGeometryProvider(plannerWeatherRoute)
+            .overrideWithValue(<TrackPoint>[
+              for (var d = 0.0; d <= 10000; d += 500)
+                TrackPoint(destinationPoint(const LatLng(50, 8), 0, d)),
+            ]),
+        dwdForecastClientProvider.overrideWithValue(FakeDwdClient()),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(_row, findsNothing);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MapControls)),
+    );
+    await container
+        .read(routeOverlayChoiceProvider.notifier)
+        .set(RouteOverlay.wind);
+    await tester.pumpAndSettle();
+    expect(_row, findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(weatherTimeLabelKey)).data,
+      startsWith(l10n.mapWeatherLeaveNow),
+    );
+    // Coloured by the gradient, with the layers off: no control.
+    await container
+        .read(routeOverlayChoiceProvider.notifier)
+        .set(RouteOverlay.gradient);
+    await tester.pumpAndSettle();
+    expect(_row, findsNothing);
+    // The rain on: the control, still the departure.
+    await _rain(tester, true);
+    expect(_row, findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(weatherTimeLabelKey)).data,
+      startsWith(l10n.mapWeatherLeaveNow),
+    );
+    // The free forecast's wait runs out.
+    await tester.pump(weatherDebounce);
   });
 
   testWidgets('Record: the time control on the idle card, and under the '

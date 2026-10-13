@@ -1,4 +1,5 @@
 import 'package:fl_chart/fl_chart.dart' show LineChart;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
@@ -10,14 +11,20 @@ import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/shared/presentation/metric_chart.dart';
 import 'package:velorki/features/subscription/application/plus_access.dart';
 import 'package:velorki/features/weather/application/route_weather_controller.dart';
+import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
 import 'package:velorki/features/weather/domain/route_weather_state.dart';
 import 'package:velorki/features/weather/presentation/route_weather_strip.dart';
+import 'package:velorki/features/weather/presentation/route_colour_choice.dart';
+import 'package:velorki/features/weather/presentation/weather_keys.dart';
+import 'package:velorki/features/map/domain/map_controller.dart';
+import 'package:velorki/core/geo/route_gradient.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
 import '../../support/chart_cursor.dart';
 import '../../support/mock_relay.dart';
+import 'support/fakes.dart';
 import '../weather/support/weather_fixtures.dart';
 import 'support/pump.dart';
 
@@ -29,9 +36,10 @@ final RouteResult _route = straightRoute(start: _start);
 /// The forecast along [_route], whatever is asked.
 class _Weather extends RouteWeatherController {
   @override
-  AsyncValue<RouteWeatherState?> build() => AsyncData<RouteWeatherState?>(
-    weatherAlong(_route, earliest: DateTime.utc(2026, 10, 11, 8)),
-  );
+  AsyncValue<RouteWeatherState?> build(WeatherRoute route) =>
+      AsyncData<RouteWeatherState?>(
+        weatherAlong(_route, earliest: DateTime.utc(2026, 10, 11, 8)),
+      );
 }
 
 /// The planner with [_route] planned, the forecast along it, and the
@@ -43,7 +51,7 @@ Future<PlannerHarness> _pump(WidgetTester tester) async {
     extraOverrides: [
       relayClientProvider.overrideWithValue(MockRelay().client()),
       plusAccessProvider.overrideWith((ref, feature) => PlusAccess.granted),
-      routeWeatherControllerProvider.overrideWith(_Weather.new),
+      routeWeatherControllerProvider.overrideWith2((_) => _Weather()),
     ],
   );
   ProviderScope.containerOf(tester.element(find.byType(PlannerScreen)))
@@ -115,6 +123,57 @@ Finder get _stripHandle => find.descendant(
 );
 
 void main() {
+  testWidgets('the route is coloured by its gradient from the start: on the '
+      'map and under the profile, with the choice and its key under the '
+      'profile; Off takes it off and the wind draws the wind', (tester) async {
+    final h = await _pump(tester);
+    List<MapCall> callsOf(String method) =>
+        h.map.calls.where((c) => c.method == method).toList();
+
+    // Flat ten kilometres: one grey stretch, on the map and on the chart.
+    final drawn = callsOf('setRouteColours');
+    expect(drawn, isNotEmpty);
+    expect(
+      (drawn.last.arguments.single! as List<ColouredSegment>).map(
+        (s) => s.colour,
+      ),
+      [gradientClassColour(GradientClass.flat)],
+    );
+    List<({double start, double end, Color colour})> bands() => tester
+        .widget<ElevationProfileChart>(find.byType(ElevationProfileChart))
+        .bands;
+    expect(bands(), hasLength(1));
+    expect(bands().single.end, closeTo(10000, 1));
+
+    // The choice and the key between the profile and the weather.
+    final choice = find.byType(RouteColourChoice);
+    expect(
+      tester.getTopLeft(choice).dy,
+      greaterThan(tester.getBottomLeft(find.byType(ElevationProfileChart)).dy),
+    );
+    expect(
+      tester.getTopLeft(find.byType(GradientColourKey)).dy,
+      greaterThan(tester.getBottomLeft(choice).dy),
+    );
+    expect(
+      tester.getTopLeft(find.byType(RouteWeatherStrip)).dy,
+      greaterThan(tester.getBottomLeft(find.byType(GradientColourKey)).dy),
+    );
+
+    Finder segment(String label) =>
+        find.descendant(of: choice, matching: find.text(label));
+    await tester.tap(segment(l10n.weatherOverlayOff));
+    await tester.pumpAndSettle();
+    expect(callsOf('clearRouteColours'), isNotEmpty);
+    expect(bands(), isEmpty);
+    expect(find.byType(GradientColourKey), findsNothing);
+
+    await tester.tap(segment(l10n.weatherWind));
+    await tester.pumpAndSettle();
+    expect(callsOf('setRouteWind'), isNotEmpty);
+    expect(bands(), isNotEmpty);
+  });
+
   testWidgets('a tap on the profile puts the cursor and the rider badge on '
       'the route, a sweep moves both, and both stay once the finger has '
       'lifted', (tester) async {
@@ -298,5 +357,64 @@ void main() {
     await tester.pumpAndSettle();
     expect(profile().window, isNull);
     expect(strip().window, isNull);
+  });
+
+  testWidgets('without Plus the free forecast draws the wind on the route '
+      'once the rider accepts it, with its source under the key', (
+    tester,
+  ) async {
+    final free = FakeDwdClient();
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      extraOverrides: [
+        relayClientProvider.overrideWithValue(MockRelay().client()),
+        plusAccessProvider.overrideWith((ref, feature) => PlusAccess.missing),
+        dwdForecastClientProvider.overrideWithValue(free),
+        weatherClockProvider.overrideWithValue(
+          () => DateTime.utc(2026, 10, 11, 8),
+        ),
+      ],
+    );
+    ProviderScope.containerOf(tester.element(find.byType(PlannerScreen)))
+        .read(plannerControllerProvider.notifier)
+        .loadComputedRoute(
+          result: _route,
+          waypoints: [
+            Waypoint(pos: _route.geometry.first.pos),
+            Waypoint(pos: _route.geometry.last.pos),
+          ],
+          options: RoutingOptions(),
+        );
+    await tester.pumpAndSettle();
+    final wind = find.descendant(
+      of: find.byType(RouteColourChoice),
+      matching: find.text(l10n.weatherWind),
+    );
+    await tester.ensureVisible(wind);
+    await tester.pumpAndSettle();
+    await tester.tap(wind);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.weatherFreeForecastUse));
+    await tester.pumpAndSettle();
+    await tester.pump(weatherDebounce);
+    await tester.pumpAndSettle();
+
+    expect(free.requests, isNotEmpty);
+    final drawn = h.map.calls.where((c) => c.method == 'setRouteWind');
+    expect(drawn, isNotEmpty);
+    final segments = drawn.last.arguments.single! as List<WindSegment>;
+    expect(segments, isNotEmpty);
+    expect(
+      segments,
+      everyElement(
+        isA<WindSegment>().having(
+          (s) => s.windClass,
+          'class',
+          WindClassOnMap.head,
+        ),
+      ),
+    );
+    expect(find.byType(FreeForecastSourceLine), findsOneWidget);
   });
 }

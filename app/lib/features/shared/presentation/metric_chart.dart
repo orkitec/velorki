@@ -42,6 +42,7 @@ class MetricChart extends StatelessWidget {
     this.leftReservedSize = 40,
     this.highlight,
     this.marks = const <ChartMark>[],
+    this.bands = const <ChartBand>[],
     this.zoomable = false,
     this.window,
     this.onWindow,
@@ -81,6 +82,12 @@ class MetricChart extends StatelessWidget {
   /// its name at the top: the points of interest a ride passed. Marks
   /// outside the line are not drawn; none of them widens the axis.
   final List<ChartMark> marks;
+
+  /// Stretches of the x axis, in the axis' unit, each with the colour the
+  /// fill under the line takes there: how steep the road is, the wind or
+  /// the rain along it, as the route on the map is coloured. Where no band
+  /// lies the fill is the usual one; none at all leaves it whole.
+  final List<ChartBand> bands;
 
   /// Whether a pinch zooms the x axis.
   final bool zoomable;
@@ -331,12 +338,30 @@ class MetricChart extends StatelessWidget {
               barWidth: 2.5,
               color: colors.accent,
               dotData: const FlDotData(show: false),
-              belowBarData: BarAreaData(show: true, color: colors.chartFill),
+              belowBarData: _fill(colors.chartFill),
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// The fill under the line: [bands] where there are some, the usual
+  /// [plain] fill elsewhere.
+  BarAreaData _fill(Color plain) {
+    double? first;
+    double? last;
+    for (final spot in spots) {
+      if (spot.isNull()) continue;
+      if (first == null || spot.x < first) first = spot.x;
+      if (last == null || spot.x > last) last = spot.x;
+    }
+    final gradient = first == null || last == null
+        ? null
+        : chartBandsGradient(start: first, end: last, bands: bands, gap: plain);
+    return gradient == null
+        ? BarAreaData(show: true, color: plain)
+        : BarAreaData(show: true, gradient: gradient);
   }
 
   /// The read-out for the sample [index], with the name of a mark the finger
@@ -372,6 +397,73 @@ typedef ChartMark = ({double x, String label});
 
 /// A stretch of a [MetricChart]'s x axis, in the axis' unit.
 typedef ChartWindow = ({double start, double end});
+
+/// A stretch of a [MetricChart]'s x axis, in the axis' unit, and the colour
+/// of the fill under the line there.
+typedef ChartBand = ({double start, double end, Color colour});
+
+/// A stretch of a route or a ride in metres from the start, and the colour
+/// the charts along it fill it with.
+typedef DistanceBand = ({double start, double end, Color colour});
+
+/// How opaque a band's colour is under the line: enough to read the colour,
+/// little enough that the line on top stays the thing read.
+const double chartBandAlpha = 0.5;
+
+/// The fill of a line from [start] to [end] on the x axis in [bands]'
+/// colours, as a left-to-right gradient with hard stops, [gap] where no
+/// band lies; `null` without bands.
+///
+/// The stops are placed along the line's own extent, from its first point
+/// to its last, as that is the box fl_chart spreads a fill's gradient over.
+/// The box is laid out by the same scale as the line, so the colours stay
+/// on their stretches of the line however the chart is zoomed or panned.
+LinearGradient? chartBandsGradient({
+  required double start,
+  required double end,
+  required List<ChartBand> bands,
+  required Color gap,
+}) {
+  final width = end - start;
+  if (bands.isEmpty || width <= 0) return null;
+  final colours = <Color>[];
+  final stops = <double>[];
+  void add(double from, double to, Color colour) {
+    colours
+      ..add(colour)
+      ..add(colour);
+    stops
+      ..add((from - start) / width)
+      ..add((to - start) / width);
+  }
+
+  final sorted = List<ChartBand>.of(bands)
+    ..sort((a, b) => a.start.compareTo(b.start));
+  var at = start;
+  for (final band in sorted) {
+    final from = band.start.clamp(at, end);
+    final to = band.end.clamp(from, end);
+    if (to <= from) continue;
+    if (from > at) add(at, from, gap);
+    add(from, to, band.colour.withValues(alpha: chartBandAlpha));
+    at = to;
+  }
+  if (colours.isEmpty) return null;
+  if (at < end) add(at, end, gap);
+  return LinearGradient(colors: colours, stops: stops);
+}
+
+/// [bands] on a chart's x axis, which runs in the rider's distance unit,
+/// converted as the samples are.
+List<ChartBand> chartBands(units.UnitSystem system, List<DistanceBand> bands) =>
+    <ChartBand>[
+      for (final band in bands)
+        (
+          start: units.distanceToDisplay(system, band.start),
+          end: units.distanceToDisplay(system, band.end),
+          colour: band.colour,
+        ),
+    ];
 
 /// Where a [MetricChart]'s y axis runs from and to.
 typedef ChartAxis = ({double min, double max});

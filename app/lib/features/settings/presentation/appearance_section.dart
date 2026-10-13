@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/application/shown_bar_style.dart';
 import '../data/appearance_controller.dart';
 
 /// Settings → Appearance: light/dark/system, the map, the bar's glass, the
@@ -104,6 +105,35 @@ class AppearanceSection extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(l10n.appearanceGlassHint, style: theme.textTheme.bodySmall),
+          // A pick that changes nothing on screen says why.
+          if (ref.watch(barStyleOverrideProvider) case final override?) ...[
+            const SizedBox(height: 8),
+            Row(
+              key: const ValueKey<String>('glass-override'),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.battery_saver_outlined,
+                  size: 18,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    switch (override) {
+                      BarStyleOverride.systemPowerSave =>
+                        l10n.appearanceGlassSolidPowerSave,
+                      BarStyleOverride.batterySaverRide =>
+                        l10n.appearanceGlassSolidBatterySaverRide,
+                    },
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 20),
           Text(l10n.appearanceRadarStyle, style: theme.textTheme.titleSmall),
           const SizedBox(height: 10),

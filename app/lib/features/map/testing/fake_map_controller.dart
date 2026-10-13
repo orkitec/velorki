@@ -210,6 +210,15 @@ class FakeMapController implements MapController {
   /// empty list.
   final List<List<WindSegment>> routeWindCalls = <List<WindSegment>>[];
 
+  /// The coloured stretches (the rain, the gradient) drawn on the route;
+  /// empty when there are none.
+  List<ColouredSegment> routeColours = const <ColouredSegment>[];
+
+  /// Every [setRouteColours] call, in order; a [clearRouteColours] records an
+  /// empty list.
+  final List<List<ColouredSegment>> routeColourCalls =
+      <List<ColouredSegment>>[];
+
   /// The last [setPosition] call, `null` until one happens.
   RecordedPosition? position;
 
@@ -462,6 +471,19 @@ class FakeMapController implements MapController {
   Future<void> clearRouteWind() async {
     routeWind = const <WindSegment>[];
     routeWindCalls.add(const <WindSegment>[]);
+  }
+
+  @override
+  Future<void> setRouteColours(List<ColouredSegment> segments) async {
+    final copy = List<ColouredSegment>.unmodifiable(segments);
+    routeColours = copy;
+    routeColourCalls.add(copy);
+  }
+
+  @override
+  Future<void> clearRouteColours() async {
+    routeColours = const <ColouredSegment>[];
+    routeColourCalls.add(const <ColouredSegment>[]);
   }
 
   @override

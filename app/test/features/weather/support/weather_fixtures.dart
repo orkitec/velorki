@@ -1,8 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki/features/map/domain/wind_field.dart';
 import 'package:velorki/features/weather/application/route_weather_controller.dart'
     show departureSpan;
+import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
 import 'package:velorki/features/weather/domain/route_sampling.dart';
 import 'package:velorki/features/weather/domain/route_weather_state.dart';
 
@@ -108,4 +112,102 @@ RouteWeatherState weatherAlong(
     samples: samples,
     cells: cells,
   );
+}
+
+/// The free forecast's service, answering every grid with the same values
+/// everywhere: a wind of [u] east and [v] north (from the north by
+/// default, a headwind on a route north) and [rain] mm, or nothing at all
+/// while [down].
+class FakeDwdClient implements DwdForecastClient {
+  /// Creates the service.
+  FakeDwdClient({
+    this.u = 0,
+    this.v = -5,
+    this.rain = 0,
+    this.down = false,
+    this.missing,
+  });
+
+  final double u;
+  final double v;
+  final double rain;
+  final bool down;
+
+  /// The hours the service has nothing for, if any.
+  final bool Function(DateTime time)? missing;
+
+  /// The grids asked for: coverage and hour.
+  final List<(String, DateTime)> requests = <(String, DateTime)>[];
+
+  @override
+  Future<DateTime?> newestRun(String coverageId) async =>
+      down ? null : DateTime.utc(2026, 10, 11);
+
+  @override
+  Future<WcsGrid?> grid(
+    String coverageId,
+    BoundingBox box,
+    DateTime time,
+    DateTime run, {
+    int bands = 1,
+  }) async {
+    requests.add((coverageId, time));
+    if (down || (missing?.call(time) ?? false)) return null;
+    return _loaded[_key(coverageId, box, time, run)] = _gridOf(
+      coverageId,
+      box,
+      time,
+      run,
+      bands,
+    );
+  }
+
+  /// The grids answered, as the real client keeps them.
+  final Map<String, WcsGrid> _loaded = <String, WcsGrid>{};
+
+  static String _key(
+    String coverageId,
+    BoundingBox box,
+    DateTime time,
+    DateTime run,
+  ) =>
+      '$coverageId|${box.south},${box.west},${box.north},${box.east}|'
+      '${time.toIso8601String()}|${run.toIso8601String()}';
+
+  @override
+  DateTime? knownRun(String coverageId) =>
+      down ? null : DateTime.utc(2026, 10, 11);
+
+  @override
+  WcsGrid? loadedGrid(
+    String coverageId,
+    BoundingBox box,
+    DateTime time,
+    DateTime run,
+  ) => _loaded[_key(coverageId, box, time, run)];
+
+  WcsGrid _gridOf(
+    String coverageId,
+    BoundingBox box,
+    DateTime time,
+    DateTime run,
+    int bands,
+  ) {
+    // The global rain is a sum from the run's start: [rain] an hour.
+    final value = coverageId == dwdRainGlobalCoverage
+        ? rain * time.difference(run).inHours
+        : rain;
+    Float32List filled(double x) => Float32List(4)..fillRange(0, 4, x);
+    return WcsGrid(
+      lon0: box.west,
+      lat0: box.north,
+      lonStep: box.east - box.west,
+      latStep: box.south - box.north,
+      columns: 2,
+      rows: 2,
+      bands: bands == 2
+          ? <Float32List>[filled(u), filled(v)]
+          : <Float32List>[filled(value)],
+    );
+  }
 }

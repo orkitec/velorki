@@ -30,6 +30,7 @@ class RideElevationChart extends ConsumerWidget {
     this.window,
     this.onWindow,
     this.cursor,
+    this.bands = const <DistanceBand>[],
   });
 
   /// The analysed samples of the ride.
@@ -53,6 +54,11 @@ class RideElevationChart extends ConsumerWidget {
   /// Where the cursor stands, in metres along the ride; see
   /// [MetricChart.cursor].
   final ValueNotifier<double?>? cursor;
+
+  /// What the fill under the line is coloured by, in metres along the ride:
+  /// how steep it was, while the track on the map is coloured so. See
+  /// [MetricChart.bands].
+  final List<DistanceBand> bands;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -82,6 +88,7 @@ class RideElevationChart extends ConsumerWidget {
       window: chartWindow(system, window),
       onWindow: distanceWindowCallback(system, onWindow),
       cursor: cursor,
+      bands: chartBands(system, bands),
       metresPerUnit: units.displayToMeters(system, 1),
       marks: <ChartMark>[
         for (final mark in marks)

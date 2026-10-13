@@ -238,6 +238,16 @@ class TestMapController implements MapController {
   }
 
   @override
+  Future<void> setRouteColours(List<ColouredSegment> segments) async {
+    calls.add(MapCall('setRouteColours', [segments]));
+  }
+
+  @override
+  Future<void> clearRouteColours() async {
+    calls.add(const MapCall('clearRouteColours', []));
+  }
+
+  @override
   Future<void> setPosition(
     LatLng? position, {
     double? accuracyM,

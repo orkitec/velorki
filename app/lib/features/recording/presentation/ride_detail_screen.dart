@@ -12,6 +12,7 @@ import '../../../app/theme.dart';
 import '../../../core/files/track_exporter.dart';
 import '../../../core/geo/ride_analysis.dart';
 import '../../../core/geo/ride_stats.dart';
+import '../../../core/geo/route_gradient.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/domain/connected_account.dart';
 import '../../integrations/presentation/integration_labels.dart';
@@ -33,6 +34,7 @@ import '../../shared/presentation/sheet_header.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../sharing/presentation/share_link_button.dart';
+import '../../weather/presentation/weather_keys.dart' show GradientColourKey;
 import '../application/recording_controller.dart';
 import '../application/ride_analysis_provider.dart';
 import '../application/ride_highlight.dart';
@@ -289,18 +291,21 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
   /// newer one draws nothing.
   Future<void> _showOnMap(Ride ride, RideAnalysis? analysis) {
     if (layersMap == null) return Future<void>.value();
+    final gradient = _gradientShown(analysis);
     final bands = analysis?.speedBands.segments ?? const <SpeedBandSegment>[];
-    final key = '${ride.id}:${bands.length}';
+    final key = '${ride.id}:${bands.length}:${gradient.length}';
     if (_shownKey == key) return Future<void>.value();
     _wantedKey = key;
     return _draws = _draws
-        .then((_) => _draw(ride, bands, key))
+        .then((_) => _draw(ride, analysis, bands, gradient, key))
         .catchError((Object _) {});
   }
 
   Future<void> _draw(
     Ride ride,
+    RideAnalysis? analysis,
     List<SpeedBandSegment> bands,
+    List<GradientRun> gradient,
     String key,
   ) async {
     if (!mounted || _wantedKey != key || _shownKey == key) return;
@@ -309,7 +314,17 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
     _shownKey = key;
     final positions = ride.positions;
     if (positions.isEmpty) return;
-    if (bands.isEmpty) {
+    if (gradient.isNotEmpty && analysis != null) {
+      await map.setTrackSegments(
+        _gradientSegments(
+          positions,
+          analysis.distanceAt,
+          gradient,
+          // Where the ride has no heights, the track's own colour.
+          Theme.of(context).velorki.track.toARGB32() & 0xFFFFFF,
+        ),
+      );
+    } else if (bands.isEmpty) {
       await map.setTrackLine(positions);
     } else {
       await map.setTrackSegments(<TrackSegment>[
@@ -321,6 +336,68 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
     if (!mounted || _wantedKey != key) return;
     final bounds = ride.bounds;
     if (bounds != null) await map.fitBounds(bounds, padding: _fitPadding);
+  }
+
+  /// The gradient along the ride, from the elevation chart's heights so the
+  /// track and the chart agree, while the track is coloured by it; empty
+  /// while it is coloured by the speed, or for a ride without heights.
+  List<GradientRun> _gradientShown(RideAnalysis? analysis) {
+    if (analysis == null ||
+        !analysis.hasElevation ||
+        ref.read(rideTrackColourProvider) != RideTrackColour.gradient) {
+      return const <GradientRun>[];
+    }
+    if (!identical(analysis, _gradientAnalysis)) {
+      _gradientAnalysis = analysis;
+      _gradient = gradientRuns(
+        <double>[for (final s in analysis.samples) s.distanceM],
+        <double?>[for (final s in analysis.samples) s.elevationM],
+      );
+    }
+    return _gradient;
+  }
+
+  /// The ride's gradient as the last analysis gave it, and that analysis.
+  List<GradientRun> _gradient = const <GradientRun>[];
+  RideAnalysis? _gradientAnalysis;
+
+  /// The track along [positions], [distanceAt] metres along it each, cut
+  /// into [runs] in their gradient's colours, and the stretches between
+  /// them, which had no heights, in [gap].
+  static List<TrackSegment> _gradientSegments(
+    List<LatLng> positions,
+    List<double> distanceAt,
+    List<GradientRun> runs,
+    int gap,
+  ) {
+    final total = distanceAt.isEmpty ? 0.0 : distanceAt.last;
+    // The stretches to draw and their colours, gaps included.
+    final stretches = <({double startM, double endM})>[];
+    final colours = <int>[];
+    void add(double from, double to, int colour) {
+      stretches.add((startM: from, endM: to));
+      colours.add(colour);
+    }
+
+    // A sliver at either end, where the chart's samples stop a few metres
+    // short of the track, goes with the run beside it rather than being
+    // drawn as a gap.
+    var at = 0.0;
+    for (final (i, run) in runs.indexed) {
+      final from = run.startM - at < gradientMinRunM ? at : run.startM;
+      if (from > at) add(at, from, gap);
+      final last = i == runs.length - 1;
+      final to = last && total - run.endM < gradientMinRunM ? total : run.endM;
+      add(from, to, gradientClassColour(run.gradient));
+      at = to;
+    }
+    if (at < total) add(at, total, gap);
+    final slices = trackSlices(positions, distanceAt, stretches);
+    return <TrackSegment>[
+      for (var i = 0; i < slices.length; i++)
+        if (slices[i].length >= 2)
+          TrackSegment.coloured(points: slices[i], colour: colours[i]),
+    ];
   }
 
   Future<void> _rename(Ride ride) async {
@@ -457,6 +534,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
     final route = ref.watch(rideRouteProvider(widget.rideId)).value;
     final showRoute = ref.watch(showRideRouteProvider);
     final profile = ref.watch(riderProfileProvider);
+    final chosenTrackColour = ref.watch(rideTrackColourProvider);
     final year = DateTime.now().year;
     // The zones need the maximum; asked for only when they are switched on,
     // so the cache key stays put for everyone else.
@@ -501,6 +579,11 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
       }
     }
     _analysis = analysis;
+    // The gradient needs heights; a ride without them is coloured by speed
+    // whatever the choice.
+    final trackColour = analysis != null && analysis.hasElevation
+        ? chosenTrackColour
+        : RideTrackColour.speed;
     // The charts run along the analysed track, so the dot does too.
     final rideValue = ride.value;
     _cursor.setLine(
@@ -619,7 +702,16 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (analysis != null &&
+                    // What the track is coloured by, and the choice of it
+                    // for a ride with heights to colour it by the gradient.
+                    if (analysis != null && analysis.hasElevation) ...[
+                      _TrackColourChoice(colour: trackColour),
+                      const SizedBox(height: 10),
+                    ],
+                    if (trackColour == RideTrackColour.gradient) ...[
+                      const GradientColourKey(),
+                      const SizedBox(height: 16),
+                    ] else if (analysis != null &&
                         analysis.speedBands.segments.isNotEmpty) ...[
                       const RideSpeedLegend(),
                       const SizedBox(height: 16),
@@ -804,6 +896,17 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                           window: _window,
                           onWindow: _setWindow,
                           cursor: _cursor,
+                          bands: <DistanceBand>[
+                            for (final run in _gradientShown(analysis))
+                              (
+                                start: run.startM,
+                                end: run.endM,
+                                colour: Color(
+                                  0xFF000000 |
+                                      gradientClassColour(run.gradient),
+                                ),
+                              ),
+                          ],
                         ),
                       ],
                       if (analysis.hasSpeed) ...[
@@ -1130,4 +1233,51 @@ String? rideSourceLine(AppLocalizations l10n, Ride ride) {
   return creator == null || creator.isEmpty
       ? l10n.cardImportedFrom(format)
       : l10n.cardImportedFromBy(format, creator);
+}
+
+/// What the ride's track on the map and its elevation chart are coloured
+/// by: the speed or the gradient.
+class _TrackColourChoice extends ConsumerWidget {
+  const _TrackColourChoice({required this.colour});
+
+  final RideTrackColour colour;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    Widget label(String text) => FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(text, maxLines: 1, softWrap: false),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l10n.rideColourTrackBy,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 6),
+        SegmentedButton<RideTrackColour>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(
+              value: RideTrackColour.speed,
+              label: label(l10n.rideSpeed),
+            ),
+            ButtonSegment(
+              value: RideTrackColour.gradient,
+              label: label(l10n.colourByGradient),
+            ),
+          ],
+          selected: {colour},
+          onSelectionChanged: (selection) => unawaited(
+            ref.read(rideTrackColourProvider.notifier).set(selection.single),
+          ),
+        ),
+      ],
+    );
+  }
 }

@@ -167,4 +167,49 @@ void main() {
       );
     });
   });
+
+  group('trackSlices', () {
+    final positions = <LatLng>[
+      for (var i = 0; i < 5; i++) LatLng(48 + i * 0.001, 11),
+    ];
+    final distanceAt = <double>[0, 100, 200, 300, 400];
+
+    test('cuts each range as trackSlice does, in one walk', () {
+      const ranges = <({double startM, double endM})>[
+        (startM: 0, endM: 150),
+        (startM: 150, endM: 150),
+        (startM: 150, endM: 300),
+        (startM: 300, endM: 330),
+        (startM: 330, endM: 900),
+      ];
+      final slices = trackSlices(positions, distanceAt, ranges);
+      expect(slices, hasLength(ranges.length));
+      for (final (i, range) in ranges.indexed) {
+        expect(
+          slices[i],
+          trackSlice(
+            positions,
+            distanceAt,
+            startM: range.startM,
+            endM: range.endM,
+          ),
+          reason: 'range $i',
+        );
+      }
+      // Where one ends the next begins.
+      expect(slices[0].last, slices[2].first);
+      expect(slices[2].last, positions[3]);
+    });
+
+    test('an empty list for every range when the lists disagree', () {
+      expect(
+        trackSlices(
+          positions,
+          <double>[0, 100],
+          const [(startM: 0, endM: 100)],
+        ),
+        [isEmpty],
+      );
+    });
+  });
 }
