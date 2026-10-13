@@ -51,11 +51,7 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
 
 ## On the Mac (Xcode)
 
-- [ ] The file-open handler in `ios/Runner/AppDelegate.swift` (a GPX opened
-      from Files or another app) has not been tried on a phone.
-- [ ] **Apple Watch app** (`app/ios/VelorkiWatch`): its buttons and footnotes
-      are English only (the ARB cannot reach a native target; add
-      `Localizable.strings` for German); no complications. A ride on the
+- [ ] **Apple Watch app** (`app/ios/VelorkiWatch`): no complications. A ride on the
       Series 6 with the phone locked is the real check: pulse arriving, wrist
       taps on time, watch battery after a ride. A paused ride ends the watch's
       session at every standstill, auto-pause included, and the first reading
