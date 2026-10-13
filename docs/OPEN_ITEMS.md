@@ -29,16 +29,10 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
       in the relay. Garmin first. GPX export into the makers' apps works today.
 - [ ] **velorki.com**: the `ride@velorki.com`
       mailbox (support and security reports).
-- [ ] **Website legal pages**: the imprint, the privacy policy and the terms
-      are filled in and published (`draft: false`, effective 27 September 2026,
-      provider data from the Orkify imprint). What is left is a lawyer's read of
-      all three — and of `CLA.md`, the Contributor Licence Agreement, with them:
-      it is written in plain language and has not been reviewed by one. Two
-      statements in the privacy policy have to be kept true as things change:
-      the AI section says requests go through OpenRouter only to providers that
-      neither train on nor retain them (keep those account settings on), and the log retention says
-      14 days for the web server's access logs and 90 for the application log
-      lines in Orkify.
+- [ ] **Privacy policy, kept true**: the AI section says requests go through
+      OpenRouter only to providers that neither train on nor retain them (keep
+      those account settings on), and the log retention says 14 days for the
+      web server's access logs and 90 for the application log lines in Orkify.
 - [ ] **Geocoder**: the on-device gazetteer is done — a rider with routing
       tiles searches `<TILE>.gaz` first and only reaches Photon by tapping
       "Search online for …". The `publish-gazetteer` workflow in

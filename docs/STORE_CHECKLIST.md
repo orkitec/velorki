@@ -154,7 +154,6 @@ routes to our share store.
       train on nor retain requests (set in the OpenRouter account).
 - [x] It states retention for share links (one year) and that uninstalling
       removes local data. — `docs/PRIVACY.md`, "Retention and deletion".
-- [ ] It has been reviewed by a lawyer (`docs/PRIVACY.md` is a draft).
 - [x] The crash-reporting section is resolved rather than "to be decided". —
       "there is none", `web/content/en/legal/privacy.md`.
 - [x] The server-log retention period is filled in, and so are the controller's
