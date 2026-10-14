@@ -23,7 +23,7 @@ const String stravaPoweredByWhite =
 const double stravaConnectButtonHeight = 48;
 
 /// The height the "Powered by Strava" logo is drawn at.
-const double stravaPoweredByHeight = 24;
+const double stravaPoweredByHeight = 16;
 
 /// Strava's official connect button, used unmodified.
 ///
@@ -111,10 +111,15 @@ class ViewOnStravaLink extends StatelessWidget {
 /// Strava's "Powered by Strava" logo.
 ///
 /// Their API terms require it on every surface that shows data coming from
-/// Strava: the list of Strava routes and a Strava route's page.
+/// Strava: the list of Strava routes, a Strava route's page and its row in
+/// the Library.
 class PoweredByStrava extends StatelessWidget {
-  /// Creates the logo.
-  const PoweredByStrava({super.key});
+  /// Creates the logo, [height] tall.
+  const PoweredByStrava({super.key, this.height = stravaPoweredByHeight});
+
+  /// How tall the logo is drawn: [stravaPoweredByHeight] on a page, less in
+  /// a list row.
+  final double height;
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +127,7 @@ class PoweredByStrava extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Image.asset(
       dark ? stravaPoweredByWhite : stravaPoweredByOrange,
-      height: stravaPoweredByHeight,
+      height: height,
       semanticLabel: l10n.poweredByStrava,
       errorBuilder: (context, _, _) => Text(
         l10n.poweredByStrava,

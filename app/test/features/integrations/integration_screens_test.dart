@@ -7,6 +7,7 @@ import 'package:velorki/features/import_export/data/import_repository.dart';
 import 'package:velorki/features/integrations/application/external_route_importer.dart';
 import 'package:velorki/features/integrations/application/external_routes_loader.dart';
 import 'package:velorki/features/integrations/application/route_sender.dart';
+import 'package:velorki/features/integrations/common/data/connected_accounts_repository.dart';
 import 'package:velorki/features/integrations/common/data/external_route_cache.dart';
 import 'package:velorki/features/integrations/common/domain/connected_account.dart';
 import 'package:velorki/features/integrations/common/domain/external_route.dart';
@@ -17,6 +18,7 @@ import 'package:velorki/features/integrations/presentation/strava_brand.dart';
 import 'package:velorki/features/sharing/presentation/share_card.dart';
 import 'package:velorki_api/velorki_api.dart' show ShareKind;
 import 'package:velorki/features/integrations/rwgps/data/rwgps_client.dart';
+import 'package:velorki/features/integrations/testing/in_memory_secure_key_value_store.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
@@ -45,6 +47,28 @@ const ConnectedAccount _rwgpsAccount = ConnectedAccount(
 );
 
 /// A source with canned routes and one GPX.
+/// The Strava account in a keychain that answers only after a while, as
+/// the phone's does at launch.
+class _SlowKeychainHarness extends IntegrationsHarness {
+  @override
+  InMemorySecureKeyValueStore get store => _slow;
+
+  final InMemorySecureKeyValueStore _slow = _SlowStore(<String, String>{
+    ConnectedAccountsRepository.keyFor(IntegrationService.strava):
+        _stravaAccount.encode(),
+  });
+}
+
+class _SlowStore extends InMemorySecureKeyValueStore {
+  _SlowStore(super.values);
+
+  @override
+  Future<String?> read(String key) async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    return super.read(key);
+  }
+}
+
 class _FakeSource implements ExternalRoutesSource {
   _FakeSource(this.service, this.routes, {Uint8List? gpx})
     : gpx = gpx ?? fixtureBytes('strava.gpx');
@@ -191,6 +215,35 @@ void main() {
       expect(
         find.textContaining(l10n.externalRoutesEmpty('Ride with GPS')),
         findsOneWidget,
+      );
+    });
+
+    testWidgets('a connection still being read from the keychain is '
+        'waited for, not taken for an empty account', (tester) async {
+      await pumpIntegrations(
+        tester,
+        const ExternalRoutesScreen(service: IntegrationService.strava),
+        harness: _SlowKeychainHarness(),
+        extraOverrides: [
+          // As the app's own loader: none until the account is known.
+          externalRoutesLoaderProvider.overrideWith(
+            (ref, service) =>
+                ref.watch(connectedAccountProvider(service)) == null
+                ? null
+                : ExternalRoutesLoader(
+                    source: _FakeSource(service, const <ExternalRoute>[
+                      _sunday,
+                    ]),
+                    cache: ref.watch(externalRouteListCacheProvider),
+                  ),
+          ),
+        ],
+      );
+
+      expect(find.text('Sunday loop'), findsOneWidget);
+      expect(
+        find.textContaining(l10n.externalRoutesEmpty('Strava')),
+        findsNothing,
       );
     });
 

@@ -10,6 +10,7 @@ import '../../settings/data/units.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../application/external_route_importer.dart';
 import '../application/external_routes_loader.dart';
+import '../common/data/connected_accounts_repository.dart';
 import '../common/domain/connected_account.dart';
 import '../common/domain/external_route.dart';
 import '../common/domain/integration_exception.dart';
@@ -47,6 +48,14 @@ class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
   }
 
   Future<void> _load({bool forceRefresh = false}) async {
+    // The accounts first: read before they are loaded, a connected service
+    // looks unconnected and its list empty.
+    try {
+      await ref.read(connectedAccountsProvider.future);
+    } on Object {
+      // Unreadable accounts are no accounts; the null loader below says so.
+    }
+    if (!mounted) return;
     final loader = ref.read(externalRoutesLoaderProvider(widget.service));
     if (loader == null) {
       setState(() {
@@ -133,13 +142,13 @@ class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
 
   Widget _body(AppLocalizations l10n, String label, {required bool connected}) {
     final units = ref.watch(unitSystemProvider);
+    if (_loading) return const Center(child: CircularProgressIndicator());
     if (!connected) {
       return PlaceholderBody(
         icon: Icons.link_off,
         message: l10n.externalRoutesNotConnected(label),
       );
     }
-    if (_loading) return const Center(child: CircularProgressIndicator());
     final error = _error;
     if (error != null) {
       return PlaceholderBody(
