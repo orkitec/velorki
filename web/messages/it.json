@@ -101,7 +101,7 @@
       "plan": {
         "eyebrow": "Pianificazione",
         "title": "Un percorso per la bici che stai usando",
-        "body": "Tocca i punti sulla mappa e il percorso viene calcolato sul telefono, su riquadri di 5°×5° scaricati. Profili trekking, bici da corsa, gravel, MTB e più breve, fino a tre alternative, l'altimetria e la ripartizione dei fondi su cui pedalerai.",
+        "body": "Tocca i punti sulla mappa e il percorso viene calcolato sul telefono, su riquadri di 5°×5° scaricati. Profili trekking, bici da corsa, gravel, MTB e più breve, fino a tre alternative, l'altimetria e la ripartizione dei fondi su cui pedalerai. Il percorso si può colorare secondo pendenza, fondo, vento o pioggia, e un cursore del tempo stabilisce quando parti e sposta il meteo sulla mappa e lungo il percorso.",
         "bullets": {
           "one": "Cinque profili bici, fino a tre alternative per percorso",
           "two": "Altimetria e statistiche del fondo per ogni opzione",
@@ -131,7 +131,7 @@
       "navigate": {
         "eyebrow": "Navigazione",
         "title": "Svolte a voce, sul telefono",
-        "body": "Un banner con la svolta e indicazioni vocali mentre segui un percorso, e quando lo lasci, a tua scelta, una via per tornare sul piano, un nuovo percorso verso la destinazione o solo la direzione per rientrare, tutto calcolato sul telefono. Modalità di inseguimento con bussola o con il nord in alto. Le indicazioni nascono dagli stessi dati che hanno calcolato il percorso, quindi funzionano anche dove non c'è rete. Un percorso GPX porta con sé il suo elenco svolte e i suoi punti di interesse, e la scheda di registrazione aggiunge, come pagine sfogliabili, un'altimetria con la salita davanti a te, l'orario di arrivo e l'elenco svolte.",
+        "body": "Un banner con la svolta e indicazioni vocali mentre segui un percorso, e quando lo lasci, a tua scelta, una via per tornare sul piano, un nuovo percorso verso la destinazione o solo la direzione per rientrare, tutto calcolato sul telefono. Modalità di inseguimento con bussola o con il nord in alto. Le indicazioni nascono dagli stessi dati che hanno calcolato il percorso, quindi funzionano anche dove non c'è rete. Un percorso GPX porta con sé il suo elenco svolte e i suoi punti di interesse, e la scheda di registrazione aggiunge, come pagine sfogliabili, un'altimetria con la salita davanti a te, l'orario di arrivo e l'elenco svolte. Un GPX senza svolte le riceve create sul telefono a partire dalla mappa.",
         "bullets": {
           "one": "Banner svolte e indicazioni vocali, offline",
           "two": "Esci dalla linea: ti riporta sul percorso, ne calcola uno nuovo o indica solo la direzione",
@@ -171,7 +171,7 @@
       "files": {
         "eyebrow": "File e servizi",
         "title": "I tuoi giri sono file che ti appartengono",
-        "body": "Importa ed esporta GPX, FIT e TCX dal foglio di condivisione e da “Apri con”, così percorsi e giri passano a Komoot, Garmin Connect, Strava o a qualunque altra cosa legga quei formati. Un percorso GPX conserva il suo elenco svolte e i suoi punti di interesse, e un link di Ride with GPS si apre in Velorki. Velorki funziona con Strava e Ride with GPS gratis; i link di condivisione fanno parte di Plus.",
+        "body": "Importa ed esporta GPX, FIT e TCX dal foglio di condivisione e da “Apri con”, così percorsi e giri passano a Komoot, Garmin Connect, Strava o a qualunque altra cosa legga quei formati. Un percorso GPX conserva il suo elenco svolte e i suoi punti di interesse, e un link di Ride with GPS si apre in Velorki. Velorki funziona con Strava e Ride with GPS gratis; i link di condivisione fanno parte di Plus. Un solo pulsante Condividi su un percorso o un giro riunisce link, Strava e Ride with GPS.",
         "bullets": {
           "one": "GPX, FIT e TCX in entrata e in uscita, da File, Mail o browser, con elenchi svolte e punti di interesse",
           "two": "Una libreria di percorsi salvati e giri registrati",
@@ -201,7 +201,7 @@
       },
       "partsNote": "Ogni elemento si attiva e si disattiva da solo, nel pannello Livelli della mappa. Lì i chip fanno da legenda: ognuno mostra la sua linea.",
       "stopsTitle": "Soste sulla mappa",
-      "stopsBody": "Per cominciare caffè, fontanelle, panetterie, bagni e stazioni di riparazione, dagli stessi dati scaricati. Scegli qualsiasi altro tipo da questi gruppi, e tocca una sosta per pianificare fin lì.",
+      "stopsBody": "Per cominciare caffè, fontanelle, panetterie, bagni e stazioni di riparazione, dagli stessi dati scaricati. Scegli qualsiasi altro tipo da questi gruppi, e tocca una sosta per pianificare fin lì. Con la mappa lontana, le soste vicine si raccolgono in bolle con un numero; le soste singole compaiono dallo zoom 15, e lungo un percorso vedi le soste che ti aspettano.",
       "stopGroups": {
         "cyclingStops": "Soste in bici",
         "overnight": "Pernottamento",
@@ -235,7 +235,7 @@
         },
         "weather": {
           "title": "Meteo più preciso lungo il percorso",
-          "body": "Il meteo gratuito lungo il percorso viene da una previsione pubblica più grossolana. Plus interroga invece servizi meteo locali — il National Weather Service negli Stati Uniti, le previsioni per stazione del Deutscher Wetterdienst in Germania, MET Norway altrove — per vento, pioggia e temperatura più precisi, con raffiche e probabilità di pioggia, e colora il percorso di conseguenza."
+          "body": "Il meteo gratuito lungo il percorso viene da una previsione pubblica più grossolana. Plus interroga invece servizi meteo locali — il National Weather Service negli Stati Uniti, le previsioni per stazione del Deutscher Wetterdienst in Germania, MET Norway altrove — per vento, pioggia e temperatura più precisi, con raffiche e probabilità di pioggia."
         },
         "radar": {
           "title": "Radar pioggia in tutta Europa",
@@ -268,7 +268,7 @@
         "library": "Libreria di percorsi e giri",
         "files": "Importazione ed esportazione GPX, FIT e TCX",
         "weatherMap": "Mappa meteo: radar pioggia, nuvole e vento, con cursore del tempo",
-        "routeColours": "Meteo lungo il percorso da una previsione pubblica più grossolana: vento, pioggia, temperatura, un riepilogo e l'ora migliore per partire, e il percorso colorato secondo pendenza, vento o pioggia",
+        "routeColours": "Meteo lungo il percorso da una previsione pubblica più grossolana: vento, pioggia, temperatura, un riepilogo e l'ora migliore per partire, e il percorso colorato secondo pendenza, fondo, vento o pioggia",
         "routeWeather": "Meteo più preciso lungo il percorso da servizi meteo locali, con raffiche e probabilità di pioggia",
         "radarEurope": "Vero radar pioggia in tutta Europa dove la mappa gratuita ha solo stime da satellite",
         "assistant": "L'assistente: una frase diventa un percorso",
@@ -350,7 +350,7 @@
       },
       "weather": {
         "title": "Meteo più preciso lungo il percorso",
-        "body": "Il meteo gratuito lungo il percorso viene da una previsione pubblica più grossolana. Plus interroga invece servizi meteo locali — il National Weather Service negli Stati Uniti, le previsioni per stazione del Deutscher Wetterdienst in Germania, MET Norway altrove — per vento, pioggia e temperatura più precisi, con raffiche e probabilità di pioggia, e colora il percorso di conseguenza."
+        "body": "Il meteo gratuito lungo il percorso viene da una previsione pubblica più grossolana. Plus interroga invece servizi meteo locali — il National Weather Service negli Stati Uniti, le previsioni per stazione del Deutscher Wetterdienst in Germania, MET Norway altrove — per vento, pioggia e temperatura più precisi, con raffiche e probabilità di pioggia."
       },
       "radar": {
         "title": "Radar pioggia in tutta Europa",
@@ -358,7 +358,7 @@
       }
     },
     "freeTitle": "Cosa resta gratis",
-    "freeBody": "Pianificazione, anelli, mappe e calcolo del percorso offline, ricerca, navigazione svolta per svolta, registrazione, statistiche dei giri, la mappa meteo, il meteo lungo il percorso da una previsione pubblica più grossolana (vento, pioggia, temperatura, l'ora migliore per partire) con il percorso colorato secondo pendenza, vento o pioggia, file GPX, FIT e TCX, e le connessioni a Strava e Ride with GPS restano gratis, con o senza Plus.",
+    "freeBody": "Pianificazione, anelli, mappe e calcolo del percorso offline, ricerca, navigazione svolta per svolta, registrazione, statistiche dei giri, la mappa meteo, il meteo lungo il percorso da una previsione pubblica più grossolana (vento, pioggia, temperatura, l'ora migliore per partire) con il percorso colorato secondo pendenza, fondo, vento o pioggia, file GPX, FIT e TCX, e le connessioni a Strava e Ride with GPS restano gratis, con o senza Plus.",
     "priceTitle": "Quanto costa",
     "priceBody": "Il prezzo lo vedi nell'app. Lo store mostra il prezzo mensile e annuale attuale nella tua valuta, con un periodo di prova gratuito, e qui non lo riportiamo mai, così non può diventare obsoleto.",
     "restoreTitle": "Ripristinare un abbonamento",
@@ -377,7 +377,7 @@
     },
     "eyebrow": "Download",
     "title": "Scarica Velorki",
-    "lead": "Gratis su entrambe le piattaforme. Tutto quello che gira sul telefono funziona senza account e senza connessione.",
+    "lead": "Gratis su entrambe le piattaforme. Tutto quello che gira sul telefono funziona senza account e senza connessione. L'app parla inglese, tedesco, francese, spagnolo, italiano e olandese.",
     "requirementsTitle": "Cosa serve",
     "android": "Android",
     "ios": "iOS",

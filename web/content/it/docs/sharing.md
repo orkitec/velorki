@@ -11,11 +11,10 @@ La condivisione dei link fa parte di [Velorki Plus](./velorki-plus). Aprire il l
 ## Creare un link
 
 1. Apri un percorso in **Libreria → Percorsi**, o un giro in **Libreria → Giri**.
-2. Tocca **Condividi link**.
-3. Velorki carica la traccia e apre una finestra intitolata **Condividi link**: "Chiunque abbia questo link può vedere il percorso su una mappa e scaricare il GPX. Per vederlo non serve un account." Il link è lì come testo selezionabile, con sotto la data in cui smette di funzionare.
-4. **Copia link** lo mette negli appunti, **Condividi** lo passa al menu di condivisione del telefono.
+2. Tocca **Condividi** in fondo al pannello. La scheda di condivisione elenca **Link**, **Ride with GPS** e **Strava**.
+3. Sulla riga **Link** tocca **Condividi link**. Velorki carica la traccia e passa il link al menu di condivisione del telefono. La riga dice poi "Funziona fino al 17 set 2027." Prima dice "Chiunque abbia il link può vederlo su una mappa e scaricare il GPX."
 
-Senza Plus il pulsante c'è comunque, e toccandolo dice "La condivisione dei link fa parte di Velorki Plus." con una via verso la pagina dell'abbonamento.
+Senza Plus la riga **Link** porta l'indicazione **Velorki Plus** e rimanda alla pagina dell'abbonamento. Le righe di Strava e Ride with GPS sono gratis.
 
 ## Cosa vede chi lo apre
 
@@ -41,7 +40,7 @@ Niente nella pagina dice chi sei, perché Velorki non ha account e non conserva 
 
 ## Scadenza
 
-Un elemento condiviso viene conservato per **un anno** e poi eliminato automaticamente, ed è questo che significa la riga "Il link smette di funzionare il 17 set 2027." nella finestra. Dopo, il link restituisce una semplice pagina "non trovato".
+Un elemento condiviso viene conservato per **un anno** e poi eliminato automaticamente; la riga **Link** dice fino a quando: "Funziona fino al 17 set 2027." Dopo, il link restituisce una semplice pagina "non trovato".
 
 Al momento nell'app non c'è un pulsante per ritirare un link prima. Se un link deve sparire prima, scrivi a [hello@orkitec.com](mailto:hello@orkitec.com) indicando il link stesso; non c'è un account con cui cercarlo, quindi il link è quello che serve.
 

@@ -36,10 +36,10 @@ Verwijder je Velorki op strava.com zelf uit je Strava-account, dan merkt Velorki
 ## Een rit uploaden
 
 1. Open de rit in **Bibliotheek → Ritten**.
-2. Tik op de wolkknop rechtsboven, met het label **Uploaden**.
-3. Kies **Uploaden naar Strava** of **Uploaden naar Ride with GPS**.
+2. Tik onderaan de kaart op **Delen**.
+3. Tik in de rij **Strava** of **Ride with GPS** op **Uploaden**. Bij een dienst die je niet hebt gekoppeld staat **Koppelen**.
 
-Velorki zegt "Uploaden naar Strava…", dan "Geüpload naar Strava" met een actie **View on Strava** die hem opent. Velorki bewaart daarvoor de link naar de activiteit bij de rit, tot je ontkoppelt. Een rit die er al staat, wordt nooit twee keer geüpload: het menu-item wordt dan **View on Strava** of **Openen op Ride with GPS**.
+Velorki zegt "Uploaden naar Strava…", dan "Geüpload naar Strava" met een actie **View on Strava** die hem opent. Velorki bewaart daarvoor de link naar de activiteit bij de rit, tot je ontkoppelt. Een rit die er al staat, wordt nooit twee keer geüpload: de rij biedt dan **View on Strava** of **Openen op Ride with GPS** aan.
 
 Een upload naar Strava kan even duren, omdat Strava het bestand verwerkt voordat het als activiteit bestaat; Velorki wacht erop en linkt naar het resultaat.
 
@@ -58,11 +58,11 @@ Is het account niet gekoppeld, dan zegt het scherm "Koppel eerst Strava onder In
 
 ## Een route naar Ride with GPS sturen
 
-Open de route, tik op **Sturen** en kies **Naar Ride with GPS sturen**. Hij wordt naar je account geüpload en Velorki biedt **Openen** aan om hem daar te bekijken.
+Open de route, tik op **Delen** en gebruik **Sturen** in de rij **Ride with GPS**. Hij wordt naar je account geüpload en Velorki biedt **Openen** aan om hem daar te bekijken.
 
 ## Een route naar Strava sturen
 
-De API van Strava kan routes lezen maar niet aanmaken, dus er is niets waar Velorki naartoe kan uploaden. **Naar Strava sturen** opent daarom een uitleg:
+De API van Strava kan routes lezen maar niet aanmaken, dus er is niets waar Velorki naartoe kan uploaden. De rij **Strava** bij een route opent daarom een uitleg:
 
 > **Strava kan geen routes ontvangen.** De API van Strava kan routes lezen maar niet aanmaken. Velorki exporteert in plaats daarvan een GPX-bestand: deel het en importeer het dan op strava.com.
 

@@ -21,7 +21,7 @@ Kostenlos, für alle, auf Dauer:
 - Blätter der Fahrten mit Diagrammen, Splits und dem nach Tempo eingefärbten Track,
 - GPX-, FIT- und TCX-Import und -Export, in jede Richtung,
 - die Wetterkarte: Regenradar, Wolken und Wind, mit dem Zeitregler,
-- das Wetter entlang der Route aus einer gröberen öffentlichen Vorhersage, dem ICON-Modell des Deutschen Wetterdienstes: Wind, Regen, Temperatur, eine Zeile, die sie zusammenfasst, die beste Zeit zum Losfahren und die Route nach Steigung, Wind oder Regen eingefärbt,
+- das Wetter entlang der Route aus einer gröberen öffentlichen Vorhersage, dem ICON-Modell des Deutschen Wetterdienstes: Wind, Regen, Temperatur, eine Zeile, die sie zusammenfasst, die beste Zeit zum Losfahren und die Route nach Steigung, Belag, Wind oder Regen eingefärbt,
 - die Verbindungen zu Strava und Ride with GPS: Fahrten hochladen, Routen importieren, Routen an Ride with GPS senden (siehe [Strava und Ride with GPS](./strava-and-ridewithgps)),
 - den Teilen-Link von jemand anderem öffnen.
 
@@ -39,7 +39,7 @@ Drei Funktionen, wie auf der Abo-Seite aufgeführt:
 
 Jede davon braucht einen Server, den wir bezahlen.
 
-Das genauere Wetter auf der Route kommt vom US National Weather Service, aus den Stationsvorhersagen des Deutschen Wetterdienstes in Deutschland und überall sonst von MET Norway, mit Böen und Regenwahrscheinlichkeit, und die Route lässt sich danach einfärben. Das Radar kommt von EUMETNET OPERA und Radar-DPC (Italien), wo die kostenlose Karte nur Schätzungen aus Satellitendaten hat, etwa in Frankreich, Spanien, Italien, Großbritannien, der Schweiz und Skandinavien: 1-km-Zellen, alle 5 Minuten ein neues Bild, die letzten 2 Stunden.
+Das genauere Wetter auf der Route kommt vom US National Weather Service, aus den Stationsvorhersagen des Deutschen Wetterdienstes in Deutschland und überall sonst von MET Norway, mit Böen und Regenwahrscheinlichkeit. Das Radar kommt von EUMETNET OPERA und Radar-DPC (Italien), wo die kostenlose Karte nur Schätzungen aus Satellitendaten hat, etwa in Frankreich, Spanien, Italien, Großbritannien, der Schweiz und Skandinavien: 1-km-Zellen, alle 5 Minuten ein neues Bild, die letzten 2 Stunden.
 
 ## Abonnieren
 

@@ -36,10 +36,10 @@ Se invece rimuovi Velorki dal tuo account Strava su strava.com, Velorki se ne ac
 ## Caricare un giro
 
 1. Apri il giro in **Libreria → Giri**.
-2. Tocca il pulsante a nuvoletta in alto a destra, etichettato **Carica**.
-3. Scegli **Carica su Strava** o **Carica su Ride with GPS**.
+2. Tocca **Condividi** in fondo al pannello.
+3. Sulla riga **Strava** o **Ride with GPS** tocca **Carica**. Un servizio che non hai collegato mostra invece **Connetti**.
 
-Velorki dice "Caricamento su Strava…", poi "Caricato su Strava" con un'azione **View on Strava** che lo apre. Velorki conserva per questo il collegamento all'attività insieme al giro, finché non disconnetti. Un giro che è già lì non viene mai caricato due volte: la voce di menu diventa invece **View on Strava** o **Apri su Ride with GPS**.
+Velorki dice "Caricamento su Strava…", poi "Caricato su Strava" con un'azione **View on Strava** che lo apre. Velorki conserva per questo il collegamento all'attività insieme al giro, finché non disconnetti. Un giro che è già lì non viene mai caricato due volte: la riga offre invece **View on Strava** o **Apri su Ride with GPS**.
 
 Un caricamento su Strava può richiedere un po', perché Strava elabora il file prima che esista come attività; Velorki lo aspetta e collega il risultato.
 
@@ -58,11 +58,11 @@ Se l'account non è collegato la schermata dice "Prima connetti Strava in Opzion
 
 ## Inviare un percorso a Ride with GPS
 
-Apri il percorso, tocca **Invia**, scegli **Invia a Ride with GPS**. Viene caricato sul tuo account e Velorki propone **Apri** per vederlo lì.
+Apri il percorso, tocca **Condividi** e usa **Invia** sulla riga **Ride with GPS**. Viene caricato sul tuo account e Velorki propone **Apri** per vederlo lì.
 
 ## Inviare un percorso a Strava
 
-L'API di Strava può leggere i percorsi ma non può crearli, quindi non c'è nulla su cui Velorki possa caricare. Scegliere **Invia a Strava** apre perciò una spiegazione:
+L'API di Strava può leggere i percorsi ma non può crearli, quindi non c'è nulla su cui Velorki possa caricare. La riga **Strava** di un percorso apre perciò una spiegazione:
 
 > **Strava non può ricevere percorsi.** L'API di Strava può leggere i percorsi ma non crearli. Velorki esporta invece un file GPX: condividilo, poi importalo su strava.com.
 

@@ -21,7 +21,7 @@ Gratis, para todo el mundo, para siempre:
 - las fichas de salida con los gráficos, los parciales y el track coloreado por velocidad,
 - importar y exportar GPX, FIT y TCX, en todos los sentidos,
 - el mapa del tiempo: radar de lluvia, nubes y viento, con el control de tiempo,
-- el tiempo a lo largo de la ruta de una previsión pública más gruesa, el modelo ICON del Deutscher Wetterdienst: viento, lluvia, temperatura, una línea que los resume y la mejor hora de salida, y la ruta coloreada según la pendiente, el viento o la lluvia,
+- el tiempo a lo largo de la ruta de una previsión pública más gruesa, el modelo ICON del Deutscher Wetterdienst: viento, lluvia, temperatura, una línea que los resume y la mejor hora de salida, y la ruta coloreada según la pendiente, la superficie, el viento o la lluvia,
 - las conexiones con Strava y Ride with GPS: subir salidas, importar rutas, enviar rutas a Ride with GPS (consulta [Strava y Ride with GPS](./strava-and-ridewithgps)),
 - abrir el enlace compartido de otra persona.
 
@@ -39,7 +39,7 @@ Tres funciones, tal como aparecen en la página de la suscripción:
 
 Cada una de ellas necesita un servidor que pagamos nosotros.
 
-El tiempo más preciso en la ruta viene del National Weather Service de EE. UU., de las previsiones por estación del Deutscher Wetterdienst en Alemania y de MET Norway en el resto, con rachas y probabilidad de lluvia, y la ruta puede colorearse según él. El radar viene de EUMETNET OPERA y Radar-DPC (Italia), donde el mapa gratuito solo tiene estimaciones por satélite, como en Francia, España, Italia, el Reino Unido, Suiza y Escandinavia: celdas de 1 km, una imagen nueva cada 5 minutos, las últimas 2 horas.
+El tiempo más preciso en la ruta viene del National Weather Service de EE. UU., de las previsiones por estación del Deutscher Wetterdienst en Alemania y de MET Norway en el resto, con rachas y probabilidad de lluvia. El radar viene de EUMETNET OPERA y Radar-DPC (Italia), donde el mapa gratuito solo tiene estimaciones por satélite, como en Francia, España, Italia, el Reino Unido, Suiza y Escandinavia: celdas de 1 km, una imagen nueva cada 5 minutos, las últimas 2 horas.
 
 ## Suscribirse
 

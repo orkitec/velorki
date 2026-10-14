@@ -36,10 +36,10 @@ Entfernst du Velorki stattdessen auf strava.com aus deinem Strava-Konto, bemerkt
 ## Eine Fahrt hochladen
 
 1. Öffne die Fahrt unter **Bibliothek → Fahrten**.
-2. Tippe oben rechts auf die Wolken-Schaltfläche, beschriftet mit **Hochladen**.
-3. Wähle **Zu Strava hochladen** oder **Zu Ride with GPS hochladen**.
+2. Tippe unten im Blatt auf **Teilen**.
+3. Tippe in der Zeile **Strava** oder **Ride with GPS** auf **Hochladen**. Bei einem Dienst, den du nicht verbunden hast, steht stattdessen **Verbinden**.
 
-Velorki sagt "Wird zu Strava hochgeladen…", dann "Zu Strava hochgeladen" mit der Aktion **View on Strava**, die sie öffnet. Dafür behält Velorki den Link der Aktivität bei der Fahrt, bis du trennst. Eine Fahrt, die schon oben ist, wird nie zweimal hochgeladen: Der Menüeintrag wird stattdessen zu **View on Strava** oder **Auf Ride with GPS öffnen**.
+Velorki sagt "Wird zu Strava hochgeladen…", dann "Zu Strava hochgeladen" mit der Aktion **View on Strava**, die sie öffnet. Dafür behält Velorki den Link der Aktivität bei der Fahrt, bis du trennst. Eine Fahrt, die schon oben ist, wird nie zweimal hochgeladen: Die Zeile bietet stattdessen **View on Strava** oder **Auf Ride with GPS öffnen** an.
 
 Ein Upload zu Strava kann dauern, weil Strava die Datei verarbeitet, bevor daraus eine Aktivität wird; Velorki wartet darauf und verlinkt das Ergebnis.
 
@@ -58,11 +58,11 @@ Ist das Konto nicht verbunden, sagt der Bildschirm "Zuerst Strava unter Einstell
 
 ## Eine Route an Ride with GPS senden
 
-Öffne die Route, tippe auf **Senden** und wähle **An Ride with GPS senden**. Sie wird in dein Konto hochgeladen, und Velorki bietet **Öffnen** an, um sie dort anzusehen.
+Öffne die Route, tippe auf **Teilen** und nutze in der Zeile **Ride with GPS** die Schaltfläche **Senden**. Sie wird in dein Konto hochgeladen, und Velorki bietet **Öffnen** an, um sie dort anzusehen.
 
 ## Eine Route an Strava senden
 
-Die API von Strava kann Routen lesen, aber nicht anlegen, es gibt für Velorki also nichts, wohin es hochladen könnte. **An Strava senden** öffnet darum eine Erklärung:
+Die API von Strava kann Routen lesen, aber nicht anlegen, es gibt für Velorki also nichts, wohin es hochladen könnte. Die Zeile **Strava** bei einer Route öffnet darum eine Erklärung:
 
 > **Strava kann keine Routen empfangen**. Die API von Strava kann Routen lesen, aber nicht anlegen. Velorki exportiert stattdessen eine GPX-Datei: teilen und dann auf strava.com importieren.
 

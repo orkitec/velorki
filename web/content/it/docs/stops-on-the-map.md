@@ -14,7 +14,7 @@ Velorki può disegnare sulla mappa i luoghi dove ci si ferma durante un giro: ac
 
 ## Nella zona che guardi
 
-Con **Soste** attivo, le soste nella parte di mappa visibile compaiono dallo zoom 11 in poi. Più lontano, le soste vicine sono raccolte in bolle con un numero; dallo zoom 15 si separano in soste singole con le loro icone. Tocca una bolla per ingrandire fino a dove si separa.
+Con **Soste** attivo, le soste nella parte di mappa visibile compaiono dallo zoom 11 in poi. Più lontano, le soste vicine sono raccolte in bolle con un numero; dallo zoom 15 si separano in soste singole con le loro icone. Tocca una bolla per ingrandire fino a dove si separa. Vengono caricate tutte le soste dei tipi scelti nell'area visibile, nessuna è esclusa.
 
 Ancora più lontano, un chip dice **Ingrandisci per vedere le soste**; toccalo e la mappa ingrandisce fino a dove si vedono.
 

@@ -101,7 +101,7 @@
       "plan": {
         "eyebrow": "Planification",
         "title": "Un itinéraire pour le vélo que vous roulez",
-        "body": "Touchez la carte pour poser vos points : l’itinéraire est calculé sur le téléphone, à partir de tuiles de 5°×5° téléchargées. Profils Randonnée, Route, Gravel, VTT et Direct, jusqu’à trois variantes, le profil altimétrique et le détail des revêtements que vous allez rouler.",
+        "body": "Touchez la carte pour poser vos points : l’itinéraire est calculé sur le téléphone, à partir de tuiles de 5°×5° téléchargées. Profils Randonnée, Route, Gravel, VTT et Direct, jusqu’à trois variantes, le profil altimétrique et le détail des revêtements que vous allez rouler. L’itinéraire peut être coloré selon la pente, le revêtement, le vent ou la pluie, et un curseur de temps fixe l’heure de départ et déplace la météo sur la carte et le long de l’itinéraire.",
         "bullets": {
           "one": "Cinq profils vélo, jusqu’à trois variantes par itinéraire",
           "two": "Profil altimétrique et statistiques de revêtement pour chaque option",
@@ -131,7 +131,7 @@
       "navigate": {
         "eyebrow": "Navigation",
         "title": "Instructions vocales, sur le téléphone",
-        "body": "Un bandeau de direction et des instructions vocales pendant que vous suivez un itinéraire, et si vous vous en écartez, à vous de choisir : un chemin pour rejoindre le tracé, un nouvel itinéraire vers l’arrivée ou simplement la direction à suivre, le tout calculé sur le téléphone. Suivi orienté boussole ou nord en haut. Les instructions sont générées à partir des mêmes données de routage que l’itinéraire, elles fonctionnent donc sans réseau. Un itinéraire GPX apporte sa propre feuille de route et ses points d’intérêt, et la fiche d’enregistrement ajoute en pages à faire défiler un profil altimétrique avec la montée à venir, l’heure d’arrivée et la liste des instructions.",
+        "body": "Un bandeau de direction et des instructions vocales pendant que vous suivez un itinéraire, et si vous vous en écartez, à vous de choisir : un chemin pour rejoindre le tracé, un nouvel itinéraire vers l’arrivée ou simplement la direction à suivre, le tout calculé sur le téléphone. Suivi orienté boussole ou nord en haut. Les instructions sont générées à partir des mêmes données de routage que l’itinéraire, elles fonctionnent donc sans réseau. Un itinéraire GPX apporte sa propre feuille de route et ses points d’intérêt, et la fiche d’enregistrement ajoute en pages à faire défiler un profil altimétrique avec la montée à venir, l’heure d’arrivée et la liste des instructions. Un GPX sans virages reçoit les siens, créés sur le téléphone à partir de la carte.",
         "bullets": {
           "one": "Bandeau de direction et guidage vocal, hors ligne",
           "two": "Hors itinéraire : retour guidé, nouvel itinéraire ou simple direction",
@@ -171,7 +171,7 @@
       "files": {
         "eyebrow": "Fichiers et services",
         "title": "Vos sorties sont des fichiers qui vous appartiennent",
-        "body": "Import et export GPX, FIT et TCX via le menu de partage et « Ouvrir avec », pour que vos itinéraires et sorties passent vers Komoot, Garmin Connect, Strava ou tout autre service qui lit ces formats. Un itinéraire GPX garde sa feuille de route et ses points d’intérêt, et un lien Ride with GPS s’ouvre dans Velorki. Velorki fonctionne gratuitement avec Strava et Ride with GPS ; les liens de partage font partie de Plus.",
+        "body": "Import et export GPX, FIT et TCX via le menu de partage et « Ouvrir avec », pour que vos itinéraires et sorties passent vers Komoot, Garmin Connect, Strava ou tout autre service qui lit ces formats. Un itinéraire GPX garde sa feuille de route et ses points d’intérêt, et un lien Ride with GPS s’ouvre dans Velorki. Velorki fonctionne gratuitement avec Strava et Ride with GPS ; les liens de partage font partie de Plus. Un seul bouton Partager sur un itinéraire ou une sortie réunit le lien, Strava et Ride with GPS.",
         "bullets": {
           "one": "GPX, FIT et TCX en entrée et en sortie, depuis Fichiers, Mail ou un navigateur, avec feuilles de route et points d’intérêt",
           "two": "Une bibliothèque d’itinéraires enregistrés et de sorties",
@@ -201,7 +201,7 @@
       },
       "partsNote": "Chaque élément s’active et se désactive séparément, dans le panneau Calques de la carte. Les puces y servent de légende : chacune montre sa ligne.",
       "stopsTitle": "Les haltes sur la carte",
-      "stopsBody": "Cafés, eau potable, boulangeries, toilettes et stations de réparation pour commencer, tirés des mêmes données téléchargées. Choisissez tout autre type dans ces groupes, et touchez une halte pour y aller.",
+      "stopsBody": "Cafés, eau potable, boulangeries, toilettes et stations de réparation pour commencer, tirés des mêmes données téléchargées. Choisissez tout autre type dans ces groupes, et touchez une halte pour y aller. Dézoomées, les haltes proches se regroupent en bulles avec un nombre ; les haltes seules apparaissent dès le zoom 15, et le long d’un itinéraire vous voyez les haltes à venir.",
       "stopGroups": {
         "cyclingStops": "Haltes à vélo",
         "overnight": "Hébergement",
@@ -235,7 +235,7 @@
         },
         "weather": {
           "title": "Une météo plus fine le long de l’itinéraire",
-          "body": "La météo gratuite le long de l’itinéraire vient d’une prévision publique plus grossière. Plus interroge à la place des services météo locaux — le National Weather Service aux États-Unis, les prévisions par station du Deutscher Wetterdienst en Allemagne, MET Norway ailleurs — pour un vent, une pluie et une température plus fins, avec rafales et probabilité de pluie, et colore l’itinéraire selon eux."
+          "body": "La météo gratuite le long de l’itinéraire vient d’une prévision publique plus grossière. Plus interroge à la place des services météo locaux — le National Weather Service aux États-Unis, les prévisions par station du Deutscher Wetterdienst en Allemagne, MET Norway ailleurs — pour un vent, une pluie et une température plus fins, avec rafales et probabilité de pluie."
         },
         "radar": {
           "title": "Radar de pluie dans toute l’Europe",
@@ -268,7 +268,7 @@
         "library": "Bibliothèque d’itinéraires et de sorties",
         "files": "Import et export GPX, FIT et TCX",
         "weatherMap": "Carte météo : radar de pluie, nuages et vent, avec curseur de temps",
-        "routeColours": "La météo le long de l’itinéraire d’une prévision publique plus grossière : vent, pluie, température, un résumé et la meilleure heure de départ, et l’itinéraire coloré selon la pente, le vent ou la pluie",
+        "routeColours": "La météo le long de l’itinéraire d’une prévision publique plus grossière : vent, pluie, température, un résumé et la meilleure heure de départ, et l’itinéraire coloré selon la pente, le revêtement, le vent ou la pluie",
         "routeWeather": "Une météo plus fine le long de l’itinéraire par des services météo locaux, avec rafales et probabilité de pluie",
         "radarEurope": "Un vrai radar de pluie dans toute l’Europe là où la carte gratuite n’a que des estimations par satellite",
         "assistant": "L’assistant : une phrase devient un itinéraire",
@@ -350,7 +350,7 @@
       },
       "weather": {
         "title": "Une météo plus fine le long de l’itinéraire",
-        "body": "La météo gratuite le long de l’itinéraire vient d’une prévision publique plus grossière. Plus interroge à la place des services météo locaux — le National Weather Service aux États-Unis, les prévisions par station du Deutscher Wetterdienst en Allemagne, MET Norway ailleurs — pour un vent, une pluie et une température plus fins, avec rafales et probabilité de pluie, et colore l’itinéraire selon eux."
+        "body": "La météo gratuite le long de l’itinéraire vient d’une prévision publique plus grossière. Plus interroge à la place des services météo locaux — le National Weather Service aux États-Unis, les prévisions par station du Deutscher Wetterdienst en Allemagne, MET Norway ailleurs — pour un vent, une pluie et une température plus fins, avec rafales et probabilité de pluie."
       },
       "radar": {
         "title": "Radar de pluie dans toute l’Europe",
@@ -358,7 +358,7 @@
       }
     },
     "freeTitle": "Ce qui reste gratuit",
-    "freeBody": "Planification, boucles, cartes et routage hors ligne, recherche, navigation guidée, enregistrement, statistiques de sortie, carte météo, météo le long de l’itinéraire d’une prévision publique plus grossière (vent, pluie, température, meilleure heure de départ) avec l’itinéraire coloré selon la pente, le vent ou la pluie, fichiers GPX, FIT et TCX, et connexions à Strava et Ride with GPS restent gratuits, avec ou sans Plus.",
+    "freeBody": "Planification, boucles, cartes et routage hors ligne, recherche, navigation guidée, enregistrement, statistiques de sortie, carte météo, météo le long de l’itinéraire d’une prévision publique plus grossière (vent, pluie, température, meilleure heure de départ) avec l’itinéraire coloré selon la pente, le revêtement, le vent ou la pluie, fichiers GPX, FIT et TCX, et connexions à Strava et Ride with GPS restent gratuits, avec ou sans Plus.",
     "priceTitle": "Combien ça coûte",
     "priceBody": "Le prix est indiqué dans l’application. Le store affiche le prix mensuel et annuel en vigueur dans votre devise, avec un essai gratuit. Nous ne l’indiquons jamais ici, pour qu’il ne soit jamais périmé.",
     "restoreTitle": "Restaurer un abonnement",
@@ -377,7 +377,7 @@
     },
     "eyebrow": "Téléchargement",
     "title": "Obtenir Velorki",
-    "lead": "Gratuit sur les deux plateformes. Tout ce qui tourne sur le téléphone fonctionne sans compte et sans connexion.",
+    "lead": "Gratuit sur les deux plateformes. Tout ce qui tourne sur le téléphone fonctionne sans compte et sans connexion. L’app parle anglais, allemand, français, espagnol, italien et néerlandais.",
     "requirementsTitle": "Configuration requise",
     "android": "Android",
     "ios": "iOS",

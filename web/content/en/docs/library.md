@@ -40,6 +40,7 @@ Opening a route draws it on the map, fitted to the part of the screen above the 
 - a **Description** row and a **Link** row, each with a pencil: the description is the file's, the assistant's or yours, the link is the file's `<link>` or one you type, and a tap on it opens the page,
 - the surface breakdown: the router's own figures for a route planned here, and for one read from a file the same matching a ride gets, see below,
 - the elevation profile,
+- under it, the same colouring as in the planner: gradient, surface, wind or rain,
 - **Points of interest**: the route's points that are not on its track, each with its type icon, its name and its note — the ones a file came with off the course, and the places you marked beside the route in the planner; the ones on the track are lines of the cue sheet instead,
 - for a route imported with turns or points of interest, or with points you named or wrote a note on in the planner, the cue sheet: every turn and point with its distance from the start, a tap on a line panning the map there at your zoom and a tap on a marker scrolling the card to that line.
 
@@ -47,8 +48,7 @@ The actions:
 
 - **Open in planner** loads it into the Plan tab with every one of its points, via points and their names, types and notes included, where you can edit it and save it again. A route that was imported rather than planned opens with the file's exact line and points only at its ends and at the file's own points that lie on the track, which come along with their type and note; an edit routes only the stretches beside it, and the file's line stays everywhere else. The file's line is kept with the route through every edit and save, so **Restore** in the planner can put it back. The points off the track come along as places beside the route, where they can be named, given a type, moved onto the route or removed like any other point. The next Save writes both sets back, so a place you delete in the planner is gone from the card too.
 - **Export** offers **GPX route** and **FIT course**, see [import and export](./import-and-export).
-- **Send** offers **Send to Ride with GPS** and **Send to Strava**, see [Strava and Ride with GPS](./strava-and-ridewithgps).
-- **Share link** turns it into a link, see [sharing](./sharing).
+- **Share** opens the share card: a **Link** to the route, **Ride with GPS** and **Strava**, see [sharing](./sharing) and [Strava and Ride with GPS](./strava-and-ridewithgps).
 - **Describe this route** asks the assistant to write a paragraph about it, see [assistant](./assistant).
 
 ## A ride card
@@ -102,9 +102,8 @@ Under the climbs, a **Surface** bar like the one on a route card: how much of th
 
 ### Ride actions
 
-- The cloud button at the right of the card's header uploads the ride to a connected service.
-- The menu beside it: **Export GPX track**, **Export FIT activity**, **Continue this ride**, **Rename**, **Delete**.
-- At the bottom: the same two exports and **Share link**.
+- The menu at the right of the card's header: **Export GPX track**, **Export FIT activity**, **Continue this ride**, **Rename**, **Delete**.
+- At the bottom: the same two exports and **Share**, which opens the share card with **Link**, **Ride with GPS** and **Strava**, see [sharing](./sharing).
 
 ## Getting files and routes in
 

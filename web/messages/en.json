@@ -101,7 +101,7 @@
       "plan": {
         "eyebrow": "Planning",
         "title": "A route for the bike you are on",
-        "body": "Tap waypoints on the map and the route is calculated on the phone, on downloaded 5°×5° tiles. Touring, road, gravel, MTB and direct profiles, up to three alternatives, the elevation profile and a breakdown of the surfaces you will ride on.",
+        "body": "Tap waypoints on the map and the route is calculated on the phone, on downloaded 5°×5° tiles. Touring, road, gravel, MTB and direct profiles, up to three alternatives, the elevation profile and a breakdown of the surfaces you will ride on. The route can be coloured by gradient, surface, wind or rain, and one time slider sets when you leave and moves the weather on the map and along the route.",
         "bullets": {
           "one": "Five bike profiles, up to three alternatives per route",
           "two": "Elevation profile and surface statistics for every option",
@@ -131,7 +131,7 @@
       "navigate": {
         "eyebrow": "Navigation",
         "title": "Spoken turns, on the phone",
-        "body": "A turn banner and spoken cues while you ride a route, and when you leave it, your choice of a way back onto the plan, a new route to the destination or just the direction back, all worked out on the phone. Compass or north-up follow modes. The cues are generated from the same routing data that planned the ride, so they work where there is no network. A GPX route brings its own cue sheet and points of interest along, and the record sheet adds an elevation profile with the climb ahead, the arrival time and the cue list as swipeable pages.",
+        "body": "A turn banner and spoken cues while you ride a route, and when you leave it, your choice of a way back onto the plan, a new route to the destination or just the direction back, all worked out on the phone. Compass or north-up follow modes. The cues are generated from the same routing data that planned the ride, so they work where there is no network. A GPX route brings its own cue sheet and points of interest along, and the record sheet adds an elevation profile with the climb ahead, the arrival time and the cue list as swipeable pages. A GPX without turns gets them created on the phone from the map.",
         "bullets": {
           "one": "Turn banner and voice cues, offline",
           "two": "Leave the line: guided back, a new route, or just the direction back",
@@ -171,7 +171,7 @@
       "files": {
         "eyebrow": "Files and services",
         "title": "Your rides are files you own",
-        "body": "GPX, FIT and TCX import and export through the share sheet and open-with, so routes and rides move to Komoot, Garmin Connect, Strava or anything else that reads those formats. A GPX route keeps its cue sheet and points of interest, and a Ride with GPS link opens in Velorki. Velorki works with Strava and Ride with GPS for free; share links are part of Plus.",
+        "body": "GPX, FIT and TCX import and export through the share sheet and open-with, so routes and rides move to Komoot, Garmin Connect, Strava or anything else that reads those formats. A GPX route keeps its cue sheet and points of interest, and a Ride with GPS link opens in Velorki. Velorki works with Strava and Ride with GPS for free; share links are part of Plus. One Share button on a route or a ride holds the link, Strava and Ride with GPS.",
         "bullets": {
           "one": "GPX, FIT and TCX in and out, from Files, Mail or a browser, with cue sheets and points of interest",
           "two": "A library of saved routes and recorded rides",
@@ -201,7 +201,7 @@
       },
       "partsNote": "Each part switches on and off on its own, in the map's Layers sheet. The chips there are the legend: each one shows its line.",
       "stopsTitle": "Stops on the map",
-      "stopsBody": "Cafés, drinking water, bakeries, toilets and repair stations to start with, from the same downloaded data. Pick any other kind from these groups, and tap a stop to plan to it.",
+      "stopsBody": "Cafés, drinking water, bakeries, toilets and repair stations to start with, from the same downloaded data. Pick any other kind from these groups, and tap a stop to plan to it. Zoomed out, close stops gather into bubbles with a count; single stops show from zoom 15, and along a route you see the stops ahead.",
       "stopGroups": {
         "cyclingStops": "Cycling stops",
         "overnight": "Overnight",
@@ -235,7 +235,7 @@
         },
         "weather": {
           "title": "Finer weather along the route",
-          "body": "The free weather along the route comes from a coarser public forecast. Plus asks local weather services instead — the US National Weather Service, the Deutscher Wetterdienst's station forecasts in Germany, MET Norway elsewhere — for finer wind, rain and temperature, with gusts and the chance of rain, and colours the route by it."
+          "body": "The free weather along the route comes from a coarser public forecast. Plus asks local weather services instead — the US National Weather Service, the Deutscher Wetterdienst's station forecasts in Germany, MET Norway elsewhere — for finer wind, rain and temperature, with gusts and the chance of rain."
         },
         "radar": {
           "title": "Rain radar across Europe",
@@ -268,7 +268,7 @@
         "library": "Library of routes and rides",
         "files": "GPX, FIT and TCX import and export",
         "weatherMap": "Weather map: rain radar, clouds and wind, with a time slider",
-        "routeColours": "Weather along the route from a coarser public forecast: wind, rain, temperature, a summary and the best time to leave, and the route coloured by gradient, wind or rain",
+        "routeColours": "Weather along the route from a coarser public forecast: wind, rain, temperature, a summary and the best time to leave, and the route coloured by gradient, surface, wind or rain",
         "routeWeather": "Finer weather along the route from local weather services, with gusts and chance of rain",
         "radarEurope": "Real rain radar across Europe where the free map has only satellite estimates",
         "assistant": "The assistant: a sentence becomes a route",
@@ -350,7 +350,7 @@
       },
       "weather": {
         "title": "Finer weather along the route",
-        "body": "The free weather along the route comes from a coarser public forecast. Plus asks local weather services instead — the US National Weather Service, the Deutscher Wetterdienst's station forecasts in Germany, MET Norway elsewhere — for finer wind, rain and temperature, with gusts and the chance of rain, and colours the route by it."
+        "body": "The free weather along the route comes from a coarser public forecast. Plus asks local weather services instead — the US National Weather Service, the Deutscher Wetterdienst's station forecasts in Germany, MET Norway elsewhere — for finer wind, rain and temperature, with gusts and the chance of rain."
       },
       "radar": {
         "title": "Rain radar across Europe",
@@ -358,7 +358,7 @@
       }
     },
     "freeTitle": "What stays free",
-    "freeBody": "Planning, loops, offline maps and routing, search, turn-by-turn navigation, recording, ride stats, the weather map, the weather along the route from a coarser public forecast (wind, rain, temperature, the best time to leave) with the route coloured by gradient, wind or rain, GPX, FIT and TCX files, and the Strava and Ride with GPS connections stay free, with or without Plus.",
+    "freeBody": "Planning, loops, offline maps and routing, search, turn-by-turn navigation, recording, ride stats, the weather map, the weather along the route from a coarser public forecast (wind, rain, temperature, the best time to leave) with the route coloured by gradient, surface, wind or rain, GPX, FIT and TCX files, and the Strava and Ride with GPS connections stay free, with or without Plus.",
     "priceTitle": "What it costs",
     "priceBody": "See the price in the app. The store shows the current monthly and yearly price in your own currency, with a free trial, and the price is never quoted here so it cannot go stale.",
     "restoreTitle": "Restoring a subscription",
@@ -377,7 +377,7 @@
     },
     "eyebrow": "Download",
     "title": "Get Velorki",
-    "lead": "Free on both platforms. Everything that runs on the phone works without an account and without a connection.",
+    "lead": "Free on both platforms. Everything that runs on the phone works without an account and without a connection. The app speaks English, German, French, Spanish, Italian and Dutch.",
     "requirementsTitle": "What it needs",
     "android": "Android",
     "ios": "iOS",

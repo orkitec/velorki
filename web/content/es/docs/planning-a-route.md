@@ -110,6 +110,14 @@ El gráfico **Perfil de altitud** dibuja la altura frente a la distancia. Tócal
 
 La barra de **Superficie** es una única barra apilada de tres partes que suman toda la ruta, **Asfaltado**, **Sin asfaltar** y **Desconocido**, con una leyenda de porcentajes debajo. Otras dos entradas de la leyenda, **Carriles bici** y **Mucho tráfico**, se solapan con las tres primeras en lugar de sumarse a ellas: te dicen qué parte de la ruta va por vías ciclistas, sendas señalizadas para bicis, calles ciclistas, o un carril bici junto a la calzada y qué parte por una carretera grande. Para una ruta que no es toda del propio enrutador, con la línea de un archivo en ella, toda la línea se superpone a los datos de rutas para obtener las cifras, lo que necesita la región descargada.
 
+### Colorear la ruta
+
+Un interruptor en la cabecera y cuatro opciones fijan según qué se colorea la ruta: **Pendiente**, **Superficie**, **Viento** y **Lluvia**. El color se ve en el mapa y bajo el perfil de altitud, en el planificador y en la página de una ruta guardada. **Superficie** colorea cada tramo como la barra de arriba: asfaltado, sin asfaltar, desconocido, carriles bici y carreteras con mucho tráfico, con los mismos colores. El viento y la lluvia siguen la previsión de la hora de salida. Las cuatro son gratis; sin Plus, el viento y la lluvia vienen de la previsión pública más gruesa, y la app lo dice antes de colorear la ruta.
+
+### Hora de salida
+
+Un deslizador fija cuándo sales. Mueve a esa hora el radar de lluvia y el viento del mapa, el tiempo a lo largo de la ruta y el color de la ruta. Es gratis. La pendiente y la superficie no cambian con la hora.
+
 ## Guardarla
 
 1. Toca **Guardar**.

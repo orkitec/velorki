@@ -11,11 +11,10 @@ Compartir enlaces forma parte de [Velorki Plus](./velorki-plus). Abrir el enlace
 ## Crear un enlace
 
 1. Abre una ruta en **Biblioteca → Rutas**, o una salida en **Biblioteca → Salidas**.
-2. Toca **Compartir enlace**.
-3. Velorki sube el track y abre un panel titulado **Compartir enlace**: «Cualquiera con este enlace puede ver la ruta en un mapa y descargar el GPX. Para verla no hace falta cuenta.» El enlace aparece como texto seleccionable, con la fecha en que deja de funcionar debajo.
-4. **Copiar enlace** lo pone en el portapapeles, **Compartir** lo pasa al menú de compartir del teléfono.
+2. Toca **Compartir** abajo en la tarjeta. La tarjeta para compartir muestra **Enlace**, **Ride with GPS** y **Strava**.
+3. En la fila **Enlace** toca **Compartir enlace**. Velorki sube el track y pasa el enlace al menú de compartir del teléfono. La fila dice entonces «Funciona hasta el 17 sept 2027.». Antes dice «Cualquiera con el enlace puede verlo en un mapa y descargar el GPX.»
 
-Sin Plus el botón sigue ahí, y al tocarlo dice «Compartir enlaces forma parte de Velorki Plus.» con un acceso a la página de la suscripción.
+Sin Plus, la fila **Enlace** lleva la marca **Velorki Plus** y conduce a la página de la suscripción. Las filas de Strava y Ride with GPS son gratis.
 
 ## Lo que ve quien lo abre
 
@@ -41,7 +40,7 @@ Nada en la página dice quién eres, porque Velorki no tiene cuenta y no guarda 
 
 ## Caducidad
 
-Lo compartido se guarda **un año** y después se borra automáticamente, que es lo que significa la línea «El enlace deja de funcionar el 17 sept 2027.» del panel. Pasado ese plazo, el enlace devuelve una simple página de «no encontrado».
+Lo compartido se guarda **un año** y después se borra automáticamente; la fila **Enlace** dice hasta cuándo: «Funciona hasta el 17 sept 2027.». Pasado ese plazo, el enlace devuelve una simple página de «no encontrado».
 
 De momento no hay ningún botón en la app para retirar un enlace antes. Si un enlace tiene que desaparecer antes, escribe a [hello@orkitec.com](mailto:hello@orkitec.com) con el propio enlace; no hay cuenta por la que buscarlo, así que lo que hace falta es el enlace.
 

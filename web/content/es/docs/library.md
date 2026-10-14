@@ -40,6 +40,7 @@ Al abrir una ruta se dibuja en el mapa, ajustada a la parte de la pantalla que q
 - una fila **Descripción** y una fila **Enlace**, cada una con un lápiz: la descripción es la del archivo, la del asistente o la tuya, el enlace es el `<link>` del archivo o uno que escribas, y al tocarlo se abre la página,
 - el desglose de superficies: las cifras del propio enrutador para una ruta planificada aquí, y para una leída de un archivo la misma comparación con el mapa que se hace con una salida, ver más abajo,
 - el perfil de altitud,
+- debajo, el mismo color que en el planificador: pendiente, superficie, viento o lluvia,
 - **Puntos de interés**: los puntos de la ruta que no están en su track, cada uno con el icono de su tipo, su nombre y su nota: los que traía un archivo fuera del recorrido y los lugares que marcaste junto a la ruta en el planificador; los que están en el track son líneas de la hoja de ruta,
 - para una ruta importada con giros o puntos de interés, o con puntos a los que pusiste nombre o una nota en el planificador, la hoja de ruta: cada giro y punto con su distancia desde el inicio; al tocar una línea el mapa se desplaza hasta allí con tu zoom, y al tocar un marcador la tarjeta se desplaza hasta esa línea.
 
@@ -47,8 +48,7 @@ Las acciones:
 
 - **Abrir en el planificador** la carga en la pestaña Planificar con todos sus puntos, incluidos los puntos de paso y sus nombres, tipos y notas, donde puedes editarla y volver a guardarla. Una ruta importada en lugar de planificada se abre con la línea exacta del archivo y con puntos solo en sus extremos y en los puntos propios del archivo que están en el track, que vienen con su tipo y su nota; una edición solo recalcula los tramos de al lado, y la línea del archivo se mantiene en todo lo demás. La línea del archivo se guarda con la ruta en cada edición y cada guardado, así que **Restaurar** en el planificador puede recuperarla. Los puntos fuera del track vienen como lugares junto a la ruta, donde se les puede poner nombre o tipo, moverlos a la ruta o quitarlos como cualquier otro punto. El siguiente Guardar escribe los dos conjuntos, así que un lugar que eliminas en el planificador también desaparece de la tarjeta.
 - **Exportar** ofrece **Ruta GPX** y **Recorrido FIT**, consulta [importar y exportar](./import-and-export).
-- **Enviar** ofrece **Enviar a Ride with GPS** y **Enviar a Strava**, consulta [Strava y Ride with GPS](./strava-and-ridewithgps).
-- **Compartir enlace** la convierte en un enlace, consulta [compartir](./sharing).
+- **Compartir** abre la tarjeta para compartir: un **Enlace** a la ruta, **Ride with GPS** y **Strava**, ver [compartir](./sharing) y [Strava y Ride with GPS](./strava-and-ridewithgps).
 - **Describir esta ruta** pide al asistente que escriba un párrafo sobre ella, consulta [asistente](./assistant).
 
 ## La tarjeta de una salida
@@ -102,9 +102,8 @@ Bajo las subidas, una barra de **Superficie** como la de la tarjeta de una ruta:
 
 ### Acciones de la salida
 
-- El botón de la nube a la derecha de la cabecera de la tarjeta sube la salida a un servicio conectado.
-- El menú de al lado: **Exportar track GPX**, **Exportar actividad FIT**, **Continuar esta salida**, **Renombrar**, **Eliminar**.
-- Abajo del todo: las mismas dos exportaciones y **Compartir enlace**.
+- El menú a la derecha de la cabecera de la tarjeta: **Exportar track GPX**, **Exportar actividad FIT**, **Continuar esta salida**, **Renombrar**, **Eliminar**.
+- Abajo del todo: las mismas dos exportaciones y **Compartir**, que abre la tarjeta para compartir con **Enlace**, **Ride with GPS** y **Strava**, ver [compartir](./sharing).
 
 ## Meter archivos y rutas
 

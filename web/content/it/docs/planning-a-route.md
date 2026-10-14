@@ -110,6 +110,14 @@ Il grafico **Altimetria** disegna l'altitudine in funzione della distanza. Tocca
 
 La barra **Fondo** è un'unica barra impilata di tre quote che insieme fanno l'intero percorso, **Asfaltato**, **Sterrato** e **Sconosciuto**, con sotto una legenda di percentuali. Altre due voci nella legenda, **Piste & corsie** e **Strade trafficate**, si sovrappongono alle prime tre invece di sommarsi: ti dicono quanta parte del percorso è su piste ciclabili, percorsi segnalati per le bici, strade ciclabili, o una corsia o pista accanto alla strada e quanta su una strada grande. Per un percorso che non è tutto del router, con dentro la linea di un file, l'intera linea viene confrontata con i dati di routing per ottenere i numeri, e questo richiede la regione scaricata.
 
+### Colorare il percorso
+
+Un interruttore nell'intestazione e quattro scelte stabiliscono secondo cosa viene colorato il percorso: **Pendenza**, **Fondo**, **Vento** e **Pioggia**. Il colore appare sulla mappa e sotto il profilo altimetrico, nel pianificatore e nella pagina di un percorso salvato. **Fondo** colora ogni tratto come la barra qui sopra: asfaltato, sterrato, sconosciuto, piste ciclabili e strade trafficate, con gli stessi colori. Vento e pioggia seguono la previsione per l'ora di partenza. Tutte e quattro sono gratis; senza Plus, vento e pioggia arrivano dalla previsione pubblica più grossolana, e l'app lo dice prima di colorare il percorso.
+
+### Orario di partenza
+
+Un cursore stabilisce quando parti. Sposta a quell'ora il radar della pioggia e il vento sulla mappa, il meteo lungo il percorso e la colorazione del percorso. È gratis. Pendenza e fondo non cambiano con l'ora.
+
 ## Salvalo
 
 1. Tocca **Salva**.

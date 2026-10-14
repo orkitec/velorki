@@ -21,7 +21,7 @@ Gratis, per tutti, per sempre:
 - i pannelli dei giri con i grafici, i parziali e la traccia colorata per velocità,
 - importazione ed esportazione GPX, FIT e TCX, in ogni direzione,
 - la mappa meteo: radar pioggia, nuvole e vento, con il cursore del tempo,
-- il meteo lungo il percorso da una previsione pubblica più grossolana, il modello ICON del Deutscher Wetterdienst: vento, pioggia, temperatura, una riga che li riassume e l'ora migliore per partire, e il percorso colorato secondo pendenza, vento o pioggia,
+- il meteo lungo il percorso da una previsione pubblica più grossolana, il modello ICON del Deutscher Wetterdienst: vento, pioggia, temperatura, una riga che li riassume e l'ora migliore per partire, e il percorso colorato secondo pendenza, fondo, vento o pioggia,
 - le connessioni a Strava e Ride with GPS: caricare giri, importare percorsi, inviare percorsi a Ride with GPS (vedi [Strava e Ride with GPS](./strava-and-ridewithgps)),
 - aprire il link di condivisione di qualcun altro.
 
@@ -39,7 +39,7 @@ Tre funzioni, come elencate nella pagina dell'abbonamento:
 
 Ognuna di queste richiede un server che paghiamo noi.
 
-Il meteo più preciso sul percorso viene dal National Weather Service negli Stati Uniti, dalle previsioni per stazione del Deutscher Wetterdienst in Germania e da MET Norway altrove, con raffiche e probabilità di pioggia, e il percorso si può colorare secondo questo. Il radar viene da EUMETNET OPERA e Radar-DPC (Italia), dove la mappa gratuita ha solo stime da satellite, come in Francia, Spagna, Italia, Regno Unito, Svizzera e Scandinavia: celle di 1 km, una nuova immagine ogni 5 minuti, le ultime 2 ore.
+Il meteo più preciso sul percorso viene dal National Weather Service negli Stati Uniti, dalle previsioni per stazione del Deutscher Wetterdienst in Germania e da MET Norway altrove, con raffiche e probabilità di pioggia. Il radar viene da EUMETNET OPERA e Radar-DPC (Italia), dove la mappa gratuita ha solo stime da satellite, come in Francia, Spagna, Italia, Regno Unito, Svizzera e Scandinavia: celle di 1 km, una nuova immagine ogni 5 minuti, le ultime 2 ore.
 
 ## Abbonarsi
 

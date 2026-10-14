@@ -11,11 +11,10 @@ Links teilen gehört zu [Velorki Plus](./velorki-plus). Den Link von jemand ande
 ## Einen Link erstellen
 
 1. Öffne eine Route unter **Bibliothek → Routen** oder eine Fahrt unter **Bibliothek → Fahrten**.
-2. Tippe auf **Link teilen**.
-3. Velorki lädt den Track hoch und öffnet ein Fenster mit dem Titel **Link teilen**: "Wer den Link hat, kann die Route auf einer Karte sehen und die GPX herunterladen. Zum Ansehen ist kein Konto nötig." Der Link steht dort als markierbarer Text, darunter das Datum, an dem er aufhört zu funktionieren.
-4. **Link kopieren** legt ihn in die Zwischenablage, **Teilen** reicht ihn an das Teilen-Menü des Handys weiter.
+2. Tippe unten im Blatt auf **Teilen**. Die Teilen-Karte zeigt **Link**, **Ride with GPS** und **Strava**.
+3. Tippe in der Zeile **Link** auf **Link teilen**. Velorki lädt den Track hoch und übergibt den Link an das Teilen-Menü des Telefons. Die Zeile sagt dann "Funktioniert bis 17. Sept. 2027." Vorher steht dort "Jeder mit dem Link kann es auf einer Karte sehen und die GPX herunterladen."
 
-Ohne Plus ist die Schaltfläche trotzdem da, und ein Tipper darauf sagt "Links teilen gehört zu Velorki Plus." mit einem Weg zur Abo-Seite.
+Ohne Plus trägt die Zeile **Link** die Markierung **Velorki Plus** und führt zur Abo-Seite. Die Zeilen für Strava und Ride with GPS sind kostenlos.
 
 ## Was die Person sieht, die ihn öffnet
 
@@ -41,7 +40,7 @@ Nichts auf der Seite sagt, wer du bist, denn Velorki hat kein Konto und speicher
 
 ## Ablauf
 
-Ein geteilter Eintrag wird **ein Jahr** lang gespeichert und dann automatisch gelöscht, und genau das meint die Zeile "Der Link funktioniert ab 17. Sept. 2027 nicht mehr." im Fenster. Danach liefert der Link eine schlichte Seite "nicht gefunden".
+Ein geteilter Eintrag wird **ein Jahr** lang gespeichert und dann automatisch gelöscht; die Zeile **Link** nennt das Datum: "Funktioniert bis 17. Sept. 2027." Danach liefert der Link eine schlichte Seite "nicht gefunden".
 
 Derzeit gibt es in der App keine Schaltfläche, um einen Link vorher zurückzuziehen. Muss einer früher verschwinden, schreib an [hello@orkitec.com](mailto:hello@orkitec.com) und nenn den Link selbst; es gibt kein Konto, über das er sich nachschlagen ließe, der Link ist also das, was gebraucht wird.
 

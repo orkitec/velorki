@@ -14,7 +14,7 @@ Velorki can draw the places a ride stops at on the map: drinking water, cafés, 
 
 ## In the area you look at
 
-With **Stops** on, the stops in the part of the map you can see appear from zoom 11 on. Zoomed out, close stops are gathered into bubbles with a count; from zoom 15 they split into single stops with their icons. Tap a bubble to zoom in to where it splits.
+With **Stops** on, the stops in the part of the map you can see appear from zoom 11 on. Zoomed out, close stops are gathered into bubbles with a count; from zoom 15 they split into single stops with their icons. Tap a bubble to zoom in to where it splits. Every stop of the chosen kinds in view is loaded, none is left out.
 
 Zoomed out further than that, a chip says **Zoom in to see stops**; tap it and the map zooms in to where they show.
 

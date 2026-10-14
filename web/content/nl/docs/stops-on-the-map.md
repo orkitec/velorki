@@ -14,7 +14,7 @@ Velorki kan de plekken waar een rit stopt op de kaart tekenen: drinkwater, café
 
 ## In het gebied waar je naar kijkt
 
-Met **Stopplekken** aan verschijnen de stopplekken in het deel van de kaart dat je ziet vanaf zoom 11. Uitgezoomd worden stopplekken die dicht bij elkaar liggen samengevoegd tot bellen met een aantal; vanaf zoom 15 vallen ze uiteen in losse stopplekken met hun iconen. Tik op een bel om in te zoomen tot waar hij uiteenvalt.
+Met **Stopplekken** aan verschijnen de stopplekken in het deel van de kaart dat je ziet vanaf zoom 11. Uitgezoomd worden stopplekken die dicht bij elkaar liggen samengevoegd tot bellen met een aantal; vanaf zoom 15 vallen ze uiteen in losse stopplekken met hun iconen. Tik op een bel om in te zoomen tot waar hij uiteenvalt. Elke stopplek van de gekozen soorten in beeld wordt geladen, er valt er geen weg.
 
 Verder uitgezoomd zegt een chip **Zoom in om stopplekken te zien**; tik erop en de kaart zoomt in tot ze verschijnen.
 

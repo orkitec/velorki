@@ -11,11 +11,10 @@ Le partage de lien fait partie de [Velorki Plus](./velorki-plus). Ouvrir le lien
 ## Créer un lien
 
 1. Ouvrez un itinéraire dans **Bibliothèque → Itinéraires**, ou une sortie dans **Bibliothèque → Sorties**.
-2. Touchez **Partager un lien**.
-3. Velorki téléverse la trace et ouvre une feuille intitulée **Partager un lien** : « Toute personne disposant de ce lien peut voir l’itinéraire sur une carte et télécharger le GPX. Aucun compte n’est nécessaire pour le consulter. » Le lien s’y trouve sous forme de texte sélectionnable, avec en dessous la date à laquelle il cesse de fonctionner.
-4. **Copier le lien** le place dans le presse-papiers, **Partager** le transmet à la feuille de partage du téléphone.
+2. Touchez **Partager** en bas de la fiche. La fiche de partage propose **Lien**, **Ride with GPS** et **Strava**.
+3. Sur la ligne **Lien**, touchez **Partager un lien**. Velorki téléverse la trace et passe le lien à la feuille de partage du téléphone. La ligne indique alors « Fonctionne jusqu’au 17 sept. 2027. » Avant, elle dit « Toute personne ayant le lien peut le voir sur une carte et télécharger le GPX. »
 
-Sans Plus, le bouton est quand même là, et le toucher affiche « Le partage de lien fait partie de Velorki Plus. » avec un accès à la page d’abonnement.
+Sans Plus, la ligne **Lien** porte la mention **Velorki Plus** et mène à la page d’abonnement. Les lignes Strava et Ride with GPS sont gratuites.
 
 ## Ce que voit la personne qui l’ouvre
 
@@ -41,7 +40,7 @@ Rien sur la page ne dit qui vous êtes, car Velorki n’a pas de compte et ne st
 
 ## Expiration
 
-Un élément partagé est conservé **un an** puis supprimé automatiquement, ce que signifie la ligne « Le lien cessera de fonctionner le 17 sept. 2027. » dans la feuille. Passé ce délai, le lien renvoie une simple page « introuvable ».
+Un élément partagé est conservé **un an** puis supprimé automatiquement ; la ligne **Lien** dit jusqu’à quand : « Fonctionne jusqu’au 17 sept. 2027. » Passé ce délai, le lien renvoie une simple page « introuvable ».
 
 Il n’existe actuellement aucun bouton dans l’app pour retirer un lien avant. Si un lien doit être retiré plus tôt, écrivez à [hello@orkitec.com](mailto:hello@orkitec.com) en joignant le lien lui-même ; comme il n’y a pas de compte pour le retrouver, c’est le lien qu’il nous faut.
 

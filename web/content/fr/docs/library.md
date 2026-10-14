@@ -40,6 +40,7 @@ Ouvrir un itinéraire le trace sur la carte, cadré dans la partie de l’écran
 - une ligne **Description** et une ligne **Lien**, chacune avec un crayon : la description est celle du fichier, de l’assistant ou la vôtre, le lien est le `<link>` du fichier ou un lien que vous saisissez, et le toucher ouvre la page,
 - la répartition des revêtements : les chiffres du routeur lui-même pour un itinéraire planifié ici, et pour un itinéraire lu depuis un fichier le même rapprochement que pour une sortie, voir plus bas,
 - le profil altimétrique,
+- dessous, la même coloration que dans le planificateur : pente, revêtement, vent ou pluie,
 - **Points d’intérêt** : les points de l’itinéraire qui ne sont pas sur sa trace, chacun avec l’icône de son type, son nom et sa note — ceux que fournissait un fichier en dehors du parcours, et les lieux que vous avez marqués à côté de l’itinéraire dans le planificateur ; ceux qui sont sur la trace sont des lignes de la feuille de route à la place,
 - pour un itinéraire importé avec des virages ou des points d’intérêt, ou avec des points que vous avez nommés ou annotés dans le planificateur, la feuille de route : chaque virage et chaque point avec sa distance depuis le départ ; toucher une ligne fait glisser la carte jusque-là à votre niveau de zoom, et toucher un repère fait défiler la fiche jusqu’à cette ligne.
 
@@ -47,8 +48,7 @@ Les actions :
 
 - **Ouvrir dans le planificateur** le charge dans l’onglet Planifier avec tous ses points, points intermédiaires et leurs noms, types et notes compris, où vous pouvez le modifier et l’enregistrer de nouveau. Un itinéraire importé plutôt que planifié s’ouvre avec le tracé exact du fichier et des points seulement à ses extrémités et aux points propres du fichier qui se trouvent sur la trace, qui viennent avec leur type et leur note ; une modification ne recalcule que les tronçons voisins, et le tracé du fichier reste partout ailleurs. Le tracé du fichier est conservé avec l’itinéraire à travers chaque modification et chaque enregistrement, de sorte que **Rétablir** dans le planificateur peut le remettre. Les points hors trace arrivent comme des lieux à côté de l’itinéraire, où ils peuvent être nommés, recevoir un type, être déplacés sur l’itinéraire ou supprimés comme n’importe quel autre point. Le prochain enregistrement réécrit les deux ensembles, de sorte qu’un lieu que vous supprimez dans le planificateur disparaît aussi de la fiche.
 - **Exporter** propose **Itinéraire GPX** et **Parcours FIT**, voir [importer et exporter](./import-and-export).
-- **Envoyer** propose **Envoyer à Ride with GPS** et **Envoyer à Strava**, voir [Strava et Ride with GPS](./strava-and-ridewithgps).
-- **Partager un lien** le transforme en lien, voir [partage](./sharing).
+- **Partager** ouvre la fiche de partage : un **Lien** vers l’itinéraire, **Ride with GPS** et **Strava**, voir [partager](./sharing) et [Strava et Ride with GPS](./strava-and-ridewithgps).
 - **Décrire cet itinéraire** demande à l’assistant d’en écrire un paragraphe, voir [assistant](./assistant).
 
 ## Une fiche de sortie
@@ -102,9 +102,8 @@ Sous les montées, une barre **Revêtement** comme sur une fiche d’itinéraire
 
 ### Actions sur une sortie
 
-- Le bouton nuage à droite de l’en-tête de la fiche envoie la sortie vers un service connecté.
-- Le menu à côté : **Exporter la trace GPX**, **Exporter l’activité FIT**, **Poursuivre cette sortie**, **Renommer**, **Supprimer**.
-- En bas : les deux mêmes exports et **Partager un lien**.
+- Le menu à droite de l’en-tête de la fiche : **Exporter la trace GPX**, **Exporter l’activité FIT**, **Poursuivre cette sortie**, **Renommer**, **Supprimer**.
+- En bas : les deux mêmes exports et **Partager**, qui ouvre la fiche de partage avec **Lien**, **Ride with GPS** et **Strava**, voir [partager](./sharing).
 
 ## Faire entrer des fichiers et des itinéraires
 

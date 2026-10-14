@@ -36,10 +36,10 @@ Si quitas Velorki de tu cuenta de Strava en strava.com, Velorki lo nota en su si
 ## Subir una salida
 
 1. Abre la salida en **Biblioteca → Salidas**.
-2. Toca el botón de la nube arriba a la derecha, con la etiqueta **Subir**.
-3. Elige **Subir a Strava** o **Subir a Ride with GPS**.
+2. Toca **Compartir** abajo en la tarjeta.
+3. En la fila **Strava** o **Ride with GPS** toca **Subir**. Un servicio que no has conectado muestra **Conectar** en su lugar.
 
-Velorki dice «Subiendo a Strava…» y luego «Subida a Strava» con una acción **View on Strava** que la abre. Para eso Velorki guarda el enlace de la actividad con la salida, hasta que desconectes. Una salida que ya está allí nunca se sube dos veces: la entrada del menú pasa a ser **View on Strava** o **Abrir en Ride with GPS**.
+Velorki dice «Subiendo a Strava…» y luego «Subida a Strava» con una acción **View on Strava** que la abre. Para eso Velorki guarda el enlace de la actividad con la salida, hasta que desconectes. Una salida que ya está allí nunca se sube dos veces: la fila ofrece en su lugar **View on Strava** o **Abrir en Ride with GPS**.
 
 Una subida a Strava puede tardar un rato, porque Strava procesa el archivo antes de que exista como actividad; Velorki lo espera y enlaza al resultado.
 
@@ -58,11 +58,11 @@ Si la cuenta no está conectada, la pantalla dice «Primero conecta Strava en Aj
 
 ## Enviar una ruta a Ride with GPS
 
-Abre la ruta, toca **Enviar** y elige **Enviar a Ride with GPS**. Se sube a tu cuenta y Velorki ofrece **Abrir** para verla allí.
+Abre la ruta, toca **Compartir** y usa **Enviar** en la fila **Ride with GPS**. Se sube a tu cuenta y Velorki ofrece **Abrir** para verla allí.
 
 ## Enviar una ruta a Strava
 
-La API de Strava puede leer rutas pero no crearlas, así que Velorki no tiene adónde subirla. Por eso, elegir **Enviar a Strava** abre una explicación:
+La API de Strava puede leer rutas pero no crearlas, así que Velorki no tiene adónde subirla. Por eso, la fila **Strava** de una ruta abre una explicación:
 
 > **Strava no puede recibir rutas** La API de Strava puede leer rutas, pero no crearlas. En su lugar, Velorki exporta un archivo GPX: compártelo e impórtalo en strava.com.
 

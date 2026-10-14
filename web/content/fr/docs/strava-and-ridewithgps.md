@@ -36,10 +36,10 @@ Si vous retirez plutôt Velorki de votre compte Strava sur strava.com, Velorki l
 ## Téléverser une sortie
 
 1. Ouvrez la sortie dans **Bibliothèque → Sorties**.
-2. Touchez le bouton nuage en haut à droite, intitulé **Envoyer**.
-3. Choisissez **Envoyer à Strava** ou **Envoyer à Ride with GPS**.
+2. Touchez **Partager** en bas de la fiche.
+3. Sur la ligne **Strava** ou **Ride with GPS**, touchez **Envoyer**. Un service que vous n’avez pas connecté affiche **Connecter** à la place.
 
-Velorki affiche « Envoi à Strava… », puis « Envoyée à Strava » avec une action **View on Strava** qui l’ouvre. Pour cela, Velorki garde le lien de l’activité avec la sortie, jusqu’à la déconnexion. Une sortie déjà présente là-bas n’est jamais téléversée deux fois : l’entrée du menu devient **View on Strava** ou **Ouvrir sur Ride with GPS**.
+Velorki affiche « Envoi à Strava… », puis « Envoyée à Strava » avec une action **View on Strava** qui l’ouvre. Pour cela, Velorki garde le lien de l’activité avec la sortie, jusqu’à la déconnexion. Une sortie déjà présente là-bas n’est jamais téléversée deux fois : la ligne propose alors **View on Strava** ou **Ouvrir sur Ride with GPS**.
 
 Un téléversement vers Strava peut prendre un moment, car Strava traite le fichier avant qu’il n’existe en tant qu’activité ; Velorki attend et renvoie vers le résultat.
 
@@ -58,11 +58,11 @@ Si le compte n’est pas connecté, l’écran indique « Connectez d’abord S
 
 ## Envoyer un itinéraire vers Ride with GPS
 
-Ouvrez l’itinéraire, touchez **Envoyer**, choisissez **Envoyer à Ride with GPS**. Il est téléversé sur votre compte et Velorki propose **Ouvrir** pour le voir là-bas.
+Ouvrez l’itinéraire, touchez **Partager** et utilisez **Envoyer** sur la ligne **Ride with GPS**. Il est téléversé sur votre compte et Velorki propose **Ouvrir** pour le voir là-bas.
 
 ## Envoyer un itinéraire vers Strava
 
-L’API de Strava peut lire les itinéraires mais pas en créer, il n’y a donc rien que Velorki puisse y téléverser. Choisir **Envoyer à Strava** ouvre donc une explication :
+L’API de Strava peut lire les itinéraires mais pas en créer, il n’y a donc rien que Velorki puisse y téléverser. La ligne **Strava** d’un itinéraire ouvre donc une explication :
 
 > **Strava ne peut pas recevoir d’itinéraires.** L’API de Strava peut lire les itinéraires mais pas en créer. Velorki exporte donc un fichier GPX : partagez-le, puis importez-le sur strava.com.
 

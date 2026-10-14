@@ -36,10 +36,10 @@ If you remove Velorki from your Strava account on strava.com instead, Velorki no
 ## Upload a ride
 
 1. Open the ride in **Library → Rides**.
-2. Tap the cloud button at the top right, labelled **Upload**.
-3. Choose **Upload to Strava** or **Upload to Ride with GPS**.
+2. Tap **Share** at the bottom of the card.
+3. On the **Strava** or **Ride with GPS** row tap **Upload**. A service you have not connected shows **Connect** instead.
 
-Velorki says "Uploading to Strava…", then "Uploaded to Strava" with a **View on Strava** action that opens it. Velorki keeps the activity's link with the ride for that, until you disconnect. A ride that is already up there is never uploaded twice: the menu entry becomes **View on Strava** or **Open on Ride with GPS** instead.
+Velorki says "Uploading to Strava…", then "Uploaded to Strava" with a **View on Strava** action that opens it. Velorki keeps the activity's link with the ride for that, until you disconnect. A ride that is already up there is never uploaded twice: the row offers **View on Strava** or **Open on Ride with GPS** instead.
 
 A Strava upload can take a while, because Strava processes the file before it exists as an activity; Velorki waits for it and links to the result.
 
@@ -58,11 +58,11 @@ If the account is not connected the screen says "Connect Strava in Settings → 
 
 ## Sending a route to Ride with GPS
 
-Open the route, tap **Send**, choose **Send to Ride with GPS**. It is uploaded to your account and Velorki offers **Open** to see it there.
+Open the route, tap **Share** and use the **Ride with GPS** row: **Send**. It is uploaded to your account and Velorki offers **Open** to see it there.
 
 ## Sending a route to Strava
 
-Strava's API can read routes but it cannot create them, so there is nothing for Velorki to upload to. Choosing **Send to Strava** therefore opens an explanation:
+Strava's API can read routes but it cannot create them, so there is nothing for Velorki to upload to. The **Strava** row on a route therefore opens an explanation:
 
 > **Strava cannot receive routes.** Strava's API can read routes but not create them. Velorki exports a GPX file instead: share it, then import it on strava.com.
 

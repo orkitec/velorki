@@ -26,7 +26,7 @@ Les instructions sont : **Tournez à gauche**, **Tournez à droite**, **Légè
 
 Quand un deuxième virage suit de près le premier, une petite flèche grise pour celui-ci se place au bout de la pastille.
 
-Un itinéraire importé avec une feuille de route affiche à la place les mots de l’auteur pour un virage, « Tournez à gauche sur la rue Principale », et la voix les prononce aussi.
+Un itinéraire importé avec une feuille de route affiche à la place les mots de l’auteur pour un virage, « Tournez à gauche sur la rue Principale », et la voix les prononce aussi. Pour une trace GPX sans instructions de virage, le téléphone peut les créer à partir des données de routage, voir [importer et exporter](./import-and-export).
 
 Un point d’intérêt sur l’itinéraire, une fontaine ou une zone où mettre pied à terre dans un fichier importé, prend la place de la bannière lorsqu’il est plus proche que le prochain virage et à moins de 300 m : son icône, la distance et son nom, un danger sous la forme « Attention : … » dans la couleur d’avertissement. La voix l’annonce une fois, avec la même avance qu’un virage, « Dans 100 mètres, attention : début de zone à pied ». Voir [capteurs et montre](./sensors-and-watch) pour ce qui parvient à la montre, et [import et export](./import-and-export) pour l’origine des points.
 

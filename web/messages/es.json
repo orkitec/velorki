@@ -101,7 +101,7 @@
       "plan": {
         "eyebrow": "Planificación",
         "title": "Una ruta para la bici que llevas",
-        "body": "Toca puntos de paso en el mapa y la ruta se calcula en el teléfono, sobre teselas descargadas de 5°×5°. Perfiles de trekking, carretera, gravel, MTB y directo, hasta tres alternativas, el perfil de altitud y un desglose de las superficies por las que vas a rodar.",
+        "body": "Toca puntos de paso en el mapa y la ruta se calcula en el teléfono, sobre teselas descargadas de 5°×5°. Perfiles de trekking, carretera, gravel, MTB y directo, hasta tres alternativas, el perfil de altitud y un desglose de las superficies por las que vas a rodar. La ruta se puede colorear según la pendiente, la superficie, el viento o la lluvia, y un deslizador de tiempo fija cuándo sales y mueve el tiempo en el mapa y a lo largo de la ruta.",
         "bullets": {
           "one": "Cinco perfiles de bici, hasta tres alternativas por ruta",
           "two": "Perfil de altitud y estadísticas de superficie para cada opción",
@@ -131,7 +131,7 @@
       "navigate": {
         "eyebrow": "Navegación",
         "title": "Indicaciones habladas, en el teléfono",
-        "body": "Un aviso de giro e indicaciones habladas mientras sigues una ruta y, cuando te sales de ella, tú eliges: volver al plan guiado, una ruta nueva al destino o solo la dirección de vuelta, todo calculado en el teléfono. Modos de seguimiento con brújula o con el norte arriba. Las indicaciones se generan con los mismos datos de enrutamiento con los que se planificó la salida, así que funcionan donde no hay red. Una ruta GPX trae consigo su hoja de ruta y sus puntos de interés, y la hoja de grabación añade un perfil de altitud con la próxima subida, la hora de llegada y la lista de indicaciones como páginas que se deslizan.",
+        "body": "Un aviso de giro e indicaciones habladas mientras sigues una ruta y, cuando te sales de ella, tú eliges: volver al plan guiado, una ruta nueva al destino o solo la dirección de vuelta, todo calculado en el teléfono. Modos de seguimiento con brújula o con el norte arriba. Las indicaciones se generan con los mismos datos de enrutamiento con los que se planificó la salida, así que funcionan donde no hay red. Una ruta GPX trae consigo su hoja de ruta y sus puntos de interés, y la hoja de grabación añade un perfil de altitud con la próxima subida, la hora de llegada y la lista de indicaciones como páginas que se deslizan. Un GPX sin giros los recibe creados en el teléfono a partir del mapa.",
         "bullets": {
           "one": "Aviso de giro e indicaciones de voz, sin conexión",
           "two": "Si te sales: guía de vuelta, una ruta nueva o solo la dirección de vuelta",
@@ -171,7 +171,7 @@
       "files": {
         "eyebrow": "Archivos y servicios",
         "title": "Tus salidas son archivos tuyos",
-        "body": "GPX, FIT y TCX se importan y exportan con el menú de compartir y «Abrir con», así que las rutas y las salidas pasan a Komoot, Garmin Connect, Strava o cualquier otra cosa que lea esos formatos. Una ruta GPX conserva su hoja de ruta y sus puntos de interés, y un enlace de Ride with GPS se abre en Velorki. Velorki funciona con Strava y Ride with GPS gratis; los enlaces compartidos son parte de Plus.",
+        "body": "GPX, FIT y TCX se importan y exportan con el menú de compartir y «Abrir con», así que las rutas y las salidas pasan a Komoot, Garmin Connect, Strava o cualquier otra cosa que lea esos formatos. Una ruta GPX conserva su hoja de ruta y sus puntos de interés, y un enlace de Ride with GPS se abre en Velorki. Velorki funciona con Strava y Ride with GPS gratis; los enlaces compartidos son parte de Plus. Un solo botón Compartir en una ruta o una salida reúne el enlace, Strava y Ride with GPS.",
         "bullets": {
           "one": "GPX, FIT y TCX de entrada y salida, desde Archivos, el correo o un navegador, con hojas de ruta y puntos de interés",
           "two": "Una biblioteca de rutas guardadas y salidas grabadas",
@@ -201,7 +201,7 @@
       },
       "partsNote": "Cada parte se activa y se quita por separado, en la hoja Capas del mapa. Los chips de ahí son la leyenda: cada uno muestra su línea.",
       "stopsTitle": "Paradas en el mapa",
-      "stopsBody": "Cafés, agua potable, panaderías, aseos y estaciones de reparación para empezar, de los mismos datos descargados. Elige cualquier otro tipo de estos grupos, y toca una parada para planificar hasta ella.",
+      "stopsBody": "Cafés, agua potable, panaderías, aseos y estaciones de reparación para empezar, de los mismos datos descargados. Elige cualquier otro tipo de estos grupos, y toca una parada para planificar hasta ella. Con el mapa alejado, las paradas cercanas se agrupan en burbujas con un número; las paradas sueltas aparecen desde el zoom 15, y a lo largo de una ruta ves las paradas que quedan por delante.",
       "stopGroups": {
         "cyclingStops": "Paradas en ruta",
         "overnight": "Alojamiento",
@@ -235,7 +235,7 @@
         },
         "weather": {
           "title": "El tiempo a lo largo de la ruta, más preciso",
-          "body": "El tiempo gratuito a lo largo de la ruta viene de una previsión pública más gruesa. Plus consulta en su lugar servicios meteorológicos locales — el National Weather Service de EE. UU., las previsiones por estación del Deutscher Wetterdienst en Alemania y MET Norway en el resto — para un viento, una lluvia y una temperatura más precisos, con rachas y probabilidad de lluvia, y colorea la ruta según ellos."
+          "body": "El tiempo gratuito a lo largo de la ruta viene de una previsión pública más gruesa. Plus consulta en su lugar servicios meteorológicos locales — el National Weather Service de EE. UU., las previsiones por estación del Deutscher Wetterdienst en Alemania y MET Norway en el resto — para un viento, una lluvia y una temperatura más precisos, con rachas y probabilidad de lluvia."
         },
         "radar": {
           "title": "Radar de lluvia en toda Europa",
@@ -268,7 +268,7 @@
         "library": "Biblioteca de rutas y salidas",
         "files": "Importación y exportación de GPX, FIT y TCX",
         "weatherMap": "Mapa del tiempo: radar de lluvia, nubes y viento, con control de tiempo",
-        "routeColours": "El tiempo a lo largo de la ruta de una previsión pública más gruesa: viento, lluvia, temperatura, un resumen y la mejor hora de salida, y la ruta coloreada según la pendiente, el viento o la lluvia",
+        "routeColours": "El tiempo a lo largo de la ruta de una previsión pública más gruesa: viento, lluvia, temperatura, un resumen y la mejor hora de salida, y la ruta coloreada según la pendiente, la superficie, el viento o la lluvia",
         "routeWeather": "El tiempo a lo largo de la ruta más preciso de servicios meteorológicos locales, con rachas y probabilidad de lluvia",
         "radarEurope": "Radar de lluvia real en toda Europa donde el mapa gratuito solo tiene estimaciones por satélite",
         "assistant": "El asistente: una frase se convierte en una ruta",
@@ -350,7 +350,7 @@
       },
       "weather": {
         "title": "El tiempo a lo largo de la ruta, más preciso",
-        "body": "El tiempo gratuito a lo largo de la ruta viene de una previsión pública más gruesa. Plus consulta en su lugar servicios meteorológicos locales — el National Weather Service de EE. UU., las previsiones por estación del Deutscher Wetterdienst en Alemania y MET Norway en el resto — para un viento, una lluvia y una temperatura más precisos, con rachas y probabilidad de lluvia, y colorea la ruta según ellos."
+        "body": "El tiempo gratuito a lo largo de la ruta viene de una previsión pública más gruesa. Plus consulta en su lugar servicios meteorológicos locales — el National Weather Service de EE. UU., las previsiones por estación del Deutscher Wetterdienst en Alemania y MET Norway en el resto — para un viento, una lluvia y una temperatura más precisos, con rachas y probabilidad de lluvia."
       },
       "radar": {
         "title": "Radar de lluvia en toda Europa",
@@ -358,7 +358,7 @@
       }
     },
     "freeTitle": "Qué sigue siendo gratis",
-    "freeBody": "La planificación, las rutas circulares, los mapas y el enrutamiento sin conexión, la búsqueda, la navegación giro a giro, la grabación, las estadísticas de salidas, el mapa del tiempo, el tiempo a lo largo de la ruta de una previsión pública más gruesa (viento, lluvia, temperatura, la mejor hora de salida) con la ruta coloreada según la pendiente, el viento o la lluvia, los archivos GPX, FIT y TCX, y las conexiones con Strava y Ride with GPS siguen siendo gratis, con o sin Plus.",
+    "freeBody": "La planificación, las rutas circulares, los mapas y el enrutamiento sin conexión, la búsqueda, la navegación giro a giro, la grabación, las estadísticas de salidas, el mapa del tiempo, el tiempo a lo largo de la ruta de una previsión pública más gruesa (viento, lluvia, temperatura, la mejor hora de salida) con la ruta coloreada según la pendiente, la superficie, el viento o la lluvia, los archivos GPX, FIT y TCX, y las conexiones con Strava y Ride with GPS siguen siendo gratis, con o sin Plus.",
     "priceTitle": "Cuánto cuesta",
     "priceBody": "Consulta el precio en la app. La tienda muestra el precio mensual y anual actual en tu propia moneda, con una prueba gratuita, y aquí nunca se indica el precio para que no quede desfasado.",
     "restoreTitle": "Restaurar una suscripción",
@@ -377,7 +377,7 @@
     },
     "eyebrow": "Descarga",
     "title": "Consigue Velorki",
-    "lead": "Gratis en ambas plataformas. Todo lo que funciona en el teléfono va sin cuenta y sin conexión.",
+    "lead": "Gratis en ambas plataformas. Todo lo que funciona en el teléfono va sin cuenta y sin conexión. La app habla inglés, alemán, francés, español, italiano y neerlandés.",
     "requirementsTitle": "Qué necesita",
     "android": "Android",
     "ios": "iOS",

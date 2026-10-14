@@ -21,7 +21,7 @@ Gratis, voor iedereen, voorgoed:
 - ritkaarten met de grafieken, de splits en de op snelheid gekleurde track,
 - importeren en exporteren van GPX, FIT en TCX, in alle richtingen,
 - de weerkaart: regenradar, wolken en wind, met de tijdregelaar,
-- het weer langs de route uit een grovere openbare verwachting, het ICON-model van de Deutscher Wetterdienst: wind, regen, temperatuur, een regel die ze samenvat en de beste vertrektijd, en de route gekleurd naar helling, wind of regen,
+- het weer langs de route uit een grovere openbare verwachting, het ICON-model van de Deutscher Wetterdienst: wind, regen, temperatuur, een regel die ze samenvat en de beste vertrektijd, en de route gekleurd naar helling, ondergrond, wind of regen,
 - de koppelingen met Strava en Ride with GPS: ritten uploaden, routes importeren, routes naar Ride with GPS sturen (zie [Strava en Ride with GPS](./strava-and-ridewithgps)),
 - de gedeelde link van iemand anders openen.
 
@@ -39,7 +39,7 @@ Drie functies, zoals ze op de abonnementspagina staan:
 
 Elk daarvan heeft een server nodig waarvoor wij betalen.
 
-Het fijnere weer op de route komt van de National Weather Service in de VS, uit de stationsverwachtingen van de Deutscher Wetterdienst in Duitsland en elders van MET Norway, met windstoten en regenkans, en de route kan ernaar gekleurd worden. De radar komt van EUMETNET OPERA en Radar-DPC (Italië), waar de gratis kaart alleen schattingen via satelliet heeft, zoals in Frankrijk, Spanje, Italië, het Verenigd Koninkrijk, Zwitserland en Scandinavië: cellen van 1 km, elke 5 minuten een nieuw beeld, de laatste 2 uur.
+Het fijnere weer op de route komt van de National Weather Service in de VS, uit de stationsverwachtingen van de Deutscher Wetterdienst in Duitsland en elders van MET Norway, met windstoten en regenkans. De radar komt van EUMETNET OPERA en Radar-DPC (Italië), waar de gratis kaart alleen schattingen via satelliet heeft, zoals in Frankrijk, Spanje, Italië, het Verenigd Koninkrijk, Zwitserland en Scandinavië: cellen van 1 km, elke 5 minuten een nieuw beeld, de laatste 2 uur.
 
 ## Abonneren
 

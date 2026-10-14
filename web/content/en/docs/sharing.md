@@ -11,11 +11,10 @@ Link sharing is part of [Velorki Plus](./velorki-plus). Opening someone else's l
 ## Create a link
 
 1. Open a route in **Library → Routes**, or a ride in **Library → Rides**.
-2. Tap **Share link**.
-3. Velorki uploads the track and opens a sheet titled **Share link**: "Anyone with this link can see the route on a map and download the GPX. Viewing needs no account." The link is there as selectable text, with the date it stops working under it.
-4. **Copy link** puts it on the clipboard, **Share** hands it to the phone's share sheet.
+2. Tap **Share** at the bottom of the card. The share card lists **Link**, **Ride with GPS** and **Strava**.
+3. On the **Link** row tap **Share link**. Velorki uploads the track and hands the link to the phone's share sheet. The row then says "Works until 17 Sept 2027." Before that it says "Anyone with the link can see it on a map and download the GPX."
 
-Without Plus the button is still there, and tapping it says "Link sharing is part of Velorki Plus." with a way to the subscription page.
+Without Plus the **Link** row is marked **Velorki Plus** and leads to the subscription page. The Strava and Ride with GPS rows are free.
 
 ## What the person who opens it sees
 
@@ -41,7 +40,7 @@ Nothing on the page says who you are, because Velorki has no account and stores 
 
 ## Expiry
 
-A shared item is stored for **one year** and then deleted automatically, which is what the "The link stops working on 17 Sept 2027." line in the sheet means. After that the link returns a plain "not found" page.
+A shared item is stored for **one year** and then deleted automatically; the **Link** row says until when, "Works until 17 Sept 2027." After that the link returns a plain "not found" page.
 
 There is currently no button in the app to withdraw a link before then. If a link has to come down sooner, write to [hello@orkitec.com](mailto:hello@orkitec.com) with the link itself; there is no account to look it up by, so the link is what is needed.
 

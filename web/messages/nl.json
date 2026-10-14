@@ -101,7 +101,7 @@
       "plan": {
         "eyebrow": "Plannen",
         "title": "Een route voor de fiets waar je op zit",
-        "body": "Tik routepunten op de kaart en de route wordt op de telefoon berekend, op gedownloade tegels van 5°×5°. Profielen voor toer, racefiets, gravel, MTB en direct, tot drie alternatieven, het hoogteprofiel en een overzicht van de ondergronden waar je overheen rijdt.",
+        "body": "Tik routepunten op de kaart en de route wordt op de telefoon berekend, op gedownloade tegels van 5°×5°. Profielen voor toer, racefiets, gravel, MTB en direct, tot drie alternatieven, het hoogteprofiel en een overzicht van de ondergronden waar je overheen rijdt. De route kan worden gekleurd naar helling, ondergrond, wind of regen, en één tijdschuif bepaalt wanneer je vertrekt en verschuift het weer op de kaart en langs de route.",
         "bullets": {
           "one": "Vijf fietsprofielen, tot drie alternatieven per route",
           "two": "Hoogteprofiel en ondergrondstatistieken voor elke optie",
@@ -131,7 +131,7 @@
       "navigate": {
         "eyebrow": "Navigatie",
         "title": "Gesproken afslagen, op de telefoon",
-        "body": "Een afslagbalk en gesproken aanwijzingen terwijl je een route rijdt, en als je ervan afwijkt naar keuze een weg terug naar het plan, een nieuwe route naar de bestemming of alleen de richting terug, allemaal op de telefoon berekend. Volgmodus met kompas of noorden boven. De aanwijzingen komen uit dezelfde routeringsgegevens die de rit hebben gepland, dus ze werken ook waar geen netwerk is. Een GPX-route brengt zijn eigen routebeschrijving en interessante punten mee, en het opnamepaneel voegt als veegbare pagina's een hoogteprofiel met de klim voor je, de aankomsttijd en de lijst met afslagen toe.",
+        "body": "Een afslagbalk en gesproken aanwijzingen terwijl je een route rijdt, en als je ervan afwijkt naar keuze een weg terug naar het plan, een nieuwe route naar de bestemming of alleen de richting terug, allemaal op de telefoon berekend. Volgmodus met kompas of noorden boven. De aanwijzingen komen uit dezelfde routeringsgegevens die de rit hebben gepland, dus ze werken ook waar geen netwerk is. Een GPX-route brengt zijn eigen routebeschrijving en interessante punten mee, en het opnamepaneel voegt als veegbare pagina's een hoogteprofiel met de klim voor je, de aankomsttijd en de lijst met afslagen toe. Een GPX zonder afslagen krijgt ze op de telefoon gemaakt uit de kaart.",
         "bullets": {
           "one": "Afslagbalk en gesproken aanwijzingen, offline",
           "two": "Van de lijn af: teruggeleid, een nieuwe route of alleen de richting terug",
@@ -171,7 +171,7 @@
       "files": {
         "eyebrow": "Bestanden en diensten",
         "title": "Je ritten zijn bestanden die van jou zijn",
-        "body": "GPX-, FIT- en TCX-import en -export via het deelmenu en ‘Openen met’, zodat routes en ritten naar Komoot, Garmin Connect, Strava of iets anders gaan dat die formaten leest. Een GPX-route houdt zijn routebeschrijving en interessante punten, en een Ride with GPS-link opent in Velorki. Velorki werkt gratis met Strava en Ride with GPS; deellinks horen bij Plus.",
+        "body": "GPX-, FIT- en TCX-import en -export via het deelmenu en ‘Openen met’, zodat routes en ritten naar Komoot, Garmin Connect, Strava of iets anders gaan dat die formaten leest. Een GPX-route houdt zijn routebeschrijving en interessante punten, en een Ride with GPS-link opent in Velorki. Velorki werkt gratis met Strava en Ride with GPS; deellinks horen bij Plus. Eén knop Delen bij een route of rit bundelt de link, Strava en Ride with GPS.",
         "bullets": {
           "one": "GPX, FIT en TCX in en uit, vanuit Bestanden, Mail of een browser, met routebeschrijvingen en interessante punten",
           "two": "Een bibliotheek met opgeslagen routes en opgenomen ritten",
@@ -201,7 +201,7 @@
       },
       "partsNote": "Elk onderdeel zet je apart aan en uit, in het paneel Kaartlagen. De chips daar zijn de legenda: elk laat zijn lijn zien.",
       "stopsTitle": "Stopplekken op de kaart",
-      "stopsBody": "Om te beginnen cafés, drinkwater, bakkers, toiletten en reparatiepunten, uit dezelfde gedownloade gegevens. Kies elke andere soort uit deze groepen, en tik op een stopplek om ernaartoe te plannen.",
+      "stopsBody": "Om te beginnen cafés, drinkwater, bakkers, toiletten en reparatiepunten, uit dezelfde gedownloade gegevens. Kies elke andere soort uit deze groepen, en tik op een stopplek om ernaartoe te plannen. Uitgezoomd worden nabije stopplekken samengevoegd tot bellen met een aantal; losse stopplekken verschijnen vanaf zoom 15, en langs een route zie je de stopplekken die nog komen.",
       "stopGroups": {
         "cyclingStops": "Stops onderweg",
         "overnight": "Overnachten",
@@ -235,7 +235,7 @@
         },
         "weather": {
           "title": "Fijner weer langs de route",
-          "body": "Het gratis weer langs de route komt uit een grovere openbare verwachting. Plus vraagt in plaats daarvan lokale weerdiensten — de National Weather Service in de VS, de stationsverwachtingen van de Deutscher Wetterdienst in Duitsland, MET Norway elders — om fijnere wind, regen en temperatuur, met windstoten en regenkans, en kleurt de route daarnaar."
+          "body": "Het gratis weer langs de route komt uit een grovere openbare verwachting. Plus vraagt in plaats daarvan lokale weerdiensten — de National Weather Service in de VS, de stationsverwachtingen van de Deutscher Wetterdienst in Duitsland, MET Norway elders — om fijnere wind, regen en temperatuur, met windstoten en regenkans."
         },
         "radar": {
           "title": "Regenradar in heel Europa",
@@ -268,7 +268,7 @@
         "library": "Bibliotheek met routes en ritten",
         "files": "GPX-, FIT- en TCX-import en -export",
         "weatherMap": "Weerkaart: regenradar, wolken en wind, met tijdregelaar",
-        "routeColours": "Weer langs de route uit een grovere openbare verwachting: wind, regen, temperatuur, een samenvatting en de beste vertrektijd, en de route gekleurd naar helling, wind of regen",
+        "routeColours": "Weer langs de route uit een grovere openbare verwachting: wind, regen, temperatuur, een samenvatting en de beste vertrektijd, en de route gekleurd naar helling, ondergrond, wind of regen",
         "routeWeather": "Fijner weer langs de route van lokale weerdiensten, met windstoten en regenkans",
         "radarEurope": "Echte regenradar in heel Europa waar de gratis kaart alleen schattingen via satelliet heeft",
         "assistant": "De assistent: een zin wordt een route",
@@ -350,7 +350,7 @@
       },
       "weather": {
         "title": "Fijner weer langs de route",
-        "body": "Het gratis weer langs de route komt uit een grovere openbare verwachting. Plus vraagt in plaats daarvan lokale weerdiensten — de National Weather Service in de VS, de stationsverwachtingen van de Deutscher Wetterdienst in Duitsland, MET Norway elders — om fijnere wind, regen en temperatuur, met windstoten en regenkans, en kleurt de route daarnaar."
+        "body": "Het gratis weer langs de route komt uit een grovere openbare verwachting. Plus vraagt in plaats daarvan lokale weerdiensten — de National Weather Service in de VS, de stationsverwachtingen van de Deutscher Wetterdienst in Duitsland, MET Norway elders — om fijnere wind, regen en temperatuur, met windstoten en regenkans."
       },
       "radar": {
         "title": "Regenradar in heel Europa",
@@ -358,7 +358,7 @@
       }
     },
     "freeTitle": "Wat gratis blijft",
-    "freeBody": "Plannen, rondjes, offline kaarten en routering, zoeken, afslag-voor-afslagnavigatie, opnemen, ritstatistieken, de weerkaart, het weer langs de route uit een grovere openbare verwachting (wind, regen, temperatuur, de beste vertrektijd) met de route gekleurd naar helling, wind of regen, GPX-, FIT- en TCX-bestanden, en de koppelingen met Strava en Ride with GPS blijven gratis, met of zonder Plus.",
+    "freeBody": "Plannen, rondjes, offline kaarten en routering, zoeken, afslag-voor-afslagnavigatie, opnemen, ritstatistieken, de weerkaart, het weer langs de route uit een grovere openbare verwachting (wind, regen, temperatuur, de beste vertrektijd) met de route gekleurd naar helling, ondergrond, wind of regen, GPX-, FIT- en TCX-bestanden, en de koppelingen met Strava en Ride with GPS blijven gratis, met of zonder Plus.",
     "priceTitle": "Wat het kost",
     "priceBody": "Je ziet de prijs in de app. De store toont de actuele maand- en jaarprijs in je eigen valuta, met een gratis proefperiode, en hier staat de prijs nooit, zodat hij niet kan verouderen.",
     "restoreTitle": "Een abonnement herstellen",
@@ -377,7 +377,7 @@
     },
     "eyebrow": "Download",
     "title": "Velorki downloaden",
-    "lead": "Gratis op beide platforms. Alles wat op de telefoon draait, werkt zonder account en zonder verbinding.",
+    "lead": "Gratis op beide platforms. Alles wat op de telefoon draait, werkt zonder account en zonder verbinding. De app spreekt Engels, Duits, Frans, Spaans, Italiaans en Nederlands.",
     "requirementsTitle": "Wat de app nodig heeft",
     "android": "Android",
     "ios": "iOS",
