@@ -140,11 +140,13 @@ pixel_6 -k "system-images;android-35;google_apis;arm64-v8a"` and started with
 Headless on purpose: macOS throttles an emulator whose window is hidden or
 covered (App Nap), and a loop search then takes minutes instead of seconds.
 Started from zsh with `&`, it also runs niced (`bg_nice`): start it from
-bash or with `setopt no_bg_nice`. The Play set is
-made on a Mac: on a GPU-less Linux runner every software renderer either
-draws the map without labels, icons and dashed lines (everything MapLibre
-takes from a texture atlas, cf. maplibre-native #3939) or takes the emulator
-down.
+bash or with `setopt no_bg_nice`. On a GPU-less Linux runner the
+emulator's GLES is the old SwiftShader translator, under which MapLibre's
+OpenGL renderer draws no labels, icons or dashed lines (cf. maplibre-native
+#3939), while its Vulkan is Lavapipe, which draws them. So the workflow runs
+the emulator with `-gpu software` and builds the app with MapLibre's Vulkan
+renderer (`ORG_GRADLE_PROJECT_velorkiMapVulkan=true`, see
+`android/app/build.gradle.kts`); riders' builds stay on OpenGL.
 `VELORKI_STORE_EMULATOR` names its adb serial when more than one runs. Per
 language the script sets the emulator's locale (`adb root`, then a reboot
 when it changes), switches on the hole-punch cutout and gesture navigation,
@@ -290,8 +292,8 @@ holds `slides/set/` (both sizes, every language, the contact sheets),
 `watch/` and `preview/<locale>/preview.mp4` with its poster. The `ios` and
 `android` inputs choose the sets; `android` (off by default) runs
 `--platform android` on an API 35 emulator on Ubuntu into the artifact
-`store-assets-android`, but its map has no labels (see above), so it only
-checks that the pipeline runs. The runner's
+`store-assets-android`, drawn with MapLibre's Vulkan renderer (see
+above). The runner's
 simulator has no GPU and drops frames of the moving map (a third in the
 navigation scene), so the preview for the store is recorded on a Mac with
 `--preview`; `preview` stays off unless asked for.
@@ -314,9 +316,9 @@ release.yml uploads the builds with, `PLAY_SERVICE_ACCOUNT_JSON`) replaces each
 uploaded language's phone screenshots, feature graphic and icon on the store
 listing; `metadata` also uploads the title and both descriptions of every
 language in `app/fastlane/metadata/android`. No build, track or release notes
-change (the Play release notes stay with the release). The set is the
-runner's, without map labels (see above): look at the artifact before
-approving.
+change (the Play release notes stay with the release). Look at the
+artifact before approving: the listing changes at once, so approve once the
+release it shows is live.
 
 `assets_run_id` uploads the sets an earlier run captured instead of capturing
 again: `store-assets` for iOS, `store-assets-android` for Play, so that run

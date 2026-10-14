@@ -76,3 +76,18 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+// The store workflow's screenshot build only (ORG_GRADLE_PROJECT_velorkiMapVulkan):
+// MapLibre's Vulkan renderer in place of the OpenGL one maplibre_gl pins.
+// The CI emulator draws Vulkan with Lavapipe but GLES with the old
+// SwiftShader, under which the map loses its labels and icons. Riders' builds
+// stay on OpenGL. The plugin excludes the Vulkan artifact on its own edge,
+// so it comes in as the app's dependency and the OpenGL one goes.
+if (providers.gradleProperty("velorkiMapVulkan").orNull == "true") {
+    configurations.configureEach {
+        exclude(group = "org.maplibre.gl", module = "android-sdk-opengl")
+    }
+    dependencies {
+        add("implementation", "org.maplibre.gl:android-sdk:13.5.0")
+    }
+}

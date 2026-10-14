@@ -24,11 +24,10 @@ on:
         description: The App Store set (iOS simulator)
         type: boolean
         default: true
-      # Off by default: on the runner's software renderer the map draws no
-      # labels, icons or dashed lines, so the Play set for the store is made
-      # on a Mac (docs/STORE_ASSETS.md).
+      # Off by default: an hour and more on the emulator. The map is drawn
+      # with MapLibre's Vulkan renderer there (docs/STORE_ASSETS.md).
       android:
-        description: The Google Play set (map labels missing on the runner)
+        description: The Google Play set (Android emulator)
         type: boolean
         default: false
       # The runner's simulator has no GPU and drops frames of the moving map;
@@ -419,6 +418,7 @@ jobs:
         env:
           LOCALES: ${{ inputs.locales }}
           VELORKI_STORE_START_TIMEOUT: "1500"
+          ORG_GRADLE_PROJECT_velorkiMapVulkan: "true"
         with:
           api-level: ${{ env.API_LEVEL }}
           target: google_apis
@@ -426,15 +426,16 @@ jobs:
           profile: pixel_6
           working-directory: app
           force-avd-creation: false
-          # guest: Android renders in software itself. On the runner,
-          # swiftshader_indirect is the old GLES translator, under which the
-          # map draws no labels, icons or dashed lines (everything MapLibre
-          # takes from a texture atlas), and swangle_indirect kills the
-          # emulator half a minute into the capture. -no-snapshot:
-          # integration.yml's snapshot was made under another renderer.
+          # software: Lavapipe for Vulkan; GLES is still the old SwiftShader
+          # translator, under which MapLibre's OpenGL renderer draws no
+          # labels, icons or dashed lines. So the app is built with
+          # MapLibre's Vulkan renderer here (velorkiMapVulkan, see the
+          # app's build.gradle.kts). guest is only an alias for
+          # swiftshader_indirect. -no-snapshot: integration.yml's snapshot
+          # was made under another renderer.
           emulator-options: >-
             -no-window -no-snapshot -no-audio -no-boot-anim
-            -gpu guest -camera-back none -camera-front none
+            -gpu software -camera-back none -camera-front none
           disable-animations: true
           # One line: the action runs the script line by line.
           # The device log is kept for a failed run: the emulator is gone
