@@ -1,1 +1,1 @@
-Planifica rutas en bici, crea rutas circulares y graba salidas, sin conexión.
+Rutas en bici y circulares, avisos hablados, radar de lluvia. Sin conexión.

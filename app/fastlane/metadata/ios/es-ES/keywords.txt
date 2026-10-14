@@ -1,1 +1,1 @@
-ciclismo,bicicleta,gpx,fit,navegación,ciclocomputador,mapas sin conexión,ruta circular,gravel,mtb
+ciclismo,bicicleta,ruta en bici,gpx,navegación,mapas sin conexión,ruta circular,gravel,mtb,lluvia

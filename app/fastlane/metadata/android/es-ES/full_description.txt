@@ -1,54 +1,47 @@
-Velorki planifica rutas en bici, crea rutas circulares y graba tus salidas. Su
-cálculo de rutas está pensado para la bici y funciona en tu teléfono, y toda la
-app es de código abierto.
+Velorki planifica rutas en bici, te guía por ellas y graba tus salidas. Su cálculo de rutas está pensado para la bici y funciona en tu teléfono, también sin conexión, y toda la app es de código abierto. Cada ruta está hecha para ti: para tu bici, tu distancia y el lugar donde estás ahora mismo.
 
 PLANIFICAR
-• Toca puntos de paso en el mapa y obtén una ruta para tu bici: cicloturismo,
-  carretera, gravel o bici de montaña.
-• Alternativas para cada ruta, un perfil de altitud y un desglose de las
-  superficies por las que vas a rodar.
-• Rutas circulares: di cuánto quieres pedalear y, si quieres, un lugar por el
-  que pasar, y Velorki te propone recorridos que vuelven al punto de partida.
-• Busca lugares, guarda rutas en tu biblioteca y descarga regiones del mapa
-  para usarlas sin conexión.
+• Toca puntos de paso en el mapa y obtén una ruta para tu bici: cicloturismo, carretera, gravel, bici de montaña o el camino directo.
+• Rutas circulares desde tu puerta: di cuánto quieres pedalear y, si quieres, un lugar por el que pasar, y Velorki propone recorridos que vuelven al inicio.
+• Rutas alternativas, un perfil de altitud y las superficies por las que vas a rodar.
+• Colorea la ruta según la pendiente, la superficie, el viento o la lluvia.
+• Busca lugares sin conexión, guarda rutas en tu biblioteca y descarga una región para planificar, buscar y navegar allí sin red.
+
+MAPA Y TIEMPO
+• Un mapa ciclista sin conexión: carriles bici y sendas, sentidos únicos, escaleras y subidas.
+• Paradas en el mapa: agua, cafeterías, panaderías, aseos, talleres de bicis y más, también en la ruta por delante.
+• Radar de lluvia, viento y nubes en el mapa, con un deslizador de tiempo hacia las próximas horas.
+• Viento y lluvia a lo largo de tu ruta para tu hora de salida.
+
+NAVEGACIÓN
+• Indicaciones paso a paso con avisos hablados, con la pantalla bloqueada y también para rutas importadas.
+• Si te sales de la ruta, tú eliges: un camino de vuelta, una ruta nueva al destino o nada.
 
 GRABACIÓN
-• Graba con la pantalla apagada y sigue grabando aunque cierres la app.
-• Distancia, tiempo, velocidad y desnivel mientras ruedas, con pausa automática
-  y una notificación que muestra la salida en curso.
-• Sigue una ruta planificada y después revisa y edita la salida.
+• Graba con la pantalla apagada y sigue grabando aunque cierres la app, con pausa automática y una notificación que muestra la salida.
+• Elige los datos que ves al rodar: distancia, velocidad, tiempo, desnivel, pulso, cadencia, potencia y lo que queda de ruta.
+• Pulso, velocidad, cadencia y potencia de sensores Bluetooth.
+• Cada salida tiene su página con mapa, gráficas y parciales.
 
-ARCHIVOS
-• Abre archivos GPX y FIT desde tu app de archivos, el correo, un navegador o
-  el menú de compartir.
-• Exporta rutas y salidas como GPX o FIT y pásalas a Komoot, Garmin Connect,
-  Strava o cualquier otra app que lea esos formatos.
+ARCHIVOS Y CONEXIONES
+• Abre archivos GPX, FIT y TCX desde tu app de archivos, el correo, un navegador o el menú de compartir; exporta rutas y salidas como GPX o FIT.
+• Conecta dos plataformas populares de rutas y salidas: sube tus salidas, trae tus rutas. Gratis.
 
 GRATIS, Y VELORKI PLUS
-Todo lo que funciona en el teléfono es gratis: planificar, rutas circulares,
-grabación, la biblioteca, las regiones de mapa sin conexión y la importación y
-exportación de GPX y FIT.
+Todo lo que el teléfono hace por sí solo es gratis: planificar, rutas circulares, navegación, grabación, mapa del tiempo, tiempo en la ruta, regiones sin conexión, sensores, archivos y conexiones.
 
-Velorki Plus es una suscripción para las partes que necesitan un servidor o una
-cuenta en otro servicio:
-• Strava: sube una salida grabada e importa tus rutas de Strava.
-• Ride with GPS: rutas y salidas, en ambos sentidos.
-• El asistente: describe en una frase la salida que quieres y recibe una ruta.
-• Enlaces para compartir rutas y salidas.
+Velorki Plus es una suscripción para lo que depende de nuestros servidores:
+• Tiempo más preciso: radar de toda Europa de servicios meteorológicos nacionales y mejor previsión en la ruta.
+• El asistente: describe la salida en una frase y recibe una ruta, o pregúntale por la ruta del mapa.
+• Enlaces para compartir: una ruta o una salida se convierte en un enlace que cualquiera abre en un navegador.
 
-Velorki Plus se ofrece con una prueba gratuita en el plan anual y se renueva
-hasta que lo canceles en Google Play. Condiciones: https://velorki.com/es/terms
+Velorki Plus se ofrece con una prueba gratuita en el plan anual y se renueva hasta que lo canceles en Google Play.
+Condiciones: https://velorki.com/es/terms
 
 PRIVACIDAD
-No hay cuenta ni registro. Las rutas, las salidas y los ajustes se quedan en tu
-teléfono. Nada va a Strava ni a Ride with GPS hasta que conectes la cuenta y lo
-pidas. El asistente te pide consentimiento antes de que ningún texto salga del
-dispositivo, y la posición que envía se redondea a aproximadamente un
-kilómetro.
+No hay cuenta ni registro. Las rutas, las salidas y los ajustes se quedan en tu teléfono. Nada va a otra plataforma hasta que conectes la cuenta y lo pidas. El asistente te pide consentimiento antes de que ningún texto salga del dispositivo, y la posición que envía se redondea a aproximadamente un kilómetro.
 Política de privacidad: https://velorki.com/es/privacy
 
-Datos del mapa © colaboradores de OpenStreetMap. Rutas con BRouter, teselas
-del mapa de OpenFreeMap, búsqueda de lugares con Photon, capa ciclista de
-CyclOSM.
+Datos del mapa © colaboradores de OpenStreetMap.
 
 Código fuente: https://github.com/orkitec/velorki

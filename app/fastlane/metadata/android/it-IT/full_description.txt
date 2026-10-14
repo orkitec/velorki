@@ -1,35 +1,47 @@
-Velorki pianifica percorsi in bici, crea anelli e registra i tuoi giri. Il calcolo dei percorsi è pensato per la bici e gira sul tuo telefono, e tutta l'app è open source.
+Velorki pianifica percorsi in bici, ti guida lungo il tragitto e registra i tuoi giri. Il calcolo dei percorsi è pensato per la bici e gira sul tuo telefono, anche offline, e tutta l'app è open source. Ogni percorso è fatto per te: per la tua bici, la tua distanza e il posto in cui ti trovi adesso.
 
 PIANIFICAZIONE
-• Tocca i punti sulla mappa e ottieni un percorso per la bici che usi: trekking, corsa, gravel o mountain bike.
-• Alternative per ogni percorso, un profilo altimetrico e il dettaglio dei fondi su cui pedalerai.
-• Anelli: di' quanto vuoi pedalare e, se vuoi, un luogo da cui passare, e Velorki ti propone giri che tornano al punto di partenza.
-• Cerca luoghi, salva i percorsi nella tua libreria e scarica regioni della mappa da usare senza connessione.
+• Tocca i punti sulla mappa e ottieni un percorso per la bici che usi: trekking, corsa, gravel, mountain bike o la via più diretta.
+• Anelli da casa tua: di' quanto vuoi pedalare e, se vuoi, un luogo da cui passare, e Velorki ti propone giri che tornano al punto di partenza.
+• Percorsi alternativi, profilo altimetrico e dettaglio dei fondi su cui pedalerai.
+• Colora il percorso in base a pendenza, fondo, vento o pioggia.
+• Cerca luoghi offline, salva i percorsi nella tua libreria e scarica una regione per pianificare, cercare e navigare lì senza connessione.
+
+MAPPA E METEO
+• Una mappa ciclabile disegnata con i dati di routing, offline: piste e corsie ciclabili, sensi unici, scale, salite.
+• Soste sulla mappa: acqua, bar, panetterie, bagni, riparazione bici e altro, anche lungo il percorso davanti a te.
+• Radar pioggia, vento e nuvole sulla mappa, con un cursore temporale verso le prossime ore.
+• Vento e pioggia lungo il percorso per l'orario di partenza.
+
+NAVIGAZIONE
+• Indicazioni svolta per svolta con annunci vocali, anche a schermo bloccato, anche per i percorsi che importi.
+• Se esci dal percorso, scegli tu: una via per tornarci, un nuovo percorso verso la destinazione o niente.
 
 REGISTRAZIONE
-• Registra a schermo spento e continua a registrare anche se chiudi l'app.
-• Distanza, tempo, velocità e dislivello mentre pedali, con pausa automatica e una notifica che mostra il giro in corso.
-• Segui un percorso pianificato, poi rivedi e modifica il giro.
+• Registra a schermo spento e continua a registrare anche se chiudi l'app, con pausa automatica e una notifica che mostra il giro.
+• Scegli i dati mentre pedali: distanza, velocità, tempo, dislivello, frequenza cardiaca, cadenza, potenza, quanto resta del percorso.
+• Frequenza cardiaca, velocità, cadenza e potenza da sensori Bluetooth.
+• Ogni giro ha una pagina con mappa, grafici e parziali.
 
-FILE
-• Apri file GPX e FIT dall'app dei file, dalla posta, da un browser o dal menu di condivisione.
-• Esporta percorsi e giri in GPX o FIT e passali a Komoot, Garmin Connect, Strava o a qualsiasi altra app che legga questi formati.
+FILE E COLLEGAMENTI
+• Apri file GPX, FIT e TCX dall'app dei file, dalla posta, da un browser o dal menu di condivisione; esporta percorsi e giri in GPX o FIT.
+• Collega due note piattaforme di percorsi e giri: carica i tuoi giri, importa i tuoi percorsi. Gratis.
 
 GRATIS, E VELORKI PLUS
-Tutto ciò che gira sul telefono è gratis: pianificazione, anelli, registrazione, la libreria, le regioni offline della mappa, e l'importazione e l'esportazione di GPX e FIT.
+Tutto ciò che il telefono sa fare da solo è gratis: pianificazione, anelli, navigazione, registrazione, mappa meteo, meteo sul percorso, regioni offline, sensori, file e collegamenti.
 
-Velorki Plus è un abbonamento per le parti che hanno bisogno di un server o di un account presso un altro servizio:
-• Strava: carica un giro registrato, importa i tuoi percorsi Strava.
-• Ride with GPS: percorsi e uscite, in entrambe le direzioni.
-• L'assistente: descrivi in una frase il giro che vuoi e ricevi un percorso.
-• Link di condivisione per percorsi e giri.
+Velorki Plus è un abbonamento per ciò che ha bisogno dei nostri server:
+• Meteo più preciso: radar su tutta l'Europa dai servizi meteo nazionali e previsione più accurata lungo il percorso.
+• L'assistente: descrivi il giro in una frase e ricevi un percorso, oppure chiedigli del percorso sulla mappa.
+• Link di condivisione: un percorso o un giro diventa un link che chiunque apre nel browser.
 
-Velorki Plus è offerto con una prova gratuita sul piano annuale e si rinnova finché non lo annulli in Google Play. Condizioni: https://velorki.com/terms
+Velorki Plus è offerto con una prova gratuita sul piano annuale e si rinnova finché non lo annulli in Google Play.
+Condizioni: https://velorki.com/terms
 
 PRIVACY
-Nessun account, nessuna registrazione. Percorsi, giri e impostazioni restano sul tuo telefono. Niente va a Strava o a Ride with GPS finché non colleghi l'account e lo chiedi tu. L'assistente chiede il tuo consenso prima che un testo lasci il dispositivo, e la posizione che invia è arrotondata a circa un chilometro.
+Nessun account, nessuna registrazione. Percorsi, giri e impostazioni restano sul tuo telefono. Niente va a un'altra piattaforma finché non colleghi l'account e lo chiedi tu. L'assistente chiede il tuo consenso prima che un testo lasci il dispositivo, e la posizione che invia è arrotondata a circa un chilometro.
 Informativa sulla privacy: https://velorki.com/privacy
 
-Dati cartografici © collaboratori di OpenStreetMap. Calcolo dei percorsi con BRouter, riquadri della mappa di OpenFreeMap, ricerca dei luoghi con Photon, livello ciclistico di CyclOSM.
+Dati cartografici © collaboratori di OpenStreetMap.
 
 Codice sorgente: https://github.com/orkitec/velorki

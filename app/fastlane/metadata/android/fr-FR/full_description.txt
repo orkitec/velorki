@@ -1,56 +1,47 @@
-Velorki planifie vos itinéraires vélo, crée des boucles et enregistre vos
-sorties. Son calcul d’itinéraire est pensé pour le vélo et tourne sur votre
-téléphone, et toute l’app est open source.
+Velorki planifie vos itinéraires vélo, vous guide le long du parcours et enregistre vos sorties. Son calcul d’itinéraire, pensé pour le vélo, tourne sur votre téléphone, même hors ligne, et toute l’app est open source. Chaque itinéraire est fait pour vous : votre vélo, votre distance, votre position.
 
 PLANIFICATION
-• Touchez des points sur la carte et obtenez un itinéraire adapté à votre
-  vélo : randonnée, route, gravel ou VTT.
-• Des variantes pour chaque itinéraire, un profil altimétrique et le détail des
-  revêtements que vous allez rencontrer.
-• Boucles : indiquez la distance voulue et, si vous le souhaitez, un lieu de
-  passage, et Velorki propose des boucles qui reviennent à votre point de départ.
-• Recherchez des lieux, enregistrez vos itinéraires dans votre bibliothèque et
-  téléchargez des régions de carte pour vous passer de connexion.
+• Touchez des points sur la carte pour un itinéraire adapté à votre vélo : randonnée, route, gravel, VTT ou direct.
+• Boucles depuis chez vous : indiquez la distance et, si vous voulez, un lieu de passage ; Velorki propose des boucles qui reviennent au départ.
+• Variantes, profil altimétrique et revêtements traversés.
+• Itinéraire coloré selon pente, revêtement, vent ou pluie.
+• Recherche hors ligne, bibliothèque d’itinéraires, région téléchargée une fois pour planifier, chercher et naviguer sans connexion.
+
+CARTE ET MÉTÉO
+• Carte vélo hors ligne issue des données d’itinéraire : pistes et bandes cyclables, sens uniques, escaliers, montées.
+• Haltes sur la carte : eau, cafés, boulangeries, toilettes, réparation de vélos et plus, aussi sur votre parcours.
+• Radar de pluie, vent et nuages sur la carte, curseur temporel vers les prochaines heures.
+• Vent et pluie le long du parcours pour votre heure de départ.
+
+NAVIGATION
+• Guidage avec annonces vocales, écran verrouillé aussi, et pour les itinéraires importés.
+• Si vous quittez le parcours, vous choisissez : y revenir, un nouvel itinéraire vers l’arrivée, ou rien.
 
 ENREGISTREMENT
-• Enregistre écran éteint et continue même si l’app est fermée.
-• Distance, temps, vitesse et montée en roulant, avec pause automatique et une
-  notification qui affiche la sortie en cours.
-• Suivez un itinéraire planifié, puis consultez et modifiez la sortie ensuite.
+• Enregistre écran éteint et continue même si l’app est fermée, avec pause automatique et une notification qui affiche la sortie.
+• Choisissez les données en roulant : distance, vitesse, temps, montée, fréquence cardiaque, cadence, puissance, reste de l’itinéraire.
+• Fréquence cardiaque, vitesse, cadence et puissance depuis des capteurs Bluetooth.
+• Chaque sortie a sa page : carte, courbes, tronçons.
 
-FICHIERS
-• Ouvrez des fichiers GPX et FIT depuis votre gestionnaire de fichiers, vos
-  e-mails, un navigateur ou la feuille de partage.
-• Exportez itinéraires et sorties en GPX ou FIT et transmettez-les à Komoot,
-  Garmin Connect, Strava ou tout autre service qui lit ces formats.
+FICHIERS ET CONNEXIONS
+• Ouvrez des fichiers GPX, FIT et TCX depuis votre gestionnaire de fichiers, vos e-mails, un navigateur ou la feuille de partage ; exportez itinéraires et sorties en GPX ou FIT.
+• Deux plateformes populaires d’itinéraires et de sorties à connecter : envoi des sorties, import des itinéraires. Gratuit.
 
 GRATUIT, ET VELORKI PLUS
-Tout ce qui fonctionne sur le téléphone est gratuit : planification, boucles,
-enregistrement, bibliothèque, régions de carte hors ligne, import et export GPX
-et FIT.
+Tout ce que le téléphone fait seul est gratuit : planification, boucles, navigation, enregistrement, carte météo, météo sur le parcours, régions hors ligne, capteurs, fichiers, connexions.
 
-Velorki Plus est un abonnement pour ce qui a besoin d’un serveur ou d’un compte
-chez un autre service :
-• Strava : envoyez une sortie enregistrée, importez vos itinéraires Strava.
-• Ride with GPS : itinéraires et sorties, dans les deux sens.
-• L’assistant : décrivez en une phrase la sortie que vous voulez et recevez un
-  itinéraire.
-• Liens de partage pour itinéraires et sorties.
+Velorki Plus est un abonnement pour ce qui a besoin de nos serveurs :
+• Météo plus fine : radar sur toute l’Europe des services nationaux, prévision précise sur le parcours.
+• L’assistant : décrivez la sortie en une phrase et recevez un itinéraire, ou questionnez-le sur celui de la carte.
+• Liens de partage : un itinéraire ou une sortie devient un lien ouvert dans tout navigateur.
 
-Velorki Plus est proposé avec un essai gratuit sur la formule annuelle et se
-renouvelle jusqu’à ce que vous le résiliiez dans Google Play.
+Velorki Plus est proposé avec un essai gratuit sur la formule annuelle et se renouvelle jusqu’à ce que vous le résiliiez dans Google Play.
 Conditions : https://velorki.com/fr/terms
 
 CONFIDENTIALITÉ
-Pas de compte, pas d’inscription. Itinéraires, sorties et réglages restent sur
-votre téléphone. Rien ne part vers Strava ou Ride with GPS tant que vous n’avez
-pas connecté le compte et demandé l’envoi. L’assistant demande votre accord
-avant qu’un texte ne quitte l’appareil, et la position qu’il envoie est
-arrondie à environ un kilomètre.
+Pas de compte, pas d’inscription. Itinéraires, sorties et réglages restent sur votre téléphone. Rien ne part vers une autre plateforme tant que vous n’avez pas connecté le compte et demandé l’envoi. L’assistant demande votre accord avant qu’un texte ne quitte l’appareil, et la position qu’il envoie est arrondie à environ un kilomètre.
 Politique de confidentialité : https://velorki.com/fr/privacy
 
-Données cartographiques © contributeurs OpenStreetMap. Calcul d’itinéraire par
-BRouter, tuiles par OpenFreeMap, recherche de lieux par Photon, surcouche vélo
-par CyclOSM.
+Données cartographiques © contributeurs OpenStreetMap.
 
 Code source : https://github.com/orkitec/velorki

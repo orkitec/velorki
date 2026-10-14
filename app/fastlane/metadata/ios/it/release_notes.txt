@@ -1,6 +1,11 @@
-• Soste sulla mappa: acqua, bar, panetterie, bagni, stazioni di riparazione bici e altro. Da lontano si raggruppano in bolle con un numero; mentre pedali, vedi le soste lungo il percorso davanti a te e quanto dista ciascuna.
-• Tocca un luogo per la sua scheda: cos'è, quanto dista, e Percorso fin qui, Parti da qui, Aggiungi come sosta o Destinazione. Dettagli mostra orari, sito web e telefono da OpenStreetMap, e Apri in passa il luogo a un'altra app di mappe.
-• La ricerca offline trova molto di più: indirizzi con numero civico, errori di battitura e abbreviazioni, nomi in un altro alfabeto, luoghi famosi nella tua lingua, e ristoranti, gelaterie, distributori e pompe per bici.
-• Luoghi da altre app: condividi un luogo o un link di mappa con Velorki, o incolla delle coordinate nella ricerca.
-• La ricerca di anelli mostra il miglior anello finora e dice cosa sta ancora verificando.
-• Correzioni: scorrere verso l'alto per il selettore app non sposta più un pannello, girare il telefono non fa più lampeggiare il grigio, e l'indicatore di pausa sta anche sui telefoni piccoli.
+• Il meteo sulla mappa, gratis: radar pioggia, vento e nuvole, con un cursore temporale verso le prossime ore.
+• Il meteo lungo il percorso: vento e pioggia per l'orario di partenza, un cursore per sceglierlo.
+• Colora il percorso in base a pendenza, fondo, vento o pioggia, sulla mappa e sotto il profilo altimetrico.
+• Una mappa ciclabile offline: piste e corsie ciclabili, sensi unici, scale e salite, disegnata con i dati di routing.
+• Soste sulla mappa: acqua, bar, panetterie, bagni, riparazione bici e altro, e quelle lungo il tuo percorso.
+• Tocca un luogo per la sua scheda: Percorso fin qui, Aggiungi come sosta, orari di apertura e altro.
+• La ricerca offline trova molto di più: numeri civici, refusi, altri alfabeti, ristoranti e distributori.
+• Anche i percorsi importati hanno gli annunci vocali.
+• I collegamenti alle piattaforme di percorsi e giri ora sono gratis, e un solo pulsante Condividi li riunisce.
+• Velorki Plus: radar vero su tutta l'Europa e una previsione più accurata lungo il percorso.
+• Velorki ora parla francese, spagnolo, italiano e olandese.

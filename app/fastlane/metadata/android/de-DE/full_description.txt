@@ -1,41 +1,47 @@
-Velorki plant Radrouten, führt dich darauf entlang und zeichnet deine Fahrten auf. Das Routing ist für Räder gemacht und läuft auf deinem Handy, und die ganze App ist Open Source.
+Velorki plant Radrouten, führt dich darauf entlang und zeichnet deine Fahrten auf. Das Routing ist für Räder gemacht und läuft auf deinem Handy, auch offline, und die ganze App ist Open Source. Jede Route ist für dich gemacht: für dein Rad, deine Strecke und den Ort, an dem du gerade stehst.
 
 PLANEN
-• Tippe Wegpunkte auf die Karte und bekomme eine Route für das Rad, auf dem du sitzt: Tour, Rennrad, Gravel, Mountainbike oder der direkte Weg.
-• Alternativrouten, ein Höhenprofil und eine Aufstellung der Beläge, über die du fährst.
-• Rundtouren: Sag, wie weit du fahren willst und, wenn du magst, einen Ort, an dem du vorbeikommen willst, und Velorki schlägt Runden vor, die dorthin zurückführen, wo du losgefahren bist.
-• Orte suchen und Routen in deiner Bibliothek speichern.
-• Eine Region einmal herunterladen und dort ohne Verbindung planen, suchen und navigieren.
+• Tippe Wegpunkte auf die Karte und bekomme eine Route für dein Rad: Tour, Rennrad, Gravel, Mountainbike oder der direkte Weg.
+• Rundtouren ab deiner Haustür: Sag, wie weit du fahren willst und, wenn du magst, wo du vorbeikommen willst, und Velorki schlägt Runden vor, die zum Start zurückführen.
+• Alternativrouten, ein Höhenprofil und die Beläge, über die du fährst.
+• Route nach Steigung, Belag, Wind oder Regen einfärben.
+• Orte offline suchen, Routen in der Bibliothek speichern, eine Region einmal laden und dort ohne Verbindung planen, suchen und navigieren.
+
+KARTE UND WETTER
+• Eine Radkarte aus den Routingdaten, offline: Radwege, Radstreifen, Einbahnstraßen, Treppen, Anstiege.
+• Stopps auf der Karte: Trinkwasser, Cafés, Bäckereien, Toiletten, Fahrradwerkstätten und mehr, auch auf der Route vor dir.
+• Regenradar, Wind und Wolken auf der Karte, mit Zeitschieber in die nächsten Stunden.
+• Wind und Regen entlang der Route für deine Abfahrtszeit.
 
 NAVIGATION
-• Abbiegehinweise mit Sprachansagen, auch bei ausgeschaltetem Bildschirm.
-• Kommst du von der Route ab, entscheidest du, was passiert: ein Weg zurück, eine neue Route zum Ziel oder gar nichts.
-• Die Karte folgt dir in Fahrtrichtung, die nächste Abbiegung immer im Blick.
+• Abbiegehinweise mit Sprachansagen, auch bei gesperrtem Bildschirm und für importierte Routen.
+• Kommst du von der Route ab, entscheidest du: ein Weg zurück, eine neue Route zum Ziel oder gar nichts.
 
 AUFZEICHNEN
-• Zeichnet bei ausgeschaltetem Bildschirm auf und auch, wenn die App geschlossen ist, mit automatischer Pause und einer Benachrichtigung, die die laufende Fahrt zeigt.
-• Strecke, Zeit, Tempo und Anstieg während der Fahrt.
-• Puls von Bluetooth-Sensoren und aus Health Connect; Geschwindigkeits-, Trittfrequenz- und Leistungssensoren gehen auch.
-• Einer geplanten Route folgen und die Fahrt danach ansehen und bearbeiten.
+• Zeichnet bei ausgeschaltetem Bildschirm auf und auch, wenn die App geschlossen ist, mit automatischer Pause und einer Benachrichtigung, die die Fahrt zeigt.
+• Wähle die Werte beim Fahren: Strecke, Tempo, Zeit, Anstieg, Puls, Trittfrequenz, Leistung, Rest der Route.
+• Puls, Geschwindigkeit, Trittfrequenz und Leistung von Bluetooth-Sensoren.
+• Jede Fahrt bekommt eine Seite mit Karte, Diagrammen und Splits.
 
-DATEIEN
-• GPX- und FIT-Dateien aus der Dateien-App, aus Mails, aus dem Browser oder über das Teilen-Menü öffnen.
-• Routen und Fahrten als GPX oder FIT exportieren und an Komoot, Garmin Connect, Strava oder alles andere geben, was diese Formate liest.
+DATEIEN UND VERBINDUNGEN
+• GPX-, FIT- und TCX-Dateien aus der Dateien-App, aus Mails, aus dem Browser oder über das Teilen-Menü öffnen; Routen und Fahrten als GPX oder FIT exportieren.
+• Zwei beliebte Plattformen für Routen und Fahrten verbinden: Fahrten hochladen, Routen holen. Kostenlos.
 
 KOSTENLOS, UND VELORKI PLUS
-Alles, was auf dem Handy läuft, ist kostenlos: Planen, Rundtouren, Navigation, Aufzeichnen, die Bibliothek, Offline-Regionen sowie Import und Export von GPX und FIT.
+Alles, was das Handy allein kann, ist kostenlos: Planen, Rundtouren, Navigation, Aufzeichnen, Wetterkarte, Wetter auf der Route, Offline-Regionen, Sensoren, Dateien, Verbindungen.
 
-Velorki Plus ist ein Abo für die Teile, die einen Server oder ein Konto bei einem anderen Dienst brauchen:
-• Strava: eine aufgezeichnete Fahrt hochladen, deine Strava-Routen holen.
-• Ride with GPS: Routen und Fahrten, in beide Richtungen.
-• Der Assistent: Beschreibe in einem Satz, welche Fahrt du willst, und bekomme eine Route.
-• Links teilen für Routen und Fahrten.
+Velorki Plus ist ein Abo für das, was unsere Server braucht:
+• Genaueres Wetter: Radar für ganz Europa von nationalen Wetterdiensten, schärfere Vorhersage auf der Route.
+• Der Assistent: Beschreibe die Fahrt in einem Satz und bekomme eine Route, oder frag ihn zur Route auf der Karte.
+• Links teilen: Aus einer Route oder Fahrt wird ein Link, den jeder im Browser öffnet.
 
-Velorki Plus gibt es mit einer kostenlosen Testphase beim Jahresabo und verlängert sich, bis du es in Google Play kündigst. Nutzungsbedingungen: https://velorki.com/de/terms
+Velorki Plus gibt es mit einer kostenlosen Testphase beim Jahresabo und verlängert sich, bis du es in Google Play kündigst.
+Nutzungsbedingungen: https://velorki.com/de/terms
 
 DATENSCHUTZ
-Kein Konto, keine Anmeldung. Routen, Fahrten und Einstellungen bleiben auf deinem Handy. Nichts geht an Strava oder Ride with GPS, bevor du das Konto verbindest und es ausdrücklich willst. Der Assistent fragt nach deiner Zustimmung, bevor ein Text das Gerät verlässt, und die Position, die er sendet, ist auf etwa einen Kilometer gerundet. Datenschutzerklärung: https://velorki.com/de/privacy
+Kein Konto, keine Anmeldung. Routen, Fahrten und Einstellungen bleiben auf deinem Handy. Nichts geht an eine andere Plattform, bevor du das Konto verbindest und es ausdrücklich willst. Der Assistent fragt nach deiner Zustimmung, bevor ein Text das Gerät verlässt, und die Position, die er sendet, ist auf etwa einen Kilometer gerundet.
+Datenschutzerklärung: https://velorki.com/de/privacy
 
-Kartendaten © OpenStreetMap-Mitwirkende. Routing mit BRouter, Kartenkacheln von OpenFreeMap, Ortssuche mit Photon, Rad-Overlay von CyclOSM.
+Kartendaten © OpenStreetMap-Mitwirkende.
 
 Quellcode: https://github.com/orkitec/velorki

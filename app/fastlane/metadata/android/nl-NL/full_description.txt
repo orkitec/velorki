@@ -1,50 +1,47 @@
-Velorki plant fietsroutes, maakt rondjes en neemt je ritten op. De routering
-is gemaakt voor fietsen en draait op je telefoon, en de hele app is open source.
+Velorki plant fietsroutes, leidt je erlangs en neemt je ritten op. De routering is gemaakt voor fietsen en draait op je telefoon, ook offline, en de hele app is open source. Elke route is op jou gemaakt: voor jouw fiets, jouw afstand en de plek waar je nu staat.
 
 PLANNEN
-• Tik routepunten op de kaart en krijg een route voor de fiets waar je op zit:
-  toerfiets, racefiets, gravel of mountainbike.
-• Alternatieven voor elke route, een hoogteprofiel en een overzicht van de
-  ondergronden waar je overheen rijdt.
-• Rondjes: zeg hoe ver je wilt fietsen en, als je wilt, één plek om langs te
-  komen, en Velorki stelt rondritten voor die terugkomen waar je begon.
-• Zoek plaatsen, sla routes op in je bibliotheek en download kaartregio's om
-  zonder verbinding te gebruiken.
+• Tik routepunten op de kaart en krijg een route voor de fiets waar je op zit: toerfiets, racefiets, gravel, mountainbike of de directe weg.
+• Rondjes vanaf je voordeur: zeg hoe ver je wilt fietsen en, als je wilt, één plek om langs te komen, en Velorki stelt rondritten voor die terugkomen waar je begon.
+• Alternatieve routes, een hoogteprofiel en de ondergronden waar je overheen rijdt.
+• Kleur de route naar hellingspercentage, ondergrond, wind of regen.
+• Zoek plaatsen offline, sla routes op in je bibliotheek en download een regio om daar zonder verbinding te plannen, zoeken en navigeren.
+
+KAART EN WEER
+• Een fietskaart uit de routeringsdata, offline: fietspaden en fietsstroken, eenrichtingsstraten, trappen en klimmen.
+• Stops op de kaart: water, cafés, bakkers, toiletten, fietsenmakers en meer, en die langs de route voor je.
+• Regenradar, wind en wolken op de kaart, met een tijdschuif naar de komende uren.
+• Wind en regen langs je route voor je vertrektijd.
+
+NAVIGATIE
+• Afslag-voor-afslagnavigatie met gesproken aanwijzingen, ook met vergrendeld scherm en voor geïmporteerde routes.
+• Verlaat je de route, dan kies je wat er gebeurt: een weg terug ernaartoe, een nieuwe route naar de bestemming of helemaal niets.
 
 OPNEMEN
-• Neemt op met het scherm uit en blijft opnemen als de app wordt gesloten.
-• Afstand, tijd, snelheid en stijging tijdens het rijden, met auto-pauze en een
-  melding die de lopende rit toont.
-• Volg een geplande route en bekijk en bewerk de rit daarna.
+• Neemt op met het scherm uit en blijft opnemen als de app wordt gesloten, met auto-pauze en een melding die de rit toont.
+• Kies de waarden tijdens het rijden: afstand, snelheid, tijd, stijging, hartslag, cadans, vermogen, wat er nog over is van de route.
+• Hartslag, snelheid, cadans en vermogen van Bluetooth-sensoren.
+• Elke rit krijgt een pagina met kaart, grafieken en splits.
 
-BESTANDEN
-• Open GPX- en FIT-bestanden vanuit je bestandsapp, vanuit mail, vanuit een
-  browser of via het deelmenu.
-• Exporteer routes en ritten als GPX of FIT en geef ze door aan Komoot, Garmin
-  Connect, Strava of iets anders dat die formaten leest.
+BESTANDEN EN KOPPELINGEN
+• Open GPX-, FIT- en TCX-bestanden vanuit je bestandsapp, vanuit mail, vanuit een browser of via het deelmenu; exporteer routes en ritten als GPX of FIT.
+• Koppel twee populaire platforms voor routes en ritten: upload je ritten, haal je routes binnen. Gratis.
 
 GRATIS, EN VELORKI PLUS
-Alles wat op de telefoon draait, is gratis: plannen, rondjes, opnemen, de
-bibliotheek, offline kaartregio's, en GPX- en FIT-import en -export.
+Alles wat de telefoon zelf kan, is gratis: plannen, rondjes, navigatie, opnemen, de weerkaart, het weer langs de route, offline regio's, sensoren, bestanden en koppelingen.
 
-Velorki Plus is een abonnement voor de onderdelen die een server of een account
-bij een andere dienst nodig hebben:
-• Strava: een opgenomen rit uploaden, je Strava-routes importeren.
-• Ride with GPS: routes en ritten, in beide richtingen.
-• De assistent: beschrijf de rit die je wilt in één zin en krijg een route.
-• Deellinks voor routes en ritten.
+Velorki Plus is een abonnement voor wat onze servers nodig heeft:
+• Fijner weer: radar over heel Europa van de nationale weerdiensten en een scherpere verwachting langs de route.
+• De assistent: beschrijf de rit in één zin en krijg een route, of stel vragen over de route op de kaart.
+• Deellinks: een route of rit wordt een link die iedereen in een browser opent.
 
-Velorki Plus heeft een gratis proefperiode bij het jaarabonnement en wordt verlengd tot je het
-opzegt in Google Play. Voorwaarden: https://velorki.com/terms
+Velorki Plus heeft een gratis proefperiode bij het jaarabonnement en wordt verlengd tot je het opzegt in Google Play.
+Voorwaarden: https://velorki.com/terms
 
 PRIVACY
-Er is geen account en geen registratie. Routes, ritten en instellingen blijven op
-je telefoon. Er gaat niets naar Strava of Ride with GPS tot je het account koppelt
-en erom vraagt. De assistent vraagt je toestemming voordat er tekst het apparaat
-verlaat, en de positie die hij verstuurt wordt afgerond op ongeveer een kilometer.
+Er is geen account en geen registratie. Routes, ritten en instellingen blijven op je telefoon. Er gaat niets naar een ander platform tot je het account koppelt en erom vraagt. De assistent vraagt je toestemming voordat er tekst het apparaat verlaat, en de positie die hij verstuurt wordt afgerond op ongeveer een kilometer.
 Privacybeleid: https://velorki.com/privacy
 
-Kaartgegevens © OpenStreetMap-bijdragers. Routering door BRouter, kaarttegels
-door OpenFreeMap, plaatsen zoeken door Photon, fietslaag door CyclOSM.
+Kaartgegevens © OpenStreetMap-bijdragers.
 
 Broncode: https://github.com/orkitec/velorki
