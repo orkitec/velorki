@@ -81,7 +81,7 @@
     },
     "free": {
       "title": "Alles auf dem Handy ist kostenlos",
-      "body": "Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Sensoren und Apple Watch, Fahrtstatistik, die Wetterkarte und das Wetter entlang der Route, GPX-, FIT- und TCX-Dateien, für alle, für immer. Die Routing-Daten und den Suchindex spiegeln wir kostenlos für dich.",
+      "body": "Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Sensoren und Apple Watch, Fahrtstatistik, die Wetterkarte und das Wetter entlang der Route, GPX-, FIT- und TCX-Dateien und die Verbindungen zu Strava und Ride with GPS, für alle, für immer. Die Routing-Daten und den Suchindex spiegeln wir kostenlos für dich.",
       "items": {
         "routing": "Routing auf dem Handy",
         "loops": "Runden",
@@ -91,7 +91,8 @@
         "recording": "Aufnahme",
         "sensors": "Sensoren und Uhr",
         "files": "GPX, FIT und TCX",
-        "weather": "Wetterkarte und Routenwetter"
+        "weather": "Wetterkarte und Routenwetter",
+        "connections": "Kompatibel mit Strava und Ride with GPS"
       }
     },
     "features": {
@@ -170,11 +171,11 @@
       "files": {
         "eyebrow": "Dateien und Dienste",
         "title": "Deine Fahrten sind Dateien, die dir gehören",
-        "body": "GPX-, FIT- und TCX-Import und -Export über das Teilen-Menü und „Öffnen mit“, damit Routen und Fahrten zu Komoot, Garmin Connect, Strava oder allem anderen wandern, das diese Formate liest. Eine GPX-Route behält ihr Cue Sheet und ihre Wegpunkte, und ein Ride-with-GPS-Link öffnet sich in Velorki. Die Verbindungen zu Strava und Ride with GPS und die Teilen-Links sind der Plus-Teil.",
+        "body": "GPX-, FIT- und TCX-Import und -Export über das Teilen-Menü und „Öffnen mit“, damit Routen und Fahrten zu Komoot, Garmin Connect, Strava oder allem anderen wandern, das diese Formate liest. Eine GPX-Route behält ihr Cue Sheet und ihre Wegpunkte, und ein Ride-with-GPS-Link öffnet sich in Velorki. Velorki funktioniert kostenlos mit Strava und Ride with GPS; die Teilen-Links gehören zu Plus.",
         "bullets": {
           "one": "GPX, FIT und TCX rein und raus, aus Dateien, Mail oder dem Browser, mit Cue Sheets und Wegpunkten",
           "two": "Eine Bibliothek gespeicherter Routen und aufgezeichneter Fahrten",
-          "three": "Strava, Ride with GPS und Teilen-Links mit Plus"
+          "three": "Kompatibel mit Strava und Ride with GPS, kostenlos; Teilen-Links mit Plus"
         }
       }
     },
@@ -214,7 +215,7 @@
     "plus": {
       "eyebrow": "Velorki Plus",
       "title": "Sag, welche Fahrt du willst",
-      "lead": "Plus ist das optionale Abo für das, was einen Server oder ein Partnerkonto braucht. Das meiste davon ist der Assistent: Du sagst, was du vorhast, und die Route plant trotzdem dein Handy.",
+      "lead": "Plus ist das optionale Abo für das, was unsere Server braucht. Das meiste davon ist der Assistent: Du sagst, was du vorhast, und die Route plant trotzdem dein Handy.",
       "items": {
         "describe": {
           "title": "Eine Fahrt beschreiben",
@@ -228,9 +229,9 @@
           "title": "Eine Beschreibung für deine Routen",
           "body": "„Diese Route beschreiben“ schreibt einen Absatz aus dem, was das Handy über die Route weiß: Anstiege, Beläge, Orte und die Cafés am Weg."
         },
-        "connect": {
-          "title": "Strava, Ride with GPS und Teilen-Links",
-          "body": "Lade Fahrten zu Strava hoch und importiere deine Routen, schick Routen und Trips in beide Richtungen mit Ride with GPS, und teile eine Route oder Fahrt als Link, der in jedem Browser aufgeht."
+        "sharing": {
+          "title": "Teilen-Links",
+          "body": "Teile eine Route oder Fahrt als Link, der in jedem Browser aufgeht, mit der Karte, der Statistik und einem GPX-Download."
         },
         "weather": {
           "title": "Genaueres Wetter entlang der Route",
@@ -249,7 +250,7 @@
     "comparison": {
       "eyebrow": "Kostenlos vs. Plus",
       "title": "Kostenlos ist alles, was auf dem Handy läuft",
-      "lead": "Velorki Plus ist ein kleines Abo, nur für die Teile, die unsere Server oder ein Partnerkonto brauchen. Alles andere ist kostenlos, für alle, für immer.",
+      "lead": "Velorki Plus ist ein kleines Abo, nur für die Teile, die unsere Server brauchen. Alles andere ist kostenlos, für alle, für immer.",
       "feature": "Funktion",
       "free": "Kostenlos",
       "plus": "Plus",
@@ -271,8 +272,8 @@
         "routeWeather": "Genaueres Wetter entlang der Route von lokalen Wetterdiensten, mit Böen und Regenwahrscheinlichkeit",
         "radarEurope": "Echtes Regenradar in ganz Europa, wo die kostenlose Karte nur Schätzungen aus Satellitendaten hat",
         "assistant": "Der Assistent: ein Satz wird zur Route",
-        "strava": "Strava: Fahrten hochladen, Routen importieren",
-        "rwgps": "Ride with GPS: Routen und Fahrten in beide Richtungen",
+        "strava": "Kompatibel mit Strava: Fahrten hochladen, Routen importieren",
+        "rwgps": "Kompatibel mit Ride with GPS: Routen und Fahrten in beide Richtungen",
         "sharing": "Teilen-Links für Routen und Fahrten"
       },
       "note": "Der Code für all das liegt hier, du kannst also auch einen eigenen Relay-Server betreiben und dir das Abo komplett sparen.",
@@ -298,11 +299,11 @@
         },
         "price": {
           "q": "Was kostet Velorki?",
-          "a": "Alles, was auf dem Handy läuft, ist kostenlos: Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Puls, Trittfrequenz und Leistung von deinen Sensoren, Fahrtstatistik, die Wetterkarte, das Wetter entlang der Route aus einer öffentlichen Vorhersage sowie GPX-, FIT- und TCX-Dateien. Velorki Plus ist ein Abo für die serverseitigen Funktionen; den aktuellen Preis zeigt dir der Store in der App, in deiner Währung."
+          "a": "Alles, was auf dem Handy läuft, ist kostenlos: Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Puls, Trittfrequenz und Leistung von deinen Sensoren, Fahrtstatistik, die Wetterkarte, das Wetter entlang der Route aus einer öffentlichen Vorhersage, GPX-, FIT- und TCX-Dateien sowie die Verbindungen zu Strava und Ride with GPS. Velorki Plus ist ein Abo für die serverseitigen Funktionen; den aktuellen Preis zeigt dir der Store in der App, in deiner Währung."
         },
         "plus": {
           "q": "Was ist Velorki Plus?",
-          "a": "Ein kleines Abo für die Teile, die unsere Server oder ein Partnerkonto brauchen: den Assistenten, die Strava-Verbindung, die Verbindung zu Ride with GPS, die Teilen-Links, genaueres Wetter entlang der Route von lokalen Wetterdiensten und Regenradar in ganz Europa. Gekauft, verwaltet und gekündigt wird es im App Store oder bei Google Play."
+          "a": "Ein kleines Abo für die Teile, die unsere Server brauchen: den Assistenten, die Teilen-Links, genaueres Wetter entlang der Route von lokalen Wetterdiensten und Regenradar in ganz Europa. Gekauft, verwaltet und gekündigt wird es im App Store oder bei Google Play."
         },
         "data": {
           "q": "Was verlässt mein Handy?",
@@ -332,24 +333,16 @@
   "plus": {
     "meta": {
       "title": "Velorki Plus",
-      "description": "Velorki Plus ist ein kleines Abo für die Teile, die unsere Server oder ein Partnerkonto brauchen: den Assistenten, Strava, Ride with GPS, die Teilen-Links, genaueres Wetter entlang der Route und Regenradar in ganz Europa."
+      "description": "Velorki Plus ist ein kleines Abo für die Teile, die unsere Server brauchen: den Assistenten, die Teilen-Links, genaueres Wetter entlang der Route und Regenradar in ganz Europa."
     },
     "eyebrow": "Abo",
     "title": "Velorki Plus",
-    "lead": "Alles, was auf deinem Handy läuft, ist kostenlos. Plus bezahlt die Teile, die unsere Server oder ein Partnerkonto brauchen.",
+    "lead": "Alles, was auf deinem Handy läuft, ist kostenlos, ebenso die Verbindungen zu Strava und Ride with GPS. Plus bezahlt die Teile, die unsere Server brauchen.",
     "includes": "Was Plus enthält",
     "features": {
       "assistant": {
         "title": "Der Assistent",
         "body": "Beschreib die gewünschte Fahrt in einem Satz, „40 km, überwiegend Gravel, ein Café-Stopp“, und Velorki macht daraus eine Route und plant sie auf deinem Handy. Das Modell läuft hinter einem Relay, der den Schlüssel hält; die App sieht ihn nie."
-      },
-      "strava": {
-        "title": "Strava-Verbindung",
-        "body": "Lade eine aufgezeichnete Fahrt zu Strava hoch und importiere deine Strava-Routen in die Bibliothek."
-      },
-      "rwgps": {
-        "title": "Verbindung zu Ride with GPS",
-        "body": "Routen und Fahrten in beide Richtungen, zwischen Ride with GPS und deiner Bibliothek."
       },
       "sharing": {
         "title": "Teilen-Links",
@@ -365,7 +358,7 @@
       }
     },
     "freeTitle": "Was kostenlos bleibt",
-    "freeBody": "Planen, Runden, Offline-Karten und -Routing, Suche, Abbiegenavigation, Aufnahme, Fahrtstatistik, die Wetterkarte, das Wetter entlang der Route aus einer gröberen öffentlichen Vorhersage (Wind, Regen, Temperatur, die beste Abfahrtszeit) mit der nach Steigung, Wind oder Regen eingefärbten Route sowie GPX-, FIT- und TCX-Dateien bleiben kostenlos, mit oder ohne Plus.",
+    "freeBody": "Planen, Runden, Offline-Karten und -Routing, Suche, Abbiegenavigation, Aufnahme, Fahrtstatistik, die Wetterkarte, das Wetter entlang der Route aus einer gröberen öffentlichen Vorhersage (Wind, Regen, Temperatur, die beste Abfahrtszeit) mit der nach Steigung, Wind oder Regen eingefärbten Route, GPX-, FIT- und TCX-Dateien sowie die Verbindungen zu Strava und Ride with GPS bleiben kostenlos, mit oder ohne Plus.",
     "priceTitle": "Was es kostet",
     "priceBody": "Den Preis siehst du in der App. Der Store zeigt den aktuellen Monats- und Jahrespreis in deiner eigenen Währung, mit kostenloser Testphase, und hier steht er nie, damit er nicht veralten kann.",
     "restoreTitle": "Ein Abo wiederherstellen",

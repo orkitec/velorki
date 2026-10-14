@@ -11,7 +11,10 @@ import '../../../app/theme.dart';
 import '../../../core/files/track_exporter.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/presentation/describe_route_sheet.dart';
-import '../../integrations/presentation/route_send_menu.dart';
+import '../../integrations/application/connections_controller.dart';
+import '../../integrations/common/domain/connected_account.dart';
+import '../../integrations/presentation/share_rows.dart';
+import '../../integrations/presentation/strava_brand.dart';
 import '../../map/application/route_cursor.dart';
 import '../../map/application/route_colour_drawer.dart';
 import '../../map/domain/map_controller.dart';
@@ -45,7 +48,8 @@ import '../../shared/presentation/button_menu.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/sheet_header.dart';
-import '../../sharing/presentation/share_link_button.dart';
+import '../../sharing/data/share_service.dart';
+import '../../sharing/presentation/share_card.dart';
 import '../../shared/presentation/error_text.dart';
 import '../../shared/presentation/metric_chart.dart' show DistanceWindow;
 import '../../weather/application/route_weather_controller.dart';
@@ -374,6 +378,40 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     }
   }
 
+  /// Whether the share card has anything to offer in this build: a partner
+  /// service or share links, all of which need the relay.
+  bool get _canShare =>
+      ref.watch(shareServiceProvider) != null ||
+      IntegrationService.values.any(
+        (service) => ref.watch(integrationConfiguredProvider(service)),
+      );
+
+  /// Opens the share card: Ride with GPS, Strava and the link.
+  void _share(SavedRoute route) {
+    final l10n = AppLocalizations.of(context);
+    unawaited(
+      showShareCard(
+        context,
+        title: l10n.shareRouteTitle,
+        rows: [
+          RwgpsRouteShareRow(route: route),
+          StravaRouteShareRow(
+            onExportGpx: () => _export(route, TrackFormat.gpx),
+          ),
+          ShareLinkRow(
+            name: route.name,
+            points: route.geometry,
+            kind: ShareKind.route,
+            distanceM: route.distanceM,
+            ascentM: route.ascentM,
+            pois: route.pois,
+            fromStrava: route.fromStrava,
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Marks the turns on the map, or takes them off, and remembers it.
   void _setTurnsOnMap(bool show) {
     unawaited(ref.read(routeTurnsOnMapProvider.notifier).set(show));
@@ -479,6 +517,26 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                       const SizedBox(height: 4),
                       Text(source, style: theme.textTheme.bodySmall),
                     ],
+                    // Strava's terms: a link back to the route on Strava
+                    // and their credit wherever their data shows.
+                    if (saved.fromStrava) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 12,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          const PoweredByStrava(),
+                          if (saved.stravaRouteId case final id?)
+                            ViewOnStravaLink(
+                              onPressed: () => unawaited(
+                                ref.read(linkOpenerProvider)(
+                                  stravaRouteUrl(id),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                     if (saved.description != null &&
                         saved.description!.isNotEmpty) ...[
                       const SizedBox(height: 12),
@@ -534,18 +592,8 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                             ),
                           ],
                         ),
-                        RouteSendMenu(
-                          route: saved,
-                          onExportGpx: () => _export(saved, TrackFormat.gpx),
-                        ),
-                        ShareLinkButton(
-                          name: saved.name,
-                          points: geometry,
-                          kind: ShareKind.route,
-                          distanceM: saved.distanceM,
-                          ascentM: saved.ascentM,
-                          pois: saved.pois,
-                        ),
+                        if (_canShare)
+                          ShareButton(onPressed: () => _share(saved)),
                         DescribeRouteButton(route: saved),
                       ],
                     ),

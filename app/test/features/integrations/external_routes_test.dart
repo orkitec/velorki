@@ -67,7 +67,7 @@ void main() {
   ExternalRouteListCache cache() =>
       ExternalRouteListCache(prefs, clock: () => now);
 
-  group('the seven-day list cache', () {
+  group('the 48-hour list cache', () {
     test('a second load comes out of the cache', () async {
       final source = _FakeSource(
         service: IntegrationService.strava,
@@ -105,7 +105,7 @@ void main() {
       expect(source.fetches, 2);
     });
 
-    test('a list older than seven days is dropped and fetched again', () async {
+    test('a list older than 48 hours is dropped and fetched again', () async {
       final source = _FakeSource(
         service: IntegrationService.strava,
         routes: const <ExternalRoute>[_sunday],
@@ -117,12 +117,13 @@ void main() {
       );
       await loader.load();
 
-      // Six days later it is still good; on the eighth day it is gone.
-      now = now.add(const Duration(days: 6));
+      // 47 hours later it is still good; two hours on it is gone, as
+      // Strava's API policy asks.
+      now = now.add(const Duration(hours: 47));
       expect((await loader.load()).fromCache, isTrue);
       expect(source.fetches, 1);
 
-      now = now.add(const Duration(days: 2));
+      now = now.add(const Duration(hours: 2));
       expect((await loader.load()).fromCache, isFalse);
       expect(source.fetches, 2);
       expect(
@@ -146,7 +147,7 @@ void main() {
       final key = ExternalRouteListCache.keyFor(IntegrationService.rwgps);
       expect(prefs.getString(key), isNotNull);
 
-      now = now.add(const Duration(days: 8));
+      now = now.add(const Duration(hours: 49));
       await cache().purgeExpired();
       expect(prefs.getString(key), isNull);
     });
@@ -210,8 +211,7 @@ void main() {
       expect(saved.source, RouteSource.strava);
       expect(saved.geometry, isNotEmpty);
 
-      // The row remembers where it came from and when, which is what
-      // Strava's seven-day rule is measured against.
+      // The row remembers where it came from and when.
       final row = await db.routesDao.routeById(saved.id);
       expect(row!.source, RouteSource.strava);
       expect(row.externalIdsJson, contains('strava_route_id'));

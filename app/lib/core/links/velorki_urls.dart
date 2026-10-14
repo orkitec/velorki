@@ -18,3 +18,6 @@ const String velorkiIssuesUrl = 'https://github.com/orkitec/velorki/issues';
 /// OpenStreetMap's copyright and licence page, where the OSM credit in
 /// Settings → About leads.
 const String osmCopyrightUrl = 'https://www.openstreetmap.org/copyright';
+
+/// Where riders write to: support, questions, deletion requests.
+const String velorkiSupportEmail = 'ride@velorki.com';

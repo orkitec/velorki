@@ -91,11 +91,6 @@ const List<_Allowed> _allowed = <_Allowed>[
     "numbers and a unit symbol: the notification's first line until the "
         'first update, which is worded in the rider\'s language and units',
   ),
-  _Allowed(
-    'lib/features/subscription/presentation/plus_upsell_card.dart',
-    "'Plus'",
-    'the product name, Velorki Plus, as a caption',
-  ),
 ];
 
 class _Allowed {

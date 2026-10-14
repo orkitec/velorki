@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
+import 'package:velorki/features/integrations/application/strava_route_checks.dart';
+import 'package:velorki/features/settings/presentation/settings_screen.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:velorki/features/integrations/common/data/connected_accounts_repository.dart';
+import 'package:velorki/features/integrations/common/data/secure_key_value_store.dart';
+import 'package:velorki/features/integrations/common/domain/connected_account.dart';
+import 'package:velorki/features/integrations/presentation/strava_brand.dart';
+import 'package:velorki/features/integrations/testing/in_memory_secure_key_value_store.dart';
 import 'package:velorki/core/db/tables/routes.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
@@ -399,6 +408,156 @@ void main() {
       'Flat and fast',
     );
     expect(find.text('Flat and fast'), findsWidgets);
+    await unmountApp(tester);
+  });
+
+  group('sharing', () {
+    const config = AppConfig(
+      apiUrl: 'https://relay.test',
+      stravaClientId: '1234',
+      rwgpsClientId: 'abcd',
+    );
+
+    List<Override> overrides(
+      List<Uri> opened, {
+      Map<IntegrationService, ConnectedAccount> accounts = const {},
+    }) => [
+      appConfigProvider.overrideWithValue(config),
+      secureKeyValueStoreProvider.overrideWithValue(
+        InMemorySecureKeyValueStore(<String, String>{
+          for (final entry in accounts.entries)
+            ConnectedAccountsRepository.keyFor(entry.key): entry.value.encode(),
+        }),
+      ),
+      linkOpenerProvider.overrideWithValue((url) async {
+        opened.add(url);
+        return true;
+      }),
+    ];
+
+    Future<void> openCard(WidgetTester tester) async {
+      await tester.ensureVisible(find.text(l10n.shareLinkAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.shareLinkAction));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.shareRouteTitle), findsOneWidget);
+    }
+
+    testWidgets('one Share button; with Ride with GPS connected its card '
+        'offers Send', (tester) async {
+      final h = PlannerHarness();
+      final saved = await _seed(h);
+      await pumpApp(
+        tester,
+        initialLocation: routeDetailLocation(saved.id),
+        harness: h,
+        extraOverrides: overrides(
+          <Uri>[],
+          accounts: const {
+            IntegrationService.rwgps: ConnectedAccount(
+              service: IntegrationService.rwgps,
+              accessToken: 'rw',
+            ),
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The separate Send and Share link buttons are one Share button now.
+      expect(find.text(l10n.shareLinkAction), findsOneWidget);
+      await openCard(tester);
+      expect(find.text(l10n.shareRwgpsRouteBody), findsOneWidget);
+      expect(find.text(l10n.shareSend), findsOneWidget);
+      expect(find.text(l10n.shareStravaRouteBody), findsOneWidget);
+      expect(find.text(l10n.shareLinkRowBody), findsOneWidget);
+      await unmountApp(tester);
+    });
+
+    testWidgets('without Ride with GPS connected the card leads to Settings', (
+      tester,
+    ) async {
+      final h = PlannerHarness();
+      final saved = await _seed(h);
+      await pumpApp(
+        tester,
+        initialLocation: routeDetailLocation(saved.id),
+        harness: h,
+        extraOverrides: overrides(<Uri>[]),
+      );
+      await tester.pumpAndSettle();
+
+      await openCard(tester);
+      await tester.tap(find.text(l10n.shareConnect));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.shareRouteTitle), findsNothing);
+      expect(find.byType(SettingsScreen), findsOneWidget);
+      await unmountApp(tester);
+    });
+
+    testWidgets('a route from Strava credits Strava, links back to it, and '
+        'goes to no other service and into no link', (tester) async {
+      final h = PlannerHarness();
+      final opened = <Uri>[];
+      final repository = RouteRepository(h.db.routesDao);
+      final saved = await repository.saveImportedRoute(
+        name: 'From Strava',
+        points: syntheticRoute().geometry,
+        source: RouteSource.strava,
+      );
+      await repository.markExternal(
+        saved.id,
+        externalIds: const <String, Object?>{'strava_route_id': '4242'},
+      );
+      await pumpApp(
+        tester,
+        initialLocation: routeDetailLocation(saved.id),
+        harness: h,
+        extraOverrides: overrides(
+          opened,
+          accounts: const {
+            IntegrationService.rwgps: ConnectedAccount(
+              service: IntegrationService.rwgps,
+              accessToken: 'rw',
+            ),
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PoweredByStrava), findsOneWidget);
+      await tester.tap(find.text(l10n.rideDetailViewOnStrava));
+      await tester.pumpAndSettle();
+      expect(opened, [Uri.parse('https://www.strava.com/routes/4242')]);
+
+      await openCard(tester);
+      expect(find.text(l10n.shareNotForStravaRoutes), findsNWidgets(2));
+      expect(find.text(l10n.shareSend), findsNothing);
+      expect(find.text(l10n.shareLinkTitle), findsNothing);
+      await unmountApp(tester);
+    });
+  });
+
+  testWidgets('routes from Strava the checks removed are told once', (
+    tester,
+  ) async {
+    final h = PlannerHarness();
+    final saved = await _seed(h);
+    await pumpApp(
+      tester,
+      initialLocation: routeDetailLocation(saved.id),
+      harness: h,
+    );
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RouteDetailScreen)),
+    );
+
+    container.read(stravaRoutesRemovedNoticeProvider.notifier).add(2);
+    await tester.pump();
+
+    expect(find.text(l10n.stravaRoutesRemoved(2)), findsOneWidget);
+    expect(container.read(stravaRoutesRemovedNoticeProvider), 0);
     await unmountApp(tester);
   });
 

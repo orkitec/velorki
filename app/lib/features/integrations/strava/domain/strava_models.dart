@@ -134,7 +134,7 @@ class StravaRouteSummary {
   /// When the route was created on Strava.
   final DateTime? createdAt;
 
-  /// This summary as JSON, for the seven-day list cache.
+  /// This summary as JSON, for the 48-hour list cache.
   Map<String, Object?> toJson() => <String, Object?>{
     'id_str': id,
     'name': name,

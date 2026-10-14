@@ -4,7 +4,7 @@ description: The terms for using the Velorki app and website, the Velorki Plus s
 draft: false
 ---
 
-Effective date: 27 September 2026.
+Effective date: 13 October 2026.
 
 ## 1. Who these terms are between
 
@@ -73,11 +73,12 @@ is binding.
 
 Everything that runs on your phone is free and stays free: planning, smart
 loops, offline maps and offline routing, place search, turn-by-turn navigation,
-recording, ride statistics, and GPX, FIT and TCX import and export.
+recording, ride statistics, GPX, FIT and TCX import and export, and the
+connections to Strava and Ride with GPS.
 
 **Velorki Plus** is an optional subscription for the features that need our
-servers or an account with another service: the Strava connection, the Ride
-with GPS connection, the assistant, and share links.
+servers: the assistant, share links, and the finer route weather and rain
+radar.
 
 ### 4.1 How it is bought
 
@@ -120,8 +121,8 @@ subscription bought on one store cannot be restored on the other.
 
 ### 4.5 If a Plus feature stops working
 
-We may change, suspend or discontinue a Plus feature, for example if a partner
-API closes or an AI provider becomes unavailable. If we permanently remove a
+We may change, suspend or discontinue a Plus feature, for example if a weather
+service or an AI provider becomes unavailable. If we permanently remove a
 substantial part of what Plus offers, you may cancel; the store's refund and
 proration rules then apply. Everything free keeps working regardless, including
 offline, and your routes and rides remain on your phone and exportable.

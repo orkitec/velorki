@@ -1,7 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 
+import '../../planner/application/planner_controller.dart';
+import '../../planner/data/route_repository.dart';
+import '../../recording/data/ride_repository.dart';
 import '../common/data/connected_accounts_repository.dart';
+import '../common/data/external_route_cache.dart';
 import '../common/data/integration_connector.dart';
 import '../common/domain/connected_account.dart';
 import '../common/domain/integration_exception.dart';
@@ -62,7 +68,9 @@ class IntegrationConnections extends Notifier<Set<IntegrationService>> {
     }
   }
 
-  /// Revokes at the service where that is possible and deletes the token.
+  /// Revokes at the service where that is possible, deletes the token and
+  /// the service's route list, and for Strava every piece of Strava data on
+  /// the phone ([forgetStravaData]).
   ///
   /// The local token always goes, even when the service could not be reached:
   /// a rider who pressed Disconnect has said what they want.
@@ -74,11 +82,55 @@ class IntegrationConnections extends Notifier<Set<IntegrationService>> {
       if (account != null && connector != null) {
         await connector.revoke(account);
       }
-      await ref.read(connectedAccountsProvider.notifier).remove(service);
+      await _forget(service);
       _log.info('disconnected ${service.id}');
     } finally {
       _end(service);
     }
+  }
+
+  /// Strava refused the rider's authorization: they removed Velorki's access
+  /// on strava.com. Strava's terms ask for the same as a disconnect, so the
+  /// token and every piece of Strava data on the phone go, and the rider is
+  /// told ([stravaAccessLostNoticeProvider]). Nothing to revoke: it is
+  /// revoked already.
+  Future<void> stravaAccessRevoked() async {
+    const service = IntegrationService.strava;
+    // A disconnect under way does the same and confirms it itself.
+    if (!_begin(service)) return;
+    try {
+      if (ref.read(connectedAccountProvider(service)) == null &&
+          await ref.read(connectedAccountsRepositoryProvider).read(service) ==
+              null) {
+        return;
+      }
+      await _forget(service);
+      ref.read(stravaAccessLostNoticeProvider.notifier).show();
+      _log.info('Strava access was revoked; Strava data deleted');
+    } finally {
+      _end(service);
+    }
+  }
+
+  Future<void> _forget(IntegrationService service) async {
+    await ref.read(connectedAccountsProvider.notifier).remove(service);
+    await ref.read(externalRouteListCacheProvider).clear(service);
+    if (service == IntegrationService.strava) await forgetStravaData();
+  }
+
+  /// Deletes everything on the phone that came from Strava: the routes read
+  /// from Strava and the ones edited from them, a Strava route open in the
+  /// planner, and the activity links of rides uploaded there. The rides
+  /// themselves are the rider's own and stay.
+  Future<void> forgetStravaData() async {
+    final routes = await ref.read(routeRepositoryProvider).deleteStravaRoutes();
+    await ref
+        .read(rideRepositoryProvider)
+        .forgetUploadsTo(IntegrationService.strava.id);
+    if (ref.exists(plannerControllerProvider)) {
+      ref.read(plannerControllerProvider.notifier).forgetStravaRoute();
+    }
+    _log.info('deleted $routes Strava routes');
   }
 
   bool _begin(IntegrationService service) {
@@ -101,3 +153,33 @@ final integrationConnectionsProvider =
 final integrationBusyProvider = Provider.family<bool, IntegrationService>(
   (ref, service) => ref.watch(integrationConnectionsProvider).contains(service),
 );
+
+/// Whether the rider still has to be told that Strava refused Velorki's
+/// access and the Strava data on the phone was deleted.
+class StravaAccessLostNotice extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  /// Asks for the notice.
+  void show() => state = true;
+
+  /// The rider has seen it.
+  void dismiss() => state = false;
+}
+
+/// See [StravaAccessLostNotice].
+final stravaAccessLostNoticeProvider =
+    NotifierProvider<StravaAccessLostNotice, bool>(StravaAccessLostNotice.new);
+
+/// Acts on every refusal [stravaAccessRevokedProvider] reports. Called once
+/// from `bootstrap()` with the app's container.
+void listenForStravaRevocation(ProviderContainer container) {
+  container.listen<int>(stravaAccessRevokedProvider, (previous, next) {
+    if (next == (previous ?? 0)) return;
+    unawaited(
+      container
+          .read(integrationConnectionsProvider.notifier)
+          .stravaAccessRevoked(),
+    );
+  });
+}

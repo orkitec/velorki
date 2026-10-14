@@ -3,6 +3,7 @@
 /** The complete set of error codes in the public API contract. */
 export type ErrorCode =
   | 'invalid_request'
+  | 'authorization_revoked'
   | 'not_entitled'
   | 'consent_required'
   | 'not_found'
@@ -12,6 +13,7 @@ export type ErrorCode =
 
 export const ERROR_STATUS: Record<ErrorCode, number> = {
   invalid_request: 400,
+  authorization_revoked: 400,
   not_entitled: 401,
   consent_required: 403,
   not_found: 404,

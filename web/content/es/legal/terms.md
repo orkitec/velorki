@@ -4,7 +4,7 @@ description: Las condiciones para usar la app y la web de Velorki, la suscripci�
 draft: false
 ---
 
-Fecha de entrada en vigor: 27 de septiembre de 2026.
+Fecha de entrada en vigor: 13 de octubre de 2026.
 
 ## 1. Entre quiénes se celebran estas condiciones
 
@@ -81,11 +81,12 @@ es vinculante.
 Todo lo que funciona en tu teléfono es gratis y seguirá siéndolo: la
 planificación, las rutas circulares inteligentes, los mapas y el enrutamiento
 sin conexión, la búsqueda de lugares, la navegación giro a giro, la grabación,
-las estadísticas de salidas y la importación y exportación de GPX, FIT y TCX.
+las estadísticas de salidas, la importación y exportación de GPX, FIT y TCX, y las
+conexiones con Strava y Ride with GPS.
 
 **Velorki Plus** es una suscripción opcional para las funciones que necesitan
-nuestros servidores o una cuenta en otro servicio: la conexión con Strava, la
-conexión con Ride with GPS, el asistente y los enlaces compartidos.
+nuestros servidores: el asistente, los enlaces compartidos y el tiempo más
+preciso en la ruta y el radar de lluvia.
 
 ### 4.1 Cómo se compra
 
@@ -131,8 +132,8 @@ restaurar en la otra.
 
 ### 4.5 Si una función Plus deja de funcionar
 
-Podemos cambiar, suspender o retirar una función Plus, por ejemplo si cierra
-la API de un socio o un proveedor de IA deja de estar disponible. Si retiramos
+Podemos cambiar, suspender o retirar una función Plus, por ejemplo si un
+servicio meteorológico o un proveedor de IA deja de estar disponible. Si retiramos
 de forma permanente una parte sustancial de lo que ofrece Plus, puedes
 cancelar; en ese caso se aplican las normas de reembolso y prorrateo de la
 tienda. Todo lo gratuito sigue funcionando en cualquier caso, también sin

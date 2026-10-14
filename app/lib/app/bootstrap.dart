@@ -12,6 +12,8 @@ import '../core/files/track_exporter_impl.dart';
 import '../features/import_export/application/incoming_import_listener.dart';
 import '../features/integrations/common/data/external_route_cache.dart';
 import '../features/integrations/common/data/oauth_flow.dart';
+import '../features/integrations/application/connections_controller.dart';
+import '../features/integrations/application/strava_route_checks.dart';
 import '../features/integrations/rwgps/application/rwgps_link_listener.dart';
 import '../features/planner/application/incoming_place.dart';
 import '../features/map/presentation/map_view.dart';
@@ -115,6 +117,12 @@ Future<void> bootstrap() async {
   // A place sent from another app (a geo: intent, velorki://navigate, a map
   // link or text shared into the app) opens in the planner.
   listenForIncomingLocations(container);
+  // A rider who removed Velorki's access on strava.com: the Strava data on
+  // the phone goes, as a disconnect would take it.
+  listenForStravaRevocation(container);
+  // Routes read from Strava are a cache: checked against Strava every 48
+  // hours, dropped when gone or unchecked for a week.
+  startStravaRouteChecks(container);
 
   runApp(
     UncontrolledProviderScope(container: container, child: const VelorkiApp()),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/links/link_opener.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
@@ -18,8 +19,8 @@ import 'strava_brand.dart';
 /// The routes of a connected partner account, with an Import action each.
 ///
 /// One screen for both services: Strava and Ride with GPS describe a route
-/// with the same numbers, and the cache policy — drop the list after seven
-/// days, which is Strava's rule — is applied to both.
+/// with the same numbers, and the cache policy — drop the list after 48
+/// hours, which is Strava's rule — is applied to both.
 class ExternalRoutesScreen extends ConsumerStatefulWidget {
   /// Creates the screen for [service].
   const ExternalRoutesScreen({required this.service, super.key});
@@ -190,12 +191,29 @@ class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
         return ListTile(
           leading: const Icon(Icons.route_outlined),
           title: Text(route.name),
-          subtitle: Text(
-            l10n.externalRouteSubtitle(
-              formatDistance(l10n, units, route.distanceM),
-              formatHeight(l10n, units, route.elevationGainM),
-              route.createdAt == null ? '' : formatDate(l10n, route.createdAt!),
-            ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.externalRouteSubtitle(
+                  formatDistance(l10n, units, route.distanceM),
+                  formatHeight(l10n, units, route.elevationGainM),
+                  route.createdAt == null
+                      ? ''
+                      : formatDate(l10n, route.createdAt!),
+                ),
+              ),
+              // Strava's brand guidelines: each route links back to it.
+              if (strava)
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: ViewOnStravaLink(
+                    onPressed: () => unawaited(
+                      ref.read(linkOpenerProvider)(stravaRouteUrl(route.id)),
+                    ),
+                  ),
+                ),
+            ],
           ),
           trailing: _importing == route.id
               ? const SizedBox(

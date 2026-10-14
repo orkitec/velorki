@@ -126,6 +126,14 @@ describe('fixed-window rate limits', () => {
       // The pass-through, per rider.
       proxyPerMin: { name: 'proxy_min', limit: 60, windowS: 60 },
       proxyPerDay: { name: 'proxy_day', limit: 1_500, windowS: 86_400 },
+      proxyPerIpHour: { name: 'proxy_ip_hour', limit: 600, windowS: 3_600 },
+      // Strava's quota is the whole app's: each install's share of it.
+      stravaUploadPerHour: { name: 'strava_upload_hour', limit: 6, windowS: 3_600 },
+      stravaUploadPerDay: { name: 'strava_upload_day', limit: 20, windowS: 86_400 },
+      stravaCallsPerHour: { name: 'strava_calls_hour', limit: 60, windowS: 3_600 },
+      stravaUploadPerIpHour: { name: 'strava_upload_ip_hour', limit: 30, windowS: 3_600 },
+      stravaUploadPerIpDay: { name: 'strava_upload_ip_day', limit: 100, windowS: 86_400 },
+      stravaCallsPerIpHour: { name: 'strava_calls_ip_hour', limit: 300, windowS: 3_600 },
       // Weather, per rider, and per IP before the body is read.
       weatherPerHour: { name: 'weather_hour', limit: 60, windowS: 3_600 },
       weatherPerDay: { name: 'weather_day', limit: 400, windowS: 86_400 },

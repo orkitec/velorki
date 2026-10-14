@@ -7,6 +7,9 @@ import { POST as rwgpsRefresh } from '@/app/(api)/oauth/rwgps/refresh/route';
 import { parseWrapKeys, unwrapToken, wrapToken } from '@/server/wrap';
 import { AUTH, TEST_WRAP_KEYS, errOf, fetchCall, jsonRequest, withEnv } from './helpers';
 
+/** RevenueCat live, so a stray entitlement check would show up as a fetch. */
+const LIVE = { REVENUECAT_MODE: 'live', REVENUECAT_SECRET_KEY: 'sk' };
+
 const keys = parseWrapKeys(TEST_WRAP_KEYS);
 
 /** The provider's answer as the phone sees it: tokens opened again for the assertion. */
@@ -79,6 +82,36 @@ describe('POST /oauth/strava/token', () => {
         code: 'the-code',
         grant_type: 'authorization_code',
       });
+    });
+  });
+
+  it('is free: works without a bearer and never asks RevenueCat', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(STRAVA_TOKEN_RESPONSE));
+    vi.stubGlobal('fetch', fetchMock);
+    await withEnv({ ...env, ...LIVE }, async () => {
+      const res = await stravaToken(
+        jsonRequest(STRAVA_URL, { code: 'c', redirect_uri: 'velorki://oauth/strava' }),
+      );
+      expect(res.status).toBe(200);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchCall(fetchMock).url).toBe('https://www.strava.com/oauth/token');
+    });
+  });
+
+  it('rate limits per IP', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(STRAVA_TOKEN_RESPONSE)));
+    await withEnv({ ...env, TRUST_PROXY: '1' }, async () => {
+      const call = (ip: string) =>
+        stravaToken(
+          jsonRequest(
+            STRAVA_URL,
+            { code: 'c', redirect_uri: 'velorki://oauth/strava' },
+            { 'x-forwarded-for': ip },
+          ),
+        );
+      for (let i = 0; i < 10; i += 1) expect((await call('203.0.113.7')).status).toBe(200);
+      expect((await call('203.0.113.7')).status).toBe(429);
+      expect((await call('198.51.100.1')).status).toBe(200);
     });
   });
 
@@ -220,6 +253,72 @@ describe('POST /oauth/strava/refresh', () => {
     });
   });
 
+  it('works without a bearer and never asks RevenueCat', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(STRAVA_TOKEN_RESPONSE));
+    vi.stubGlobal('fetch', fetchMock);
+    await withEnv({ ...env, ...LIVE }, async () => {
+      const res = await stravaRefresh(
+        jsonRequest(REFRESH_URL, { refresh_token: wrapToken(keys, 'strava', 'refresh', 'r0') }),
+      );
+      expect(res.status).toBe(200);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchCall(fetchMock).url).toBe('https://www.strava.com/oauth/token');
+    });
+  });
+
+  it('answers authorization_revoked when Strava refuses the refresh token', async () => {
+    for (const status of [400, 401]) {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () =>
+          jsonResponse(
+            {
+              message: 'Bad Request super-secret-strava-value',
+              errors: [{ resource: 'RefreshToken', field: 'refresh_token', code: 'invalid' }],
+            },
+            status,
+          ),
+        ),
+      );
+      await withEnv(env, async () => {
+        const res = await stravaRefresh(
+          jsonRequest(
+            REFRESH_URL,
+            { refresh_token: wrapToken(keys, 'strava', 'refresh', 'r0') },
+            AUTH,
+          ),
+        );
+        const payload = await res.clone().text();
+        expect(res.status, String(status)).toBe(400);
+        expect((await errOf(res)).code).toBe('authorization_revoked');
+        expect(payload).not.toContain('super-secret-strava-value');
+      });
+    }
+  });
+
+  it('keeps upstream_error for a Strava outage or an unreachable Strava', async () => {
+    for (const fetchImpl of [
+      async () => jsonResponse({ message: 'Internal Server Error' }, 500),
+      async () => jsonResponse({ message: 'Service Unavailable' }, 503),
+      async (): Promise<Response> => {
+        throw new Error('ECONNRESET');
+      },
+    ]) {
+      vi.stubGlobal('fetch', vi.fn(fetchImpl));
+      await withEnv(env, async () => {
+        const res = await stravaRefresh(
+          jsonRequest(
+            REFRESH_URL,
+            { refresh_token: wrapToken(keys, 'strava', 'refresh', 'r0') },
+            AUTH,
+          ),
+        );
+        expect(res.status).toBe(502);
+        expect((await errOf(res)).code).toBe('upstream_error');
+      });
+    }
+  });
+
   it('refuses a clear or foreign refresh token without calling Strava', async () => {
     const fetchMock = vi.fn(async () => jsonResponse(STRAVA_TOKEN_RESPONSE));
     vi.stubGlobal('fetch', fetchMock);
@@ -260,6 +359,22 @@ describe('Ride with GPS', () => {
         grant_type: 'authorization_code',
         redirect_uri: 'https://velorki.com/oauth/callback',
       });
+    });
+  });
+
+  it('exchanges a code without a bearer and never asks RevenueCat', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ access_token: 'rw-token' }));
+    vi.stubGlobal('fetch', fetchMock);
+    await withEnv({ ...env, ...LIVE }, async () => {
+      const res = await rwgpsToken(
+        jsonRequest('https://api.velorki.com/oauth/rwgps/token', {
+          code: 'c',
+          redirect_uri: 'https://velorki.com/oauth/callback',
+        }),
+      );
+      expect(res.status).toBe(200);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchCall(fetchMock).url).toBe('https://ridewithgps.com/oauth/token.json');
     });
   });
 

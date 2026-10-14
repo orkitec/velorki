@@ -110,7 +110,7 @@ void main() {
 
       expect(container.read(plusEntitledProvider), isTrue);
       expect(
-        container.read(plusFeatureProvider(PlusFeature.stravaConnection)),
+        container.read(plusFeatureProvider(PlusFeature.linkSharing)),
         isTrue,
       );
       // The store is never asked, so nothing it says can take it away.

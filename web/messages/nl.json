@@ -81,7 +81,7 @@
     },
     "free": {
       "title": "Alles op de telefoon is gratis",
-      "body": "Plannen, rondjes, offline kaarten en routering, zoeken, navigatie, opnemen, sensoren en de Apple Watch, ritstatistieken, de weerkaart en het weer langs de route, GPX-, FIT- en TCX-bestanden — voor iedereen, voor altijd. De routeringsgegevens en de zoekindex spiegelen we gratis voor je.",
+      "body": "Plannen, rondjes, offline kaarten en routering, zoeken, navigatie, opnemen, sensoren en de Apple Watch, ritstatistieken, de weerkaart en het weer langs de route, GPX-, FIT- en TCX-bestanden, en de koppelingen met Strava en Ride with GPS — voor iedereen, voor altijd. De routeringsgegevens en de zoekindex spiegelen we gratis voor je.",
       "items": {
         "routing": "Routering op de telefoon",
         "loops": "Rondjes",
@@ -91,7 +91,8 @@
         "recording": "Opnemen",
         "sensors": "Sensoren en horloge",
         "files": "GPX, FIT en TCX",
-        "weather": "Weerkaart en routeweer"
+        "weather": "Weerkaart en routeweer",
+        "connections": "Compatibel met Strava en Ride with GPS"
       }
     },
     "features": {
@@ -170,11 +171,11 @@
       "files": {
         "eyebrow": "Bestanden en diensten",
         "title": "Je ritten zijn bestanden die van jou zijn",
-        "body": "GPX-, FIT- en TCX-import en -export via het deelmenu en ‘Openen met’, zodat routes en ritten naar Komoot, Garmin Connect, Strava of iets anders gaan dat die formaten leest. Een GPX-route houdt zijn routebeschrijving en interessante punten, en een Ride with GPS-link opent in Velorki. De koppelingen met Strava en Ride with GPS en de deellinks zijn het Plus-deel.",
+        "body": "GPX-, FIT- en TCX-import en -export via het deelmenu en ‘Openen met’, zodat routes en ritten naar Komoot, Garmin Connect, Strava of iets anders gaan dat die formaten leest. Een GPX-route houdt zijn routebeschrijving en interessante punten, en een Ride with GPS-link opent in Velorki. Velorki werkt gratis met Strava en Ride with GPS; deellinks horen bij Plus.",
         "bullets": {
           "one": "GPX, FIT en TCX in en uit, vanuit Bestanden, Mail of een browser, met routebeschrijvingen en interessante punten",
           "two": "Een bibliotheek met opgeslagen routes en opgenomen ritten",
-          "three": "Strava, Ride with GPS en deellinks met Plus"
+          "three": "Compatibel met Strava en Ride with GPS, gratis; deellinks met Plus"
         }
       }
     },
@@ -214,7 +215,7 @@
     "plus": {
       "eyebrow": "Velorki Plus",
       "title": "Vraag om de rit die je wilt",
-      "lead": "Plus is het optionele abonnement voor wat een server of een partneraccount nodig heeft. Het meeste daarvan is de assistent: je zegt wat je van plan bent, en de route wordt nog steeds op je telefoon gepland.",
+      "lead": "Plus is het optionele abonnement voor wat onze servers nodig heeft. Het meeste daarvan is de assistent: je zegt wat je van plan bent, en de route wordt nog steeds op je telefoon gepland.",
       "items": {
         "describe": {
           "title": "Een rit beschrijven",
@@ -228,9 +229,9 @@
           "title": "Een beschrijving voor je routes",
           "body": "‘Deze route beschrijven’ schrijft een alinea uit wat de telefoon over de route weet: de klimmen, de ondergrond, de plaatsen en de cafés onderweg."
         },
-        "connect": {
-          "title": "Strava, Ride with GPS en deellinks",
-          "body": "Upload ritten naar Strava en importeer je routes, stuur routes en trips beide kanten op met Ride with GPS, en deel een route of rit als link die in elke browser opent."
+        "sharing": {
+          "title": "Deellinks",
+          "body": "Deel een route of rit als link die in elke browser opent, met de kaart, de statistieken en een GPX-download."
         },
         "weather": {
           "title": "Fijner weer langs de route",
@@ -249,7 +250,7 @@
     "comparison": {
       "eyebrow": "Gratis of Plus",
       "title": "Gratis is alles wat op de telefoon draait",
-      "lead": "Velorki Plus is een klein abonnement, alleen voor de onderdelen die onze servers of een partneraccount nodig hebben. Al het andere is gratis, voor iedereen, voor altijd.",
+      "lead": "Velorki Plus is een klein abonnement, alleen voor de onderdelen die onze servers nodig hebben. Al het andere is gratis, voor iedereen, voor altijd.",
       "feature": "Functie",
       "free": "Gratis",
       "plus": "Plus",
@@ -271,8 +272,8 @@
         "routeWeather": "Fijner weer langs de route van lokale weerdiensten, met windstoten en regenkans",
         "radarEurope": "Echte regenradar in heel Europa waar de gratis kaart alleen schattingen via satelliet heeft",
         "assistant": "De assistent: een zin wordt een route",
-        "strava": "Strava: ritten uploaden, routes importeren",
-        "rwgps": "Ride with GPS: routes en ritten in beide richtingen",
+        "strava": "Compatibel met Strava: ritten uploaden, je routes importeren",
+        "rwgps": "Compatibel met Ride with GPS: routes en ritten in beide richtingen",
         "sharing": "Deellinks voor routes en ritten"
       },
       "note": "De code van dit alles staat hier, dus je kunt ook je eigen relay draaien en het abonnement helemaal overslaan.",
@@ -298,11 +299,11 @@
         },
         "price": {
           "q": "Wat kost Velorki?",
-          "a": "Alles wat op de telefoon draait, is gratis: plannen, rondjes, offline kaarten en routering, zoeken, navigatie, opnemen, hartslag, cadans en vermogen van je sensoren, ritstatistieken, de weerkaart, het weer langs de route uit een openbare verwachting en GPX-, FIT- en TCX-bestanden. Velorki Plus is een abonnement voor de functies aan de serverkant; de actuele prijs toont de store in de app, in je eigen valuta."
+          "a": "Alles wat op de telefoon draait, is gratis: plannen, rondjes, offline kaarten en routering, zoeken, navigatie, opnemen, hartslag, cadans en vermogen van je sensoren, ritstatistieken, de weerkaart, het weer langs de route uit een openbare verwachting, GPX-, FIT- en TCX-bestanden, en de koppelingen met Strava en Ride with GPS. Velorki Plus is een abonnement voor de functies aan de serverkant; de actuele prijs toont de store in de app, in je eigen valuta."
         },
         "plus": {
           "q": "Wat is Velorki Plus?",
-          "a": "Een klein abonnement voor de onderdelen die onze servers of een partneraccount nodig hebben: de assistent, de Strava-koppeling, de Ride with GPS-koppeling, deellinks, fijner weer langs de route van lokale weerdiensten en regenradar in heel Europa. Je koopt, beheert en annuleert het in de App Store of Google Play."
+          "a": "Een klein abonnement voor de onderdelen die onze servers nodig hebben: de assistent, deellinks, fijner weer langs de route van lokale weerdiensten en regenradar in heel Europa. Je koopt, beheert en annuleert het in de App Store of Google Play."
         },
         "data": {
           "q": "Wat verlaat mijn telefoon?",
@@ -332,24 +333,16 @@
   "plus": {
     "meta": {
       "title": "Velorki Plus",
-      "description": "Velorki Plus is een klein abonnement voor de onderdelen die onze servers of een partneraccount nodig hebben: de assistent, Strava, Ride with GPS, deellinks, fijner weer langs de route en regenradar in heel Europa."
+      "description": "Velorki Plus is een klein abonnement voor de onderdelen die onze servers nodig hebben: de assistent, deellinks, fijner weer langs de route en regenradar in heel Europa."
     },
     "eyebrow": "Abonnement",
     "title": "Velorki Plus",
-    "lead": "Alles wat op je telefoon draait, is gratis. Plus betaalt de onderdelen die onze servers of een partneraccount nodig hebben.",
+    "lead": "Alles wat op je telefoon draait, is gratis, en de koppelingen met Strava en Ride with GPS ook. Plus betaalt de onderdelen die onze servers nodig hebben.",
     "includes": "Wat Plus omvat",
     "features": {
       "assistant": {
         "title": "De assistent",
         "body": "Beschrijf de rit die je wilt in één zin — “40 km, vooral gravel, een koffiestop” — en Velorki maakt er een route van en plant die op je telefoon. Het model draait achter een relay die de sleutel bewaart; de app ziet die nooit."
-      },
-      "strava": {
-        "title": "Strava-koppeling",
-        "body": "Upload een opgenomen rit naar Strava en importeer je Strava-routes in de bibliotheek."
-      },
-      "rwgps": {
-        "title": "Ride with GPS-koppeling",
-        "body": "Routes en ritten in beide richtingen, tussen Ride with GPS en je bibliotheek."
       },
       "sharing": {
         "title": "Deellinks",
@@ -365,7 +358,7 @@
       }
     },
     "freeTitle": "Wat gratis blijft",
-    "freeBody": "Plannen, rondjes, offline kaarten en routering, zoeken, afslag-voor-afslagnavigatie, opnemen, ritstatistieken, de weerkaart, het weer langs de route uit een grovere openbare verwachting (wind, regen, temperatuur, de beste vertrektijd) met de route gekleurd naar helling, wind of regen, en GPX-, FIT- en TCX-bestanden blijven gratis, met of zonder Plus.",
+    "freeBody": "Plannen, rondjes, offline kaarten en routering, zoeken, afslag-voor-afslagnavigatie, opnemen, ritstatistieken, de weerkaart, het weer langs de route uit een grovere openbare verwachting (wind, regen, temperatuur, de beste vertrektijd) met de route gekleurd naar helling, wind of regen, GPX-, FIT- en TCX-bestanden, en de koppelingen met Strava en Ride with GPS blijven gratis, met of zonder Plus.",
     "priceTitle": "Wat het kost",
     "priceBody": "Je ziet de prijs in de app. De store toont de actuele maand- en jaarprijs in je eigen valuta, met een gratis proefperiode, en hier staat de prijs nooit, zodat hij niet kan verouderen.",
     "restoreTitle": "Een abonnement herstellen",

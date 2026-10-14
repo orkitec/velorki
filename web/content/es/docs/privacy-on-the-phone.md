@@ -14,7 +14,8 @@ Todo lo que creas y todo lo que descargas:
 - tus ajustes, incluidas las unidades y la voz que elegiste, y el peso, el año de nacimiento, el sexo, la frecuencia cardiaca máxima, el peso de la bici, el tipo de bici y la potencia umbral que puedes introducir en Ajustes → Ciclista, que son ajustes del teléfono y nunca se envían a ninguna parte,
 - las zonas de mapa sin conexión descargadas,
 - las teselas de rutas descargadas y los índices de búsqueda de lugares que vienen con ellas,
-- los tokens de acceso de Strava y Ride with GPS si los conectas, que van al almacenamiento seguro del teléfono en una forma que solo el relay de Velorki puede abrir.
+- los tokens de acceso de Strava y Ride with GPS si los conectas, que van al almacenamiento seguro del teléfono en una forma que solo el relay de Velorki puede abrir, y se dejan fuera de las copias de seguridad.
+- lo que tomas de Strava: tu nombre en Strava, la lista de tus rutas de Strava durante 48 horas como máximo, las rutas que importas y los enlaces de las salidas subidas a sus actividades de Strava. Desconectar lo elimina todo.
 
 Nada de ello se sube a ninguna parte si no lo pides.
 
@@ -56,7 +57,9 @@ Solo con tu consentimiento, y solo lo que permitiste: tu texto, opcionalmente un
 
 No va nada a ninguno de los dos hasta que conectas la cuenta y luego pides algo, una subida o una importación.
 
-Al conectar se entrega un código de un solo uso al relay de Velorki, que lo convierte en un token de acceso añadiendo nuestro secreto de aplicación, y le da el token a tu teléfono envuelto, de forma que solo el relay puede abrirlo. No guardamos el token. A partir de ahí cada subida e importación pasa por el relay: comprueba tu suscripción, abre el token para esa única petición y la reenvía a Strava o Ride with GPS. No guarda ni el archivo ni el token, y no puede usar el token por su cuenta.
+Al conectar se entrega un código de un solo uso al relay de Velorki, que lo convierte en un token de acceso añadiendo nuestro secreto de aplicación, y le da el token a tu teléfono envuelto, de forma que solo el relay puede abrirlo. No guardamos el token. A partir de ahí cada subida e importación pasa por el relay: abre el token para esa única petición y la reenvía a Strava o Ride with GPS. No guarda ni el archivo ni el token, ni ningún registro de la llamada, y no puede usar el token por su cuenta. Las conexiones son gratis, así que no se comprueba ninguna suscripción; el relay solo cuenta las llamadas por id de instalación anónimo y por dirección, durante poco tiempo, para frenar los abusos.
+
+Los datos de Strava se quedan en tu teléfono: nunca van al asistente, a un enlace para compartir, a Ride with GPS ni a ningún otro servicio. Consulta [Strava y Ride with GPS](./strava-and-ridewithgps).
 
 ### Cuando creas un enlace para compartir
 
@@ -80,7 +83,7 @@ La tienda gestiona el pago y nunca vemos tu tarjeta. La suscripción se comprueb
 |---|---|
 | Una ruta o una salida | bórrala en la [biblioteca](./library) |
 | Zonas de mapa sin conexión y teselas de rutas | bórralas en [datos sin conexión](./offline-maps-and-routing) |
-| Un token de Strava o Ride with GPS | **Desconectar** en Ajustes → Conexiones |
+| Un token de Strava o Ride with GPS, y todo lo que viene de Strava | **Desconectar** en Ajustes → Conexiones |
 | Todo lo que guardó la app | desinstala la app |
 | Un enlace para compartir | caduca al cabo de un año; escribe a [hello@orkitec.com](mailto:hello@orkitec.com) con el enlace para que se elimine antes |
 

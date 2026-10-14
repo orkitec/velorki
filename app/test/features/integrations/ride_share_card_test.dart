@@ -3,12 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/integrations/application/ride_uploader.dart';
 import 'package:velorki/features/integrations/common/domain/connected_account.dart';
-import 'package:velorki/features/integrations/presentation/ride_upload_menu.dart';
+import 'package:velorki/features/integrations/presentation/share_rows.dart';
 import 'package:velorki/features/integrations/rwgps/data/rwgps_client.dart';
 import 'package:velorki/features/integrations/strava/data/strava_client.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki/features/recording/domain/ride_upload.dart';
+import 'package:velorki/features/sharing/presentation/share_card.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
@@ -22,6 +23,7 @@ const ConnectedAccount _stravaAccount = ConnectedAccount(
   accessToken: 'access',
   athleteId: '42',
   athleteName: 'Steffen',
+  scopes: <String>['read', 'activity:write'],
 );
 
 const ConnectedAccount _rwgpsAccount = ConnectedAccount(
@@ -69,71 +71,91 @@ void main() {
     ),
   );
 
-  testWidgets('offers only the services that are connected', (tester) async {
+  /// A Share button that opens the ride's card, as the ride detail does.
+  Widget opener(Ride ride) => Builder(
+    builder: (context) => ShareButton(
+      onPressed: () => showShareCard(
+        context,
+        title: l10n.shareRideTitle,
+        rows: [
+          for (final service in IntegrationService.values)
+            RideUploadShareRow(ride: ride, service: service),
+        ],
+      ),
+    ),
+  );
+
+  Future<void> open(WidgetTester tester) async {
+    await tester.tap(find.text(l10n.shareLinkAction));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.shareRideTitle), findsOneWidget);
+  }
+
+  testWidgets('a connected service offers Upload, the other Connect', (
+    tester,
+  ) async {
     final ride = await seedRide();
     await pumpIntegrations(
       tester,
-      RideUploadMenu(ride: ride),
+      opener(ride),
       harness: IntegrationsHarness(
         accounts: const <IntegrationService, ConnectedAccount>{
           IntegrationService.strava: _stravaAccount,
         },
       ),
     );
+    await open(tester);
 
-    await tester.tap(find.byIcon(Icons.cloud_upload_outlined));
-    await tester.pumpAndSettle();
-
-    expect(find.text(l10n.rideDetailUploadTo('Strava')), findsOneWidget);
-    expect(find.text(l10n.rideDetailUploadTo('Ride with GPS')), findsNothing);
+    expect(find.text(l10n.shareStravaRideBody), findsOneWidget);
+    expect(find.text(l10n.shareUpload), findsOneWidget);
+    expect(find.text(l10n.shareNotConnected), findsOneWidget);
+    expect(find.text(l10n.shareConnect), findsOneWidget);
   });
 
-  testWidgets('both connected services are offered', (tester) async {
+  testWidgets('uploads are free: both connected services offer Upload '
+      'without Plus', (tester) async {
     final ride = await seedRide();
     await pumpIntegrations(
       tester,
-      RideUploadMenu(ride: ride),
+      opener(ride),
       harness: IntegrationsHarness(
+        entitled: false,
         accounts: const <IntegrationService, ConnectedAccount>{
           IntegrationService.strava: _stravaAccount,
           IntegrationService.rwgps: _rwgpsAccount,
         },
       ),
     );
+    await open(tester);
 
-    await tester.tap(find.byIcon(Icons.cloud_upload_outlined));
-    await tester.pumpAndSettle();
-
-    expect(find.text(l10n.rideDetailUploadTo('Strava')), findsOneWidget);
-    expect(find.text(l10n.rideDetailUploadTo('Ride with GPS')), findsOneWidget);
+    expect(find.text(l10n.shareUpload), findsNWidgets(2));
+    expect(find.text(l10n.shareRwgpsRideBody), findsOneWidget);
   });
 
-  testWidgets('nothing connected means no menu at all', (tester) async {
-    final ride = await seedRide();
-    await pumpIntegrations(tester, RideUploadMenu(ride: ride));
-
-    expect(find.byIcon(Icons.cloud_upload_outlined), findsNothing);
-  });
-
-  testWidgets('an unentitled rider is not offered an upload', (tester) async {
+  testWidgets('a Strava account without the upload permission is not '
+      'offered an upload', (tester) async {
     final ride = await seedRide();
     await pumpIntegrations(
       tester,
-      RideUploadMenu(ride: ride),
+      opener(ride),
       harness: IntegrationsHarness(
-        entitled: false,
         accounts: const <IntegrationService, ConnectedAccount>{
-          IntegrationService.strava: _stravaAccount,
+          IntegrationService.strava: ConnectedAccount(
+            service: IntegrationService.strava,
+            accessToken: 'access',
+            athleteId: '42',
+            scopes: <String>['read'],
+          ),
         },
       ),
     );
+    await open(tester);
 
-    expect(find.byIcon(Icons.cloud_upload_outlined), findsNothing);
+    expect(find.text(l10n.shareStravaNoUpload), findsOneWidget);
+    expect(find.text(l10n.shareUpload), findsNothing);
   });
 
-  testWidgets('uploading shows progress and then a View on Strava action', (
-    tester,
-  ) async {
+  testWidgets('uploading ends in a View on Strava link', (tester) async {
     final ride = await seedRide();
     final strava = FakeApiAdapter((options) {
       if (options.method == 'POST') {
@@ -146,7 +168,7 @@ void main() {
     });
     final harness = await pumpIntegrations(
       tester,
-      RideUploadMenu(ride: ride),
+      opener(ride),
       harness: IntegrationsHarness(
         accounts: const <IntegrationService, ConnectedAccount>{
           IntegrationService.strava: _stravaAccount,
@@ -156,19 +178,14 @@ void main() {
         rideUploaderProvider.overrideWithValue(uploader(strava)),
       ],
     );
+    await open(tester);
 
-    await tester.tap(find.byIcon(Icons.cloud_upload_outlined));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.rideDetailUploadTo('Strava')));
+    await tester.tap(find.text(l10n.shareUpload));
     await tester.pump();
-
-    expect(find.text(l10n.rideDetailUploading('Strava')), findsOneWidget);
-
+    expect(find.byType(ShareRowProgress), findsOneWidget);
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.rideDetailUploaded('Strava')), findsOneWidget);
-    expect(find.text(l10n.rideDetailViewOnStrava), findsOneWidget);
-
     await tester.tap(find.text(l10n.rideDetailViewOnStrava));
     await tester.pumpAndSettle();
     expect(
@@ -190,7 +207,7 @@ void main() {
     );
     await pumpIntegrations(
       tester,
-      RideUploadMenu(ride: ride),
+      opener(ride),
       harness: IntegrationsHarness(
         accounts: const <IntegrationService, ConnectedAccount>{
           IntegrationService.strava: _stravaAccount,
@@ -200,10 +217,9 @@ void main() {
         rideUploaderProvider.overrideWithValue(uploader(strava)),
       ],
     );
+    await open(tester);
 
-    await tester.tap(find.byIcon(Icons.cloud_upload_outlined));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.rideDetailUploadTo('Strava')));
+    await tester.tap(find.text(l10n.shareUpload));
     await tester.pumpAndSettle();
 
     expect(
@@ -233,7 +249,7 @@ void main() {
     );
     final harness = await pumpIntegrations(
       tester,
-      RideUploadMenu(ride: ride),
+      opener(ride),
       harness: IntegrationsHarness(
         accounts: const <IntegrationService, ConnectedAccount>{
           IntegrationService.strava: _stravaAccount,
@@ -243,12 +259,9 @@ void main() {
         rideUploaderProvider.overrideWithValue(uploader(strava)),
       ],
     );
+    await open(tester);
 
-    await tester.tap(find.byIcon(Icons.cloud_upload_outlined));
-    await tester.pumpAndSettle();
-    expect(find.text(l10n.rideDetailUploadTo('Strava')), findsNothing);
-    expect(find.text(l10n.rideDetailViewOnStrava), findsOneWidget);
-
+    expect(find.text(l10n.shareStravaRideBody), findsNothing);
     await tester.tap(find.text(l10n.rideDetailViewOnStrava));
     await tester.pumpAndSettle();
 

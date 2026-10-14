@@ -21,8 +21,6 @@ const String appStoreSubscriptionsUrl =
 String plusFeatureTitle(AppLocalizations l10n, PlusFeature feature) =>
     switch (feature) {
       PlusFeature.aiAssistant => l10n.plusFeatureAiAssistant,
-      PlusFeature.stravaConnection => l10n.plusFeatureStrava,
-      PlusFeature.rwgpsConnection => l10n.plusFeatureRwgps,
       PlusFeature.linkSharing => l10n.plusFeatureLinkSharing,
       PlusFeature.weather => l10n.plusFeatureWeather,
     };
@@ -31,8 +29,6 @@ String plusFeatureTitle(AppLocalizations l10n, PlusFeature feature) =>
 String plusFeatureBody(AppLocalizations l10n, PlusFeature feature) =>
     switch (feature) {
       PlusFeature.aiAssistant => l10n.plusFeatureAiAssistantBody,
-      PlusFeature.stravaConnection => l10n.plusFeatureStravaBody,
-      PlusFeature.rwgpsConnection => l10n.plusFeatureRwgpsBody,
       PlusFeature.linkSharing => l10n.plusFeatureLinkSharingBody,
       PlusFeature.weather => l10n.plusFeatureWeatherBody,
     };

@@ -4,7 +4,7 @@ description: De voorwaarden voor het gebruik van de Velorki-app en de website, h
 draft: false
 ---
 
-Ingangsdatum: 27 september 2026.
+Ingangsdatum: 13 oktober 2026.
 
 ## 1. Tussen wie deze voorwaarden gelden
 
@@ -77,12 +77,12 @@ bindend.
 
 Alles wat op je telefoon draait is gratis en blijft gratis: plannen, slimme
 rondritten, offline kaarten en offline routeplanning, plaatsen zoeken,
-navigatie met afslaginstructies, opnemen, ritstatistieken, en het importeren en
-exporteren van GPX, FIT en TCX.
+navigatie met afslaginstructies, opnemen, ritstatistieken, het importeren en
+exporteren van GPX, FIT en TCX, en de koppelingen met Strava en Ride with GPS.
 
 **Velorki Plus** is een optioneel abonnement voor de functies die onze servers
-of een account bij een andere dienst nodig hebben: de koppeling met Strava, de
-koppeling met Ride with GPS, de assistent en deellinks.
+nodig hebben: de assistent, deellinks, en het fijnere routeweer en de
+regenradar.
 
 ### 4.1 Hoe het wordt gekocht
 
@@ -130,7 +130,7 @@ andere worden hersteld.
 ### 4.5 Als een Plus-functie niet meer werkt
 
 We kunnen een Plus-functie wijzigen, opschorten of stopzetten, bijvoorbeeld als
-de API van een partner sluit of een AI-aanbieder niet meer beschikbaar is. Als
+een weerdienst of een AI-aanbieder niet meer beschikbaar is. Als
 we een wezenlijk deel van wat Plus biedt definitief verwijderen, mag je
 opzeggen; dan gelden de regels van de store voor terugbetaling en verrekening
 naar rato. Alles wat gratis is blijft hoe dan ook werken, ook offline, en je

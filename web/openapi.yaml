@@ -10,8 +10,9 @@ info:
     This service keeps them: it relays OAuth token exchanges to Strava and
     Ride with GPS, wraps the tokens so the phone never holds one in clear,
     passes the app's service calls through with the token unwrapped in
-    memory, verifies entitlements against RevenueCat, proxies route planning
-    to a language model, and hosts share links.
+    memory, proxies route planning to a language model, hosts share links and
+    serves weather. The Strava and Ride with GPS routes are free; the others
+    verify a Velorki Plus entitlement against RevenueCat.
 
     All errors share one body shape:
 
@@ -66,6 +67,9 @@ tags:
       `v1.<kid>.<nonce>.<ciphertext>` (base64url). The app stores them as they
       are and sends them back through the pass-through routes; it can neither
       read nor use them on its own.
+
+      Free: no `Authorization` header is needed or checked. Each route is
+      limited per IP.
   - name: proxy
     description: |
       Pass-through to Strava and Ride with GPS. The path after
@@ -74,7 +78,17 @@ tags:
       forgotten when the answer has been streamed back with its own status.
       Only the calls the app makes are forwarded (the list is in
       `src/server/passthrough.ts`); any other method or path answers 404.
-      Rate limit: 60 per minute and 1500 per day, per rider.
+
+      Free, and not tied to a subscription. `Authorization: Bearer <id>`
+      carries the app's install id (see `installId`), used only as a
+      rate-limit key; a missing or malformed one is 400 `invalid_request`.
+      What authenticates a call is the wrapped token: only a token this
+      service wrapped opens, so the routes serve riders who connected through
+      it and nobody else.
+
+      Rate limits, in this order: 600 per hour per IP (charged first, before
+      anything else is looked at), then, once the path is on the allowlist,
+      60 per minute and 1500 per day per install id.
   - name: ai
     description: Language-model assisted route planning.
   - name: share
@@ -168,6 +182,7 @@ paths:
     post:
       tags: [oauth]
       operationId: stravaToken
+      security: []
       summary: Exchange a Strava authorization code for tokens.
       description: |
         Adds `client_id` and `client_secret` and posts the form-encoded
@@ -190,8 +205,6 @@ paths:
           $ref: '#/components/responses/OAuthTokenPassthrough'
         '400':
           $ref: '#/components/responses/InvalidRequest'
-        '401':
-          $ref: '#/components/responses/NotEntitled'
         '429':
           $ref: '#/components/responses/RateLimited'
         '502':
@@ -203,10 +216,17 @@ paths:
     post:
       tags: [oauth]
       operationId: stravaRefresh
+      security: []
       summary: Refresh a Strava access token.
       description: |
-        Posts `grant_type=refresh_token` to Strava and returns the answer
-        unchanged. Rate limit: 30 per hour, per IP.
+        Unwraps the refresh token, posts `grant_type=refresh_token` to Strava
+        and returns the answer unchanged. Rate limit: 30 per hour, per IP.
+
+        When Strava refuses the refresh token with 400 or 401 - the rider
+        removed the app on strava.com, or the token is otherwise no longer
+        valid - the answer is 400 `authorization_revoked`, and the app deletes
+        what it holds from Strava. Strava's 5xx and network failures stay 502
+        `upstream_error`.
       requestBody:
         required: true
         content:
@@ -217,9 +237,7 @@ paths:
         '200':
           $ref: '#/components/responses/OAuthTokenPassthrough'
         '400':
-          $ref: '#/components/responses/InvalidRequest'
-        '401':
-          $ref: '#/components/responses/NotEntitled'
+          $ref: '#/components/responses/RefreshRefused'
         '429':
           $ref: '#/components/responses/RateLimited'
         '502':
@@ -231,6 +249,7 @@ paths:
     post:
       tags: [oauth]
       operationId: rwgpsToken
+      security: []
       summary: Exchange a Ride with GPS authorization code for a token.
       description: |
         Posts `client_id`, `client_secret`, `code`, `redirect_uri` and
@@ -250,8 +269,6 @@ paths:
           $ref: '#/components/responses/OAuthTokenPassthrough'
         '400':
           $ref: '#/components/responses/InvalidRequest'
-        '401':
-          $ref: '#/components/responses/NotEntitled'
         '429':
           $ref: '#/components/responses/RateLimited'
         '502':
@@ -263,6 +280,7 @@ paths:
     post:
       tags: [oauth]
       operationId: rwgpsRefresh
+      security: []
       summary: Not implemented.
       description: |
         Ride with GPS access tokens do not expire, so there is nothing to
@@ -275,8 +293,6 @@ paths:
             schema:
               $ref: '#/components/schemas/OAuthRefreshRequest'
       responses:
-        '401':
-          $ref: '#/components/responses/NotEntitled'
         '501':
           description: Not implemented.
           content:
@@ -299,18 +315,26 @@ paths:
     get:
       tags: [proxy]
       operationId: stravaProxyGet
+      security:
+        - installId: []
       summary: Forward a GET to Strava.
       description: |
         Allowed: `/api/v3/uploads/{id}`, `/api/v3/athletes/{id}/routes`,
-        `/api/v3/routes/{id}/export_gpx`. The query string is forwarded
-        (`access_token` is dropped).
+        `/api/v3/routes/{id}` (the 48-hour check that an imported route still
+        exists) and `/api/v3/routes/{id}/export_gpx`. The query string is
+        forwarded (`access_token` is dropped).
+
+        Strava's quota is one for the whole app, so Strava calls have limits
+        of their own besides the general ones: per install 60 calls an hour
+        (uploads apart, see POST), per IP 300. When Strava itself answers
+        429, the relay answers `rate_limited` with `Retry-After` (Strava's,
+        or the start of its next 15-minute window) and sends no Strava call
+        for anyone until then.
       responses:
         '2XX':
           $ref: '#/components/responses/UpstreamPassthrough'
         '400':
           $ref: '#/components/responses/InvalidRequest'
-        '401':
-          $ref: '#/components/responses/NotEntitled'
         '404':
           $ref: '#/components/responses/NotFound'
         '429':
@@ -322,11 +346,15 @@ paths:
     post:
       tags: [proxy]
       operationId: stravaProxyPost
+      security:
+        - installId: []
       summary: Forward a POST to Strava.
       description: |
         Allowed: `/api/v3/uploads` (multipart, streamed, at most 25 MB) and
         `/oauth/deauthorize`. `Content-Type`, `Content-Length` and `Accept`
-        go upstream; nothing else does.
+        go upstream; nothing else does. Uploads are limited to 6 an hour and
+        20 a day per install (30 an hour, 100 a day per IP), and wait out a
+        Strava 429 like every Strava call (see GET).
       requestBody:
         required: false
         content:
@@ -339,8 +367,6 @@ paths:
           $ref: '#/components/responses/UpstreamPassthrough'
         '400':
           $ref: '#/components/responses/InvalidRequest'
-        '401':
-          $ref: '#/components/responses/NotEntitled'
         '404':
           $ref: '#/components/responses/NotFound'
         '429':
@@ -357,6 +383,8 @@ paths:
     get:
       tags: [proxy]
       operationId: rwgpsProxyGet
+      security:
+        - installId: []
       summary: Forward a GET to Ride with GPS.
       description: |
         Allowed: `/api/v1/users/current.json`, `/api/v1/routes.json`,
@@ -367,8 +395,6 @@ paths:
           $ref: '#/components/responses/UpstreamPassthrough'
         '400':
           $ref: '#/components/responses/InvalidRequest'
-        '401':
-          $ref: '#/components/responses/NotEntitled'
         '404':
           $ref: '#/components/responses/NotFound'
         '429':
@@ -380,6 +406,8 @@ paths:
     post:
       tags: [proxy]
       operationId: rwgpsProxyPost
+      security:
+        - installId: []
       summary: Forward a POST to Ride with GPS.
       description: |
         Allowed: `/api/v1/routes.json` and `/api/v1/trips.json` (multipart,
@@ -399,8 +427,6 @@ paths:
           $ref: '#/components/responses/UpstreamPassthrough'
         '400':
           $ref: '#/components/responses/InvalidRequest'
-        '401':
-          $ref: '#/components/responses/NotEntitled'
         '404':
           $ref: '#/components/responses/NotFound'
         '429':
@@ -1108,6 +1134,15 @@ paths:
 
 components:
   securitySchemes:
+    installId:
+      type: http
+      scheme: bearer
+      bearerFormat: install_id
+      description: |
+        `Authorization: Bearer <id>`, the app's anonymous app user id, stable
+        for the life of an installation. On the pass-through routes it is a
+        rate-limit key and nothing more: no subscription is checked. A
+        missing or malformed header is 400 `invalid_request`.
     revenueCatAppUserId:
       type: http
       scheme: bearer
@@ -1185,6 +1220,7 @@ components:
               type: string
               enum:
                 - invalid_request
+                - authorization_revoked
                 - not_entitled
                 - consent_required
                 - not_found
@@ -1766,6 +1802,28 @@ components:
                 error:
                   code: invalid_request
                   message: redirect_uri is not allowed.
+
+    RefreshRefused:
+      description: |
+        `invalid_request`: the body did not validate, or the refresh token was
+        not one this service wrapped. `authorization_revoked`: Strava refused
+        the refresh token (its 400 or 401); the rider has to connect again.
+        The provider's message is forwarded, scrubbed of any client secret.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            invalidRefreshToken:
+              value:
+                error:
+                  code: invalid_request
+                  message: The service token is not valid; connect the service again.
+            authorizationRevoked:
+              value:
+                error:
+                  code: authorization_revoked
+                  message: Bad Request
 
     NotEntitled:
       description: Missing, malformed or unentitled Authorization header.

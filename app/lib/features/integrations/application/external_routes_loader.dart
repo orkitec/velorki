@@ -97,11 +97,11 @@ class ExternalRoutesResult {
   /// When they were read from the service.
   final DateTime fetchedAt;
 
-  /// Whether they came out of the seven-day cache rather than the network.
+  /// Whether they came out of the 48-hour cache rather than the network.
   final bool fromCache;
 }
 
-/// Reads a route list, through the seven-day cache.
+/// Reads a route list, through the 48-hour cache.
 class ExternalRoutesLoader {
   /// Creates a loader.
   ExternalRoutesLoader({
@@ -113,14 +113,14 @@ class ExternalRoutesLoader {
   /// Where the routes come from.
   final ExternalRoutesSource source;
 
-  /// The seven-day list cache.
+  /// The 48-hour list cache.
   final ExternalRouteListCache cache;
 
   final DateTime Function() _clock;
 
   /// The route list, from the cache when it is fresh.
   ///
-  /// Every read of the cache enforces the seven-day rule, so a list that has
+  /// Every read of the cache enforces the 48-hour rule, so a list that has
   /// been sitting there longer is dropped and fetched again.
   Future<ExternalRoutesResult> load({bool forceRefresh = false}) async {
     if (!forceRefresh) {

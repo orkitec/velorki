@@ -4,7 +4,7 @@ description: Le condizioni per l'uso dell'app e del sito web Velorki, dell'abbon
 draft: false
 ---
 
-In vigore dal: 27 settembre 2026.
+In vigore dal: 13 ottobre 2026.
 
 ## 1. Tra chi valgono queste condizioni
 
@@ -77,12 +77,13 @@ versione del codice, devi cambiarne il marchio e puntarla verso i tuoi server. L
 
 Tutto ciò che gira sul tuo telefono è gratuito e resta gratuito: pianificazione,
 anelli intelligenti, mappe offline e calcolo del percorso offline, ricerca di
-luoghi, navigazione svolta per svolta, registrazione, statistiche dei giri, e
-importazione ed esportazione GPX, FIT e TCX.
+luoghi, navigazione svolta per svolta, registrazione, statistiche dei giri,
+importazione ed esportazione GPX, FIT e TCX, e le connessioni a Strava e a Ride
+with GPS.
 
 **Velorki Plus** è un abbonamento facoltativo per le funzioni che hanno bisogno
-dei nostri server o di un account presso un altro servizio: il collegamento a
-Strava, il collegamento a Ride with GPS, l'assistente e i link di condivisione.
+dei nostri server: l'assistente, i link di condivisione, e il meteo più preciso
+sul percorso e il radar della pioggia.
 
 ### 4.1 Come si acquista
 
@@ -130,7 +131,7 @@ ripristinato sull'altro.
 ### 4.5 Se una funzione Plus smette di funzionare
 
 Possiamo modificare, sospendere o interrompere una funzione Plus, per esempio se
-l'API di un partner chiude o un fornitore di IA diventa indisponibile. Se
+un servizio meteo o un fornitore di IA diventa indisponibile. Se
 rimuoviamo in modo permanente una parte sostanziale di ciò che Plus offre, puoi
 disdire; si applicano allora le regole dello store in materia di rimborso e di
 calcolo pro rata. Tutto ciò che è gratuito continua comunque a funzionare, anche

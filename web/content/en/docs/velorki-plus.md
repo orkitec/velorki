@@ -1,6 +1,6 @@
 ---
 title: Velorki Plus
-description: Everything that runs on your phone is free. Plus is a small subscription for the features that need our servers or a partner account.
+description: Everything that runs on your phone is free, and so are the Strava and Ride with GPS connections. Plus is a small subscription for the features that need our servers.
 order: 15
 ---
 
@@ -22,23 +22,22 @@ Free, for everyone, for good:
 - GPX, FIT and TCX import and export, in every direction,
 - the weather map: rain radar, clouds and wind, with the time slider,
 - the weather along the route from a coarser public forecast, the Deutscher Wetterdienst's ICON model: wind, rain, temperature, a line that sums them up and the best time to leave, and the route coloured by gradient, wind or rain,
+- the connections to Strava and Ride with GPS: uploading rides, importing routes, sending routes to Ride with GPS (see [Strava and Ride with GPS](./strava-and-ridewithgps)),
 - opening someone else's share link.
 
 The routing data and the search index are mirrored for you at no charge.
 
 ## What Plus adds
 
-Five features, as listed on the subscription page:
+Three features, as listed on the subscription page:
 
 | Feature | What it is |
 |---|---|
-| **Strava connection** | "Upload recorded rides and import your Strava routes." |
-| **Ride with GPS connection** | "Send routes and trips both ways." |
 | **AI assistant** | "Describe the ride you want; Velorki turns it into a route and plans it on your phone." |
 | **Link sharing** | "Turn a route or a ride into a link anyone can open in a browser." |
 | **Finer route weather and rain radar** | "Finer weather along the route from local weather services, with gusts and chance of rain, and real rain radar across Europe." |
 
-Each of those either needs a server we pay for, or an account with somebody else that only a registered application can reach.
+Each of those needs a server we pay for.
 
 The finer route weather comes from the US National Weather Service, the Deutscher Wetterdienst's station forecasts in Germany and MET Norway elsewhere, with gusts and the chance of rain, and the route can be coloured by it. The radar comes from EUMETNET OPERA and Radar-DPC (Italy), where the free map has only satellite estimates, such as in France, Spain, Italy, the UK, Switzerland and Scandinavia: 1 km cells, a new image every 5 minutes, the last 2 hours.
 

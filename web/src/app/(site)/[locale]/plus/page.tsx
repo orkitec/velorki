@@ -10,7 +10,7 @@ import { GITHUB_URL } from '@/site/config';
 import { localePath } from '@/site/paths';
 import { pageMetadata } from '@/site/seo';
 
-const PLUS_FEATURES = ['assistant', 'strava', 'rwgps', 'sharing', 'weather', 'radar'] as const;
+const PLUS_FEATURES = ['assistant', 'sharing', 'weather', 'radar'] as const;
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

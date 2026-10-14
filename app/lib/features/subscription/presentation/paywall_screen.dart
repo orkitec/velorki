@@ -179,8 +179,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 /// The icon standing for [feature] on the paywall's list.
 IconData _featureIcon(PlusFeature feature) => switch (feature) {
   PlusFeature.aiAssistant => Icons.auto_awesome_outlined,
-  PlusFeature.stravaConnection => Icons.directions_bike_outlined,
-  PlusFeature.rwgpsConnection => Icons.map_outlined,
   PlusFeature.linkSharing => Icons.link_rounded,
   PlusFeature.weather => Icons.air_rounded,
 };

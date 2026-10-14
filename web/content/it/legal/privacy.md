@@ -26,7 +26,7 @@ nella pagina [note legali](./imprint).
   telefono**.
 - Alcune cose hanno bisogno di un server: i riquadri della mappa, il calcolo del
   percorso fuori dalle aree che hai scaricato, la ricerca quando la richiedi e,
-  se li usi, l'assistente IA, i collegamenti a Strava e RideWithGPS e i link di
+  se li usi, l'assistente IA, i collegamenti a Strava e RideWithGPS (gratuiti) e i link di
   condivisione. Ciascuno è descritto di seguito.
 - Questo **sito web** non ha analisi, pubblicità né tracciamento, quindi il
   breve avviso in fondo alla pagina non ti chiede nulla.
@@ -51,8 +51,8 @@ su Strava o RideWithGPS che avvii tu.
 
 Se colleghi Strava o RideWithGPS, i token di accesso di quegli account vengono
 conservati nell'archivio sicuro del telefono (Keychain su iOS, Keystore su
-Android), in una forma cifrata che solo il nostro relay può aprire; vedi la
-sezione su Strava e RideWithGPS più sotto.
+Android), in una forma cifrata che solo il nostro relay può aprire, e ciò che prendi da
+Strava resta sul telefono; vedi la sezione su Strava e RideWithGPS più sotto.
 
 Su Android l'app è esclusa dal backup su cloud di Google e dal trasferimento da
 dispositivo a dispositivo, quindi nemmeno il sistema copia i tuoi giri e i tuoi
@@ -124,28 +124,83 @@ mezza e restituisce un'immagine di quella parte della mappa. I fornitori del
 radar vedono il nostro server, non il tuo telefono, e il relay non tiene traccia
 di quale parte della mappa hai chiesto.
 
-### Strava e RideWithGPS (Velorki Plus)
+### Strava e RideWithGPS
 
-Nulla viene inviato a Strava o RideWithGPS a meno che tu non colleghi l'account
-di tua iniziativa e poi avvii un'azione: caricare un giro, importare un percorso.
+Entrambe le connessioni sono gratuite. Nulla viene inviato a Strava o
+RideWithGPS a meno che tu non colleghi l'account di tua iniziativa e poi avvii
+un'azione: caricare un giro, importare un percorso.
 
 Quando colleghi l'account, l'app consegna un codice monouso al nostro server
-relay, che lo scambia con un token di accesso aggiungendo il segreto della nostra
-applicazione, cifra il token con una chiave che possiede solo il relay e lo
-restituisce all'app in quella forma. Il tuo telefono conserva il token cifrato;
-da solo non può usarlo, e noi non lo conserviamo affatto.
+relay (api.velorki.com), che lo scambia con un token di accesso aggiungendo il
+segreto della nostra applicazione, cifra il token con una chiave che possiede
+solo il relay e lo restituisce all'app in quella forma. Il tuo telefono conserva
+il token cifrato nel suo archivio sicuro (Keychain su iOS, Keystore su Android),
+escluso dai backup; da solo non può usarlo, e noi non lo conserviamo affatto.
 
 Da quel momento, ogni caricamento, trasferimento di percorso, importazione e
-scollegamento che avvii passa attraverso il relay: verifica che il tuo
-abbonamento sia attivo, decifra il token per quella singola richiesta, inoltra la
-richiesta a Strava o RideWithGPS e restituisce la risposta all'app. Non conserva
-né il file né il token, e nulla della risposta, e applica la stessa limitazione
-di frequenza di ogni altra chiamata al relay (vedi Log dei server più sotto). I
-suoi log non contengono mai il token, il corpo della richiesta o l'ID di
-abbonato.
+scollegamento che avvii passa attraverso il relay: decifra il token per quella
+singola richiesta, inoltra la richiesta a Strava o RideWithGPS e restituisce la
+risposta all'app. Non conserva né il file né il token, nulla della risposta, né
+alcuna traccia della chiamata. Per queste chiamate non viene verificato alcun
+abbonamento; per fermare gli abusi il relay tiene solo contatori di limitazione
+di frequenza di breve durata, legati all'ID anonimo della tua installazione e
+all'indirizzo IP (vedi Log dei server più sotto). I suoi log non contengono mai
+il token, il corpo della richiesta o quell'ID.
 
-Cosa facciano poi Strava o RideWithGPS con i dati che invii loro è regolato dalle
-loro informative sulla privacy.
+#### Strava
+
+**Cosa chiede Velorki.** Due permessi: `read`, il tuo profilo pubblico di Strava
+(il tuo id atleta e il tuo nome), e `activity:write`, per caricare i giri che
+scegli di caricare. Velorki non legge le tue attività.
+
+**Cosa legge e conserva, tutto solo sul tuo telefono:**
+
+- il tuo id atleta e il tuo nome, mostrati in Opzioni → Connessioni, finché non
+  scolleghi l'account;
+- l'elenco dei tuoi percorsi Strava (nome, distanza, dislivello positivo,
+  descrizione e data), recuperato quando apri la schermata di importazione e
+  tenuto sul telefono per al massimo **48 ore**;
+- il file GPX di un percorso, quando importi quel percorso; viene salvato come
+  percorso nella libreria dell'app, e così anche ogni percorso che modifichi a
+  partire da esso, solo finché il percorso esiste ancora su Strava: mentre l'app
+  è aperta, online e collegata, lo ricontrolla su Strava ogni 48 ore, e lo
+  rimuove se è stato eliminato su Strava o non è stato possibile controllarlo
+  per 7 giorni, e te lo comunica. Viene rimosso anche quando lo elimini o
+  scolleghi l'account;
+- dopo un caricamento, l'id dell'attività Strava e il suo link, conservati
+  insieme al giro perché l'app possa mostrare "View on Strava", finché non
+  scolleghi l'account.
+
+Un giro che carichi viene inviato a Strava, che lo elabora come descritto
+nell'[informativa sulla privacy di Strava](https://www.strava.com/legal/privacy).
+Strava e Orkitec sono ciascuna responsabile del proprio trattamento.
+
+**I dati di Strava restano con te.** I dati di Strava vengono solo mostrati a
+te, nell'app. Non vengono mai inviati all'assistente IA, mai inseriti in un link
+di condivisione e mai inviati a RideWithGPS o a qualsiasi altro servizio. Sui
+nostri server non conserviamo alcun dato di Strava.
+
+**Eliminazione.** Scollegare Strava in Opzioni → Connessioni revoca
+l'autorizzazione di Velorki presso Strava, elimina i token ed elimina dal
+telefono ogni elemento che proviene da Strava: i percorsi Strava importati e
+quelli modificati a partire da essi, l'elenco dei percorsi in cache e i
+collegamenti alle attività salvati. L'app conferma poi: "I tuoi dati di Strava
+sono stati eliminati da questo telefono." Se invece revochi l'accesso di Velorki
+su strava.com, l'app se ne accorge alla successiva chiamata a Strava, elimina gli
+stessi dati e te lo dice. Anche disinstallare l'app li elimina. Dato che sono
+tutti sul tuo telefono, questi sono i modi per eliminarli; per domande o una
+richiesta di eliminazione, scrivi a ride@velorki.com.
+
+**Dati di utilizzo presso Strava.** Strava può monitorare e raccogliere dati
+sul modo in cui Velorki usa l'API di Strava (dati di utilizzo) e può usarli per
+qualsiasi finalità commerciale, interna o esterna, compresi il miglioramento
+dell'API di Strava o della piattaforma Strava, la fornitura di assistenza a
+sviluppatori o utenti e la verifica del rispetto del proprio contratto sull'API.
+
+#### RideWithGPS
+
+Ciò che RideWithGPS fa con i dati che gli invii è regolato dalla sua
+informativa sulla privacy.
 
 ### L'assistente IA (Velorki Plus)
 
@@ -303,6 +358,10 @@ richiama.
 |---|---|---|
 | Percorsi, giri, impostazioni, dati offline | sul tuo telefono, finché non li elimini | eliminali nell'app, oppure disinstalla l'app |
 | Token di Strava / RideWithGPS | sul tuo telefono, cifrati in modo che solo il nostro relay possa aprirli, finché non scolleghi l'account; mai conservati da parte nostra | scollega l'account nell'app, oppure disinstalla |
+| Dati di Strava: il tuo nome, i collegamenti alle attività | sul tuo telefono, finché non scolleghi l'account; mai conservati da parte nostra | scollega Strava nell'app, oppure disinstalla; domande a ride@velorki.com |
+| Percorsi importati da Strava e percorsi modificati a partire da essi | sul tuo telefono, solo finché il percorso esiste ancora su Strava: ricontrollato ogni 48 ore, rimosso se è stato eliminato lì o non è stato possibile controllarlo per 7 giorni; mai conservati da parte nostra | eliminalo nell'app, scollega Strava, oppure disinstalla |
+| L'elenco in cache dei tuoi percorsi Strava | sul tuo telefono, al massimo 48 ore | scollega Strava, oppure disinstalla |
+| Contatori di limitazione di frequenza (ID anonimo dell'installazione, indirizzo IP) | sul nostro server, per la finestra di conteggio, al massimo un giorno | non applicabile |
 | Link di condivisione | un anno, poi eliminati automaticamente | eliminali dall'app |
 | Prompt all'IA | non conservati da noi oltre quanto contenuto nei log di cui sopra | non applicabile |
 | Dati presso RevenueCat | secondo l'informativa di RevenueCat | contattaci e trasmetteremo la richiesta |
@@ -323,7 +382,7 @@ par. 1, GDPR sono:
 | Calcolo del percorso e ricerca online, quando li richiedi | lett. b) esecuzione del servizio che hai richiesto, e lett. f) per le coordinate strettamente necessarie a rispondere |
 | Velorki Plus: verifica presso RevenueCat che un abbonamento sia attivo | lett. b) esecuzione del contratto |
 | Velorki Plus: il meteo più dettagliato lungo il percorso e il radar della pioggia | lett. b) esecuzione del contratto |
-| Strava e RideWithGPS: collegamento di un account e ogni trasferimento che avvii | lett. b) esecuzione del contratto, più lett. a) consenso, prestato collegando l'account |
+| Strava e RideWithGPS: collegamento di un account, ogni trasferimento che avvii e i dati di Strava conservati sul tuo telefono | lett. b) esecuzione del servizio che hai richiesto, più lett. a) consenso, prestato collegando l'account e revocato scollegandolo |
 | Link di condivisione che crei | lett. b) esecuzione del contratto |
 | L'assistente IA | lett. a) consenso, richiesto separatamente nell'app e revocabile nelle impostazioni |
 | Risponderti nella chat di supporto | lett. b) ove riguardi un abbonamento, altrimenti lett. f) legittimo interesse a rispondere alla persona che ci ha scritto |

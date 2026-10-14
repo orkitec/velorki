@@ -40,7 +40,8 @@ void main() {
         'redirect_uri': 'velorki://oauth/strava',
         'response_type': 'code',
         'approval_prompt': 'auto',
-        'scope': 'read,activity:write,activity:read',
+        // Only what is used: no activity:read.
+        'scope': 'read,activity:write',
       });
 
       final app = StravaAuth.appAuthorizeUrl(

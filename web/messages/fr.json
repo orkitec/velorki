@@ -81,7 +81,7 @@
     },
     "free": {
       "title": "Tout ce qui tourne sur le téléphone est gratuit",
-      "body": "Planification, boucles, cartes et routage hors ligne, recherche, navigation, enregistrement, capteurs et Apple Watch, statistiques de sortie, carte météo et météo le long de l’itinéraire, fichiers GPX, FIT et TCX — pour tout le monde, pour de bon. Les données de routage et l’index de recherche sont hébergés pour vous, gratuitement.",
+      "body": "Planification, boucles, cartes et routage hors ligne, recherche, navigation, enregistrement, capteurs et Apple Watch, statistiques de sortie, carte météo et météo le long de l’itinéraire, fichiers GPX, FIT et TCX, et connexions à Strava et Ride with GPS — pour tout le monde, pour de bon. Les données de routage et l’index de recherche sont hébergés pour vous, gratuitement.",
       "items": {
         "routing": "Routage sur le téléphone",
         "loops": "Boucles",
@@ -91,7 +91,8 @@
         "recording": "Enregistrement",
         "sensors": "Capteurs et montre",
         "files": "GPX, FIT et TCX",
-        "weather": "Carte météo et météo de l’itinéraire"
+        "weather": "Carte météo et météo de l’itinéraire",
+        "connections": "Compatible avec Strava et Ride with GPS"
       }
     },
     "features": {
@@ -170,11 +171,11 @@
       "files": {
         "eyebrow": "Fichiers et services",
         "title": "Vos sorties sont des fichiers qui vous appartiennent",
-        "body": "Import et export GPX, FIT et TCX via le menu de partage et « Ouvrir avec », pour que vos itinéraires et sorties passent vers Komoot, Garmin Connect, Strava ou tout autre service qui lit ces formats. Un itinéraire GPX garde sa feuille de route et ses points d’intérêt, et un lien Ride with GPS s’ouvre dans Velorki. Les connexions Strava et Ride with GPS et les liens de partage font partie de Plus.",
+        "body": "Import et export GPX, FIT et TCX via le menu de partage et « Ouvrir avec », pour que vos itinéraires et sorties passent vers Komoot, Garmin Connect, Strava ou tout autre service qui lit ces formats. Un itinéraire GPX garde sa feuille de route et ses points d’intérêt, et un lien Ride with GPS s’ouvre dans Velorki. Velorki fonctionne gratuitement avec Strava et Ride with GPS ; les liens de partage font partie de Plus.",
         "bullets": {
           "one": "GPX, FIT et TCX en entrée et en sortie, depuis Fichiers, Mail ou un navigateur, avec feuilles de route et points d’intérêt",
           "two": "Une bibliothèque d’itinéraires enregistrés et de sorties",
-          "three": "Strava, Ride with GPS et liens de partage avec Plus"
+          "three": "Compatible avec Strava et Ride with GPS, gratuitement ; liens de partage avec Plus"
         }
       }
     },
@@ -214,7 +215,7 @@
     "plus": {
       "eyebrow": "Velorki Plus",
       "title": "Demandez la sortie que vous voulez",
-      "lead": "Plus est l’abonnement facultatif pour ce qui demande un serveur ou un compte partenaire. L’essentiel, c’est l’assistant : vous dites ce que vous avez en tête, et l’itinéraire reste calculé sur votre téléphone.",
+      "lead": "Plus est l’abonnement facultatif pour ce qui demande nos serveurs. L’essentiel, c’est l’assistant : vous dites ce que vous avez en tête, et l’itinéraire reste calculé sur votre téléphone.",
       "items": {
         "describe": {
           "title": "Décrire une sortie",
@@ -228,9 +229,9 @@
           "title": "Une description pour vos itinéraires",
           "body": "« Décrire cet itinéraire » rédige un paragraphe à partir de ce que le téléphone sait de l’itinéraire : ses montées, ses revêtements, ses villes et les cafés le long du chemin."
         },
-        "connect": {
-          "title": "Strava, Ride with GPS et liens de partage",
-          "body": "Envoyez vos sorties sur Strava et importez vos itinéraires, échangez itinéraires et trips dans les deux sens avec Ride with GPS, et partagez un itinéraire ou une sortie sous forme de lien qui s’ouvre dans n’importe quel navigateur."
+        "sharing": {
+          "title": "Liens de partage",
+          "body": "Partagez un itinéraire ou une sortie sous forme de lien qui s’ouvre dans n’importe quel navigateur, avec la carte, les statistiques et le GPX à télécharger."
         },
         "weather": {
           "title": "Une météo plus fine le long de l’itinéraire",
@@ -249,7 +250,7 @@
     "comparison": {
       "eyebrow": "Gratuit ou Plus",
       "title": "Gratuit : tout ce qui tourne sur le téléphone",
-      "lead": "Velorki Plus est un petit abonnement, uniquement pour ce qui a besoin de nos serveurs ou d’un compte partenaire. Tout le reste est gratuit, pour tout le monde, pour de bon.",
+      "lead": "Velorki Plus est un petit abonnement, uniquement pour ce qui a besoin de nos serveurs. Tout le reste est gratuit, pour tout le monde, pour de bon.",
       "feature": "Fonction",
       "free": "Gratuit",
       "plus": "Plus",
@@ -271,8 +272,8 @@
         "routeWeather": "Une météo plus fine le long de l’itinéraire par des services météo locaux, avec rafales et probabilité de pluie",
         "radarEurope": "Un vrai radar de pluie dans toute l’Europe là où la carte gratuite n’a que des estimations par satellite",
         "assistant": "L’assistant : une phrase devient un itinéraire",
-        "strava": "Strava : envoyer vos sorties, importer des itinéraires",
-        "rwgps": "Ride with GPS : itinéraires et sorties dans les deux sens",
+        "strava": "Compatible avec Strava : envoyer vos sorties, importer vos itinéraires",
+        "rwgps": "Compatible avec Ride with GPS : itinéraires et sorties dans les deux sens",
         "sharing": "Liens de partage pour itinéraires et sorties"
       },
       "note": "Tout le code est ici : vous pouvez aussi faire tourner votre propre relais et vous passer complètement de l’abonnement.",
@@ -298,11 +299,11 @@
         },
         "price": {
           "q": "Combien coûte Velorki ?",
-          "a": "Tout ce qui tourne sur le téléphone est gratuit : planification, boucles, cartes et routage hors ligne, recherche, navigation, enregistrement, fréquence cardiaque, cadence et puissance depuis vos capteurs, statistiques de sortie, carte météo, la météo le long de l’itinéraire d’une prévision publique et fichiers GPX, FIT et TCX. Velorki Plus est un abonnement pour les fonctions côté serveur ; le prix actuel est affiché dans l’application, dans votre devise, par le store."
+          "a": "Tout ce qui tourne sur le téléphone est gratuit : planification, boucles, cartes et routage hors ligne, recherche, navigation, enregistrement, fréquence cardiaque, cadence et puissance depuis vos capteurs, statistiques de sortie, carte météo, la météo le long de l’itinéraire d’une prévision publique, fichiers GPX, FIT et TCX, et connexions à Strava et Ride with GPS. Velorki Plus est un abonnement pour les fonctions côté serveur ; le prix actuel est affiché dans l’application, dans votre devise, par le store."
         },
         "plus": {
           "q": "Qu’est-ce que Velorki Plus ?",
-          "a": "Un petit abonnement pour ce qui a besoin de nos serveurs ou d’un compte partenaire : l’assistant, la connexion Strava, la connexion Ride with GPS, les liens de partage, une météo plus fine le long de l’itinéraire par des services météo locaux et le radar de pluie dans toute l’Europe. Il s’achète, se gère et se résilie dans l’App Store ou sur Google Play."
+          "a": "Un petit abonnement pour ce qui a besoin de nos serveurs : l’assistant, les liens de partage, une météo plus fine le long de l’itinéraire par des services météo locaux et le radar de pluie dans toute l’Europe. Il s’achète, se gère et se résilie dans l’App Store ou sur Google Play."
         },
         "data": {
           "q": "Qu’est-ce qui quitte mon téléphone ?",
@@ -332,24 +333,16 @@
   "plus": {
     "meta": {
       "title": "Velorki Plus",
-      "description": "Velorki Plus est un petit abonnement pour ce qui a besoin de nos serveurs ou d’un compte partenaire : l’assistant, Strava, Ride with GPS, les liens de partage, une météo plus fine sur l’itinéraire et le radar de pluie dans toute l’Europe."
+      "description": "Velorki Plus est un petit abonnement pour ce qui a besoin de nos serveurs : l’assistant, les liens de partage, une météo plus fine sur l’itinéraire et le radar de pluie dans toute l’Europe."
     },
     "eyebrow": "Abonnement",
     "title": "Velorki Plus",
-    "lead": "Tout ce qui tourne sur votre téléphone est gratuit. Plus finance ce qui a besoin de nos serveurs ou d’un compte partenaire.",
+    "lead": "Tout ce qui tourne sur votre téléphone est gratuit, tout comme les connexions à Strava et Ride with GPS. Plus finance ce qui a besoin de nos serveurs.",
     "includes": "Ce que comprend Plus",
     "features": {
       "assistant": {
         "title": "L’assistant",
         "body": "Décrivez en une phrase la sortie dont vous avez envie — « 40 km, surtout du gravel, une pause café » — et Velorki en fait un itinéraire, calculé sur votre téléphone. Le modèle tourne derrière un relais qui détient la clé ; l’application ne la voit jamais."
-      },
-      "strava": {
-        "title": "Connexion Strava",
-        "body": "Envoyez une sortie enregistrée sur Strava et importez vos itinéraires Strava dans la bibliothèque."
-      },
-      "rwgps": {
-        "title": "Connexion Ride with GPS",
-        "body": "Itinéraires et sorties dans les deux sens, entre Ride with GPS et votre bibliothèque."
       },
       "sharing": {
         "title": "Liens de partage",
@@ -365,7 +358,7 @@
       }
     },
     "freeTitle": "Ce qui reste gratuit",
-    "freeBody": "Planification, boucles, cartes et routage hors ligne, recherche, navigation guidée, enregistrement, statistiques de sortie, carte météo, météo le long de l’itinéraire d’une prévision publique plus grossière (vent, pluie, température, meilleure heure de départ) avec l’itinéraire coloré selon la pente, le vent ou la pluie, et fichiers GPX, FIT et TCX restent gratuits, avec ou sans Plus.",
+    "freeBody": "Planification, boucles, cartes et routage hors ligne, recherche, navigation guidée, enregistrement, statistiques de sortie, carte météo, météo le long de l’itinéraire d’une prévision publique plus grossière (vent, pluie, température, meilleure heure de départ) avec l’itinéraire coloré selon la pente, le vent ou la pluie, fichiers GPX, FIT et TCX, et connexions à Strava et Ride with GPS restent gratuits, avec ou sans Plus.",
     "priceTitle": "Combien ça coûte",
     "priceBody": "Le prix est indiqué dans l’application. Le store affiche le prix mensuel et annuel en vigueur dans votre devise, avec un essai gratuit. Nous ne l’indiquons jamais ici, pour qu’il ne soit jamais périmé.",
     "restoreTitle": "Restaurer un abonnement",

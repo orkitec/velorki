@@ -3,16 +3,14 @@ import { clientIp, rwgpsConfigured } from '@/config';
 import { json, withApi } from '@/server/api';
 import { readJsonBody } from '@/server/body';
 import { ApiError } from '@/server/errors';
-import { requireEntitlement } from '@/server/entitlement';
 import { LIMITS, enforce } from '@/server/ratelimit';
 import { assertAllowedRedirect, codeBodySchema, parse, relay, RWGPS_TOKEN_URL } from '@/server/oauth';
-import { getConfig, getCounters, getEntitlement } from '@/server/singletons';
+import { getConfig, getCounters } from '@/server/singletons';
 import { requireWrapKeys, wrapTokensIn } from '@/server/wrap';
 
 export const POST = withApi(async (request, ctx) => {
   const config = getConfig();
   const raw = await readJsonBody(request);
-  await requireEntitlement(getEntitlement(), request.headers, ctx.log);
   await enforce(
     getCounters(),
     clientIp(config, request.headers),

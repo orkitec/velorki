@@ -21,6 +21,11 @@ abstract final class RelayErrorCode {
   /// A rate limit was hit; see [RelayError.retryAfterS] (HTTP 429).
   static const String rateLimited = 'rate_limited';
 
+  /// The provider no longer accepts the rider's authorization: the refresh
+  /// was refused because the rider revoked the app's access there
+  /// (HTTP 400).
+  static const String authorizationRevoked = 'authorization_revoked';
+
   /// A provider behind the relay failed (HTTP 502).
   static const String upstreamError = 'upstream_error';
 

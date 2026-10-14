@@ -13,8 +13,16 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
       not. That file's "How to measure" is the procedure; write both numbers
       into it.
 - [ ] **Strava**: submit the API review before 10 athletes connect; keep the
-      developer account's Strava subscription active; move to
-      `api-v3.strava.com` before 2027-01-04.
+      developer account's Strava subscription active.
+- [ ] **Strava API host**: `api-v3.strava.com` is available from 2027-01-04
+      and required by 2027-06-01. Switch `UPSTREAMS.strava.base` in
+      `web/src/server/passthrough.ts` (and `STRAVA_TOKEN_URL` in
+      `web/src/server/oauth.ts`, and any Strava host in the app). Strava's
+      `/oauth/deauthorize` retires 2027-06-01: move revocation to a
+      relay-side `POST /oauth/revoke` before then.
+- [ ] App attestation (App Attest / Play Integrity) for the relay's free
+      Strava/RWGPS paths — only if abuse shows (rate limits now); unverified
+      callers would get tighter limits rather than a block.
 - [ ] **Head-unit sync** (Plus): send a route to Garmin, Wahoo and Hammerhead.
       None takes courses over Bluetooth from a third party; each has a cloud
       API behind a partner programme (Garmin Courses via Connect, Wahoo Cloud

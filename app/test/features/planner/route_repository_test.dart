@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/db/database.dart';
+import 'package:velorki/features/assistant/application/route_description_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/route_legs.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
@@ -487,5 +488,100 @@ void main() {
     );
     await repository.setLink(saved.id, '');
     expect((await repository.routeById(saved.id))!.link, isNull);
+  });
+
+  group('Strava data', () {
+    Future<String> stravaImport() async {
+      final imported = await repository.saveImportedRoute(
+        name: 'From Strava',
+        points: syntheticRoute().geometry,
+        source: RouteSource.strava,
+      );
+      await repository.markExternal(
+        imported.id,
+        externalIds: const <String, Object?>{'strava_route_id': '4242'},
+      );
+      return imported.id;
+    }
+
+    test('a route edited from a Strava route stays Strava\'s, and the AI '
+        'stays away from it', () async {
+      final id = await stravaImport();
+
+      // The planner saves over it: the default source is "planned".
+      final saved = await repository.savePlannedRoute(
+        id: id,
+        name: 'From Strava, edited',
+        route: syntheticRoute(),
+        waypoints: _waypoints,
+        options: const RoutingOptions(),
+      );
+
+      expect(saved.source, RouteSource.strava);
+      final loaded = (await repository.routeById(id))!;
+      expect(loaded.source, RouteSource.strava);
+      expect(loaded.stravaRouteId, '4242');
+      expect(loaded.fromStrava, isTrue);
+      expect(canDescribe(loaded), isFalse);
+    });
+
+    test('a row whose source was lost still counts by its Strava id', () async {
+      final id = await stravaImport();
+      final row = (await db.routesDao.routeById(id))!;
+      await db.routesDao.updateRoute(row.copyWith(source: RouteSource.planned));
+
+      final loaded = (await repository.routeById(id))!;
+      expect(loaded.source, RouteSource.planned);
+      expect(loaded.fromStrava, isTrue);
+      expect(canDescribe(loaded), isFalse);
+    });
+
+    test('undoing a delete keeps the Strava id', () async {
+      final id = await stravaImport();
+      final route = (await repository.routeById(id))!;
+      await repository.delete(id);
+      await repository.restore(route);
+
+      expect((await repository.routeById(id))!.stravaRouteId, '4242');
+    });
+
+    test(
+      'deleteStravaRoutes takes every Strava route and nothing else',
+      () async {
+        final fromStrava = await stravaImport();
+        final edited = await repository.savePlannedRoute(
+          name: 'Edited long ago',
+          route: syntheticRoute(),
+          waypoints: _waypoints,
+          options: const RoutingOptions(),
+        );
+        await repository.markExternal(
+          edited.id,
+          externalIds: const <String, Object?>{'strava_route_id': '7'},
+        );
+        final own = await repository.savePlannedRoute(
+          name: 'Mine',
+          route: syntheticRoute(),
+          waypoints: _waypoints,
+          options: const RoutingOptions(),
+        );
+        final rwgps = await repository.saveImportedRoute(
+          name: 'From Ride with GPS',
+          points: syntheticRoute().geometry,
+          source: RouteSource.rwgps,
+        );
+        await repository.markExternal(
+          rwgps.id,
+          externalIds: const <String, Object?>{'rwgps_route_id': '9'},
+        );
+
+        expect(await repository.deleteStravaRoutes(), 2);
+
+        expect(await repository.routeById(fromStrava), isNull);
+        expect(await repository.routeById(edited.id), isNull);
+        expect(await repository.routeById(own.id), isNotNull);
+        expect(await repository.routeById(rwgps.id), isNotNull);
+      },
+    );
   });
 }

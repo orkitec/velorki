@@ -51,9 +51,10 @@ The same server also serves the tiles the app downloads: point
 ## Optional: the website and relay
 
 `web/` is one Next.js app holding both the website (landing page, user guide,
-privacy, terms, imprint) and the relay. The relay exists only for the Plus
-features: the Strava and RideWithGPS OAuth token exchange, the AI assistant and
-share links. **Leave `VELORKI_API_URL` empty and the app hides all three**;
+privacy, terms, imprint) and the relay. The relay exists only for what the
+phone cannot do alone: the Strava and RideWithGPS OAuth token exchange (free)
+and the Plus features, the AI assistant, share links and the relay's weather.
+**Leave `VELORKI_API_URL` empty and the app hides them all**;
 everything else keeps working.
 
 It serves **two hostnames from one process**, separated by the Host header:

@@ -57,9 +57,8 @@ Future<List<Uri>> _pump(
 
 void main() {
   group('PaywallScreen', () {
-    testWidgets('lists the four gated features and the legal copy', (
-      tester,
-    ) async {
+    testWidgets('lists the gated features and the legal copy, and never '
+        'the free Strava and Ride with GPS connections', (tester) async {
       await _pump(
         tester,
         const PaywallScreen(),
@@ -71,9 +70,10 @@ void main() {
       );
 
       expect(find.text(l10n.plusFeatureAiAssistant), findsOneWidget);
-      expect(find.text(l10n.plusFeatureStrava), findsOneWidget);
-      expect(find.text(l10n.plusFeatureRwgps), findsOneWidget);
       expect(find.text(l10n.plusFeatureLinkSharing), findsOneWidget);
+      // Strava's API policy forbids charging for Strava functionality.
+      expect(find.textContaining(l10n.serviceStrava), findsNothing);
+      expect(find.textContaining(l10n.serviceRwgps), findsNothing);
       // The test platform is Android: Google Play's terms.
       expect(find.text(l10n.plusLegalPlay), findsOneWidget);
       expect(find.text(l10n.plusLegalAppStore), findsNothing);
@@ -101,28 +101,6 @@ void main() {
         );
       });
     }
-
-    testWidgets('does not sell an integration this build cannot connect', (
-      tester,
-    ) async {
-      // A build without a Ride with GPS client id hides the connection
-      // everywhere else; offering it on the paywall would charge for a feature
-      // the rider then cannot find - the App Review 2.1 rejection.
-      await _pump(
-        tester,
-        const PaywallScreen(),
-        service: FakeSubscriptionService(offering: defaultOffering),
-        extraOverrides: [
-          stravaConfiguredProvider.overrideWithValue(true),
-          rwgpsConfiguredProvider.overrideWithValue(false),
-        ],
-      );
-
-      expect(find.text(l10n.plusFeatureStrava), findsOneWidget);
-      expect(find.text(l10n.plusFeatureRwgps), findsNothing);
-      expect(find.text(l10n.plusFeatureAiAssistant), findsOneWidget);
-      expect(find.text(l10n.plusFeatureLinkSharing), findsOneWidget);
-    });
 
     testWidgets('shows every package with its price, period and trial', (
       tester,

@@ -3,7 +3,7 @@ import { pino } from 'pino';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GET as stravaGet, POST as stravaPost } from '@/app/(api)/proxy/strava/[...path]/route';
 import { GET as rwgpsGet, POST as rwgpsPost } from '@/app/(api)/proxy/rwgps/[...path]/route';
-import { matchUpstream, upstreamPath } from '@/server/passthrough';
+import { matchUpstream, stravaBackoffSeconds, upstreamPath } from '@/server/passthrough';
 import { injectSingletons } from '@/server/singletons';
 import { parseWrapKeys, wrapToken } from '@/server/wrap';
 import {
@@ -12,7 +12,6 @@ import {
   WRAP_KEY_1,
   errOf,
   fetchCall,
-  revenueCatResponse,
   withEnv,
 } from './helpers';
 
@@ -25,6 +24,7 @@ const keys = parseWrapKeys(TEST_WRAP_KEYS);
 const PLAIN = 'strava-access-token-in-clear';
 const WRAPPED = wrapToken(keys, 'strava', 'access', PLAIN);
 const TOKEN = { ...AUTH, 'x-velorki-token': WRAPPED };
+const RWGPS = wrapToken(keys, 'rwgps', 'access', 'rwgps-token');
 
 function upstreamOk(body = '{"id": 1}', headers: Record<string, string> = {}): Response {
   return new Response(body, {
@@ -49,6 +49,7 @@ describe('upstreamPath and the allowlist', () => {
       ['strava', 'GET', '/api/v3/uploads/1234', 'upload_status'],
       ['strava', 'GET', '/api/v3/athletes/7/routes', 'list_routes'],
       ['strava', 'GET', '/api/v3/routes/99/export_gpx', 'route_gpx'],
+      ['strava', 'GET', '/api/v3/routes/99', 'route'],
       ['strava', 'POST', '/oauth/deauthorize', 'deauthorize'],
       ['rwgps', 'GET', '/api/v1/users/current.json', 'user'],
       ['rwgps', 'POST', '/api/v1/routes.json', 'upload_route'],
@@ -81,31 +82,37 @@ describe('upstreamPath and the allowlist', () => {
 });
 
 describe('/proxy/<service>/*', () => {
-  it('needs an entitled rider before anything else', async () => {
+  it('needs a well-formed install id, and nothing reaches the service without one', async () => {
     const fetchMock = vi.fn(async () => upstreamOk());
     vi.stubGlobal('fetch', fetchMock);
     await withEnv({}, async () => {
-      const res = await stravaGet(
-        new Request(`${API}/proxy/strava/api/v3/uploads/1`, {
-          headers: { 'x-velorki-token': WRAPPED },
-        }),
-      );
-      expect(res.status).toBe(401);
-      expect((await errOf(res)).code).toBe('not_entitled');
+      for (const authorization of [undefined, 'Bearer', 'Basic user-42', 'Bearer a b']) {
+        const res = await stravaGet(
+          new Request(`${API}/proxy/strava/api/v3/uploads/1`, {
+            headers:
+              authorization === undefined
+                ? { 'x-velorki-token': WRAPPED }
+                : { authorization, 'x-velorki-token': WRAPPED },
+          }),
+        );
+        expect(res.status, authorization ?? 'missing').toBe(400);
+        expect((await errOf(res)).code).toBe('invalid_request');
+      }
       expect(fetchMock).not.toHaveBeenCalled();
     });
   });
 
-  it('refuses a lapsed subscription with the same answer', async () => {
-    const fetchMock = vi.fn(async () => revenueCatResponse('plus', undefined));
+  it('is free: no subscription is asked for, RevenueCat is never called', async () => {
+    const fetchMock = vi.fn(async () => upstreamOk());
     vi.stubGlobal('fetch', fetchMock);
     await withEnv({ REVENUECAT_MODE: 'live', REVENUECAT_SECRET_KEY: 'sk' }, async () => {
       const res = await stravaGet(
         new Request(`${API}/proxy/strava/api/v3/uploads/1`, { headers: TOKEN }),
       );
-      expect(res.status).toBe(401);
-      // Only RevenueCat was called; Strava never was.
+      expect(res.status).toBe(201);
+      // Strava was called, and nothing else was.
       expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchCall(fetchMock).url).toBe('https://www.strava.com/api/v3/uploads/1');
     });
   });
 
@@ -130,6 +137,8 @@ describe('/proxy/<service>/*', () => {
       }
       expect(fetchMock).not.toHaveBeenCalled();
       expect(await ctx.counters.get('rl:proxy_min:user-42:' + String(Math.floor(Date.now() / 60_000) * 60))).toBeUndefined();
+      // The per-IP window is charged before the allowlist, by design.
+      expect(await ctx.counters.get('rl:proxy_ip_hour:unknown:' + String(Math.floor(Date.now() / 3_600_000) * 3_600))).toBe(4);
     });
   });
 
@@ -310,7 +319,7 @@ describe('/proxy/<service>/*', () => {
     });
   });
 
-  it('rate limits per rider', async () => {
+  it('rate limits per install id', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => upstreamOk()));
     await withEnv({}, async () => {
       const call = (auth: string) =>
@@ -327,6 +336,163 @@ describe('/proxy/<service>/*', () => {
     });
   });
 
+  it('rate limits per IP first, however many install ids a caller makes up', async () => {
+    const fetchMock = vi.fn(async () => upstreamOk());
+    vi.stubGlobal('fetch', fetchMock);
+    await withEnv({ TRUST_PROXY: '1' }, async () => {
+      // Ride with GPS, which has only the general limits.
+      const call = (ip: string, id: string) =>
+        rwgpsGet(
+          new Request(`${API}/proxy/rwgps/api/v1/routes.json`, {
+            headers: {
+              authorization: `Bearer ${id}`,
+              'x-velorki-token': RWGPS,
+              'x-forwarded-for': ip,
+            },
+          }),
+        );
+      for (let i = 0; i < 600; i += 1) {
+        expect((await call('203.0.113.7', `id-${String(i)}`)).status).toBe(201);
+      }
+      fetchMock.mockClear();
+      const limited = await call('203.0.113.7', 'yet-another-id');
+      expect(limited.status).toBe(429);
+      expect((await errOf(limited)).code).toBe('rate_limited');
+      expect(fetchMock).not.toHaveBeenCalled();
+      // Charged before the bearer is looked at: no header is no way round it.
+      const bare = await rwgpsGet(
+        new Request(`${API}/proxy/rwgps/api/v1/routes.json`, {
+          headers: { 'x-velorki-token': RWGPS, 'x-forwarded-for': '203.0.113.7' },
+        }),
+      );
+      expect(bare.status).toBe(429);
+      expect((await call('198.51.100.1', 'id-0')).status).toBe(201);
+    });
+  });
+
+  it('keeps one install to its share of the app-wide Strava quota: 6 uploads an hour', async () => {
+    const fetchMock = vi.fn(async () => upstreamOk());
+    vi.stubGlobal('fetch', fetchMock);
+    await withEnv({}, async () => {
+      const upload = (id: string) =>
+        stravaPost(
+          new Request(`${API}/proxy/strava/api/v3/uploads`, {
+            method: 'POST',
+            headers: { authorization: `Bearer ${id}`, 'x-velorki-token': WRAPPED },
+            body: 'file',
+          }),
+        );
+      for (let i = 0; i < 6; i += 1) expect((await upload('a')).status).toBe(201);
+      fetchMock.mockClear();
+      const limited = await upload('a');
+      expect(limited.status).toBe(429);
+      expect((await errOf(limited)).code).toBe('rate_limited');
+      expect(fetchMock).not.toHaveBeenCalled();
+      // Other Strava calls and other installs are counted apart.
+      const status = await stravaGet(
+        new Request(`${API}/proxy/strava/api/v3/uploads/1`, { headers: TOKEN }),
+      );
+      expect(status.status).toBe(201);
+      expect((await upload('b')).status).toBe(201);
+    });
+  });
+
+  it('allows 20 Strava uploads a day per install', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => upstreamOk()));
+    await withEnv({}, async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        const start = Date.UTC(2026, 9, 13, 0, 5);
+        let ok = 0;
+        for (let hour = 0; hour < 5; hour += 1) {
+          vi.setSystemTime(start + hour * 3_600_000);
+          for (let i = 0; i < 6; i += 1) {
+            const res = await stravaPost(
+              new Request(`${API}/proxy/strava/api/v3/uploads`, {
+                method: 'POST',
+                headers: TOKEN,
+                body: 'file',
+              }),
+            );
+            if (res.status === 201) ok += 1;
+          }
+        }
+        expect(ok).toBe(20);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  it('allows 60 other Strava calls an hour per install', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => upstreamOk()));
+    await withEnv({}, async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        const start = Date.UTC(2026, 9, 13, 10, 0, 0);
+        const call = () =>
+          stravaGet(new Request(`${API}/proxy/strava/api/v3/routes/42`, { headers: TOKEN }));
+        // Spread over minutes so the per-minute limit is not what stops it.
+        for (let i = 0; i < 60; i += 1) {
+          vi.setSystemTime(start + i * 50_000);
+          expect((await call()).status).toBe(201);
+        }
+        vi.setSystemTime(start + 60 * 50_000);
+        const limited = await call();
+        expect(limited.status).toBe(429);
+        expect((await errOf(limited)).code).toBe('rate_limited');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  it('backs off for everyone when Strava answers 429, and tells the phone clearly', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response('{"message":"Rate Limit Exceeded"}', {
+          status: 429,
+          headers: { 'retry-after': '120' },
+        }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await withEnv({}, async () => {
+      const call = (id: string) =>
+        stravaGet(
+          new Request(`${API}/proxy/strava/api/v3/athletes/7/routes`, {
+            headers: { authorization: `Bearer ${id}`, 'x-velorki-token': WRAPPED },
+          }),
+        );
+      const first = await call('a');
+      expect(first.status).toBe(429);
+      expect((await errOf(first)).code).toBe('rate_limited');
+      expect(first.headers.get('retry-after')).toBe('120');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // Another install, a moment later: Strava is not asked at all.
+      const second = await call('b');
+      expect(second.status).toBe(429);
+      expect((await errOf(second)).code).toBe('rate_limited');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // Ride with GPS is not held back by Strava's quota.
+      fetchMock.mockImplementation(async () => upstreamOk());
+      const rwgps = await rwgpsGet(
+        new Request(`${API}/proxy/rwgps/api/v1/routes.json`, {
+          headers: { ...AUTH, 'x-velorki-token': RWGPS },
+        }),
+      );
+      expect(rwgps.status).toBe(201);
+    });
+  });
+
+  it('waits for Strava\'s next quarter hour when its 429 says nothing', () => {
+    const at = Date.UTC(2026, 9, 13, 10, 7, 30);
+    expect(stravaBackoffSeconds(null, at)).toBe(450);
+    expect(stravaBackoffSeconds('30', at)).toBe(30);
+    expect(stravaBackoffSeconds('nonsense', at)).toBe(450);
+  });
+
   it('leaves no record of the call but the rate-limit window', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => upstreamOk()));
     await withEnv({}, async (ctx) => {
@@ -334,7 +500,7 @@ describe('/proxy/<service>/*', () => {
         new Request(`${API}/proxy/strava/api/v3/uploads/1`, { headers: TOKEN }),
       );
       const keys = [...ctx.counters.keys()];
-      expect(keys.filter((k) => k.startsWith('rl:proxy_'))).toHaveLength(2);
+      expect(keys.filter((k) => k.startsWith('rl:proxy_'))).toHaveLength(3);
       expect(keys.filter((k) => !k.startsWith('rl:'))).toEqual([]);
     });
   });

@@ -1982,14 +1982,6 @@
   "@settingsConnections": {
     "description": "Settings section header for the Strava and Ride with GPS accounts"
   },
-  "connectionsPlusTitle": "Velorki Plus",
-  "@connectionsPlusTitle": {
-    "description": "Title of the placeholder card shown where a Plus feature is gated"
-  },
-  "connectionsPlusBody": "Connecting Strava and Ride with GPS is part of Velorki Plus. Everything that runs on the phone stays free.",
-  "@connectionsPlusBody": {
-    "description": "Explanation on the Plus placeholder card in the Connections section"
-  },
   "connectionsUnavailable": "Not available in this build",
   "@connectionsUnavailable": {
     "description": "Shown on a connection tile when the build has no relay or client id"
@@ -2056,43 +2048,9 @@
       }
     }
   },
-  "rideDetailUpload": "Upload",
-  "@rideDetailUpload": {
-    "description": "Menu that offers sending the ride to a connected service"
-  },
-  "rideDetailUploadTo": "Upload to {service}",
-  "@rideDetailUploadTo": {
-    "description": "Menu item that uploads the ride to one service",
-    "placeholders": {
-      "service": {
-        "type": "String",
-        "example": "Strava"
-      }
-    }
-  },
   "rideDetailViewOnStrava": "View on Strava",
   "@rideDetailViewOnStrava": {
-    "description": "Opens the activity that was created on Strava"
-  },
-  "rideDetailOpenOn": "Open on {service}",
-  "@rideDetailOpenOn": {
-    "description": "Opens the ride on the service it was already uploaded to",
-    "placeholders": {
-      "service": {
-        "type": "String",
-        "example": "Ride with GPS"
-      }
-    }
-  },
-  "rideDetailUploading": "Uploading to {service}…",
-  "@rideDetailUploading": {
-    "description": "Progress message while a ride is being uploaded",
-    "placeholders": {
-      "service": {
-        "type": "String",
-        "example": "Strava"
-      }
-    }
+    "description": "Link back to data on Strava (an activity, a route, the athlete). Strava's brand guidelines require exactly the English words \"View on Strava\" in every language: do not translate."
   },
   "rideDetailUploaded": "Uploaded to {service}",
   "@rideDetailUploaded": {
@@ -2113,14 +2071,6 @@
         "example": "Strava rejected the upload"
       }
     }
-  },
-  "routeDetailSendToRwgps": "Send to Ride with GPS",
-  "@routeDetailSendToRwgps": {
-    "description": "Menu item that uploads the saved route to Ride with GPS"
-  },
-  "routeDetailSendToStrava": "Send to Strava",
-  "@routeDetailSendToStrava": {
-    "description": "Menu item that explains how a route reaches Strava"
   },
   "routeDetailSendToStravaTitle": "Strava cannot receive routes",
   "@routeDetailSendToStravaTitle": {
@@ -2272,10 +2222,6 @@
       }
     }
   },
-  "routeDetailSend": "Send",
-  "@routeDetailSend": {
-    "description": "Button on the route detail that opens the 'send to a service' menu"
-  },
   "plusTitle": "Velorki Plus",
   "@plusTitle": {
     "description": "Name of the subscription, used as a screen and tile title"
@@ -2295,22 +2241,6 @@
   "plusFeatureAiAssistantBody": "Describe the ride you want; Velorki turns it into a route and plans it on your phone.",
   "@plusFeatureAiAssistantBody": {
     "description": "Paywall feature detail: the assistant"
-  },
-  "plusFeatureStrava": "Strava connection",
-  "@plusFeatureStrava": {
-    "description": "Paywall feature: Strava"
-  },
-  "plusFeatureStravaBody": "Upload recorded rides and import your Strava routes.",
-  "@plusFeatureStravaBody": {
-    "description": "Paywall feature detail: Strava"
-  },
-  "plusFeatureRwgps": "Ride with GPS connection",
-  "@plusFeatureRwgps": {
-    "description": "Paywall feature: Ride with GPS"
-  },
-  "plusFeatureRwgpsBody": "Send routes and trips both ways.",
-  "@plusFeatureRwgpsBody": {
-    "description": "Paywall feature detail: Ride with GPS"
   },
   "plusFeatureLinkSharing": "Link sharing",
   "@plusFeatureLinkSharing": {
@@ -3134,22 +3064,6 @@
   "@shareLinkCreating": {
     "description": "Status while the relay is storing the file"
   },
-  "shareLinkBody": "Anyone with this link can see the route on a map and download the GPX. Viewing needs no account.",
-  "@shareLinkBody": {
-    "description": "Explanation in the share link sheet"
-  },
-  "shareLinkCopy": "Copy link",
-  "@shareLinkCopy": {
-    "description": "Copies the share URL to the clipboard"
-  },
-  "shareLinkCopied": "Link copied.",
-  "@shareLinkCopied": {
-    "description": "Snack bar after copying the share URL"
-  },
-  "shareLinkShare": "Share",
-  "@shareLinkShare": {
-    "description": "Hands the share URL to the system share sheet"
-  },
   "shareLinkFailed": "The link could not be created: {message}",
   "@shareLinkFailed": {
     "description": "Shown when POST /share failed",
@@ -3159,20 +3073,6 @@
         "example": "the server is unavailable"
       }
     }
-  },
-  "shareLinkExpires": "The link stops working on {date}.",
-  "@shareLinkExpires": {
-    "description": "Tells when a share link expires",
-    "placeholders": {
-      "date": {
-        "type": "String",
-        "example": "12 Sept 2027"
-      }
-    }
-  },
-  "shareLinkPlus": "Link sharing is part of Velorki Plus.",
-  "@shareLinkPlus": {
-    "description": "Shown when an unentitled rider taps Share link"
   },
   "offlineTitle": "Offline",
   "@offlineTitle": {
@@ -6200,5 +6100,163 @@
   "weatherForecastUnavailable": "Weather forecast unavailable right now",
   "@weatherForecastUnavailable": {
     "description": "In the route weather section when the free forecast (wind, rain, temperature from the DWD) could not be loaded"
+  },
+  "commonContinue": "Continue",
+  "@commonContinue": {
+    "description": "Button that goes on to the next step"
+  },
+  "commonOk": "OK",
+  "@commonOk": {
+    "description": "Button that closes a message the rider has read"
+  },
+  "shareRouteTitle": "Share route",
+  "@shareRouteTitle": {
+    "description": "Title of the share card on a saved route"
+  },
+  "shareRideTitle": "Share ride",
+  "@shareRideTitle": {
+    "description": "Title of the share card on a recorded ride"
+  },
+  "shareSend": "Send",
+  "@shareSend": {
+    "description": "Button on the share card that sends the route to a connected service"
+  },
+  "shareConnect": "Connect",
+  "@shareConnect": {
+    "description": "Button on the share card that leads to Settings to connect a service"
+  },
+  "shareUpload": "Upload",
+  "@shareUpload": {
+    "description": "Button on the share card that uploads the ride to a connected service"
+  },
+  "shareNotConnected": "Connect your account in Settings → Connections.",
+  "@shareNotConnected": {
+    "description": "Share card row of a service that is not connected"
+  },
+  "shareRwgpsRouteBody": "Send the route to your Ride with GPS account.",
+  "@shareRwgpsRouteBody": {
+    "description": "Share card: what sending a route to Ride with GPS does"
+  },
+  "shareRwgpsRideBody": "Upload the ride to your Ride with GPS account as a trip.",
+  "@shareRwgpsRideBody": {
+    "description": "Share card: what uploading a ride to Ride with GPS does"
+  },
+  "shareStravaRideBody": "Upload the ride to Strava as an activity.",
+  "@shareStravaRideBody": {
+    "description": "Share card: what uploading a ride to Strava does"
+  },
+  "shareStravaRouteBody": "Strava can't receive routes from other apps. Tap to export a GPX file instead.",
+  "@shareStravaRouteBody": {
+    "description": "Share card Strava row on a route: Strava's API cannot receive routes; a tap explains and offers the GPX export"
+  },
+  "shareStravaNoUpload": "Uploads were not allowed when Strava was connected. Disconnect and connect again to allow them.",
+  "@shareStravaNoUpload": {
+    "description": "Share card Strava row when the rider did not allow uploads while connecting"
+  },
+  "shareNotForStravaRoutes": "Not available for routes from Strava.",
+  "@shareNotForStravaRoutes": {
+    "description": "Share card row that is disabled because the route came from Strava"
+  },
+  "shareStravaRouteRefused": "Routes from Strava can't be shared or sent to another service.",
+  "@shareStravaRouteRefused": {
+    "description": "Error when a route from Strava would be shared as a link or sent to another service"
+  },
+  "shareLinkRowTitle": "Link",
+  "@shareLinkRowTitle": {
+    "description": "Title of the share card row that makes a web link"
+  },
+  "shareLinkRowBody": "Anyone with the link can see it on a map and download the GPX.",
+  "@shareLinkRowBody": {
+    "description": "Share card link row: what a share link is"
+  },
+  "shareLinkWorksUntil": "Works until {date}.",
+  "@shareLinkWorksUntil": {
+    "description": "Share card link row after the link was made: until when it works",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "12 Sept 2027"
+      }
+    }
+  },
+  "sharePlusLabel": "Velorki Plus",
+  "@sharePlusLabel": {
+    "description": "Label beside a lock on a share card row that needs the subscription; product name"
+  },
+  "stravaConsentTitle": "Before you connect Strava",
+  "@stravaConsentTitle": {
+    "description": "Title of the sheet shown before connecting Strava"
+  },
+  "stravaConsentReadsTitle": "What Velorki reads",
+  "@stravaConsentReadsTitle": {
+    "description": "Strava consent sheet: heading of what is read"
+  },
+  "stravaConsentReadsBody": "Your Strava name and athlete ID, to show the connection. Your Strava routes, when you open the import list.",
+  "@stravaConsentReadsBody": {
+    "description": "Strava consent sheet: what is read"
+  },
+  "stravaConsentWritesTitle": "What Velorki writes",
+  "@stravaConsentWritesTitle": {
+    "description": "Strava consent sheet: heading of what is written"
+  },
+  "stravaConsentWritesBody": "Only the rides you choose to upload.",
+  "@stravaConsentWritesBody": {
+    "description": "Strava consent sheet: what is written"
+  },
+  "stravaConsentHowTitle": "How it works",
+  "@stravaConsentHowTitle": {
+    "description": "Strava consent sheet: heading of how the connection works"
+  },
+  "stravaConsentHowBody": "You sign in on Strava. Velorki's relay adds the app's key and passes the calls on; it stores nothing. Strava data stays on this phone and never goes to the AI assistant, share links or other services.",
+  "@stravaConsentHowBody": {
+    "description": "Strava consent sheet: how the connection works and where the data goes"
+  },
+  "stravaConsentDisconnectTitle": "Disconnecting",
+  "@stravaConsentDisconnectTitle": {
+    "description": "Strava consent sheet: heading of how to disconnect"
+  },
+  "stravaConsentDisconnectBody": "Disconnect any time in Settings → Connections or on strava.com. Disconnecting deletes all Strava data from this phone, and Velorki confirms it.",
+  "@stravaConsentDisconnectBody": {
+    "description": "Strava consent sheet: how to disconnect and what that deletes"
+  },
+  "stravaConsentSupport": "Questions or a deletion request: {email}",
+  "@stravaConsentSupport": {
+    "description": "Strava consent sheet: where to write with questions or to ask for deletion",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "ride@velorki.com"
+      }
+    }
+  },
+  "connectionsDisconnectStravaBody": "Velorki revokes its access on Strava and deletes all Strava data from this phone: routes imported from Strava or edited from them, the cached route list and the links to uploaded activities. Rides recorded in Velorki stay.",
+  "@connectionsDisconnectStravaBody": {
+    "description": "Body of the dialog that asks before disconnecting Strava"
+  },
+  "stravaDataDeleted": "Your Strava data has been deleted from this phone.",
+  "@stravaDataDeleted": {
+    "description": "Written confirmation after the Strava data was deleted"
+  },
+  "stravaAccessLostTitle": "Strava access removed",
+  "@stravaAccessLostTitle": {
+    "description": "Title of the notice when Strava refused Velorki's access because the rider removed it on strava.com"
+  },
+  "stravaAccessLostBody": "Strava no longer accepts Velorki's access, so Velorki disconnected Strava. Your Strava data has been deleted from this phone. Connect again in Settings → Connections to use Strava.",
+  "@stravaAccessLostBody": {
+    "description": "Body of the notice when Strava refused Velorki's access"
+  },
+  "integrationAccessRevoked": "The service no longer accepts Velorki's access. Connect again in Settings → Connections.",
+  "@integrationAccessRevoked": {
+    "description": "Error when a partner service no longer accepts Velorki's authorization"
+  },
+  "stravaRoutesRemoved": "{count, plural, =1{A route from Strava was removed: it no longer exists on Strava, or could not be checked for 7 days.} other{{count} routes from Strava were removed: they no longer exist on Strava, or could not be checked for 7 days.}}",
+  "@stravaRoutesRemoved": {
+    "description": "Snack bar after routes imported from Strava were deleted because Strava no longer has them or they could not be checked against Strava for 7 days",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
   }
 }

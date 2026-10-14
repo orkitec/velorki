@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type { Config } from '@/config';
-import { ApiError } from './errors';
+import { ApiError, type ErrorCode } from './errors';
 import type { Counters } from './counters';
 
 /** Positive answers are cached for 10 minutes, negative ones for 1. */
@@ -33,19 +33,21 @@ function hasControlOrSpace(value: string): boolean {
 /**
  * Extract the app_user_id from `Authorization: Bearer <id>`.
  * Anything missing or malformed is a 401 not_entitled; the two cases are
- * deliberately not distinguished for the caller.
+ * deliberately not distinguished for the caller. A free route that only uses
+ * the id as a rate-limit key passes `invalid_request` instead, since no
+ * subscription is involved there.
  */
-export function parseBearer(headers: Headers): string {
+export function parseBearer(headers: Headers, code: ErrorCode = 'not_entitled'): string {
   const value = headers.get('authorization');
   if (value === null) {
-    throw new ApiError('not_entitled', 'Missing Authorization header.');
+    throw new ApiError(code, 'Missing Authorization header.');
   }
   const match = /^Bearer\s+(\S+)$/i.exec(value.trim());
   const id = match?.[1];
   // RevenueCat app user ids are opaque; bound the length and reject control
   // characters so the value is safe to put in a URL and in a cache key.
   if (id === undefined || id.length > 256 || hasControlOrSpace(id)) {
-    throw new ApiError('not_entitled', 'Malformed Authorization header.');
+    throw new ApiError(code, 'Malformed Authorization header.');
   }
   return id;
 }

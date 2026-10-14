@@ -11,7 +11,11 @@ import 'package:velorki/features/integrations/common/data/external_route_cache.d
 import 'package:velorki/features/integrations/common/domain/connected_account.dart';
 import 'package:velorki/features/integrations/common/domain/external_route.dart';
 import 'package:velorki/features/integrations/presentation/external_routes_screen.dart';
-import 'package:velorki/features/integrations/presentation/route_send_menu.dart';
+import 'package:velorki/features/integrations/common/domain/integration_exception.dart';
+import 'package:velorki/features/integrations/presentation/share_rows.dart';
+import 'package:velorki/features/integrations/presentation/strava_brand.dart';
+import 'package:velorki/features/sharing/presentation/share_card.dart';
+import 'package:velorki_api/velorki_api.dart' show ShareKind;
 import 'package:velorki/features/integrations/rwgps/data/rwgps_client.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
@@ -128,6 +132,34 @@ void main() {
       expect(find.text(l10n.externalRoutesImport), findsOneWidget);
     });
 
+    testWidgets('each Strava route links back to it on Strava, and the '
+        'list credits Strava', (tester) async {
+      final harness = await pumpList(
+        tester,
+        source: _FakeSource(IntegrationService.strava, const <ExternalRoute>[
+          _sunday,
+        ]),
+      );
+
+      expect(find.byType(PoweredByStrava), findsOneWidget);
+      await tester.tap(find.text(l10n.rideDetailViewOnStrava));
+      await tester.pumpAndSettle();
+      expect(harness.openedLinks, [
+        Uri.parse('https://www.strava.com/routes/4242'),
+      ]);
+    });
+
+    testWidgets('a Ride with GPS list has no Strava link', (tester) async {
+      await pumpList(
+        tester,
+        source: _FakeSource(IntegrationService.rwgps, const <ExternalRoute>[
+          _sunday,
+        ]),
+      );
+
+      expect(find.text(l10n.rideDetailViewOnStrava), findsNothing);
+    });
+
     testWidgets('Import writes a route with source strava', (tester) async {
       await pumpList(
         tester,
@@ -191,11 +223,15 @@ void main() {
     });
   });
 
-  group('RouteSendMenu', () {
-    SavedRoute route() => SavedRoute(
+  group('route share card', () {
+    SavedRoute route({
+      RouteSource source = RouteSource.planned,
+      Map<String, String> externalIds = const <String, String>{},
+    }) => SavedRoute(
       id: 'r1',
       name: 'Isar loop',
-      source: RouteSource.planned,
+      source: source,
+      externalIds: externalIds,
       profile: RouteProfile.trekking,
       createdAt: DateTime.utc(2026, 9, 12),
       updatedAt: DateTime.utc(2026, 9, 12),
@@ -214,38 +250,66 @@ void main() {
       options: const RoutingOptions(),
     );
 
-    testWidgets('Strava explains that its API cannot create routes', (
-      tester,
-    ) async {
+    /// A Share button that opens the card for [saved], as the route detail
+    /// does.
+    Widget opener(SavedRoute saved, {Future<void> Function()? onExportGpx}) =>
+        Builder(
+          builder: (context) => ShareButton(
+            onPressed: () => showShareCard(
+              context,
+              title: l10n.shareRouteTitle,
+              rows: [
+                RwgpsRouteShareRow(route: saved),
+                StravaRouteShareRow(onExportGpx: onExportGpx ?? () async {}),
+                ShareLinkRow(
+                  name: saved.name,
+                  points: saved.geometry,
+                  kind: ShareKind.route,
+                  distanceM: saved.distanceM,
+                  fromStrava: saved.fromStrava,
+                ),
+              ],
+            ),
+          ),
+        );
+
+    Future<void> open(WidgetTester tester) async {
+      await tester.tap(find.text(l10n.shareLinkAction));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.shareRouteTitle), findsOneWidget);
+    }
+
+    testWidgets('one card: Ride with GPS to connect, Strava explained, the '
+        'link', (tester) async {
       var exported = 0;
       await pumpIntegrations(
         tester,
-        RouteSendMenu(route: route(), onExportGpx: () async => exported++),
+        opener(route(), onExportGpx: () async => exported++),
       );
+      await open(tester);
 
-      await tester.tap(find.byType(OutlinedButton));
+      expect(find.text(l10n.serviceRwgps), findsOneWidget);
+      expect(find.text(l10n.shareNotConnected), findsOneWidget);
+      expect(find.text(l10n.shareConnect), findsOneWidget);
+      expect(find.text(l10n.shareLinkRowTitle), findsOneWidget);
+      expect(find.text(l10n.shareLinkTitle), findsOneWidget);
+
+      // Strava's API cannot create routes: the row says so, and a tap
+      // explains and offers the GPX export.
+      await tester.tap(find.text(l10n.shareStravaRouteBody));
       await tester.pumpAndSettle();
-      expect(find.text(l10n.routeDetailSendToStrava), findsOneWidget);
-      // Nothing is connected, so Ride with GPS is not offered.
-      expect(find.text(l10n.routeDetailSendToRwgps), findsNothing);
-
-      await tester.tap(find.text(l10n.routeDetailSendToStrava));
-      await tester.pumpAndSettle();
-
       expect(find.text(l10n.routeDetailSendToStravaTitle), findsOneWidget);
       expect(
         find.textContaining(l10n.routeDetailSendToStravaBody),
         findsOneWidget,
       );
-
       await tester.tap(find.text(l10n.routeDetailSendToStravaAction));
       await tester.pumpAndSettle();
       expect(exported, 1);
     });
 
-    testWidgets('Ride with GPS uploads the route and offers to open it', (
-      tester,
-    ) async {
+    testWidgets('with Ride with GPS connected the row sends the route and '
+        'offers to open it', (tester) async {
       final adapter = FakeApiAdapter(
         (_) => FakeResponse.json(<String, Object?>{
           'task': <String, Object?>{
@@ -260,8 +324,10 @@ void main() {
       );
       final harness = await pumpIntegrations(
         tester,
-        RouteSendMenu(route: route(), onExportGpx: () async {}),
+        opener(route()),
+        // Free now: no Plus needed to send.
         harness: IntegrationsHarness(
+          entitled: false,
           accounts: const <IntegrationService, ConnectedAccount>{
             IntegrationService.rwgps: _rwgpsAccount,
           },
@@ -274,10 +340,10 @@ void main() {
           ),
         ],
       );
+      await open(tester);
 
-      await tester.tap(find.byType(OutlinedButton));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(l10n.routeDetailSendToRwgps));
+      expect(find.text(l10n.shareRwgpsRouteBody), findsOneWidget);
+      await tester.tap(find.text(l10n.shareSend));
       await tester.pumpAndSettle();
 
       expect(find.text(l10n.routeDetailSent('Ride with GPS')), findsOneWidget);
@@ -289,6 +355,73 @@ void main() {
         harness.openedLinks.single.toString(),
         'https://ridewithgps.com/routes/4242',
       );
+    });
+
+    testWidgets('without Plus the link row shows the lock', (tester) async {
+      await pumpIntegrations(
+        tester,
+        opener(route()),
+        harness: IntegrationsHarness(entitled: false),
+      );
+      await open(tester);
+
+      expect(find.text(l10n.sharePlusLabel), findsOneWidget);
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+      expect(find.text(l10n.shareLinkTitle), findsNothing);
+    });
+
+    for (final (label, saved) in [
+      ('read from Strava', route(source: RouteSource.strava)),
+      (
+        'edited from a Strava route',
+        route(externalIds: const {'strava_route_id': '77'}),
+      ),
+    ]) {
+      testWidgets('a route $label goes to no other service and into no link', (
+        tester,
+      ) async {
+        final adapter = FakeApiAdapter((_) => FakeResponse.json(const {}));
+        await pumpIntegrations(
+          tester,
+          opener(saved),
+          harness: IntegrationsHarness(
+            accounts: const <IntegrationService, ConnectedAccount>{
+              IntegrationService.rwgps: _rwgpsAccount,
+            },
+          ),
+          extraOverrides: [
+            routeSenderProvider.overrideWithValue(
+              RouteSender(
+                rwgps: RwgpsClient(dio: dioWith(adapter), sleep: _noSleep),
+              ),
+            ),
+          ],
+        );
+        await open(tester);
+
+        expect(find.text(l10n.shareNotForStravaRoutes), findsNWidgets(2));
+        expect(find.text(l10n.shareSend), findsNothing);
+        expect(find.text(l10n.shareLinkTitle), findsNothing);
+        expect(adapter.requests, isEmpty);
+      });
+    }
+
+    test('the sender refuses a Strava route without asking Ride with GPS', () {
+      final adapter = FakeApiAdapter((_) => FakeResponse.json(const {}));
+      final sender = RouteSender(
+        rwgps: RwgpsClient(dio: dioWith(adapter), sleep: _noSleep),
+      );
+      expect(
+        () => sender.sendToRwgps(route(source: RouteSource.strava)),
+        throwsA(
+          isA<IntegrationException>().having(
+            (e) => e.failure,
+            'failure',
+            IntegrationFailure.rejected,
+          ),
+        ),
+      );
+      expect(adapter.requests, isEmpty);
     });
   });
 }

@@ -80,7 +80,7 @@ Con cualquier interruptor activado aparecen los campos: **Peso** (kg, o lb con u
 
 ## Conexiones
 
-Una fila para **Strava** y otra para **Ride with GPS**, cada una mostrando **No conectado**, tu nombre una vez conectada o **No disponible en esta versión**. **Conectar con Strava** y **Conectar con Ride with GPS** están bajo las no conectadas, **Desconectar** junto a las conectadas. Consulta [Strava y Ride with GPS](./strava-and-ridewithgps).
+Una fila para **Strava** y otra para **Ride with GPS**, cada una mostrando **No conectado**, tu nombre una vez conectada o **No disponible en esta versión**. **Conectar con Strava** y **Conectar con Ride with GPS** están bajo las no conectadas, **Desconectar** junto a las conectadas. Las dos conexiones son gratis. Consulta [Strava y Ride with GPS](./strava-and-ridewithgps).
 
 ## Asistente de IA
 

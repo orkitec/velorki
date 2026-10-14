@@ -147,12 +147,13 @@ const Map<String, String> sameAsEnglish = <String, String>{
   // Brand, product and service names.
   'appName': 'brand',
   'poweredByStrava': "Strava's attribution, required in English",
+  'rideDetailViewOnStrava': "Strava's link text, required in English",
   'serviceAppleMaps': 'product name',
   'serviceGoogleMaps': 'product name',
   'serviceOpenStreetMap': 'project name',
   'serviceStrava': 'brand',
   'serviceRwgps': 'brand',
-  'connectionsPlusTitle': 'product name (Velorki Plus)',
+  'sharePlusLabel': 'product name (Velorki Plus)',
   'plusTitle': 'product name (Velorki Plus)',
   'mapAttributionOpenFreeMap': 'project name',
   'mapAttributionCyclosm': 'project name',
@@ -164,6 +165,9 @@ const Map<String, String> sameAsEnglish = <String, String>{
   'voiceQualityPremium': "the platform's own name for the voice tier",
   // File formats.
   'importFormatGpx': 'file format',
+  // Words the target languages borrowed.
+  'commonOk': 'the same word in most languages',
+  'shareLinkRowTitle': 'a borrowed word (link)',
   'importFormatFit': 'file format',
   'importFormatTcx': 'file format',
   // Units and their symbols.

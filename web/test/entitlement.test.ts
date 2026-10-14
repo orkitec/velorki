@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { POST as stravaToken } from '@/app/(api)/oauth/strava/token/route';
+import { POST as share } from '@/app/(api)/share/route';
 import { EntitlementService, parseBearer } from '@/server/entitlement';
 import { ApiError } from '@/server/errors';
 import { MemoryCounters } from '@/server/counters';
@@ -14,16 +14,17 @@ const liveEnv = {
   REVENUECAT_MODE: 'live',
   REVENUECAT_SECRET_KEY: 'sk_test_do_not_log',
   REVENUECAT_ENTITLEMENT: 'plus',
-  STRAVA_CLIENT_ID: '1234',
-  STRAVA_CLIENT_SECRET: 'strava-secret',
-  OAUTH_REDIRECT_ALLOWLIST: 'velorki://oauth/strava',
 };
 
-function callStrava(auth?: string): Promise<Response> {
-  return stravaToken(
+/**
+ * A Plus route, through the HTTP layer. The entitlement is checked before the
+ * body is validated, so an empty body is enough to reach it.
+ */
+function callGated(auth?: string): Promise<Response> {
+  return share(
     jsonRequest(
-      'https://api.velorki.com/oauth/strava/token',
-      { code: 'abc', redirect_uri: 'velorki://oauth/strava' },
+      'https://api.velorki.com/share',
+      {},
       auth === undefined ? {} : { authorization: auth },
     ),
   );
@@ -36,7 +37,7 @@ function service(env: Record<string, string>): EntitlementService {
 describe('entitlement: header handling', () => {
   it('rejects a missing Authorization header with 401 not_entitled', async () => {
     await withEnv(liveEnv, async () => {
-      const res = await callStrava();
+      const res = await callGated();
       expect(res.status).toBe(401);
       expect((await errOf(res)).code).toBe('not_entitled');
     });
@@ -45,7 +46,7 @@ describe('entitlement: header handling', () => {
   it('rejects a malformed Authorization header', async () => {
     await withEnv(liveEnv, async () => {
       for (const header of ['Basic abc', 'Bearer', 'Bearer  ', 'token-without-scheme']) {
-        const res = await callStrava(header);
+        const res = await callGated(header);
         expect(res.status, header).toBe(401);
         expect((await errOf(res)).code).toBe('not_entitled');
       }
@@ -58,6 +59,13 @@ describe('entitlement: header handling', () => {
       ApiError,
     );
     expect(() => parseBearer(new Headers())).toThrow(ApiError);
+    // A free route asks for invalid_request instead of not_entitled.
+    try {
+      parseBearer(new Headers(), 'invalid_request');
+      expect.unreachable();
+    } catch (err) {
+      expect((err as ApiError).code).toBe('invalid_request');
+    }
   });
 });
 
@@ -169,7 +177,7 @@ describe('entitlement: live mode', () => {
   it('returns 401 not_entitled through the HTTP layer', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => revenueCatResponse('plus', undefined)));
     await withEnv(liveEnv, async () => {
-      const res = await callStrava('Bearer nobody');
+      const res = await callGated('Bearer nobody');
       expect(res.status).toBe(401);
       expect((await errOf(res)).code).toBe('not_entitled');
     });
@@ -177,7 +185,7 @@ describe('entitlement: live mode', () => {
 
   it('degrades to 503 when live mode has no secret key', async () => {
     await withEnv({ ...liveEnv, REVENUECAT_SECRET_KEY: '' }, async () => {
-      const res = await callStrava('Bearer someone');
+      const res = await callGated('Bearer someone');
       expect(res.status).toBe(503);
       expect((await errOf(res)).code).toBe('unavailable');
     });

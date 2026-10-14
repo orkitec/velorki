@@ -445,55 +445,6 @@ void main() {
 
       expect(container.read(textSharerProvider), same(shareTextWithSharePlus));
     });
-
-    test('the clipboard writer puts the link on the clipboard', () async {
-      final calls = <MethodCall>[];
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
-            calls.add(call);
-            return null;
-          });
-      addTearDown(
-        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(SystemChannels.platform, null),
-      );
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      await container.read(clipboardWriterProvider)(
-        'https://velorki.com/s/abc',
-      );
-
-      final call = calls.singleWhere((c) => c.method == 'Clipboard.setData');
-      expect(
-        (call.arguments as Map<Object?, Object?>)['text'],
-        'https://velorki.com/s/abc',
-      );
-    });
-
-    test(
-      'a clipboard that refuses is logged, not thrown at the rider',
-      () async {
-        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(
-              SystemChannels.platform,
-              (call) async => throw PlatformException(code: 'no clipboard'),
-            );
-        addTearDown(
-          () => TestDefaultBinaryMessengerBinding
-              .instance
-              .defaultBinaryMessenger
-              .setMockMethodCallHandler(SystemChannels.platform, null),
-        );
-        final container = ProviderContainer();
-        addTearDown(container.dispose);
-
-        await expectLater(
-          container.read(clipboardWriterProvider)('https://velorki.com/s/abc'),
-          completes,
-        );
-      },
-    );
   });
 
   group('the relay of a build', () {

@@ -45,8 +45,8 @@ class ImportRepository {
   /// Without a [source] the format decides it, so the library can tell a GPX
   /// import from a FIT one. A route that came out of a partner service passes
   /// [RouteSource.strava] or [RouteSource.rwgps] instead, which is what later
-  /// rules key off — AI descriptions are disabled for Strava-sourced routes,
-  /// and Strava's seven-day cache rule applies to them.
+  /// rules key off: a Strava-sourced route never goes to the AI, into a
+  /// share link or to another service.
   ///
   /// [externalIds] and [externalFetchedAt] record where it came from; they are
   /// written after the row exists, so an import without them is unchanged.

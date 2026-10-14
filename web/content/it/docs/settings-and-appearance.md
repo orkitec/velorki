@@ -80,7 +80,7 @@ Con un interruttore qualsiasi attivo compaiono i campi: **Peso** (kg, o lb con l
 
 ## Connessioni
 
-Una riga per **Strava** e una per **Ride with GPS**, ognuna con **Non connesso**, il tuo nome una volta connesso, oppure **Non disponibile in questa build**. **Connetti con Strava** e **Connetti Ride with GPS** stanno sotto quelle non connesse, **Disconnetti** accanto a quelle connesse. Vedi [Strava e Ride with GPS](./strava-and-ridewithgps).
+Una riga per **Strava** e una per **Ride with GPS**, ognuna con **Non connesso**, il tuo nome una volta connesso, oppure **Non disponibile in questa build**. **Connetti con Strava** e **Connetti Ride with GPS** stanno sotto quelle non connesse, **Disconnetti** accanto a quelle connesse. Entrambe le connessioni sono gratuite. Vedi [Strava e Ride with GPS](./strava-and-ridewithgps).
 
 ## Assistente IA
 

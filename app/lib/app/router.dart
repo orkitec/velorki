@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -11,6 +13,9 @@ import '../features/shared/presentation/gesture_zone_guard.dart';
 import '../features/import_export/data/track_decoder.dart';
 import '../features/import_export/domain/imported_track.dart';
 import '../features/import_export/presentation/import_preview_screen.dart';
+import '../features/integrations/application/connections_controller.dart';
+import '../features/integrations/application/strava_route_checks.dart';
+import '../features/integrations/presentation/strava_consent_sheet.dart';
 import '../features/library/presentation/library_screen.dart';
 import '../features/map/presentation/map_chrome.dart';
 import '../features/map/presentation/map_controls.dart';
@@ -214,6 +219,27 @@ class HomeShell extends ConsumerWidget {
     // The same for what a recording ride puts on the lock screen: the Android
     // notification's turn line and the iOS live activity.
     ref.listen(rideNotificationUpdaterProvider, (previous, next) {});
+    // Strava refused Velorki's access and the Strava data went: the rider
+    // is told in writing, wherever they are.
+    // Routes from Strava the checks deleted: said once, in a snack bar.
+    ref.listen(stravaRoutesRemovedNoticeProvider, (previous, next) {
+      if (next == 0) return;
+      ref.read(stravaRoutesRemovedNoticeProvider.notifier).dismiss();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.stravaRoutesRemoved(next))));
+    });
+    ref.listen(stravaAccessLostNoticeProvider, (previous, next) {
+      if (!next) return;
+      ref.read(stravaAccessLostNoticeProvider.notifier).dismiss();
+      unawaited(
+        showStravaDataDeletedDialog(
+          context,
+          title: l10n.stravaAccessLostTitle,
+          body: l10n.stravaAccessLostBody,
+        ),
+      );
+    });
     // While a ride is being recorded on the Record tab the bar only takes
     // space from the figures; it comes back when the ride ends or the
     // rider leaves the tab through the system back gesture.

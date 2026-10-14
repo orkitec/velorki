@@ -48,9 +48,9 @@ MET Norway (the Plus route forecast, through the relay).
   +-----------------------------------------------------------+
      |             |                  |               |
  OpenFreeMap,   Photon            BRouter server    Relay (web/)
- CyclOSM        online search,    (optional):       Plus only: OAuth
- map tiles      no tiles needed   areas with no     exchange, LLM,
-                                  tiles             share links
+ CyclOSM        online search,    (optional):       OAuth exchange,
+ map tiles      no tiles needed   areas with no     LLM, share links,
+                                  tiles             weather
 ```
 File format and builder: [`tools/gazetteer/README.md`](../tools/gazetteer/README.md).
 Mirror layout, sharding, `latest.json` and the resume path:
@@ -81,7 +81,7 @@ and hides the Plus features — see [SELF_HOSTING.md](SELF_HOSTING.md).
                               ├─ OAuth code → token (secrets added) → Strava,
                               │  RideWithGPS; tokens handed back wrapped, and
                               │  every service call passes through /proxy/*
-                              │  (entitlement, unwrap, forward, keep nothing)
+                              │  (free: unwrap, forward, keep nothing)
                               ├─ AI: prompt → an OpenAI-compatible LLM provider
                               └─ share links
 ```
@@ -343,12 +343,13 @@ exchange the code **through the relay**, store the tokens in secure storage
 **as the relay wrapped them** (AES-GCM under a key only the relay has); a dio
 interceptor refreshes 60 s before expiry. Every service call goes through the
 relay's `/proxy/<service>/…` with the wrapped token in `X-Velorki-Token`: the
-relay checks the entitlement, unwraps in memory, forwards
+relay limits per IP and per install id (no subscription: Strava's API Policy
+forbids charging for its functionality), unwraps in memory, forwards
 with the service's bearer and streams the answer back, storing nothing; a
 token under a retired key comes back re-wrapped and replaces the stored one.
 Strava rides go up as multipart uploads, polled with backoff and then linked
 to; the imported route list is
-cached for 7 days, a client-side bucket keeps reads under 90 per 15 minutes, and
+cached for 48 hours, a client-side bucket keeps reads under 90 per 15 minutes, and
 AI descriptions are refused for `source == strava`. Strava's API cannot create
 routes, so sending one *to* Strava is "export GPX, then share"; Komoot and
 Garmin are file-based only.
@@ -489,9 +490,10 @@ Settings → Advanced overrides the server URLs at runtime.
 
 ## Free vs Plus
 
-Free is everything that runs on the phone. Plus is everything that needs our
-servers or a partner account: the assistant, the Strava and RideWithGPS
-connections, link sharing, and the weather through the relay (the route
+Free is everything that runs on the phone, plus the Strava and Ride with GPS
+connections (Strava's API Policy forbids charging for its functionality; Ride
+with GPS follows for consistency). Plus is what needs our servers: the
+assistant, link sharing, and the weather through the relay (the route
 forecast from NWS, DWD MOSMIX and MET Norway, and the OPERA and DPC radars). The weather
 map and the route weather from the DWD's open ICON forecast (wind, rain and 2 m
 temperature: the route's weather section, its best time and its colours) stay

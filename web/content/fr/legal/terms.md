@@ -4,7 +4,7 @@ description: Les conditions d'utilisation de l'application et du site web Velork
 draft: false
 ---
 
-Date d'entrée en vigueur : 27 septembre 2026.
+Date d'entrée en vigueur : 13 octobre 2026.
 
 ## 1. Entre qui ces conditions s'appliquent
 
@@ -82,11 +82,12 @@ a force obligatoire.
 Tout ce qui fonctionne sur votre téléphone est gratuit et le reste : la
 planification, les boucles intelligentes, les cartes hors ligne et le routage
 hors ligne, la recherche de lieux, la navigation guidée, l'enregistrement, les
-statistiques de sortie, ainsi que l'import et l'export GPX, FIT et TCX.
+statistiques de sortie, l'import et l'export GPX, FIT et TCX, ainsi que les
+connexions à Strava et à Ride with GPS.
 
 **Velorki Plus** est un abonnement facultatif pour les fonctions qui
-nécessitent nos serveurs ou un compte auprès d'un autre service : la connexion
-à Strava, la connexion à Ride with GPS, l'assistant et les liens de partage.
+nécessitent nos serveurs : l'assistant, les liens de partage, ainsi que la météo
+plus fine le long de l'itinéraire et le radar de pluie.
 
 ### 4.1 Comment il est acheté
 
@@ -136,7 +137,7 @@ restauré sur l'autre.
 ### 4.5 Si une fonction Plus cesse de fonctionner
 
 Nous pouvons modifier, suspendre ou interrompre une fonction Plus, par exemple
-si l'API d'un partenaire ferme ou si un fournisseur d'IA devient indisponible. Si nous supprimons définitivement une partie substantielle de ce que propose
+si un service météo ou si un fournisseur d'IA devient indisponible. Si nous supprimons définitivement une partie substantielle de ce que propose
 Plus, vous pouvez résilier ; les règles de remboursement et de calcul au prorata
 de la boutique s'appliquent alors. Tout ce qui est gratuit continue de
 fonctionner dans tous les cas, y compris hors ligne, et vos itinéraires et vos

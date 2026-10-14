@@ -8,6 +8,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
+import '../../../core/db/tables/routes.dart' show RouteSource;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/application/assistant_sheet_memory.dart';
 import '../../assistant/application/route_advice_controller.dart';
@@ -1149,6 +1150,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           pois: state.pois,
           options: state.options,
           id: state.savedRouteId,
+          // A route edited from a Strava route stays Strava's, even when
+          // the row it came from is gone by now.
+          source: state.savedRouteSource == RouteSource.strava
+              ? RouteSource.strava
+              : RouteSource.planned,
           surfaceStats: state.surfaceStats,
           original: state.original,
         );

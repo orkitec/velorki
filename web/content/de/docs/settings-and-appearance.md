@@ -80,7 +80,7 @@ Ist einer der Schalter an, erscheinen die Felder: **Gewicht** (kg, bei imperiale
 
 ## Verbindungen
 
-Je eine Zeile für **Strava** und für **Ride with GPS**, die entweder **Nicht verbunden**, nach dem Verbinden deinen Namen, oder **In diesem Build nicht verfügbar** zeigt. **Verbinden mit Strava** und **Mit Ride with GPS verbinden** stehen unter den nicht verbundenen, **Trennen** neben den verbundenen. Siehe [Strava und Ride with GPS](./strava-and-ridewithgps).
+Je eine Zeile für **Strava** und für **Ride with GPS**, die entweder **Nicht verbunden**, nach dem Verbinden deinen Namen, oder **In diesem Build nicht verfügbar** zeigt. **Verbinden mit Strava** und **Mit Ride with GPS verbinden** stehen unter den nicht verbundenen, **Trennen** neben den verbundenen. Beide Verbindungen sind kostenlos. Siehe [Strava und Ride with GPS](./strava-and-ridewithgps).
 
 ## KI-Assistent
 

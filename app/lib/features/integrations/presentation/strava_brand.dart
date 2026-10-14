@@ -72,10 +72,46 @@ class StravaConnectButton extends StatelessWidget {
   }
 }
 
+/// Strava's orange, which their brand guidelines give a "View on Strava"
+/// link.
+const Color stravaOrange = Color(0xFFFC5200);
+
+/// The athlete's page on Strava.
+Uri stravaAthleteUrl(String athleteId) =>
+    Uri.parse('https://www.strava.com/athletes/$athleteId');
+
+/// A route's page on Strava.
+Uri stravaRouteUrl(String routeId) =>
+    Uri.parse('https://www.strava.com/routes/$routeId');
+
+/// "View on Strava", as Strava's brand guidelines want the link back to
+/// their data: those exact words, bold, underlined, in Strava's orange.
+class ViewOnStravaLink extends StatelessWidget {
+  /// Creates the link; [onPressed] opens the page.
+  const ViewOnStravaLink({required this.onPressed, super.key});
+
+  /// Opens the page on Strava.
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => TextButton(
+    onPressed: onPressed,
+    style: TextButton.styleFrom(foregroundColor: stravaOrange),
+    child: Text(
+      AppLocalizations.of(context).rideDetailViewOnStrava,
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+        decoration: TextDecoration.underline,
+        decorationColor: stravaOrange,
+      ),
+    ),
+  );
+}
+
 /// Strava's "Powered by Strava" logo.
 ///
 /// Their API terms require it on every surface that shows data coming from
-/// Strava, which in Velorki is the list of imported Strava routes.
+/// Strava: the list of Strava routes and a Strava route's page.
 class PoweredByStrava extends StatelessWidget {
   /// Creates the logo.
   const PoweredByStrava({super.key});
