@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { rwgpsConfigured, stravaConfigured, type Config } from '@/config';
+import { clientIp, rwgpsConfigured, stravaConfigured, type Config } from '@/config';
 import type { ApiContext } from './api';
 import { ApiError } from './errors';
-import { requireEntitlement } from './entitlement';
+import { parseBearer } from './entitlement';
 import { LIMITS, enforce } from './ratelimit';
-import { getConfig, getCounters, getEntitlement } from './singletons';
+import { getConfig, getCounters } from './singletons';
 import {
   REWRAPPED_HEADER,
   TOKEN_HEADER,
@@ -17,15 +17,20 @@ import {
 /**
  * Pass-through to Strava and Ride with GPS.
  *
- * The phone calls `/proxy/<service>/<upstream path>` with the relay's own
- * bearer (the RevenueCat id) and the wrapped service token in
- * `X-Velorki-Token`. The relay checks the subscription, refuses anything that
- * is not one of the calls the app makes, unwraps the token in memory, puts it
- * on as `Authorization: Bearer` and streams the body to the service and the
- * answer back, status and all. Nothing is buffered beyond what the network
- * needs and nothing is stored: not the file, not the token, not the answer,
- * and no record of who called what. The per-rider rate-limit windows are the
- * only state a call leaves, and the host's per-route metrics give the totals.
+ * Free: Strava's API Policy does not allow charging for its functionality,
+ * and Ride with GPS is treated the same. The phone calls
+ * `/proxy/<service>/<upstream path>` with its install id as the bearer and
+ * the wrapped service token in `X-Velorki-Token`. The install id is only a
+ * rate-limit key; what authenticates a call is the token, which only opens
+ * if this relay wrapped it, so the relay serves riders who connected through
+ * it and nobody else. It refuses anything that is not one of the calls the
+ * app makes, unwraps the token in memory, puts it on as
+ * `Authorization: Bearer` and streams the body to the service and the answer
+ * back, status and all. Nothing is buffered beyond what the network needs and
+ * nothing is stored: not the file, not the token, not the answer, and no
+ * record of who called what. The per-IP and per-install rate-limit windows
+ * are the only state a call leaves, and the host's per-route metrics give the
+ * totals.
  */
 
 interface UpstreamRoute {
@@ -62,6 +67,8 @@ export const UPSTREAMS: Readonly<Record<WrappedService, Upstream>> = {
       { method: 'POST', pattern: /^\/api\/v3\/uploads$/, operation: 'upload' },
       { method: 'GET', pattern: /^\/api\/v3\/uploads\/[0-9]+$/, operation: 'upload_status' },
       { method: 'GET', pattern: /^\/api\/v3\/athletes\/[0-9]+\/routes$/, operation: 'list_routes' },
+      // The 48-hour check that an imported route still exists on Strava.
+      { method: 'GET', pattern: /^\/api\/v3\/routes\/[0-9]+$/, operation: 'route' },
       { method: 'GET', pattern: /^\/api\/v3\/routes\/[0-9]+\/export_gpx$/, operation: 'route_gpx' },
       { method: 'POST', pattern: /^\/oauth\/deauthorize$/, operation: 'deauthorize' },
     ],
@@ -123,6 +130,56 @@ const FORWARDED_RESPONSE_HEADERS = [
 /** Query parameters that never go upstream: a token in a URL ends up in logs. */
 const DROPPED_QUERY = ['access_token'];
 
+/** Set while Strava has answered 429: no call goes to Strava until it expires. */
+export const STRAVA_BACKOFF_KEY = 'strava:backoff';
+
+/**
+ * How long to leave Strava alone after a 429: its Retry-After when it sends
+ * one, else until its next 15-minute window starts (its limits reset on the
+ * quarter hour).
+ */
+export function stravaBackoffSeconds(retryAfter: string | null, nowMs: number = Date.now()): number {
+  const given = retryAfter === null ? Number.NaN : Number(retryAfter);
+  if (Number.isFinite(given) && given > 0) return Math.min(Math.ceil(given), 86_400);
+  const nowS = Math.floor(nowMs / 1000);
+  return Math.max(1, 900 - (nowS % 900));
+}
+
+function stravaBusy(retryAfterS: number): ApiError {
+  return new ApiError('rate_limited', "Strava's API limit for Velorki is reached; try again later.", {
+    retryAfterS,
+  });
+}
+
+/**
+ * The Strava-only limits, before the call: the back-off after a 429, then
+ * uploads and every other call apart, per IP and per install.
+ */
+async function enforceStravaQuota(
+  counters: ReturnType<typeof getCounters>,
+  ip: string,
+  installId: string,
+  route: UpstreamRoute,
+  ctx: ApiContext,
+): Promise<void> {
+  if ((await counters.get<boolean>(STRAVA_BACKOFF_KEY)) === true) {
+    throw stravaBusy(stravaBackoffSeconds(null));
+  }
+  const upload = route.operation === 'upload';
+  await enforce(
+    counters,
+    ip,
+    upload ? [LIMITS.stravaUploadPerIpHour, LIMITS.stravaUploadPerIpDay] : [LIMITS.stravaCallsPerIpHour],
+    ctx.log,
+  );
+  await enforce(
+    counters,
+    installId,
+    upload ? [LIMITS.stravaUploadPerHour, LIMITS.stravaUploadPerDay] : [LIMITS.stravaCallsPerHour],
+    ctx.log,
+  );
+}
+
 /** The upstream path of a request, i.e. what follows `/proxy/<service>`. */
 export function upstreamPath(pathname: string, service: WrappedService): string | undefined {
   const marker = `/proxy/${service}/`;
@@ -174,10 +231,11 @@ function bounded(
 /**
  * The handler behind `/proxy/strava/*` and `/proxy/rwgps/*`.
  *
- * Order: the subscription first, because an unentitled caller learns nothing
- * about which upstream paths exist; then the allowlist; then the per-rider
- * limit, so a refused path is not charged; then the token, so a bad token is
- * reported as such and not as a service error.
+ * Order: the per-IP limit first, so a client in a loop is stopped before
+ * any work; then the bearer, a well-formed install id or `invalid_request`;
+ * then the allowlist; then the per-install limit, so a refused path is not
+ * charged to it; then the token, so a bad token is reported as such and not
+ * as a service error.
  */
 export async function forward(
   request: Request,
@@ -190,12 +248,16 @@ export async function forward(
   const url = new URL(request.url);
   const path = upstreamPath(url.pathname, service);
 
-  const appUserId = await requireEntitlement(getEntitlement(), request.headers, ctx.log);
+  await enforce(counters, clientIp(config, request.headers), [LIMITS.proxyPerIpHour], ctx.log);
+  const installId = parseBearer(request.headers, 'invalid_request');
   const route = path === undefined ? undefined : matchUpstream(service, request.method, path);
   if (route === undefined || path === undefined) {
     throw new ApiError('not_found', `No route for ${request.method} ${url.pathname}.`);
   }
-  await enforce(counters, appUserId, [LIMITS.proxyPerMin, LIMITS.proxyPerDay], ctx.log);
+  await enforce(counters, installId, [LIMITS.proxyPerMin, LIMITS.proxyPerDay], ctx.log);
+  if (service === 'strava') {
+    await enforceStravaQuota(counters, clientIp(config, request.headers), installId, route, ctx);
+  }
 
   const keys = requireWrapKeys(config.TOKEN_WRAP_KEYS);
   const wrapped = request.headers.get(TOKEN_HEADER);
@@ -265,6 +327,16 @@ export async function forward(
     { service, operation: route.operation, status: res.status, ms: Date.now() - started },
     'forwarded',
   );
+
+  if (service === 'strava' && res.status === 429) {
+    // The app-wide quota is spent: every install waits, nobody retries into
+    // it, and the phone gets the relay's own clear answer.
+    const retryAfterS = stravaBackoffSeconds(res.headers.get('retry-after'));
+    await counters.set(STRAVA_BACKOFF_KEY, true, retryAfterS);
+    ctx.log.warn({ retryAfterS }, 'strava quota exhausted; backing off');
+    await res.body?.cancel();
+    throw stravaBusy(retryAfterS);
+  }
 
   const out = new Headers();
   for (const name of FORWARDED_RESPONSE_HEADERS) {

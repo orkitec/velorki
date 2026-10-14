@@ -28,7 +28,7 @@ sur le prestataire figurent dans les [mentions légales](./imprint).
 - Certaines choses nécessitent un serveur : les tuiles de carte, le routage en
   dehors des zones que vous avez téléchargées, la recherche lorsque vous la
   demandez et, si vous les utilisez, l'assistant IA, les connexions à Strava et
-  à RideWithGPS, et les liens de partage. Chacun est décrit ci-dessous.
+  à RideWithGPS (gratuites), et les liens de partage. Chacun est décrit ci-dessous.
 - Ce **site web** n'a ni outil d'analyse d'audience, ni publicité, ni pistage :
   le court avis affiché en bas de page ne vous demande donc rien.
 - Nous ne vendons pas vos données et ne les utilisons ni à des fins
@@ -54,8 +54,9 @@ exportez, ou dans un envoi vers Strava ou RideWithGPS que vous lancez.
 
 Si vous connectez Strava ou RideWithGPS, les jetons d'accès à ces comptes sont
 conservés dans le stockage sécurisé du téléphone (Keychain sur iOS, Keystore
-sur Android), sous une forme chiffrée que seul notre relais peut ouvrir ; voir
-la section consacrée à Strava et à RideWithGPS ci-dessous.
+sur Android), sous une forme chiffrée que seul notre relais peut ouvrir, et ce que vous
+récupérez de Strava est conservé sur le téléphone ; voir la section consacrée à
+Strava et à RideWithGPS ci-dessous.
 
 Sur Android, l'application est exclue de la sauvegarde dans le cloud de Google
 et du transfert d'appareil à appareil : vos sorties et vos jetons d'accès ne
@@ -132,30 +133,88 @@ partie de la carte. Les fournisseurs du radar voient notre serveur, pas votre
 téléphone, et le relais ne garde aucune trace de la partie de la carte que vous
 avez demandée.
 
-### Strava et RideWithGPS (Velorki Plus)
+### Strava et RideWithGPS
 
-Rien n'est envoyé à Strava ou à RideWithGPS tant que vous ne connectez pas
-vous-même le compte et ne déclenchez pas ensuite une action : envoyer une
-sortie, importer un itinéraire.
+Les deux connexions sont gratuites. Rien n'est envoyé à Strava ou à RideWithGPS
+tant que vous ne connectez pas vous-même le compte et ne déclenchez pas ensuite
+une action : envoyer une sortie, importer un itinéraire.
 
 Lorsque vous vous connectez, l'application remet un code à usage unique à notre
-serveur relais, qui l'échange contre un jeton d'accès en y ajoutant le secret
-de notre application, chiffre le jeton avec une clé que seul le relais détient,
-et le renvoie à l'application sous cette forme. Votre téléphone conserve le
-jeton chiffré ; il ne peut pas l'utiliser seul, et nous ne le conservons pas du
-tout.
+serveur relais (api.velorki.com), qui l'échange contre un jeton d'accès en y
+ajoutant le secret de notre application, chiffre le jeton avec une clé que seul
+le relais détient, et le renvoie à l'application sous cette forme. Votre
+téléphone conserve le jeton chiffré dans son stockage sécurisé (Keychain sur
+iOS, Keystore sur Android), exclu des sauvegardes ; il ne peut pas l'utiliser
+seul, et nous ne le conservons pas du tout.
 
 Ensuite, chaque envoi, transfert d'itinéraire, import et déconnexion que vous
-déclenchez passe par le relais : il vérifie que votre abonnement est actif,
-déchiffre le jeton pour cette seule requête, transmet la requête à Strava ou à
-RideWithGPS et renvoie la réponse à l'application. Il ne conserve ni le
-fichier, ni le jeton, ni rien de la réponse, et il applique la même limitation
-de débit qu'à tout autre appel au relais (voir Journaux des serveurs
-ci-dessous). Ses journaux ne contiennent jamais le jeton, le corps de la
-requête ni l'identifiant d'abonné.
+déclenchez passe par le relais : il déchiffre le jeton pour cette seule requête,
+transmet la requête à Strava ou à RideWithGPS et renvoie la réponse à
+l'application. Il ne conserve ni le fichier, ni le jeton, ni rien de la réponse,
+ni aucune trace de l'appel. Aucun abonnement n'est vérifié pour ces appels ; pour
+empêcher les abus, le relais ne garde que des compteurs de limitation de débit
+de courte durée, associés à l'identifiant anonyme de votre installation et à
+l'adresse IP (voir Journaux des serveurs ci-dessous). Ses journaux ne
+contiennent jamais le jeton, le corps de la requête ni cet identifiant.
 
-Ce que Strava ou RideWithGPS font ensuite des données que vous leur envoyez est
-régi par leurs propres politiques de confidentialité.
+#### Strava
+
+**Ce que Velorki demande.** Deux autorisations : `read`, votre profil Strava
+public (votre identifiant d'athlète et votre nom), et `activity:write`, pour
+téléverser les sorties que vous choisissez de téléverser. Velorki ne lit pas vos
+activités.
+
+**Ce qu'il lit et conserve, uniquement sur votre téléphone :**
+
+- votre identifiant d'athlète et votre nom, affichés dans Réglages →
+  Connexions, jusqu'à ce que vous vous déconnectiez ;
+- votre liste d'itinéraires Strava (nom, distance, dénivelé positif,
+  description et date), récupérée lorsque vous ouvrez l'écran d'import et
+  conservée sur le téléphone **48 heures** au plus ;
+- le fichier GPX d'un itinéraire, lorsque vous importez cet itinéraire ; il est
+  conservé comme itinéraire dans la bibliothèque de l'application, de même que
+  tout itinéraire que vous modifiez à partir de lui, uniquement tant que
+  l'itinéraire existe encore sur Strava : tant que l'application est ouverte,
+  en ligne et connectée, elle le revérifie auprès de Strava toutes les 48
+  heures, et le supprime s'il a été supprimé sur Strava ou n'a pas pu être
+  vérifié pendant 7 jours, et vous le signale. Il est aussi supprimé lorsque
+  vous le supprimez ou que vous vous déconnectez ;
+- après un envoi, l'identifiant de l'activité Strava et son lien, conservés avec
+  la sortie pour que l'application puisse afficher « View on Strava », jusqu'à
+  ce que vous vous déconnectiez.
+
+Une sortie que vous envoyez est transmise à Strava, qui la traite comme décrit
+dans la [politique de confidentialité de Strava](https://www.strava.com/legal/privacy).
+Strava et Orkitec sont chacun responsables de leur propre traitement.
+
+**Les données Strava restent chez vous.** Les données Strava ne servent qu'à
+vous être montrées, dans l'application. Elles ne sont jamais envoyées à
+l'assistant IA, jamais mises dans un lien de partage et jamais envoyées à
+RideWithGPS ni à aucun autre service. Nous ne détenons aucune donnée Strava sur
+nos serveurs.
+
+**Suppression.** La déconnexion de Strava dans Réglages → Connexions révoque
+l'autorisation de Velorki chez Strava, supprime les jetons et supprime du
+téléphone tout élément venant de Strava : les itinéraires Strava importés et
+ceux modifiés à partir d'eux, la liste d'itinéraires en cache et les liens
+d'activité conservés. L'application le confirme alors : « Vos données Strava ont
+été supprimées de ce téléphone. » Si vous révoquez plutôt l'accès de Velorki sur
+strava.com, l'application le remarque à son prochain appel à Strava, supprime
+les mêmes données et vous le dit. Désinstaller l'application les supprime aussi.
+Comme tout est sur votre téléphone, ce sont les moyens de les supprimer ; pour
+toute question ou demande de suppression, écrivez à ride@velorki.com.
+
+**Données d'utilisation chez Strava.** Strava peut surveiller et collecter des
+données sur la manière dont Velorki utilise l'API de Strava (données
+d'utilisation) et peut les utiliser à toute fin commerciale, interne ou externe,
+y compris pour apporter des améliorations à l'API de Strava ou à la plateforme
+Strava, fournir une assistance aux développeurs ou aux utilisateurs, et veiller
+au respect de son contrat d'API.
+
+#### RideWithGPS
+
+Ce que RideWithGPS fait des données que vous lui envoyez est régi par sa propre
+politique de confidentialité.
 
 ### L'assistant IA (Velorki Plus)
 
@@ -321,6 +380,10 @@ pas. L'entrée 🍪 Cookies du pied de page le fait réapparaître.
 |---|---|---|
 | Itinéraires, sorties, réglages, données hors ligne | sur votre téléphone, jusqu'à ce que vous les supprimiez | supprimez-les dans l'application, ou désinstallez l'application |
 | Jetons Strava / RideWithGPS | sur votre téléphone, chiffrés de sorte que seul notre relais puisse les ouvrir, jusqu'à ce que vous vous déconnectiez ; jamais conservés de notre côté | déconnectez-vous dans l'application, ou désinstallez-la |
+| Données Strava : votre nom, les liens d'activité | sur votre téléphone, jusqu'à ce que vous vous déconnectiez ; jamais conservées de notre côté | déconnectez Strava dans l'application, ou désinstallez-la ; questions à ride@velorki.com |
+| Itinéraires importés depuis Strava, et itinéraires modifiés à partir d'eux | sur votre téléphone, uniquement tant que l'itinéraire existe encore sur Strava : revérifié toutes les 48 heures, supprimé s'il y a été supprimé ou n'a pas pu être vérifié pendant 7 jours ; jamais conservés de notre côté | supprimez-le dans l'application, déconnectez Strava, ou désinstallez l'application |
+| La liste en cache de vos itinéraires Strava | sur votre téléphone, 48 heures au plus | déconnectez Strava, ou désinstallez l'application |
+| Compteurs de limitation de débit (identifiant d'installation anonyme, adresse IP) | sur notre serveur, pendant la fenêtre de comptage, un jour au plus | sans objet |
 | Liens de partage | un an, puis supprimés automatiquement | supprimez-les depuis l'application |
 | Requêtes à l'IA | non conservées par nous au-delà de ce que contiennent les journaux ci-dessus | sans objet |
 | Données RevenueCat | selon la politique propre de RevenueCat | contactez-nous et nous transmettrons la demande |
@@ -342,7 +405,7 @@ sens de l'article 6, paragraphe 1, du RGPD sont les suivantes :
 | Routage en ligne et recherche en ligne, lorsque vous les demandez | b) exécution du service que vous avez demandé, et f) pour les coordonnées strictement nécessaires pour répondre |
 | Velorki Plus : vérification auprès de RevenueCat qu'un abonnement est actif | b) exécution du contrat |
 | Velorki Plus : la météo plus fine le long de l'itinéraire et le radar de pluie | b) exécution du contrat |
-| Strava et RideWithGPS : connexion d'un compte et chaque transfert que vous déclenchez | b) exécution du contrat, ainsi que a) consentement, donné en connectant le compte |
+| Strava et RideWithGPS : connexion d'un compte, chaque transfert que vous déclenchez et les données Strava conservées sur votre téléphone | b) exécution du service que vous avez demandé, ainsi que a) consentement, donné en connectant le compte et retiré en le déconnectant |
 | Liens de partage que vous créez | b) exécution du contrat |
 | L'assistant IA | a) consentement, demandé séparément dans l'application et révocable dans les réglages |
 | Vous répondre dans le chat d'assistance | b) lorsque cela concerne un abonnement, sinon f) intérêt légitime à répondre à la personne qui nous a écrit |

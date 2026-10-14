@@ -41,12 +41,31 @@ export const LIMITS = {
   aiPlanPerIpHour: { name: 'ai_plan_ip_hour', limit: 60, windowS: 3_600 },
   sharePerDay: { name: 'share_day', limit: 30, windowS: 86_400 },
   /**
-   * Pass-through calls, per rider. An upload is one call plus up to six
+   * Pass-through calls, per install. An upload is one call plus up to six
    * polls, and a route list page is one, so a busy afternoon stays well
    * inside the minute and the day.
    */
   proxyPerMin: { name: 'proxy_min', limit: 60, windowS: 60 },
   proxyPerDay: { name: 'proxy_day', limit: 1_500, windowS: 86_400 },
+  /**
+   * Charged before anything else: the install id is the phone's own word, so
+   * this is the limit a caller cannot sidestep by making up new ones. Ten
+   * riders behind one address each uploading and importing stay inside it.
+   */
+  proxyPerIpHour: { name: 'proxy_ip_hour', limit: 600, windowS: 3_600 },
+  /**
+   * Strava's quota is one for the whole app (200 per 15 minutes, 2,000 a
+   * day at the Standard tier), so one install must not be able to spend it.
+   * An upload is one call; its status polls, the route list, the GPX and
+   * the 48-hour route checks are the other calls. Per IP five times as many,
+   * for a household or a carrier NAT.
+   */
+  stravaUploadPerHour: { name: 'strava_upload_hour', limit: 6, windowS: 3_600 },
+  stravaUploadPerDay: { name: 'strava_upload_day', limit: 20, windowS: 86_400 },
+  stravaCallsPerHour: { name: 'strava_calls_hour', limit: 60, windowS: 3_600 },
+  stravaUploadPerIpHour: { name: 'strava_upload_ip_hour', limit: 30, windowS: 3_600 },
+  stravaUploadPerIpDay: { name: 'strava_upload_ip_day', limit: 100, windowS: 86_400 },
+  stravaCallsPerIpHour: { name: 'strava_calls_ip_hour', limit: 300, windowS: 3_600 },
   /**
    * Charged before the body is read, so an unauthenticated caller cannot keep
    * a worker buffering megabytes; the per-user daily limit is the real one.

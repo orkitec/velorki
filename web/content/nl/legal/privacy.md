@@ -26,7 +26,7 @@ aanbieder staan op de pagina [colofon](./imprint).
 - Je routes, je ritten en je instellingen blijven **op je telefoon**.
 - Sommige dingen hebben een server nodig: kaarttegels, routeplanning buiten de
   gebieden die je hebt gedownload, zoeken wanneer je daarom vraagt, en, als je
-  ze gebruikt, de AI-assistent, de koppelingen met Strava en RideWithGPS en
+  ze gebruikt, de AI-assistent, de koppelingen met Strava en RideWithGPS (gratis) en
   deellinks. Elk daarvan wordt hieronder beschreven.
 - Deze **website** heeft geen analytics, geen advertenties en geen tracking,
   dus de korte melding onderaan vraagt niets van je.
@@ -51,8 +51,9 @@ upload naar Strava of RideWithGPS die je zelf start.
 
 Als je Strava of RideWithGPS koppelt, worden de toegangstokens voor die accounts
 opgeslagen in de beveiligde opslag van de telefoon (Keychain op iOS, Keystore
-op Android), in een versleutelde vorm die alleen onze relay kan openen; zie het
-gedeelte over Strava en RideWithGPS hieronder.
+op Android), in een versleutelde vorm die alleen onze relay kan openen, en wat je van Strava
+neemt blijft op de telefoon; zie het gedeelte over Strava en RideWithGPS
+hieronder.
 
 Op Android is de app uitgesloten van de cloudback-up van Google en van de
 overdracht van apparaat naar apparaat, zodat je ritten en je toegangstokens ook
@@ -123,27 +124,84 @@ tweeënhalf uur en stuurt een beeld van dat deel van de kaart terug. De
 aanbieders van de radar zien onze server, niet je telefoon, en de relay houdt
 niet bij naar welk deel van de kaart je hebt gevraagd.
 
-### Strava en RideWithGPS (Velorki Plus)
+### Strava en RideWithGPS
 
-Er wordt niets naar Strava of RideWithGPS gestuurd, tenzij je het account zelf
-koppelt en daarna een actie start: een rit uploaden, een route importeren.
+Beide koppelingen zijn gratis. Er wordt niets naar Strava of RideWithGPS
+gestuurd, tenzij je het account zelf koppelt en daarna een actie start: een rit
+uploaden, een route importeren.
 
-Bij het koppelen geeft de app een eenmalige code aan onze relayserver, die
-deze inwisselt voor een toegangstoken door ons applicatiegeheim toe te voegen,
-het token versleutelt met een sleutel die alleen de relay heeft, en het in die
-vorm teruggeeft aan de app. Je telefoon bewaart het versleutelde token; hij kan
-het zelf niet gebruiken, en wij slaan het helemaal niet op.
+Bij het koppelen geeft de app een eenmalige code aan onze relayserver
+(api.velorki.com), die deze inwisselt voor een toegangstoken door ons
+applicatiegeheim toe te voegen, het token versleutelt met een sleutel die alleen
+de relay heeft, en het in die vorm teruggeeft aan de app. Je telefoon bewaart
+het versleutelde token in zijn beveiligde opslag (Keychain op iOS, Keystore op
+Android), uitgesloten van back-ups; hij kan het zelf niet gebruiken, en wij
+slaan het helemaal niet op.
 
 Daarna gaat elke upload, routeoverdracht, import en ontkoppeling die je start
-via de relay: die controleert of je abonnement actief is, ontsleutelt het token
-voor dat ene verzoek, stuurt het verzoek door naar Strava of RideWithGPS en
-geeft het antwoord terug aan de app. Hij bewaart het bestand niet, het token
-niet en niets van het antwoord, en hij past dezelfde snelheidsbeperking toe als
-bij elke andere relay-aanroep (zie Serverlogs hieronder). Zijn logs bevatten
-nooit het token, de inhoud van het verzoek of de abonnee-id.
+via de relay: die ontsleutelt het token voor dat ene verzoek, stuurt het
+verzoek door naar Strava of RideWithGPS en geeft het antwoord terug aan de app.
+Hij bewaart het bestand niet, het token niet, niets van het antwoord en geen
+enkel spoor van de aanroep. Voor deze aanroepen wordt geen abonnement
+gecontroleerd; om misbruik te voorkomen houdt de relay alleen kortlevende
+tellers voor de snelheidsbeperking bij, op basis van de anonieme id van je
+installatie en van het IP-adres (zie Serverlogs hieronder). Zijn logs bevatten
+nooit het token, de inhoud van het verzoek of die id.
 
-Wat Strava of RideWithGPS vervolgens doen met de gegevens die je hun stuurt,
-valt onder hun eigen privacybeleid.
+#### Strava
+
+**Wat Velorki vraagt.** Twee machtigingen: `read`, je openbare Strava-profiel
+(je atleet-id en naam), en `activity:write`, om de ritten te uploaden die jij
+wilt uploaden. Velorki leest je activiteiten niet.
+
+**Wat het leest en bewaart, alles alleen op je telefoon:**
+
+- je atleet-id en naam, getoond in Instellingen → Koppelingen, tot je
+  ontkoppelt;
+- je lijst met Strava-routes (naam, afstand, hoogtewinst, beschrijving en
+  datum), opgehaald wanneer je het importscherm opent en hooguit **48 uur** op
+  de telefoon bewaard;
+- het GPX-bestand van een route, wanneer je die route importeert; het wordt als
+  route in de bibliotheek van de app bewaard, en dat geldt ook voor elke route
+  die je ervan bewerkt, maar alleen zolang de route nog op Strava bestaat: zolang
+  de app open, online en gekoppeld is, controleert hij de route elke 48 uur
+  opnieuw bij Strava en verwijdert hem als hij op Strava is verwijderd of 7 dagen
+  lang niet kon worden gecontroleerd, en meldt je dat. Hij wordt ook verwijderd
+  als je hem zelf verwijdert of ontkoppelt;
+- na een upload de id van de Strava-activiteit en de link ernaar, bij de rit
+  bewaard zodat de app "View on Strava" kan tonen, tot je ontkoppelt.
+
+Een rit die je uploadt, wordt naar Strava gestuurd, dat hem verwerkt zoals
+beschreven in [het privacybeleid van Strava](https://www.strava.com/legal/privacy).
+Strava en Orkitec zijn elk verantwoordelijk voor hun eigen verwerking.
+
+**Strava-gegevens blijven bij jou.** Strava-gegevens worden alleen aan jou
+getoond, in de app. Ze worden nooit naar de AI-assistent gestuurd, nooit in een
+deellink gezet en nooit naar RideWithGPS of een andere dienst gestuurd. Wij
+bewaren geen Strava-gegevens op onze servers.
+
+**Verwijderen.** Strava ontkoppelen onder Instellingen → Koppelingen trekt de
+machtiging van Velorki bij Strava in, verwijdert de tokens en verwijdert alles
+wat van Strava kwam van de telefoon: geïmporteerde Strava-routes en routes die
+ervan bewerkt zijn, de lijst met routes in de cache en de bewaarde links naar
+activiteiten. De app bevestigt dan: "Je Strava-gegevens zijn van deze telefoon
+verwijderd." Trek je de toegang van Velorki in op strava.com, dan merkt de app
+dat bij de volgende aanroep naar Strava, verwijdert dezelfde gegevens en
+vertelt het je. De app verwijderen wist ze ook. Omdat alles op je telefoon
+staat, zijn dit de manieren om het te verwijderen; voor vragen of een
+verzoek tot verwijdering schrijf je naar ride@velorki.com.
+
+**Gebruiksgegevens bij Strava.** Strava mag gegevens controleren en verzamelen
+over hoe Velorki de Strava-API gebruikt (gebruiksgegevens) en mag ze voor elk
+zakelijk doel gebruiken, intern of extern, waaronder het aanbieden van
+verbeteringen aan de Strava-API of het Strava-platform, het bieden van
+ontwikkelaars- of gebruikersondersteuning, en het waarborgen van naleving van
+zijn API-overeenkomst.
+
+#### RideWithGPS
+
+Wat RideWithGPS doet met de gegevens die je het stuurt, valt onder zijn eigen
+privacybeleid.
 
 ### De AI-assistent (Velorki Plus)
 
@@ -299,6 +357,10 @@ footer haalt haar terug.
 |---|---|---|
 | Routes, ritten, instellingen, offline gegevens | op je telefoon, totdat je ze verwijdert | verwijder ze in de app, of verwijder de app |
 | Tokens van Strava / RideWithGPS | op je telefoon, zo versleuteld dat alleen onze relay ze kan openen, totdat je ontkoppelt; nooit bij ons opgeslagen | ontkoppel in de app, of verwijder de app |
+| Strava-gegevens: je naam, links naar activiteiten | op je telefoon, tot je ontkoppelt; nooit bij ons opgeslagen | ontkoppel Strava in de app, of verwijder de app; vragen naar ride@velorki.com |
+| Routes geïmporteerd uit Strava, en routes die ervan zijn bewerkt | op je telefoon, alleen zolang de route nog op Strava bestaat: elke 48 uur opnieuw gecontroleerd, verwijderd als hij daar is verwijderd of 7 dagen lang niet kon worden gecontroleerd; nooit bij ons opgeslagen | verwijder hem in de app, ontkoppel Strava, of verwijder de app |
+| De lijst met je Strava-routes in de cache | op je telefoon, hooguit 48 uur | ontkoppel Strava, of verwijder de app |
+| Tellers voor de snelheidsbeperking (anonieme installatie-id, IP-adres) | op onze server, voor het telvenster, hooguit een dag | niet van toepassing |
 | Deellinks | één jaar, daarna automatisch verwijderd | verwijder ze vanuit de app |
 | AI-prompts | door ons niet bewaard, buiten wat de logs hierboven bevatten | niet van toepassing |
 | Gegevens bij RevenueCat | volgens het eigen beleid van RevenueCat | neem contact met ons op en we geven het verzoek door |
@@ -320,7 +382,7 @@ lid 1 AVG:
 | Online routeplanning en online zoeken, wanneer je daarom vraagt | (b) uitvoering van de dienst waar je om hebt gevraagd, en (f) voor de coördinaten die strikt nodig zijn om te antwoorden |
 | Velorki Plus: bij RevenueCat controleren of een abonnement actief is | (b) uitvoering van de overeenkomst |
 | Velorki Plus: het gedetailleerdere weer langs de route en de regenradar | (b) uitvoering van de overeenkomst |
-| Strava en RideWithGPS: een account koppelen en elke overdracht die je start | (b) uitvoering van de overeenkomst, plus (a) toestemming, gegeven door het account te koppelen |
+| Strava en RideWithGPS: een account koppelen, elke overdracht die je start en de Strava-gegevens op je telefoon | (b) uitvoering van de dienst waar je om hebt gevraagd, plus (a) toestemming, gegeven door het account te koppelen en ingetrokken door te ontkoppelen |
 | Deellinks die je maakt | (b) uitvoering van de overeenkomst |
 | De AI-assistent | (a) toestemming, apart gevraagd in de app en in te trekken in de instellingen |
 | Je antwoorden in de supportchat | (b) als het om een abonnement gaat, anders (f) gerechtvaardigd belang bij het antwoorden van wie ons heeft geschreven |

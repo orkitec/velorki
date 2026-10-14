@@ -3,17 +3,15 @@ import { clientIp, stravaConfigured } from '@/config';
 import { json, withApi } from '@/server/api';
 import { readJsonBody } from '@/server/body';
 import { ApiError } from '@/server/errors';
-import { requireEntitlement } from '@/server/entitlement';
 import { LIMITS, enforce } from '@/server/ratelimit';
 import { assertAllowedRedirect, codeBodySchema, parse, relay, STRAVA_TOKEN_URL } from '@/server/oauth';
-import { getConfig, getCounters, getEntitlement } from '@/server/singletons';
+import { getConfig, getCounters } from '@/server/singletons';
 import { requireWrapKeys, wrapTokensIn } from '@/server/wrap';
 
 export const POST = withApi(async (request, ctx) => {
   const config = getConfig();
   // Order preserved from Fastify: the body is parsed before any preHandler.
   const raw = await readJsonBody(request);
-  await requireEntitlement(getEntitlement(), request.headers, ctx.log);
   await enforce(
     getCounters(),
     clientIp(config, request.headers),

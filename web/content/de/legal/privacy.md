@@ -27,8 +27,8 @@ DSGVO nicht. Die vollständigen Anbieterangaben stehen im
   Handy**.
 - Manches braucht einen Server: Kartenkacheln, Routing außerhalb der
   heruntergeladenen Gebiete, die Suche, wenn du sie anforderst, und, falls du
-  sie nutzt, der KI-Assistent, die Verbindungen zu Strava und RideWithGPS und
-  die Teilen-Links. Jedes davon ist unten beschrieben.
+  sie nutzt, der KI-Assistent, die Verbindungen zu Strava und RideWithGPS (kostenlos)
+  und die Teilen-Links. Jedes davon ist unten beschrieben.
 - Diese **Website** hat keine Analyse, keine Werbung und kein Tracking — der
   kurze Hinweis unten auf der Seite verlangt deshalb nichts von dir.
 - Wir verkaufen deine Daten nicht, und wir nutzen sie nicht für Werbung oder
@@ -52,8 +52,9 @@ oder in einem Upload zu Strava oder RideWithGPS, den du anstößt.
 
 Verbindest du Strava oder RideWithGPS, liegen die Zugriffstoken für diese
 Konten im sicheren Speicher des Handys (Keychain unter iOS, Keystore unter
-Android), in einer verschlüsselten Form, die nur unser Relay öffnen kann; siehe
-den Abschnitt zu Strava und RideWithGPS unten.
+Android), in einer verschlüsselten Form, die nur unser Relay öffnen kann, und was du von
+Strava übernimmst, bleibt auf dem Handy; siehe den Abschnitt zu Strava und
+RideWithGPS unten.
 
 Unter Android ist die App aus Googles Cloud-Sicherung und aus der Übertragung
 von Gerät zu Gerät ausgenommen, deine Fahrten und deine Zugriffstoken werden
@@ -124,29 +125,86 @@ Stunden auf und schickt ein Bild dieses Kartenausschnitts zurück. Die Anbieter
 des Radars sehen unseren Server, nicht dein Handy, und der Relay hält nicht
 fest, nach welchem Kartenausschnitt du gefragt hast.
 
-### Strava und RideWithGPS (Velorki Plus)
+### Strava und RideWithGPS
 
-An Strava oder RideWithGPS geht nichts, außer du verbindest das Konto selbst
-und löst dann eine Aktion aus: eine Fahrt hochladen, eine Route importieren.
+Beide Verbindungen sind kostenlos. An Strava oder RideWithGPS geht nichts,
+außer du verbindest das Konto selbst und löst dann eine Aktion aus: eine Fahrt
+hochladen, eine Route importieren.
 
-Beim Verbinden übergibt die App einen Einmalcode an unseren Relay-Server, der
-ihn unter Zugabe unseres Anwendungsgeheimnisses gegen einen Zugriffstoken
-tauscht, den Token mit einem Schlüssel verschlüsselt, den nur der Relay hat,
-und ihn in dieser Form an die App zurückgibt. Dein Handy speichert den
-verschlüsselten Token; es kann ihn allein nicht verwenden, und wir speichern
-ihn gar nicht.
+Beim Verbinden übergibt die App einen Einmalcode an unseren Relay-Server
+(api.velorki.com), der ihn unter Zugabe unseres Anwendungsgeheimnisses gegen
+einen Zugriffstoken tauscht, den Token mit einem Schlüssel verschlüsselt, den
+nur der Relay hat, und ihn in dieser Form an die App zurückgibt. Dein Handy
+speichert den verschlüsselten Token in seinem sicheren Speicher (Keychain unter
+iOS, Keystore unter Android), von Sicherungen ausgenommen; es kann ihn allein
+nicht verwenden, und wir speichern ihn gar nicht.
 
 Danach läuft jeder Upload, jede Routenübertragung, jeder Import und jedes
-Trennen, das du auslöst, über den Relay: Er prüft, dass dein Abo aktiv ist,
-entschlüsselt den Token für diese eine Anfrage, leitet die Anfrage an Strava
-oder RideWithGPS weiter und gibt die Antwort an die App zurück. Er behält weder
-die Datei noch den Token und nichts von der Antwort, und er wendet dieselbe
-Ratenbegrenzung an wie bei jedem anderen Aufruf des Relays (siehe
-Server-Protokolle unten). Seine Protokolle enthalten nie den Token, den Inhalt
-der Anfrage oder die Abonnenten-ID.
+Trennen, das du auslöst, über den Relay: Er entschlüsselt den Token für diese
+eine Anfrage, leitet die Anfrage an Strava oder RideWithGPS weiter und gibt die
+Antwort an die App zurück. Er behält weder die Datei noch den Token, nichts von
+der Antwort und keine Aufzeichnung des Aufrufs. Für diese Aufrufe wird kein Abo
+geprüft; um Missbrauch zu verhindern, führt der Relay nur kurzlebige
+Ratenbegrenzungs-Zähler, geordnet nach der anonymen ID deiner Installation und
+nach IP-Adresse (siehe Server-Protokolle unten). Seine Protokolle enthalten nie
+den Token, den Inhalt der Anfrage oder diese ID.
 
-Was Strava oder RideWithGPS dann mit den Daten machen, die du ihnen schickst,
-richtet sich nach deren eigenen Datenschutzerklärungen.
+#### Strava
+
+**Worum Velorki bittet.** Um zwei Berechtigungen: `read`, dein öffentliches
+Strava-Profil (deine Athleten-ID und dein Name), und `activity:write`, um die
+Fahrten hochzuladen, die du hochladen willst. Velorki liest deine Aktivitäten
+nicht.
+
+**Was es liest und behält, alles nur auf deinem Handy:**
+
+- deine Athleten-ID und deinen Namen, angezeigt unter Einstellungen →
+  Verbindungen, bis du trennst;
+- deine Liste der Strava-Routen (Name, Distanz, Höhenmeter, Beschreibung und
+  Datum), abgerufen, wenn du den Importbildschirm öffnest, und höchstens
+  **48 Stunden** auf dem Handy aufbewahrt;
+- die GPX-Datei einer Route, wenn du diese Route importierst; sie wird als
+  Route in der Bibliothek der App gespeichert, und ebenso jede Route, die du
+  daraus bearbeitest, nur solange die Route bei Strava noch existiert: Solange
+  die App geöffnet, online und verbunden ist, prüft sie die Route alle 48
+  Stunden erneut bei Strava und entfernt sie, wenn sie bei Strava gelöscht wurde
+  oder 7 Tage lang nicht geprüft werden konnte, und sagt dir das. Sie wird auch
+  entfernt, wenn du sie löschst oder trennst;
+- nach einem Upload die ID der Strava-Aktivität und ihren Link, zusammen mit der
+  Fahrt gespeichert, damit die App „View on Strava“ zeigen kann, bis du
+  trennst.
+
+Eine Fahrt, die du hochlädst, geht an Strava, das sie verarbeitet, wie in der
+[Datenschutzerklärung von Strava](https://www.strava.com/legal/privacy)
+beschrieben. Strava und Orkitec sind jeweils für ihre eigene Verarbeitung
+verantwortlich.
+
+**Strava-Daten bleiben bei dir.** Strava-Daten werden nur dir angezeigt, in der
+App. Sie werden nie an den KI-Assistenten gesendet, nie in einen Teilen-Link
+gelegt und nie an RideWithGPS oder einen anderen Dienst geschickt. Wir halten
+keine Strava-Daten auf unseren Servern.
+
+**Löschung.** Strava unter Einstellungen → Verbindungen zu trennen widerruft die
+Autorisierung von Velorki bei Strava, löscht die Tokens und löscht jeden Eintrag,
+der von Strava stammt, vom Handy: importierte Strava-Routen und daraus
+bearbeitete Routen, die zwischengespeicherte Routenliste und die gespeicherten
+Aktivitätslinks. Die App bestätigt dann: „Deine Strava-Daten wurden von diesem
+Handy gelöscht.“ Widerrufst du den Zugriff von Velorki stattdessen auf
+strava.com, bemerkt die App es beim nächsten Strava-Aufruf, löscht dieselben
+Daten und sagt es dir. Auch das Deinstallieren der App löscht sie. Da alles auf
+deinem Handy liegt, sind das die Wege, es zu löschen; für Fragen oder einen
+Löschantrag schreib an ride@velorki.com.
+
+**Nutzungsdaten bei Strava.** Strava darf überwachen und erfassen, wie Velorki
+die Strava-API nutzt (Nutzungsdaten), und darf sie für jeden geschäftlichen
+Zweck verwenden, intern oder extern, einschließlich der Verbesserung der
+Strava-API oder der Strava-Plattform, der Entwickler- oder Nutzerunterstützung
+und der Sicherstellung der Einhaltung seiner API-Vereinbarung.
+
+#### RideWithGPS
+
+Was RideWithGPS mit den Daten macht, die du ihm schickst, richtet sich nach
+seiner eigenen Datenschutzerklärung.
 
 ### Der KI-Assistent (Velorki Plus)
 
@@ -305,6 +363,10 @@ auf deinem Gerät wird nichts gespeichert, bis du es verlangst. Der Eintrag
 |---|---|---|
 | Routen, Fahrten, Einstellungen, Offline-Daten | auf deinem Handy, bis du sie löschst | in der App löschen oder die App deinstallieren |
 | Token von Strava / RideWithGPS | auf deinem Handy, so verschlüsselt, dass nur unser Relay sie öffnen kann, bis du trennst; nie bei uns gespeichert | in der App trennen oder deinstallieren |
+| Strava-Daten: dein Name, Aktivitätslinks | auf deinem Handy, bis du trennst; nie bei uns gespeichert | Strava in der App trennen oder deinstallieren; Fragen an ride@velorki.com |
+| Aus Strava importierte Routen und daraus bearbeitete Routen | auf deinem Handy, nur solange die Route bei Strava noch existiert: alle 48 Stunden erneut geprüft, entfernt, wenn sie dort gelöscht wurde oder 7 Tage lang nicht geprüft werden konnte; nie bei uns gespeichert | in der App löschen, Strava trennen oder deinstallieren |
+| Die zwischengespeicherte Liste deiner Strava-Routen | auf deinem Handy, höchstens 48 Stunden | Strava trennen oder deinstallieren |
+| Ratenbegrenzungs-Zähler (anonyme Installations-ID, IP-Adresse) | auf unserem Server, für das Zählfenster, höchstens einen Tag | nicht anwendbar |
 | Teilen-Links | ein Jahr, dann automatisch gelöscht | in der App löschen |
 | KI-Anfragen | von uns nicht gespeichert, über die oben genannten Protokolle hinaus | entfällt |
 | Daten bei RevenueCat | nach der eigenen Erklärung von RevenueCat | schreib uns, und wir geben die Anfrage weiter |
@@ -326,7 +388,7 @@ Rechtsgrundlagen nach Art. 6 Abs. 1 DSGVO:
 | Online-Routing und Online-Suche, wenn du sie anforderst | (b) Erbringung der von dir angeforderten Leistung, und (f) für die Koordinaten, die zur Antwort nötig sind |
 | Velorki Plus: Prüfung bei RevenueCat, ob ein Abo aktiv ist | (b) Erfüllung des Vertrags |
 | Velorki Plus: das feinere Wetter entlang der Route und das Regenradar | (b) Erfüllung des Vertrags |
-| Strava und RideWithGPS: Verbinden eines Kontos und jede von dir ausgelöste Übertragung | (b) Erfüllung des Vertrags und (a) Einwilligung, erteilt durch das Verbinden des Kontos |
+| Strava und RideWithGPS: Verbinden eines Kontos, jede von dir ausgelöste Übertragung und die Strava-Daten, die auf deinem Handy bleiben | (b) Erfüllung der von dir angeforderten Leistung und (a) Einwilligung, erteilt durch das Verbinden des Kontos und widerrufen durch dessen Trennen |
 | Von dir erstellte Freigabe-Links | (b) Erfüllung des Vertrags |
 | Der KI-Assistent | (a) Einwilligung, in der App gesondert erfragt und in den Einstellungen widerruflich |
 | Antworten im Support-Chat | (b), soweit es ein Abo betrifft, sonst (f) berechtigtes Interesse daran, der Person zu antworten, die uns geschrieben hat |

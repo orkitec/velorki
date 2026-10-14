@@ -100,16 +100,28 @@ function upstreamMessage(result: UpstreamResult): string {
   return result.text.trim() === '' ? `Provider responded with ${String(result.status)}.` : result.text;
 }
 
-/** Shared tail of every token exchange: call the provider, pass the answer on. */
+/**
+ * Shared tail of every token exchange: call the provider, pass the answer on.
+ *
+ * A refresh passes `revokedOn: [400, 401]`: the provider refusing a refresh
+ * token means the rider took the authorization back on the provider's site
+ * (or it was never valid), and the app has to tell that apart from an outage,
+ * so it becomes `authorization_revoked` rather than `upstream_error`.
+ */
 export async function relay(
   config: Config,
   url: string,
   form: URLSearchParams,
+  opts: { revokedOn?: readonly number[] } = {},
 ): Promise<{ status: number; body: unknown }> {
   const result = await postForm(url, form);
   if (result.status < 200 || result.status >= 300) {
     // Never leak the client secret, even if the provider echoed it back.
-    throw new ApiError('upstream_error', scrub(upstreamMessage(result), config));
+    const message = scrub(upstreamMessage(result), config);
+    if (opts.revokedOn?.includes(result.status) === true) {
+      throw new ApiError('authorization_revoked', message);
+    }
+    throw new ApiError('upstream_error', message);
   }
   if (result.body === undefined) {
     throw new ApiError('upstream_error', 'Provider returned a non-JSON response.');

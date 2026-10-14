@@ -3,16 +3,14 @@ import { clientIp, stravaConfigured } from '@/config';
 import { json, withApi } from '@/server/api';
 import { readJsonBody } from '@/server/body';
 import { ApiError } from '@/server/errors';
-import { requireEntitlement } from '@/server/entitlement';
 import { LIMITS, enforce } from '@/server/ratelimit';
 import { parse, refreshBodySchema, relay, STRAVA_TOKEN_URL } from '@/server/oauth';
-import { getConfig, getCounters, getEntitlement } from '@/server/singletons';
+import { getConfig, getCounters } from '@/server/singletons';
 import { requireWrapKeys, unwrapToken, wrapTokensIn } from '@/server/wrap';
 
 export const POST = withApi(async (request, ctx) => {
   const config = getConfig();
   const raw = await readJsonBody(request);
-  await requireEntitlement(getEntitlement(), request.headers, ctx.log);
   await enforce(
     getCounters(),
     clientIp(config, request.headers),
@@ -33,6 +31,10 @@ export const POST = withApi(async (request, ctx) => {
     refresh_token: token,
     grant_type: 'refresh_token',
   });
-  const { status, body: payload } = await relay(config, STRAVA_TOKEN_URL, form);
+  // Strava answers a revoked or unknown refresh token with 400 or 401: the
+  // rider removed the app on strava.com, and the app deletes what it holds.
+  const { status, body: payload } = await relay(config, STRAVA_TOKEN_URL, form, {
+    revokedOn: [400, 401],
+  });
   return json(wrapTokensIn(payload, keys, 'strava'), status);
 });
