@@ -51,6 +51,7 @@ import 'package:velorki/features/settings/data/appearance_controller.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/subscription/presentation/paywall_screen.dart';
+import 'package:velorki/features/weather/application/route_overlay.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
 
@@ -137,6 +138,8 @@ void main() {
         await stops.setKind(kind, shown: defaultStopKinds.contains(kind));
       }
       await cycleMap.setShown(true);
+      // The stops read best on a plain route line.
+      await container.read(routeColouringOnProvider.notifier).set(on: false);
       await stops.setShown(true);
       planner.clear();
       await frameArea(tester, container, chelsea, chelseaZoom);
@@ -195,6 +198,60 @@ void main() {
       await takeStoreShot(tester, '$shot/variants');
 
       if (await stopAfter('variants')) return;
+
+      // --------------------------------------------------------- weather
+      // The featured route coloured by the rain on the way, under the map's
+      // rain, for a ride leaving four hours from now.
+      final colouringOn = container.read(routeColouringOnProvider);
+      final restoreWeather = await showRouteRain(
+        tester,
+        container,
+        featured,
+        offsetMinutes: 240,
+        save: l10n.plannerSave,
+      );
+      await takeStoreShot(
+        tester,
+        '$shot/weather',
+        hold: const Duration(seconds: 8),
+      );
+      await restoreWeather();
+
+      if (await stopAfter('weather')) return;
+
+      // ----------------------------------------------------------- stops
+      // The stops beside a route, drawn from the region's gazetteer, with
+      // the status bar showing no signal at all; in the dark, in another
+      // accent, for the other half of the slide that shows the themes too.
+      final stopsRoute =
+          (await container.read(routeRepositoryProvider).watchRoutes().first)
+              .firstWhere((r) => r.name == stopsRouteName);
+      // The stops read best on a plain route line.
+      await container.read(routeColouringOnProvider.notifier).set(on: false);
+      await stops.setShown(true);
+      planner
+        ..clear()
+        ..loadSavedRoute(stopsRoute);
+      await frameRoute(tester, container, stopsRoute.geometry);
+      await takeStoreShot(
+        tester,
+        '$shot/stops',
+        offline: true,
+        hold: const Duration(seconds: 8),
+      );
+      if (mode == ThemeMode.dark) {
+        await appearance.setAccent(AccentPreset.ember);
+        await takeStoreShot(tester, '$shot/stops-accent', offline: true);
+        await appearance.setAccent(AccentPreset.volt);
+        await pumpFor(tester, const Duration(seconds: 2));
+      }
+      await stops.setShown(false);
+      await container
+          .read(routeColouringOnProvider.notifier)
+          .set(on: colouringOn);
+      planner.clear();
+
+      if (await stopAfter('stops')) return;
 
       // ------------------------------------------------------------ loop
       // From the rider's position, at the distance seeded before the start.

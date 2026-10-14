@@ -12,6 +12,11 @@
     "headline": "Routes that fit **your bike**",
     "subline": "Touring, road, gravel or MTB, with alternatives, elevation and surfaces."
   },
+  "weather": {
+    "eyebrow": "Weather",
+    "headline": "See the rain **before you ride**",
+    "subline": "Rain radar, wind and clouds on the map, and the weather along your route for when you leave."
+  },
   "cyclemap": {
     "eyebrow": "Cycle map",
     "headline": "Bike lanes on the map, **even offline**",
@@ -38,9 +43,9 @@
     "subline": "Elevation, speed, heart rate and splits for every ride."
   },
   "offline-themes": {
-    "eyebrow": "Offline · Light & dark",
-    "headline": "Day or night, **signal or not**",
-    "subline": "Download a region once, then maps, routing and search work anywhere. Light or dark, any colour."
+    "eyebrow": "Stops · Offline · Light & dark",
+    "headline": "Coffee and water, **signal or not**",
+    "subline": "Stops along your route from the region you downloaded. Light or dark, any colour."
   },
   "import": {
     "eyebrow": "Files",

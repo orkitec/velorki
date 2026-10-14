@@ -12,6 +12,11 @@
     "headline": "Routes die bij **je fiets** passen",
     "subline": "Toer, racefiets, gravel of MTB, met alternatieven, hoogte en ondergrond."
   },
+  "weather": {
+    "eyebrow": "Weer",
+    "headline": "Zie de regen **voordat je vertrekt**",
+    "subline": "Regenradar, wind en wolken op de kaart, en het weer langs je route voor als je vertrekt."
+  },
   "cyclemap": {
     "eyebrow": "Fietskaart",
     "headline": "Fietspaden op de kaart, **ook offline**",
@@ -38,9 +43,9 @@
     "subline": "Hoogte, snelheid, hartslag en splits voor elke rit."
   },
   "offline-themes": {
-    "eyebrow": "Offline · Licht & donker",
-    "headline": "Dag of nacht, **met of zonder bereik**",
-    "subline": "Download een regio één keer, dan werken kaarten, routering en zoeken overal. Licht of donker, elke kleur."
+    "eyebrow": "Stopplekken · Offline · Licht & donker",
+    "headline": "Koffie en water, **met of zonder bereik**",
+    "subline": "Stopplekken langs je route uit de regio die je downloadde. Licht of donker, elke kleur."
   },
   "import": {
     "eyebrow": "Bestanden",

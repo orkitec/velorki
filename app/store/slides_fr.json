@@ -12,6 +12,11 @@
     "headline": "Des itinéraires faits pour **votre vélo**",
     "subline": "Randonnée, route, gravel ou VTT, avec variantes, dénivelé et revêtements."
   },
+  "weather": {
+    "eyebrow": "Météo",
+    "headline": "Voyez la pluie **avant de partir**",
+    "subline": "Radar de pluie, vent et nuages sur la carte, et la météo le long de votre itinéraire à l’heure du départ."
+  },
   "cyclemap": {
     "eyebrow": "Carte vélo",
     "headline": "Les pistes sur la carte, **même hors ligne**",
@@ -38,9 +43,9 @@
     "subline": "Altitude, vitesse, fréquence cardiaque et tronçons pour chaque sortie."
   },
   "offline-themes": {
-    "eyebrow": "Hors ligne · Clair & sombre",
-    "headline": "De jour comme de nuit, **avec ou sans réseau**",
-    "subline": "Téléchargez une région une fois : carte, itinéraires et recherche marchent partout. Clair ou sombre, à votre couleur."
+    "eyebrow": "Haltes · Hors ligne · Clair & sombre",
+    "headline": "Café et eau, **avec ou sans réseau**",
+    "subline": "Des haltes le long de votre itinéraire, tirées de la région téléchargée. Clair ou sombre, à votre couleur."
   },
   "import": {
     "eyebrow": "Fichiers",

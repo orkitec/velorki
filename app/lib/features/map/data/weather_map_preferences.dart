@@ -296,6 +296,12 @@ class WeatherMapSources extends _$WeatherMapSources {
 bool weatherKindAvailable(List<WeatherMapSource> sources, WeatherKind kind) =>
     sources.any((s) => s.enabled && s.kind == kind);
 
+/// The clock the map's weather layers tell the time by.
+///
+/// A provider so tests can set it.
+@Riverpod(keepAlive: true)
+DateTime Function() weatherMapClock(Ref ref) => DateTime.now;
+
 /// The network the weather layers are fetched over. Only the requests to
 /// the relay's radars carry the rider's credentials ([relayAuthFor]).
 @Riverpod(keepAlive: true)

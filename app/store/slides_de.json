@@ -12,6 +12,11 @@
     "headline": "Routen, die zu **deinem Rad** passen",
     "subline": "Tour, Rennrad, Gravel oder MTB, mit Alternativen, Höhe und Belag."
   },
+  "weather": {
+    "eyebrow": "Wetter",
+    "headline": "Sieh den Regen, **bevor du losfährst**",
+    "subline": "Regenradar, Wind und Wolken auf der Karte und das Wetter entlang deiner Route, wenn du losfährst."
+  },
   "cyclemap": {
     "eyebrow": "Radkarte",
     "headline": "Radwege auf der Karte, **auch offline**",
@@ -38,9 +43,9 @@
     "subline": "Höhe, Tempo, Puls und Splits für jede Fahrt."
   },
   "offline-themes": {
-    "eyebrow": "Offline · Hell & dunkel",
-    "headline": "Tag oder Nacht, **mit Netz oder ohne**",
-    "subline": "Region einmal laden, dann laufen Karte, Routing und Suche überall. Hell oder dunkel, deine Farbe."
+    "eyebrow": "Stopps · Offline · Hell & dunkel",
+    "headline": "Kaffee und Wasser, **mit Netz oder ohne**",
+    "subline": "Stopps entlang deiner Route aus der geladenen Region. Hell oder dunkel, deine Farbe."
   },
   "import": {
     "eyebrow": "Dateien",

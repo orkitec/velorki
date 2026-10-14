@@ -24,7 +24,10 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
    language and region are set, the status bar reads 9:41, and
    `app/integration_test/store/store_screenshots_test.dart` takes every screen
    the slides use, in each theme: the offline cycle map with stops and the
-   Layers sheet over it, the plan, its variants, a loop, the AI card
+   Layers sheet over it, the plan, its variants, the plan under the rain
+   (the weather of `store_weather.dart`, the same on every run, the clock
+   at 9:41), the stops beside a route under a status bar with no signal (in
+   the dark theme also in another accent), a loop, the AI card
    with the loop it asked for, the paywall at the stores' prices (top and
    bottom) and once as a subscriber sees it (`paywall-active`, no prices, for
    the website), a GPX import, a ride's charts, the library, a
@@ -83,7 +86,7 @@ Copy and order live in `app/store/`:
   showing a Plus feature says so in its copy (`ai`): both stores want paid
   features marked.
 - `slide_set.json`: the set that is uploaded, in order, and per slide its
-  layout, the screen it shows and its style (plan, variants, navigation,
+  layout, the screen it shows and its style (plan, weather, navigation,
   loops, cyclemap, ai, ride, offline-themes, lock-screen, watch: ten, the
   most a size takes; the `import` slide's copy is kept but not in the set); `brand` puts the app's icon and
   name above the eyebrow (slide 01 only). The preview's first caption card
@@ -92,7 +95,7 @@ Copy and order live in `app/store/`:
 
 `--until layers` or `--until variants` captures only the screens up to that
 one (the test takes them in the order cyclemap, layers, plan, variants,
-loop, ai, paywall, import, ride, library, offline, live) and keeps the rest
+weather, stops, loop, ai, paywall, import, ride, library, offline, live) and keeps the rest
 of the last capture.
 
 Output, git-ignored, under `app/build/store_screenshots/`:
@@ -184,14 +187,18 @@ app/tool/store_screenshots.sh --preview [--locales en]
 python3 app/tool/store_preview.py --locales en --frame phone   # the other framing, from the same clips
 ```
 
-One app preview per language, about 28 s: five clips of the real app, each
+One app preview per language, about 28 s: six clips of the real app, each
 with the eyebrow and headline of a slide, joined by 0.3 s crossfades.
 
 1. **Recording.** `app/integration_test/store/store_preview_test.dart` plays
    each clip on the same simulator and demo data as the screenshots, and
    `tool/store_shutter.py` records the screen around it with `simctl io
-   recordVideo`: the route drawing in point by point, the variants loaded and
-   switched, a loop found, the 20 km ride navigating through a turn close up
+   recordVideo`: the route drawing in point by point, the route under the
+   rain with the time control dragged from +1 h to +4 h (the rain of
+   `store_weather.dart` drifts in over Camacha until then; the drag is sent as
+   device touches, so the test binding draws no crosshair), a loop found,
+   the offline cycle map of New York with its stops while the camera draws
+   back from Chelsea, the 20 km ride navigating through a turn close up
    (heading-up, one fix a second of ride time), and that ride finished, saved
    and its charts scrolled. The charts are scrolled without touching them, so
    no chart ever shows a selection.

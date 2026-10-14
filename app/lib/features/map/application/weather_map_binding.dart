@@ -31,7 +31,10 @@ class SharedWeatherMapStatus extends _$SharedWeatherMapStatus {
 class WeatherMapBinding {
   /// A binding reading providers through [ref].
   WeatherMapBinding(this._ref)
-    : driver = WeatherMapDriver(fetcher: _ref.read(weatherFetcherProvider)) {
+    : driver = WeatherMapDriver(
+        fetcher: _ref.read(weatherFetcherProvider),
+        clock: _ref.read(weatherMapClockProvider),
+      ) {
     _configure();
     _lifecycle = AppLifecycleListener(
       onShow: () {

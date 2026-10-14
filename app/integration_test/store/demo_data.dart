@@ -108,6 +108,9 @@ const List<DemoRoute> libraryRoutes = [
   ]),
 ];
 
+/// The saved route the stops are shown along.
+final String stopsRouteName = libraryRoutes[2].name;
+
 /// Up to Camacha: the route the demo ride is laid along.
 const List<LatLng> rideWaypoints = [funchal, LatLng(32.6789, -16.8448)];
 

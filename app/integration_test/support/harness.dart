@@ -33,13 +33,15 @@ const Duration pumpStep = Duration(milliseconds: 100);
 ///
 /// [overrides] are appended to the two the app itself always needs, so a test
 /// can replace the GPS, the geocoder or the recorder without repeating the
-/// boilerplate. Pass `realMap: false` to keep the placeholder map: the tests
+/// boilerplate; [dwd] answers the free route forecast ([OfflineDwdClient],
+/// no answer at all, by default). Pass `realMap: false` to keep the placeholder map: the tests
 /// that only assert on state run a good deal faster without maplibre, but the
 /// ones that care about the style reload need the real thing.
 Future<ProviderContainer> pumpApp(
   WidgetTester tester, {
   List<Override> overrides = const <Override>[],
   bool realMap = true,
+  DwdForecastClient dwd = const OfflineDwdClient(),
   Duration warmUp = const Duration(seconds: 3),
 }) async {
   final prefs = await SharedPreferences.getInstance();
@@ -50,7 +52,7 @@ Future<ProviderContainer> pumpApp(
       // flows are written in metric.
       localeCountryProvider.overrideWithValue(null),
       // No DWD on the emulator: see OfflineDwdClient.
-      dwdForecastClientProvider.overrideWithValue(const OfflineDwdClient()),
+      dwdForecastClientProvider.overrideWithValue(dwd),
       if (realMap)
         mapViewBuilderProvider.overrideWithValue(
           (onReady) => MapView(onControllerReady: onReady),
