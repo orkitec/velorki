@@ -42,11 +42,6 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
 
 ## Weather
 
-- [ ] **Clouds, Europe against the US**: the Meteosat infrared images draw the
-      same cold far darker than the GOES ones, so the same cloud is fainter
-      over Europe. A per-source luminance window matched over the Atlantic
-      overlap (Meteosat about 30–128 for GOES's 110–220) is set aside until
-      screenshots of both show which way it should go.
 - [ ] **OPERA radar**: the edge of its coverage leaves a pale wedge of
       satellite estimate west of Ireland. A MeteoGate API key
       (devportal.meteogate.eu) as a relay secret once the open bucket is not
