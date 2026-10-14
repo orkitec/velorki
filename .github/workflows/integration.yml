@@ -213,7 +213,8 @@ jobs:
             adb shell settings put secure location_mode 3
             # One line: the emulator action runs the script line by line, so
             # a backslash continuation is handed to sh as a command.
-            VELORKI_ITEST_REGION=madeira VELORKI_SEGMENTS_URL=http://10.0.2.2:8000 VELORKI_ITEST_SHARD=${{ matrix.shard }} tool/itest.sh
+            # VELORKI_ITEST_GEO: the position again, if itest.sh restarts it.
+            VELORKI_ITEST_REGION=madeira VELORKI_ITEST_GEO="-16.92 32.65" VELORKI_SEGMENTS_URL=http://10.0.2.2:8000 VELORKI_ITEST_SHARD=${{ matrix.shard }} tool/itest.sh
 
       # After the run, because that is what fills them, and even on a red run:
       # a failing test is no reason to rebuild Gradle from nothing next time.
