@@ -292,10 +292,32 @@ jobs:
   # The Google Play set on the emulator integration.yml runs (API 35, Pixel 6
   # profile), with its system image step and, read only, its Gradle and AVD
   # caches.
+  # The languages as a list, one Android job each: a language takes close
+  # to an hour on the emulator, so six in one job ran past its limit.
+  android_locales:
+    if: ${{ inputs.android && inputs.assets_run_id == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      locales: ${{ steps.list.outputs.locales }}
+    steps:
+      - id: list
+        env:
+          LOCALES: ${{ inputs.locales }}
+        run: |
+          json=$(printf '%s' "$LOCALES" | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | jq -R . | jq -cs .)
+          [ "$json" != "[]" ] || { echo "::error::no locales"; exit 1; }
+          echo "locales=$json" >> "$GITHUB_OUTPUT"
+
   android:
+    needs: android_locales
     if: ${{ inputs.android && inputs.assets_run_id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        locale: ${{ fromJSON(needs.android_locales.outputs.locales) }}
     env:
       API_LEVEL: "35"
 
@@ -416,7 +438,7 @@ jobs:
       - name: Screenshots and slides
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         env:
-          LOCALES: ${{ inputs.locales }}
+          LOCALES: ${{ matrix.locale }}
           VELORKI_STORE_START_TIMEOUT: "1500"
           ORG_GRADLE_PROJECT_velorkiMapVulkan: "true"
         with:
@@ -444,7 +466,7 @@ jobs:
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-assets-android
+          name: store-assets-android-${{ matrix.locale }}
           path: app/build/store_screenshots/android/slides/set
           if-no-files-found: error
           retention-days: 30
@@ -457,7 +479,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-assets-android-logcat
+          name: store-logcat-android-${{ matrix.locale }}
           path: app/build/logcat.txt
           if-no-files-found: ignore
           retention-days: 7
@@ -494,9 +516,12 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # One artifact per language (store-assets-android-<locale>), or one
+      # for all from a run before the split; merged into one set.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: store-assets-android
+          pattern: store-assets-android*
+          merge-multiple: true
           path: ${{ runner.temp }}/assets
           run-id: ${{ inputs.assets_run_id || github.run_id }}
           github-token: ${{ github.token }}

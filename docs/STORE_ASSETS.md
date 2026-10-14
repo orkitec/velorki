@@ -291,9 +291,9 @@ against it, to see which converts better.
 holds `slides/set/` (both sizes, every language, the contact sheets),
 `watch/` and `preview/<locale>/preview.mp4` with its poster. The `ios` and
 `android` inputs choose the sets; `android` (off by default) runs
-`--platform android` on an API 35 emulator on Ubuntu into the artifact
-`store-assets-android`, drawn with MapLibre's Vulkan renderer (see
-above). The runner's
+`--platform android` on an API 35 emulator on Ubuntu, one job per language
+(close to an hour each) into the artifacts `store-assets-android-<locale>`,
+drawn with MapLibre's Vulkan renderer (see above). The runner's
 simulator has no GPU and drops frames of the moving map (a third in the
 navigation scene), so the preview for the store is recorded on a Mac with
 `--preview`; `preview` stays off unless asked for.
@@ -310,7 +310,7 @@ review. The preview video is uploaded by hand, from the Mac's recording.
 
 With `android` and `upload` (from a `v*` tag or `main`, no `app_version`
 needed), the `android_upload` job also waits in the `release` environment,
-then `app/tool/store_stage_supply.sh` lays `store-assets-android` out per Play
+then `app/tool/store_stage_supply.sh` lays the merged `store-assets-android*` out per Play
 locale and `fastlane android store_listing` (supply, with the service account
 release.yml uploads the builds with, `PLAY_SERVICE_ACCOUNT_JSON`) replaces each
 uploaded language's phone screenshots, feature graphic and icon on the store
@@ -321,5 +321,5 @@ artifact before approving: the listing changes at once, so approve once the
 release it shows is live.
 
 `assets_run_id` uploads the sets an earlier run captured instead of capturing
-again: `store-assets` for iOS, `store-assets-android` for Play, so that run
+again: `store-assets` for iOS, `store-assets-android*` for Play, so that run
 must have made each set asked for.
