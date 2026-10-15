@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter, lerpDouble;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderProxyBox;
 
 import '../../../app/theme.dart';
 import 'floating_bar.dart'
@@ -57,20 +58,32 @@ class SheetContentScroll extends InheritedWidget {
   const SheetContentScroll({
     required this.controller,
     required super.child,
+    this.shrinkWrap = false,
     super.key,
   });
 
   /// The content's controller.
   final ScrollController controller;
 
+  /// Whether the content's list is as tall as what it holds, for a sheet
+  /// that is as tall as its content ([PanelSheet]).
+  final bool shrinkWrap;
+
   /// The controller the nearest shell hands down, or `null` without one.
   static ScrollController? maybeOf(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<SheetContentScroll>()
       ?.controller;
 
+  /// Whether the content's list at [context] shrink-wraps; see [shrinkWrap].
+  static bool shrinkWrapOf(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<SheetContentScroll>()
+          ?.shrinkWrap ??
+      false;
+
   @override
   bool updateShouldNotify(SheetContentScroll oldWidget) =>
-      oldWidget.controller != controller;
+      oldWidget.controller != controller || oldWidget.shrinkWrap != shrinkWrap;
 }
 
 /// The drag handle with its margins, [sheetHandleDp] tall.
@@ -121,7 +134,6 @@ class DockingSheet extends StatefulWidget {
     required this.dockedBottomInset,
     required this.handle,
     required this.child,
-    this.floating = false,
     this.onDocked,
     this.onExtent,
     this.currentExtent,
@@ -149,9 +161,6 @@ class DockingSheet extends StatefulWidget {
   /// Whether there is a bar to dock into. False while the bar is hidden: the
   /// sheet then keeps its full-width look down to its handle.
   final bool docks;
-
-  /// See [DockingSheetShell.floating].
-  final bool floating;
 
   /// What the bar covers at the bottom of the parent, in pixels: docked, the
   /// shell ends where the bar begins instead of running on behind it.
@@ -253,7 +262,6 @@ class _DockingSheetState extends State<DockingSheet> {
           collapsedExtent: widget.collapsedExtent,
           dockedRange: widget.dockedRange,
           docks: widget.docks,
-          floating: widget.floating,
           dockedBottomInset: widget.dockedBottomInset,
           handle: widget.handle,
           child: widget.child,
@@ -293,7 +301,6 @@ class DockingSheetShell extends StatefulWidget {
     required this.dockedBottomInset,
     required this.handle,
     required this.child,
-    this.floating = false,
     super.key,
   });
 
@@ -316,11 +323,6 @@ class DockingSheetShell extends StatefulWidget {
 
   /// Whether there is a bar to dock into.
   final bool docks;
-
-  /// Whether the sheet's lower edge is in view, above the bar rather than
-  /// behind it (the panel of a wide window): its bottom corners are round
-  /// and its hairline goes all the way round.
-  final bool floating;
 
   /// What the bar covers at the bottom of the parent, in pixels.
   final double dockedBottomInset;
@@ -449,11 +451,7 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
     final topRadius = BorderRadius.vertical(
       top: Radius.circular(radius),
       bottom: Radius.circular(
-        widget.floating
-            ? radius
-            : t >= sheetDockedThreshold
-            ? 0
-            : 30 * t * (1 - lift),
+        t >= sheetDockedThreshold ? 0 : 30 * t * (1 - lift),
       ),
     );
     // In a glass style the strip ends at the seam exactly: one blur lies
@@ -511,7 +509,6 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
                     radius: radius,
                     color: colors.glassBorder,
                     hairline: t >= sheetDockedThreshold,
-                    closed: widget.floating,
                   ),
                   child: Material(
                     type: MaterialType.transparency,
@@ -717,4 +714,190 @@ class _ShellBorderPainter extends CustomPainter {
       old.color != color ||
       old.hairline != hairline ||
       old.closed != closed;
+}
+
+/// What fills the rest of a sheet's list (a placeholder, a spinner) without
+/// scrolling: the rest of the sheet, or, in a list that shrink-wraps
+/// ([PanelSheet]), as tall as [child], so the panel stays short.
+class SliverSheetRemaining extends StatelessWidget {
+  /// Creates the sliver.
+  const SliverSheetRemaining({required this.child, super.key});
+
+  /// What fills it.
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => SheetContentScroll.shrinkWrapOf(context)
+      ? SliverToBoxAdapter(child: child)
+      : SliverFillRemaining(hasScrollBody: false, child: child);
+}
+
+/// The air above a [PanelSheet]'s content, where a sheet has its handle.
+const double panelSheetTopDp = 16;
+
+/// The corner radius of a [PanelSheet]: a sheet's.
+const double panelSheetRadius = 28;
+
+/// A tab's sheet in a wide window's panel: it stands still, no handle, no
+/// drag, no docking, and is as tall as its content up to the height it is
+/// given, at the bottom of it; beyond that the content scrolls inside it.
+/// Round at all four corners, with the map behind them.
+///
+/// The content's list reads its controller from [SheetContentScroll] and
+/// shrink-wraps as it says. [onHeight] hears the panel's height after each
+/// layout that changes it.
+class PanelSheet extends StatefulWidget {
+  /// Creates the panel.
+  const PanelSheet({
+    required this.child,
+    this.onHeight,
+    this.panelKey,
+    super.key,
+  });
+
+  /// The key of the panel's box itself, as tall as it shows.
+  final Key? panelKey;
+
+  /// The content.
+  final Widget child;
+
+  /// Called after a frame whose layout changed the panel's height.
+  final ValueChanged<double>? onHeight;
+
+  @override
+  State<PanelSheet> createState() => _PanelSheetState();
+}
+
+class _PanelSheetState extends State<PanelSheet> {
+  final ScrollController _content = ScrollController();
+
+  @override
+  void dispose() {
+    _content.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const radius = BorderRadius.all(Radius.circular(panelSheetRadius));
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: HeightReporter(
+        onHeight: widget.onHeight,
+        child: SizedBox(
+          key: widget.panelKey,
+          width: double.infinity,
+          child: PanelShadow(
+            radius: panelSheetRadius,
+            child: ClipRRect(
+              borderRadius: radius,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: radius,
+                  color: theme.colorScheme.surface,
+                ),
+                child: CustomPaint(
+                  foregroundPainter: _ShellBorderPainter(
+                    radius: panelSheetRadius,
+                    color: theme.velorki.glassBorder,
+                    hairline: false,
+                    closed: true,
+                  ),
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: SheetContentScroll(
+                      controller: _content,
+                      shrinkWrap: true,
+                      child: RawScrollbar(
+                        controller: _content,
+                        thickness: 3,
+                        radius: const Radius.circular(1.5),
+                        thumbColor: theme.colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.45),
+                        padding: const EdgeInsets.only(
+                          top: panelSheetRadius,
+                          right: 3,
+                          bottom: panelSheetRadius,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: panelSheetTopDp),
+                          child: widget.child,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// [child], telling [onHeight] its height after a frame that changed it.
+class HeightReporter extends SingleChildRenderObjectWidget {
+  /// Creates the reporter.
+  const HeightReporter({required this.onHeight, super.child, super.key});
+
+  /// Hears the height.
+  final ValueChanged<double>? onHeight;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderHeightReporter(onHeight);
+
+  @override
+  void updateRenderObject(BuildContext context, RenderObject renderObject) =>
+      (renderObject as _RenderHeightReporter).onHeight = onHeight;
+}
+
+class _RenderHeightReporter extends RenderProxyBox {
+  _RenderHeightReporter(this.onHeight);
+
+  ValueChanged<double>? onHeight;
+  double? _told;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final height = size.height;
+    if (height == _told) return;
+    _told = height;
+    // After the frame: the owner may rebuild the map's padding for it.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (attached && _told == height) onHeight?.call(height);
+    });
+  }
+}
+
+/// [child], a panel with corners of [radius] standing over the map, with
+/// its shadow outside it only, as the floating bar's: nothing of it under
+/// the panel's corners, where the map shows.
+class PanelShadow extends StatelessWidget {
+  /// Creates the shadow.
+  const PanelShadow({required this.radius, required this.child, super.key});
+
+  /// The panel's corner radius.
+  final double radius;
+
+  /// The panel.
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.all(Radius.circular(radius)),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x40000000),
+          blurRadius: 24,
+          blurStyle: BlurStyle.outer,
+        ),
+      ],
+    ),
+    child: child,
+  );
 }

@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 
 import '../../../app/shell_layout.dart';
+import 'docking_sheet.dart';
 import 'floating_bar.dart';
 
 /// The air between a wide window's edge and the panel, and between the
@@ -31,17 +34,12 @@ double wideBarCover(MediaQueryData screen) =>
     floatingBarBottomGapFor(screen, defaultTargetPlatform) +
     floatingBarHeight;
 
-/// Where a tab's sheet rests in a wide window, as a share of its panel's
-/// [length]: a panel beside the map is not in the map's way, so it rests
-/// tall, its top a little under the tab's search and chips.
-double widePanelResting(double length) =>
-    length <= 0 ? 0.6 : ((length - 220) / length).clamp(0.42, 0.75);
-
 /// A map tab in a wide window: laid out as on a phone held upright, in a
-/// column of [widePanelWidth] on the left, from the window's top down to the
-/// bar (to the bottom while the bar is away, for a ride or the keyboard),
-/// with the map beside it. Its chrome sits at the column's top and its sheet
-/// rises in it as a panel, so every screen keeps the layout it has upright.
+/// column of [widePanelWidth] on the left, from the window's top down to
+/// [widePanelMargin] above the bar (above the window's safe area while the
+/// bar is away, for a ride), with the map beside it. Its chrome sits at the
+/// column's top and its sheet stands at the bottom as a panel
+/// ([PanelSheet]), so every screen keeps the layout it has upright.
 ///
 /// Elsewhere [child] as it is; the same widgets either way, so a window
 /// resized across the line keeps the tab's state.
@@ -52,37 +50,31 @@ class WidePanelColumn extends StatelessWidget {
   /// The tab.
   final Widget child;
 
-  /// Whether the tab at [context] is in a wide window's column that ends
-  /// above the bar: its sheet's lower edge is then in view, with nothing to
-  /// dock into. While the bar is away (a ride, the keyboard) the column
-  /// reaches the window's bottom and the sheet is the phone's again,
-  /// docking into the ride's figures bar.
-  static bool aboveBarOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<_AboveBarScope>()?.aboveBar ??
-      false;
+  /// Whether the tab at [context] is in a wide window's column: its sheet
+  /// is then a panel that stands still, as tall as its content.
+  static bool panelOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_PanelScope>()?.panel ?? false;
 
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
     final wide = ShellLayout.of(context).widePanel;
-    // The scaffold counts the bar in the bottom padding while it shows.
-    final barShown = media.padding.bottom > media.viewPadding.bottom + 1;
-    final cut = wide && barShown ? media.padding.bottom + widePanelMargin : 0.0;
+    // The scaffold counts the bar in the bottom padding while it shows;
+    // while it is away the column keeps the margin above the safe area, so
+    // the panel's lower corners stand clear of the window's.
+    final bottom = math.max(media.padding.bottom, media.viewPadding.bottom);
+    final cut = wide ? bottom + widePanelMargin : 0.0;
     final width = widePanelWidth(media.size.width);
     final left = wide ? media.padding.left + widePanelMargin : 0.0;
     final data = !wide
         ? media
         : media.copyWith(
             size: Size(width, media.size.height - cut),
-            padding: media.padding.copyWith(
-              left: 0,
-              right: 0,
-              bottom: barShown ? 0 : null,
-            ),
+            padding: media.padding.copyWith(left: 0, right: 0, bottom: 0),
             viewPadding: media.viewPadding.copyWith(
               left: 0,
               right: 0,
-              bottom: barShown ? 0 : null,
+              bottom: 0,
             ),
             viewInsets: media.viewInsets.copyWith(
               bottom: (media.viewInsets.bottom - cut).clamp(
@@ -91,16 +83,29 @@ class WidePanelColumn extends StatelessWidget {
               ),
             ),
           );
+    // The tab's navigator clips what it paints to its box: it is given
+    // room around the column for the shadows of the panel and the chrome,
+    // which each page leaves free again ([WidePanelPage]).
+    final room = !wide
+        ? EdgeInsets.zero
+        : EdgeInsets.only(
+            left: math.min(left, widePanelShadowRoom),
+            right: widePanelShadowRoom,
+            bottom: math.min(cut, widePanelShadowRoom),
+          );
     return Padding(
-      padding: EdgeInsets.only(left: left, bottom: cut),
+      padding: EdgeInsets.only(
+        left: left - room.left,
+        bottom: cut - room.bottom,
+      ),
       child: Align(
         alignment: Alignment.topLeft,
         child: SizedBox(
-          width: wide ? width : double.infinity,
+          width: wide ? width + room.horizontal : double.infinity,
           height: double.infinity,
           child: MediaQuery(
             data: data,
-            child: _AboveBarScope(aboveBar: wide && barShown, child: child),
+            child: _PanelScope(panel: wide, room: room, child: child),
           ),
         ),
       ),
@@ -108,14 +113,44 @@ class WidePanelColumn extends StatelessWidget {
   }
 }
 
-class _AboveBarScope extends InheritedWidget {
-  const _AboveBarScope({required this.aboveBar, required super.child});
+/// How far around a wide window's column its panel's and chrome's shadows
+/// reach.
+const double widePanelShadowRoom = 40;
 
-  final bool aboveBar;
+class _PanelScope extends InheritedWidget {
+  const _PanelScope({
+    required this.panel,
+    required this.room,
+    required super.child,
+  });
+
+  final bool panel;
+
+  /// The room around the column for its shadows.
+  final EdgeInsets room;
 
   @override
-  bool updateShouldNotify(_AboveBarScope oldWidget) =>
-      oldWidget.aboveBar != aboveBar;
+  bool updateShouldNotify(_PanelScope oldWidget) =>
+      oldWidget.panel != panel || oldWidget.room != room;
+}
+
+/// A map tab's page in its branch's navigator: in a wide window's column,
+/// the column itself, inside the room its navigator is given for shadows
+/// ([WidePanelColumn]); elsewhere [child] as it is.
+class WidePanelPage extends StatelessWidget {
+  /// Creates the page's box.
+  const WidePanelPage({required this.child, super.key});
+
+  /// The page.
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding:
+        context.dependOnInheritedWidgetOfExactType<_PanelScope>()?.room ??
+        EdgeInsets.zero,
+    child: child,
+  );
 }
 
 /// A page that is not a map (the settings, a page pushed over the shell) in

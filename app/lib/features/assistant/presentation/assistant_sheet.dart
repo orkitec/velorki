@@ -767,6 +767,9 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
           final rest = room <= 0
               ? 0.5
               : (geometry.restingDp / room).clamp(0.2, max);
+          // In a wide window's column the card stands still, as tall as
+          // its content, as the planner's panel does.
+          if (WidePanelColumn.panelOf(context)) return _panel(context);
           // Where the planner's card docks, this one goes; see [_release].
           final before = _stops;
           _stops = SheetStops(collapsed: rest * 0.5, resting: rest, max: max);
@@ -787,12 +790,9 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                 elevation: 3,
                 // In a wide window's panel the card's lower edge is in
                 // view, above the bar: round there too.
-                shape: RoundedRectangleBorder(
+                shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(
-                    top: const Radius.circular(_cornerRadius),
-                    bottom: Radius.circular(
-                      WidePanelColumn.aboveBarOf(context) ? _cornerRadius : 0,
-                    ),
+                    top: Radius.circular(_cornerRadius),
                   ),
                 ),
                 clipBehavior: Clip.antiAlias,
@@ -861,6 +861,100 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     );
   }
 
+  /// The card in a wide window's column: at the column's bottom, as tall
+  /// as its content up to the column's height, round all round, with no
+  /// handle to move it by: it closes with its own button.
+  Widget _panel(BuildContext context) {
+    final theme = Theme.of(context);
+    return DraggableScrollableSheet(
+      controller: _sheet,
+      initialChildSize: 1,
+      minChildSize: 1,
+      snap: false,
+      builder: (context, scrollController) => Stack(
+        fit: StackFit.expand,
+        children: [
+          // The sheet's controller has to sit on a scrollable; nothing
+          // moves it here.
+          Positioned(
+            left: 0,
+            top: 0,
+            width: 0,
+            height: 0,
+            child: SingleChildScrollView(
+              controller: scrollController,
+              physics: const NeverScrollableScrollPhysics(),
+              child: const SizedBox.shrink(),
+            ),
+          ),
+          // Below the planner's search and chips, as the planner's panel.
+          Padding(
+            padding: EdgeInsets.only(
+              top: MediaQuery.paddingOf(context).top + widget.chromeTop,
+            ),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: HeightReporter(
+                onHeight: _reportExtent,
+                // Its shadow outside it only: an elevation's was cut square
+                // over the map on iOS, see [PanelShadow].
+                child: PanelShadow(
+                  radius: _cornerRadius,
+                  child: Material(
+                    key: _sheetKey,
+                    color: theme.colorScheme.surface,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(_cornerRadius),
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: CustomPaint(
+                      key: assistantSheetEdgeKey,
+                      foregroundPainter: AiEdgePainter(
+                        gradient: theme.velorki.aiGradient,
+                        radius: _cornerRadius,
+                        closed: true,
+                      ),
+                      child: KeyedSubtree(
+                        key: assistantSheetSurfaceKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 8, 8, 0),
+                              child: Align(
+                                alignment: AlignmentDirectional.centerEnd,
+                                child: IconButton(
+                                  tooltip: MaterialLocalizations.of(context)
+                                      .closeButtonTooltip,
+                                  icon: const Icon(Icons.close_rounded),
+                                  onPressed: () => widget.onClose(null),
+                                ),
+                              ),
+                            ),
+                            Flexible(
+                              child: _content(
+                                context,
+                                sideways: false,
+                                panel: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// [content] kept as wide as a sideways sheet's content at rest while
   /// the sheet is pushed away towards the rail, going under the screen's
   /// edge there as the tabs' sheets do: narrowing it would break its rows.
@@ -881,7 +975,11 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
   );
 
   /// What the sheet holds, upright: one list, Ask in it under the field.
-  Widget _content(BuildContext context, {required bool sideways}) {
+  Widget _content(
+    BuildContext context, {
+    required bool sideways,
+    bool panel = false,
+  }) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final state = ref.watch(assistantControllerProvider);
@@ -1020,10 +1118,13 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
             ],
           );
 
+    // In a wide window's panel as tall as what it holds, up to the room.
     final column = Column(
+      mainAxisSize: panel ? MainAxisSize.min : MainAxisSize.max,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
+        Flexible(
+          fit: panel ? FlexFit.loose : FlexFit.tight,
           // The platform's scrollbar, while the content scrolls and for a
           // moment when it grows past what the card shows, so an answer
           // under the fold is seen to be there.

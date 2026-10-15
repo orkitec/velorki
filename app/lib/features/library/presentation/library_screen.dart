@@ -520,6 +520,7 @@ class _LibraryList extends ConsumerWidget {
     final section = ref.watch(librarySectionProvider);
     return CustomScrollView(
       controller: SheetContentScroll.maybeOf(context),
+      shrinkWrap: SheetContentScroll.shrinkWrapOf(context),
       slivers: [
         SliverSheetHeader(
           title: l10n.tabLibrary,
@@ -577,20 +578,17 @@ class _RoutesSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final routes = ref.watch(savedRoutesProvider);
     return routes.when(
-      loading: () => const SliverFillRemaining(
-        hasScrollBody: false,
+      loading: () => const SliverSheetRemaining(
         child: Center(child: CircularProgressIndicator()),
       ),
-      error: (error, _) => SliverFillRemaining(
-        hasScrollBody: false,
+      error: (error, _) => SliverSheetRemaining(
         child: PlaceholderBody(
           icon: Icons.error_outline,
           message: errorText(AppLocalizations.of(context), error),
         ),
       ),
       data: (items) => items.isEmpty
-          ? SliverFillRemaining(
-              hasScrollBody: false,
+          ? SliverSheetRemaining(
               child: PlaceholderBody(
                 icon: Icons.folder_outlined,
                 message: '${l10n.libraryEmpty}\n${l10n.libraryEmptyDetail}',

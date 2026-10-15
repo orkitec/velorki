@@ -2114,6 +2114,13 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   dockedRange: dockedRange,
                   docks: true,
                   dockedBottomInset: barInset,
+                  // In a wide window's column, below the turn banner.
+                  panelTop: guiding
+                      ? MediaQuery.paddingOf(context).top +
+                            turnBannerHeight +
+                            _bannerGapPx +
+                            widePanelMargin
+                      : null,
                   // Open, the content keeps clear of what is at the
                   // sheet's end now; the figures bar only shows docked.
                   contentEndInset: bottomInset,
@@ -2169,7 +2176,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                           onStart: () => unawaited(_start()),
                         ),
                 ),
-              if (state.isRecording && !glance)
+              // In a wide window's panel the figures stay in the panel,
+              // which never folds away.
+              if (state.isRecording && !glance && !shellLayout.widePanel)
                 Positioned(
                   // Sideways the bar turns with the rail and finds its own
                   // place on the rail's side.
@@ -2365,6 +2374,7 @@ class _IdlePanel extends ConsumerWidget {
     final theme = Theme.of(context);
     return ListView(
       controller: SheetContentScroll.maybeOf(context),
+      shrinkWrap: SheetContentScroll.shrinkWrapOf(context),
       padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
       children: [
         Text(l10n.recordingIdleTitle, style: theme.textTheme.headlineMedium),
@@ -2516,6 +2526,7 @@ class _LivePanel extends ConsumerWidget {
     };
     return ListView(
       controller: SheetContentScroll.maybeOf(context),
+      shrinkWrap: SheetContentScroll.shrinkWrapOf(context),
       padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
       children: [
         // Everything in view at once: state and elapsed time with the two

@@ -113,8 +113,9 @@ changing structure.
   (`isWideWindow`: shortest side and width both 600 or more, an iPad or a
   foldable's inner screen) gets `ShellLayout.wide`: the bar centred at the
   bottom, each map tab laid out as upright in a column on the left
-  (`WidePanelColumn`, `wide_panel.dart`) whose sheet floats above the bar as
-  a panel, and full pages in a readable column (`WideReadingColumn`, also
+  (`WidePanelColumn`, `wide_panel.dart`) whose sheet is a panel above the
+  bar that never moves and is as tall as its content (`PanelSheet`; lists
+  shrink-wrap through `SheetContentScroll`), and full pages in a readable column (`WideReadingColumn`, also
   through the theme's page transitions). Anything else is upright. Each
   side keeps its own safe-area inset (a system bar can stand on one side).
   Camera padding in a map tab reads the window (`MediaQueryData.fromView`),

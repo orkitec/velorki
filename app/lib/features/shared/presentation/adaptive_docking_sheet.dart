@@ -209,12 +209,10 @@ class SheetGeometry {
   double get dockedRange => length <= 0 ? 0.15 : sheetDockingRangeDp / length;
 
   /// Where the sheets rest: upright as [sheetRestingExtent] says; sideways
-  /// as wide as an upright phone gives the content, beside the rail; in a
-  /// wide window's panel as [widePanelResting] says.
+  /// as wide as an upright phone gives the content, beside the rail. (A
+  /// wide window's panel does not move: it is as tall as its content.)
   double get resting => sideways
       ? fraction(sheetHandleDp + sidewaysSheetContentWidth).clamp(0.3, 0.75)
-      : layout.widePanel
-      ? widePanelResting(length)
       : sheetRestingExtent(length);
 }
 
@@ -302,6 +300,7 @@ class AdaptiveDockingSheet extends ConsumerStatefulWidget {
     this.collapseWhenCovered = false,
     this.coveredExtent,
     this.coveredReturnExtent,
+    this.panelTop,
     super.key,
   });
 
@@ -368,6 +367,11 @@ class AdaptiveDockingSheet extends ConsumerStatefulWidget {
   /// place it would have brought it back to.
   final ValueGetter<double>? coveredReturnExtent;
 
+  /// In a wide window's column, the highest the panel reaches, in dp from
+  /// the column's top: below the tab's chrome there. By default
+  /// [widePanelMargin] below the safe area.
+  final double? panelTop;
+
   /// Where the sheet rests: its snap point, or where it starts without one.
   double get restingExtent => snapSizes?.firstOrNull ?? initialExtent;
 
@@ -385,6 +389,13 @@ class _AdaptiveDockingSheetState extends ConsumerState<AdaptiveDockingSheet> {
   EdgeInsets? _safe;
   int? _turns;
   SheetStops? _stops;
+
+  /// Where the sheet was among its stops when the window grew wide and it
+  /// became a panel; `null` while it is not one.
+  (double, SheetStops)? _beforePanel;
+
+  /// The content's, so it moves between the sheet and the panel whole.
+  final GlobalKey _contentKey = GlobalKey();
 
   /// The phone has turned since the last build: the sheet is moved, after
   /// this frame, to the same place among the new stops as it had among the
@@ -497,33 +508,68 @@ class _AdaptiveDockingSheetState extends ConsumerState<AdaptiveDockingSheet> {
       view.viewPadding,
       view.devicePixelRatio,
     );
+    // In a wide window's column the sheet is a panel that stands still, as
+    // tall as its content: the sheet underneath it is all of the column
+    // and never moves, so its controller is there for the screen to ask
+    // and to move, to no effect, as on a phone.
+    final panel = WidePanelColumn.panelOf(context);
     final stops = SheetStops(
       collapsed: widget.collapsedExtent,
       resting: widget.restingExtent,
       max: widget.maxExtent,
     );
-    final before = _stops;
-    if (before != null &&
-        (screen != _screen || safe != _safe || turns != _turns)) {
-      _keepPlace(before, stops);
+    if (panel) {
+      // The sheet's place among its stops is kept for when the window
+      // narrows again, however briefly it was a wide one.
+      // A sheet built as a panel from the start starts where it would have.
+      if (_beforePanel == null) {
+        _beforePanel = (
+          widget.controller.isAttached
+              ? widget.controller.size
+              : widget.initialExtent,
+          _stops ?? stops,
+        );
+        // A sheet docked before the window grew is docked no more.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) widget.onDocked?.call(false);
+        });
+      }
+    } else {
+      final back = _beforePanel;
+      _beforePanel = null;
+      if (back != null) {
+        final (extent, from) = back;
+        final target = mapSheetExtent(extent, from: from, to: stops);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && widget.controller.isAttached) {
+            widget.controller.jumpTo(target);
+          }
+        });
+      } else {
+        final before = _stops;
+        if (before != null &&
+            (screen != _screen || safe != _safe || turns != _turns)) {
+          _keepPlace(before, stops);
+        }
+      }
+      _stops = stops;
     }
     _screen = screen;
     _safe = safe;
     _turns = turns;
-    _stops = stops;
     // Sideways the turned sheet's bottom lies under the rail: the content,
     // upright again, keeps clear of it there as a list upright keeps its
     // last row above the bar.
     // The same widgets upright, turned by nothing and padded by nothing, so
     // the content keeps its state through a turn of the phone.
     final sideways = turns != 0;
-    // In a wide window's panel the sheet stands above the bar, not on it:
-    // nothing to dock into, and a lower edge of its own.
-    final floating = WidePanelColumn.aboveBarOf(context);
     final end = sideways
         ? widget.contentEndInset ?? widget.dockedBottomInset
         : 0.0;
+    // Keyed, so the content keeps its state when the window is resized
+    // across the line and moves from the sheet to the panel or back.
     final content = QuarterTurnedFrame(
+      key: _contentKey,
       quarterTurns: 4 - turns,
       // Upright the handle strip lies above the content; turned, it lies
       // beside it, and the content keeps the strip's air at its top.
@@ -573,28 +619,65 @@ class _AdaptiveDockingSheetState extends ConsumerState<AdaptiveDockingSheet> {
       child: DraggableScrollableSheet(
         key: widget.sheetKey,
         controller: widget.controller,
-        initialChildSize: widget.initialExtent,
-        minChildSize: widget.collapsedExtent,
-        maxChildSize: widget.maxExtent,
-        snap: true,
-        snapSizes: widget.snapSizes,
-        builder: (context, scrollController) => DockingSheet(
-          key: widget.boxKey,
-          controller: scrollController,
-          gripDp: widget.gripDp,
-          initialExtent: widget.initialExtent,
-          collapsedExtent: widget.collapsedExtent,
-          dockedRange: widget.dockedRange,
-          docks: widget.docks && !floating,
-          floating: floating,
-          dockedBottomInset: widget.dockedBottomInset,
-          onDocked: widget.onDocked,
-          onExtent: widget.onExtent,
-          currentExtent: () =>
-              widget.controller.isAttached ? widget.controller.size : null,
-          handle: const SheetHandle(),
-          child: content,
-        ),
+        initialChildSize: panel ? 1 : widget.initialExtent,
+        minChildSize: panel ? 1 : widget.collapsedExtent,
+        maxChildSize: panel ? 1 : widget.maxExtent,
+        snap: !panel,
+        snapSizes: panel ? null : widget.snapSizes,
+        builder: (context, scrollController) => panel
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  // The sheet's controller moves the sheet through a
+                  // scrollable it is attached to; the panel's never moves.
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    width: 0,
+                    height: 0,
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      child: const SizedBox.shrink(),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top:
+                          widget.panelTop ??
+                          MediaQuery.paddingOf(context).top + widePanelMargin,
+                    ),
+                    child: PanelSheet(
+                      panelKey: widget.boxKey,
+                      // What the panel covers of the column, as a sheet's
+                      // extent.
+                      onHeight: (height) {
+                        if (screen.height > 0) {
+                          widget.onExtent?.call(height / screen.height);
+                        }
+                      },
+                      child: content,
+                    ),
+                  ),
+                ],
+              )
+            : DockingSheet(
+                key: widget.boxKey,
+                controller: scrollController,
+                gripDp: widget.gripDp,
+                initialExtent: widget.initialExtent,
+                collapsedExtent: widget.collapsedExtent,
+                dockedRange: widget.dockedRange,
+                docks: widget.docks,
+                dockedBottomInset: widget.dockedBottomInset,
+                onDocked: widget.onDocked,
+                onExtent: widget.onExtent,
+                currentExtent: () => widget.controller.isAttached
+                    ? widget.controller.size
+                    : null,
+                handle: const SheetHandle(),
+                child: content,
+              ),
       ),
     );
   }

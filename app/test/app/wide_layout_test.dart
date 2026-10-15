@@ -5,16 +5,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/app/shell_layout.dart';
+import 'package:velorki/features/assistant/presentation/assistant_sheet.dart';
+import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/planner/presentation/profile_chip_row.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/presentation/live_figures_view.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/settings/presentation/settings_screen.dart';
+import 'package:velorki/features/shared/presentation/ai_mark.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/shared/presentation/wide_panel.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../features/integrations/support/fakes.dart';
 import '../features/recording/support/pump.dart';
 import '../support/app.dart';
 
@@ -70,9 +75,17 @@ RecordingSnapshot _snapshot() => RecordingSnapshot(
 
 Rect _rect(WidgetTester tester, Finder finder) => tester.getRect(finder);
 
-/// The sheet's box as it shows.
-Rect _sheet(WidgetTester tester) =>
-    _rect(tester, find.byType(DockingSheetShell));
+/// The sheet's box as it shows: a wide window's panel, or a phone's sheet.
+Rect _sheet(WidgetTester tester) {
+  final panel = find.descendant(
+    of: find.byType(PanelSheet),
+    matching: find.byType(HeightReporter),
+  );
+  return _rect(
+    tester,
+    panel.evaluate().isNotEmpty ? panel : find.byType(DockingSheetShell),
+  );
+}
 
 /// A bar's glass: the clip inside it, not the slot it stands in.
 Rect _glass(WidgetTester tester, Finder bar) => _rect(
@@ -97,10 +110,14 @@ void _expectUpright(WidgetTester tester) {
 
 /// The panel's place in a window of [size]: [widePanelMargin] from the left
 /// edge's safe area [left], [widePanelWidth] wide, above the bar with the
-/// margin between, and clear of the window's middle.
+/// margin between, and clear of the window's middle. It stands still: no
+/// handle, no sheet's chrome.
 void _expectPanel(WidgetTester tester, Size size, {double left = 0}) {
   final sheet = _sheet(tester);
   final bar = _bar(tester);
+  expect(find.byType(PanelSheet), findsOneWidget);
+  expect(find.byType(SheetHandle), findsNothing);
+  expect(find.byType(DockingSheetShell), findsNothing);
   expect(sheet.left, closeTo(left + widePanelMargin, 1));
   expect(sheet.right, lessThan(size.width / 2 + 100));
   expect(sheet.width, closeTo(widePanelWidth(size.width), 1));
@@ -157,9 +174,16 @@ void main() {
           expect(chrome.right, lessThanOrEqualTo(sheet.right + 1));
           expect(chrome.bottom, lessThanOrEqualTo(sheet.top));
         }
-        // Resting tall, but with map between the chips and the sheet.
-        expect(sheet.height, greaterThan(size.height * 0.4));
-        expect(sheet.top, greaterThan(chips.bottom));
+        // As tall as the hint and the buttons of an empty plan, with map
+        // between the chips and the panel where the window is tall enough.
+        expect(sheet.height, lessThan(420));
+        if (size.height > 800) {
+          expect(sheet.top, greaterThan(chips.bottom + 100));
+        }
+        // A drag on it moves nothing.
+        await tester.drag(find.byType(PanelSheet), const Offset(0, 300));
+        await tester.pumpAndSettle();
+        expect(_sheet(tester), sheet);
 
         // The controls at the window's right edge, clear of the panel.
         final controls = _rect(tester, find.byType(MapControls));
@@ -183,8 +207,8 @@ void main() {
       });
 
       testWidgets('Record: the sheet is the panel; a ride hides the bar, and '
-          'the sheet folded down shows the figures bar in the panel\'s '
-          'place at the bottom', (tester) async {
+          'the panel stays, as tall as the figures, a margin above the '
+          'window\'s bottom', (tester) async {
         await _window(tester, size);
         final h = await pumpRecordingApp(tester, surfaceSize: size);
         await tester.pumpAndSettle();
@@ -195,33 +219,69 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.byType(NavigationBar), findsNothing);
         expect(find.byType(FiguresBar), findsNothing);
-        // In the panel's column, down to the window's bottom now.
+        // In the panel's column, its corners clear of the window's: the
+        // margin above the home indicator's safe area.
         final open = _sheet(tester);
+        expect(find.byType(SheetHandle), findsNothing);
         expect(open.left, closeTo(widePanelMargin, 1));
         expect(open.width, closeTo(widePanelWidth(size.width), 1));
-        expect(open.bottom, closeTo(size.height, 1));
-
-        await tester.dragFrom(
-          tester.getCenter(find.byType(SheetHandle)),
-          Offset(0, size.height),
+        expect(open.bottom, closeTo(size.height - 20 - widePanelMargin, 1));
+        expect(open.top, greaterThanOrEqualTo(24 + widePanelMargin - 1));
+        expect(
+          find.text(l10n.recordingStatusRecording.toUpperCase()),
+          findsOneWidget,
         );
+        // A drag on it folds nothing away.
+        await tester.drag(find.byType(PanelSheet), Offset(0, size.height));
         await tester.pumpAndSettle();
-        final figures = _glass(tester, find.byType(FiguresBar));
-        expect(
-          tester.widget<FiguresBar>(find.byType(FiguresBar)).railSide,
-          isNull,
-        );
-        // Upright, along the bottom of the panel's column.
-        expect(figures.width, greaterThan(figures.height));
-        expect(figures.left, greaterThanOrEqualTo(widePanelMargin));
-        expect(
-          figures.right,
-          lessThanOrEqualTo(widePanelMargin + widePanelWidth(size.width) + 1),
-        );
-        expect(figures.bottom, greaterThan(size.height - 60));
+        expect(_sheet(tester), open);
+        expect(find.byType(FiguresBar), findsNothing);
         // The map's controls stay where they were, clear of it all.
         final controls = _rect(tester, find.byType(MapControls));
-        expect(controls.overlaps(figures), isFalse);
+        expect(controls.overlaps(open), isFalse);
+        await unmountApp(tester);
+      });
+
+      testWidgets('Plan: the AI\'s card is a panel too, closed by its '
+          'button', (tester) async {
+        await _window(tester, size);
+        await pumpRecordingApp(
+          tester,
+          initialLocation: plannerRoute,
+          surfaceSize: size,
+          extraOverrides: [
+            relayClientProvider.overrideWithValue(FakeRelayClient()),
+          ],
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.widgetWithIcon(LabeledIconButton, Icons.auto_awesome_rounded),
+        );
+        await tester.pumpAndSettle();
+        final card = _rect(tester, find.byKey(assistantSheetSurfaceKey));
+        expect(find.byType(SheetHandle), findsNothing);
+        expect(card.left, closeTo(widePanelMargin, 1));
+        expect(card.width, closeTo(widePanelWidth(size.width), 1));
+        expect(card.bottom, closeTo(_bar(tester).top - widePanelMargin, 1));
+        // Its AI edge goes all the way round: its lower edge is in view.
+        final edge = tester.widget<CustomPaint>(
+          find.byKey(assistantSheetEdgeKey),
+        );
+        expect((edge.foregroundPainter! as AiEdgePainter).closed, isTrue);
+        // Below the search and the chips, as the planner's panel.
+        expect(
+          card.top,
+          greaterThan(_rect(tester, find.byType(ProfileChipRow)).bottom),
+        );
+        final close = find.byTooltip(
+          MaterialLocalizations.of(
+            tester.element(find.byKey(assistantSheetSurfaceKey)),
+          ).closeButtonTooltip,
+        );
+        await tester.tap(close);
+        await tester.pumpAndSettle();
+        expect(find.byKey(assistantSheetSurfaceKey), findsNothing);
+        _expectPanel(tester, size);
         await unmountApp(tester);
       });
 
@@ -335,6 +395,83 @@ void main() {
     });
   }
 
+  group('a panel sheet', () {
+    Future<void> pumpPanel(
+      WidgetTester tester, {
+      required int rows,
+      double height = 600,
+    }) => tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: SizedBox(
+            width: 400,
+            height: height,
+            child: PanelSheet(
+              child: Builder(
+                builder: (context) => ListView(
+                  controller: SheetContentScroll.maybeOf(context),
+                  shrinkWrap: SheetContentScroll.shrinkWrapOf(context),
+                  padding: EdgeInsets.zero,
+                  children: [
+                    for (var i = 0; i < rows; i++)
+                      SizedBox(height: 50, child: Text('row $i')),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Rect panel(WidgetTester tester) => _rect(
+      tester,
+      find.descendant(
+        of: find.byType(PanelSheet),
+        matching: find.byType(HeightReporter),
+      ),
+    );
+
+    testWidgets('is as tall as its content, at the bottom of its room', (
+      tester,
+    ) async {
+      await pumpPanel(tester, rows: 3);
+      final rect = panel(tester);
+      expect(rect.height, closeTo(3 * 50 + panelSheetTopDp, 0.5));
+      final room = tester.getRect(find.byType(SizedBox).first);
+      expect(rect.bottom, closeTo(room.bottom, 0.5));
+
+      // Grows with it.
+      await pumpPanel(tester, rows: 6);
+      expect(panel(tester).height, closeTo(6 * 50 + panelSheetTopDp, 0.5));
+    });
+
+    testWidgets('beyond its room, as tall as the room, the content '
+        'scrolling inside', (tester) async {
+      await pumpPanel(tester, rows: 40, height: 500);
+      expect(panel(tester).height, closeTo(500, 0.5));
+      expect(find.text('row 39'), findsNothing);
+      await tester.drag(find.text('row 2'), const Offset(0, -2000));
+      await tester.pumpAndSettle();
+      expect(find.text('row 39'), findsOneWidget);
+      expect(panel(tester).height, closeTo(500, 0.5));
+    });
+
+    testWidgets('reports its height', (tester) async {
+      final heights = <double>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PanelSheet(
+            onHeight: heights.add,
+            child: const SizedBox(height: 120),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(heights, [120 + panelSheetTopDp]);
+    });
+  });
+
   testWidgets('a window resized across the line changes layout and back, the '
       'plan and its sheet kept', (tester) async {
     await _window(tester, _airSideways);
@@ -349,6 +486,10 @@ void main() {
 
     await _window(tester, const Size(507, 820));
     expect(_sheet(tester).width, closeTo(507, 1));
+    // At rest, where a sheet starts, not all the way open as the panel's
+    // column was.
+    expect(find.byType(SheetHandle), findsOneWidget);
+    expect(_sheet(tester).height, lessThan(820 * 0.7));
     expect(find.byType(NavigationRail), findsNothing);
 
     await _window(tester, _airSideways);

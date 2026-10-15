@@ -70,6 +70,7 @@ class AiEdgePainter extends CustomPainter {
     required this.gradient,
     required this.radius,
     this.width = 3,
+    this.closed = false,
   });
 
   /// The line's colours, across the card.
@@ -81,6 +82,10 @@ class AiEdgePainter extends CustomPainter {
   /// The line's width.
   final double width;
 
+  /// Whether the line goes all the way round, for a card whose lower edge
+  /// is in view (a wide window's panel), round at the bottom too.
+  final bool closed;
+
   @override
   void paint(Canvas canvas, Size size) {
     // Half the line in, so all of it lies inside the card's clip.
@@ -89,8 +94,9 @@ class AiEdgePainter extends CustomPainter {
     final r = radius - inset;
     // Up one side, round the corner, along the top, round the other corner
     // and down the other side.
+    final bottom = closed ? size.height - radius : size.height;
     final path = Path()
-      ..moveTo(inset, size.height)
+      ..moveTo(inset, bottom)
       ..lineTo(inset, radius)
       ..arcToPoint(Offset(radius, inset), radius: Radius.circular(r))
       ..lineTo(size.width - radius, inset)
@@ -98,7 +104,18 @@ class AiEdgePainter extends CustomPainter {
         Offset(size.width - inset, radius),
         radius: Radius.circular(r),
       )
-      ..lineTo(size.width - inset, size.height);
+      ..lineTo(size.width - inset, bottom);
+    if (closed) {
+      // On round the lower corners and along the bottom, back to the start.
+      path
+        ..arcToPoint(
+          Offset(size.width - radius, size.height - inset),
+          radius: Radius.circular(r),
+        )
+        ..lineTo(radius, size.height - inset)
+        ..arcToPoint(Offset(inset, bottom), radius: Radius.circular(r))
+        ..close();
+    }
     // One gradient across the card's width, its colours evenly spaced, so
     // the top shows all of them and each side its end's. Drawn as one
     // two-colour run per band of the width, which is the same gradient
@@ -138,7 +155,10 @@ class AiEdgePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(AiEdgePainter old) =>
-      old.gradient != gradient || old.radius != radius || old.width != width;
+      old.gradient != gradient ||
+      old.radius != radius ||
+      old.width != width ||
+      old.closed != closed;
 }
 
 /// What the AI wrote, marked as its own: [child] beside the AI's sparkle.
