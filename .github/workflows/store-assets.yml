@@ -56,8 +56,10 @@ on:
 permissions:
   contents: read
 
+# One run at a time per ref and platform set: a Play upload waiting days for
+# its approval must not hold up an App Store run.
 concurrency:
-  group: store-assets-${{ github.ref }}
+  group: store-assets-${{ github.ref }}-ios-${{ inputs.ios }}-android-${{ inputs.android }}
   cancel-in-progress: false
 
 env:
