@@ -64,12 +64,34 @@ env:
   FLUTTER_VERSION: "3.47.4"  # keep in sync with mise.toml and app/.fvmrc
 
 jobs:
+  # The languages as a list, one capture job each per platform: a language
+  # takes about half an hour on the simulator and close to an hour on the
+  # emulator, so all of them in one job ran for hours or past its limit.
+  locales:
+    if: ${{ (inputs.ios || inputs.android) && inputs.assets_run_id == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      locales: ${{ steps.list.outputs.locales }}
+    steps:
+      - id: list
+        env:
+          LOCALES: ${{ inputs.locales }}
+        run: |
+          json=$(printf '%s' "$LOCALES" | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | jq -R . | jq -cs .)
+          [ "$json" != "[]" ] || { echo "::error::no locales"; exit 1; }
+          echo "locales=$json" >> "$GITHUB_OUTPUT"
+
   assets:
+    needs: locales
     if: ${{ inputs.ios && inputs.assets_run_id == '' }}
     runs-on: macos-15
-    # Each language is its own capture with a simulator reboot, and the
-    # preview records every language again.
-    timeout-minutes: 240
+    # One language with a simulator reboot, and the preview records it again.
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        locale: ${{ fromJSON(needs.locales.outputs.locales) }}
 
     steps:
       # An upload that cannot happen should say so now, not after the capture.
@@ -185,7 +207,7 @@ jobs:
       - name: Screenshots and slides
         working-directory: app
         env:
-          LOCALES: ${{ inputs.locales }}
+          LOCALES: ${{ matrix.locale }}
           # The runner's first build of the test app alone takes eight minutes.
           VELORKI_STORE_START_TIMEOUT: "1500"
         run: tool/store_screenshots.sh --locales "$LOCALES"
@@ -194,13 +216,13 @@ jobs:
         if: ${{ inputs.preview }}
         working-directory: app
         env:
-          LOCALES: ${{ inputs.locales }}
+          LOCALES: ${{ matrix.locale }}
           VELORKI_STORE_START_TIMEOUT: "1500"
         run: tool/store_screenshots.sh --preview --locales "$LOCALES"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-assets
+          name: store-assets-ios-${{ matrix.locale }}
           path: |
             app/build/store_screenshots/slides/set
             app/build/store_screenshots/watch
@@ -248,9 +270,11 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # One artifact per language (store-assets-ios-<locale>), merged.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: store-assets
+          pattern: store-assets-ios-*
+          merge-multiple: true
           path: ${{ runner.temp }}/assets
           run-id: ${{ inputs.assets_run_id || github.run_id }}
           github-token: ${{ github.token }}
@@ -292,32 +316,15 @@ jobs:
   # The Google Play set on the emulator integration.yml runs (API 35, Pixel 6
   # profile), with its system image step and, read only, its Gradle and AVD
   # caches.
-  # The languages as a list, one Android job each: a language takes close
-  # to an hour on the emulator, so six in one job ran past its limit.
-  android_locales:
-    if: ${{ inputs.android && inputs.assets_run_id == '' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      locales: ${{ steps.list.outputs.locales }}
-    steps:
-      - id: list
-        env:
-          LOCALES: ${{ inputs.locales }}
-        run: |
-          json=$(printf '%s' "$LOCALES" | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | jq -R . | jq -cs .)
-          [ "$json" != "[]" ] || { echo "::error::no locales"; exit 1; }
-          echo "locales=$json" >> "$GITHUB_OUTPUT"
-
   android:
-    needs: android_locales
+    needs: locales
     if: ${{ inputs.android && inputs.assets_run_id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        locale: ${{ fromJSON(needs.android_locales.outputs.locales) }}
+        locale: ${{ fromJSON(needs.locales.outputs.locales) }}
     env:
       API_LEVEL: "35"
 

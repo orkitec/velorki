@@ -287,8 +287,9 @@ against it, to see which converts better.
 
 `.github/workflows/store-assets.yml`, started by hand (Actions → store assets
 → Run workflow), runs `store_screenshots.sh` for the `locales` given, and with
-`preview` the preview too, on a macOS runner. The artifact `store-assets`
-holds `slides/set/` (both sizes, every language, the contact sheets),
+`preview` the preview too, on a macOS runner, one job per language (about half
+an hour each). The artifacts `store-assets-ios-<locale>`, merged for the upload,
+hold `slides/set/` (both sizes, each language, its contact sheet),
 `watch/` and `preview/<locale>/preview.mp4` with its poster. The `ios` and
 `android` inputs choose the sets; `android` (off by default) runs
 `--platform android` on an API 35 emulator on Ubuntu, one job per language
@@ -321,5 +322,5 @@ artifact before approving: the listing changes at once, so approve once the
 release it shows is live.
 
 `assets_run_id` uploads the sets an earlier run captured instead of capturing
-again: `store-assets` for iOS, `store-assets-android*` for Play, so that run
+again: `store-assets-ios-*` for iOS, `store-assets-android*` for Play, so that run
 must have made each set asked for.
