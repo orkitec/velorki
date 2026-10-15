@@ -87,7 +87,7 @@ jobs:
   assets:
     needs: locales
     if: ${{ inputs.ios && inputs.assets_run_id == '' }}
-    runs-on: macos-15
+    runs-on: xcode-27
     # One language with a simulator reboot, and the preview records it again.
     timeout-minutes: 150
     strategy:
@@ -110,12 +110,16 @@ jobs:
           esac
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      # The image's default Xcode 16.4 cannot compile device_info_plus (an
-      # iOS 17 NSProcessInfo selector); the app is built with Xcode 26 on the
-      # Mac, so pick the newest 26 on the runner.
-      - name: Select Xcode 26
+      # The Xcode the app is built with (the Mac's too). The xcode-27 image
+      # also carries betas, whose builds the App Store refuses: name the
+      # release; 27.1 once its RC or final is on the image (iPhone Duo's
+      # whole inner screen needs the 27.1 SDK).
+      - name: Select Xcode
+        env:
+          XCODE_VERSION: "27.0"
         run: |
-          xcode="$(ls -d /Applications/Xcode_26.*.app | sort -V | tail -1)"
+          xcode="/Applications/Xcode_${XCODE_VERSION}.app"
+          [ -d "$xcode" ] || { echo "::error::no $xcode on the runner"; ls -d /Applications/Xcode*.app; exit 1; }
           sudo xcode-select -s "$xcode"
           xcodebuild -version
 
@@ -174,10 +178,10 @@ jobs:
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: >-
-            derived-${{ env.FLUTTER_VERSION }}-${{
+            derived-xcode27-${{ env.FLUTTER_VERSION }}-${{
             hashFiles('app/ios/Podfile.lock') }}-${{ steps.stamp.outputs.week }}
           restore-keys: |
-            derived-${{ env.FLUTTER_VERSION }}-${{ hashFiles('app/ios/Podfile.lock') }}-
+            derived-xcode27-${{ env.FLUTTER_VERSION }}-${{ hashFiles('app/ios/Podfile.lock') }}-
 
       - name: Prepare the app package
         working-directory: app
@@ -245,7 +249,7 @@ jobs:
       && (needs.assets.result == 'success'
       || (needs.assets.result == 'skipped' && inputs.assets_run_id != '')) }}
     # macOS for sips, which the staging script uses.
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 45
     # Required reviewer: nothing reaches App Store Connect before approval.
     environment: release
