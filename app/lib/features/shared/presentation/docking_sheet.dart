@@ -121,6 +121,7 @@ class DockingSheet extends StatefulWidget {
     required this.dockedBottomInset,
     required this.handle,
     required this.child,
+    this.floating = false,
     this.onDocked,
     this.onExtent,
     this.currentExtent,
@@ -148,6 +149,9 @@ class DockingSheet extends StatefulWidget {
   /// Whether there is a bar to dock into. False while the bar is hidden: the
   /// sheet then keeps its full-width look down to its handle.
   final bool docks;
+
+  /// See [DockingSheetShell.floating].
+  final bool floating;
 
   /// What the bar covers at the bottom of the parent, in pixels: docked, the
   /// shell ends where the bar begins instead of running on behind it.
@@ -249,6 +253,7 @@ class _DockingSheetState extends State<DockingSheet> {
           collapsedExtent: widget.collapsedExtent,
           dockedRange: widget.dockedRange,
           docks: widget.docks,
+          floating: widget.floating,
           dockedBottomInset: widget.dockedBottomInset,
           handle: widget.handle,
           child: widget.child,
@@ -288,6 +293,7 @@ class DockingSheetShell extends StatefulWidget {
     required this.dockedBottomInset,
     required this.handle,
     required this.child,
+    this.floating = false,
     super.key,
   });
 
@@ -310,6 +316,11 @@ class DockingSheetShell extends StatefulWidget {
 
   /// Whether there is a bar to dock into.
   final bool docks;
+
+  /// Whether the sheet's lower edge is in view, above the bar rather than
+  /// behind it (the panel of a wide window): its bottom corners are round
+  /// and its hairline goes all the way round.
+  final bool floating;
 
   /// What the bar covers at the bottom of the parent, in pixels.
   final double dockedBottomInset;
@@ -438,7 +449,11 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
     final topRadius = BorderRadius.vertical(
       top: Radius.circular(radius),
       bottom: Radius.circular(
-        t >= sheetDockedThreshold ? 0 : 30 * t * (1 - lift),
+        widget.floating
+            ? radius
+            : t >= sheetDockedThreshold
+            ? 0
+            : 30 * t * (1 - lift),
       ),
     );
     // In a glass style the strip ends at the seam exactly: one blur lies
@@ -496,6 +511,7 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
                     radius: radius,
                     color: colors.glassBorder,
                     hairline: t >= sheetDockedThreshold,
+                    closed: widget.floating,
                   ),
                   child: Material(
                     type: MaterialType.transparency,
@@ -645,11 +661,15 @@ class _ShellBorderPainter extends CustomPainter {
     required this.radius,
     required this.color,
     required this.hairline,
+    this.closed = false,
   });
 
   final double radius;
   final Color color;
   final bool hairline;
+
+  /// Round at the bottom too, for a sheet whose lower edge is in view.
+  final bool closed;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -663,6 +683,16 @@ class _ShellBorderPainter extends CustomPainter {
     // the radius down to fit, and the stroke has to follow the same corner.
     final radius = math.min(this.radius, size.height);
     final r = radius - inset;
+    if (closed) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          (Offset.zero & size).deflate(inset),
+          Radius.circular(math.min(r, size.height / 2 - inset)),
+        ),
+        paint,
+      );
+      return;
+    }
     final path = Path()
       ..moveTo(inset, size.height)
       ..lineTo(inset, radius)
@@ -683,5 +713,8 @@ class _ShellBorderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ShellBorderPainter old) =>
-      old.radius != radius || old.color != color || old.hairline != hairline;
+      old.radius != radius ||
+      old.color != color ||
+      old.hairline != hairline ||
+      old.closed != closed;
 }

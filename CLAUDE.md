@@ -107,6 +107,19 @@ changing structure.
   `BesideSheet`. Widget tests run upright (`test/flutter_test_config.dart`);
   a landscape test clears `debugShellLayoutOverride`. Flutter's
   `landscapeLeft` is not the same physical turn on iOS and Android.
+- Layout is decided by the window's size alone, never the device or its
+  orientation APIs: a window wider than tall with a shortest side under 600
+  is a phone on its side and gets the rail; a tablet-class window
+  (`isWideWindow`: shortest side and width both 600 or more, an iPad or a
+  foldable's inner screen) gets `ShellLayout.wide`: the bar centred at the
+  bottom, each map tab laid out as upright in a column on the left
+  (`WidePanelColumn`, `wide_panel.dart`) whose sheet floats above the bar as
+  a panel, and full pages in a readable column (`WideReadingColumn`, also
+  through the theme's page transitions). Anything else is upright. Each
+  side keeps its own safe-area inset (a system bar can stand on one side).
+  Camera padding in a map tab reads the window (`MediaQueryData.fromView`),
+  not the column (`visibleMapPadding`); nothing caches a size in `State`, so
+  a resize mid-ride switches live.
 
 ## Tests
 
@@ -141,7 +154,8 @@ changing structure.
   oracle tile; New York when `VELORKI_NYC_SEGMENTS_DIR` holds `W75_N40.rd5`.
   `integration_test/live_reroute_test.dart` rides each mode off the route and
   back on the iOS simulator.
-- Landscape: `test/app/landscape_test.dart` (three phone sizes) and
+- Landscape: `test/app/landscape_test.dart` (three phone sizes),
+  `test/app/wide_layout_test.dart` (iPad and foldable windows, live resize) and
   `integration_test/orientation_test.dart` (turns the phone with a ride
   running). The test font draws every glyph a full em wide, so
   `expectNoClippedText` fails at a phone's width sideways where the real font

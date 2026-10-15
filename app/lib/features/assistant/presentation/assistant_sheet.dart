@@ -18,6 +18,7 @@ import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../map/presentation/visible_map_padding.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/domain/avoid_area.dart';
 import '../../planner/domain/planner_state.dart';
@@ -403,6 +404,10 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
   /// chrome and control column, as padding for the camera: the card rises
   /// from the bottom upright and comes out from a side sideways.
   EdgeInsets _uncovered() {
+    // In a wide window the card is in the panel, beside the map.
+    if (ShellLayout.of(context).widePanel) {
+      return visibleMapPadding(context, chromeTop: widget.chromeTop);
+    }
     final media = MediaQuery.of(context);
     final size = media.size;
     final box = _sheetKey.currentContext?.findRenderObject() as RenderBox?;
@@ -780,9 +785,14 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                 key: _sheetKey,
                 color: theme.colorScheme.surface,
                 elevation: 3,
-                shape: const RoundedRectangleBorder(
+                // In a wide window's panel the card's lower edge is in
+                // view, above the bar: round there too.
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(_cornerRadius),
+                    top: const Radius.circular(_cornerRadius),
+                    bottom: Radius.circular(
+                      WidePanelColumn.aboveBarOf(context) ? _cornerRadius : 0,
+                    ),
                   ),
                 ),
                 clipBehavior: Clip.antiAlias,

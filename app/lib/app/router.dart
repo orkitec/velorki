@@ -10,6 +10,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../features/shared/presentation/adaptive_docking_sheet.dart';
 import '../features/shared/presentation/floating_bar.dart';
 import '../features/shared/presentation/gesture_zone_guard.dart';
+import '../features/shared/presentation/wide_panel.dart';
 import '../features/import_export/data/track_decoder.dart';
 import '../features/import_export/domain/imported_track.dart';
 import '../features/import_export/presentation/import_preview_screen.dart';
@@ -106,22 +107,25 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
     routes: [
       GoRoute(
         path: paywallRoute,
-        builder: (context, state) => const PaywallScreen(),
+        builder: (context, state) =>
+            const WideReadingColumn(child: PaywallScreen()),
       ),
       GoRoute(
         path: importRoute,
         // A decoded file, a refused one with its reason, or nothing at all
         // (a stale deep link).
-        builder: (context, state) => switch (state.extra) {
-          final ImportCandidate candidate => ImportPreviewScreen(
-            candidate: candidate,
-          ),
-          final ImportException rejection => ImportPreviewScreen(
-            candidate: null,
-            rejection: rejection,
-          ),
-          _ => const ImportPreviewScreen(candidate: null),
-        },
+        builder: (context, state) => WideReadingColumn(
+          child: switch (state.extra) {
+            final ImportCandidate candidate => ImportPreviewScreen(
+              candidate: candidate,
+            ),
+            final ImportException rejection => ImportPreviewScreen(
+              candidate: null,
+              rejection: rejection,
+            ),
+            _ => const ImportPreviewScreen(candidate: null),
+          },
+        ),
       ),
       StatefulShellRoute(
         builder: (context, state, shell) => HomeShell(shell: shell),
@@ -132,7 +136,14 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
           // cross-fade over it while Plan's search field and chips slide
           // and the control column glides across.
           chromeTabs: mapTabs,
-          children: children,
+          // In a wide window the map tabs are a panel on the left of the
+          // map, and the settings a column of readable width.
+          children: [
+            for (final (index, child) in children.indexed)
+              mapTabs.contains(index)
+                  ? WidePanelColumn(child: child)
+                  : WideReadingColumn(child: child),
+          ],
         ),
         branches: [
           StatefulShellBranch(
@@ -251,7 +262,10 @@ class HomeShell extends ConsumerWidget {
     // scaffold, so it still sees the inset the scaffold resizes for.
     final keyboardUp = MediaQuery.viewInsetsOf(context).bottom > 0;
     final hideRail = recording && shell.currentIndex == 1;
-    final hideBar = hideRail || keyboardUp;
+    // In a wide window the bar stays behind the keyboard: the map tabs'
+    // panel ends above it, and would grow down and back with every field.
+    bool hideBar(ShellLayout layout) =>
+        hideRail || (keyboardUp && !layout.widePanel);
     // A sheet pulled all the way down docks in the bar: the bar then squares
     // its top corners so the handle strip above it and the tabs read as one
     // pill. Only the showing tab's sheet counts.
@@ -292,10 +306,7 @@ class HomeShell extends ConsumerWidget {
             chromeTop: ref.read(mapControlsTopProvider).target,
             sheetExtent: ref.read(tabHandoverProvider).sheetExtent,
             // This context is above the layout the shell hands down.
-            layout: ShellLayout.resolve(
-              MediaQuery.sizeOf(context),
-              ref.read(railSideProvider),
-            ),
+            layout: ShellLayout.resolveAt(context, ref.read(railSideProvider)),
           )
         : EdgeInsets.zero;
     locate.cardOpen = () =>
@@ -441,7 +452,12 @@ class HomeShell extends ConsumerWidget {
                                   animation: columnGlide.animation,
                                   builder: (context, child) => Padding(
                                     padding: EdgeInsets.only(
-                                      top: columnGlide.animation.value,
+                                      // In a wide window the tabs' chrome
+                                      // is in the panel, not over the
+                                      // column.
+                                      top: layout.widePanel
+                                          ? defaultMapControlsTop
+                                          : columnGlide.animation.value,
                                       right: 12,
                                     ),
                                     child: Align(
@@ -477,8 +493,23 @@ class HomeShell extends ConsumerWidget {
             // Upright the bar floats at the bottom, hidden under the keyboard;
             // turned sideways it is a rail at the side, which the keyboard
             // leaves alone.
-            bottomNavigationBar: layout.sideRail || hideBar
+            bottomNavigationBar: layout.sideRail || hideBar(layout)
                 ? null
+                : layout.widePanel
+                // In a wide window the bar keeps a phone's width. Its slot
+                // takes both sides' safe areas too, which the bar keeps clear
+                // of itself, so the glass is centred between them.
+                ? Align(
+                    alignment: Alignment.bottomCenter,
+                    heightFactor: 1,
+                    child: SizedBox(
+                      width:
+                          wideBarWidth +
+                          2 * floatingBarSideMargin +
+                          MediaQuery.viewPaddingOf(context).horizontal,
+                      child: navigation(null),
+                    ),
+                  )
                 : navigation(null),
           );
         },

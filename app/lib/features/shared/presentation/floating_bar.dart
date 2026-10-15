@@ -165,15 +165,20 @@ class FloatingBarShell extends StatelessWidget {
     // painted shape need no such favour from the compositor.
     final radius = docked ? BorderRadius.zero : BorderRadius.circular(30);
     // Turned sideways the shell is the rail, its air the plain gap.
-    final gap = ShellLayout.of(context).sideRail
+    final sideways = ShellLayout.of(context).sideRail;
+    final gap = sideways
         ? floatingBarBottomGap
         : floatingBarBottomGapOf(context);
+    // Upright, clear of each side's own safe area: a foldable's system bar
+    // can stand on one side only. Turned, the frame's sides are the
+    // screen's top and bottom, which the rail keeps as it always has.
+    final viewPadding = MediaQuery.viewPaddingOf(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        floatingBarSideMargin,
+        floatingBarSideMargin + (sideways ? 0 : viewPadding.left),
         0,
-        floatingBarSideMargin,
-        MediaQuery.viewPaddingOf(context).bottom + gap,
+        floatingBarSideMargin + (sideways ? 0 : viewPadding.right),
+        viewPadding.bottom + gap,
       ),
       // Docked there is no shadow to keep off the sheet, but the clip stays
       // in the tree either way so the bar keeps its state.

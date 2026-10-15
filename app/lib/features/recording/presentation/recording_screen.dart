@@ -57,6 +57,7 @@ import '../../shared/application/active_tab.dart';
 import '../../shared/application/nav_bar_docking.dart';
 import '../../../app/shell_layout.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
 import '../../shared/presentation/stat_tile.dart';
@@ -776,6 +777,48 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
 
   // --------------------------------------------------------- follow mode
 
+  /// The follow padding on a phone, upright or turned sideways, for a
+  /// screen of [size]: above the sheet and below the banner or the status
+  /// bar.
+  EdgeInsets _followPaddingIn(
+    Size size,
+    ShellLayout layout,
+    MediaQueryData screen,
+    FollowMode mode, {
+    required bool banner,
+  }) {
+    // Turned sideways the sheet comes out from the rail's side, beside the
+    // map: the rider is kept in the middle of the map between it and the far
+    // edge, below the row at the top.
+    final sheet = layout.sideRail ? _sheetRect() : null;
+    // The far side keeps clear of the camera island's safe area.
+    final left = sheet == null
+        ? 0.0
+        : layout.side == RailSide.left
+        ? sheet.right.clamp(0.0, size.width)
+        : screen.viewPadding.left;
+    final right = sheet == null
+        ? 0.0
+        : layout.side == RailSide.right
+        ? (size.width - sheet.left).clamp(0.0, size.width)
+        : screen.viewPadding.right;
+    final bannerCover = banner ? turnBannerHeight + _bannerGapPx : 0.0;
+    return followPadding(
+      size: size,
+      // Sideways the controls' row stands at the top too, beside the docked
+      // sheet, level with the banner.
+      top:
+          MediaQuery.viewPaddingOf(context).top +
+          (layout.sideRail
+              ? math.max(bannerCover, sidewaysTopRowTop + sidewaysTopRowHeight)
+              : bannerCover),
+      bottom: layout.sideRail ? screen.viewPadding.bottom : _sheetCover(size),
+      left: left,
+      right: right,
+      headingUp: mode == FollowMode.headingUp,
+    );
+  }
+
   /// Sends the camera to [position] and marks the move as ours.
   void _followTo(
     MapController map,
@@ -814,39 +857,27 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _sentZoom = zoom;
     // Above the sheet and below the banner or the status bar; low in that,
     // heading-up, so most of what shows is the road ahead.
-    final size = MediaQuery.sizeOf(context);
-    // Turned sideways the sheet comes out from the rail's side, beside the
-    // map: the rider is kept in the middle of the map between it and the far
-    // edge, below the row at the top.
     final layout = ShellLayout.of(context);
     final screen = MediaQueryData.fromView(View.of(context));
-    final sheet = layout.sideRail ? _sheetRect() : null;
-    // The far side keeps clear of the camera island's safe area.
-    final left = sheet == null
-        ? 0.0
-        : layout.side == RailSide.left
-        ? sheet.right.clamp(0.0, size.width)
-        : screen.viewPadding.left;
-    final right = sheet == null
-        ? 0.0
-        : layout.side == RailSide.right
-        ? (size.width - sheet.left).clamp(0.0, size.width)
-        : screen.viewPadding.right;
-    final bannerCover = banner ? turnBannerHeight + _bannerGapPx : 0.0;
-    final padding = followPadding(
-      size: size,
-      // Sideways the controls' row stands at the top too, beside the docked
-      // sheet, level with the banner.
-      top:
-          MediaQuery.viewPaddingOf(context).top +
-          (layout.sideRail
-              ? math.max(bannerCover, sidewaysTopRowTop + sidewaysTopRowHeight)
-              : bannerCover),
-      bottom: layout.sideRail ? screen.viewPadding.bottom : _sheetCover(size),
-      left: left,
-      right: right,
-      headingUp: mode == FollowMode.headingUp,
-    );
+    // In a wide window this screen is the panel on the left; the map is the
+    // window's, and the rider is kept in the middle of it beside the panel,
+    // over the bar.
+    final EdgeInsets padding;
+    final Size size;
+    if (layout.widePanel) {
+      size = screen.size;
+      padding = followPadding(
+        size: size,
+        top: screen.viewPadding.top + defaultMapControlsTop,
+        bottom: wideBarCover(screen),
+        left: widePanelRight(screen),
+        right: screen.viewPadding.right,
+        headingUp: mode == FollowMode.headingUp,
+      );
+    } else {
+      size = MediaQuery.sizeOf(context);
+      padding = _followPaddingIn(size, layout, screen, mode, banner: banner);
+    }
     // Where the camera itself comes to rest: the rider's placement moves it
     // off the rider, and a camera found there is not a hand pan.
     _followCamera = offsetCenter(
@@ -2002,7 +2033,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                         child: Padding(
                           padding: EdgeInsets.only(
                             left: 12,
-                            right: shellLayout.sideRail
+                            right: shellLayout.sideRail || shellLayout.widePanel
                                 ? 12
                                 : mapControlsWidth(context) + 8,
                             top: shellLayout.sideRail

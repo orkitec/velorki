@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:health/health.dart';
 import 'package:logging/logging.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -119,6 +120,11 @@ class PluginHealthGateway implements HealthGateway {
   final Health _health;
   final TargetPlatform _platform;
 
+  /// The health plugin's own channel, for HealthKit's availability.
+  static const MethodChannel _healthKitChannel = MethodChannel(
+    'flutter_health',
+  );
+
   bool _configured = false;
 
   @override
@@ -126,9 +132,16 @@ class PluginHealthGateway implements HealthGateway {
     if (!healthSupportedOn(_platform)) return false;
     return _guard('isAvailable', false, () async {
       await _configure();
-      // Only Android has a store that can be missing: Health Connect is an
-      // app, HealthKit is part of the system.
-      if (_platform != TargetPlatform.android) return true;
+      // Android's store can be missing: Health Connect is an app. HealthKit
+      // is part of the system, but not on every device: an iPad has it only
+      // from iPadOS 17. The plugin answers that on its channel without a
+      // Dart call of its own.
+      if (_platform != TargetPlatform.android) {
+        return await _healthKitChannel.invokeMethod<bool>(
+              'checkIfHealthDataAvailable',
+            ) ??
+            false;
+      }
       return _health.isHealthConnectAvailable();
     });
   }

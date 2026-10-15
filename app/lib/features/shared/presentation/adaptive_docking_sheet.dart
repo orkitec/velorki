@@ -8,6 +8,7 @@ import '../../../app/shell_layout.dart';
 import '../application/covering_sheets.dart';
 import 'docking_sheet.dart';
 import 'floating_bar.dart';
+import 'wide_panel.dart';
 
 /// The width a sheet turned sideways gives its content at rest: as wide as
 /// the narrowest phone held upright gives it.
@@ -208,9 +209,12 @@ class SheetGeometry {
   double get dockedRange => length <= 0 ? 0.15 : sheetDockingRangeDp / length;
 
   /// Where the sheets rest: upright as [sheetRestingExtent] says; sideways
-  /// as wide as an upright phone gives the content, beside the rail.
+  /// as wide as an upright phone gives the content, beside the rail; in a
+  /// wide window's panel as [widePanelResting] says.
   double get resting => sideways
       ? fraction(sheetHandleDp + sidewaysSheetContentWidth).clamp(0.3, 0.75)
+      : layout.widePanel
+      ? widePanelResting(length)
       : sheetRestingExtent(length);
 }
 
@@ -350,8 +354,8 @@ class AdaptiveDockingSheet extends ConsumerStatefulWidget {
   final Widget child;
 
   /// Whether the sheet goes down while a modal sheet covers the tab: the
-  /// tab on screen's sheet does, a tab's away does not. Sideways nothing
-  /// moves, whatever this says.
+  /// tab on screen's sheet does, a tab's away does not. Sideways and in a
+  /// wide window nothing moves, whatever this says.
   final bool collapseWhenCovered;
 
   /// Where the sheet goes down to while covered: [collapsedExtent] by
@@ -439,7 +443,10 @@ class _AdaptiveDockingSheetState extends ConsumerState<AdaptiveDockingSheet> {
         !controller.isAttached ||
         stops == null ||
         _beforeCover != null ||
-        ShellLayout.of(context).sideRail) {
+        // Sideways and in a wide window a modal sheet lies over the middle
+        // of the screen and the tab's sheet beside it.
+        ShellLayout.of(context).sideRail ||
+        ShellLayout.of(context).widePanel) {
       return;
     }
     const near = 0.005;
@@ -510,6 +517,9 @@ class _AdaptiveDockingSheetState extends ConsumerState<AdaptiveDockingSheet> {
     // The same widgets upright, turned by nothing and padded by nothing, so
     // the content keeps its state through a turn of the phone.
     final sideways = turns != 0;
+    // In a wide window's panel the sheet stands above the bar, not on it:
+    // nothing to dock into, and a lower edge of its own.
+    final floating = WidePanelColumn.aboveBarOf(context);
     final end = sideways
         ? widget.contentEndInset ?? widget.dockedBottomInset
         : 0.0;
@@ -575,7 +585,8 @@ class _AdaptiveDockingSheetState extends ConsumerState<AdaptiveDockingSheet> {
           initialExtent: widget.initialExtent,
           collapsedExtent: widget.collapsedExtent,
           dockedRange: widget.dockedRange,
-          docks: widget.docks,
+          docks: widget.docks && !floating,
+          floating: floating,
           dockedBottomInset: widget.dockedBottomInset,
           onDocked: widget.onDocked,
           onExtent: widget.onExtent,

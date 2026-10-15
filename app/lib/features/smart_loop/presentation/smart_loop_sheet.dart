@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../app/shell_layout.dart';
 import '../../../app/theme.dart';
 import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
@@ -227,18 +228,24 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       final box = context.findRenderObject();
       final sheetHeight = box is RenderBox && box.hasSize ? box.size.height : 0;
       final screen = MediaQuery.sizeOf(context);
+      final sheetCover = sheetHeight + MediaQuery.viewPaddingOf(context).bottom;
+      // In a wide window the map is beside the planner's panel and above
+      // this sheet, which stands in the middle at the bottom.
+      final wide = ShellLayout.of(context).widePanel
+          ? visibleMapPadding(context, chromeTop: widget.chromeTop)
+          : null;
       unawaited(
         map.fitBounds(
           BoundingBox.fromPoints(result.positions),
-          padding: visibleMapInsets(
-            size: screen,
-            topInset: MediaQuery.viewPaddingOf(context).top,
-            chromeTop: widget.chromeTop,
-            sheetExtent:
-                (sheetHeight + MediaQuery.viewPaddingOf(context).bottom) /
-                screen.height,
-            columnWidth: mapControlsWidth(context),
-          ),
+          padding: wide != null
+              ? wide.copyWith(bottom: math.max(wide.bottom, sheetCover + 24))
+              : visibleMapInsets(
+                  size: screen,
+                  topInset: MediaQuery.viewPaddingOf(context).top,
+                  chromeTop: widget.chromeTop,
+                  sheetExtent: sheetCover / screen.height,
+                  columnWidth: mapControlsWidth(context),
+                ),
         ),
       );
     });

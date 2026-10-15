@@ -180,8 +180,14 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
       layout,
       defaultTargetPlatform,
     );
+    // Upright, each side's own safe area: a foldable's system bar can stand
+    // on one side only, and the chip is centred between them.
+    final screen = MediaQueryData.fromView(View.of(context));
     final attributionInsets = !layout.sideRail
-        ? EdgeInsets.zero
+        ? EdgeInsets.only(
+            left: screen.viewPadding.left,
+            right: screen.viewPadding.right,
+          )
         : layout.side == RailSide.left
         ? EdgeInsets.only(left: cover)
         : EdgeInsets.only(right: cover);

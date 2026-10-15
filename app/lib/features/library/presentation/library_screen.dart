@@ -458,7 +458,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     child: Padding(
                       padding: EdgeInsets.only(
                         left: 12,
-                        right: geometry.sideways
+                        right: geometry.sideways || geometry.layout.widePanel
                             ? 12
                             : mapControlsWidth(context) + 8,
                       ),

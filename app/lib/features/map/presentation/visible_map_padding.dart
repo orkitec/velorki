@@ -5,7 +5,9 @@ import 'package:flutter/widgets.dart';
 import '../../../app/shell_layout.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/docking_sheet.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../domain/visible_map.dart';
+import 'map_chrome.dart';
 import 'map_controls.dart';
 
 /// The control column's width at [context], glass and its margin included.
@@ -23,7 +25,8 @@ double mapControlsWidth(BuildContext context) =>
 ///
 /// On a phone turned sideways ([layout], the one handed down by default)
 /// the side panel takes the sheet's place: the visible map is what the rail,
-/// the panel as far as it is open and the row at the top leave.
+/// the panel as far as it is open and the row at the top leave. In a wide
+/// window it is what the panel on the left, the column and the bar leave.
 EdgeInsets visibleMapPadding(
   BuildContext context, {
   required double chromeTop,
@@ -31,6 +34,23 @@ EdgeInsets visibleMapPadding(
   ShellLayout? layout,
 }) {
   final shell = layout ?? ShellLayout.of(context);
+  if (shell.widePanel) {
+    // The window's own metrics: [context] may be inside the panel's column.
+    // The panel covers the left whatever its sheet does, with the tab's
+    // chrome at its top; the column stands at the right, the bar at the
+    // bottom.
+    final screen = MediaQueryData.fromView(View.of(context));
+    return sidewaysVisibleMapInsets(
+      topInset: screen.viewPadding.top,
+      chromeTop: defaultMapControlsTop,
+      bottomInset: wideBarCover(screen),
+      cover: EdgeInsets.only(
+        left: widePanelRight(screen),
+        right: screen.viewPadding.right + mapControlsWidth(context),
+      ),
+      safeArea: screen.viewPadding,
+    );
+  }
   if (shell.sideRail) {
     // The screen's own metrics: [context] may be inside a part laid out
     // beside the rail, with that side's safe area already spent.

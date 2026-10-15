@@ -1279,6 +1279,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final stopsWanted = ref.watch(mapStopsPreferencesProvider);
     _stops.update(shown: stopsWanted.shown, kinds: stopsWanted.kinds);
     final sideways = ShellLayout.of(context).sideRail;
+    // Whether the chips below the search run beside the map's control
+    // column: upright on a phone; sideways the controls are in the row at
+    // the top, and in a wide window the chrome is in the panel.
+    final underColumn = !sideways && !ShellLayout.of(context).widePanel;
     // Upright, the column stands under the rows that run over its side,
     // beside the chips under them; the banner of a missing routing server
     // runs the full width too, and the column goes under it. Sideways the
@@ -1368,7 +1372,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   // column that is not there it was a column of words.
                   padding: EdgeInsetsDirectional.only(
                     top: 10,
-                    end: sideways ? 0 : mapControlButtonSize + 14,
+                    end: underColumn ? mapControlButtonSize + 14 : 0,
                   ),
                   child: Align(
                     alignment: AlignmentDirectional.centerStart,
@@ -1384,7 +1388,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           // Clear of the control column, as the chip above.
           padding: EdgeInsetsDirectional.only(
             top: 10,
-            end: sideways ? 0 : mapControlButtonSize + 14,
+            end: underColumn ? mapControlButtonSize + 14 : 0,
           ),
           child: Align(
             alignment: AlignmentDirectional.centerStart,
@@ -1401,7 +1405,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           // Clear of the control column, as the chip above.
           padding: EdgeInsetsDirectional.only(
             top: 10,
-            end: sideways ? 0 : mapControlButtonSize + 14,
+            end: underColumn ? mapControlButtonSize + 14 : 0,
           ),
           child: Align(
             alignment: AlignmentDirectional.centerStart,
@@ -1420,7 +1424,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         child: WeatherMapHints(
           padding: EdgeInsetsDirectional.only(
             top: 10,
-            end: sideways ? 0 : mapControlButtonSize + 14,
+            end: underColumn ? mapControlButtonSize + 14 : 0,
           ),
         ),
       ),
