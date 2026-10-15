@@ -108,6 +108,20 @@ Output, git-ignored, under `app/build/store_screenshots/`:
 - `slides/set/<size>/<locale>/NN-<slide>.png`, the set to upload
 - `slides/set/contact-<locale>.png`, the set side by side
 
+## Creative asset
+
+```
+app/tool/store_creative.py [--locales en]
+```
+
+The App Store's universal creative asset (iOS 27: the product page header,
+search results and featuring), 5244 × 2950 per language, uploaded by hand to
+the Asset Library. Only Apple's art safe area, 1402 × 962 at (1921, 660) in
+its Figma template, is sure to show, so the rain on the route fills it; the
+cycle map and the stops sit behind as backdrop, and there is no text. Writes
+`creative/<locale>/universal.png` and a `universal-debug.png` with the safe
+area and the crops outlined.
+
 ## Gallery
 
 ```
