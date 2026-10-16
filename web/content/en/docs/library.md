@@ -6,7 +6,7 @@ order: 10
 
 The Library tab holds everything you kept: the routes you planned and the rides you recorded. It is a card over the map, like the Plan and Record tabs: its content scrolls at any height, and the handle at its top moves it; when there is nothing to scroll, the whole card does. Pull it up for more room, pull it all the way down and the card folds into the navigation bar, leaving the map. Go here to open a route again, to read a ride's charts and splits, and to get files in and out.
 
-Everything in the library is on the phone. There is no account and nothing is synchronised anywhere.
+Everything in the library is on the phone. There is no account. On an iPhone or iPad it can sync between your own devices through iCloud, see [syncing with iCloud](#syncing-with-icloud-iphone-and-ipad) below.
 
 ## Routes and Rides
 
@@ -113,6 +113,14 @@ The two buttons at the right of the card's header:
 - The cloud button offers **Import from Strava** and **Import from Ride with GPS**, when those services are configured.
 
 Both are covered in [import and export](./import-and-export) and [Strava and Ride with GPS](./strava-and-ridewithgps).
+
+## Syncing with iCloud (iPhone and iPad)
+
+On an iPhone or iPad with iOS 17 or later, your saved routes and recorded rides, with the track, notes and figures of each ride, sync between your own devices signed in to the same Apple Account, through your iCloud. A few settings go along: theme, accent colour, map look, bar style, column side, units and the turn and voice announcement settings. Velorki runs no server for it and cannot read what is stored; see the [privacy policy](/privacy).
+
+It is on by default. **Sync with iCloud** in Settings turns it off on that device; what is already in iCloud stays there until you delete it in iCloud settings on the device. A status line in Settings says where it stands: **Synced just now**, **Syncing…**, **iCloud is off on this device** or **iCloud storage is full**.
+
+Routes read from Strava, and routes edited from them, stay on the phone, and so do the Strava links of rides; links of uploads to Ride with GPS are not synced either. Downloaded maps and routing tiles are not synced. The Android app does not sync.
 
 ## Related
 

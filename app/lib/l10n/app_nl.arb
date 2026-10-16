@@ -1223,5 +1223,22 @@
   "stravaAccessLostTitle": "Toegang tot Strava ingetrokken",
   "stravaAccessLostBody": "Strava accepteert de toegang van Velorki niet meer, dus heeft Velorki Strava ontkoppeld. Je Strava-gegevens zijn van deze telefoon gewist. Koppel opnieuw onder Instellingen → Koppelingen om Strava te gebruiken.",
   "integrationAccessRevoked": "De dienst accepteert de toegang van Velorki niet meer. Koppel opnieuw onder Instellingen → Koppelingen.",
-  "stravaRoutesRemoved": "{count, plural, =1{Een route van Strava is verwijderd: hij bestaat niet meer op Strava, of kon 7 dagen niet worden gecontroleerd.} other{{count} routes van Strava zijn verwijderd: ze bestaan niet meer op Strava, of konden 7 dagen niet worden gecontroleerd.}}"
+  "stravaRoutesRemoved": "{count, plural, =1{Een route van Strava is verwijderd: hij bestaat niet meer op Strava, of kon 7 dagen niet worden gecontroleerd.} other{{count} routes van Strava zijn verwijderd: ze bestaan niet meer op Strava, of konden 7 dagen niet worden gecontroleerd.}}",
+  "settingsSync": "iCloud",
+  "cloudSyncTitle": "Synchroniseren met iCloud",
+  "cloudSyncOff": "Routes, ritten en instellingen blijven op dit apparaat",
+  "cloudSyncSyncing": "Bezig met synchroniseren…",
+  "cloudSyncJustNow": "Zojuist gesynchroniseerd",
+  "cloudSyncMinutesAgo": "{minutes, plural, =1{1 min geleden gesynchroniseerd} other{{minutes} min geleden gesynchroniseerd}}",
+  "cloudSyncHoursAgo": "{hours, plural, =1{1 uur geleden gesynchroniseerd} other{{hours} uur geleden gesynchroniseerd}}",
+  "cloudSyncOnDate": "Gesynchroniseerd op {date}",
+  "cloudSyncWaiting": "Wacht op synchronisatie",
+  "cloudSyncNoAccount": "iCloud staat uit op dit apparaat",
+  "cloudSyncRestricted": "iCloud is beperkt op dit apparaat",
+  "cloudSyncQuota": "De iCloud-opslag is vol",
+  "cloudSyncOffline": "Wacht op een verbinding",
+  "cloudSyncFailed": "Synchroniseren mislukt, wordt opnieuw geprobeerd",
+  "cloudSyncHint": "Je routes, ritten en een paar instellingen op elke iPhone en iPad met je Apple Account. Routes van Strava blijven op dit apparaat",
+  "cloudSyncNotice": "Je routes en ritten worden nu via iCloud gesynchroniseerd tussen je iPhone en iPad",
+  "cloudSyncNoticeAction": "Instellingen"
 }

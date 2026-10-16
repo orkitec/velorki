@@ -6,7 +6,7 @@ order: 10
 
 La pestaña Biblioteca guarda todo lo que has conservado: las rutas que planificaste y las salidas que grabaste. Es una tarjeta sobre el mapa, como las pestañas Planificar y Grabar: su contenido se desplaza a cualquier altura, y el asa de arriba la mueve; cuando no hay nada que desplazar, se mueve la tarjeta entera. Súbela para tener más espacio, bájala del todo y la tarjeta se pliega en la barra de navegación y deja el mapa. Ven aquí para volver a abrir una ruta, leer los gráficos y parciales de una salida, y meter y sacar archivos.
 
-Todo lo que hay en la biblioteca está en el teléfono. No hay cuenta y no se sincroniza nada en ninguna parte.
+Todo lo que hay en la biblioteca está en el teléfono. No hay cuenta. En un iPhone o iPad puede sincronizarse entre tus propios dispositivos a través de iCloud, véase más abajo [sincronización con iCloud](#sincronizacion-con-icloud-iphone-y-ipad).
 
 ## Rutas y Salidas
 
@@ -113,6 +113,14 @@ Los dos botones a la derecha de la cabecera de la tarjeta:
 - El botón de la nube ofrece **Importar de Strava** e **Importar de Ride with GPS**, si esos servicios están configurados.
 
 Ambos se explican en [importar y exportar](./import-and-export) y en [Strava y Ride with GPS](./strava-and-ridewithgps).
+
+## Sincronización con iCloud (iPhone y iPad)
+
+En un iPhone o iPad con iOS 17 o posterior, tus rutas guardadas y tus salidas grabadas, con el track, las notas y las cifras de cada salida, se sincronizan entre tus propios dispositivos que han iniciado sesión con la misma cuenta de Apple, a través de tu iCloud. Unos pocos ajustes van con ellas: tema, color de acento, aspecto del mapa, estilo de la barra, lado de la columna, unidades y los ajustes de los avisos de giro y de voz. Velorki no tiene ningún servidor para esto y no puede leer lo almacenado; véase la [política de privacidad](/privacy).
+
+Está activada por defecto. **Sincronizar con iCloud** en Ajustes la desactiva en ese dispositivo; lo que ya está en iCloud se queda allí hasta que lo elimines en los ajustes de iCloud del dispositivo. Una línea de estado en Ajustes dice cómo va: **Sincronizado ahora mismo**, **Sincronizando…**, **iCloud está desactivado en este dispositivo** o **El almacenamiento de iCloud está lleno**.
+
+Las rutas leídas de Strava y las rutas editadas a partir de ellas se quedan en el teléfono, y también los enlaces de Strava de las salidas; los enlaces de las subidas a Ride with GPS tampoco se sincronizan. Los mapas descargados y las teselas de enrutamiento no se sincronizan. La app para Android no sincroniza.
 
 ## Relacionado
 

@@ -17,7 +17,7 @@ Todo lo que creas y todo lo que descargas:
 - los tokens de acceso de Strava y Ride with GPS si los conectas, que van al almacenamiento seguro del teléfono en una forma que solo el relay de Velorki puede abrir, y se dejan fuera de las copias de seguridad.
 - lo que tomas de Strava: tu nombre en Strava, la lista de tus rutas de Strava durante 48 horas como máximo, las rutas que importas y los enlaces de las salidas subidas a sus actividades de Strava. Desconectar lo elimina todo.
 
-Nada de ello se sube a ninguna parte si no lo pides.
+Nada de ello se sube a ninguna parte si no lo pides. La única excepción es la sincronización con iCloud en un iPhone o iPad (iOS 17 o posterior): tus rutas, salidas y algunos ajustes van a tu propio iCloud, nunca a nosotros, y los datos de Strava se quedan en el teléfono. Está activada por defecto y se desactiva en Ajustes, mira [la biblioteca](./library).
 
 En Android, Velorki queda excluida a propósito de la copia de seguridad en la nube de Google y de la transferencia entre dispositivos, así que el sistema tampoco copia tus salidas fuera del teléfono. Pasar a un teléfono nuevo significa exportar lo que quieras conservar como archivos GPX, FIT o TCX; consulta [importar y exportar](./import-and-export).
 

@@ -90,6 +90,25 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
       cues arriving scrambled or cut short (`turn_speaker.dart`,
       `LeadInPlayer` in `ios/Runner/AppDelegate.swift`).
 
+- [ ] **iCloud sync before the release** (`ios/Runner/CloudSync.swift`):
+      automatic signing already put iCloud (CloudKit, container
+      `iCloud.com.orkitec.velorki`, key-value store) on the App ID and into
+      the development profile on 2026-10-16; check in the developer portal
+      that the container is the one listed there and that the App Store
+      profile CI makes carries it too (a `dry_run` of `release.yml`). Before
+      shipping, **deploy the CloudKit schema to Production** in the CloudKit
+      console (record types `Route` and `Ride`, created in Development by the
+      first sync from a debug build): a release build talks to Production and
+      fails every save without it. Then two devices on one Apple Account:
+      first sync of an existing library, a new device downloading it, a
+      rename on each side, a delete against an edit, a Strava route staying
+      put, iCloud off in iOS Settings, the switch off and on.
+- [ ] iCloud sync without push: changes are fetched at launch, on return to
+      the app and when the engine schedules it. Adding the Push Notifications
+      capability (`aps-environment`) and the remote-notification background
+      mode would let CKSyncEngine bring changes in while the app is open on
+      the other device.
+
 ## Still to try on the Android phone
 
 Done on the Pixel: planning with on-device routing, tile download over the

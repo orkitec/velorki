@@ -6,7 +6,7 @@ order: 10
 
 La scheda Libreria contiene tutto quello che hai conservato: i percorsi che hai pianificato e i giri che hai registrato. È un pannello sopra la mappa, come le schede Pianifica e Registra: il suo contenuto scorre a qualsiasi altezza, e la maniglia in alto lo sposta; quando non c'è nulla da scorrere, si muove tutto il pannello. Tiralo su per avere più spazio, tiralo giù fino in fondo e il pannello si ripiega nella barra di navigazione, lasciando la mappa. Vieni qui per riaprire un percorso, leggere i grafici e i parziali di un giro, e far entrare e uscire i file.
 
-Tutto quello che c'è nella libreria sta sul telefono. Non c'è alcun account e niente viene sincronizzato da nessuna parte.
+Tutto quello che c'è nella libreria sta sul telefono. Non c'è alcun account. Su un iPhone o un iPad può essere sincronizzato tra i tuoi dispositivi tramite iCloud, vedi più sotto [sincronizzazione con iCloud](#sincronizzazione-con-icloud-iphone-e-ipad).
 
 ## Percorsi e giri
 
@@ -113,6 +113,14 @@ I due pulsanti a destra dell'intestazione del pannello:
 - Il pulsante nuvola offre **Importa da Strava** e **Importa da Ride with GPS**, quando quei servizi sono configurati.
 
 Entrambi sono descritti in [importazione ed esportazione](./import-and-export) e [Strava e Ride with GPS](./strava-and-ridewithgps).
+
+## Sincronizzazione con iCloud (iPhone e iPad)
+
+Su un iPhone o un iPad con iOS 17 o successivo, i tuoi percorsi salvati e i tuoi giri registrati, con traccia, note e cifre di ogni giro, vengono sincronizzati tra i tuoi dispositivi collegati allo stesso Apple Account, tramite il tuo iCloud. Con loro viaggiano poche impostazioni: tema, colore d'accento, aspetto della mappa, stile della barra, lato della colonna, unità e le impostazioni degli annunci di svolta e vocali. Velorki non gestisce alcun server per questo e non può leggere ciò che è salvato; vedi l'[informativa sulla privacy](/privacy).
+
+È attiva per impostazione predefinita. **Sincronizza con iCloud** in Impostazioni la disattiva su quel dispositivo; ciò che è già in iCloud resta lì finché non lo elimini nelle impostazioni iCloud del dispositivo. Una riga di stato in Impostazioni dice a che punto è: **Sincronizzato proprio ora**, **Sincronizzazione…**, **iCloud è disattivato su questo dispositivo** o **Lo spazio iCloud è pieno**.
+
+I percorsi letti da Strava e i percorsi modificati a partire da essi restano sul telefono, così come i link Strava dei giri; neppure i link dei caricamenti su Ride with GPS vengono sincronizzati. Le mappe scaricate e i riquadri di routing non vengono sincronizzati. L'app Android non sincronizza.
 
 ## Vedi anche
 

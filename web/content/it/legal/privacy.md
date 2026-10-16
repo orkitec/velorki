@@ -7,7 +7,7 @@ draft: true
 > **Nota sulla traduzione.** Questa è una traduzione della versione inglese.
 > In caso di discrepanze prevale la versione inglese.
 
-In vigore dal: 13 ottobre 2026.
+In vigore dal: 16 ottobre 2026.
 
 Velorki è un'app per pianificare percorsi in bici e registrare giri, realizzata
 da Orkitec. Questa pagina spiega cosa succede ai tuoi dati.
@@ -23,7 +23,8 @@ nella pagina [note legali](./imprint).
 
 - Non c'è **nessun account**. Non ti registri, e noi non sappiamo chi sei.
 - I tuoi percorsi, i tuoi giri e le tue impostazioni restano **sul tuo
-  telefono**.
+  telefono**. Su un iPhone o un iPad vengono anche sincronizzati tra i tuoi
+  dispositivi tramite il tuo iCloud, non tramite noi.
 - Alcune cose hanno bisogno di un server: i riquadri della mappa, il calcolo del
   percorso fuori dalle aree che hai scaricato, la ricerca quando la richiedi e,
   se li usi, l'assistente IA, i collegamenti a Strava e RideWithGPS (gratuiti) e i link di
@@ -38,7 +39,9 @@ I percorsi pianificati, i giri registrati, le loro tracce GPS, le tue
 impostazioni, le regioni di mappa offline scaricate, i riquadri di routing
 scaricati e gli indici di ricerca dei luoghi che li accompagnano sono salvati
 nella memoria propria dell'app sul tuo telefono. Non vengono caricati da nessuna
-parte, a meno che non lo richieda tu.
+parte, a meno che non lo richieda tu; l'unica eccezione è la sincronizzazione
+con iCloud su un iPhone o un iPad, descritta più avanti, che va al tuo iCloud e
+non a noi.
 
 La frequenza cardiaca, la cadenza e la potenza provenienti da un Apple Watch, da
 un sensore Bluetooth o dalla tua app di salute vengono salvate con il giro, sul
@@ -260,6 +263,38 @@ automaticamente. Per farlo rimuovere prima, invia il link all'indirizzo di
 contatto indicato in fondo e lo eliminiamo. Aprire un link condiviso non richiede
 alcun account.
 
+### Sincronizzazione con iCloud (iPhone e iPad)
+
+Su un iPhone o un iPad con iOS 17 o successivo, i tuoi percorsi salvati e i tuoi
+giri registrati, con la traccia, le note e le statistiche di ogni giro, vengono
+sincronizzati tra i tuoi dispositivi Apple collegati allo stesso Apple Account.
+Vengono sincronizzate anche poche impostazioni: tema, colore d'accento, aspetto
+della mappa, stile della barra, lato della colonna, unità e le impostazioni degli
+annunci di svolta e vocali. È attiva per impostazione predefinita, e
+l'interruttore **Sincronizza con iCloud** in Impostazioni la disattiva su quel
+dispositivo.
+
+I dati passano da CloudKit di Apple e sono salvati nel tuo database privato
+iCloud. Apple li conserva e li trasferisce, e contano nello spazio iCloud a tua
+disposizione. Orkitec non gestisce alcun server per questo e non può leggerli,
+accedervi né eliminarli; non esiste un account Velorki. Apple cifra i dati in
+transito e sui suoi server; con la Protezione avanzata dei dati attiva sono
+cifrati end-to-end, come descritto nella [panoramica di Apple sulla sicurezza
+dei dati di iCloud](https://support.apple.com/en-us/102651).
+
+Alcune cose non vengono mai sincronizzate. I percorsi letti da Strava e i
+percorsi modificati a partire da essi, e i link Strava dei giri che hai caricato
+su Strava, restano su quel solo telefono, come descritto sopra alla voce
+Strava. Neppure i link dei caricamenti su Ride with GPS vengono sincronizzati;
+un percorso che importi da Ride with GPS viene sincronizzato come tuo percorso,
+senza il suo ID di Ride with GPS. Le regioni di mappa scaricate e i riquadri di
+routing, i permessi, i sensori associati, gli account collegati e lo stato
+dell'abbonamento non ne fanno parte. L'app Android non sincronizza.
+
+Se disattivi l'interruttore, la sincronizzazione su quel dispositivo si ferma.
+Ciò che è già in iCloud resta lì finché non lo elimini, nelle impostazioni
+iCloud del dispositivo.
+
 ### Abbonamenti
 
 Velorki Plus è venduto tramite l'App Store e Google Play e gestito per nostro
@@ -363,11 +398,14 @@ richiama.
 | L'elenco in cache dei tuoi percorsi Strava | sul tuo telefono, al massimo 48 ore | scollega Strava, oppure disinstalla |
 | Contatori di limitazione di frequenza (ID anonimo dell'installazione, indirizzo IP) | sul nostro server, per la finestra di conteggio, al massimo un giorno | non applicabile |
 | Link di condivisione | un anno, poi eliminati automaticamente | eliminali dall'app |
+| Percorsi, giri e impostazioni sincronizzati con iCloud (iPhone e iPad) | nel tuo iCloud, finché non li elimini lì; mai conservati da parte nostra | eliminali nelle impostazioni iCloud del dispositivo |
 | Prompt all'IA | non conservati da noi oltre quanto contenuto nei log di cui sopra | non applicabile |
 | Dati presso RevenueCat | secondo l'informativa di RevenueCat | contattaci e trasmetteremo la richiesta |
 | Conversazioni della chat di supporto | nel nostro canale Discord, finché non le eliminiamo | chiedi a ride@velorki.com |
 
-Disinstallare l'app rimuove tutto ciò che l'app ha salvato sul dispositivo. Non
+Disinstallare l'app rimuove tutto ciò che l'app ha salvato sul dispositivo. Ciò
+che la sincronizzazione con iCloud ha messo nel tuo iCloud resta lì; vedi la
+sincronizzazione con iCloud sopra. Non
 rimuove i link di condivisione che hai creato (scadono dopo un anno, o su
 richiesta), e non rimuove nulla di ciò che hai caricato su Strava o RideWithGPS.
 
@@ -384,6 +422,7 @@ par. 1, GDPR sono:
 | Velorki Plus: il meteo più dettagliato lungo il percorso e il radar della pioggia | lett. b) esecuzione del contratto |
 | Strava e RideWithGPS: collegamento di un account, ogni trasferimento che avvii e i dati di Strava conservati sul tuo telefono | lett. b) esecuzione del servizio che hai richiesto, più lett. a) consenso, prestato collegando l'account e revocato scollegandolo |
 | Link di condivisione che crei | lett. b) esecuzione del contratto |
+| Sincronizzazione con iCloud (iPhone e iPad), finché l'interruttore è attivo | lett. b) esecuzione del servizio che hai richiesto; Apple agisce in base al tuo accordo iCloud con Apple |
 | L'assistente IA | lett. a) consenso, richiesto separatamente nell'app e revocabile nelle impostazioni |
 | Risponderti nella chat di supporto | lett. b) ove riguardi un abbonamento, altrimenti lett. f) legittimo interesse a rispondere alla persona che ci ha scritto |
 | Conservazione dei documenti fiscalmente rilevanti di un abbonamento | lett. c) obbligo legale — e i dati di fatturazione li detengono Apple e Google, non noi |
@@ -434,6 +473,9 @@ responsabile del proprio trattamento**
   finlandese — la parte della mappa o il rettangolo attorno al tuo percorso che
   hai richiesto, un orario e il tuo indirizzo IP, solo mentre un livello meteo o
   la previsione gratuita del percorso è attivo.
+- **Apple Inc.** (iCloud) — i percorsi, i giri e le impostazioni della
+  sincronizzazione con iCloud, nel tuo iCloud e solo finché l'interruttore è
+  attivo. Non li riceviamo; Apple agisce in base al tuo accordo iCloud con Apple.
 - **Apple Inc.** e **Google Ireland Ltd** — la vendita di Velorki Plus. Sono loro
   i venditori; non vediamo mai i tuoi dati di pagamento.
 - **Strava, Inc.** e **Ride with GPS** — solo dopo che hai collegato l'account e

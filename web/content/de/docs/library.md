@@ -6,7 +6,7 @@ order: 10
 
 Der Tab Bibliothek enthält alles, was du behalten hast: die geplanten Routen und die aufgezeichneten Fahrten. Er ist ein Blatt über der Karte, wie die Tabs Planen und Aufnahme: Sein Inhalt scrollt in jeder Höhe, und der Griff oben bewegt es; gibt es nichts zu scrollen, bewegt es sich als Ganzes. Zieh es hoch für mehr Platz, zieh es ganz herunter, und das Blatt faltet sich in die Navigationsleiste und gibt die Karte frei. Geh hierher, um eine Route wieder zu öffnen, die Diagramme und Splits einer Fahrt zu lesen und Dateien hinein- und hinauszubekommen.
 
-Alles in der Bibliothek liegt auf dem Handy. Es gibt kein Konto, und nichts wird irgendwohin abgeglichen.
+Alles in der Bibliothek liegt auf dem Handy. Es gibt kein Konto. Auf einem iPhone oder iPad kann es zwischen deinen eigenen Geräten über iCloud abgeglichen werden, siehe unten [iCloud-Synchronisierung](#icloud-synchronisierung-iphone-und-ipad).
 
 ## Routen und Fahrten
 
@@ -113,6 +113,14 @@ Die beiden Schaltflächen rechts in der Kopfzeile des Blatts:
 - Die Wolken-Schaltfläche bietet **Aus Strava importieren** und **Aus Ride with GPS importieren**, sofern diese Dienste eingerichtet sind.
 
 Beides steht unter [Import und Export](./import-and-export) und [Strava und Ride with GPS](./strava-and-ridewithgps).
+
+## iCloud-Synchronisierung (iPhone und iPad)
+
+Auf einem iPhone oder iPad mit iOS 17 oder neuer werden deine gespeicherten Routen und aufgezeichneten Fahrten, mit Track, Notizen und Kennzahlen jeder Fahrt, zwischen deinen eigenen Geräten abgeglichen, die mit demselben Apple Account angemeldet sind, über deine iCloud. Einige Einstellungen kommen mit: Design, Akzentfarbe, Kartenstil, Leistenstil, Spaltenseite, Einheiten sowie die Einstellungen für Abbiege- und Sprachansagen. Velorki betreibt dafür keinen Server und kann das Gespeicherte nicht lesen; siehe die [Datenschutzerklärung](/privacy).
+
+Die Synchronisierung ist standardmäßig an. **Mit iCloud synchronisieren** in den Einstellungen schaltet sie auf diesem Gerät aus; was schon in iCloud liegt, bleibt dort, bis du es in den iCloud-Einstellungen des Geräts löschst. Eine Statuszeile in den Einstellungen zeigt den Stand: **Gerade synchronisiert**, **Synchronisiere …**, **iCloud ist auf diesem Gerät aus** oder **iCloud-Speicher ist voll**.
+
+Aus Strava gelesene Routen und daraus bearbeitete Routen bleiben auf dem Handy, ebenso die Strava-Links von Fahrten; auch Links von Uploads zu Ride with GPS werden nicht abgeglichen. Heruntergeladene Karten und Routing-Kacheln werden nicht abgeglichen. Die Android-App synchronisiert nicht.
 
 ## Weiterlesen
 

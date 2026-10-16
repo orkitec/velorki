@@ -17,7 +17,7 @@ Tout ce que vous créez et tout ce que vous téléchargez :
 - les jetons d’accès à Strava et Ride with GPS si vous les connectez, qui vont dans le stockage sécurisé du téléphone sous une forme que seul le relais Velorki peut ouvrir, et sont exclus des sauvegardes,
 - ce que vous récupérez de Strava : votre nom Strava, la liste de vos itinéraires Strava pendant 48 heures au plus, les itinéraires que vous importez et les liens entre les sorties téléversées et leurs activités Strava. La déconnexion supprime tout cela.
 
-Rien de tout cela n’est téléversé où que ce soit sans que vous le demandiez.
+Rien de tout cela n’est téléversé où que ce soit sans que vous le demandiez. La seule exception est la synchronisation iCloud sur un iPhone ou un iPad (iOS 17 ou plus récent) : vos itinéraires, vos sorties et quelques réglages vont dans votre propre iCloud, jamais chez nous, et les données Strava restent sur le téléphone. Elle est activée par défaut et se désactive dans les Réglages, voir [la bibliothèque](./library).
 
 Sur Android, Velorki est volontairement exclu de la sauvegarde cloud de Google et du transfert d’appareil à appareil : vos sorties ne sont donc pas non plus copiées hors du téléphone par le système. Pour passer à un nouveau téléphone, exportez ce que vous voulez garder en fichiers GPX, FIT ou TCX, voir [import et export](./import-and-export).
 

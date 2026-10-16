@@ -1,0 +1,411 @@
+import 'dart:async';
+
+import 'package:drift/drift.dart' show Value;
+import 'package:logging/logging.dart';
+
+import '../../../core/db/database.dart';
+import '../../../core/db/daos/sync_dao.dart';
+import '../data/cloud_sync_bridge.dart';
+import '../data/record_codec.dart';
+import '../domain/cloud_record.dart';
+
+final Logger _log = Logger('velorki.sync.library');
+
+/// Keeps the routes and rides in step with the rider's iCloud.
+///
+/// Local changes are found in `sync_records` (the triggers write it) and
+/// handed to the engine by record name; the engine asks for the records
+/// when it sends, and brings back what other devices changed, which is
+/// written here record by record. A conflict goes to the newer change: the
+/// local one's time is its `changed_at_ms`, the remote one's the record's
+/// `modifiedAt`; on a tie the server's copy wins, which every device
+/// decides alike. A record deleted elsewhere goes here too, unless it has a
+/// change here iCloud has not had yet, which brings it back.
+///
+/// Strava routes never leave the phone: they are never sent, and one that
+/// was on iCloud before it became Strava's (which no path does today) is
+/// deleted there.
+class LibrarySync {
+  /// Creates the sync over [db], sending through [bridge].
+  LibrarySync({required this._db, required this._bridge, required this._codec});
+
+  final VelorkiDatabase _db;
+  final CloudSyncBridge _bridge;
+  final RecordCodec _codec;
+
+  SyncDao get _sync => _db.syncDao;
+
+  /// The version of each record handed out to be saved, by name: the save
+  /// iCloud confirms only clears a change still at that version.
+  final Map<String, int> _handedOut = <String, int>{};
+
+  StreamSubscription<int>? _dirtyWatch;
+  Timer? _debounce;
+  Future<void>? _pushing;
+  bool _pushAgain = false;
+
+  /// Starts watching for local changes, and sends what is waiting.
+  void start() {
+    _dirtyWatch ??= _sync.watchDirtyCount().listen((count) {
+      if (count == 0) return;
+      // A burst of writes (an import, a save with its legs) is sent once.
+      _debounce?.cancel();
+      _debounce = Timer(const Duration(seconds: 2), () => unawaited(push()));
+    });
+  }
+
+  /// Stops watching. What is waiting stays marked for the next [start].
+  Future<void> stop() async {
+    _debounce?.cancel();
+    _debounce = null;
+    await _dirtyWatch?.cancel();
+    _dirtyWatch = null;
+  }
+
+  /// Hands every waiting change to the engine. Runs one at a time; a call
+  /// while one runs runs again after it.
+  Future<void> push() {
+    if (_pushing != null) {
+      _pushAgain = true;
+      return _pushing!;
+    }
+    return _pushing = _push().whenComplete(() {
+      _pushing = null;
+      if (_pushAgain) {
+        _pushAgain = false;
+        unawaited(push());
+      }
+    });
+  }
+
+  Future<void> _push() async {
+    final dirty = await _sync.dirtyRecords();
+    if (dirty.isEmpty) return;
+    final strava = await _sync.stravaRouteIds();
+    final saves = <String>[];
+    final deletes = <String>[];
+    for (final record in dirty) {
+      final kind = SyncKind.fromColumn(record.kind);
+      if (kind == null) continue;
+      final name = recordNameOf(kind, record.recordId);
+      final excluded =
+          kind == SyncKind.route && strava.contains(record.recordId);
+      if (record.deleted || excluded) {
+        if (record.systemFields != null) {
+          deletes.add(name);
+        } else if (record.deleted) {
+          // Never on iCloud: nothing to delete there.
+          await _sync.forget(record.kind, record.recordId);
+        } else {
+          await _sync.markClean(record.kind, record.recordId);
+        }
+      } else {
+        saves.add(name);
+      }
+    }
+    await _bridge.enqueue(saves: saves, deletes: deletes);
+  }
+
+  /// The records named [names], ready to be saved.
+  Future<List<CloudRecord>> recordsToSave(List<String> names) async {
+    final strava = await _sync.stravaRouteIds();
+    final out = <CloudRecord>[];
+    for (final name in names) {
+      final parsed = parseRecordName(name);
+      if (parsed == null) continue;
+      final (kind, id) = parsed;
+      final sync = await _sync.record(kind.column, id);
+      if (sync == null || sync.deleted) continue;
+      try {
+        final record = switch (kind) {
+          SyncKind.route => await _routeRecord(id, sync, strava),
+          SyncKind.ride => await _rideRecord(id, sync, strava),
+        };
+        if (record == null) continue;
+        _handedOut[name] = sync.version;
+        out.add(record);
+      } on Object catch (e, st) {
+        _log.warning('could not encode $name', e, st);
+      }
+    }
+    return out;
+  }
+
+  Future<CloudRecord?> _routeRecord(
+    String id,
+    SyncRecordRow sync,
+    Set<String> strava,
+  ) async {
+    if (strava.contains(id)) return null;
+    final row = await _db.routesDao.routeById(id);
+    if (row == null) return null;
+    return _codec.encodeRoute(
+      row,
+      changedAtMs: sync.changedAtMs,
+      systemFields: sync.systemFields,
+    );
+  }
+
+  Future<CloudRecord?> _rideRecord(
+    String id,
+    SyncRecordRow sync,
+    Set<String> strava,
+  ) async {
+    final row = await _db.ridesDao.rideById(id);
+    if (row == null) return null;
+    final routeId = row.routeId ?? sync.pendingRouteId;
+    return _codec.encodeRide(
+      row,
+      changedAtMs: sync.changedAtMs,
+      // A ride keeps a route that stays on the phone to itself.
+      routeId: routeId == null || strava.contains(routeId) ? null : routeId,
+      systemFields: sync.systemFields,
+    );
+  }
+
+  /// Writes what other devices changed: routes first, so the rides that
+  /// follow them find them.
+  Future<void> applyRemote(
+    List<CloudRecord> modifications,
+    List<String> deletions,
+  ) async {
+    final routes = modifications.where(
+      (r) => parseRecordName(r.name)?.$1 == SyncKind.route,
+    );
+    final rides = modifications.where(
+      (r) => parseRecordName(r.name)?.$1 == SyncKind.ride,
+    );
+    for (final record in [...routes, ...rides]) {
+      try {
+        await _applyRecord(record);
+      } on Object catch (e, st) {
+        _log.warning('could not apply ${record.name}', e, st);
+      }
+    }
+    for (final name in deletions) {
+      try {
+        await _applyDeletion(name);
+      } on Object catch (e, st) {
+        _log.warning('could not apply the deletion of $name', e, st);
+      }
+    }
+  }
+
+  /// Whether the local change of [sync] beats a remote one made at
+  /// [remoteMs]: only a newer one does.
+  static bool _localWins(SyncRecordRow? sync, int remoteMs) =>
+      sync != null && sync.dirty && sync.changedAtMs > remoteMs;
+
+  /// Applies one record from iCloud; true when it was written.
+  Future<bool> _applyRecord(CloudRecord record) async {
+    final parsed = parseRecordName(record.name);
+    if (parsed == null) return false;
+    final (kind, id) = parsed;
+    final remoteMs = RecordCodec.modifiedAtOf(record);
+    final sync = await _sync.record(kind.column, id);
+    if (sync != null &&
+        !sync.dirty &&
+        !sync.deleted &&
+        sync.systemFields != null &&
+        sync.changedAtMs == remoteMs) {
+      // The very change this device has (its own save coming back, most
+      // often): only the server's newer tag is news.
+      if (record.systemFields != null) {
+        await _sync.setSystemFields(kind.column, id, record.systemFields!);
+      }
+      return true;
+    }
+    if (_localWins(sync, remoteMs)) {
+      // Ours is newer and goes over the server's copy on the next save.
+      if (record.systemFields != null) {
+        await _sync.setSystemFields(kind.column, id, record.systemFields!);
+      }
+      return false;
+    }
+    switch (kind) {
+      case SyncKind.route:
+        final decoded = await _codec.decodeRoute(record);
+        if (decoded == null) return false;
+        await _db.transaction(() async {
+          await _writeRoute(decoded.row);
+          await _sync.markApplied(
+            kind.column,
+            id,
+            changedAtMs: decoded.modifiedAtMs,
+            systemFields: record.systemFields,
+          );
+          await _linkWaitingRides(id);
+        });
+      case SyncKind.ride:
+        final decoded = await _codec.decodeRide(record);
+        if (decoded == null) return false;
+        await _db.transaction(() async {
+          final pending = await _writeRide(decoded.row);
+          await _sync.markApplied(
+            kind.column,
+            id,
+            changedAtMs: decoded.modifiedAtMs,
+            systemFields: record.systemFields,
+            pendingRouteId: pending,
+          );
+        });
+    }
+    return true;
+  }
+
+  Future<void> _writeRoute(RoutesCompanion row) async {
+    final existing = await _db.routesDao.routeById(row.id.value);
+    var write = row;
+    // A breakdown matched here for the same line stays when the record has
+    // none; each device can match its own.
+    if (existing != null &&
+        row.surfaceStatsJson.value == null &&
+        existing.surfaceStatsJson != null &&
+        _sameBytes(existing.geometry, row.geometry.value)) {
+      write = write.copyWith(
+        surfaceStatsJson: Value(existing.surfaceStatsJson),
+      );
+    }
+    await _db.routesDao.upsertRoute(write);
+  }
+
+  /// Writes a ride; returns the route it waits for when that route is not
+  /// here yet.
+  Future<String?> _writeRide(RidesCompanion row) async {
+    final existing = await _db.ridesDao.rideById(row.id.value);
+    var write = row;
+    String? pending;
+    final routeId = row.routeId.value;
+    if (routeId != null && await _db.routesDao.routeById(routeId) == null) {
+      pending = routeId;
+      write = write.copyWith(routeId: const Value(null));
+    }
+    if (existing != null &&
+        row.surfaceStatsJson.value == null &&
+        existing.surfaceStatsJson != null &&
+        _sameBytes(existing.geometry, row.geometry.value)) {
+      write = write.copyWith(
+        surfaceStatsJson: Value(existing.surfaceStatsJson),
+      );
+    }
+    await _db.ridesDao.upsertRide(write);
+    return pending;
+  }
+
+  /// Links the rides that arrived before the route with [routeId], without
+  /// making that a change of theirs.
+  Future<void> _linkWaitingRides(String routeId) async {
+    for (final waiting in await _sync.waitingFor(routeId)) {
+      final ride = await _db.ridesDao.rideById(waiting.recordId);
+      if (ride == null) continue;
+      await _db.ridesDao.updateRide(ride.copyWith(routeId: Value(routeId)));
+      if (waiting.dirty) {
+        // A change of its own is still to be sent, now with the link.
+        await _sync.clearPendingRoute(waiting.recordId);
+      } else {
+        await _sync.markApplied(
+          SyncKind.ride.column,
+          waiting.recordId,
+          changedAtMs: waiting.changedAtMs,
+          systemFields: waiting.systemFields,
+        );
+      }
+    }
+  }
+
+  Future<void> _applyDeletion(String name) async {
+    final parsed = parseRecordName(name);
+    if (parsed == null) return;
+    final (kind, id) = parsed;
+    if (kind == SyncKind.route && (await _sync.stravaRouteIds()).contains(id)) {
+      // Taken off iCloud because it is Strava's (this device's own delete
+      // coming back): it stays here.
+      await _sync.clearSystemFields(kind.column, id);
+      return;
+    }
+    final sync = await _sync.record(kind.column, id);
+    if (sync != null && sync.dirty && !sync.deleted) {
+      // Changed here since: it comes back, as a new record.
+      await _sync.clearSystemFields(kind.column, id);
+      return;
+    }
+    await _db.transaction(() async {
+      switch (kind) {
+        case SyncKind.route:
+          await _db.routesDao.deleteRoute(id);
+        case SyncKind.ride:
+          await _db.ridesDao.deleteRide(id);
+      }
+      // The delete came from iCloud: nothing to send back.
+      await _sync.forget(kind.column, id);
+    });
+  }
+
+  /// What the engine reports of a round of sending.
+  Future<void> sent(SentChanges changes) async {
+    final again = <String>[];
+    for (final MapEntry(key: name, value: systemFields)
+        in changes.saved.entries) {
+      final parsed = parseRecordName(name);
+      if (parsed == null) continue;
+      await _sync.markSaved(
+        parsed.$1.column,
+        parsed.$2,
+        systemFields: systemFields,
+        version: _handedOut.remove(name),
+      );
+    }
+    for (final failed in changes.failedSaves) {
+      final parsed = parseRecordName(failed.name);
+      _handedOut.remove(failed.name);
+      if (parsed == null) continue;
+      final (kind, id) = parsed;
+      switch (failed.failure) {
+        case SaveFailure.conflict:
+          final server = failed.serverRecord;
+          // The newer of the two stays: the server's is written here, or
+          // ours goes again over the server's change tag.
+          if (server == null || !await _applyRecord(server)) {
+            again.add(failed.name);
+          }
+        case SaveFailure.unknownItem:
+          await _sync.clearSystemFields(kind.column, id);
+          again.add(failed.name);
+        case SaveFailure.retrying:
+        case SaveFailure.quotaExceeded:
+        case SaveFailure.other:
+          // Still marked: sent again on the next launch or return to the
+          // app, or by the engine itself.
+          _log.info('save of ${failed.name} failed: ${failed.failure.name}');
+      }
+    }
+    final strava = await _sync.stravaRouteIds();
+    for (final name in changes.deleted) {
+      final parsed = parseRecordName(name);
+      if (parsed == null) continue;
+      final (kind, id) = parsed;
+      await _sync.markDeleted(kind.column, id);
+      if (kind == SyncKind.route && strava.contains(id)) {
+        await _sync.markClean(kind.column, id);
+      }
+    }
+    if (again.isNotEmpty) await _bridge.enqueue(saves: again);
+  }
+
+  /// Starts over: everything here is sent as new, tombstones forgotten.
+  /// What another account, a sign-out or a deleted zone leaves behind; the
+  /// library itself is never touched.
+  Future<void> reset() async {
+    _handedOut.clear();
+    await _sync.resetAll();
+  }
+}
+
+bool _sameBytes(List<int> a, List<int> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
