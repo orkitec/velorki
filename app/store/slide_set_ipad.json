@@ -1,7 +1,7 @@
 [
   { "slide": "plan", "layout": "whole", "screen": "plan", "style": "dark", "brand": true },
   { "slide": "weather", "layout": "whole", "screen": "weather", "style": "light" },
-  { "slide": "navigation", "layout": "whole", "screen": "navigation", "style": "dark" },
+  { "slide": "variants", "layout": "whole", "screen": "variants", "style": "dark" },
   { "slide": "loops", "layout": "whole", "screen": "loop", "style": "light" },
   { "slide": "cyclemap", "layout": "whole", "screen": "cyclemap", "style": "dark" },
   { "slide": "ai", "layout": "whole", "screen": "ai", "style": "light" },

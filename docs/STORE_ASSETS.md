@@ -119,7 +119,7 @@ The same test on the simulator "Velorki Shots iPad 13" (an iPad Pro 13-inch
 Connect wants for the 13" iPad; the status bar as on the iPhone. The app lays
 itself out as it does in that window (see `wide_panel.dart`), so the test is
 the iPhone's. `store_slides.py --platform ipad` lays out
-`app/store/slide_set_ipad.json` (plan, weather, navigation, loops, cyclemap,
+`app/store/slide_set_ipad.json` (plan, weather, variants, loops, cyclemap,
 ai, ride, offline-themes: no watch or Lock Screen) at 2064 × 2752, the copy
 scaled to the squarer canvas and every screenshot whole in an iPad frame; a
 slide's `ipad` object in `slides_<lang>.json` overrides its copy (the plan's
