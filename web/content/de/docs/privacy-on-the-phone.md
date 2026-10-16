@@ -1,6 +1,6 @@
 ---
 title: Datenschutz auf dem Handy
-description: "Klartext für Radfahrende: Was auf deinem Handy bleibt, was es verlässt, wann und an wen. Es gibt kein Konto, und nichts geht ungefragt hoch."
+description: "Klartext für Radfahrende: Was auf deinem Handy bleibt, was es verlässt, wann und an wen. Es gibt kein Konto, und nichts geht ungefragt an uns."
 order: 17
 ---
 

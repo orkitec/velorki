@@ -1,6 +1,6 @@
 ---
 title: Privacidad en el teléfono
-description: "En palabras de ciclista: qué se queda en tu teléfono, qué sale de él, cuándo y hacia quién. No hay cuenta y no se sube nada si no lo pides."
+description: "En palabras de ciclista: qué se queda en tu teléfono, qué sale de él, cuándo y hacia quién. No hay cuenta y nada nos llega si no lo pides."
 order: 17
 ---
 

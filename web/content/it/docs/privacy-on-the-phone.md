@@ -1,6 +1,6 @@
 ---
 title: Privacy sul telefono
-description: "In parole semplici: cosa resta sul tuo telefono, cosa lo lascia, quando e verso chi. Non c'è nessun account e nulla viene caricato se non lo chiedi."
+description: "In parole semplici: cosa resta sul tuo telefono, cosa lo lascia, quando e verso chi. Non c'è nessun account e nulla arriva a noi se non lo chiedi."
 order: 17
 ---
 

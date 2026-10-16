@@ -1,6 +1,6 @@
 ---
 title: Privacy on the phone
-description: "In rider's terms: what stays on your phone, what leaves it, when, and to whom. There is no account and nothing is uploaded unless you ask."
+description: "In rider's terms: what stays on your phone, what leaves it, when, and to whom. There is no account, and nothing reaches us unless you ask."
 order: 17
 ---
 

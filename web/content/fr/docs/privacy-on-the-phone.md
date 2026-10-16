@@ -1,6 +1,6 @@
 ---
 title: Confidentialité sur le téléphone
-description: "En termes de cycliste : ce qui reste sur votre téléphone, ce qui en sort, quand et vers qui. Il n’y a pas de compte et rien n’est téléversé sans que vous le demandiez."
+description: "En termes de cycliste : ce qui reste sur votre téléphone, ce qui en sort, quand et vers qui. Il n’y a pas de compte et rien ne nous parvient sans que vous le demandiez."
 order: 17
 ---
 

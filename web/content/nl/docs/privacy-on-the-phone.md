@@ -1,6 +1,6 @@
 ---
 title: Privacy op de telefoon
-description: "In fietsertaal: wat er op je telefoon blijft, wat hem verlaat, wanneer en naar wie. Er is geen account en er wordt niets geüpload tenzij je erom vraagt."
+description: "In fietsertaal: wat er op je telefoon blijft, wat hem verlaat, wanneer en naar wie. Er is geen account en er komt niets bij ons tenzij je erom vraagt."
 order: 17
 ---
 
