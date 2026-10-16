@@ -45,9 +45,6 @@
     before the engine is fetched; everywhere else it appends
     flutter_bootstrap.js. See its header.
   -->
-  <script type="module">
-    import { boot } from './device_gate.mjs';
-    boot(window);
-  </script>
+  <script type="module" src="boot.mjs"></script>
 </body>
 </html>

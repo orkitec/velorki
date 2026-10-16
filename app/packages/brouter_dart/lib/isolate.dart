@@ -1,6 +1,6 @@
 /// A [RoutingWorker] runs the ported engine in its own isolate so that the UI
 /// isolate stays responsive (in a browser, which has no isolates, on the
-/// page's own event loop: see `src/worker_channel.dart`), with cooperative
+/// page's own event loop: see `package:velorki_io/worker.dart`), with cooperative
 /// cancellation: the engine yields
 /// to the worker's event loop every [RoutingWorker.yieldInterval] node
 /// expansions (`RoutingEngine.yieldHook`), which is when a `cancel` message
@@ -25,7 +25,8 @@ import 'dart:async';
 import 'package:velorki_io/io.dart';
 
 import 'brouter_dart.dart';
-import 'src/worker_channel.dart';
+
+import 'package:velorki_io/worker.dart';
 
 /// Search progress: links expanded so far and the size of the open set.
 class RoutingProgress {

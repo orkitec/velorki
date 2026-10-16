@@ -1,8 +1,7 @@
 import 'dart:async';
 
 import 'package:velorki_io/io.dart';
-
-import 'dart:isolate';
+import 'package:velorki_io/worker.dart';
 
 import 'cycle_map_engine.dart';
 import 'rd5_cell_reader.dart';
@@ -33,7 +32,8 @@ final class CycleMapFile {
 }
 
 /// The [CycleMapEngine] in its own isolate, so decoding tiles and writing
-/// GeoJSON never take a frame from the app.
+/// GeoJSON never take a frame from the app. In a browser, which has no
+/// isolates, it runs on the page's event loop, a map at a time.
 ///
 /// Each map is written to a new file in the output directory, which the
 /// map loads itself: the text never crosses into the app's isolate. The two
@@ -45,13 +45,7 @@ final class CycleMapFile {
 /// same client's request already waiting, whose future completes with null.
 /// Clients take turns.
 final class CycleMapWorker implements CycleMapRenderer {
-  CycleMapWorker._(this._isolate, this._replies) {
-    _replies.listen((message) {
-      final reply = _reply;
-      _reply = null;
-      reply?.complete(message);
-    });
-  }
+  CycleMapWorker._();
 
   /// Starts a worker over the tiles in [segmentsDir], with the lookup table
   /// at [lookupsPath], keeping decoded cells under [cacheDir] and writing
@@ -62,22 +56,17 @@ final class CycleMapWorker implements CycleMapRenderer {
     required String cacheDir,
     required String outputDir,
   }) async {
-    final replies = ReceivePort();
-    final isolate = await Isolate.spawn(_main, (
-      replies.sendPort,
-      segmentsDir,
-      lookupsPath,
-      cacheDir,
-      outputDir,
-    ), debugName: 'cycle map');
-    final worker = CycleMapWorker._(isolate, replies);
-    worker._commands = await worker._nextReply() as SendPort;
+    final worker = CycleMapWorker._();
+    worker._commands = await spawnWorkerChannel(
+      _main,
+      (segmentsDir, lookupsPath, cacheDir, outputDir),
+      worker._onReply,
+      debugName: 'cycle map',
+    );
     return worker;
   }
 
-  final Isolate _isolate;
-  late final SendPort _commands;
-  final ReceivePort _replies;
+  late final WorkerChannel _commands;
   Completer<Object?>? _reply;
   bool _running = false;
   final _waiting = <Object, (CycleMapRequest, Completer<CycleMapFile?>)>{};
@@ -139,6 +128,12 @@ final class CycleMapWorker implements CycleMapRenderer {
 
   Future<Object?> _nextReply() => (_reply = Completer<Object?>()).future;
 
+  void _onReply(Object? message) {
+    final reply = _reply;
+    _reply = null;
+    reply?.complete(message);
+  }
+
   /// Stops the isolate.
   void dispose() {
     if (_disposed) return;
@@ -147,17 +142,21 @@ final class CycleMapWorker implements CycleMapRenderer {
       completer.complete(null);
     }
     _waiting.clear();
-    _commands.send(null);
-    _isolate.kill(priority: Isolate.beforeNextEvent);
-    _replies.close();
+    _commands
+      ..send(null)
+      ..close();
     _reply?.complete(null);
     _reply = null;
   }
 
-  static void _main((SendPort, String, String, String, String) args) {
-    final (replies, segmentsDir, lookupsPath, cacheDir, outputDir) = args;
-    final commands = ReceivePort();
-    replies.send(commands.sendPort);
+  static void _main(
+    Object? init,
+    void Function(Object? message) reply,
+    void Function(void Function(Object? message) onMessage) listen,
+    void Function() stop,
+  ) {
+    final (segmentsDir, lookupsPath, cacheDir, outputDir) =
+        init! as (String, String, String, String);
     final engine = CycleMapEngine(
       reader: Rd5CellReader(File(lookupsPath).readAsLinesSync()),
       segmentsDir: Directory(segmentsDir),
@@ -182,11 +181,11 @@ final class CycleMapWorker implements CycleMapRenderer {
     }
     var serial = 0;
     final written = <int, List<String>>{};
-    commands.listen((message) {
+    listen((message) {
       switch (message) {
         case null:
           engine.close();
-          commands.close();
+          stop();
         case _TilesChanged():
           engine.tilesChanged();
         case (final int client, final CycleMapRequest request):
@@ -203,7 +202,7 @@ final class CycleMapWorker implements CycleMapRenderer {
                 // Already gone.
               }
             }
-            replies.send(
+            reply(
               CycleMapFile(
                 path: path,
                 result: CycleMapResult(
@@ -216,7 +215,7 @@ final class CycleMapWorker implements CycleMapRenderer {
               ),
             );
           } on Object catch (e) {
-            replies.send(StateError('cycle map: $e'));
+            reply(StateError('cycle map: $e'));
           }
       }
     });

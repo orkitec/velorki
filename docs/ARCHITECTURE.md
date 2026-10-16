@@ -172,7 +172,17 @@ and the routing worker (on the page's event loop: a browser has no isolates).
 cannot do (recording and navigation, store purchases, Strava and Ride with
 GPS, offline map packs). Tiles come from the Pages Function under `/tiles/`
 (`deploy/cloudflare/`), so the mirror needs no CORS. `tool/web_assets.sh`
-fetches `sqlite3.wasm` and `drift_worker.js` before a build.
+fetches `sqlite3.wasm`, `drift_worker.js` and maplibre-gl-js before a build
+(`--no-web-resources-cdn`): the page's code comes from no CDN (only the
+engine's fallback fonts do, from fonts.gstatic.com), and
+`web/_headers` holds the Content-Security-Policy naming every host it does
+talk to. The isolate work (cycle map, weather images) runs inline through
+`package:velorki_io/worker.dart`, zlib is package:archive's. Where the
+maplibre web plugin differs from the phones, `PluginMapLibreStyleOps` makes
+up for it (string feature ids as a promoted property, image sources over
+blob: URLs), and the map, an HTML element under Flutter's canvas, only gets
+the pointers Flutter's hit test gives it (`platform_view_pointer_gate.dart`).
+`web/device_gate.mjs` keeps purchases_flutter's web SDK off the page.
 
 ## Data model
 

@@ -125,9 +125,25 @@ export function siteUrl(lang, path = '/') {
   return path === '/' ? `${SITE_URL}/${lang}` : `${SITE_URL}/${lang}${path}`;
 }
 
+/**
+ * purchases_flutter's web plugin appends RevenueCat's web SDK (some 900 KB)
+ * to <head> as the engine starts, whether anything is sold or not. The web
+ * planner sells nothing (no store, `NoopSubscriptionService`), so `head`
+ * leaves that one script out and appends everything else as before.
+ */
+export const STORE_SDK = /\/purchases_flutter\//;
+
+export function leaveOutStoreSdk(head) {
+  const append = head.append;
+  head.append = function (...nodes) {
+    return append.apply(this, nodes.filter((node) => !STORE_SDK.test(node?.src ?? '')));
+  };
+}
+
 /** Appends the Flutter loader once; the page and the desktop path share it. */
 export function loadApp(document) {
   if (document.getElementById('flutter-bootstrap')) return;
+  leaveOutStoreSdk(document.head);
   const script = document.createElement('script');
   script.id = 'flutter-bootstrap';
   script.src = 'flutter_bootstrap.js';

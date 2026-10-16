@@ -83,4 +83,23 @@ void main() {
     expect(seen, <String, int?>{'/s/new': 2, '/s/kept': null});
     expect(MemoryFileSystem.filesUnder('/s').toList(), <String>['/s/new']);
   });
+
+  test('a file keeps when it was last read apart from when it was written', () {
+    final f = File('/a/f')..createSync(recursive: true);
+    final written = f.statSync().modified;
+    final read = written.add(const Duration(minutes: 5));
+    f.setLastAccessedSync(read);
+    expect(f.statSync().accessed, read);
+    expect(f.statSync().modified, written);
+  });
+
+  test('zlib round-trips, and its output is what zlib reads', () {
+    final data = Uint8List.fromList(List<int>.generate(4096, (i) => i % 7));
+    final packed = const ZLibCodec(level: 6).encode(data);
+    expect(packed.length, lessThan(data.length));
+    // A zlib stream: deflate, 32 KB window, header checksum a multiple of 31.
+    expect(packed[0], 0x78);
+    expect((packed[0] << 8 | packed[1]) % 31, 0);
+    expect(zlib.decode(packed), data);
+  });
 }

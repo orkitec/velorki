@@ -89,6 +89,7 @@ production shape):
 | `PUBLIC_BASE_URL` | the origin share links are built from (the site host) |
 | `STRAVA_CLIENT_ID` / `_SECRET` | Strava sign-in; missing means `/oauth/strava/*` → 503 |
 | `RWGPS_CLIENT_ID` / `_SECRET` | RideWithGPS sign-in |
+| `CORS_ORIGINS` | browser origins of the web planner allowed to call the relay (default `https://app.velorki.com`, empty = off) |
 | `OAUTH_REDIRECT_ALLOWLIST` | the exact redirect URIs your build uses |
 | `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | any OpenAI-compatible endpoint, for the assistant |
 | `LLM_REASONING_EFFORT` | optional `reasoning_effort` for every call (`low` for a model that reasons at its maximum by default) |

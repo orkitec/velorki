@@ -33,6 +33,21 @@ const optionalUrl = optionalStr.refine(
   { message: 'must be an http(s) URL' },
 );
 
+/** Exact browser origins (`scheme://host[:port]`), comma separated. */
+const originList = (fallback: string) =>
+  z
+    .string()
+    .optional()
+    .transform((v) =>
+      (v ?? fallback)
+        .split(',')
+        .map((s) => s.trim().replace(/\/+$/, ''))
+        .filter((s) => s !== ''),
+    )
+    .refine((list) => list.every((o) => /^https?:\/\/[^/\s?#]+$/.test(o)), {
+      message: 'must be a comma-separated list of origins like https://app.velorki.com',
+    });
+
 const numberWithDefault = (fallback: number) =>
   z
     .string()
@@ -78,6 +93,12 @@ const envSchema = z
     ORKIFY_EXEC_MODE: optionalStr,
     /** Set by Orkify per worker. Worker "0" owns the once-per-cluster chores. */
     ORKIFY_WORKER_ID: optionalStr,
+
+    /**
+     * Browser origins allowed to call the planner's api routes cross-origin
+     * (the Flutter web planner). Empty switches CORS off.
+     */
+    CORS_ORIGINS: originList('https://app.velorki.com'),
 
     BROUTER_URL: optionalUrl.transform((v) => v?.replace(/\/+$/, '')),
 

@@ -103,7 +103,7 @@ needs threads).
 * Files are `package:velorki_io/io.dart`, which is `dart:io` on the VM and an
   in-memory file system in a browser; the ported files only changed that
   import line. `RoutingWorker` (`isolate.dart`) runs on an isolate, or in a
-  browser on the page's own event loop (`src/worker_channel*.dart`).
+  browser on the page's own event loop (`package:velorki_io/worker.dart`).
 * Java `int` is emulated: `i32()` wraps to 32 bits, `ushr32()`/`shr32()`/`shl32()`
   mask the shift distance with `& 31` as the JVM does. They are applied wherever
   a value can overflow or is shifted (hash mixing, CRC, the bit coders, id

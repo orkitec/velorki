@@ -15,6 +15,7 @@ import 'package:velorki/features/library/presentation/route_detail_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/planner/application/planner_map_binding.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
+import 'package:velorki/features/map/presentation/shared_map_host.dart';
 
 import '../../support/app.dart';
 import '../../support/format.dart';
@@ -305,6 +306,9 @@ void main() {
 
     expect(find.widgetWithText(AppBar, l10n.importTitle), findsOneWidget);
     expect(find.text(l10n.importSummary('GPX', 4)), findsOneWidget);
+    // Pushed over the shell, which keeps its map: in a wide window that is
+    // painted beside the page rather than started again behind it.
+    expect(find.byType(SharedMapHost, skipOffstage: false), findsOneWidget);
     await unmountApp(tester);
   });
 

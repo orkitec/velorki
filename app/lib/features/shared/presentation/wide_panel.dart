@@ -260,10 +260,22 @@ class ColumnPageRoute<T> extends MaterialPageRoute<T> {
     final context = navigator?.context;
     final view = context == null ? null : View.maybeOf(context);
     if (view != null) {
-      _wide = _wideAt(view.physicalSize / view.devicePixelRatio);
+      // As [_ColumnPage] decides: on the root navigator, not a tab's,
+      // which is in the column already.
+      _wide =
+          context!.getInheritedWidgetOfExactType<_PanelScope>() == null &&
+          _wideAt(view.physicalSize / view.devicePixelRatio);
     }
     super.install();
   }
+
+  /// In a wide window the route under the page stays where it is: the
+  /// map beside the column is not slid aside, as the page under a page
+  /// that covers the screen is (the parallax of Apple's transition, which
+  /// a browser on a Mac gets too).
+  @override
+  bool canTransitionFrom(TransitionRoute<dynamic> previousRoute) =>
+      !_wide && super.canTransitionFrom(previousRoute);
 
   @override
   Widget buildTransitions(

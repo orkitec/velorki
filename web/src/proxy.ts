@@ -5,6 +5,7 @@ import { docSlugs } from '@/site/content';
 import { getConfig, getStore } from '@/server/singletons';
 import { requestIdFrom, REQUEST_ID_HEADER } from '@/server/requestid';
 import { errorBody } from '@/server/errors';
+import { applyCors, preflightHeaders } from '@/server/cors';
 import { isApiRoute, parseSharePath, resolveHost, SHARE_ID_RE } from '@/hosts';
 
 /**
@@ -197,6 +198,39 @@ function forwardHeaders(request: NextRequest, requestId: string): Headers {
 }
 
 export default async function proxy(request: NextRequest): Promise<NextResponse> {
+  const config = getConfig();
+  const origin = request.headers.get('origin');
+  if (origin !== null && config.CORS_ORIGINS.length > 0) {
+    const host = resolveHost(
+      config,
+      request.headers.get('host'),
+      request.nextUrl.pathname,
+      request.headers,
+    );
+    if (host.role === 'api') {
+      if (request.method === 'OPTIONS') {
+        const allow = preflightHeaders(config.CORS_ORIGINS, host.pathname, origin);
+        if (allow !== null) {
+          return new NextResponse(null, {
+            status: 204,
+            headers: {
+              ...allow,
+              'cache-control': 'no-store',
+              [REQUEST_ID_HEADER]: requestIdFrom(request.headers),
+            },
+          });
+        }
+      }
+      // Every answer on a browser-facing api route, errors included.
+      const response = await route(request);
+      applyCors(response, config.CORS_ORIGINS, host.pathname, origin);
+      return response;
+    }
+  }
+  return route(request);
+}
+
+async function route(request: NextRequest): Promise<NextResponse> {
   const config = getConfig();
   const url = request.nextUrl;
   const requestId = requestIdFrom(request.headers);

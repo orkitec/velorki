@@ -7,6 +7,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:archive/archive.dart' show ZLibDecoderWeb, ZLibEncoderWeb;
 import 'package:path/path.dart' as p;
 
 final p.Context _posix = p.Context(style: p.Style.posix, current: '/');
@@ -19,6 +20,7 @@ final p.Context _posix = p.Context(style: p.Style.posix, current: '/');
 abstract final class MemoryFileSystem {
   static final Map<String, Uint8List> _files = <String, Uint8List>{};
   static final Map<String, DateTime> _modified = <String, DateTime>{};
+  static final Map<String, DateTime> _accessed = <String, DateTime>{};
   static final Set<String> _dirs = <String>{'/'};
 
   /// Told about every file written ([bytes] its whole content) or deleted
@@ -44,6 +46,7 @@ abstract final class MemoryFileSystem {
   static void reset() {
     _files.clear();
     _modified.clear();
+    _accessed.clear();
     _dirs
       ..clear()
       ..add('/');
@@ -79,6 +82,7 @@ abstract final class MemoryFileSystem {
   static void _remove(String key) {
     if (_files.remove(key) == null) return;
     _modified.remove(key);
+    _accessed.remove(key);
     onChange?.call(key, null);
   }
 }
@@ -152,7 +156,8 @@ class FileSystemException implements Exception {
 
 /// What [FileSystemEntity.stat] reports.
 class FileStat {
-  const FileStat._(this.type, this.size, this.modified);
+  const FileStat._(this.type, this.size, this.modified, [DateTime? accessed])
+    : _accessed = accessed;
 
   static final FileStat _notFound = FileStat._(
     FileSystemEntityType.notFound,
@@ -163,8 +168,9 @@ class FileStat {
   final FileSystemEntityType type;
   final int size;
   final DateTime modified;
+  final DateTime? _accessed;
   DateTime get changed => modified;
-  DateTime get accessed => modified;
+  DateTime get accessed => _accessed ?? modified;
   int get mode => 0;
 
   static FileStat statSync(String path) => _stat(path);
@@ -179,6 +185,7 @@ class FileStat {
         FileSystemEntityType.file,
         bytes.length,
         MemoryFileSystem._modified[key] ?? DateTime.now(),
+        MemoryFileSystem._accessed[key],
       );
     }
     if (MemoryFileSystem._isDir(key)) {
@@ -331,6 +338,14 @@ class File extends FileSystemEntity {
   void setLastModifiedSync(DateTime time) {
     _bytes('Failed to set file modification time');
     MemoryFileSystem._modified[_key] = time;
+  }
+
+  Future<void> setLastAccessed(DateTime time) async =>
+      setLastAccessedSync(time);
+
+  void setLastAccessedSync(DateTime time) {
+    _bytes('Failed to set file access time');
+    MemoryFileSystem._accessed[_key] = time;
   }
 
   Future<Uint8List> readAsBytes() async => readAsBytesSync();
@@ -756,6 +771,42 @@ class Stdout implements StringSink {
 
   @override
   void writeln([Object? object = '']) => write('$object\n');
+}
+
+/// zlib as dart:io offers it, in Dart (package:archive's encoder and
+/// decoder) since a browser has no native one.
+class ZLibCodec extends Codec<List<int>, List<int>> {
+  const ZLibCodec({this.level = 6});
+
+  /// 0 (stored) to 9 (smallest); 6 is zlib's default, as in dart:io.
+  final int level;
+
+  @override
+  Converter<List<int>, List<int>> get encoder => _ZLibEncoder(level);
+
+  @override
+  Converter<List<int>, List<int>> get decoder => const _ZLibDecoder();
+}
+
+/// zlib at the default level, as dart:io's `zlib`.
+const ZLibCodec zlib = ZLibCodec();
+
+class _ZLibEncoder extends Converter<List<int>, List<int>> {
+  const _ZLibEncoder(this.level);
+
+  final int level;
+
+  @override
+  List<int> convert(List<int> input) =>
+      const ZLibEncoderWeb().encodeBytes(input, level: level);
+}
+
+class _ZLibDecoder extends Converter<List<int>, List<int>> {
+  const _ZLibDecoder();
+
+  @override
+  List<int> convert(List<int> input) =>
+      const ZLibDecoderWeb().decodeBytes(input);
 }
 
 final Stdout stdout = Stdout._(print);

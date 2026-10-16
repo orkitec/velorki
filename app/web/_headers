@@ -6,14 +6,27 @@
 
 # Cross-origin isolation (SharedArrayBuffer: the multi-threaded renderer and
 # drift on OPFS). credentialless rather than require-corp, because map tiles,
-# fonts and the maplibre module come from other origins that send no CORP
-# header. Safari has no credentialless; there the page simply runs without
+# fonts and weather images come from other origins that send no CORP header.
+# Safari has no credentialless; there the page simply runs without
 # isolation: single-threaded renderer, drift on IndexedDB.
+#
+# The Content-Security-Policy names exactly what the app loads. Its own
+# origin: the page, the engine (built with --no-web-resources-cdn),
+# maplibre-gl-js and SQLite (tool/web_assets.sh) and the routing tiles
+# (/tiles/). Elsewhere: the base map (OpenFreeMap), place search (Photon),
+# the online cycle map (CyclOSM), the relay (api.velorki.com: BRouter, the
+# relay's radars), the free weather layers (the hosts of
+# defaultWeatherMapSources in lib/features/map/domain/weather_map.dart), and
+# the engine's fallback fonts for scripts the app's own fonts lack
+# (fonts.gstatic.com). blob: for maplibre's worker and the cycle map's
+# GeoJSON, data: for the images maplibre decodes; 'wasm-unsafe-eval' to
+# compile the app and SQLite. A new host the app talks to goes in here too.
 /*
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: credentialless
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.openfreemap.org https://*.tile-cyclosm.openstreetmap.fr; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' data: blob: https://tiles.openfreemap.org https://photon.komoot.io https://api.velorki.com https://*.tile-cyclosm.openstreetmap.fr https://fonts.gstatic.com https://maps.dwd.de https://geoservices.knmi.nl https://openwms.fmi.fi https://mapservices.weather.noaa.gov https://view.eumetsat.int https://mesonet.agron.iastate.edu https://gibs.earthdata.nasa.gov; manifest-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
 
 # Entry points: always revalidated, so a deploy is picked up on the next load.
 /
@@ -47,3 +60,9 @@
   Cache-Control: public, max-age=3600
 /drift_worker.js
   Cache-Control: public, max-age=3600
+/maplibre-gl/*
+  Cache-Control: public, max-age=3600
+/boot.mjs
+  Cache-Control: no-cache
+/device_gate.mjs
+  Cache-Control: no-cache

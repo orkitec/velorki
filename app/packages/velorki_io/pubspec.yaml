@@ -10,6 +10,8 @@ environment:
   sdk: ^3.13.3
 
 dependencies:
+  # zlib in the browser, which has no dart:io one.
+  archive: ^4.2.0
   path: ^1.9.0
 
 dev_dependencies:

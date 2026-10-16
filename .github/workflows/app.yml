@@ -143,7 +143,7 @@ jobs:
       # Chrome, which the runner image has; about half a minute.
       - run: flutter test --platform chrome test/web/
       - run: bash tool/web_assets.sh
-      - run: flutter build web --wasm --dart-define-from-file=env/web.json
+      - run: flutter build web --wasm --no-web-resources-cdn --dart-define-from-file=env/web.json
 
   # The gazetteer builder, which is Python and has nothing to do with the app
   # package -- hence the working-directory override. It builds the 3.5 MB

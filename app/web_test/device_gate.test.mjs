@@ -133,6 +133,9 @@ class FakeNode {
     this.children.push(child);
     return child;
   }
+  append(...nodes) {
+    for (const n of nodes) this.appendChild(n);
+  }
   remove() {
     if (!this.parent) return;
     this.parent.children = this.parent.children.filter((c) => c !== this);
@@ -209,4 +212,16 @@ test('boot falls back to navigator.language, then English', () => {
   const w2 = fakeWindow({ userAgent: UA.androidPhone, maxTouchPoints: 5, languages: ['ja-JP'] });
   boot(w2);
   assert.equal(w2.document.documentElement.attributes.lang, 'en');
+});
+
+test("loading the app leaves RevenueCat's web SDK out of <head>, and only that", () => {
+  const w = fakeWindow({ userAgent: UA.windowsChrome, maxTouchPoints: 0, platform: 'Win32', languages: ['en'] });
+  boot(w);
+  const head = w.document.head;
+  const sdk = Object.assign(w.document.createElement('script'), {
+    src: 'assets/packages/purchases_flutter/assets/web/purchases_js_hybrid_mappings.js',
+  });
+  const css = Object.assign(w.document.createElement('link'), { href: 'maplibre-gl/maplibre-gl.css' });
+  head.append(sdk, css);
+  assert.deepEqual(head.children, [css]);
 });

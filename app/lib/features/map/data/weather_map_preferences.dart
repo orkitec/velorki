@@ -1,4 +1,4 @@
-import 'dart:io' show Directory;
+import 'package:velorki_io/io.dart' show Directory;
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;

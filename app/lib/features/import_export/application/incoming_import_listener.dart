@@ -48,7 +48,7 @@ void listenForIncomingImports(ProviderContainer container) {
         _afterRecovery(
           container,
           () => WidgetsBinding.instance.addPostFrameCallback((_) {
-            router.go(importRoute, extra: rejection);
+            unawaited(router.push<void>(importRoute, extra: rejection));
           }),
         ),
       );
@@ -79,6 +79,6 @@ void _open(GoRouter router, ImportCandidate candidate) {
   // navigation, but the binding has to have drained its build before the
   // preview's map host can attach.
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    router.go(importRoute, extra: candidate);
+    unawaited(router.push<void>(importRoute, extra: candidate));
   });
 }

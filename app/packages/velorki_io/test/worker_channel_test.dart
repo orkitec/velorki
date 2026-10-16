@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:brouter_dart/src/worker_channel_inline.dart' as inline;
-import 'package:brouter_dart/src/worker_channel_isolate.dart' as isolate;
-import 'package:brouter_dart/src/worker_channel_types.dart';
+import 'package:velorki_io/src/worker_channel_inline.dart' as inline;
+import 'package:velorki_io/src/worker_channel_isolate.dart' as isolate;
+import 'package:velorki_io/src/worker_channel_types.dart';
 import 'package:test/test.dart';
 
 /// A worker that doubles what it is sent, says when it was told to stop, and
@@ -32,6 +32,25 @@ typedef _Spawn = Future<WorkerChannel> Function(
 });
 
 void main() {
+  for (final (name, run) in <(String, Future<int> Function(int Function()))>[
+    ('inline', inline.runIsolated),
+    ('isolate', isolate.runIsolated),
+  ]) {
+    test(
+      '$name: runIsolated answers later, with the result or the error',
+      () async {
+        var ran = false;
+        final result = run(() {
+          ran = true;
+          return 6 * 7;
+        });
+        if (name == 'inline') expect(ran, isFalse);
+        expect(await result, 42);
+        await expectLater(run(() => throw StateError('no')), throwsStateError);
+      },
+    );
+  }
+
   // The browser's channel and the phone's, held to the same contract: the
   // RoutingWorker above them cannot tell which one it got.
   for (final (name, spawn) in <(String, _Spawn)>[

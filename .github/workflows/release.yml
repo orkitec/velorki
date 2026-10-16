@@ -586,7 +586,7 @@ jobs:
       - run: bash tool/web_assets.sh
       - name: Build for the web
         run: |
-          flutter build web --wasm --release --dart-define-from-file=env/web.json \
+          flutter build web --wasm --release --no-web-resources-cdn --dart-define-from-file=env/web.json \
             --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
       - name: Upload to Cloudflare Pages
         if: ${{ env.HAVE_CLOUDFLARE == 'true' && env.DRY_RUN != 'true' }}

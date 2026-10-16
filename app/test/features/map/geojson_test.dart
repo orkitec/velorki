@@ -402,4 +402,32 @@ void main() {
       );
     });
   });
+
+  test('ids travel as a promoted property too, for the browser', () {
+    final waypoints = waypointsFeatureCollection(const [
+      MapWaypoint(position: LatLng(32.65, -16.9), kind: MapWaypointKind.start),
+    ]);
+    final promoted = withPromotedIds(waypoints);
+    final feature = (promoted['features'] as List).single as Map;
+    expect(feature['id'], waypointFeatureId(0));
+    expect(
+      (feature['properties'] as Map)[promotedIdProperty],
+      waypointFeatureId(0),
+    );
+    expect((feature['properties'] as Map)['index'], 0);
+    // The source the browser is handed is a copy; the phone's is unchanged.
+    final original = (waypoints['features'] as List).single as Map;
+    expect(
+      (original['properties'] as Map).containsKey(promotedIdProperty),
+      isFalse,
+    );
+    // Features without an id, and anything not a feature, pass as they are.
+    final line = <String, dynamic>{
+      'type': 'Feature',
+      'properties': <String, dynamic>{'a': 1},
+      'geometry': null,
+    };
+    expect(withPromotedIds(line), same(line));
+    expect(withPromotedIds(emptyFeatureCollection())['features'], isEmpty);
+  });
 }

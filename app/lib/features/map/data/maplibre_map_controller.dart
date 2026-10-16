@@ -24,6 +24,7 @@ import 'marker_glyph.dart';
 import 'marker_layers.dart';
 import 'geojson.dart';
 import 'heading_cone.dart';
+import 'local_file_url.dart';
 import 'heading_smoother.dart';
 import 'tile_template.dart';
 import 'weather_map_preferences.dart' show WeatherOpacity;
@@ -670,38 +671,90 @@ bool isStyleGoneError(PlatformException e) {
 /// [MapLibreStyleOps] forwarding one for one to a real plugin controller.
 ///
 /// Nothing but the forwarding lives here: every decision the adapter makes
-/// stays in the adapter, where a test can reach it. The one thing added is
-/// [tolerateMapGone] around every write, because those two platform answers
-/// are facts about the platform view, not about the adapter's state.
+/// stays in the adapter, where a test can reach it. Two things are added,
+/// both facts about the platform view rather than the adapter's state:
+/// [tolerateMapGone] around every write, and in a browser what the web
+/// plugin does not do as the phones do: the features' string ids carried
+/// as a promoted property ([withPromotedIds]), which maplibre-gl-js would
+/// otherwise drop, and image sources (which it does not implement) added as
+/// an image source over a blob: URL of the picture.
 class PluginMapLibreStyleOps implements MapLibreStyleOps {
   /// Wraps [map], the controller `MapLibreMap.onMapCreated` handed over.
-  const PluginMapLibreStyleOps(this.map);
+  PluginMapLibreStyleOps(this.map);
 
   /// The wrapped plugin controller.
   final ml.MapLibreMapController map;
+
+  /// In a browser, the URL each image source loads its picture from, let
+  /// go when the source goes.
+  final Map<String, String> _imageUrls = <String, String>{};
 
   @override
   Future<void> addGeoJsonSource(
     String sourceId,
     Map<String, dynamic> geojson,
-  ) => tolerateMapGone(() => map.addGeoJsonSource(sourceId, geojson));
+  ) => tolerateMapGone(
+    () => kIsWeb
+        ? map.addGeoJsonSource(
+            sourceId,
+            withPromotedIds(geojson),
+            promoteId: promotedIdProperty,
+          )
+        : map.addGeoJsonSource(sourceId, geojson),
+  );
 
   @override
   Future<void> setGeoJsonSource(
     String sourceId,
     Map<String, dynamic> geojson,
-  ) => tolerateMapGone(() => map.setGeoJsonSource(sourceId, geojson));
+  ) => tolerateMapGone(
+    () => map.setGeoJsonSource(
+      sourceId,
+      kIsWeb ? withPromotedIds(geojson) : geojson,
+    ),
+  );
 
   @override
   Future<void> addSource(String sourceId, ml.SourceProperties properties) =>
-      tolerateMapGone(() => map.addSource(sourceId, properties));
+      tolerateMapGone(
+        () => map.addSource(
+          sourceId,
+          kIsWeb && properties is ml.GeojsonSourceProperties
+              ? properties.copyWith(
+                  data: switch (properties.data) {
+                    final Map<String, dynamic> geojson => withPromotedIds(
+                      geojson,
+                    ),
+                    final other => other,
+                  },
+                  promoteId: properties.promoteId ?? promotedIdProperty,
+                )
+              : properties,
+        ),
+      );
 
   @override
   Future<void> addImageSource(
     String sourceId,
     Uint8List bytes,
     ml.LatLngQuad corners,
-  ) => tolerateMapGone(() => map.addImageSource(sourceId, bytes, corners));
+  ) => tolerateMapGone(() {
+    if (!kIsWeb) return map.addImageSource(sourceId, bytes, corners);
+    final url = _imageUrls[sourceId] = pngBytesUrl(bytes);
+    List<double> corner(ml.LatLng at) => <double>[at.longitude, at.latitude];
+    return map.addSource(
+      sourceId,
+      ml.ImageSourceProperties(
+        url: url,
+        coordinates: <List<double>>[
+          corner(corners.topLeft),
+          corner(corners.topRight),
+          corner(corners.bottomRight),
+          corner(corners.bottomLeft),
+        ],
+      ),
+    );
+  });
 
   @override
   Future<void> addLayer(
@@ -734,8 +787,14 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       tolerateMapGone(() => map.removeLayer(layerId));
 
   @override
-  Future<void> removeSource(String sourceId) =>
-      tolerateMapGone(() => map.removeSource(sourceId));
+  Future<void> removeSource(String sourceId) => tolerateMapGone(() async {
+    try {
+      await map.removeSource(sourceId);
+    } finally {
+      final url = _imageUrls.remove(sourceId);
+      if (url != null) releaseLocalFileUrl(url);
+    }
+  });
 
   @override
   Future<void> setLayerProperties(
@@ -967,6 +1026,8 @@ class MaplibreMapControllerAdapter implements MapController {
   String? _cycleMapPath;
   Set<CycleMapPart> _cycleMapParts = defaultCycleMapParts;
   final List<int> _cycleGenerations = <int>[];
+  // The URL each generation's source loads its file from.
+  final Map<int, String> _cycleUrls = <int, String>{};
   int _nextCycleGeneration = 0;
   Future<void> _cycleMapTurn = Future<void>.value();
   String? _cycleAnchor;
@@ -1053,6 +1114,8 @@ class MaplibreMapControllerAdapter implements MapController {
     _routeLines.clear();
     // A fresh style holds no cycle map; the replay adds the last one.
     _cycleGenerations.clear();
+    _cycleUrls.values.forEach(releaseLocalFileUrl);
+    _cycleUrls.clear();
     _cycleAnchorKnown = false;
     _cycleImagesAdded = false;
     // Nor any weather; the replay adds what is wanted.
@@ -2682,10 +2745,8 @@ class MaplibreMapControllerAdapter implements MapController {
     if (!_cycleImagesAdded) await _addCycleMapImages();
     final generation = _nextCycleGeneration++;
     final source = CycleMapLayers.sourceId(generation);
-    await _ops.addSource(
-      source,
-      ml.GeojsonSourceProperties(data: Uri.file(path).toString()),
-    );
+    final url = _cycleUrls[generation] = localFileUrl(path);
+    await _ops.addSource(source, ml.GeojsonSourceProperties(data: url));
     for (final layer in CycleMapLayers(palette.cycle).layers) {
       final id = CycleMapLayers.layerId(generation, layer);
       await _ops.addLayer(
@@ -2732,6 +2793,8 @@ class MaplibreMapControllerAdapter implements MapController {
         await _ops.removeLayer(CycleMapLayers.layerId(generation, layer));
       }
       await _ops.removeSource(CycleMapLayers.sourceId(generation));
+      final url = _cycleUrls.remove(generation);
+      if (url != null) releaseLocalFileUrl(url);
     }
   }
 

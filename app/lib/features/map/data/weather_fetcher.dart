@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -10,6 +8,8 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki_io/io.dart';
+import 'package:velorki_io/worker.dart';
 
 import '../domain/weather_map.dart';
 import '../domain/wind_field.dart';
@@ -699,7 +699,7 @@ int _crc32(Uint8List bytes) {
 /// isolate.
 Future<Uint8List> processCloudImage(Uint8List png, CloudImageJob job) async {
   final (width, height, pixels) = await _decode(png);
-  return Isolate.run(() {
+  return runIsolated(() {
     final out = whitenCloudPixels(pixels, luminance: job.luminance);
     fadeCloudPixels(width, height, out, job.box, job.fades);
     return encodePngRgba(width, height, out);
@@ -712,7 +712,7 @@ Future<Uint8List> processCloudImage(Uint8List png, CloudImageJob job) async {
 Future<Uint8List> processRainImage(Uint8List png, RainImageJob job) async {
   if (!job.needed) return png;
   final (width, height, pixels) = await _decode(png);
-  return Isolate.run(() => prepareRainImage(width, height, pixels, job));
+  return runIsolated(() => prepareRainImage(width, height, pixels, job));
 }
 
 /// The rain image [rgba] ([width] × [height], straight RGBA, as the service
@@ -1033,7 +1033,7 @@ abstract class WeatherFetcher {
 
 /// Reads a wind grid off the main isolate.
 Future<WindGrid?> parseWindGridInBackground(String text) =>
-    Isolate.run(() => parseWcsWindGrid(text));
+    runIsolated(() => parseWcsWindGrid(text));
 
 /// [WeatherFetcher] over HTTP, cloud images cached in [cacheDir].
 class HttpWeatherFetcher implements WeatherFetcher {
@@ -1271,7 +1271,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
         return null;
       }
     }
-    return Isolate.run(
+    return runIsolated(
       () => encodePngRgba(
         mosaic.width,
         mosaic.height,

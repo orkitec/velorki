@@ -5,6 +5,10 @@ import 'worker_channel_types.dart';
 
 export 'worker_channel_types.dart';
 
+/// Runs [computation] on an isolate of its own and returns its result.
+Future<R> runIsolated<R>(FutureOr<R> Function() computation) =>
+    Isolate.run(computation);
+
 /// Starts [main] on an isolate of its own and returns once it listens.
 Future<WorkerChannel> spawnWorkerChannel(
   WorkerMain main,

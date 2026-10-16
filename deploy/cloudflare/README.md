@@ -1,7 +1,8 @@
 # Cloudflare Pages: app.velorki.com
 
 The Pages project `velorki-app` serves the Flutter web build
-(`flutter build web --wasm` in `app/`, output `app/build/web`) and, through a
+(`flutter build web --wasm --no-web-resources-cdn` in `app/`, after
+`tool/web_assets.sh`; output `app/build/web`) and, through a
 Pages Function, the tile mirror under the same origin, so the app fetches
 tiles without CORS.
 
@@ -9,8 +10,10 @@ tiles without CORS.
 - `pages/functions/tiles/[[path]].js`: the function on `/tiles/*`; the logic
   is in `pages/tiles_proxy.mjs`.
 - `app/web/_headers` ships with the build: cross-origin isolation
-  (COOP/COEP `credentialless`), `nosniff`, referrer policy and cache rules for
-  the static files.
+  (COOP/COEP `credentialless`), the Content-Security-Policy (every host the
+  app loads from, named there), `nosniff`, referrer policy and cache rules
+  for the static files. The engine and maplibre-gl-js are served from the
+  site itself, so a build with the CDN default is refused by that policy.
 
 ## /tiles
 

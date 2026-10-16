@@ -270,11 +270,16 @@ void main() {
       expect(rect.left, closeTo(column.left, 1));
       expect(rect.width, closeTo(column.width, 1));
       expect(rect.height, closeTo(size.height, 1));
-      // In a wide window the map is still painted beside the page.
+      // In a wide window the map is still painted beside the page, where
+      // it was: not slid aside by the page's transition, Apple's parallax
+      // (iOS, and a browser on a Mac) included.
       final route = ModalRoute.of(tester.element(find.byKey(page)))!;
       expect(route.opaque, !wide);
+      if (wide) {
+        expect(_rect(tester, find.byType(SharedMapHost)), Offset.zero & size);
+      }
       await unmountApp(tester);
-    });
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
   }
 
   testWidgets('a page a tab pushes is over the map beside the column: the '

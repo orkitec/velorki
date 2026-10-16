@@ -4,6 +4,11 @@ import 'worker_channel_types.dart';
 
 export 'worker_channel_types.dart';
 
+/// Runs [computation] as an event of its own on the calling event loop, for
+/// a platform without isolates, and returns its result.
+Future<R> runIsolated<R>(FutureOr<R> Function() computation) =>
+    Future<R>(computation);
+
 /// Runs [main] on the calling event loop, for a platform without isolates.
 ///
 /// Messages are delivered as their own events in both directions, as ports

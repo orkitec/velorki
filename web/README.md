@@ -35,6 +35,10 @@ Host separation is strict and enforced before any handler runs, in
 
 - An unknown `(method, path)` on the API host answers the Fastify-shaped JSON
   404 `No route for GET /nope?a=1.`
+- CORS: `CORS_ORIGINS` (default `https://app.velorki.com`) may call `/health`,
+  `/weather*`, `/ai/plan` and `POST /share` from a browser; the preflight is
+  answered in `proxy.ts` (`src/server/cors.ts`), `/oauth/*` and `/proxy/*`
+  never get it. No credentials, never `*`.
 - `api.velorki.com/s/<id>` answers 308 to the site host: links handed out before
   the split keep working.
 - A loopback `Host` (`localhost`, `127.0.0.1`, `::1`) is the API role in every

@@ -1,9 +1,11 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web/web.dart' as web;
 
 import '../../core/files/track_exporter.dart';
 import '../../core/files/track_exporter_impl.dart';
+import '../../features/map/data/map_library_source.dart';
 import '../../features/map/presentation/map_view.dart';
 import '../../features/planner/presentation/planner_map_host.dart';
 import '../../features/routing_tiles/application/routing_tiles_startup.dart';
@@ -14,6 +16,7 @@ import '../app_config.dart';
 import '../bootstrap.dart' show initLogging;
 import '../licenses.dart';
 import 'browser_download.dart';
+import 'platform_view_pointer_gate.dart';
 import 'web_file_store.dart';
 
 /// The browser's start: the planner and the library, without what needs the
@@ -23,6 +26,8 @@ Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   initLogging();
   registerVelorkiLicenses();
+  loadMapLibraryFromSite(Uri.parse(web.document.baseURI));
+  PlatformViewPointerGate.install();
 
   // The tiles and indexes of an earlier visit, back into the file system
   // the routing engine and the search read, before anything looks.

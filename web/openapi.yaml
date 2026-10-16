@@ -32,6 +32,13 @@ info:
     it. (The Fastify relay this service replaced used per-process token
     buckets; the numbers are unchanged, the refill behaviour is not.)
 
+    Browsers: the origins in `CORS_ORIGINS` (default `https://app.velorki.com`)
+    may call `/health`, `/weather*`, `/ai/plan` and `POST /share` cross-origin.
+    The `OPTIONS` preflight answers 204; every answer, errors included, then
+    carries `Access-Control-Allow-Origin` (that one origin, never `*`, no
+    credentials) and exposes `Retry-After` and `X-Request-Id`. `/oauth/*` and
+    `/proxy/*` have no CORS.
+
     On `POST /share`, `POST /ai/plan` and `POST /weather` the per-IP limit is
     charged **before the body is read**, so an over-limit caller gets 429
     rather than having a megabyte buffered for it. A malformed body from such
