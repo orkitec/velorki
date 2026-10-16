@@ -50,3 +50,11 @@ A `v*` release deploys it (`release.yml`, job `web`, after approval in the
    set, the `web` job of `release.yml` builds and uploads nothing.
 5. GitHub → Settings → Actions → General: add `cloudflare/wrangler-action@*`
    to the allowed actions, or a run using it ends in `startup_failure`.
+
+## Trying it locally
+
+From `app/`: `flutter build web --wasm --no-web-resources-cdn --dart-define-from-file=env/web.json`,
+then `python3 tool/web_serve.py` and open http://localhost:8080 in Chrome. The
+script sends the build's `_headers` and stands in for the tiles function: the
+pointer comes from velorki-data, tiles are fetched from the GitHub releases and
+kept in `build/web_tile_cache`.
