@@ -1,0 +1,49 @@
+# Cloudflare Pages response headers for the web build (app.velorki.com).
+# flutter build web copies this file into build/web. A request gets the
+# headers of every rule its path matches; a header set by two rules is
+# joined with a comma, so Cache-Control is only ever set by one rule per path.
+# Responses from the /tiles/ Pages Function set their own headers.
+
+# Cross-origin isolation (SharedArrayBuffer: the multi-threaded renderer and
+# drift on OPFS). credentialless rather than require-corp, because map tiles,
+# fonts and the maplibre module come from other origins that send no CORP
+# header. Safari has no credentialless; there the page simply runs without
+# isolation: single-threaded renderer, drift on IndexedDB.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: credentialless
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Entry points: always revalidated, so a deploy is picked up on the next load.
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/flutter_bootstrap.js
+  Cache-Control: no-cache
+/flutter_service_worker.js
+  Cache-Control: no-cache
+/version.json
+  Cache-Control: no-cache
+/manifest.json
+  Cache-Control: no-cache
+
+# The rest of the build. Flutter does not content-hash these names, so they
+# cannot be immutable: an hour, then revalidated.
+/assets/*
+  Cache-Control: public, max-age=3600
+/canvaskit/*
+  Cache-Control: public, max-age=3600
+/flutter.js
+  Cache-Control: public, max-age=3600
+/main.dart.wasm
+  Cache-Control: public, max-age=3600
+/main.dart.mjs
+  Cache-Control: public, max-age=3600
+/main.dart.js
+  Cache-Control: public, max-age=3600
+/sqlite3.wasm
+  Cache-Control: public, max-age=3600
+/drift_worker.js
+  Cache-Control: public, max-age=3600

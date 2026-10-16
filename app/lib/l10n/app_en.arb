@@ -2270,6 +2270,14 @@
   "@plusUnavailableBody": {
     "description": "Paywall body when no store is configured, e.g. a fork or a CI build"
   },
+  "plusUnavailableWebTitle": "Not available on the web yet",
+  "@plusUnavailableWebTitle": {
+    "description": "Paywall heading in the web app, where no store sells Plus yet"
+  },
+  "plusUnavailableWebBody": "Velorki Plus cannot be bought in the browser yet. Planning, search and the library work here as in the app.",
+  "@plusUnavailableWebBody": {
+    "description": "Paywall body in the web app, where no store sells Plus yet"
+  },
   "plusLoadingPrices": "Asking the store for prices…",
   "@plusLoadingPrices": {
     "description": "Shown while the offering is being fetched"

@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:io';
+
+import 'package:velorki_io/io.dart';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';

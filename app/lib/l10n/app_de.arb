@@ -430,6 +430,8 @@
   "plusFreeAnyway": "Planen, Aufnahme, smarte Runden, Offline-Karten, die Wetterkarte, das Wetter auf der Route und GPX/FIT-Dateien bleiben kostenlos, mit oder ohne Plus.",
   "plusUnavailableTitle": "In diesem Build nicht verfügbar",
   "plusUnavailableBody": "In diesem Velorki-Build ist kein Store konfiguriert, deshalb lässt sich Velorki Plus hier nicht kaufen. Alles, was auf dem Handy läuft, funktioniert wie gewohnt.",
+  "plusUnavailableWebTitle": "Im Web noch nicht verfügbar",
+  "plusUnavailableWebBody": "Velorki Plus lässt sich im Browser noch nicht kaufen. Planen, Suche und Bibliothek funktionieren hier wie in der App.",
   "plusLoadingPrices": "Preise werden beim Store abgefragt…",
   "plusPricesFailed": "Der Store ist nicht erreichbar: {message}",
   "plusNoPackages": "Im Store ist noch kein Velorki-Plus-Abo konfiguriert.",

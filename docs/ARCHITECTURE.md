@@ -153,9 +153,26 @@ None depend on Flutter, so they run and are tested on the desktop Dart VM.
 | `velorki_cycle_map` | the offline cycle map: ways classified from the rd5 tiles, cached per cell, written as GeoJSON in an isolate |
 | `velorki_api` | the client for the relay |
 | `brouter_dart` | the Dart port of the BRouter routing runtime |
+| `velorki_io` | `dart:io` on the phone, an in-memory stand-in for its files in the browser |
 
 `RoutingBackend` is the seam that keeps the planner free of where a route comes
 from: it only ever calls `route()`.
+
+### The web planner (`flutter build web --wasm`)
+
+The same app, compiled to WebAssembly (64-bit ints for the routing engine), as
+the planner and the library on app.velorki.com. `main.dart` picks
+`lib/app/web/bootstrap_web.dart`; where the phone and the browser differ, a
+conditional import (`if (dart.library.js_interop)`) picks the implementation:
+files (`velorki_io`, kept across visits in Cache Storage by `WebFileStore`),
+the database (drift's WebAssembly SQLite in a worker, `connection_web.dart`),
+the gazetteer's SQLite (`gazetteer_sqlite_web.dart`), the app's directories
+and the routing worker (on the page's event loop: a browser has no isolates).
+`platformFeaturesProvider` is what screens ask before offering what a browser
+cannot do (recording and navigation, store purchases, Strava and Ride with
+GPS, offline map packs). Tiles come from the Pages Function under `/tiles/`
+(`deploy/cloudflare/`), so the mirror needs no CORS. `tool/web_assets.sh`
+fetches `sqlite3.wasm` and `drift_worker.js` before a build.
 
 ## Data model
 

@@ -16,7 +16,8 @@
 // * `Math.random()` (round trips without `direction`) is `dart:math`
 //   `Random`; the results are not reproducible on either side.
 
-import 'dart:io';
+import 'package:velorki_io/io.dart';
+
 import 'dart:math' as math;
 
 import '../expressions/profile_cache.dart';

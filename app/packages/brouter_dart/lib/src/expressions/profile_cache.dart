@@ -6,7 +6,7 @@
 // touches are behind [ProfileCacheClient] here so that the expressions module
 // carries the cache and RoutingContext (track R4) implements the interface.
 
-import 'dart:io';
+import 'package:velorki_io/io.dart';
 
 import 'b_expression_context_node.dart';
 import 'b_expression_context_way.dart';

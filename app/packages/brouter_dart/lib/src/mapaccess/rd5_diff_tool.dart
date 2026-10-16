@@ -1,6 +1,6 @@
 // Stub for btools.mapaccess.Rd5DiffTool (BRouter v1.7.10).
 
-import 'dart:io';
+import 'package:velorki_io/io.dart';
 
 import '../util/progress_listener.dart';
 

@@ -1,11 +1,7 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'connection/connection.dart';
 import 'daos/offline_regions_dao.dart';
 import 'daos/rides_dao.dart';
 import 'daos/routes_dao.dart';
@@ -30,10 +26,11 @@ class VelorkiDatabase extends _$VelorkiDatabase {
   VelorkiDatabase(super.e);
 
   /// In-memory instance for tests.
-  VelorkiDatabase.memory() : super(NativeDatabase.memory());
+  VelorkiDatabase.memory() : super(inMemoryDatabase());
 
-  /// The on-device database, opened on a background isolate.
-  factory VelorkiDatabase.open() => VelorkiDatabase(_openConnection());
+  /// The on-device database, opened on a background isolate (in the browser,
+  /// in a web worker).
+  factory VelorkiDatabase.open() => VelorkiDatabase(openVelorkiDatabase());
 
   @override
   int get schemaVersion => 10;
@@ -95,13 +92,6 @@ class VelorkiDatabase extends _$VelorkiDatabase {
     },
   );
 }
-
-QueryExecutor _openConnection() => LazyDatabase(() async {
-  final dir = await getApplicationDocumentsDirectory();
-  return NativeDatabase.createInBackground(
-    File(p.join(dir.path, 'velorki.sqlite')),
-  );
-});
 
 @Riverpod(keepAlive: true)
 VelorkiDatabase velorkiDatabase(Ref ref) {

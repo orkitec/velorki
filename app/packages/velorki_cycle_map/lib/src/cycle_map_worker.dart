@@ -1,5 +1,7 @@
 import 'dart:async';
-import 'dart:io';
+
+import 'package:velorki_io/io.dart';
+
 import 'dart:isolate';
 
 import 'cycle_map_engine.dart';

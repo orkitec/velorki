@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_cycle_map/velorki_cycle_map.dart';
 
+import '../../../core/files/app_directories.dart';
 import '../../routing_tiles/data/on_device_routing.dart';
 
 part 'cycle_map_worker_provider.g.dart';
@@ -21,7 +21,7 @@ Future<CycleMapWorker> cycleMapWorker(Ref ref) async {
       (setup) => (setup.segmentsDir, setup.profilesDir),
     ),
   );
-  final cache = await getApplicationCacheDirectory();
+  final cache = await appCacheDirectory();
   final worker = await CycleMapWorker.spawn(
     segmentsDir: segmentsDir,
     lookupsPath: '$profilesDir/lookups.dat',

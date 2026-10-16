@@ -430,6 +430,8 @@
   "plusFreeAnyway": "Planificar, grabar, las rutas circulares inteligentes, los mapas sin conexión, el mapa del tiempo, el tiempo en la ruta y los archivos GPX/FIT siguen siendo gratis, con o sin Plus.",
   "plusUnavailableTitle": "No disponible en esta versión",
   "plusUnavailableBody": "Esta versión de Velorki no tiene tienda configurada, así que aquí no se puede comprar Velorki Plus. Todo lo que funciona en el teléfono sigue igual.",
+  "plusUnavailableWebTitle": "Aún no disponible en la web",
+  "plusUnavailableWebBody": "Velorki Plus aún no se puede comprar en el navegador. La planificación, la búsqueda y la biblioteca funcionan aquí como en la app.",
   "plusLoadingPrices": "Consultando precios en la tienda…",
   "plusPricesFailed": "No se pudo contactar con la tienda: {message}",
   "plusNoPackages": "La tienda aún no tiene configurada ninguna suscripción a Velorki Plus.",

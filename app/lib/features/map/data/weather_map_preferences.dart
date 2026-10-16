@@ -2,11 +2,11 @@ import 'dart:io' show Directory;
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_api/velorki_api.dart';
 
 import '../../../app/app_config.dart';
+import '../../../core/files/app_directories.dart';
 import '../../../core/http/user_agent.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
@@ -310,9 +310,8 @@ WeatherFetcher weatherFetcher(Ref ref) {
   ref.onDispose(dio.close);
   return HttpWeatherFetcher(
     dio: dio,
-    cacheDir: () async => Directory(
-      p.join((await getApplicationCacheDirectory()).path, 'clouds'),
-    ),
+    cacheDir: () async =>
+        Directory(p.join((await appCacheDirectory()).path, 'clouds')),
     headersFor: (url) => relayAuthFor(ref.read(relayClientProvider), url),
   );
 }

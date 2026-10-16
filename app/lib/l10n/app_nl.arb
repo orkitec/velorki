@@ -430,6 +430,8 @@
   "plusFreeAnyway": "Plannen, opnemen, slimme rondjes, offline kaarten, de weerkaart, het weer op de route en GPX/FIT-bestanden blijven gratis, met of zonder Plus.",
   "plusUnavailableTitle": "Niet beschikbaar in deze build",
   "plusUnavailableBody": "In deze build van Velorki is geen store ingesteld, dus Velorki Plus kan hier niet worden gekocht. Alles wat op de telefoon draait, werkt gewoon.",
+  "plusUnavailableWebTitle": "Nog niet beschikbaar op het web",
+  "plusUnavailableWebBody": "Velorki Plus kan nog niet in de browser worden gekocht. Plannen, zoeken en de bibliotheek werken hier zoals in de app.",
   "plusLoadingPrices": "Prijzen opvragen bij de store…",
   "plusPricesFailed": "De store is niet bereikbaar: {message}",
   "plusNoPackages": "De store heeft nog geen Velorki Plus-abonnement ingesteld.",

@@ -1,7 +1,8 @@
 // Port of btools.expressions.BExpressionMetaData (BRouter v1.7.10).
 
 import 'dart:convert';
-import 'dart:io';
+
+import 'package:velorki_io/io.dart';
 
 import '../jfloat.dart';
 import 'b_expression_context.dart';

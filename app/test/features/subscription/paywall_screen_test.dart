@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/app/platform_features.dart';
 import 'package:velorki/core/links/link_opener.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/integrations/rwgps/data/rwgps_providers.dart';
@@ -211,6 +212,27 @@ void main() {
       // The feature list is still there: a fork's users should know what the
       // official build sells.
       expect(find.text(l10n.plusFeatureAiAssistant), findsOneWidget);
+    });
+
+    testWidgets('a browser says Plus is not sold on the web yet', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        const PaywallScreen(),
+        service: FakeSubscriptionService(isAvailable: false),
+        extraOverrides: [
+          platformFeaturesProvider.overrideWithValue(PlatformFeatures.browser),
+        ],
+      );
+
+      expect(find.text(l10n.plusUnavailableWebTitle), findsOneWidget);
+      expect(find.text(l10n.plusUnavailableWebBody), findsOneWidget);
+      expect(find.text(l10n.plusUnavailableBody), findsNothing);
+      expect(
+        find.widgetWithText(FilledButton, l10n.plusSubscribe),
+        findsNothing,
+      );
     });
 
     testWidgets('a store that cannot be reached explains itself', (

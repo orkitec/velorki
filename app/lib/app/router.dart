@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
@@ -35,6 +36,7 @@ import '../features/shared/application/shown_bar_style.dart';
 import '../features/subscription/presentation/paywall_screen.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'map_tab_page.dart';
+import 'platform_features.dart';
 import 'shell_layout.dart';
 import 'tab_fade.dart';
 
@@ -91,11 +93,17 @@ MapTabPage<void> _libraryPage(GoRouterState state, Widget child) =>
     );
 
 @Riverpod(keepAlive: true)
-GoRouter router(Ref ref) => createRouter();
+GoRouter router(Ref ref) =>
+    createRouter(recording: ref.read(platformFeaturesProvider).recording);
 
 /// Built by a function rather than a top-level final so widget tests can start
 /// from any tab with a fresh navigator state.
-GoRouter createRouter({String initialLocation = plannerRoute}) {
+///
+/// Without [recording] the Record tab cannot be reached, not even by a link.
+GoRouter createRouter({
+  String initialLocation = plannerRoute,
+  bool recording = true,
+}) {
   // Which tab has a page pushed over it, for the map beside the column.
   final pages = TabPages();
   return GoRouter(
@@ -106,6 +114,10 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
     // here all the same, the rider stays where they were rather than on an
     // error page with no way back.
     onException: (context, state, router) {},
+    redirect: recording
+        ? null
+        : (context, state) =>
+              state.matchedLocation == recordingRoute ? plannerRoute : null,
     routes: [
       GoRoute(
         path: paywallRoute,
@@ -243,10 +255,15 @@ class HomeShell extends ConsumerWidget {
     // Turn-by-turn is kept alive for the whole session, and a keep-alive
     // provider only exists once something has read it. Listening rather than
     // watching: the shell has nothing to redraw when a turn comes closer.
-    ref.listen(navigationControllerProvider, (previous, next) {});
+    final features = ref.watch(platformFeaturesProvider);
+    if (features.recording) {
+      ref.listen(navigationControllerProvider, (previous, next) {});
+    }
     // The same for what a recording ride puts on the lock screen: the Android
     // notification's turn line and the iOS live activity.
-    ref.listen(rideNotificationUpdaterProvider, (previous, next) {});
+    if (features.recording) {
+      ref.listen(rideNotificationUpdaterProvider, (previous, next) {});
+    }
     // Strava refused Velorki's access and the Strava data went: the rider
     // is told in writing, wherever they are.
     // Routes from Strava the checks deleted: said once, in a snack bar.
@@ -331,14 +348,17 @@ class HomeShell extends ConsumerWidget {
         atTabRoot &&
         (chrome?.visible ?? true);
     final columnGlide = ref.watch(mapControlsTopProvider);
+    // The tabs the bar offers, by branch: no Record where nothing records.
+    final branches = <int>[0, if (features.recording) 1, 2, 3];
     // The layout the screen implies, handed down to the tabs: a bar at the
     // bottom upright, a rail at the side on a phone turned sideways.
     FloatingNavigationBar navigation(RailSide? railSide) =>
         FloatingNavigationBar(
           railSide: railSide,
           docked: docked,
-          selectedIndex: shell.currentIndex,
-          onDestinationSelected: (index) {
+          selectedIndex: math.max(0, branches.indexOf(shell.currentIndex)),
+          onDestinationSelected: (position) {
+            final index = branches[position];
             // Told first, so the screens arrange themselves before the
             // branch shows.
             ref.read(activeTabProvider.notifier).show(tabRoutes[index]);
@@ -349,26 +369,29 @@ class HomeShell extends ConsumerWidget {
             );
           },
           destinations: [
-            NavigationDestination(
-              icon: const Icon(Icons.route_outlined),
-              selectedIcon: const Icon(Icons.route),
-              label: l10n.tabPlan,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.radio_button_unchecked),
-              selectedIcon: const Icon(Icons.radio_button_checked),
-              label: l10n.tabRecord,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.bookmarks_outlined),
-              selectedIcon: const Icon(Icons.bookmarks),
-              label: l10n.tabLibrary,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.tune_outlined),
-              selectedIcon: const Icon(Icons.tune),
-              label: l10n.tabSettings,
-            ),
+            for (final branch in branches)
+              switch (branch) {
+                0 => NavigationDestination(
+                  icon: const Icon(Icons.route_outlined),
+                  selectedIcon: const Icon(Icons.route),
+                  label: l10n.tabPlan,
+                ),
+                1 => NavigationDestination(
+                  icon: const Icon(Icons.radio_button_unchecked),
+                  selectedIcon: const Icon(Icons.radio_button_checked),
+                  label: l10n.tabRecord,
+                ),
+                2 => NavigationDestination(
+                  icon: const Icon(Icons.bookmarks_outlined),
+                  selectedIcon: const Icon(Icons.bookmarks),
+                  label: l10n.tabLibrary,
+                ),
+                _ => NavigationDestination(
+                  icon: const Icon(Icons.tune_outlined),
+                  selectedIcon: const Icon(Icons.tune),
+                  label: l10n.tabSettings,
+                ),
+              },
           ],
         );
     Widget controls(ShellLayout layout) => MapChromeInsets(

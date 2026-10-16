@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app_config.dart';
+import '../../../app/platform_features.dart';
 import '../../../features/assistant/presentation/ai_settings_section.dart';
 import '../../../features/integrations/presentation/connections_section.dart';
 import '../../../features/routing_tiles/data/routing_preference_controller.dart';
@@ -29,6 +30,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final features = ref.watch(platformFeaturesProvider);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.tabSettings)),
       body: ListView(
@@ -40,18 +42,22 @@ class SettingsScreen extends ConsumerWidget {
           const AppearanceSection(),
           const UnitsSection(),
           const LanguageSection(),
-          const Divider(height: 32),
-          const _SectionHeader.navigation(),
-          const NavigationSection(),
-          const Divider(height: 32),
-          const _SectionHeader.recording(),
-          const RecordingSection(),
+          // Where nothing records, nothing navigates either.
+          if (features.recording) ...const [
+            Divider(height: 32),
+            _SectionHeader.navigation(),
+            NavigationSection(),
+            Divider(height: 32),
+            _SectionHeader.recording(),
+            RecordingSection(),
+          ],
           const Divider(height: 32),
           const _SectionHeader.rider(),
           const RiderSection(),
           // Hidden where there is no health store to talk to, rather than
           // shown as a switch that cannot do anything.
-          if (ref.watch(healthGatewayProvider) != null) ...const [
+          if (features.recording &&
+              ref.watch(healthGatewayProvider) != null) ...const [
             Divider(height: 32),
             _SectionHeader.sensors(),
             SensorsSection(),
@@ -59,15 +65,17 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(height: 32),
           const _SectionHeader.subscription(),
           const PlusSettingsSection(),
-          const Divider(height: 32),
-          const _SectionHeader.connections(),
-          const ConnectionsSection(),
+          if (features.accountConnections) ...const [
+            Divider(height: 32),
+            _SectionHeader.connections(),
+            ConnectionsSection(),
+          ],
           const Divider(height: 32),
           const _SectionHeader.ai(),
           const AiSettingsSection(),
           const Divider(height: 32),
           const _SectionHeader.advanced(),
-          const OfflineEntry(),
+          if (features.offlineMapAreas) const OfflineEntry(),
           const SearchSettingsEntry(),
           const _RoutingPreferenceSection(),
           const _ServerUrlsSection(),

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/app/platform_features.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/data/offline_regions_repository.dart';
 import 'package:velorki/features/map/testing/testing.dart';
@@ -66,7 +67,11 @@ class _Harness {
   ];
 }
 
-Future<_Harness> _pump(WidgetTester tester, {FakeMapController? map}) async {
+Future<_Harness> _pump(
+  WidgetTester tester, {
+  FakeMapController? map,
+  PlatformFeatures features = PlatformFeatures.device,
+}) async {
   final h = _Harness();
   addTearDown(h.db.close);
   await tester.binding.setSurfaceSize(const Size(1080, 2000));
@@ -77,6 +82,7 @@ Future<_Harness> _pump(WidgetTester tester, {FakeMapController? map}) async {
     ProviderScope(
       overrides: <Override>[
         sharedPreferencesProvider.overrideWithValue(prefs),
+        platformFeaturesProvider.overrideWithValue(features),
         ...h.overrides,
       ],
       child: testApp(home: OfflineScreen(mapController: map)),
@@ -190,6 +196,43 @@ void main() {
       find.textContaining(l10n.routingTilesTotal(1, '').split(',').first),
       findsOneWidget,
     );
+    await _unmount(tester);
+  });
+
+  testWidgets('in a browser only the routing data is offered and fetched', (
+    tester,
+  ) async {
+    final h = await _pump(
+      tester,
+      map: _mapOverTyrol(),
+      features: PlatformFeatures.browser,
+    );
+
+    expect(find.text(l10n.offlineMapsTitle), findsNothing);
+    expect(find.text(l10n.offlineRoutingTitle), findsOneWidget);
+    expect(find.text(l10n.plusManage), findsOneWidget);
+
+    await tester.tap(find.text(l10n.offlineDownloadVisible));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(l10n.offlineDialogMap), findsNothing);
+    expect(find.textContaining('E10_N45 ·'), findsOneWidget);
+
+    await tester.tap(find.text(l10n.offlineDialogDownload));
+    await _runDownloads(
+      tester,
+      until: () =>
+          h.storage.segments.listSync().isNotEmpty &&
+          find
+              .textContaining(l10n.routingTilesTotal(1, '').split(',').first)
+              .evaluate()
+              .isNotEmpty,
+    );
+    await tester.pumpAndSettle();
+
+    expect(h.api.downloads, isEmpty);
+    expect(h.storage.segments.listSync().map((f) => f.path.split('/').last), [
+      'E10_N45.rd5',
+    ]);
     await _unmount(tester);
   });
 

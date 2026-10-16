@@ -1,10 +1,10 @@
-import 'dart:io';
+import 'package:velorki_io/io.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/files/app_directories.dart';
 import '../../../core/files/backup_exclusion.dart';
 
 part 'brouter_storage.g.dart';
@@ -65,6 +65,6 @@ class BrouterStorage {
 /// feature calls `path_provider`.
 @Riverpod(keepAlive: true)
 Future<BrouterStorage> brouterStorage(Ref ref) async {
-  final base = await getApplicationSupportDirectory();
+  final base = await appSupportDirectory();
   return BrouterStorage(Directory(p.join(base.path, 'brouter'))).create();
 }

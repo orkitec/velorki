@@ -59,7 +59,7 @@ const int shortMinValue = -32768;
 const double floatMaxValue = 3.4028234663852886e38;
 
 /// `Long.MAX_VALUE` / `Long.MIN_VALUE`.
-const int longMaxValue = 0x7fffffffffffffff;
+const int longMaxValue = (0x7fffffff << 32 | 0xffffffff);
 const int longMinValue = -0x8000000000000000;
 
 final Float32List _f32 = Float32List(1);

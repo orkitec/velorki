@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme.dart';
 import '../../../core/links/link_opener.dart';
 import '../../../core/plus/plus_gate.dart';
+import '../../../app/platform_features.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/presentation/error_text.dart';
 import '../../shared/presentation/stat_tile.dart';
@@ -276,22 +277,31 @@ class _ActiveBanner extends StatelessWidget {
   }
 }
 
-class _UnavailableCard extends StatelessWidget {
+class _UnavailableCard extends ConsumerWidget {
   const _UnavailableCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    // A browser has no store at all; any other build simply was not given
+    // one.
+    final web = !ref.watch(platformFeaturesProvider).storePurchases;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.plusUnavailableTitle, style: theme.textTheme.titleMedium),
+            Text(
+              web ? l10n.plusUnavailableWebTitle : l10n.plusUnavailableTitle,
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 6),
-            Text(l10n.plusUnavailableBody, style: theme.textTheme.bodySmall),
+            Text(
+              web ? l10n.plusUnavailableWebBody : l10n.plusUnavailableBody,
+              style: theme.textTheme.bodySmall,
+            ),
           ],
         ),
       ),

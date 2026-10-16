@@ -48,8 +48,11 @@ dependencies:
   velorki_fit:
   velorki_geo:
   velorki_gpx:
+  velorki_io:
   velorki_tcx:
   wakelock_plus: ^1.8.0
+  # Browser APIs for the web build (Cache Storage, downloads).
+  web: ^1.1.1
   purchases_flutter: ^10.12.0
   sensors_plus: ^7.1.1
   screen_brightness: ^2.1.11
@@ -148,5 +151,6 @@ workspace:
   - packages/velorki_loops
   - packages/velorki_api
   - packages/velorki_cycle_map
+  - packages/velorki_io
   - packages/brouter_dart
 

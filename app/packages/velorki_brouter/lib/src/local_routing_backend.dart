@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:io';
+
+import 'package:velorki_io/io.dart';
 
 import 'package:brouter_dart/brouter_dart.dart' as br;
 import 'package:brouter_dart/isolate.dart';

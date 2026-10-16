@@ -91,8 +91,9 @@ String mapStyleUrlFor(
 }
 
 /// Where the native (i) button goes: this far past the map's right edge,
-/// out of view on any screen.
-const double _infoButtonOffscreen = -10000;
+/// out of view on any screen. An int: the web plugin reads the margins as
+/// `int`, and in WebAssembly a double is not one.
+const int _infoButtonOffscreen = -10000;
 
 /// The map itself: a `MapLibreMap` platform view plus the adapter that turns
 /// it into a [MapController].

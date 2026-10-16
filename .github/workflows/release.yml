@@ -1,5 +1,6 @@
-# Tag `vX.Y.Z` → Android (signed AAB + APK, GitHub Release, Play internal track)
-# and iOS (signed build → TestFlight), both with the same version name and
+# Tag `vX.Y.Z` → Android (signed AAB + APK, GitHub Release, Play internal track),
+# iOS (signed build → TestFlight) and the web planner (Cloudflare Pages, once
+# its secrets are set; see the `web` job), all with the same version name and
 # build number, computed once by the `version` job. A tag with a suffix
 # (`v1.0.1-rc1`) is a trial: it reaches Play and TestFlight but makes no GitHub
 # Release. The .ipa is never attached: it is signed for the App Store and
@@ -16,7 +17,7 @@
 #
 # Two gates: the `version` job fails unless whoever started the run (the tag
 # pusher, the dispatcher, or whoever re-runs it) is listed in the repository
-# variable RELEASE_ACTORS (comma-separated logins), and both platform jobs run
+# variable RELEASE_ACTORS (comma-separated logins), and the platform jobs run
 # in the `release` environment, which has the maintainer as a required
 # reviewer: nothing is signed or uploaded until the run is approved in the
 # Actions UI. Without the secrets (a fork, or before the setup in
@@ -47,10 +48,10 @@ on:
         required: true
         type: string
       platforms:
-        description: "Stores to release to"
+        description: "Where to release to: all (both stores and the web app), or one of them"
         type: choice
-        options: [both, android, ios]
-        default: both
+        options: [all, android, ios, web]
+        default: all
       dry_run:
         description: "Build and sign, but upload nothing and make no GitHub Release"
         type: boolean
@@ -61,7 +62,7 @@ on:
         required: false
 
 run-name: >-
-  release ${{ inputs.tag || github.ref_name }}${{ inputs.dry_run && ' (dry run)' || '' }}${{ inputs.platforms && inputs.platforms != 'both' && format(' ({0} only)', inputs.platforms) || '' }}
+  release ${{ inputs.tag || github.ref_name }}${{ inputs.dry_run && ' (dry run)' || '' }}${{ inputs.platforms && inputs.platforms != 'all' && inputs.platforms != 'both' && format(' ({0} only)', inputs.platforms) || '' }}
 
 permissions:
   contents: read
@@ -123,11 +124,11 @@ jobs:
 
           if [ "$EVENT" = workflow_dispatch ]; then
             tag="$INPUT_TAG"
-            platforms="${INPUT_PLATFORMS:-both}"
+            platforms="${INPUT_PLATFORMS:-all}"
             dry_run="${INPUT_DRY_RUN:-false}"
           elif [ "$REF_TYPE" = tag ]; then
             tag="$REF_NAME"
-            platforms=both
+            platforms=all
             dry_run=false
           else
             echo "::error::A release runs on a v* tag or by dispatch with a tag, not on $EVENT of $REF_TYPE '$REF_NAME'."
@@ -137,8 +138,10 @@ jobs:
             echo "::error::Tag '$tag' is not vX.Y.Z or vX.Y.Z-suffix."
             exit 1
           fi
-          case "$platforms" in both|android|ios) ;; *)
-            echo "::error::platforms must be both, android or ios, not '$platforms'."
+          # "both" is what this input was called before the web app.
+          if [ "$platforms" = both ]; then platforms=all; fi
+          case "$platforms" in all|android|ios|web) ;; *)
+            echo "::error::platforms must be all, android, ios or web, not '$platforms'."
             exit 1;;
           esac
           case "$dry_run" in true|false) ;; *)
@@ -204,7 +207,7 @@ jobs:
 
   android:
     needs: version
-    if: ${{ needs.version.outputs.platforms != 'ios' }}
+    if: ${{ contains(fromJSON('["all","android"]'), needs.version.outputs.platforms) }}
     runs-on: ubuntu-latest
     # Gated: waits for an approval before it can use the signing secrets.
     environment: release
@@ -372,7 +375,7 @@ jobs:
 
   ios:
     needs: version
-    if: ${{ needs.version.outputs.platforms != 'android' }}
+    if: ${{ contains(fromJSON('["all","ios"]'), needs.version.outputs.platforms) }}
     runs-on: xcode-27
     timeout-minutes: 90
     # Required reviewer: the approval gate for signing and uploading.
@@ -544,3 +547,57 @@ jobs:
           if [ -n "${KEYCHAIN_PATH:-}" ]; then
             security delete-keychain "$KEYCHAIN_PATH" || true
           fi
+
+  # The web planner (app.velorki.com): the tag's app built for the browser and
+  # uploaded to the Cloudflare Pages project `velorki-app` together with the
+  # Pages Function that serves the routing tiles under /tiles/ (see
+  # deploy/cloudflare/README.md). No secret config: the web build reads only
+  # app/env/web.json. Without CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID
+  # in the `release` environment the job builds and uploads nothing.
+  web:
+    needs: version
+    if: ${{ contains(fromJSON('["all","web"]'), needs.version.outputs.platforms) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release
+    permissions:
+      contents: read
+    env:
+      HAVE_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' && 'true' || 'false' }}
+      TAG: ${{ needs.version.outputs.tag }}
+      VERSION_NAME: ${{ needs.version.outputs.version_name }}
+      BUILD_NUMBER: ${{ needs.version.outputs.build_number }}
+      DRY_RUN: ${{ needs.version.outputs.dry_run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter gen-l10n
+      - name: The web page's and the tile function's own tests
+        working-directory: .
+        run: node --test app/web_test/ deploy/cloudflare/test/
+      - run: bash tool/web_assets.sh
+      - name: Build for the web
+        run: |
+          flutter build web --wasm --release --dart-define-from-file=env/web.json \
+            --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
+      - name: Upload to Cloudflare Pages
+        if: ${{ env.HAVE_CLOUDFLARE == 'true' && env.DRY_RUN != 'true' }}
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # functions/ is picked up from here; the output directory comes
+          # from wrangler.toml.
+          workingDirectory: deploy/cloudflare/pages
+          command: pages deploy --project-name=velorki-app --branch=main --commit-hash=${{ needs.version.outputs.sha }}
+      - name: Not uploaded
+        if: ${{ env.HAVE_CLOUDFLARE != 'true' || env.DRY_RUN == 'true' }}
+        run: echo "::notice::Web build of $TAG ($VERSION_NAME, $BUILD_NUMBER) finished; nothing was uploaded (dry run or no Cloudflare secrets)."

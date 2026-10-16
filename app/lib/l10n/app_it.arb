@@ -430,6 +430,8 @@
   "plusFreeAnyway": "Pianificazione, registrazione, anelli smart, mappe offline, la mappa meteo, il meteo sul percorso e file GPX/FIT restano gratuiti, con o senza Plus.",
   "plusUnavailableTitle": "Non disponibile in questa build",
   "plusUnavailableBody": "Questa build di Velorki non ha uno store configurato, quindi Velorki Plus non si può acquistare qui. Tutto ciò che gira sul telefono funziona come sempre.",
+  "plusUnavailableWebTitle": "Non ancora disponibile sul web",
+  "plusUnavailableWebBody": "Velorki Plus non si può ancora acquistare nel browser. Pianificazione, ricerca e libreria funzionano qui come nell’app.",
   "plusLoadingPrices": "Richiesta dei prezzi allo store…",
   "plusPricesFailed": "Impossibile raggiungere lo store: {message}",
   "plusNoPackages": "Lo store non ha ancora un abbonamento Velorki Plus configurato.",

@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:collection';
-import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:sqlite3/sqlite3.dart';
+import 'package:sqlite3/common.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki_io/io.dart';
 
 import '../../routing_tiles/data/brouter_storage.dart';
 import '../../routing_tiles/data/routing_tiles_repository.dart';
@@ -21,6 +21,7 @@ import '../domain/search_result.dart';
 import '../domain/search_text.dart';
 import '../domain/street_numbers.dart';
 import '../domain/translit.dart';
+import 'gazetteer_sqlite/gazetteer_sqlite.dart';
 import 'photon_client.dart';
 
 part 'gazetteer_store.g.dart';
@@ -1077,9 +1078,9 @@ class GazetteerStore {
   }
 
   _GazetteerFile? _openFile(String tile, String path) {
-    Database? db;
+    CommonDatabase? db;
     try {
-      db = sqlite3.open(path, mode: OpenMode.readOnly);
+      db = openGazetteerFile(path);
       final version = _metaValue(db, 'schema_version');
       if (version != gazetteerSchemaVersion) {
         debugPrint(
@@ -1097,7 +1098,7 @@ class GazetteerStore {
     }
   }
 
-  static String? _metaValue(Database db, String key) {
+  static String? _metaValue(CommonDatabase db, String key) {
     final rows = db.select('SELECT value FROM meta WHERE key = ?', <Object?>[
       key,
     ]);
@@ -1277,18 +1278,18 @@ class _GazetteerFile {
   /// The tile this file covers, e.g. `E5_N45`.
   final String tile;
 
-  final Database _db;
-  final PreparedStatement _match;
-  final PreparedStatement _place;
-  final PreparedStatement _places;
-  final PreparedStatement? _streets;
-  final PreparedStatement? _pois;
-  final PreparedStatement? _aliases;
-  final PreparedStatement? _houseNumbers;
-  final PreparedStatement? _streetNumbers;
+  final CommonDatabase _db;
+  final CommonPreparedStatement _match;
+  final CommonPreparedStatement _place;
+  final CommonPreparedStatement _places;
+  final CommonPreparedStatement? _streets;
+  final CommonPreparedStatement? _pois;
+  final CommonPreparedStatement? _aliases;
+  final CommonPreparedStatement? _houseNumbers;
+  final CommonPreparedStatement? _streetNumbers;
 
-  PreparedStatement? _vocabRange;
-  PreparedStatement? _vocabTerm;
+  CommonPreparedStatement? _vocabRange;
+  CommonPreparedStatement? _vocabTerm;
   bool _vocabAttempted = false;
 
   /// The words of a place and of the place above it, by place id.
@@ -1346,7 +1347,11 @@ class _GazetteerFile {
     return rows;
   }
 
-  List<_Row> _read(PreparedStatement? statement, Object? arg, _Table table) {
+  List<_Row> _read(
+    CommonPreparedStatement? statement,
+    Object? arg,
+    _Table table,
+  ) {
     if (statement == null) return const <_Row>[];
     return <_Row>[
       for (final row in statement.select(<Object?>[arg])) ?_row(row, table),
@@ -1926,7 +1931,7 @@ class _GazetteerFile {
 
   /// The `importance` column of [table], or a 0 in its place for a file
   /// built before it.
-  static String _fame(Database db, String table) {
+  static String _fame(CommonDatabase db, String table) {
     final columns = db.select('PRAGMA table_info($table)');
     return columns.any((c) => c['name'] == 'importance')
         ? 'importance'
@@ -1935,7 +1940,7 @@ class _GazetteerFile {
 
   /// The `osm_type` and `osm_id` columns of [table], or NULLs in their place
   /// for a file without them.
-  static String _osm(Database db, String table) {
+  static String _osm(CommonDatabase db, String table) {
     final columns = db.select('PRAGMA table_info($table)');
     bool has(String name) => columns.any((c) => c['name'] == name);
     return has('osm_type') && has('osm_id')
@@ -1946,7 +1951,7 @@ class _GazetteerFile {
   /// The `ORDER BY` of [table] that puts its most important rows first and
   /// the rest in the file's order; the file's order alone in a file built
   /// before the `importance` column.
-  static String _rankedOrder(Database db, String table) =>
+  static String _rankedOrder(CommonDatabase db, String table) =>
       _fame(db, table) == 'importance'
       ? 'ORDER BY importance DESC, id'
       : 'ORDER BY id';
@@ -1966,7 +1971,10 @@ class _GazetteerFile {
   static int? _osmIdOf(Row row) =>
       _osmTypeOf(row) == null ? null : _asInt(row['osm_id']);
 
-  static PreparedStatement? _prepareOrNull(Database db, String sql) {
+  static CommonPreparedStatement? _prepareOrNull(
+    CommonDatabase db,
+    String sql,
+  ) {
     // A file from an older builder has no aliases and house_numbers instead
     // of street_numbers, a newer one the other way round: a table that is
     // simply not there is no news. One that is there and still cannot be
@@ -2569,6 +2577,8 @@ Future<GazetteerStore> gazetteerStore(Ref ref) async {
     // down device): the rider simply searches online.
     debugPrint('velorki: no gazetteer directory: $e');
   }
+  // In the browser SQLite is WebAssembly, fetched before the first file.
+  await prepareGazetteerSqlite();
   final store = GazetteerStore(directory, background: true);
   ref.onDispose(store.close);
   await store.refresh();

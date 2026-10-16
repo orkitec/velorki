@@ -94,8 +94,16 @@ needs threads).
 
 ### JVM emulation (`lib/src/jvm.dart`, `lib/src/jmath.dart`)
 
-* Java `long` is Dart `int` (64-bit two's complement on the VM; this package
-  does not target the web).
+* Java `long` is Dart `int`: 64-bit two's complement on the VM and in
+  WebAssembly (`flutter build web --wasm`), which is how the web planner runs
+  the engine. Under dart2js `int` is a JS number and the engine computes wrong
+  routes; the JS fallback of a wasm build only has to compile, so the 64-bit
+  constants in `jvm.dart`, `jmath.dart` and `jfloat.dart` are written as
+  `(0xHI << 32 | 0xLO)`, the same bits on the VM and in wasm.
+* Files are `package:velorki_io/io.dart`, which is `dart:io` on the VM and an
+  in-memory file system in a browser; the ported files only changed that
+  import line. `RoutingWorker` (`isolate.dart`) runs on an isolate, or in a
+  browser on the page's own event loop (`src/worker_channel*.dart`).
 * Java `int` is emulated: `i32()` wraps to 32 bits, `ushr32()`/`shr32()`/`shl32()`
   mask the shift distance with `& 31` as the JVM does. They are applied wherever
   a value can overflow or is shifted (hash mixing, CRC, the bit coders, id

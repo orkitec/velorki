@@ -7,7 +7,7 @@
 // directory: the two getters return null and `hasDirectoryAnyDatafiles` only
 // looks at the directory itself.
 
-import 'dart:io';
+import 'package:velorki_io/io.dart';
 
 final class RoutingHelper {
   RoutingHelper._();
