@@ -5,4 +5,5 @@
 #   cd app && bundle install && bundle exec fastlane android internal
 source "https://rubygems.org"
 
-gem "fastlane", "~> 2.228"
+# 2.230 is the first deliver that knows the 13" iPad's 2064x2752.
+gem "fastlane", "~> 2.230"

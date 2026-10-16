@@ -5,6 +5,9 @@
     "subline": "Pianifica, calcola percorsi e naviga sull'iPhone, anche offline.",
     "android": {
       "subline": "Pianifica, calcola percorsi e naviga sul telefono, anche offline."
+    },
+    "ipad": {
+      "subline": "Pianifica, calcola percorsi e naviga sull'iPad, anche offline."
     }
   },
   "variants": {

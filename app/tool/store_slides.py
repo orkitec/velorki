@@ -4,6 +4,7 @@
     tool/store_slides.py [--locales en,de] [--sizes 6.9,6.5]
                          [--shots same|light|dark] [--watch DIR]
     tool/store_slides.py --platform android [--locales en,de]
+    tool/store_slides.py --platform ipad [--locales en,de]
 
 Each slide is an HTML page at the target resolution, laid out in vw so one
 page serves every size, and photographed by headless Chrome. The look is the
@@ -49,6 +50,15 @@ Output: build/store_screenshots/android/slides/<style>/android/<locale>/<slide>.
         build/store_screenshots/android/slides/set/<locale>/feature-graphic.png
         build/store_screenshots/android/slides/set/contact-<locale>.png
         build/store_screenshots/android/slides/set/icon-512.png
+
+--platform ipad makes the 13" iPad set from the iPad captures, at 2064x2752:
+the set is store/slide_set_ipad.json, a slide's `ipad` object in
+slides_<locale>.json overrides its copy, the copy is scaled to the squarer
+canvas, and the screenshot sits whole in an iPad frame below it.
+Input:  build/store_screenshots/ipad/raw/<theme>/<locale>/<screen>.png
+Output: build/store_screenshots/ipad/slides/<style>/13/<locale>/<slide>.png
+        build/store_screenshots/ipad/slides/set/13/<locale>/NN-<slide>.png
+        build/store_screenshots/ipad/slides/set/contact-<locale>.png
 """
 import argparse
 import datetime
@@ -74,6 +84,7 @@ CHROME = os.environ.get(
 
 SIZES = {"6.9": (1320, 2868), "6.5": (1284, 2778)}
 ANDROID_SIZES = {"android": (1242, 2208)}
+IPAD_SIZES = {"13": (2064, 2752)}
 
 # The website's tokens (web/src/app/globals.css), per style.
 STYLES = {
@@ -146,6 +157,23 @@ p.sub { font-size: 4.7vw; line-height: 1.3; margin: 3.8vw 0 0; font-weight: 700;
 .seam { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 """
 
+# The iPad canvas is nearly square: the copy at about the share of the height
+# it takes on the iPhone, and an iPad's thinner bezel and rounder corners
+# relative to its screen.
+IPAD_CSS = """
+.copy { padding: 5.6vw 7vw 0; }
+.chip { gap: 1vw; padding: 0.9vw 2.1vw; border-width: 0.14vw; font-size: 2vw; }
+.chip i { width: 1.15vw; height: 1.15vw; }
+.brand { gap: 1.5vw; margin-bottom: 2.4vw; }
+.brand img { width: 3.8vw; height: 3.8vw; }
+.brand span { font-size: 3.7vw; }
+h1 { font-size: 7.4vw; margin-top: 2.6vw; }
+p.sub { font-size: 2.8vw; margin-top: 2.2vw; max-width: 74vw; }
+.stage { margin-top: 4.4vw; height: 120vw; }
+.phone { padding: 1.3vw; border-radius: 3.6vw; }
+.screen { border-radius: 2.4vw; }
+"""
+
 # The Lock Screen, in fractions of the screen width (cqw): the wallpaper,
 # the date and the clock, and the Live Activity card as RideLockScreenView
 # lays it out; the expanded Dynamic Island as the widget's
@@ -196,6 +224,7 @@ LOCK_CSS = """
 """
 
 FIT_JS = """
+const HEAD_FLOOR = 0.09, SUB_FLOOR = 0.036;
 // A translation longer than the English shrinks until it fits: the headline
 // in three lines at most, the subline in two.
 function fit(el, lines, floor) {
@@ -207,8 +236,8 @@ function fit(el, lines, floor) {
   }
 }
 document.fonts.ready.then(() => {
-  for (const h of document.querySelectorAll('h1')) fit(h, 3, W * 0.09);
-  for (const p of document.querySelectorAll('p.sub')) fit(p, 2, W * 0.036);
+  for (const h of document.querySelectorAll('h1')) fit(h, 3, W * HEAD_FLOOR);
+  for (const p of document.querySelectorAll('p.sub')) fit(p, 2, W * SUB_FLOOR);
   // A `whole` phone is sized to end just above the bottom edge, for a
   // screen whose bottom matters as much as its top.
   const dark = document.querySelector('.split-dark');
@@ -399,23 +428,29 @@ def layer(style: str, text: dict, stage: str, extra_class: str = "", clip: str =
     )
 
 
-def page(w: int, h: int, body: str, shots: list[str] = ()) -> str:
+def page(w: int, h: int, body: str, shots: list[str] = (), tablet: bool = False) -> str:
     """The page around [body]; the phone's screen takes the shape of the
-    first of [shots] there is, the iPhone's when none is."""
-    css = (CSS + LOCK_CSS).replace("FONTS", "file://" + FONTS).replace("Wpx", f"{w}px").replace("Hpx", f"{h}px")
+    first of [shots] there is, the iPhone's when none is. [tablet] scales the
+    copy to the iPad's canvas and draws an iPad's frame."""
+    css = (CSS + LOCK_CSS + (IPAD_CSS if tablet else "")).replace("FONTS", "file://" + FONTS) \
+        .replace("Wpx", f"{w}px").replace("Hpx", f"{h}px")
     size = next((png_size(shot) for shot in shots if png_size(shot)), None)
     if size:
         css = css.replace("aspect-ratio: 1320 / 2868", f"aspect-ratio: {size[0]} / {size[1]}")
     js = FIT_JS.replace("W *", f"{w} *").replace("H -", f"{h} -")
+    if tablet:
+        # The floors in the same proportion to the copy as on the iPhone.
+        js = js.replace("HEAD_FLOOR = 0.09, SUB_FLOOR = 0.036", "HEAD_FLOOR = 0.049, SUB_FLOOR = 0.021")
     return (f'<!doctype html><html><head><meta charset="utf-8"><style>{css}</style></head>'
             f"<body>{body}<script>{js}</script></body></html>")
 
 
 def slide_html(layout: str, style: str, text: dict, raw: str, screen: str, theme: str,
                locale: str, watch: str, w: int, h: int,
-               brand: bool = False) -> tuple[str, list[str]]:
+               brand: bool = False, tablet: bool = False) -> tuple[str, list[str]]:
     """The page for one slide, and the input files it needs. [brand] puts
-    the app's icon and name above the eyebrow (phone layout)."""
+    the app's icon and name above the eyebrow (phone layout). [tablet] is the
+    iPad's slide, every screenshot whole in the frame."""
     needs = []
     if layout == "split":
         light = os.path.join(raw, "light", locale, f"{screen}.png")
@@ -425,16 +460,17 @@ def slide_html(layout: str, style: str, text: dict, raw: str, screen: str, theme
         if not os.path.isfile(dark):
             dark = os.path.join(raw, "dark", locale, f"{screen}.png")
         needs = [light, dark]
+        device = "phone whole" if tablet else "phone"
         # The seam runs from the right edge where the phone starts down to
         # the bottom left corner: the copy stays whole on the light side, and
         # the phone and the ground under it switch theme along one line. The
         # script below puts it there once the copy has its final height.
-        body = (layer("light", text, f'<div class="phone"><div class="screen">{image_or_missing(light)}</div></div>')
-                + layer("dark", text, f'<div class="phone"><div class="screen">{image_or_missing(dark)}</div></div>',
+        body = (layer("light", text, f'<div class="{device}"><div class="screen">{image_or_missing(light)}</div></div>')
+                + layer("dark", text, f'<div class="{device}"><div class="screen">{image_or_missing(dark)}</div></div>',
                         "split-dark")
                 + f'<svg class="seam" viewBox="0 0 {w} {h}"><line id="seam" x1="{w}" y1="0" x2="0" y2="{h}" '
                   f'stroke="#ffffff" stroke-opacity="0.85" stroke-width="{w * 0.003}"/></svg>')
-        return page(w, h, body, needs), needs
+        return page(w, h, body, needs, tablet), needs
     if layout == "lock":
         data = os.path.join(raw, theme, locale, f"{screen}.json")
         needs = [data]
@@ -459,7 +495,7 @@ def slide_html(layout: str, style: str, text: dict, raw: str, screen: str, theme
         clock = '<div class="clock">9:41</div>' if os.path.isfile(face) else ""
         stage = phone + f'<div class="watch"><div class="face">{image_or_missing(face)}{clock}</div></div>'
         return page(w, h, layer(style, text, stage, "watch-slide"), needs), needs
-    return page(w, h, layer(style, text, phone, brand=brand), needs), needs
+    return page(w, h, layer(style, text, phone, brand=brand), needs, tablet), needs
 
 
 def photograph(page_file: str, target: str, w: int, h: int, work: str,
@@ -608,7 +644,7 @@ def check_play_png(path: str, w: int, h: int) -> list[str]:
 def main() -> int:
     global TOPO
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--platform", default="ios", choices=["ios", "android"])
+    parser.add_argument("--platform", default="ios", choices=["ios", "android", "ipad"])
     parser.add_argument("--locales", help="comma-separated; default: every slides_*.json")
     parser.add_argument("--sizes", help="default: every size of the platform")
     parser.add_argument("--shots", default="same", choices=["same", "light", "dark"],
@@ -619,10 +655,11 @@ def main() -> int:
     parser.add_argument("--out")
     args = parser.parse_args()
     android = args.platform == "android"
-    build = os.path.join(BUILD, "android") if android else BUILD
+    tablet = args.platform == "ipad"
+    build = BUILD if args.platform == "ios" else os.path.join(BUILD, args.platform)
     raw = args.raw or os.path.join(build, "raw")
     out = args.out or os.path.join(build, "slides")
-    known = ANDROID_SIZES if android else SIZES
+    known = {"ios": SIZES, "android": ANDROID_SIZES, "ipad": IPAD_SIZES}[args.platform]
 
     if not os.access(CHROME, os.X_OK):
         print(f"store_slides: no Chrome at {CHROME}; install Google Chrome or set CHROME "
@@ -639,7 +676,7 @@ def main() -> int:
         if name not in known:
             print(f"store_slides: unknown size {name!r}", file=sys.stderr)
             return 2
-    if android:
+    if android or tablet:
         w, h = known[sizes[0]]
         TOPO = contours(100 * h / w)
 
@@ -649,12 +686,16 @@ def main() -> int:
 
     def copy_of(copy: dict, slide: str):
         text = copy.get(slide)
-        if text is not None and android:
-            text = {**text, **text.get("android", {})}
+        if text is not None and args.platform != "ios":
+            text = {**text, **text.get(args.platform, {})}
         return text
 
     english = load_json(os.path.join(STORE, "slides_en.json"))
-    chosen = load_json(os.path.join(STORE, "slide_set_android.json" if android else "slide_set.json"))
+    chosen = load_json(os.path.join(STORE, {"ios": "slide_set.json", "android": "slide_set_android.json",
+                                            "ipad": "slide_set_ipad.json"}[args.platform]))
+    if tablet and any(entry["layout"] not in ("whole", "split") for entry in chosen):
+        print("store_slides: the iPad set takes `whole` and `split` slides only", file=sys.stderr)
+        return 2
     missing = set()
     problems = []
     made = 0
@@ -674,7 +715,7 @@ def main() -> int:
                         w, h = known[size]
                         markup, needs = slide_html(entry["layout"], style, text, raw,
                                                    entry["screen"], theme, locale, args.watch, w, h,
-                                                   brand=entry.get("brand", False))
+                                                   brand=entry.get("brand", False), tablet=tablet)
                         absent = [n for n in needs if not os.path.isfile(n)]
                         if absent:
                             missing.update(absent)

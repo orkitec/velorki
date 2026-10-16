@@ -5,6 +5,9 @@
     "subline": "Planifiez et naviguez sur votre iPhone, même hors ligne.",
     "android": {
       "subline": "Planifiez et naviguez sur votre téléphone, même hors ligne."
+    },
+    "ipad": {
+      "subline": "Planifiez et naviguez sur votre iPad, même hors ligne."
     }
   },
   "variants": {

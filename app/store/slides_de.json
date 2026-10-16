@@ -5,6 +5,9 @@
     "subline": "Planen, routen und navigieren auf dem iPhone, auch offline.",
     "android": {
       "subline": "Planen, routen und navigieren auf dem Smartphone, auch offline."
+    },
+    "ipad": {
+      "subline": "Planen, routen und navigieren auf dem iPad, auch offline."
     }
   },
   "variants": {

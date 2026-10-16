@@ -1,7 +1,8 @@
 name: store assets
 
-# The App Store screenshots, the watch shots and the preview videos, made by
-# app/tool/store_screenshots.sh on an iOS simulator exactly as on the Mac, and
+# The App Store screenshots (iPhone and 13" iPad), the watch shots and the
+# preview videos, made by app/tool/store_screenshots.sh on iOS simulators
+# exactly as on the Mac, and
 # on request uploaded to an App Store version; and the Google Play set (`android`),
 # made by the same script on an Android emulator, and on request uploaded to
 # the Play store listing. Started by hand only; see docs/STORE_ASSETS.md.
@@ -21,7 +22,7 @@ on:
         type: string
         default: en,de,fr,es,it,nl
       ios:
-        description: The App Store set (iOS simulator)
+        description: The App Store sets, iPhone and iPad (iOS simulator)
         type: boolean
         default: true
       # Off by default: an hour and more on the emulator. The map is drawn
@@ -88,8 +89,9 @@ jobs:
     needs: locales
     if: ${{ inputs.ios && inputs.assets_run_id == '' }}
     runs-on: xcode-27
-    # One language with a simulator reboot, and the preview records it again.
-    timeout-minutes: 150
+    # One language on the iPhone and then on the iPad, each with a simulator
+    # reboot, and the preview records it again.
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -218,6 +220,13 @@ jobs:
           VELORKI_STORE_START_TIMEOUT: "1500"
         run: tool/store_screenshots.sh --locales "$LOCALES"
 
+      - name: iPad screenshots and slides
+        working-directory: app
+        env:
+          LOCALES: ${{ matrix.locale }}
+          VELORKI_STORE_START_TIMEOUT: "1500"
+        run: tool/store_screenshots.sh --platform ipad --locales "$LOCALES"
+
       - name: Preview video
         if: ${{ inputs.preview }}
         working-directory: app
@@ -231,6 +240,7 @@ jobs:
           name: store-assets-ios-${{ matrix.locale }}
           path: |
             app/build/store_screenshots/slides/set
+            app/build/store_screenshots/ipad/slides/set
             app/build/store_screenshots/watch
             app/build/store_screenshots/preview/*/preview*.mp4
             app/build/store_screenshots/preview/*/poster*.png

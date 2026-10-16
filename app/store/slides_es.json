@@ -5,6 +5,9 @@
     "subline": "Planifica, calcula rutas y navega en tu iPhone, incluso sin conexión.",
     "android": {
       "subline": "Planifica, calcula rutas y navega en tu móvil, incluso sin conexión."
+    },
+    "ipad": {
+      "subline": "Planifica, calcula rutas y navega en tu iPad, incluso sin conexión."
     }
   },
   "variants": {

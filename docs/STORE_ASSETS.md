@@ -108,6 +108,28 @@ Output, git-ignored, under `app/build/store_screenshots/`:
 - `slides/set/<size>/<locale>/NN-<slide>.png`, the set to upload
 - `slides/set/contact-<locale>.png`, the set side by side
 
+## iPad
+
+```
+app/tool/store_screenshots.sh --platform ipad [--locales en,de] [--themes light,dark]
+```
+
+The same test on the simulator "Velorki Shots iPad 13" (an iPad Pro 13-inch
+(M5), created on the first run), portrait, 2064 × 2752, the size App Store
+Connect wants for the 13" iPad; the status bar as on the iPhone. The app lays
+itself out as it does in that window (see `wide_panel.dart`), so the test is
+the iPhone's. `store_slides.py --platform ipad` lays out
+`app/store/slide_set_ipad.json` (plan, weather, navigation, loops, cyclemap,
+ai, ride, offline-themes: no watch or Lock Screen) at 2064 × 2752, the copy
+scaled to the squarer canvas and every screenshot whole in an iPad frame; a
+slide's `ipad` object in `slides_<lang>.json` overrides its copy (the plan's
+subline names the iPad). No watch or preview.
+
+Output, git-ignored, under `app/build/store_screenshots/ipad/`:
+`raw/<theme>/<locale>/<screen>.png`, `slides/<style>/13/<locale>/<slide>.png`,
+`slides/set/13/<locale>/NN-<slide>.png` (to upload) and
+`slides/set/contact-<locale>.png`.
+
 ## Creative asset
 
 ```
@@ -283,7 +305,8 @@ beside the screenshots.
    Crowdin.
 2. If the store's region for the language is not in `region_of` in
    `store_screenshots.sh`, and to `store_watch.sh`, add it.
-3. `app/tool/store_screenshots.sh --locales <lang>`.
+3. `app/tool/store_screenshots.sh --locales <lang>`, and again with
+   `--platform ipad`.
 
 ## Uploading
 
@@ -293,6 +316,7 @@ In App Store Connect, the version's page, per localization:
 |---|---|
 | `slides/set/6.9/<locale>/` | iPhone 6.9" Display |
 | `slides/set/6.5/<locale>/` | iPhone 6.5" Display |
+| `ipad/slides/set/13/<locale>/` | iPad 13" Display |
 | `watch/<theme>/<locale>/store/` | Apple Watch (Ultra), as JPEG: the store refuses the PNGs' alpha channel |
 
 Upload them in file order; ten is the most a size takes. A localization
@@ -308,12 +332,13 @@ against it, to see which converts better.
 ## In CI
 
 `.github/workflows/store-assets.yml`, started by hand (Actions → store assets
-→ Run workflow), runs `store_screenshots.sh` for the `locales` given, and with
-`preview` the preview too, on a macOS runner, one job per language (about half
-an hour each). The artifacts `store-assets-ios-<locale>`, merged for the upload,
-hold `slides/set/` (both sizes, each language, its contact sheet),
-`watch/` and `preview/<locale>/preview.mp4` with its poster. The `ios` and
-`android` inputs choose the sets; `android` (off by default) runs
+→ Run workflow), runs `store_screenshots.sh` and then `--platform ipad` for the
+`locales` given, and with `preview` the preview too, on a macOS runner, one job
+per language (about half an hour per device). The artifacts
+`store-assets-ios-<locale>`, merged for the upload, hold `slides/set/` (both
+sizes, each language, its contact sheet), `ipad/slides/set/`, `watch/` and
+`preview/<locale>/preview.mp4` with its poster. The `ios` and `android` inputs
+choose the sets (`ios` both the iPhone's and the iPad's); `android` (off by default) runs
 `--platform android` on an API 35 emulator on Ubuntu, one job per language
 (close to an hour each) into the artifacts `store-assets-android-<locale>`,
 drawn with MapLibre's Vulkan renderer (see above). The runner's
@@ -326,7 +351,7 @@ the App Store version to fill (created if it does not exist yet). The
 `upload` job waits in the `release` environment for the maintainer's
 approval, then `app/tool/store_stage_deliver.sh` lays the set out per store
 locale and `fastlane ios store_assets` (deliver, with the App Store Connect
-API key) replaces that version's 6.9", 6.5" and Apple Watch screenshots in
+API key) replaces that version's 6.9", 6.5", 13" iPad and Apple Watch screenshots in
 each language uploaded, the watch getting the four `store/` shots.
 `metadata` also uploads `app/fastlane/metadata/ios`. Nothing is submitted for
 review. The preview video is uploaded by hand, from the Mac's recording.

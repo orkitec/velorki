@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The App Store screenshots, from the app on the iOS simulator to the finished
-# slides; with --platform android, the Google Play ones from an Android
-# emulator.
+# slides; with --platform ipad, the 13" iPad ones; with --platform android,
+# the Google Play ones from an Android emulator.
 #
 #   tool/store_screenshots.sh                          # every language, light and dark
 #   tool/store_screenshots.sh --locales de --themes dark
@@ -9,6 +9,7 @@
 #   tool/store_screenshots.sh --shots dark             # both slide styles show the dark app
 #   tool/store_screenshots.sh --until variants         # capture only up to that screen
 #   tool/store_screenshots.sh --preview                # the preview video instead (store/preview_set.json)
+#   tool/store_screenshots.sh --platform ipad          # the iPad set; see below
 #   tool/store_screenshots.sh --platform android       # the Google Play set; see below
 #
 # Output, under app/build/store_screenshots/ (git-ignored):
@@ -39,6 +40,13 @@
 #   showed, on the watch simulator;
 # * then tool/store_slides.py makes the slides.
 #
+# --platform ipad takes the same screens on the simulator "Velorki Shots iPad
+# 13" (VELORKI_STORE_SIM again takes a UDID), created as an iPad Pro 13-inch
+# (M5): 2064x2752, the size App Store Connect wants for 13". The slides are
+# those of store/slide_set_ipad.json; no watch or preview. Output under
+# ipad/: raw/<theme>/<locale>/<screen>.png and slides/ (see
+# tool/store_slides.py --platform ipad).
+#
 # --platform android takes the screens the Play set uses (store/
 # slide_set_android.json) on an Android emulator: VELORKI_STORE_EMULATOR names
 # its adb serial, else the one emulator running is taken (start one first: a
@@ -59,6 +67,7 @@ APP="$PWD"
 ROOT="$(cd .. && pwd)"
 OUT="$APP/build/store_screenshots"
 SIM_NAME="Velorki Shots 6.9"
+SIM_TYPE=com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max
 PORT="${VELORKI_STORE_MIRROR_PORT:-8000}"
 
 LOCALES=en,de,fr,es,it,nl
@@ -88,11 +97,17 @@ die() { printf 'store_screenshots: %s\n' "$*" >&2; exit 1; }
 
 case "$PLATFORM" in
   ios) ;;
+  ipad)
+    [ "$PREVIEW" = 0 ] || die "the preview is recorded on the iPhone only"
+    OUT="$OUT/ipad"
+    SIM_NAME="Velorki Shots iPad 13"
+    SIM_TYPE=com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB
+    ;;
   android)
     [ "$PREVIEW" = 0 ] || die "the preview is recorded on iOS only"
     OUT="$OUT/android"
     ;;
-  *) die "unknown platform $PLATFORM (ios or android)" ;;
+  *) die "unknown platform $PLATFORM (ios, ipad or android)" ;;
 esac
 
 # The App Store's region for each language the app ships.
@@ -127,7 +142,7 @@ ios = [r for r in json.load(sys.stdin)["runtimes"] if r["platform"] == "iOS" and
 print(max(ios, key=lambda r: [int(p) for p in r["version"].split(".")])["identifier"] if ios else "")
 ')"
     [ -n "$runtime" ] || die "no iOS simulator runtime is installed (xcodebuild -downloadPlatform iOS)"
-    udid="$(xcrun simctl create "$SIM_NAME" com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max "$runtime")"
+    udid="$(xcrun simctl create "$SIM_NAME" "$SIM_TYPE" "$runtime")"
     say "created $SIM_NAME ($udid) on $runtime" >&2
   fi
   echo "$udid"
@@ -149,10 +164,7 @@ boot() {  # boot <udid> <language> <region>
   fi
   # A moment for SpringBoard to settle before anything is installed.
   sleep 15
-  xcrun simctl status_bar "$udid" override --time 9:41 \
-    --dataNetwork wifi --wifiMode active --wifiBars 3 \
-    --cellularMode active --cellularBars 4 --operatorName '' \
-    --batteryState discharging --batteryLevel 100
+  python3 "$APP/tool/store_shutter.py" --status-bar "$udid"
 }
 
 # The adb serial of the emulator to use.
@@ -419,8 +431,8 @@ if [ "$PREVIEW" = 1 ]; then
 fi
 
 say "making the slides"
-if [ "$PLATFORM" = android ]; then
-  python3 "$APP/tool/store_slides.py" --platform android --locales "$LOCALES" \
+if [ "$PLATFORM" != ios ]; then
+  python3 "$APP/tool/store_slides.py" --platform "$PLATFORM" --locales "$LOCALES" \
     --shots "$SHOTS" --raw "$OUT/raw" --out "$OUT/slides" | tail -1
   exit 0
 fi
