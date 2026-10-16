@@ -72,6 +72,7 @@ import '../../weather/presentation/route_colour_choice.dart';
 import '../../weather/presentation/route_weather_section.dart';
 import '../../weather/presentation/weather_time_hint_dialog.dart';
 import '../../shared/presentation/error_text.dart';
+import '../../shared/presentation/wide_panel.dart';
 
 /// The Plan tab: the search and profile controls at the top and the route
 /// details in a draggable sheet at the bottom, over the map the shell
@@ -898,6 +899,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// and a card covering [cover] of the screen's bottom.
   EdgeInsets _paddingAbove(double cover) {
     final base = _visiblePadding();
+    // In a wide window the card is in the column beside the map.
+    if (ShellLayout.of(context).widePanel) return base;
     final height = MediaQuery.sizeOf(context).height;
     // Some map is left between the two, however tall the card.
     final bottom = math.max(0.0, math.min(cover + 24, height - base.top - 48));
@@ -920,7 +923,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     if (map == null) return;
     unawaited(
       Navigator.of(context).push(
-        MaterialPageRoute<void>(
+        ColumnPageRoute<void>(
           builder: (_) => OfflineScreen(mapController: map),
         ),
       ),
@@ -1245,8 +1248,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     _restingSheetSize = restingSheetSize;
     final hasVariants = state.alternatives.length > 1;
     final hasRoute = state.result != null;
-    // A wide window's panel is as tall as its content already.
-    if (hasRoute && !geometry.sideways && !geometry.layout.widePanel) {
+    if (hasRoute && !geometry.sideways) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _measureRestingContent();
       });
@@ -1282,7 +1284,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final sideways = ShellLayout.of(context).sideRail;
     // Whether the chips below the search run beside the map's control
     // column: upright on a phone; sideways the controls are in the row at
-    // the top, and in a wide window the chrome is in the panel.
+    // the top, and in a wide window they stand beside the column.
     final underColumn = !sideways && !ShellLayout.of(context).widePanel;
     // Upright, the column stands under the rows that run over its side,
     // beside the chips under them; the banner of a missing routing server
@@ -1489,98 +1491,85 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               ignoring: _assistantOpen,
               child: ExcludeSemantics(
                 excluding: _assistantOpen,
-                // In a wide window's column the AI's card is as tall as
-                // its own content, and this panel may be taller: it fades
-                // out under the card coming up, and back as it goes.
-                child: FadeTransition(
-                  opacity: ShellLayout.of(context).widePanel
-                      ? _assistantOut
-                      : kAlwaysCompleteAnimation,
-                  child: AdaptiveDockingSheet(
-                    controller: _sheet,
-                    // Enough for the headline, the toolbar and Save above the
-                    // floating navigation bar on a 20:9 phone. The shared
-                    // resting size, not the one grown for the time control:
-                    // an untouched sheet given a new initial size jumps to it
-                    // at its next build, whatever that build is for. The
-                    // growth moves the sheet itself ([_measureRestingContent]).
-                    initialExtent: geometry.resting,
-                    collapsedExtent: collapsedSheetSize,
-                    maxExtent: _maxSheetSize,
-                    // One resting height, not one per state: with two in the list
-                    // a pull down from the top settled on the higher one and a pull
-                    // up from the handle on the lower one, a chip row apart.
-                    snapSizes: _snapSizesFor(restingSheetSize),
-                    gripDp: sheetGripWithTitleDp,
-                    dockedRange: dockedRange,
-                    docks: true,
-                    dockedBottomInset: bottomInset,
-                    // In a wide window's column, below the search, the
-                    // chips and the hints under them.
-                    panelTop:
-                        MediaQuery.paddingOf(context).top + _chromeHeight + 12,
-                    onDocked: _reportDocked,
-                    // Down out from behind a sheet opened over the tab, and
-                    // back where it was, or, parked under the keyboard for a
-                    // search, where the search took it from.
-                    collapseWhenCovered: active,
-                    coveredReturnExtent: _sheetReturnExtent,
-                    // Under the AI's card, the map is fitted to that card.
-                    onExtent: (extent) {
-                      if (!_assistantOpen) _onSheetExtent(extent);
-                    },
-                    // Its own scrolling, at any height of the sheet; the
-                    // sheet moves by its handle.
-                    child: Builder(
-                      // Looked up from inside the shell, which hands the controller down.
-                      builder: (context) => ListView(
-                        controller: SheetContentScroll.maybeOf(context),
-                        shrinkWrap: SheetContentScroll.shrinkWrapOf(context),
-                        padding: EdgeInsets.fromLTRB(
-                          20,
-                          0,
-                          20,
-                          MediaQuery.paddingOf(context).bottom + 24,
-                        ),
-                        children: [
-                          _SheetHeader(state: state),
-                          // The time control, while the rain or the wind is
-                          // on, right under the hint without a route; with one
-                          // under Save, where it is the route's departure,
-                          // always shown, and the colours and the weather the
-                          // sheet shows follow it. In view at the resting
-                          // height either way.
-                          if (!hasRoute) const _PlannerTimeRow(),
-                          const SizedBox(height: 14),
-                          // The variants right under the figures, where the sheet
-                          // grows to show them; then the actions, so Loop and Save
-                          // are visible at the sheet's resting height.
-                          if (hasVariants) ...[
-                            _AlternativeChips(state: state),
-                            const SizedBox(height: 12),
-                          ],
-                          _PlannerActions(
-                            state: state,
-                            onAlternatives: _loadAlternatives,
-                            onSmartLoop: _smartLoop,
-                            onAsk: _ask,
-                            onSave: _save,
-                          ),
-                          if (hasRoute)
-                            Builder(
-                              builder: (context) {
-                                _restingEnd = context;
-                                return const _PlannerTimeRow();
-                              },
-                            ),
-                          const SizedBox(height: 16),
-                          _SheetBody(
-                            state: state,
-                            cursor: _cursor,
-                            window: _chartWindow,
-                          ),
-                        ],
+                child: AdaptiveDockingSheet(
+                  controller: _sheet,
+                  // Enough for the headline, the toolbar and Save above the
+                  // floating navigation bar on a 20:9 phone. The shared
+                  // resting size, not the one grown for the time control:
+                  // an untouched sheet given a new initial size jumps to it
+                  // at its next build, whatever that build is for. The
+                  // growth moves the sheet itself ([_measureRestingContent]).
+                  initialExtent: geometry.resting,
+                  collapsedExtent: collapsedSheetSize,
+                  maxExtent: _maxSheetSize,
+                  // One resting height, not one per state: with two in the list
+                  // a pull down from the top settled on the higher one and a pull
+                  // up from the handle on the lower one, a chip row apart.
+                  snapSizes: _snapSizesFor(restingSheetSize),
+                  gripDp: sheetGripWithTitleDp,
+                  dockedRange: dockedRange,
+                  docks: true,
+                  dockedBottomInset: bottomInset,
+                  onDocked: _reportDocked,
+                  // Down out from behind a sheet opened over the tab, and
+                  // back where it was, or, parked under the keyboard for a
+                  // search, where the search took it from.
+                  collapseWhenCovered: active,
+                  coveredReturnExtent: _sheetReturnExtent,
+                  // Under the AI's card, the map is fitted to that card.
+                  onExtent: (extent) {
+                    if (!_assistantOpen) _onSheetExtent(extent);
+                  },
+                  // Its own scrolling, at any height of the sheet; the
+                  // sheet moves by its handle.
+                  child: Builder(
+                    // Looked up from inside the shell, which hands the controller down.
+                    builder: (context) => ListView(
+                      controller: SheetContentScroll.maybeOf(context),
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        0,
+                        20,
+                        MediaQuery.paddingOf(context).bottom + 24,
                       ),
+                      children: [
+                        _SheetHeader(state: state),
+                        // The time control, while the rain or the wind is
+                        // on, right under the hint without a route; with one
+                        // under Save, where it is the route's departure,
+                        // always shown, and the colours and the weather the
+                        // sheet shows follow it. In view at the resting
+                        // height either way.
+                        if (!hasRoute) const _PlannerTimeRow(),
+                        const SizedBox(height: 14),
+                        // The variants right under the figures, where the sheet
+                        // grows to show them; then the actions, so Loop and Save
+                        // are visible at the sheet's resting height.
+                        if (hasVariants) ...[
+                          _AlternativeChips(state: state),
+                          const SizedBox(height: 12),
+                        ],
+                        _PlannerActions(
+                          state: state,
+                          onAlternatives: _loadAlternatives,
+                          onSmartLoop: _smartLoop,
+                          onAsk: _ask,
+                          onSave: _save,
+                        ),
+                        if (hasRoute)
+                          Builder(
+                            builder: (context) {
+                              _restingEnd = context;
+                              return const _PlannerTimeRow();
+                            },
+                          ),
+                        const SizedBox(height: 16),
+                        _SheetBody(
+                          state: state,
+                          cursor: _cursor,
+                          window: _chartWindow,
+                        ),
+                      ],
                     ),
                   ),
                 ),

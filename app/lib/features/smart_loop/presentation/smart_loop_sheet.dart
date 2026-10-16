@@ -229,16 +229,12 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       final sheetHeight = box is RenderBox && box.hasSize ? box.size.height : 0;
       final screen = MediaQuery.sizeOf(context);
       final sheetCover = sheetHeight + MediaQuery.viewPaddingOf(context).bottom;
-      // In a wide window the map is beside the planner's panel and above
-      // this sheet, which stands in the middle at the bottom.
-      final wide = ShellLayout.of(context).widePanel
-          ? visibleMapPadding(context, chromeTop: widget.chromeTop)
-          : null;
+      // In a wide window the map is beside the column this sheet is in.
       unawaited(
         map.fitBounds(
           BoundingBox.fromPoints(result.positions),
-          padding: wide != null
-              ? wide.copyWith(bottom: math.max(wide.bottom, sheetCover + 24))
+          padding: ShellLayout.of(context).widePanel
+              ? visibleMapPadding(context, chromeTop: widget.chromeTop)
               : visibleMapInsets(
                   size: screen,
                   topInset: MediaQuery.viewPaddingOf(context).top,

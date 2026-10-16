@@ -1,27 +1,29 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/app/shell_layout.dart';
-import 'package:velorki/features/assistant/presentation/assistant_sheet.dart';
-import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
+import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
+import 'package:velorki/features/map/presentation/shared_map_host.dart';
+import 'package:velorki/features/map/presentation/visible_map_padding.dart';
 import 'package:velorki/features/planner/presentation/profile_chip_row.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/presentation/live_figures_view.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/settings/presentation/settings_screen.dart';
-import 'package:velorki/features/shared/presentation/ai_mark.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
-import 'package:velorki/features/shared/presentation/stat_tile.dart';
+import 'package:velorki/features/shared/presentation/floating_bar.dart';
 import 'package:velorki/features/shared/presentation/wide_panel.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
-import '../features/integrations/support/fakes.dart';
 import '../features/recording/support/pump.dart';
 import '../support/app.dart';
+
+// The wide layout is a phone placed in a column over a full-window map:
+// what is in the column runs the phone's own code, which the rest of the
+// suite tests. This file tests the placing.
 
 /// An iPad Air 11" upright and on its side, and an iPad Pro 13".
 const Size _air = Size(820, 1180);
@@ -75,17 +77,9 @@ RecordingSnapshot _snapshot() => RecordingSnapshot(
 
 Rect _rect(WidgetTester tester, Finder finder) => tester.getRect(finder);
 
-/// The sheet's box as it shows: a wide window's panel, or a phone's sheet.
-Rect _sheet(WidgetTester tester) {
-  final panel = find.descendant(
-    of: find.byType(PanelSheet),
-    matching: find.byType(HeightReporter),
-  );
-  return _rect(
-    tester,
-    panel.evaluate().isNotEmpty ? panel : find.byType(DockingSheetShell),
-  );
-}
+/// The tab's sheet's box.
+Rect _sheet(WidgetTester tester) =>
+    _rect(tester, find.byType(DockingSheetShell));
 
 /// A bar's glass: the clip inside it, not the slot it stands in.
 Rect _glass(WidgetTester tester, Finder bar) => _rect(
@@ -96,37 +90,44 @@ Rect _glass(WidgetTester tester, Finder bar) => _rect(
 Rect _bar(WidgetTester tester) =>
     _glass(tester, find.byType(FloatingNavigationBar));
 
-/// No sheet anywhere is turned.
-void _expectUpright(WidgetTester tester) {
-  for (final box in tester.widgetList<RotatedBox>(
-    find.ancestor(
-      of: find.byType(DraggableScrollableSheet),
-      matching: find.byType(RotatedBox),
-    ),
-  )) {
-    expect(box.quarterTurns % 4, 0);
-  }
+/// Where the column of a window of [size] stands on [side], with system
+/// bars [left] and [right].
+Rect _column(
+  Size size, {
+  WideColumnSide side = WideColumnSide.left,
+  double left = 0,
+  double right = 0,
+}) {
+  final width = widePanelWidth(size.width);
+  final x = switch (side) {
+    WideColumnSide.left => left + widePanelMargin,
+    WideColumnSide.right => size.width - right - widePanelMargin - width,
+    WideColumnSide.centre => left + (size.width - left - right - width) / 2,
+  };
+  return Rect.fromLTWH(x, 0, width, size.height);
 }
 
-/// The panel's place in a window of [size]: [widePanelMargin] from the left
-/// edge's safe area [left], [widePanelWidth] wide, above the bar with the
-/// margin between, and clear of the window's middle. It stands still: no
-/// handle, no sheet's chrome.
-void _expectPanel(WidgetTester tester, Size size, {double left = 0}) {
+/// The phone in [column]: the tab's sheet as wide as the column, reaching
+/// the window's bottom behind the bar, which stands at the column's bottom
+/// with a phone's margins.
+void _expectPhoneIn(WidgetTester tester, Rect column) {
   final sheet = _sheet(tester);
   final bar = _bar(tester);
-  expect(find.byType(PanelSheet), findsOneWidget);
-  expect(find.byType(SheetHandle), findsNothing);
-  expect(find.byType(DockingSheetShell), findsNothing);
-  expect(sheet.left, closeTo(left + widePanelMargin, 1));
-  expect(sheet.right, lessThan(size.width / 2 + 100));
-  expect(sheet.width, closeTo(widePanelWidth(size.width), 1));
-  expect(sheet.bottom, closeTo(bar.top - widePanelMargin, 1));
+  expect(sheet.left, closeTo(column.left, 1));
+  expect(sheet.width, closeTo(column.width, 1));
+  expect(sheet.bottom, closeTo(column.bottom, 1));
+  expect(bar.left, closeTo(column.left + floatingBarSideMargin, 1));
+  expect(bar.right, closeTo(column.right - floatingBarSideMargin, 1));
+  expect(bar.bottom, lessThan(column.bottom));
 }
+
+Future<void> _pumpPlan(WidgetTester tester, Size size) =>
+    pumpRecordingApp(tester, initialLocation: plannerRoute, surfaceSize: size);
 
 void main() {
   setUp(() => debugShellLayoutOverride = null);
   tearDown(() {
+    testWideColumnSide = WideColumnSide.left;
     final view =
         TestWidgetsFlutterBinding.instance.platformDispatcher.views.first;
     view
@@ -136,203 +137,245 @@ void main() {
       ..resetPadding();
   });
 
-  for (final size in [
-    _air,
-    _airSideways,
-    _pro,
-    _proSideways,
-    _fold,
-    _foldSideways,
-  ]) {
-    group('a wide window of $size', () {
-      testWidgets('Plan: the bar centred at the bottom, the sheet an upright '
-          'panel on the left under the search and the chips, the controls '
-          'at the right over the map', (tester) async {
+  for (final side in [WideColumnSide.left, WideColumnSide.right]) {
+    for (final size in [
+      _air,
+      _airSideways,
+      _pro,
+      _proSideways,
+      _fold,
+      _foldSideways,
+    ]) {
+      testWidgets('a wide window of $size, the column on the ${side.name}: '
+          'the phone in it, the map full-window, the controls on its far '
+          'side', (tester) async {
+        testWideColumnSide = side;
         await _window(tester, size);
-        await pumpRecordingApp(
-          tester,
-          initialLocation: plannerRoute,
-          surfaceSize: size,
-        );
+        await _pumpPlan(tester, size);
         await tester.pumpAndSettle();
-
+        final column = _column(size, side: side);
         expect(find.byType(NavigationRail), findsNothing);
-        expect(find.byType(NavigationBar), findsOneWidget);
-        _expectUpright(tester);
-        final bar = _bar(tester);
-        expect(bar.center.dx, closeTo(size.width / 2, 1));
-        expect(bar.width, closeTo(wideBarWidth, 1));
-        expect(bar.bottom, lessThan(size.height));
-        _expectPanel(tester, size);
-
-        // The search and the chips at the panel's top, above the sheet.
-        final sheet = _sheet(tester);
-        final search = _rect(tester, find.byType(SearchField));
-        final chips = _rect(tester, find.byType(ProfileChipRow));
-        for (final chrome in [search, chips]) {
-          expect(chrome.left, greaterThanOrEqualTo(sheet.left));
-          expect(chrome.right, lessThanOrEqualTo(sheet.right + 1));
-          expect(chrome.bottom, lessThanOrEqualTo(sheet.top));
+        _expectPhoneIn(tester, column);
+        for (final chrome in [
+          _rect(tester, find.byType(SearchField)),
+          _rect(tester, find.byType(ProfileChipRow)),
+        ]) {
+          expect(chrome.left, greaterThanOrEqualTo(column.left));
+          expect(chrome.right, lessThanOrEqualTo(column.right + 1));
         }
-        // As tall as the hint and the buttons of an empty plan, with map
-        // between the chips and the panel where the window is tall enough.
-        expect(sheet.height, lessThan(420));
-        if (size.height > 800) {
-          expect(sheet.top, greaterThan(chips.bottom + 100));
+        expect(_rect(tester, find.byType(SharedMapHost)), Offset.zero & size);
+        final controls = _rect(tester, find.byType(MapControls));
+        if (side == WideColumnSide.left) {
+          expect(controls.right, closeTo(size.width - 12, 1));
+        } else {
+          expect(controls.left, closeTo(12, 1));
         }
-        // A drag on it moves nothing.
-        await tester.drag(find.byType(PanelSheet), const Offset(0, 300));
-        await tester.pumpAndSettle();
-        expect(_sheet(tester), sheet);
-
-        // The controls at the window's right edge, clear of the panel.
-        final controls = _rect(tester, find.byType(MapControls));
-        expect(controls.height, greaterThan(controls.width));
-        expect(controls.left, greaterThan(sheet.right));
-        expect(controls.right, closeTo(size.width - 12, 1));
+        // The camera keeps a target in the map beside the column, clear of
+        // the controls.
+        final padding = visibleMapPadding(
+          tester.element(find.byType(SearchField)),
+          chromeTop: defaultMapControlsTop,
+        );
+        if (side == WideColumnSide.left) {
+          expect(padding.left, greaterThanOrEqualTo(column.right));
+          expect(padding.right, greaterThanOrEqualTo(controls.width));
+        } else {
+          expect(padding.right, greaterThanOrEqualTo(size.width - column.left));
+          expect(padding.left, greaterThanOrEqualTo(controls.width));
+        }
         await unmountApp(tester);
       });
+    }
+  }
 
-      testWidgets('Library: the card is the panel', (tester) async {
-        await _window(tester, size);
-        await pumpRecordingApp(
-          tester,
-          initialLocation: libraryRoute,
-          surfaceSize: size,
-        );
-        await tester.pumpAndSettle();
-        _expectUpright(tester);
-        _expectPanel(tester, size);
-        await unmountApp(tester);
-      });
+  testWidgets('the column in the middle, should it be wanted', (tester) async {
+    testWideColumnSide = WideColumnSide.centre;
+    await _window(tester, _proSideways);
+    await _pumpPlan(tester, _proSideways);
+    await tester.pumpAndSettle();
+    final column = _column(_proSideways, side: WideColumnSide.centre);
+    expect(column.center.dx, closeTo(_proSideways.width / 2, 1));
+    _expectPhoneIn(tester, column);
+    await unmountApp(tester);
+  });
 
-      testWidgets('Record: the sheet is the panel; a ride hides the bar, and '
-          'the panel stays, as tall as the figures, a margin above the '
-          'window\'s bottom', (tester) async {
-        await _window(tester, size);
-        final h = await pumpRecordingApp(tester, surfaceSize: size);
-        await tester.pumpAndSettle();
-        _expectUpright(tester);
-        _expectPanel(tester, size);
-
-        await emitSnapshot(tester, h, _snapshot());
-        await tester.pumpAndSettle();
-        expect(find.byType(NavigationBar), findsNothing);
-        expect(find.byType(FiguresBar), findsNothing);
-        // In the panel's column, its corners clear of the window's: the
-        // margin above the home indicator's safe area.
-        final open = _sheet(tester);
-        expect(find.byType(SheetHandle), findsNothing);
-        expect(open.left, closeTo(widePanelMargin, 1));
-        expect(open.width, closeTo(widePanelWidth(size.width), 1));
-        expect(open.bottom, closeTo(size.height - 20 - widePanelMargin, 1));
-        expect(open.top, greaterThanOrEqualTo(24 + widePanelMargin - 1));
-        expect(
-          find.text(l10n.recordingStatusRecording.toUpperCase()),
-          findsOneWidget,
-        );
-        // A drag on it folds nothing away.
-        await tester.drag(find.byType(PanelSheet), Offset(0, size.height));
-        await tester.pumpAndSettle();
-        expect(_sheet(tester), open);
-        expect(find.byType(FiguresBar), findsNothing);
-        // The map's controls stay where they were, clear of it all.
-        final controls = _rect(tester, find.byType(MapControls));
-        expect(controls.overlaps(open), isFalse);
-        await unmountApp(tester);
-      });
-
-      testWidgets('Plan: the AI\'s card is a panel too, closed by its '
-          'button', (tester) async {
-        await _window(tester, size);
-        await pumpRecordingApp(
-          tester,
-          initialLocation: plannerRoute,
-          surfaceSize: size,
-          extraOverrides: [
-            relayClientProvider.overrideWithValue(FakeRelayClient()),
-          ],
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(
-          find.widgetWithIcon(LabeledIconButton, Icons.auto_awesome_rounded),
-        );
-        await tester.pumpAndSettle();
-        final card = _rect(tester, find.byKey(assistantSheetSurfaceKey));
-        expect(find.byType(SheetHandle), findsNothing);
-        expect(card.left, closeTo(widePanelMargin, 1));
-        expect(card.width, closeTo(widePanelWidth(size.width), 1));
-        expect(card.bottom, closeTo(_bar(tester).top - widePanelMargin, 1));
-        // Its AI edge goes all the way round: its lower edge is in view.
-        final edge = tester.widget<CustomPaint>(
-          find.byKey(assistantSheetEdgeKey),
-        );
-        expect((edge.foregroundPainter! as AiEdgePainter).closed, isTrue);
-        // Below the search and the chips, as the planner's panel.
-        expect(
-          card.top,
-          greaterThan(_rect(tester, find.byType(ProfileChipRow)).bottom),
-        );
-        final close = find.byTooltip(
-          MaterialLocalizations.of(
-            tester.element(find.byKey(assistantSheetSurfaceKey)),
-          ).closeButtonTooltip,
-        );
-        await tester.tap(close);
-        await tester.pumpAndSettle();
-        expect(find.byKey(assistantSheetSurfaceKey), findsNothing);
-        _expectPanel(tester, size);
-        await unmountApp(tester);
-      });
-
-      testWidgets('Settings: a column of readable width in the middle', (
+  for (final side in [WideColumnSide.left, WideColumnSide.right]) {
+    testWidgets('a modal sheet and a dialog open in the column on the '
+        '${side.name}, as on a phone', (tester) async {
+      testWideColumnSide = side;
+      await _window(tester, _air);
+      await _pumpPlan(tester, _air);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip(l10n.mapLayers));
+      await tester.pumpAndSettle();
+      final column = _column(_air, side: side);
+      final sheet = _rect(
         tester,
-      ) async {
+        find
+            .descendant(
+              of: find.byType(BottomSheet),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      expect(sheet.left, closeTo(column.left, 1));
+      expect(sheet.width, closeTo(column.width, 1));
+      // Up from the window's bottom, over the bar, as on a phone.
+      expect(sheet.bottom, closeTo(_air.height, 1));
+      Navigator.of(tester.element(find.byType(BottomSheet))).pop();
+      await tester.pumpAndSettle();
+
+      unawaited(
+        showDialog<void>(
+          context: tester.element(find.byType(SearchField)),
+          useRootNavigator: true,
+          builder: (_) => const AlertDialog(content: Text('dialog')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final dialog = _rect(tester, find.byType(AlertDialog));
+      expect(dialog.center.dx, closeTo(column.center.dx, 1));
+      expect(dialog.width, lessThanOrEqualTo(column.width + 0.5));
+      await unmountApp(tester);
+    });
+  }
+
+  for (final (name, size, wide) in const [
+    ('in a wide window, in the column, the map beside it', _airSideways, true),
+    ('on a phone, as wide as the screen', Size(402, 874), false),
+  ]) {
+    testWidgets('a page pushed over the shell, $name', (tester) async {
+      await _window(tester, size);
+      await pumpRecordingApp(
+        tester,
+        initialLocation: settingsRoute,
+        surfaceSize: size,
+        // The test font's labels do not fit a phone's accent tiles; the
+        // app's own do.
+        expectTextFits: false,
+      );
+      await tester.pumpAndSettle();
+      const page = Key('pushed page');
+      unawaited(
+        Navigator.of(
+          tester.element(find.byType(SettingsScreen)),
+          rootNavigator: true,
+        ).push(
+          ColumnPageRoute<void>(builder: (_) => const Scaffold(key: page)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final rect = _rect(tester, find.byKey(page));
+      final column = wide ? _column(size) : Offset.zero & size;
+      expect(rect.left, closeTo(column.left, 1));
+      expect(rect.width, closeTo(column.width, 1));
+      expect(rect.height, closeTo(size.height, 1));
+      // In a wide window the map is still painted beside the page.
+      final route = ModalRoute.of(tester.element(find.byKey(page)))!;
+      expect(route.opaque, !wide);
+      await unmountApp(tester);
+    });
+  }
+
+  testWidgets('a page a tab pushes is over the map beside the column: the '
+      'map takes no touch until it goes', (tester) async {
+    await _window(tester, _air);
+    await _pumpPlan(tester, _air);
+    await tester.pumpAndSettle();
+    bool mapIgnored() => tester
+        .widget<IgnorePointer>(
+          find
+              .ancestor(
+                of: find.byType(SharedMapHost),
+                matching: find.byType(IgnorePointer),
+              )
+              .first,
+        )
+        .ignoring;
+    expect(mapIgnored(), isFalse);
+    const page = Key('pushed page');
+    unawaited(
+      Navigator.of(
+        tester.element(find.byType(SearchField)),
+      ).push(ColumnPageRoute<void>(builder: (_) => const Scaffold(key: page))),
+    );
+    await tester.pumpAndSettle();
+    final rect = _rect(tester, find.byKey(page));
+    expect(rect.left, closeTo(_column(_air).left, 1));
+    expect(rect.width, closeTo(_column(_air).width, 1));
+    expect(mapIgnored(), isTrue);
+    Navigator.of(tester.element(find.byKey(page))).pop();
+    await tester.pumpAndSettle();
+    expect(mapIgnored(), isFalse);
+    await unmountApp(tester);
+  });
+
+  for (final (size, wide) in const [(_air, true), (Size(402, 874), false)]) {
+    testWidgets(
+      'Settings ${wide ? 'in the column, offering' : 'on a phone, '
+                'without'} the column\'s side',
+      (tester) async {
         await _window(tester, size);
         await pumpRecordingApp(
           tester,
           initialLocation: settingsRoute,
           surfaceSize: size,
+          expectTextFits: false,
         );
         await tester.pumpAndSettle();
         final page = _rect(tester, find.byType(SettingsScreen));
+        final column = wide ? _column(size) : Offset.zero & size;
+        expect(page.left, closeTo(column.left, 1));
+        expect(page.width, closeTo(column.width, 1));
+        await tester.scrollUntilVisible(
+          find.text(l10n.appearanceRadarStyle),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
         expect(
-          page.width,
-          closeTo(math.min(WideReadingColumn.maxWidth, size.width), 1),
+          find.text(l10n.appearanceColumnSide),
+          wide ? findsOneWidget : findsNothing,
         );
-        expect(page.center.dx, closeTo(size.width / 2, 1));
         await unmountApp(tester);
-      });
-
-      testWidgets('the layers sheet is no wider than a sheet should be', (
-        tester,
-      ) async {
-        await _window(tester, size);
-        await pumpRecordingApp(
-          tester,
-          initialLocation: plannerRoute,
-          surfaceSize: size,
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(find.byTooltip(l10n.mapLayers));
-        await tester.pumpAndSettle();
-        final sheet = _rect(
-          tester,
-          find
-              .descendant(
-                of: find.byType(BottomSheet),
-                matching: find.byType(Material),
-              )
-              .first,
-        );
-        expect(sheet.width, lessThanOrEqualTo(640));
-        expect(sheet.center.dx, closeTo(size.width / 2, 1));
-        // The tab's panel stays where it was beside it.
-        _expectPanel(tester, size);
-        await unmountApp(tester);
-      });
-    });
+      },
+    );
   }
+
+  testWidgets('the sheet docks into the column\'s bar, and a ride folds it '
+      'into the figures bar at the column\'s bottom, as on a phone', (
+    tester,
+  ) async {
+    await _window(tester, _air);
+    final h = await pumpRecordingApp(tester, surfaceSize: _air);
+    await tester.pumpAndSettle();
+    final column = _column(_air);
+    _expectPhoneIn(tester, column);
+    await tester.dragFrom(
+      tester.getCenter(find.byType(SheetHandle)),
+      const Offset(0, 1000),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<FloatingNavigationBar>(find.byType(FloatingNavigationBar))
+          .docked,
+      isTrue,
+    );
+
+    await emitSnapshot(tester, h, _snapshot());
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing);
+    await tester.dragFrom(
+      tester.getCenter(find.byType(SheetHandle)),
+      const Offset(0, 1000),
+    );
+    await tester.pumpAndSettle();
+    final figures = _glass(tester, find.byType(FiguresBar));
+    expect(figures.left, closeTo(column.left + floatingBarSideMargin, 1));
+    expect(figures.right, closeTo(column.right - floatingBarSideMargin, 1));
+    expect(figures.bottom, greaterThan(_air.height - 60));
+    await unmountApp(tester);
+  });
 
   for (final (name, size) in const [
     ('a third of Split View', Size(507, 1180)),
@@ -353,147 +396,25 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(NavigationRail), findsNothing);
       expect(find.byType(NavigationBar), findsOneWidget);
-      _expectUpright(tester);
-      final sheet = _sheet(tester);
-      expect(sheet.left, closeTo(0, 1));
-      expect(sheet.width, closeTo(size.width, 1));
-      expect(find.byType(ProfileChipRow), findsOneWidget);
+      _expectPhoneIn(tester, Offset.zero & size);
       await unmountApp(tester);
     });
   }
-
-  for (final (name, size, width) in const [
-    ('in a wide window, at a readable width', _airSideways, 720.0),
-    ('on a phone, as wide as the screen', Size(402, 874), 402.0),
-  ]) {
-    testWidgets('a page pushed over the shell, $name', (tester) async {
-      await _window(tester, size);
-      await pumpRecordingApp(
-        tester,
-        initialLocation: settingsRoute,
-        surfaceSize: size,
-        // The test font's labels do not fit a phone's accent tiles; the
-        // app's own do.
-        expectTextFits: size.width > 500,
-      );
-      await tester.pumpAndSettle();
-      const page = Key('pushed page');
-      unawaited(
-        Navigator.of(
-          tester.element(find.byType(SettingsScreen)),
-          rootNavigator: true,
-        ).push(
-          MaterialPageRoute<void>(builder: (_) => const Scaffold(key: page)),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final rect = _rect(tester, find.byKey(page));
-      expect(rect.width, closeTo(width, 1));
-      expect(rect.height, closeTo(size.height, 1));
-      expect(rect.center.dx, closeTo(size.width / 2, 1));
-      await unmountApp(tester);
-    });
-  }
-
-  group('a panel sheet', () {
-    Future<void> pumpPanel(
-      WidgetTester tester, {
-      required int rows,
-      double height = 600,
-    }) => tester.pumpWidget(
-      MaterialApp(
-        home: Center(
-          child: SizedBox(
-            width: 400,
-            height: height,
-            child: PanelSheet(
-              child: Builder(
-                builder: (context) => ListView(
-                  controller: SheetContentScroll.maybeOf(context),
-                  shrinkWrap: SheetContentScroll.shrinkWrapOf(context),
-                  padding: EdgeInsets.zero,
-                  children: [
-                    for (var i = 0; i < rows; i++)
-                      SizedBox(height: 50, child: Text('row $i')),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    Rect panel(WidgetTester tester) => _rect(
-      tester,
-      find.descendant(
-        of: find.byType(PanelSheet),
-        matching: find.byType(HeightReporter),
-      ),
-    );
-
-    testWidgets('is as tall as its content, at the bottom of its room', (
-      tester,
-    ) async {
-      await pumpPanel(tester, rows: 3);
-      final rect = panel(tester);
-      expect(rect.height, closeTo(3 * 50 + panelSheetTopDp, 0.5));
-      final room = tester.getRect(find.byType(SizedBox).first);
-      expect(rect.bottom, closeTo(room.bottom, 0.5));
-
-      // Grows with it.
-      await pumpPanel(tester, rows: 6);
-      expect(panel(tester).height, closeTo(6 * 50 + panelSheetTopDp, 0.5));
-    });
-
-    testWidgets('beyond its room, as tall as the room, the content '
-        'scrolling inside', (tester) async {
-      await pumpPanel(tester, rows: 40, height: 500);
-      expect(panel(tester).height, closeTo(500, 0.5));
-      expect(find.text('row 39'), findsNothing);
-      await tester.drag(find.text('row 2'), const Offset(0, -2000));
-      await tester.pumpAndSettle();
-      expect(find.text('row 39'), findsOneWidget);
-      expect(panel(tester).height, closeTo(500, 0.5));
-    });
-
-    testWidgets('reports its height', (tester) async {
-      final heights = <double>[];
-      await tester.pumpWidget(
-        MaterialApp(
-          home: PanelSheet(
-            onHeight: heights.add,
-            child: const SizedBox(height: 120),
-          ),
-        ),
-      );
-      await tester.pump();
-      expect(heights, [120 + panelSheetTopDp]);
-    });
-  });
 
   testWidgets('a window resized across the line changes layout and back, the '
       'plan and its sheet kept', (tester) async {
     await _window(tester, _airSideways);
-    await pumpRecordingApp(
-      tester,
-      initialLocation: plannerRoute,
-      surfaceSize: _airSideways,
-    );
+    await _pumpPlan(tester, _airSideways);
     await tester.pumpAndSettle();
-    _expectPanel(tester, _airSideways);
+    _expectPhoneIn(tester, _column(_airSideways));
     final sheetState = tester.state(find.byType(DraggableScrollableSheet));
 
     await _window(tester, const Size(507, 820));
-    expect(_sheet(tester).width, closeTo(507, 1));
-    // At rest, where a sheet starts, not all the way open as the panel's
-    // column was.
-    expect(find.byType(SheetHandle), findsOneWidget);
-    expect(_sheet(tester).height, lessThan(820 * 0.7));
+    _expectPhoneIn(tester, Offset.zero & const Size(507, 820));
     expect(find.byType(NavigationRail), findsNothing);
 
     await _window(tester, _airSideways);
-    _expectPanel(tester, _airSideways);
+    _expectPhoneIn(tester, _column(_airSideways));
     expect(tester.state(find.byType(DraggableScrollableSheet)), sheetState);
     await unmountApp(tester);
   });
@@ -523,28 +444,29 @@ void main() {
     await unmountApp(tester);
   });
 
-  for (final (left, right) in const [(0.0, 44.0), (44.0, 0.0)]) {
-    testWidgets('a system bar on one side, $left left and $right right: each '
-        'side keeps its own inset', (tester) async {
-      await _window(tester, _foldSideways, left: left, right: right);
-      await pumpRecordingApp(
+  for (final side in [WideColumnSide.left, WideColumnSide.right]) {
+    for (final (left, right) in const [(0.0, 44.0), (44.0, 0.0)]) {
+      testWidgets('a system bar on one side, $left left and $right right, '
+          'the column on the ${side.name}: each side keeps its own inset', (
         tester,
-        initialLocation: plannerRoute,
-        surfaceSize: _foldSideways,
-      );
-      await tester.pumpAndSettle();
-      _expectPanel(tester, _foldSideways, left: left);
-      // The bar centred between the two insets, the controls clear of the
-      // right one.
-      final bar = _bar(tester);
-      expect(
-        bar.center.dx,
-        closeTo(left + (_foldSideways.width - left - right) / 2, 1),
-      );
-      final controls = _rect(tester, find.byType(MapControls));
-      expect(controls.right, closeTo(_foldSideways.width - right - 12, 1));
-      await unmountApp(tester);
-    });
+      ) async {
+        testWideColumnSide = side;
+        await _window(tester, _foldSideways, left: left, right: right);
+        await _pumpPlan(tester, _foldSideways);
+        await tester.pumpAndSettle();
+        _expectPhoneIn(
+          tester,
+          _column(_foldSideways, side: side, left: left, right: right),
+        );
+        final controls = _rect(tester, find.byType(MapControls));
+        if (side == WideColumnSide.left) {
+          expect(controls.right, closeTo(_foldSideways.width - right - 12, 1));
+        } else {
+          expect(controls.left, closeTo(left + 12, 1));
+        }
+        await unmountApp(tester);
+      });
+    }
   }
 
   testWidgets('a window resized during a ride, unfolded, folded and turned: '

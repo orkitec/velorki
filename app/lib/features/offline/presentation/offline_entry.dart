@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../routing_tiles/data/routing_tiles_repository.dart';
+import '../../shared/presentation/wide_panel.dart';
 import 'offline_screen.dart';
 
 /// The Settings row into the offline data: maps and routing tiles together.
@@ -39,7 +40,7 @@ class OfflineEntry extends ConsumerWidget {
               child: const Icon(Icons.chevron_right),
             ),
       onTap: () => Navigator.of(context)
-          .push(MaterialPageRoute<void>(builder: (_) => const OfflineScreen())),
+          .push(ColumnPageRoute<void>(builder: (_) => const OfflineScreen())),
     );
   }
 }

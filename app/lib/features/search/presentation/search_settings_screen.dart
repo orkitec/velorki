@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../data/search_preferences_controller.dart';
 import '../domain/search_group.dart';
 
@@ -21,7 +22,7 @@ class SearchSettingsEntry extends StatelessWidget {
       subtitle: Text(l10n.searchSettingsCaption),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const SearchSettingsScreen()),
+        ColumnPageRoute<void>(builder: (_) => const SearchSettingsScreen()),
       ),
     );
   }

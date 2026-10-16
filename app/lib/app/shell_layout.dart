@@ -21,9 +21,27 @@ enum ShellMode {
   /// with it.
   sideRail,
 
-  /// A tablet-class window: the bar at the bottom, the sheets an upright
-  /// panel on the left.
+  /// A tablet-class window: everything laid out as on a phone held upright,
+  /// in a column on the left, the map beside it.
   widePanel,
+}
+
+/// Where the column of a wide window stands: the tabs, their bar, sheets
+/// and pages, the map filling the rest. The rider picks the left or the
+/// right side; the middle stays possible in code.
+enum WideColumnSide {
+  /// Along the window's left edge.
+  left,
+
+  /// In the middle, the map either side.
+  centre,
+
+  /// Along the window's right edge.
+  right;
+
+  /// The side named [name], or [left] when the name is unknown.
+  static WideColumnSide fromName(String? name) => WideColumnSide.values
+      .firstWhere((s) => s.name == name, orElse: () => left);
 }
 
 /// The least shortest side of a window, in logical pixels, that gets the
@@ -31,7 +49,7 @@ enum ShellMode {
 const double wideWindowShortestSide = 600;
 
 /// The least width of a window that gets the wide layout: narrower, a
-/// panel beside the map would leave the map too little. A foldable's inner
+/// column beside the map would leave the map too little. A foldable's inner
 /// screen upright and half of an iPad's are just wider.
 const double wideWindowMinWidth = 600;
 
@@ -49,8 +67,8 @@ bool isWideWindow(Size size) =>
 /// Upright: the floating bar at the bottom and the sheets over it.
 /// A phone turned sideways (wider than tall): a rail on [side] and the
 /// panels beside it.
-/// A tablet-class window ([isWideWindow]): the bar at the bottom, centred,
-/// and each tab's sheet an upright panel on the left over the map.
+/// A tablet-class window ([isWideWindow]): the tabs, their bar, sheets and
+/// pages as on a phone held upright, in a column on the left over the map.
 @immutable
 class ShellLayout {
   /// Creates a layout: the rail's when [sideRail], else the bar's.
@@ -90,7 +108,7 @@ class ShellLayout {
   /// bottom: a phone turned sideways.
   bool get sideRail => mode == ShellMode.sideRail;
 
-  /// Whether the sheets are a panel on the left of a wide window.
+  /// Whether the app is in a column on the left of a wide window.
   bool get widePanel => mode == ShellMode.widePanel;
 
   /// Where the rail is; meaningless without [sideRail].

@@ -14,6 +14,7 @@ import '../../routing_tiles/data/routing_tiles_repository.dart';
 import '../../routing_tiles/presentation/routing_tiles_screen.dart';
 import '../../shared/presentation/byte_size.dart';
 import '../../shared/presentation/error_text.dart';
+import '../../shared/presentation/wide_panel.dart';
 
 /// Everything a ride without a signal needs, in one place: the map to look
 /// at and the routing data routes are computed from. One button downloads
@@ -81,7 +82,7 @@ class OfflineScreen extends ConsumerWidget {
                           fraction: mapProgress.fraction,
                         ),
                   onManage: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
+                    ColumnPageRoute<void>(
                       builder: (_) =>
                           OfflineRegionsScreen(mapController: mapController),
                     ),
@@ -106,7 +107,7 @@ class OfflineScreen extends ConsumerWidget {
                         )
                       : null,
                   onManage: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
+                    ColumnPageRoute<void>(
                       builder: (_) =>
                           RoutingTilesScreen(mapController: mapController),
                     ),

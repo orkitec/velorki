@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/settings/data/appearance_controller.dart';
 
@@ -56,6 +57,26 @@ void main() {
 
     expect(container.read(appearanceSettingProvider).mode, ThemeMode.system);
     expect(container.read(appearanceSettingProvider).accent, AccentPreset.volt);
+  });
+
+  test('the wide window\'s column stands on the left until the rider '
+      'picks the right, which is kept', () async {
+    final (container, prefs) = await _container();
+    final controller = container.read(appearanceSettingProvider.notifier);
+    expect(
+      container.read(appearanceSettingProvider).columnSide,
+      WideColumnSide.left,
+    );
+
+    await controller.setColumnSide(WideColumnSide.right);
+    expect(prefs.getString('appearance.column_side'), 'right');
+    expect(
+      container.read(appearanceSettingProvider).columnSide,
+      WideColumnSide.right,
+    );
+
+    await controller.setColumnSide(WideColumnSide.left);
+    expect(prefs.getString('appearance.column_side'), isNull);
   });
 
   test('setMode persists the choice and rebuilds the listeners', () async {

@@ -8,6 +8,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/placeholder_body.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../application/external_route_importer.dart';
 import '../application/external_routes_loader.dart';
 import '../common/data/connected_accounts_repository.dart';
@@ -247,7 +248,5 @@ Future<void> openExternalRoutes(
   BuildContext context,
   IntegrationService service,
 ) => Navigator.of(context).push(
-  MaterialPageRoute<void>(
-    builder: (_) => ExternalRoutesScreen(service: service),
-  ),
+  ColumnPageRoute<void>(builder: (_) => ExternalRoutesScreen(service: service)),
 );

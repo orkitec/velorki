@@ -4,6 +4,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/presentation/byte_size.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../data/segments_manifest_service.dart';
 import 'routing_tiles_screen.dart';
 
@@ -55,7 +56,7 @@ class MissingTilesBanner extends ConsumerWidget {
               alignment: Alignment.centerLeft,
               child: FilledButton.tonal(
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
+                  ColumnPageRoute<void>(
                     builder: (_) => RoutingTilesScreen(preselected: tiles),
                   ),
                 ),

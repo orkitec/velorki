@@ -3,13 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/shell_layout.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/application/shown_bar_style.dart';
 import '../data/appearance_controller.dart';
 
 /// Settings → Appearance: light/dark/system, the map, the bar's glass, the
-/// rain radar's look and the accent colour.
+/// side of a wide window's column, the rain radar's look and the accent
+/// colour.
 class AppearanceSection extends ConsumerWidget {
   /// Creates the section.
   const AppearanceSection({super.key});
@@ -132,6 +134,35 @@ class AppearanceSection extends ConsumerWidget {
                   ),
                 ),
               ],
+            ),
+          ],
+          // Only where there is a side to pick: a wide window's column.
+          if (ShellLayout.of(context).widePanel) ...[
+            const SizedBox(height: 20),
+            Text(l10n.appearanceColumnSide, style: theme.textTheme.titleSmall),
+            const SizedBox(height: 10),
+            SegmentedButton<WideColumnSide>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(
+                  value: WideColumnSide.left,
+                  icon: const Icon(Icons.align_horizontal_left_rounded),
+                  label: _SegmentLabel(l10n.appearanceColumnLeft),
+                ),
+                ButtonSegment(
+                  value: WideColumnSide.right,
+                  icon: const Icon(Icons.align_horizontal_right_rounded),
+                  label: _SegmentLabel(l10n.appearanceColumnRight),
+                ),
+              ],
+              // The middle is no choice of the rider's.
+              selected: {
+                appearance.columnSide == WideColumnSide.right
+                    ? WideColumnSide.right
+                    : WideColumnSide.left,
+              },
+              onSelectionChanged: (selection) =>
+                  unawaited(controller.setColumnSide(selection.single)),
             ),
           ],
           const SizedBox(height: 20),

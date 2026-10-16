@@ -281,7 +281,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     if (map == null) return;
     unawaited(
       Navigator.of(context).push(
-        MaterialPageRoute<void>(
+        ColumnPageRoute<void>(
           builder: (_) => OfflineScreen(mapController: map),
         ),
       ),
@@ -859,9 +859,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // heading-up, so most of what shows is the road ahead.
     final layout = ShellLayout.of(context);
     final screen = MediaQueryData.fromView(View.of(context));
-    // In a wide window this screen is the panel on the left; the map is the
-    // window's, and the rider is kept in the middle of it beside the panel,
-    // over the bar.
+    // In a wide window this screen is in the column; the map is the
+    // window's, and the rider is kept in the middle of it beside the
+    // column.
     final EdgeInsets padding;
     final Size size;
     if (layout.widePanel) {
@@ -869,9 +869,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       padding = followPadding(
         size: size,
         top: screen.viewPadding.top + defaultMapControlsTop,
-        bottom: wideBarCover(screen),
-        left: widePanelRight(screen),
-        right: screen.viewPadding.right,
+        bottom: screen.viewPadding.bottom,
+        left: wideMapBeside(context).left,
+        right: wideMapBeside(context).right,
         headingUp: mode == FollowMode.headingUp,
       );
     } else {
@@ -2114,13 +2114,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   dockedRange: dockedRange,
                   docks: true,
                   dockedBottomInset: barInset,
-                  // In a wide window's column, below the turn banner.
-                  panelTop: guiding
-                      ? MediaQuery.paddingOf(context).top +
-                            turnBannerHeight +
-                            _bannerGapPx +
-                            widePanelMargin
-                      : null,
                   // Open, the content keeps clear of what is at the
                   // sheet's end now; the figures bar only shows docked.
                   contentEndInset: bottomInset,
@@ -2176,9 +2169,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                           onStart: () => unawaited(_start()),
                         ),
                 ),
-              // In a wide window's panel the figures stay in the panel,
-              // which never folds away.
-              if (state.isRecording && !glance && !shellLayout.widePanel)
+              if (state.isRecording && !glance)
                 Positioned(
                   // Sideways the bar turns with the rail and finds its own
                   // place on the rail's side.
@@ -2374,7 +2365,6 @@ class _IdlePanel extends ConsumerWidget {
     final theme = Theme.of(context);
     return ListView(
       controller: SheetContentScroll.maybeOf(context),
-      shrinkWrap: SheetContentScroll.shrinkWrapOf(context),
       padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
       children: [
         Text(l10n.recordingIdleTitle, style: theme.textTheme.headlineMedium),
@@ -2526,7 +2516,6 @@ class _LivePanel extends ConsumerWidget {
     };
     return ListView(
       controller: SheetContentScroll.maybeOf(context),
-      shrinkWrap: SheetContentScroll.shrinkWrapOf(context),
       padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
       children: [
         // Everything in view at once: state and elapsed time with the two

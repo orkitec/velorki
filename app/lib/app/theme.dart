@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../features/shared/presentation/wide_panel.dart';
-
 /// The typeface of headlines and big figures: a condensed grotesk, so a
 /// six-digit distance reads at a glance on the handlebar.
 const String velorkiDisplayFont = 'BarlowCondensed';
@@ -658,11 +656,6 @@ ThemeData _build(AccentPreset preset, Brightness brightness) {
 
   return ThemeData(
     useMaterial3: true,
-    // The platforms' own transitions; in a wide window every full page
-    // reads at a readable width.
-    pageTransitionsTheme: PageTransitionsTheme(
-      builders: WidePageTransitionsBuilder.all,
-    ),
     brightness: brightness,
     colorScheme: scheme,
     scaffoldBackgroundColor: scheme.surface,

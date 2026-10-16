@@ -10,6 +10,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../features/shared/presentation/gesture_zone_guard.dart';
 import 'router.dart';
 import 'theme.dart';
+import '../features/shared/presentation/wide_panel.dart';
 
 class VelorkiApp extends ConsumerWidget {
   const VelorkiApp({super.key});
@@ -43,7 +44,15 @@ class VelorkiApp extends ConsumerWidget {
       // it instead of once per piece.
       builder: (context, child) => BackdropGroup(
         child: PerformanceHudLayer(
-          child: gestureZoneAppBuilder(context, child),
+          child: gestureZoneAppBuilder(
+            context,
+            // In a wide window the routes lay themselves out in the column
+            // on the left, as on a phone.
+            WideAppFrame(
+              side: appearance.columnSide,
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
         ),
       ),
       routerConfig: ref.watch(routerProvider),

@@ -35,19 +35,22 @@ EdgeInsets visibleMapPadding(
 }) {
   final shell = layout ?? ShellLayout.of(context);
   if (shell.widePanel) {
-    // The window's own metrics: [context] may be inside the panel's column.
-    // The panel covers the left whatever its sheet does, with the tab's
-    // chrome at its top; the column stands at the right, the bar at the
-    // bottom.
+    // The window's own metrics: [context] may be inside the tabs' column.
+    // The column covers the left whatever its sheet does, its chrome, bar
+    // and sheets all in it; the map's controls stand at the right.
     final screen = MediaQueryData.fromView(View.of(context));
     return sidewaysVisibleMapInsets(
       topInset: screen.viewPadding.top,
       chromeTop: defaultMapControlsTop,
-      bottomInset: wideBarCover(screen),
-      cover: EdgeInsets.only(
-        left: widePanelRight(screen),
-        right: screen.viewPadding.right + mapControlsWidth(context),
-      ),
+      bottomInset: screen.viewPadding.bottom,
+      // The controls stand on the map's outer edge.
+      cover: () {
+        final beside = wideMapBeside(context);
+        final controls = mapControlsWidth(context);
+        return wideColumnSideOf(context) == WideColumnSide.right
+            ? beside.copyWith(left: beside.left + controls)
+            : beside.copyWith(right: beside.right + controls);
+      }(),
       safeArea: screen.viewPadding,
     );
   }

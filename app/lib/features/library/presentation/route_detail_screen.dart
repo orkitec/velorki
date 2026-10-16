@@ -460,17 +460,18 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
 
     return CustomScrollView(
       controller: SheetContentScroll.maybeOf(context),
-      shrinkWrap: SheetContentScroll.shrinkWrapOf(context),
       slivers: [
         SliverSheetHeader(
           leading: BackButton(onPressed: () => context.go(libraryRoute)),
           title: route.value?.name ?? l10n.tabLibrary,
         ),
         route.when(
-          loading: () => const SliverSheetRemaining(
+          loading: () => const SliverFillRemaining(
+            hasScrollBody: false,
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (error, _) => SliverSheetRemaining(
+          error: (error, _) => SliverFillRemaining(
+            hasScrollBody: false,
             child: PlaceholderBody(
               icon: Icons.error_outline,
               message: errorText(AppLocalizations.of(context), error),
@@ -478,7 +479,8 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
           ),
           data: (saved) {
             if (saved == null) {
-              return SliverSheetRemaining(
+              return SliverFillRemaining(
+                hasScrollBody: false,
                 child: PlaceholderBody(
                   icon: Icons.help_outline,
                   message: l10n.routeDetailNotFound,

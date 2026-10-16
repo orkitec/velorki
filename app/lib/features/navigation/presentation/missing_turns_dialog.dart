@@ -7,6 +7,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../routing_tiles/application/tile_download_controller.dart';
 import '../../routing_tiles/presentation/routing_tiles_screen.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../application/route_turn_generator.dart';
 
 /// Before a ride on [route]: when it has no turn instructions, asks whether
@@ -48,7 +49,7 @@ Future<bool> confirmRouteTurns(
   final missing = ref.read(routeTurnGeneratorProvider).missingTiles(route);
   if (missing != null && missing.isNotEmpty) {
     await Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute<void>(
+      ColumnPageRoute<void>(
         builder: (_) => RoutingTilesScreen(preselected: missing),
       ),
     );

@@ -12,6 +12,7 @@ import '../data/sensor_settings.dart';
 import '../data/watch_gateway.dart';
 import '../../recording/data/recording_gateways.dart';
 import 'ble_sensors_screen.dart';
+import '../../shared/presentation/wide_panel.dart';
 
 /// Settings → Sensors: the switch that connects Velorki to the phone's health
 /// store, whether finished rides go back into it, and the one that lets the
@@ -160,7 +161,7 @@ class _BluetoothEntry extends ConsumerWidget {
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.of(
         context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const BleSensorsScreen())),
+      ).push(ColumnPageRoute<void>(builder: (_) => const BleSensorsScreen())),
     );
   }
 }

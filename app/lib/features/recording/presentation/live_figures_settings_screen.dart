@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../data/live_figure_preferences.dart';
 import '../domain/live_figures.dart';
 import 'live_figures_view.dart';
@@ -12,9 +13,7 @@ import 'live_figures_view.dart';
 /// sheet: from Settings and from the live sheet alike.
 Future<void> openLiveFiguresSettings(BuildContext context) =>
     Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const LiveFiguresSettingsScreen(),
-      ),
+      ColumnPageRoute<void>(builder: (_) => const LiveFiguresSettingsScreen()),
     );
 
 /// The Settings row into the ride figures.

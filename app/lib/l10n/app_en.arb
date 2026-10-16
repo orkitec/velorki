@@ -2564,6 +2564,18 @@
   "@appearanceGlassSolidBatterySaverRide": {
     "description": "Shown under the Glass choice in Settings → Appearance while a ride is recorded with the app's own Battery saver setting on: the glass is solid whatever is picked"
   },
+  "appearanceColumnSide": "Side on large screens",
+  "@appearanceColumnSide": {
+    "description": "Settings → Appearance, shown only on a large screen (an iPad, a tablet, a foldable's inner screen): title of the choice on which side of the screen the tab bar, the cards and the pages stand, the map filling the rest."
+  },
+  "appearanceColumnLeft": "Left",
+  "@appearanceColumnLeft": {
+    "description": "Option of the 'Side on large screens' choice: the tab bar and the cards stand on the left side of the screen."
+  },
+  "appearanceColumnRight": "Right",
+  "@appearanceColumnRight": {
+    "description": "Option of the 'Side on large screens' choice: the tab bar and the cards stand on the right side of the screen."
+  },
   "appearanceRadarStyle": "Rain radar",
   "@appearanceRadarStyle": {
     "description": "Settings → Appearance: title of the choice of how the rain radar layer on the map is drawn."

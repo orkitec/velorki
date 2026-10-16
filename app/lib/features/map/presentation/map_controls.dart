@@ -10,6 +10,7 @@ import '../../../core/permissions/location_permission.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../offline/presentation/offline_screen.dart';
 import '../../shared/presentation/stat_tile.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../data/map_preferences.dart';
 import '../data/position_provider.dart';
 import '../data/weather_map_preferences.dart';
@@ -174,7 +175,7 @@ class MapControls extends ConsumerWidget {
     if (map == null) return;
     unawaited(
       Navigator.of(context).push(
-        MaterialPageRoute<void>(
+        ColumnPageRoute<void>(
           builder: (_) => OfflineScreen(mapController: map),
         ),
       ),

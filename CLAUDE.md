@@ -111,16 +111,21 @@ changing structure.
   orientation APIs: a window wider than tall with a shortest side under 600
   is a phone on its side and gets the rail; a tablet-class window
   (`isWideWindow`: shortest side and width both 600 or more, an iPad or a
-  foldable's inner screen) gets `ShellLayout.wide`: the bar centred at the
-  bottom, each map tab laid out as upright in a column on the left
-  (`WidePanelColumn`, `wide_panel.dart`) whose sheet is a panel above the
-  bar that never moves and is as tall as its content (`PanelSheet`; lists
-  shrink-wrap through `SheetContentScroll`), and full pages in a readable column (`WideReadingColumn`, also
-  through the theme's page transitions). Anything else is upright. Each
-  side keeps its own safe-area inset (a system bar can stand on one side).
-  Camera padding in a map tab reads the window (`MediaQueryData.fromView`),
-  not the column (`visibleMapPadding`); nothing caches a size in `State`, so
-  a resize mid-ride switches live.
+  foldable's inner screen) gets `ShellLayout.wide`: a phone placed in a
+  column over a full-window map (`wide_panel.dart`), on the side the rider
+  picks (Settings → Appearance, left or right; `WideColumnSide` also has a
+  centre). Everything in the column runs the phone's own code: each tab's
+  navigator is in it with a phone's media (`WidePanelColumn`), the bar at
+  its bottom; full pages too (push `ColumnPageRoute`, `ColumnPage` for
+  the router's, which keeps the map painted beside the page); modal sheets,
+  dialogs and menus land there because `WideAppFrame` gives the root
+  navigator display features (hinges, as a foldable has) either side of
+  the column. The map takes no touch while a page covers its tab
+  (`TabPages`). Anything else is upright. Each side keeps its own
+  safe-area inset (a system bar can stand on one side). Camera padding in a map tab reads the window
+  (`MediaQueryData.fromView`), not the column (`visibleMapPadding`), and
+  counts the column as covered; nothing caches a size in `State`, and the
+  widgets are the same in every layout, so a resize mid-ride switches live.
 
 ## Tests
 
@@ -180,7 +185,7 @@ changing structure.
   `app/lib/l10n/app_*.arb`; `app.yml` itself runs English and German),
   `gazetteer-perf.yml` (nightly, times the search against New York off the
   mirror), `routing-scenarios.yml` (nightly, the routing scenarios over the
-  New York tile, cached per mirror snapshot), `brouter-oracle.yml` (weekly), `store-assets.yml` (by hand: the App Store screenshots, slides and preview as an artifact, and from a `v*` tag, after approval in `release`, the screenshots onto an App Store version; the Google Play set from an Android emulator as an artifact, and with `upload`, after approval in `release`, onto the Play store listing), `web.yml` (every push touching
+  New York tile, cached per mirror snapshot), `brouter-oracle.yml` (weekly), `store-assets.yml` (by hand: the App Store screenshots (iPhone and iPad), slides and preview as an artifact, and from a `v*` tag, after approval in `release`, the screenshots onto an App Store version; the Google Play set from an Android emulator as an artifact, and with `upload`, after approval in `release`, onto the Play store listing), `web.yml` (every push touching
   `web/`: lint, typecheck, vitest, `check:deps`, the locale check,
   `npm audit --omit=dev` and `next build`). No rd5 comes off brouter.de; the oracle job
   does fetch the pinned upstream release zip. Every workflow declares the least

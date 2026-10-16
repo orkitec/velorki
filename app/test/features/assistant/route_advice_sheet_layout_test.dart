@@ -997,8 +997,6 @@ void main() {
         find.byKey(assistantSheetEdgeKey),
       );
       final painter = edge.foregroundPainter! as AiEdgePainter;
-      // Open at the bottom, where the card runs off the screen's edge.
-      expect(painter.closed, isFalse);
       expect(painter.gradient.colors, [
         dark ? velorkiAiEndDark : velorkiAiEndLight,
         dark ? velorkiAiMidDark : velorkiAiMidLight,

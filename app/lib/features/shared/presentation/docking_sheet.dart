@@ -3,7 +3,6 @@ import 'dart:ui' show ImageFilter, lerpDouble;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show RenderProxyBox;
 
 import '../../../app/theme.dart';
 import 'floating_bar.dart'
@@ -58,32 +57,20 @@ class SheetContentScroll extends InheritedWidget {
   const SheetContentScroll({
     required this.controller,
     required super.child,
-    this.shrinkWrap = false,
     super.key,
   });
 
   /// The content's controller.
   final ScrollController controller;
 
-  /// Whether the content's list is as tall as what it holds, for a sheet
-  /// that is as tall as its content ([PanelSheet]).
-  final bool shrinkWrap;
-
   /// The controller the nearest shell hands down, or `null` without one.
   static ScrollController? maybeOf(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<SheetContentScroll>()
       ?.controller;
 
-  /// Whether the content's list at [context] shrink-wraps; see [shrinkWrap].
-  static bool shrinkWrapOf(BuildContext context) =>
-      context
-          .dependOnInheritedWidgetOfExactType<SheetContentScroll>()
-          ?.shrinkWrap ??
-      false;
-
   @override
   bool updateShouldNotify(SheetContentScroll oldWidget) =>
-      oldWidget.controller != controller || oldWidget.shrinkWrap != shrinkWrap;
+      oldWidget.controller != controller;
 }
 
 /// The drag handle with its margins, [sheetHandleDp] tall.
@@ -618,16 +605,26 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
 }
 
 /// Everything above the sheet's lower edge, which docked is the seam with
-/// the bar.
+/// the bar, its shadow round the top and the sides included: cut at the
+/// sheet's box, the shadow showed as a dark square in each rounded corner,
+/// plain beside a sheet that does not reach the screen's sides (a wide
+/// window's column).
 class _AboveSeamClipper extends CustomClipper<Rect> {
   const _AboveSeamClipper(this.bottom);
 
   /// How far above the sheet's box the painted chrome ends.
   final double bottom;
 
+  /// How far the shadow reaches beyond the sheet.
+  static const double _shadowReach = 48;
+
   @override
-  Rect getClip(Size size) =>
-      Rect.fromLTRB(0, 0, size.width, size.height - bottom);
+  Rect getClip(Size size) => Rect.fromLTRB(
+    -_shadowReach,
+    -_shadowReach,
+    size.width + _shadowReach,
+    size.height - bottom,
+  );
 
   @override
   bool shouldReclip(_AboveSeamClipper old) => old.bottom != bottom;
@@ -658,15 +655,11 @@ class _ShellBorderPainter extends CustomPainter {
     required this.radius,
     required this.color,
     required this.hairline,
-    this.closed = false,
   });
 
   final double radius;
   final Color color;
   final bool hairline;
-
-  /// Round at the bottom too, for a sheet whose lower edge is in view.
-  final bool closed;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -680,16 +673,6 @@ class _ShellBorderPainter extends CustomPainter {
     // the radius down to fit, and the stroke has to follow the same corner.
     final radius = math.min(this.radius, size.height);
     final r = radius - inset;
-    if (closed) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          (Offset.zero & size).deflate(inset),
-          Radius.circular(math.min(r, size.height / 2 - inset)),
-        ),
-        paint,
-      );
-      return;
-    }
     final path = Path()
       ..moveTo(inset, size.height)
       ..lineTo(inset, radius)
@@ -710,194 +693,5 @@ class _ShellBorderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ShellBorderPainter old) =>
-      old.radius != radius ||
-      old.color != color ||
-      old.hairline != hairline ||
-      old.closed != closed;
-}
-
-/// What fills the rest of a sheet's list (a placeholder, a spinner) without
-/// scrolling: the rest of the sheet, or, in a list that shrink-wraps
-/// ([PanelSheet]), as tall as [child], so the panel stays short.
-class SliverSheetRemaining extends StatelessWidget {
-  /// Creates the sliver.
-  const SliverSheetRemaining({required this.child, super.key});
-
-  /// What fills it.
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => SheetContentScroll.shrinkWrapOf(context)
-      ? SliverToBoxAdapter(child: child)
-      : SliverFillRemaining(hasScrollBody: false, child: child);
-}
-
-/// The air above a [PanelSheet]'s content, where a sheet has its handle.
-const double panelSheetTopDp = 16;
-
-/// The corner radius of a [PanelSheet]: a sheet's.
-const double panelSheetRadius = 28;
-
-/// A tab's sheet in a wide window's panel: it stands still, no handle, no
-/// drag, no docking, and is as tall as its content up to the height it is
-/// given, at the bottom of it; beyond that the content scrolls inside it.
-/// Round at all four corners, with the map behind them.
-///
-/// The content's list reads its controller from [SheetContentScroll] and
-/// shrink-wraps as it says. [onHeight] hears the panel's height after each
-/// layout that changes it.
-class PanelSheet extends StatefulWidget {
-  /// Creates the panel.
-  const PanelSheet({
-    required this.child,
-    this.onHeight,
-    this.panelKey,
-    super.key,
-  });
-
-  /// The key of the panel's box itself, as tall as it shows.
-  final Key? panelKey;
-
-  /// The content.
-  final Widget child;
-
-  /// Called after a frame whose layout changed the panel's height.
-  final ValueChanged<double>? onHeight;
-
-  @override
-  State<PanelSheet> createState() => _PanelSheetState();
-}
-
-class _PanelSheetState extends State<PanelSheet> {
-  final ScrollController _content = ScrollController();
-
-  @override
-  void dispose() {
-    _content.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    const radius = BorderRadius.all(Radius.circular(panelSheetRadius));
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: HeightReporter(
-        onHeight: widget.onHeight,
-        child: SizedBox(
-          key: widget.panelKey,
-          width: double.infinity,
-          child: PanelShadow(
-            radius: panelSheetRadius,
-            child: ClipRRect(
-              borderRadius: radius,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: radius,
-                  color: theme.colorScheme.surface,
-                ),
-                child: CustomPaint(
-                  foregroundPainter: _ShellBorderPainter(
-                    radius: panelSheetRadius,
-                    color: theme.velorki.glassBorder,
-                    hairline: false,
-                    closed: true,
-                  ),
-                  child: Material(
-                    type: MaterialType.transparency,
-                    child: SheetContentScroll(
-                      controller: _content,
-                      shrinkWrap: true,
-                      child: RawScrollbar(
-                        controller: _content,
-                        thickness: 3,
-                        radius: const Radius.circular(1.5),
-                        thumbColor: theme.colorScheme.onSurfaceVariant
-                            .withValues(alpha: 0.45),
-                        padding: const EdgeInsets.only(
-                          top: panelSheetRadius,
-                          right: 3,
-                          bottom: panelSheetRadius,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: panelSheetTopDp),
-                          child: widget.child,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// [child], telling [onHeight] its height after a frame that changed it.
-class HeightReporter extends SingleChildRenderObjectWidget {
-  /// Creates the reporter.
-  const HeightReporter({required this.onHeight, super.child, super.key});
-
-  /// Hears the height.
-  final ValueChanged<double>? onHeight;
-
-  @override
-  RenderObject createRenderObject(BuildContext context) =>
-      _RenderHeightReporter(onHeight);
-
-  @override
-  void updateRenderObject(BuildContext context, RenderObject renderObject) =>
-      (renderObject as _RenderHeightReporter).onHeight = onHeight;
-}
-
-class _RenderHeightReporter extends RenderProxyBox {
-  _RenderHeightReporter(this.onHeight);
-
-  ValueChanged<double>? onHeight;
-  double? _told;
-
-  @override
-  void performLayout() {
-    super.performLayout();
-    final height = size.height;
-    if (height == _told) return;
-    _told = height;
-    // After the frame: the owner may rebuild the map's padding for it.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (attached && _told == height) onHeight?.call(height);
-    });
-  }
-}
-
-/// [child], a panel with corners of [radius] standing over the map, with
-/// its shadow outside it only, as the floating bar's: nothing of it under
-/// the panel's corners, where the map shows.
-class PanelShadow extends StatelessWidget {
-  /// Creates the shadow.
-  const PanelShadow({required this.radius, required this.child, super.key});
-
-  /// The panel's corner radius.
-  final double radius;
-
-  /// The panel.
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.all(Radius.circular(radius)),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x40000000),
-          blurRadius: 24,
-          blurStyle: BlurStyle.outer,
-        ),
-      ],
-    ),
-    child: child,
-  );
+      old.radius != radius || old.color != color || old.hairline != hairline;
 }

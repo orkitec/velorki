@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../app/app_config.dart';
+import '../../../app/shell_layout.dart';
 import '../../../app/theme.dart';
 import '../../map/domain/weather_map.dart';
 
@@ -15,6 +16,7 @@ const String _prefsMapLook = 'appearance.map';
 const String _prefsOverlayDark = 'appearance.overlay_dark';
 const String _prefsBarStyle = 'appearance.bar';
 const String _prefsRadarStyle = 'map.weather.radar_style';
+const String _prefsColumnSide = 'appearance.column_side';
 
 /// Which map style is drawn, independently of the app theme.
 enum MapLook {
@@ -67,6 +69,7 @@ class Appearance {
     this.overlayDark = OverlayDarkMode.inverted,
     this.barStyle = BarStyle.clear,
     this.radarStyle = RadarStyle.soft,
+    this.columnSide = WideColumnSide.left,
   });
 
   /// Light, dark or whatever the system says.
@@ -87,6 +90,9 @@ class Appearance {
   /// How the rain radar on the map is drawn.
   final RadarStyle radarStyle;
 
+  /// Where the column stands in a wide window.
+  final WideColumnSide columnSide;
+
   /// A copy with the given fields replaced.
   Appearance copyWith({
     ThemeMode? mode,
@@ -95,6 +101,7 @@ class Appearance {
     OverlayDarkMode? overlayDark,
     BarStyle? barStyle,
     RadarStyle? radarStyle,
+    WideColumnSide? columnSide,
   }) => Appearance(
     mode: mode ?? this.mode,
     accent: accent ?? this.accent,
@@ -102,6 +109,7 @@ class Appearance {
     overlayDark: overlayDark ?? this.overlayDark,
     barStyle: barStyle ?? this.barStyle,
     radarStyle: radarStyle ?? this.radarStyle,
+    columnSide: columnSide ?? this.columnSide,
   );
 
   @override
@@ -112,11 +120,19 @@ class Appearance {
       other.mapLook == mapLook &&
       other.overlayDark == overlayDark &&
       other.barStyle == barStyle &&
-      other.radarStyle == radarStyle;
+      other.radarStyle == radarStyle &&
+      other.columnSide == columnSide;
 
   @override
-  int get hashCode =>
-      Object.hash(mode, accent, mapLook, overlayDark, barStyle, radarStyle);
+  int get hashCode => Object.hash(
+    mode,
+    accent,
+    mapLook,
+    overlayDark,
+    barStyle,
+    radarStyle,
+    columnSide,
+  );
 }
 
 /// Settings → Appearance, persisted in shared_preferences.
@@ -136,6 +152,7 @@ class AppearanceSetting extends _$AppearanceSetting {
       overlayDark: OverlayDarkMode.fromName(prefs.getString(_prefsOverlayDark)),
       barStyle: BarStyle.fromName(prefs.getString(_prefsBarStyle)),
       radarStyle: RadarStyle.fromName(prefs.getString(_prefsRadarStyle)),
+      columnSide: WideColumnSide.fromName(prefs.getString(_prefsColumnSide)),
     );
   }
 
@@ -204,5 +221,16 @@ class AppearanceSetting extends _$AppearanceSetting {
       await prefs.setString(_prefsRadarStyle, style.name);
     }
     state = state.copyWith(radarStyle: style);
+  }
+
+  /// Picks where the column stands in a wide window.
+  Future<void> setColumnSide(WideColumnSide side) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (side == WideColumnSide.left) {
+      await prefs.remove(_prefsColumnSide);
+    } else {
+      await prefs.setString(_prefsColumnSide, side.name);
+    }
+    state = state.copyWith(columnSide: side);
   }
 }

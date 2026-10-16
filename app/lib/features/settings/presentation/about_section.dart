@@ -8,6 +8,7 @@ import '../../../core/links/link_opener.dart';
 import '../../../core/links/velorki_urls.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../performance/data/show_performance_setting.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../data/package_info_provider.dart';
 
 /// Opens the licence page: every package's licence and the data sources
@@ -15,11 +16,16 @@ import '../data/package_info_provider.dart';
 /// map's credits.
 void showVelorkiLicenses(BuildContext context, WidgetRef ref) {
   final l10n = AppLocalizations.of(context);
-  showLicensePage(
-    context: context,
-    applicationName: l10n.appName,
-    applicationVersion: _version(ref.read(packageInfoProvider)),
-    applicationLegalese: l10n.settingsLegalese,
+  unawaited(
+    Navigator.of(context).push(
+      ColumnPageRoute<void>(
+        builder: (_) => LicensePage(
+          applicationName: l10n.appName,
+          applicationVersion: _version(ref.read(packageInfoProvider)),
+          applicationLegalese: l10n.settingsLegalese,
+        ),
+      ),
+    ),
   );
 }
 

@@ -606,7 +606,6 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
 
     return CustomScrollView(
       controller: SheetContentScroll.maybeOf(context),
-      shrinkWrap: SheetContentScroll.shrinkWrapOf(context),
       slivers: [
         SliverSheetHeader(
           leading: BackButton(onPressed: () => context.go(libraryRoute)),
@@ -662,10 +661,12 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
           ],
         ),
         ride.when(
-          loading: () => const SliverSheetRemaining(
+          loading: () => const SliverFillRemaining(
+            hasScrollBody: false,
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (error, _) => SliverSheetRemaining(
+          error: (error, _) => SliverFillRemaining(
+            hasScrollBody: false,
             child: PlaceholderBody(
               icon: Icons.error_outline,
               message: errorText(AppLocalizations.of(context), error),
@@ -673,7 +674,8 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
           ),
           data: (saved) {
             if (saved == null) {
-              return SliverSheetRemaining(
+              return SliverFillRemaining(
+                hasScrollBody: false,
                 child: PlaceholderBody(
                   icon: Icons.help_outline,
                   message: l10n.rideDetailNotFound,

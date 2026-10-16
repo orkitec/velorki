@@ -1,142 +1,159 @@
 import 'dart:math' as math;
+import 'dart:ui' show DisplayFeature, DisplayFeatureState, DisplayFeatureType;
 
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../../../app/shell_layout.dart';
-import 'docking_sheet.dart';
-import 'floating_bar.dart';
 
-/// The air between a wide window's edge and the panel, and between the
-/// panel and the bar under it.
+/// The air between a wide window's edge (its safe area) and the column.
 const double widePanelMargin = 16;
 
-/// The width of the bar's glass in a wide window, centred at the bottom:
-/// about a large phone's, so the four tabs keep their spacing.
-const double wideBarWidth = 480;
-
-/// How wide the panel on the left of a wide window [windowWidth] wide is:
-/// about a phone held upright, never narrower than the narrowest (an iPhone
-/// SE), so each tab's sheet keeps the content it was made for, and the rest
-/// is map.
+/// How wide the column of a wide window [windowWidth] wide is: about a
+/// phone held upright, never narrower than the narrowest (an iPhone SE),
+/// so every screen keeps the layout it was made for, and the rest is map.
 double widePanelWidth(double windowWidth) =>
     (windowWidth * 0.38).clamp(375.0, 420.0);
 
-/// Where the panel ends on the right of a wide window described by
-/// [screen] (the window's own metrics): the visible map starts there.
-double widePanelRight(MediaQueryData screen) =>
-    screen.padding.left + widePanelMargin + widePanelWidth(screen.size.width);
+/// Where the column stands in a wide window described by [screen] (the
+/// window's own metrics), on [side]: [widePanelMargin] from that side's
+/// safe area, as tall as the window.
+Rect wideColumnRect(MediaQueryData screen, WideColumnSide side) {
+  final window = screen.size;
+  final width = widePanelWidth(window.width);
+  final padding = screen.padding;
+  final left = switch (side) {
+    WideColumnSide.left => padding.left + widePanelMargin,
+    WideColumnSide.right =>
+      window.width - padding.right - widePanelMargin - width,
+    WideColumnSide.centre =>
+      padding.left + (window.width - padding.horizontal - width) / 2,
+  };
+  return Rect.fromLTWH(left, 0, width, window.height);
+}
 
-/// What the bar takes from the bottom of a wide window described by
-/// [screen]: the safe area, the air under the bar and the bar.
-double wideBarCover(MediaQueryData screen) =>
-    screen.viewPadding.bottom +
-    floatingBarBottomGapFor(screen, defaultTargetPlatform) +
-    floatingBarHeight;
+/// Where the column of a wide window stands, as [WideAppFrame] says.
+WideColumnSide wideColumnSideOf(BuildContext context) =>
+    context.dependOnInheritedWidgetOfExactType<_SideScope>()?.side ??
+    WideColumnSide.left;
 
-/// A map tab in a wide window: laid out as on a phone held upright, in a
-/// column of [widePanelWidth] on the left, from the window's top down to
-/// [widePanelMargin] above the bar (above the window's safe area while the
-/// bar is away, for a ride), with the map beside it. Its chrome sits at the
-/// column's top and its sheet stands at the bottom as a panel
-/// ([PanelSheet]), so every screen keeps the layout it has upright.
-///
-/// Elsewhere [child] as it is; the same widgets either way, so a window
-/// resized across the line keeps the tab's state.
+/// The column of the wide window [context] is in, in the window's
+/// coordinates; read from the window, whatever the media at [context].
+Rect wideColumnOf(BuildContext context) => wideColumnRect(
+  MediaQueryData.fromView(View.of(context)),
+  wideColumnSideOf(context),
+);
+
+/// What the column and the window's safe areas take from either side of a
+/// wide window's map: the map in view is the rest, on the column's far
+/// side (the right of a column in the middle).
+EdgeInsets wideMapBeside(BuildContext context) {
+  final screen = MediaQueryData.fromView(View.of(context));
+  final column = wideColumnOf(context);
+  return wideColumnSideOf(context) == WideColumnSide.right
+      ? EdgeInsets.only(
+          left: screen.viewPadding.left,
+          right: screen.size.width - column.left,
+        )
+      : EdgeInsets.only(left: column.right, right: screen.viewPadding.right);
+}
+
+/// Whether a window of [size] gets the wide layout, as the shell decides
+/// it (a test may have set one layout for every size).
+bool _wideAt(Size size) => ShellLayout.resolve(size, RailSide.right).widePanel;
+
+/// How far around the column the shadows of what is in it reach: the
+/// navigators in it clip to their boxes, so theirs are this much larger.
+const double widePanelShadowRoom = 40;
+
+/// [media] as a phone held upright would have it, for what is laid out in
+/// [column] of a wide window: as wide as the column, as tall as the window,
+/// with no safe area at its sides. The window's own bottom and top stay,
+/// the bar's included.
+MediaQueryData _phoneMedia(MediaQueryData media, Rect column) => media.copyWith(
+  size: Size(column.width, media.size.height),
+  padding: media.padding.copyWith(left: 0, right: 0),
+  viewPadding: media.viewPadding.copyWith(left: 0, right: 0),
+  viewInsets: media.viewInsets.copyWith(left: 0, right: 0),
+  displayFeatures: const <DisplayFeature>[],
+);
+
+/// [child] placed in the column of a wide window, which a box of
+/// [outer]'s size fills: as wide as the column plus [room] either side and
+/// told by its media that it is a phone held upright. Elsewhere [child]
+/// filling it, as it is. The same widgets either way, so a window resized
+/// across the line keeps [child]'s state.
+Widget _inColumn({
+  required BuildContext context,
+  required bool wide,
+  required EdgeInsets room,
+  required Widget child,
+}) {
+  final media = MediaQuery.of(context);
+  final column = wide ? wideColumnOf(context) : Rect.zero;
+  return Padding(
+    padding: EdgeInsets.only(left: wide ? column.left - room.left : 0),
+    child: Align(
+      alignment: Alignment.topLeft,
+      child: SizedBox(
+        width: wide ? column.width + room.horizontal : double.infinity,
+        height: double.infinity,
+        child: MediaQuery(
+          data: wide ? _phoneMedia(media, column) : media,
+          child: child,
+        ),
+      ),
+    ),
+  );
+}
+
+/// A tab in a wide window: its branch's navigator in the column, which
+/// tells everything in it that it is a phone held upright. Elsewhere
+/// [child] as it is.
 class WidePanelColumn extends StatelessWidget {
   /// Creates the column.
   const WidePanelColumn({required this.child, super.key});
 
-  /// The tab.
+  /// The tab: its branch's navigator.
   final Widget child;
-
-  /// Whether the tab at [context] is in a wide window's column: its sheet
-  /// is then a panel that stands still, as tall as its content.
-  static bool panelOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<_PanelScope>()?.panel ?? false;
 
   @override
   Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
     final wide = ShellLayout.of(context).widePanel;
-    // The scaffold counts the bar in the bottom padding while it shows;
-    // while it is away the column keeps the margin above the safe area, so
-    // the panel's lower corners stand clear of the window's.
-    final bottom = math.max(media.padding.bottom, media.viewPadding.bottom);
-    final cut = wide ? bottom + widePanelMargin : 0.0;
-    final width = widePanelWidth(media.size.width);
-    final left = wide ? media.padding.left + widePanelMargin : 0.0;
-    final data = !wide
-        ? media
-        : media.copyWith(
-            size: Size(width, media.size.height - cut),
-            padding: media.padding.copyWith(left: 0, right: 0, bottom: 0),
-            viewPadding: media.viewPadding.copyWith(
-              left: 0,
-              right: 0,
-              bottom: 0,
-            ),
-            viewInsets: media.viewInsets.copyWith(
-              bottom: (media.viewInsets.bottom - cut).clamp(
-                0.0,
-                double.infinity,
-              ),
-            ),
-          );
-    // The tab's navigator clips what it paints to its box: it is given
-    // room around the column for the shadows of the panel and the chrome,
-    // which each page leaves free again ([WidePanelPage]).
-    final room = !wide
-        ? EdgeInsets.zero
-        : EdgeInsets.only(
-            left: math.min(left, widePanelShadowRoom),
-            right: widePanelShadowRoom,
-            bottom: math.min(cut, widePanelShadowRoom),
-          );
-    return Padding(
-      padding: EdgeInsets.only(
-        left: left - room.left,
-        bottom: cut - room.bottom,
-      ),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: SizedBox(
-          width: wide ? width + room.horizontal : double.infinity,
-          height: double.infinity,
-          child: MediaQuery(
-            data: data,
-            child: _PanelScope(panel: wide, room: room, child: child),
-          ),
-        ),
-      ),
+    final room = wide ? _shadowRoom(context) : EdgeInsets.zero;
+    return _inColumn(
+      context: context,
+      wide: wide,
+      room: room,
+      child: _PanelScope(room: room, child: child),
     );
   }
 }
 
-/// How far around a wide window's column its panel's and chrome's shadows
-/// reach.
-const double widePanelShadowRoom = 40;
+/// The room a navigator in the column is given for the shadows of what it
+/// holds, as far as the window reaches either side.
+EdgeInsets _shadowRoom(BuildContext context) {
+  final column = wideColumnOf(context);
+  final width = MediaQueryData.fromView(View.of(context)).size.width;
+  return EdgeInsets.only(
+    left: math.min(column.left, widePanelShadowRoom),
+    right: math.min(width - column.right, widePanelShadowRoom),
+  );
+}
 
 class _PanelScope extends InheritedWidget {
-  const _PanelScope({
-    required this.panel,
-    required this.room,
-    required super.child,
-  });
-
-  final bool panel;
+  const _PanelScope({required this.room, required super.child});
 
   /// The room around the column for its shadows.
   final EdgeInsets room;
 
   @override
-  bool updateShouldNotify(_PanelScope oldWidget) =>
-      oldWidget.panel != panel || oldWidget.room != room;
+  bool updateShouldNotify(_PanelScope oldWidget) => oldWidget.room != room;
 }
 
-/// A map tab's page in its branch's navigator: in a wide window's column,
-/// the column itself, inside the room its navigator is given for shadows
-/// ([WidePanelColumn]); elsewhere [child] as it is.
+/// A page in a tab's navigator ([WidePanelColumn]): in a wide window
+/// inside the room that navigator has for shadows, so the page is the
+/// column; elsewhere [child] as it is.
 class WidePanelPage extends StatelessWidget {
   /// Creates the page's box.
   const WidePanelPage({required this.child, super.key});
@@ -153,34 +170,160 @@ class WidePanelPage extends StatelessWidget {
   );
 }
 
-/// A page that is not a map (the settings, a page pushed over the shell) in
-/// a wide window: a column of readable width in the middle, the page's
-/// colour either side. Elsewhere [child] as it is, filling what it gets.
-///
-/// The same widgets either way, so a window resized across the line keeps
-/// the page's state; and nothing here takes a touch.
-class WideReadingColumn extends StatelessWidget {
-  /// Creates the column.
-  const WideReadingColumn({required this.child, super.key});
+class _SideScope extends InheritedWidget {
+  const _SideScope({required this.side, required super.child});
 
-  /// The page.
+  final WideColumnSide side;
+
+  @override
+  bool updateShouldNotify(_SideScope oldWidget) => oldWidget.side != side;
+}
+
+/// The whole app, around the root navigator, with its column on [side] in
+/// a wide window: everything a route lays out where the window's display
+/// features let it (a modal sheet, a dialog, a menu) lays out in the
+/// column, as on a phone held upright. The window is told that what lies
+/// either side of the column are features to keep clear of, as a
+/// foldable's hinge is.
+class WideAppFrame extends StatelessWidget {
+  /// Creates the frame.
+  const WideAppFrame({required this.side, required this.child, super.key});
+
+  /// Where the column stands.
+  final WideColumnSide side;
+
+  /// The app.
   final Widget child;
-
-  /// The widest a page's content gets.
-  static const double maxWidth = 720;
 
   @override
   Widget build(BuildContext context) {
-    final wide = ShellLayout.of(context).widePanel;
-    return CustomPaint(
-      painter: _Backdrop(
-        wide ? Theme.of(context).scaffoldBackgroundColor : null,
+    final media = MediaQuery.of(context);
+    final size = media.size;
+    final column = wideColumnRect(media, side);
+    Rect band(double from, double to) =>
+        Rect.fromLTRB(from, 0, to, size.height);
+    // A MediaQuery either way, so a window resized across the line keeps
+    // the app's state.
+    return _SideScope(
+      side: side,
+      child: MediaQuery(
+        data: !_wideAt(size)
+            ? media
+            : media.copyWith(
+                displayFeatures: <DisplayFeature>[
+                  ...media.displayFeatures,
+                  for (final bounds in [
+                    band(0, column.left),
+                    band(column.right, size.width),
+                  ])
+                    if (bounds.width > 0)
+                      DisplayFeature(
+                        bounds: bounds,
+                        type: DisplayFeatureType.unknown,
+                        state: DisplayFeatureState.unknown,
+                      ),
+                ],
+              ),
+        child: child,
       ),
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: SizedBox(
-          width: wide ? maxWidth : double.infinity,
-          height: double.infinity,
+    );
+  }
+}
+
+/// The app's full pages: a [MaterialPageRoute] whose page, in a wide
+/// window, is in the column, coming and going inside it as on a phone
+/// inside the screen, with the map in view beside it (the route is not
+/// opaque there). Elsewhere a [MaterialPageRoute] as it always was.
+class ColumnPageRoute<T> extends MaterialPageRoute<T> {
+  /// Creates the route.
+  ColumnPageRoute({required super.builder, super.settings});
+
+  bool _wide = false;
+
+  @override
+  bool get opaque => !_wide;
+
+  /// Follows the window the page is laid out in: the map under the page is
+  /// kept painted in a wide window, and let go elsewhere.
+  void _followWindow({required bool wide}) {
+    if (wide == _wide) return;
+    _wide = wide;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final entries = overlayEntries;
+      if (!isActive || entries.isEmpty) return;
+      if (animation?.isCompleted ?? false) entries.first.opaque = opaque;
+    });
+  }
+
+  @override
+  void install() {
+    final context = navigator?.context;
+    final view = context == null ? null : View.maybeOf(context);
+    if (view != null) {
+      _wide = _wideAt(view.physicalSize / view.devicePixelRatio);
+    }
+    super.install();
+  }
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) => _ColumnPage(
+    route: this,
+    child: super.buildTransitions(
+      context,
+      animation,
+      secondaryAnimation,
+      child,
+    ),
+  );
+}
+
+/// A full page of the router's as a [ColumnPageRoute].
+class ColumnPage<T> extends Page<T> {
+  /// Creates the page.
+  const ColumnPage({required this.child, super.key, super.name});
+
+  /// The page's content.
+  final Widget child;
+
+  @override
+  Route<T> createRoute(BuildContext context) =>
+      ColumnPageRoute<T>(settings: this, builder: (_) => child);
+}
+
+/// A [ColumnPageRoute]'s page with its transition: on the app's root
+/// navigator in the column of a wide window; in a tab's navigator, which is
+/// in the column already, inside the room that navigator has for shadows.
+/// Clipped to the column there, so it slides in and out of it as on a
+/// phone. Elsewhere [child] as it is.
+class _ColumnPage extends StatelessWidget {
+  const _ColumnPage({required this.route, required this.child});
+
+  final ColumnPageRoute<Object?> route;
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final room = context
+        .dependOnInheritedWidgetOfExactType<_PanelScope>()
+        ?.room;
+    final wide = room == null && _wideAt(MediaQuery.sizeOf(context));
+    route._followWindow(wide: wide);
+    final clip = wide || (room != null && room != EdgeInsets.zero);
+    return _inColumn(
+      context: context,
+      wide: wide,
+      room: EdgeInsets.zero,
+      child: Padding(
+        padding: room ?? EdgeInsets.zero,
+        // The same widgets either way, clipping or not.
+        child: ClipRect(
+          clipBehavior: clip ? Clip.hardEdge : Clip.none,
           child: child,
         ),
       ),
@@ -188,76 +331,60 @@ class WideReadingColumn extends StatelessWidget {
   }
 }
 
-/// The page's colour beside a [WideReadingColumn], painted only: a coloured
-/// box would take every touch.
-class _Backdrop extends CustomPainter {
-  const _Backdrop(this.color);
+/// Which of the shell's tabs has a page pushed over it in its branch's
+/// navigator (a page the tab opened, the offline data say): in a wide
+/// window the map beside the column is then under that page, and takes no
+/// touch, as on a phone. Its value changes whenever that may have changed.
+class TabPages extends ChangeNotifier implements ValueListenable<int> {
+  final List<_TabPagesObserver> _observers = <_TabPagesObserver>[];
+  int _changes = 0;
 
-  final Color? color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final color = this.color;
-    if (color != null) {
-      canvas.drawRect(Offset.zero & size, Paint()..color = color);
-    }
+  /// The observer for the next branch's navigator, in the shell's order.
+  NavigatorObserver observer() {
+    final observer = _TabPagesObserver(this);
+    _observers.add(observer);
+    return observer;
   }
 
-  @override
-  bool hitTest(Offset position) => false;
+  /// Whether the tab at [index] has a page over it.
+  bool covers(int index) =>
+      index < _observers.length && _observers[index]._covered;
 
   @override
-  bool shouldRepaint(_Backdrop oldDelegate) => oldDelegate.color != color;
+  int get value => _changes;
+
+  void _changed() {
+    _changes++;
+    notifyListeners();
+  }
 }
 
-/// The platform's own page transition with the page in a
-/// [WideReadingColumn]: every page pushed as a [MaterialPageRoute] (the
-/// settings' pages, the offline data, the ride figures) reads at a readable
-/// width in a wide window, and is as it always was elsewhere. The router's
-/// own pages are wrapped where they are built.
-class WidePageTransitionsBuilder extends PageTransitionsBuilder {
-  /// Wraps [inner].
-  const WidePageTransitionsBuilder(this.inner);
+class _TabPagesObserver extends NavigatorObserver {
+  _TabPagesObserver(this._owner);
 
-  /// The platform's transition.
-  final PageTransitionsBuilder inner;
+  final TabPages _owner;
+  bool _covered = false;
 
-  /// The platforms' default transitions, each wrapped.
-  static Map<TargetPlatform, PageTransitionsBuilder> get all => {
-    for (final MapEntry(:key, :value)
-        in const PageTransitionsTheme().builders.entries)
-      key: WidePageTransitionsBuilder(value),
-  };
+  /// After the frame: a navigator tells of its pages while it builds.
+  void _update() => WidgetsBinding.instance.addPostFrameCallback((_) {
+    final covered = navigator?.canPop() ?? false;
+    if (covered == _covered) return;
+    _covered = covered;
+    _owner._changed();
+  });
 
   @override
-  DelegatedTransitionBuilder? get delegatedTransition =>
-      inner.delegatedTransition;
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _update();
 
   @override
-  Duration get transitionDuration => inner.transitionDuration;
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) => _update();
 
   @override
-  Duration get reverseTransitionDuration => inner.reverseTransitionDuration;
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _update();
 
   @override
-  Widget buildTransitions<T>(
-    PageRoute<T> route,
-    BuildContext context,
-    Animation<double> animation,
-    Animation<double> secondaryAnimation,
-    Widget child,
-  ) => inner.buildTransitions(
-    route,
-    context,
-    animation,
-    secondaryAnimation,
-    WideReadingColumn(child: child),
-  );
-
-  @override
-  bool operator ==(Object other) =>
-      other is WidePageTransitionsBuilder && other.inner == inner;
-
-  @override
-  int get hashCode => inner.hashCode;
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>
+      _update();
 }

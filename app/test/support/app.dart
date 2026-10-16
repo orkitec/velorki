@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/shared/presentation/gesture_zone_guard.dart';
+import 'package:velorki/features/shared/presentation/wide_panel.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 
 /// The language the widget suite runs in.
@@ -41,10 +43,22 @@ Locale _localeNamed(String name) {
 /// otherwise hard-code English.
 final AppLocalizations l10n = lookupAppLocalizations(testLocale);
 
+/// Where the apps this file builds stand their column in a wide window:
+/// the app takes it from the rider's settings, a test sets it here.
+WideColumnSide testWideColumnSide = WideColumnSide.left;
+
 /// The app's own builder (`VelorkiApp`) without the performance box: one
-/// backdrop group for the glass over the map, and the gesture zone's guard.
-Widget _appBuilder(BuildContext context, Widget? child) =>
-    BackdropGroup(child: gestureZoneAppBuilder(context, child));
+/// backdrop group for the glass over the map, the gesture zone's guard and,
+/// in a wide window, the column the routes lay themselves out in.
+Widget _appBuilder(BuildContext context, Widget? child) => BackdropGroup(
+  child: gestureZoneAppBuilder(
+    context,
+    WideAppFrame(
+      side: testWideColumnSide,
+      child: child ?? const SizedBox.shrink(),
+    ),
+  ),
+);
 
 /// Whether the [BackdropFilter] found by [blur] shares the app's backdrop
 /// group (`BackdropFilter.grouped`) rather than reading the backdrop on
