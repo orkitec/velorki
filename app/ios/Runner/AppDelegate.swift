@@ -45,6 +45,9 @@ import UserNotifications
   private var orientationChannel: FlutterMethodChannel?
   private var powerSaveChannel: FlutterMethodChannel?
 
+  /// iCloud sync of the library and settings; idle until Dart starts it.
+  private var cloudSync: CloudSync?
+
   /// Mirrored in `lib/core/power/system_power_save.dart`.
   private static let powerSaveChannelName = "velorki/power_save"
 
@@ -137,6 +140,7 @@ import UserNotifications
       result(ProcessInfo.processInfo.isLowPowerModeEnabled)
     }
     powerSaveChannel = powerSave
+    cloudSync = CloudSync(messenger: engineBridge.applicationRegistrar.messenger())
     NotificationCenter.default.addObserver(
       forName: Notification.Name.NSProcessInfoPowerStateDidChange,
       object: nil,

@@ -866,12 +866,13 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final Size size;
     if (layout.widePanel) {
       size = screen.size;
+      final free = wideFreeMap(context);
       padding = followPadding(
         size: size,
-        top: screen.viewPadding.top + defaultMapControlsTop,
-        bottom: screen.viewPadding.bottom,
-        left: wideMapBeside(context).left,
-        right: wideMapBeside(context).right,
+        top: free.top,
+        bottom: free.bottom,
+        left: free.left,
+        right: free.right,
         headingUp: mode == FollowMode.headingUp,
       );
     } else {

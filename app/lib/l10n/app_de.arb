@@ -1225,5 +1225,22 @@
   "stravaAccessLostTitle": "Strava-Zugriff entfernt",
   "stravaAccessLostBody": "Strava akzeptiert Velorkis Zugriff nicht mehr, deshalb hat Velorki die Verbindung getrennt. Deine Strava-Daten wurden von diesem Telefon gelöscht. Verbinde unter Einstellungen → Verbindungen neu, um Strava zu nutzen.",
   "integrationAccessRevoked": "Der Dienst akzeptiert Velorkis Zugriff nicht mehr. Unter Einstellungen → Verbindungen neu verbinden.",
-  "stravaRoutesRemoved": "{count, plural, =1{Eine Route von Strava wurde entfernt: Es gibt sie auf Strava nicht mehr, oder sie konnte 7 Tage lang nicht geprüft werden.} other{{count} Routen von Strava wurden entfernt: Es gibt sie auf Strava nicht mehr, oder sie konnten 7 Tage lang nicht geprüft werden.}}"
+  "stravaRoutesRemoved": "{count, plural, =1{Eine Route von Strava wurde entfernt: Es gibt sie auf Strava nicht mehr, oder sie konnte 7 Tage lang nicht geprüft werden.} other{{count} Routen von Strava wurden entfernt: Es gibt sie auf Strava nicht mehr, oder sie konnten 7 Tage lang nicht geprüft werden.}}",
+  "settingsSync": "iCloud",
+  "cloudSyncTitle": "Mit iCloud synchronisieren",
+  "cloudSyncOff": "Routen, Fahrten und Einstellungen bleiben auf diesem Gerät",
+  "cloudSyncSyncing": "Wird synchronisiert …",
+  "cloudSyncJustNow": "Gerade synchronisiert",
+  "cloudSyncMinutesAgo": "{minutes, plural, =1{Vor 1 Min. synchronisiert} other{Vor {minutes} Min. synchronisiert}}",
+  "cloudSyncHoursAgo": "{hours, plural, =1{Vor 1 Stunde synchronisiert} other{Vor {hours} Stunden synchronisiert}}",
+  "cloudSyncOnDate": "Am {date} synchronisiert",
+  "cloudSyncWaiting": "Wartet auf die Synchronisierung",
+  "cloudSyncNoAccount": "iCloud ist auf diesem Gerät aus",
+  "cloudSyncRestricted": "iCloud ist auf diesem Gerät eingeschränkt",
+  "cloudSyncQuota": "Der iCloud-Speicher ist voll",
+  "cloudSyncOffline": "Wartet auf eine Verbindung",
+  "cloudSyncFailed": "Synchronisierung fehlgeschlagen, wird erneut versucht",
+  "cloudSyncHint": "Deine Routen, Fahrten und einige Einstellungen auf jedem iPhone und iPad mit deinem Apple Account. Routen von Strava bleiben auf diesem Gerät",
+  "cloudSyncNotice": "Deine Routen und Fahrten werden jetzt über iCloud zwischen iPhone und iPad synchronisiert",
+  "cloudSyncNoticeAction": "Optionen"
 }

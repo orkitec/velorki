@@ -6,7 +6,7 @@ order: 10
 
 Het tabblad Bibliotheek bevat alles wat je hebt bewaard: de routes die je hebt gepland en de ritten die je hebt opgenomen. Het is een kaart boven de landkaart, net als de tabbladen Plannen en Opnemen: de inhoud scrolt op elke hoogte, en de greep bovenaan verschuift hem; als er niets te scrollen is, verschuift de hele kaart. Trek hem omhoog voor meer ruimte, trek hem helemaal naar beneden en de kaart klapt in tot in de navigatiebalk, zodat de landkaart overblijft. Hier open je een route opnieuw, lees je de grafieken en splits van een rit, en haal je bestanden binnen en zet je ze naar buiten.
 
-Alles in de bibliotheek staat op de telefoon. Er is geen account en er wordt nergens iets gesynchroniseerd.
+Alles in de bibliotheek staat op de telefoon. Er is geen account. Op een iPhone of iPad kan het via iCloud tussen je eigen apparaten worden gesynchroniseerd, zie hieronder [iCloud-synchronisatie](#icloud-synchronisatie-iphone-en-ipad).
 
 ## Routes en Ritten
 
@@ -113,6 +113,14 @@ De twee knoppen rechts in de kop van de kaart:
 - De wolkknop biedt **Importeren uit Strava** en **Importeren uit Ride with GPS**, als die diensten zijn ingesteld.
 
 Beide worden behandeld in [importeren en exporteren](./import-and-export) en [Strava en Ride with GPS](./strava-and-ridewithgps).
+
+## iCloud-synchronisatie (iPhone en iPad)
+
+Op een iPhone of iPad met iOS 17 of nieuwer worden je opgeslagen routes en opgenomen ritten, met de track, de notities en de cijfers van elke rit, via je iCloud gesynchroniseerd tussen je eigen apparaten die met hetzelfde Apple-account zijn aangemeld. Een paar instellingen gaan mee: thema, accentkleur, kaartstijl, balkstijl, kant van de kolom, eenheden en de instellingen voor afslag- en spraakmeldingen. Velorki heeft hiervoor geen server en kan niet lezen wat er is opgeslagen; zie de [privacyverklaring](/privacy).
+
+Het staat standaard aan. **Synchroniseren met iCloud** in Instellingen zet het op dat apparaat uit; wat al in iCloud staat, blijft daar totdat je het verwijdert in de iCloud-instellingen van het apparaat. Een statusregel in Instellingen laat zien hoe het ervoor staat: **Zojuist gesynchroniseerd**, **Synchroniseren…**, **iCloud staat uit op dit apparaat** of **iCloud-opslag is vol**.
+
+Routes die uit Strava zijn gelezen en routes die daaruit zijn bewerkt, blijven op de telefoon, net als de Strava-links van ritten; ook de links van uploads naar Ride with GPS worden niet gesynchroniseerd. Gedownloade kaarten en routeringstegels worden niet gesynchroniseerd. De Android-app synchroniseert niet.
 
 ## Zie ook
 

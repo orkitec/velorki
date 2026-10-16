@@ -14,6 +14,8 @@ import '../../../features/sensors/data/health_gateway.dart';
 import '../../../features/sensors/presentation/sensors_section.dart';
 import '../../../features/offline/presentation/offline_entry.dart';
 import '../../../features/subscription/presentation/plus_settings_section.dart';
+import '../../../features/sync/application/cloud_sync_controller.dart';
+import '../../../features/sync/presentation/cloud_sync_section.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/presentation/stat_tile.dart';
 import 'about_section.dart';
@@ -62,6 +64,12 @@ class SettingsScreen extends ConsumerWidget {
             _SectionHeader.sensors(),
             SensorsSection(),
           ],
+          // iOS 17 and later only; hidden everywhere else.
+          if (ref.watch(cloudSyncSupportedProvider).value ?? false) ...const [
+            Divider(height: 32),
+            _SectionHeader.sync(),
+            CloudSyncSection(),
+          ],
           const Divider(height: 32),
           const _SectionHeader.subscription(),
           const PlusSettingsSection(),
@@ -94,6 +102,7 @@ class _SectionHeader extends StatelessWidget {
   const _SectionHeader.recording() : _section = _Section.recording;
   const _SectionHeader.rider() : _section = _Section.rider;
   const _SectionHeader.sensors() : _section = _Section.sensors;
+  const _SectionHeader.sync() : _section = _Section.sync;
   const _SectionHeader.subscription() : _section = _Section.subscription;
   const _SectionHeader.connections() : _section = _Section.connections;
   const _SectionHeader.ai() : _section = _Section.ai;
@@ -113,6 +122,7 @@ class _SectionHeader extends StatelessWidget {
         _Section.recording => l10n.settingsRecording,
         _Section.rider => l10n.settingsRider,
         _Section.sensors => l10n.settingsSensors,
+        _Section.sync => l10n.settingsSync,
         _Section.subscription => l10n.settingsSubscription,
         _Section.connections => l10n.settingsConnections,
         _Section.ai => l10n.settingsAi,
@@ -129,6 +139,7 @@ enum _Section {
   recording,
   rider,
   sensors,
+  sync,
   subscription,
   connections,
   ai,

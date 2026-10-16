@@ -34,6 +34,7 @@ import '../features/shared/application/active_tab.dart';
 import '../features/shared/application/nav_bar_docking.dart';
 import '../features/shared/application/shown_bar_style.dart';
 import '../features/subscription/presentation/paywall_screen.dart';
+import '../features/sync/application/cloud_sync_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'map_tab_page.dart';
 import 'platform_features.dart';
@@ -274,6 +275,25 @@ class HomeShell extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.stravaRoutesRemoved(next))));
     });
+    // A rider whose library was there before iCloud sync came is told
+    // once that it syncs now, and where to switch it off.
+    ref.listen(cloudSyncNoticeProvider, (previous, next) {
+      if (!next) return;
+      ref.read(cloudSyncNoticeProvider.notifier).dismiss();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.cloudSyncNotice),
+          duration: const Duration(seconds: 10),
+          action: SnackBarAction(
+            label: l10n.cloudSyncNoticeAction,
+            onPressed: () {
+              ref.read(activeTabProvider.notifier).show(settingsRoute);
+              context.go(settingsRoute);
+            },
+          ),
+        ),
+      );
+    });
     ref.listen(stravaAccessLostNoticeProvider, (previous, next) {
       if (!next) return;
       ref.read(stravaAccessLostNoticeProvider.notifier).dismiss();
@@ -443,11 +463,23 @@ class HomeShell extends ConsumerWidget {
           // resized across the line keeps the shell's state.
           final theme = Theme.of(context);
           final column = wideColumnOf(context);
-          // The map's controls stand on the map's far side from the column:
-          // on the left, while the column stands on the right.
+          // In a wide window the map's controls stand right beside the
+          // column, at its outer edge, as a phone has them at its right
+          // edge: on the column's left while it stands on the right.
           final controlsLeft =
               layout.widePanel &&
               wideColumnSideOf(context) == WideColumnSide.right;
+          final media = MediaQuery.of(context);
+          final controlsLeftEdge = !layout.widePanel
+              ? 0.0
+              : controlsLeft
+              ? 0.0
+              : column.right - media.padding.left;
+          final controlsRightEdge = !layout.widePanel
+              ? 0.0
+              : controlsLeft
+              ? media.size.width - column.left - media.padding.right
+              : 0.0;
           final snackBars = layout.widePanel
               ? theme.copyWith(
                   snackBarTheme: theme.snackBarTheme.copyWith(
@@ -536,11 +568,12 @@ class HomeShell extends ConsumerWidget {
                                         top: layout.widePanel
                                             ? defaultMapControlsTop
                                             : columnGlide.animation.value,
-                                        left: controlsLeft ? 12 : 0,
-                                        right: controlsLeft ? 0 : 12,
+                                        left: controlsLeftEdge + 12,
+                                        right: controlsRightEdge + 12,
                                       ),
                                       child: Align(
-                                        alignment: controlsLeft
+                                        alignment:
+                                            layout.widePanel != controlsLeft
                                             ? Alignment.topLeft
                                             : Alignment.topRight,
                                         child: child,

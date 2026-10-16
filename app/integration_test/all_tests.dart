@@ -40,6 +40,7 @@ import 'ai_assistant_test.dart' as ai_assistant;
 import 'appearance_test.dart' as appearance;
 import 'bottom_edge_test.dart' as bottom_edge;
 import 'close_loop_test.dart' as close_loop;
+import 'icloud_sync_test.dart' as icloud_sync;
 import 'import_gpx_test.dart' as import_gpx;
 import 'imported_route_legs_test.dart' as imported_route_legs;
 import 'live_ble_test.dart' as live_ble;
@@ -65,6 +66,7 @@ void main() {
   group('appearance_test.dart', appearance.main);
   group('bottom_edge_test.dart', bottom_edge.main);
   group('close_loop_test.dart', close_loop.main);
+  group('icloud_sync_test.dart', icloud_sync.main);
   group('import_gpx_test.dart', import_gpx.main);
   group('imported_route_legs_test.dart', imported_route_legs.main);
   group('live_ble_test.dart', live_ble.main);

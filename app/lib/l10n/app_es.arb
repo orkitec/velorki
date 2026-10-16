@@ -1225,5 +1225,22 @@
   "stravaAccessLostTitle": "Acceso a Strava retirado",
   "stravaAccessLostBody": "Strava ya no acepta el acceso de Velorki, así que Velorki ha desconectado Strava. Tus datos de Strava se han borrado de este teléfono. Vuelve a conectar en Ajustes → Conexiones para usar Strava.",
   "integrationAccessRevoked": "El servicio ya no acepta el acceso de Velorki. Vuelve a conectar en Ajustes → Conexiones.",
-  "stravaRoutesRemoved": "{count, plural, =1{Se eliminó una ruta de Strava: ya no existe en Strava o no se pudo comprobar durante 7 días.} other{Se eliminaron {count} rutas de Strava: ya no existen en Strava o no se pudieron comprobar durante 7 días.}}"
+  "stravaRoutesRemoved": "{count, plural, =1{Se eliminó una ruta de Strava: ya no existe en Strava o no se pudo comprobar durante 7 días.} other{Se eliminaron {count} rutas de Strava: ya no existen en Strava o no se pudieron comprobar durante 7 días.}}",
+  "settingsSync": "iCloud",
+  "cloudSyncTitle": "Sincronizar con iCloud",
+  "cloudSyncOff": "Las rutas, salidas y ajustes se quedan en este dispositivo",
+  "cloudSyncSyncing": "Sincronizando…",
+  "cloudSyncJustNow": "Sincronizado hace un momento",
+  "cloudSyncMinutesAgo": "{minutes, plural, =1{Sincronizado hace 1 min} other{Sincronizado hace {minutes} min}}",
+  "cloudSyncHoursAgo": "{hours, plural, =1{Sincronizado hace 1 hora} other{Sincronizado hace {hours} horas}}",
+  "cloudSyncOnDate": "Sincronizado el {date}",
+  "cloudSyncWaiting": "Esperando para sincronizar",
+  "cloudSyncNoAccount": "iCloud está desactivado en este dispositivo",
+  "cloudSyncRestricted": "iCloud está restringido en este dispositivo",
+  "cloudSyncQuota": "El almacenamiento de iCloud está lleno",
+  "cloudSyncOffline": "Esperando conexión",
+  "cloudSyncFailed": "No se pudo sincronizar, se volverá a intentar",
+  "cloudSyncHint": "Tus rutas, salidas y algunos ajustes en cada iPhone y iPad con tu cuenta de Apple. Las rutas de Strava se quedan en este dispositivo",
+  "cloudSyncNotice": "Tus rutas y salidas ahora se sincronizan entre tu iPhone y tu iPad a través de iCloud",
+  "cloudSyncNoticeAction": "Ajustes"
 }

@@ -6278,5 +6278,91 @@
         "example": "2"
       }
     }
+  },
+  "settingsSync": "iCloud",
+  "@settingsSync": {
+    "description": "Settings section header for iCloud sync; the brand name"
+  },
+  "cloudSyncTitle": "Sync with iCloud",
+  "@cloudSyncTitle": {
+    "description": "Switch in Settings that syncs routes, rides and settings through iCloud"
+  },
+  "cloudSyncOff": "Routes, rides and settings stay on this device",
+  "@cloudSyncOff": {
+    "description": "Second line of the iCloud switch while it is off"
+  },
+  "cloudSyncSyncing": "Syncing…",
+  "@cloudSyncSyncing": {
+    "description": "Status line of the iCloud switch while changes are being sent or fetched"
+  },
+  "cloudSyncJustNow": "Synced just now",
+  "@cloudSyncJustNow": {
+    "description": "Status line of the iCloud switch: the last sync was less than a minute ago"
+  },
+  "cloudSyncMinutesAgo": "{minutes, plural, =1{Synced 1 min ago} other{Synced {minutes} min ago}}",
+  "@cloudSyncMinutesAgo": {
+    "description": "Status line of the iCloud switch: minutes since the last sync",
+    "placeholders": {
+      "minutes": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "cloudSyncHoursAgo": "{hours, plural, =1{Synced 1 hour ago} other{Synced {hours} hours ago}}",
+  "@cloudSyncHoursAgo": {
+    "description": "Status line of the iCloud switch: hours since the last sync",
+    "placeholders": {
+      "hours": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "cloudSyncOnDate": "Synced on {date}",
+  "@cloudSyncOnDate": {
+    "description": "Status line of the iCloud switch: the day of the last sync, more than a day ago",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "12 Oct"
+      }
+    }
+  },
+  "cloudSyncWaiting": "Waiting to sync",
+  "@cloudSyncWaiting": {
+    "description": "Status line of the iCloud switch before the first sync went through"
+  },
+  "cloudSyncNoAccount": "iCloud is off on this device",
+  "@cloudSyncNoAccount": {
+    "description": "Status line of the iCloud switch when the device is signed out of iCloud or iCloud is off for the app"
+  },
+  "cloudSyncRestricted": "iCloud is restricted on this device",
+  "@cloudSyncRestricted": {
+    "description": "Status line of the iCloud switch when parental controls or a device profile block iCloud"
+  },
+  "cloudSyncQuota": "iCloud storage is full",
+  "@cloudSyncQuota": {
+    "description": "Status line of the iCloud switch when the rider's iCloud storage is full"
+  },
+  "cloudSyncOffline": "Waiting for a connection",
+  "@cloudSyncOffline": {
+    "description": "Status line of the iCloud switch while there is no network"
+  },
+  "cloudSyncFailed": "Couldn’t sync, will try again",
+  "@cloudSyncFailed": {
+    "description": "Status line of the iCloud switch after a sync failed for another reason"
+  },
+  "cloudSyncHint": "Your routes, rides and a few settings on every iPhone and iPad signed in to your Apple Account. Routes from Strava stay on this device",
+  "@cloudSyncHint": {
+    "description": "Explanation below the iCloud switch"
+  },
+  "cloudSyncNotice": "Your routes and rides now sync across your iPhone and iPad through iCloud",
+  "@cloudSyncNotice": {
+    "description": "One-time snack bar after the update that brought iCloud sync, for riders who already had routes or rides"
+  },
+  "cloudSyncNoticeAction": "Settings",
+  "@cloudSyncNoticeAction": {
+    "description": "Action of the iCloud sync snack bar that opens Settings"
   }
 }

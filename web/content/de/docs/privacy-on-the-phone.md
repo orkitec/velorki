@@ -1,6 +1,6 @@
 ---
 title: Datenschutz auf dem Handy
-description: "Klartext für Radfahrende: Was auf deinem Handy bleibt, was es verlässt, wann und an wen. Es gibt kein Konto, und nichts geht ungefragt hoch."
+description: "Klartext für Radfahrende: Was auf deinem Handy bleibt, was es verlässt, wann und an wen. Es gibt kein Konto, und nichts geht ungefragt an uns."
 order: 17
 ---
 
@@ -17,7 +17,7 @@ Alles, was du machst, und alles, was du herunterlädst:
 - die Zugriffstoken für Strava und Ride with GPS, falls du sie verbindest, die in den sicheren Speicher des Handys wandern, in einer Form, die nur der Velorki-Relay öffnen kann, und von Sicherungen ausgenommen sind.
 - was du von Strava übernimmst: dein Strava-Name, die Liste deiner Strava-Routen für höchstens 48 Stunden, die Routen, die du importierst, und die Links von hochgeladenen Fahrten zu ihren Strava-Aktivitäten. Das Trennen löscht all das.
 
-Nichts davon geht irgendwohin hoch, außer du forderst es an.
+Nichts davon geht irgendwohin hoch, außer du forderst es an. Die eine Ausnahme ist die iCloud-Synchronisierung auf iPhone oder iPad (ab iOS 17): Deine Routen, Fahrten und einige Einstellungen gehen in deine eigene iCloud, nie zu uns, und Strava-Daten bleiben auf dem Handy. Sie ist standardmäßig an und lässt sich in den Einstellungen ausschalten, siehe [die Bibliothek](./library).
 
 Unter Android ist Velorki bewusst aus Googles Cloud-Sicherung und aus der Übertragung von Gerät zu Gerät ausgenommen, deine Fahrten werden also auch vom System nicht vom Handy kopiert. Der Umzug auf ein neues Handy heißt, das Gewünschte als GPX-, FIT- oder TCX-Datei zu exportieren, siehe [Import und Export](./import-and-export).
 
