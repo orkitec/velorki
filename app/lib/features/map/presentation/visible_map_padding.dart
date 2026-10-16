@@ -7,7 +7,6 @@ import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/wide_panel.dart';
 import '../domain/visible_map.dart';
-import 'map_chrome.dart';
 import 'map_controls.dart';
 
 /// The control column's width at [context], glass and its margin included.
@@ -18,6 +17,22 @@ double mapControlsWidth(BuildContext context) =>
     6 +
     12;
 
+/// What a wide window's column and the map's controls beside it take from
+/// the window's map, and the window's safe areas elsewhere: the free map is
+/// the rest. Read from the window, whatever [context]'s own media.
+EdgeInsets wideFreeMap(BuildContext context) {
+  final screen = MediaQueryData.fromView(View.of(context));
+  final beside = wideMapBeside(context);
+  final controls = mapControlsWidth(context);
+  final free = EdgeInsets.only(
+    top: screen.viewPadding.top,
+    bottom: screen.viewPadding.bottom,
+  );
+  return wideColumnSideOf(context) == WideColumnSide.right
+      ? free.copyWith(left: beside.left, right: beside.right + controls)
+      : free.copyWith(left: beside.left + controls, right: beside.right);
+}
+
 /// The padding a camera move or fit on the tab map at [context] uses so its
 /// target lands in the middle of the visible map: below the tab's chrome,
 /// which reaches [chromeTop] under the safe area, above the sheet at
@@ -26,7 +41,8 @@ double mapControlsWidth(BuildContext context) =>
 /// On a phone turned sideways ([layout], the one handed down by default)
 /// the side panel takes the sheet's place: the visible map is what the rail,
 /// the panel as far as it is open and the row at the top leave. In a wide
-/// window it is what the panel on the left, the column and the bar leave.
+/// window it is the free map beside the column ([wideFreeMap]), whatever
+/// [chromeTop] and [sheetExtent] say.
 EdgeInsets visibleMapPadding(
   BuildContext context, {
   required double chromeTop,
@@ -35,23 +51,14 @@ EdgeInsets visibleMapPadding(
 }) {
   final shell = layout ?? ShellLayout.of(context);
   if (shell.widePanel) {
-    // The window's own metrics: [context] may be inside the tabs' column.
-    // The column covers the left whatever its sheet does, its chrome, bar
-    // and sheets all in it; the map's controls stand at the right.
-    final screen = MediaQueryData.fromView(View.of(context));
-    return sidewaysVisibleMapInsets(
-      topInset: screen.viewPadding.top,
-      chromeTop: defaultMapControlsTop,
-      bottomInset: screen.viewPadding.bottom,
-      // The controls stand on the map's outer edge.
-      cover: () {
-        final beside = wideMapBeside(context);
-        final controls = mapControlsWidth(context);
-        return wideColumnSideOf(context) == WideColumnSide.right
-            ? beside.copyWith(left: beside.left + controls)
-            : beside.copyWith(right: beside.right + controls);
-      }(),
-      safeArea: screen.viewPadding,
+    // The large free map beside the column, with a margin: the sheet, the
+    // search and the chips are all in the column and take nothing more.
+    final free = wideFreeMap(context);
+    return EdgeInsets.fromLTRB(
+      free.left + 24,
+      free.top + 24,
+      free.right + 24,
+      free.bottom + 24,
     );
   }
   if (shell.sideRail) {

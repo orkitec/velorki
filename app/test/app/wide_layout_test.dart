@@ -121,6 +121,17 @@ void _expectPhoneIn(WidgetTester tester, Rect column) {
   expect(bar.bottom, lessThan(column.bottom));
 }
 
+/// The map's controls right beside [column] on the map's side, at the
+/// top below the safe area, as a phone has them at its right edge.
+void _expectControlsBeside(Rect controls, Rect column, WideColumnSide side) {
+  if (side == WideColumnSide.right) {
+    expect(controls.right, closeTo(column.left - 12, 1));
+  } else {
+    expect(controls.left, closeTo(column.right + 12, 1));
+  }
+  expect(controls.top, closeTo(24 + defaultMapControlsTop, 1));
+}
+
 Future<void> _pumpPlan(WidgetTester tester, Size size) =>
     pumpRecordingApp(tester, initialLocation: plannerRoute, surfaceSize: size);
 
@@ -147,8 +158,8 @@ void main() {
       _foldSideways,
     ]) {
       testWidgets('a wide window of $size, the column on the ${side.name}: '
-          'the phone in it, the map full-window, the controls on its far '
-          'side', (tester) async {
+          'the phone in it, the map full-window, the controls right beside '
+          'it at the top', (tester) async {
         testWideColumnSide = side;
         await _window(tester, size);
         await _pumpPlan(tester, size);
@@ -165,24 +176,44 @@ void main() {
         }
         expect(_rect(tester, find.byType(SharedMapHost)), Offset.zero & size);
         final controls = _rect(tester, find.byType(MapControls));
-        if (side == WideColumnSide.left) {
-          expect(controls.right, closeTo(size.width - 12, 1));
-        } else {
-          expect(controls.left, closeTo(12, 1));
-        }
+        _expectControlsBeside(controls, column, side);
         // The camera keeps a target in the map beside the column, clear of
-        // the controls.
+        // the controls beside it.
         final padding = visibleMapPadding(
           tester.element(find.byType(SearchField)),
           chromeTop: defaultMapControlsTop,
         );
-        if (side == WideColumnSide.left) {
-          expect(padding.left, greaterThanOrEqualTo(column.right));
-          expect(padding.right, greaterThanOrEqualTo(controls.width));
-        } else {
-          expect(padding.right, greaterThanOrEqualTo(size.width - column.left));
-          expect(padding.left, greaterThanOrEqualTo(controls.width));
-        }
+        // Only the column and the controls beside it on its side, the safe
+        // areas elsewhere, and a margin: the sheet, the search and the
+        // chips, all in the column, add nothing.
+        final besideColumn =
+            column.width +
+            widePanelMargin +
+            mapControlsWidth(tester.element(find.byType(SearchField))) +
+            24;
+        expect(
+          padding,
+          side == WideColumnSide.left
+              ? EdgeInsets.fromLTRB(besideColumn, 24 + 24, 24, 20 + 24)
+              : EdgeInsets.fromLTRB(24, 24 + 24, besideColumn, 20 + 24),
+        );
+        expect(
+          side == WideColumnSide.left ? padding.left : padding.right,
+          greaterThan(
+            side == WideColumnSide.left
+                ? controls.right
+                : size.width - controls.left,
+          ),
+        );
+        // Whatever the sheet's extent or the chrome's height.
+        expect(
+          visibleMapPadding(
+            tester.element(find.byType(SearchField)),
+            chromeTop: 300,
+            sheetExtent: 0.9,
+          ),
+          padding,
+        );
         await unmountApp(tester);
       });
     }
@@ -458,12 +489,11 @@ void main() {
           tester,
           _column(_foldSideways, side: side, left: left, right: right),
         );
-        final controls = _rect(tester, find.byType(MapControls));
-        if (side == WideColumnSide.left) {
-          expect(controls.right, closeTo(_foldSideways.width - right - 12, 1));
-        } else {
-          expect(controls.left, closeTo(left + 12, 1));
-        }
+        _expectControlsBeside(
+          _rect(tester, find.byType(MapControls)),
+          _column(_foldSideways, side: side, left: left, right: right),
+          side,
+        );
         await unmountApp(tester);
       });
     }
