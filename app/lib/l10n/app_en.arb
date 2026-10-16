@@ -2652,9 +2652,9 @@
   "@assistantTitle": {
     "description": "Title of the assistant sheet"
   },
-  "assistantIntro": "Describe the ride you have in mind. Velorki turns it into a request and plans the route on your phone.",
+  "assistantIntro": "Describe the ride you have in mind. Velorki turns it into a request and plans the route on this device.",
   "@assistantIntro": {
-    "description": "Subtitle of the assistant sheet"
+    "description": "Subtitle of the assistant sheet. 'This device': the phone, the tablet or, in the web planner, the browser; the route is computed locally there"
   },
   "assistantHint": "A hilly 60 km loop from here",
   "@assistantHint": {

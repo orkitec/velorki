@@ -8,8 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// keeps a library and exports, but it does not record a ride (no
 /// background location, no foreground service), so it does not navigate
 /// either; it has no store to sell Plus through, no Bluetooth sensors or
-/// health store, no native offline map packs, and the services' OAuth
-/// returns to an app link a page cannot receive.
+/// health store, no native offline map packs, no iCloud, and the services'
+/// OAuth returns to an app link a page cannot receive.
 @immutable
 class PlatformFeatures {
   /// Creates a feature set; everything is there unless said otherwise.
@@ -18,6 +18,7 @@ class PlatformFeatures {
     this.storePurchases = true,
     this.accountConnections = true,
     this.offlineMapAreas = true,
+    this.cloudSync = true,
   });
 
   /// A phone or a tablet.
@@ -29,6 +30,7 @@ class PlatformFeatures {
     storePurchases: false,
     accountConnections: false,
     offlineMapAreas: false,
+    cloudSync: false,
   );
 
   /// The Record tab, ride recording and turn-by-turn navigation with their
@@ -43,6 +45,9 @@ class PlatformFeatures {
 
   /// Downloading map areas for use offline.
   final bool offlineMapAreas;
+
+  /// Syncing the library through iCloud, where the platform has it (iOS).
+  final bool cloudSync;
 }
 
 /// The features of the device the app runs on. The one place that asks

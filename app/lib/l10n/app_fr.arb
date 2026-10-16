@@ -509,7 +509,7 @@
   "settingsSubscription": "Abonnement",
   "assistantAction": "Demander",
   "assistantTitle": "Demander un itinéraire",
-  "assistantIntro": "Décrivez la sortie que vous avez en tête. Velorki en fait une demande et calcule l’itinéraire sur votre téléphone.",
+  "assistantIntro": "Décrivez la sortie que vous avez en tête. Velorki en fait une demande et calcule l’itinéraire sur cet appareil.",
   "assistantHint": "Une boucle vallonnée de 60 km d’ici",
   "assistantExamples": "Par exemple",
   "assistantExampleFlatLoop": "Une boucle plate de 30 km d’ici",

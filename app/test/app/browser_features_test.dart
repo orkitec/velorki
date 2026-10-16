@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,8 @@ import 'package:velorki/app/router.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/offline/presentation/offline_entry.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
+import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
+import 'package:velorki/features/sync/presentation/cloud_sync_section.dart';
 
 import '../support/app.dart';
 
@@ -148,6 +151,25 @@ void main() {
       expect(find.text(gone.toUpperCase()), findsNothing, reason: gone);
     }
     expect(find.byType(OfflineEntry), findsNothing);
+    await _unmount(tester);
+  });
+
+  testWidgets('a browser on an Apple device gets no iCloud sync: no engine, '
+      'no setting', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    await _pumpBrowserShell(tester);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(NavigationBar)),
+    );
+    expect(container.read(cloudSyncBridgeProvider), isNull);
+    await tester.tap(
+      find.widgetWithText(NavigationDestination, l10n.tabSettings),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.settingsSync.toUpperCase()), findsNothing);
+    expect(find.byType(CloudSyncSection), findsNothing);
+    debugDefaultTargetPlatformOverride = null;
     await _unmount(tester);
   });
 }

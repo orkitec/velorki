@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../app/platform_features.dart';
 import '../domain/cloud_record.dart';
 import '../domain/cloud_sync_status.dart';
 
@@ -320,9 +321,11 @@ class MethodChannelCloudSyncBridge implements CloudSyncBridge {
   ];
 }
 
-/// The platform's sync engine, or null where there is none: iOS only.
+/// The platform's sync engine, or null where there is none: iOS only, and
+/// never in a browser (whose platform may say iOS too).
 @Riverpod(keepAlive: true)
 CloudSyncBridge? cloudSyncBridge(Ref ref) =>
-    defaultTargetPlatform == TargetPlatform.iOS && !kIsWeb
+    defaultTargetPlatform == TargetPlatform.iOS &&
+        ref.watch(platformFeaturesProvider).cloudSync
     ? MethodChannelCloudSyncBridge()
     : null;

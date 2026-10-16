@@ -509,7 +509,7 @@
   "settingsSubscription": "Suscripción",
   "assistantAction": "Preguntar",
   "assistantTitle": "Pide una ruta",
-  "assistantIntro": "Describe la salida que tienes en mente. Velorki la convierte en una petición y planifica la ruta en tu teléfono.",
+  "assistantIntro": "Describe la salida que tienes en mente. Velorki la convierte en una petición y planifica la ruta en este dispositivo.",
   "assistantHint": "Una ruta circular de 60 km con desnivel desde aquí",
   "assistantExamples": "Por ejemplo",
   "assistantExampleFlatLoop": "Una ruta circular llana de 30 km desde aquí",

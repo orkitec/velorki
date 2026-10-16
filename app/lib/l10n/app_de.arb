@@ -509,7 +509,7 @@
   "settingsSubscription": "Abo",
   "assistantAction": "Fragen",
   "assistantTitle": "Nach einer Route fragen",
-  "assistantIntro": "Beschreibe die geplante Fahrt. Velorki macht daraus eine Anfrage und plant die Route auf dem Handy.",
+  "assistantIntro": "Beschreibe die geplante Fahrt. Velorki macht daraus eine Anfrage und plant die Route auf diesem Gerät.",
   "assistantHint": "Eine hügelige 60-km-Runde von hier",
   "assistantExamples": "Zum Beispiel",
   "assistantExampleFlatLoop": "Eine flache 30-km-Runde von hier",
