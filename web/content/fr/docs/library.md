@@ -6,7 +6,7 @@ order: 10
 
 L’onglet Bibliothèque contient tout ce que vous avez gardé : les itinéraires que vous avez planifiés et les sorties que vous avez enregistrées. C’est une fiche posée sur la carte, comme les onglets Planifier et Enregistrer : son contenu défile à n’importe quelle hauteur et la poignée en haut la déplace ; quand il n’y a rien à faire défiler, c’est toute la fiche qui bouge. Tirez-la vers le haut pour plus de place, tirez-la tout en bas et elle se replie dans la barre de navigation en laissant la carte. C’est ici que vous rouvrez un itinéraire, lisez les graphiques et les tronçons d’une sortie, et faites entrer et sortir des fichiers.
 
-Tout ce qui est dans la bibliothèque est sur le téléphone. Il n’y a pas de compte et rien n’est synchronisé nulle part.
+Tout ce qui est dans la bibliothèque est sur le téléphone. Il n’y a pas de compte. Sur un iPhone ou un iPad, elle peut être synchronisée entre vos propres appareils par iCloud, voir plus bas [la synchronisation iCloud](#synchronisation-icloud-iphone-et-ipad).
 
 ## Itinéraires et Sorties
 
@@ -113,6 +113,14 @@ Les deux boutons à droite de l’en-tête de la fiche :
 - Le bouton nuage propose **Importer depuis Strava** et **Importer depuis Ride with GPS**, quand ces services sont configurés.
 
 Les deux sont décrits dans [importer et exporter](./import-and-export) et [Strava et Ride with GPS](./strava-and-ridewithgps).
+
+## Synchronisation iCloud (iPhone et iPad)
+
+Sur un iPhone ou un iPad sous iOS 17 ou plus récent, vos itinéraires enregistrés et vos sorties enregistrées, avec la trace, les notes et les chiffres de chaque sortie, sont synchronisés entre vos propres appareils connectés au même compte Apple, par votre iCloud. Quelques réglages suivent : thème, couleur d’accent, aspect de la carte, style de la barre, côté de la colonne, unités, ainsi que les réglages des annonces de virage et des annonces vocales. Velorki n’exploite aucun serveur pour cela et ne peut pas lire ce qui est stocké ; voir la [politique de confidentialité](/privacy).
+
+Elle est activée par défaut. **Synchroniser avec iCloud** dans les Réglages la désactive sur cet appareil ; ce qui est déjà dans iCloud y reste jusqu’à ce que vous le supprimiez dans les réglages iCloud de l’appareil. Une ligne d’état dans les Réglages indique où elle en est : **Synchronisé à l’instant**, **Synchronisation…**, **iCloud est désactivé sur cet appareil** ou **Le stockage iCloud est plein**.
+
+Les itinéraires lus depuis Strava et les itinéraires modifiés à partir d’eux restent sur le téléphone, tout comme les liens Strava des sorties ; les liens des envois vers Ride with GPS ne sont pas synchronisés non plus. Les cartes téléchargées et les tuiles de routage ne sont pas synchronisées. L’application Android ne synchronise pas.
 
 ## Voir aussi
 

@@ -33,6 +33,7 @@ import '../features/shared/application/active_tab.dart';
 import '../features/shared/application/nav_bar_docking.dart';
 import '../features/shared/application/shown_bar_style.dart';
 import '../features/subscription/presentation/paywall_screen.dart';
+import '../features/sync/application/cloud_sync_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'map_tab_page.dart';
 import 'shell_layout.dart';
@@ -256,6 +257,25 @@ class HomeShell extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.stravaRoutesRemoved(next))));
+    });
+    // A rider whose library was there before iCloud sync came is told
+    // once that it syncs now, and where to switch it off.
+    ref.listen(cloudSyncNoticeProvider, (previous, next) {
+      if (!next) return;
+      ref.read(cloudSyncNoticeProvider.notifier).dismiss();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.cloudSyncNotice),
+          duration: const Duration(seconds: 10),
+          action: SnackBarAction(
+            label: l10n.cloudSyncNoticeAction,
+            onPressed: () {
+              ref.read(activeTabProvider.notifier).show(settingsRoute);
+              context.go(settingsRoute);
+            },
+          ),
+        ),
+      );
     });
     ref.listen(stravaAccessLostNoticeProvider, (previous, next) {
       if (!next) return;

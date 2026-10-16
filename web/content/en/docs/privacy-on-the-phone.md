@@ -1,6 +1,6 @@
 ---
 title: Privacy on the phone
-description: "In rider's terms: what stays on your phone, what leaves it, when, and to whom. There is no account and nothing is uploaded unless you ask."
+description: "In rider's terms: what stays on your phone, what leaves it, when, and to whom. There is no account, and nothing reaches us unless you ask."
 order: 17
 ---
 
@@ -17,7 +17,7 @@ Everything you make and everything you download:
 - the access tokens for Strava and Ride with GPS if you connect them, which go into the phone's secure storage in a form only the Velorki relay can open, and are left out of backups.
 - what you take from Strava: your Strava name, the list of your Strava routes for at most 48 hours, the routes you import and the links from uploaded rides to their Strava activities. Disconnecting deletes all of it.
 
-None of it is uploaded anywhere unless you ask for it.
+None of it is uploaded anywhere unless you ask for it. The one exception is iCloud sync on an iPhone or iPad (iOS 17 or later): your routes, rides and a few settings go to your own iCloud, never to us, and Strava data stays on the phone. It is on by default and switched off in Settings, see [the library](./library#syncing-with-icloud-iphone-and-ipad).
 
 On Android, Velorki is deliberately left out of Google's cloud backup and out of device-to-device transfer, so your rides do not get copied off the phone by the system either. Moving to a new phone means exporting what you want to keep as GPX, FIT or TCX files, see [import and export](./import-and-export).
 

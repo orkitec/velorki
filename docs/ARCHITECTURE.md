@@ -159,7 +159,7 @@ from: it only ever calls `route()`.
 
 ## Data model
 
-Drift owns four tables, schema version 3. Connected accounts live in secure
+Drift owns five tables, schema version 11. Connected accounts live in secure
 storage, not in the database.
 
 - **`routes`** — id (uuid), name, description, `source`
@@ -174,6 +174,10 @@ storage, not in the database.
 - **`offline_regions`** — the downloaded MapLibre offline map regions.
 - **`routing_tiles`** — the rd5 segment tiles downloaded for on-device routing:
   name, bytes, `updated_at`, `format_version`, state.
+- **`sync_records`** — the iCloud outbox, one row per route and ride, written
+  by SQLite triggers on `routes` and `rides` (`core/db/sync_triggers.dart`):
+  last change time, a version, dirty and tombstone flags, the CloudKit system
+  fields, a ride's route link still waiting for its route.
 
 ## Key flows
 
@@ -353,6 +357,21 @@ cached for 48 hours, a client-side bucket keeps reads under 90 per 15 minutes, a
 AI descriptions are refused for `source == strava`. Strava's API cannot create
 routes, so sending one *to* Strava is "export GPX, then share"; Komoot and
 Garmin are file-based only.
+
+**iCloud sync.** iOS 17 and later, on by default (Settings → iCloud), nothing
+on Android. `ios/Runner/CloudSync.swift` runs CKSyncEngine on the private
+database's `Library` zone (container `iCloud.com.orkitec.velorki`) and keeps
+its state in Application Support; the rows stay in Drift, so the engine asks
+Dart for each record as it sends and hands every fetched change to Dart,
+waiting for it to be written (`features/sync`, channel `velorki/cloud_sync`).
+The triggers mark every write, whatever path made it; the record format is
+`RecordCodec` (versioned fields, the track and other large columns as one
+gzip JSON asset). The newer change wins per record, the server's copy on a
+tie; a delete from elsewhere loses to a local change not yet sent. Strava
+routes and every upload link stay on the phone, partner ids too. Another
+account, a sign-out or a reset zone resends the library as new and never
+deletes it; data deleted from iCloud in Settings switches sync off. A few
+settings (`syncedSettingKeys`) go through the iCloud key-value store.
 
 **Smart loops.** `velorki_loops` is a pure algorithm, no model involved. From a
 `LoopRequest` three strategies generate candidates: `RoundtripStrategy` (BRouter

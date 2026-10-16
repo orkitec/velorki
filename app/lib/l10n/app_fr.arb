@@ -1223,5 +1223,22 @@
   "stravaAccessLostTitle": "Accès à Strava retiré",
   "stravaAccessLostBody": "Strava n’accepte plus l’accès de Velorki, Velorki a donc déconnecté Strava. Vos données Strava ont été effacées de ce téléphone. Reconnectez-vous dans Réglages → Connexions pour utiliser Strava.",
   "integrationAccessRevoked": "Le service n’accepte plus l’accès de Velorki. Reconnectez-vous dans Réglages → Connexions.",
-  "stravaRoutesRemoved": "{count, plural, =1{Un itinéraire venant de Strava a été supprimé : il n’existe plus sur Strava, ou n’a pas pu être vérifié pendant 7 jours.} other{{count} itinéraires venant de Strava ont été supprimés : ils n’existent plus sur Strava, ou n’ont pas pu être vérifiés pendant 7 jours.}}"
+  "stravaRoutesRemoved": "{count, plural, =1{Un itinéraire venant de Strava a été supprimé : il n’existe plus sur Strava, ou n’a pas pu être vérifié pendant 7 jours.} other{{count} itinéraires venant de Strava ont été supprimés : ils n’existent plus sur Strava, ou n’ont pas pu être vérifiés pendant 7 jours.}}",
+  "settingsSync": "iCloud",
+  "cloudSyncTitle": "Synchroniser avec iCloud",
+  "cloudSyncOff": "Les itinéraires, sorties et réglages restent sur cet appareil",
+  "cloudSyncSyncing": "Synchronisation…",
+  "cloudSyncJustNow": "Synchronisé à l’instant",
+  "cloudSyncMinutesAgo": "{minutes, plural, =1{Synchronisé il y a 1 min} other{Synchronisé il y a {minutes} min}}",
+  "cloudSyncHoursAgo": "{hours, plural, =1{Synchronisé il y a 1 heure} other{Synchronisé il y a {hours} heures}}",
+  "cloudSyncOnDate": "Synchronisé le {date}",
+  "cloudSyncWaiting": "En attente de synchronisation",
+  "cloudSyncNoAccount": "iCloud est désactivé sur cet appareil",
+  "cloudSyncRestricted": "iCloud est restreint sur cet appareil",
+  "cloudSyncQuota": "Le stockage iCloud est plein",
+  "cloudSyncOffline": "En attente d’une connexion",
+  "cloudSyncFailed": "Échec de la synchronisation, nouvel essai plus tard",
+  "cloudSyncHint": "Tes itinéraires, sorties et quelques réglages sur chaque iPhone et iPad connecté à ton compte Apple. Les itinéraires venant de Strava restent sur cet appareil",
+  "cloudSyncNotice": "Tes itinéraires et sorties se synchronisent désormais entre ton iPhone et ton iPad via iCloud",
+  "cloudSyncNoticeAction": "Réglages"
 }

@@ -1,6 +1,6 @@
 ---
 title: Privacy op de telefoon
-description: "In fietsertaal: wat er op je telefoon blijft, wat hem verlaat, wanneer en naar wie. Er is geen account en er wordt niets geüpload tenzij je erom vraagt."
+description: "In fietsertaal: wat er op je telefoon blijft, wat hem verlaat, wanneer en naar wie. Er is geen account en er komt niets bij ons tenzij je erom vraagt."
 order: 17
 ---
 
@@ -17,7 +17,7 @@ Alles wat je maakt en alles wat je downloadt:
 - de toegangstokens voor Strava en Ride with GPS als je die koppelt, die in de beveiligde opslag van de telefoon gaan in een vorm die alleen de Velorki-relay kan openen, en buiten back-ups worden gehouden.
 - wat je van Strava neemt: je Strava-naam, de lijst met je Strava-routes gedurende hooguit 48 uur, de routes die je importeert en de koppelingen van geüploade ritten naar hun Strava-activiteiten. Ontkoppelen verwijdert dat allemaal.
 
-Niets daarvan wordt ergens heen geüpload, tenzij je erom vraagt.
+Niets daarvan wordt ergens heen geüpload, tenzij je erom vraagt. De enige uitzondering is iCloud-synchronisatie op een iPhone of iPad (iOS 17 of nieuwer): je routes, ritten en een paar instellingen gaan naar je eigen iCloud, nooit naar ons, en Strava-gegevens blijven op de telefoon. Het staat standaard aan en gaat uit in Instellingen, zie [de bibliotheek](./library).
 
 Op Android is Velorki bewust uitgesloten van de cloudback-up van Google en van overzetten van apparaat naar apparaat, dus ook het systeem kopieert je ritten niet van de telefoon af. Overstappen op een nieuwe telefoon betekent wat je wilt houden exporteren als GPX-, FIT- of TCX-bestanden, zie [importeren en exporteren](./import-and-export).
 

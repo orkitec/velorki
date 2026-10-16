@@ -1,6 +1,6 @@
 ---
 title: Privacy sul telefono
-description: "In parole semplici: cosa resta sul tuo telefono, cosa lo lascia, quando e verso chi. Non c'è nessun account e nulla viene caricato se non lo chiedi."
+description: "In parole semplici: cosa resta sul tuo telefono, cosa lo lascia, quando e verso chi. Non c'è nessun account e nulla arriva a noi se non lo chiedi."
 order: 17
 ---
 
@@ -17,7 +17,7 @@ Tutto ciò che crei e tutto ciò che scarichi:
 - i token di accesso per Strava e Ride with GPS se li colleghi, che vanno nell'archivio sicuro del telefono in una forma che solo il relay di Velorki può aprire, e sono esclusi dai backup,
 - ciò che prendi da Strava: il tuo nome su Strava, l'elenco dei tuoi percorsi Strava per al massimo 48 ore, i percorsi che importi e i collegamenti dai giri caricati alle rispettive attività Strava. Disconnettere elimina tutto questo.
 
-Nulla di tutto questo viene caricato da nessuna parte se non lo chiedi.
+Nulla di tutto questo viene caricato da nessuna parte se non lo chiedi. L'unica eccezione è la sincronizzazione con iCloud su iPhone o iPad (iOS 17 o successivo): i tuoi percorsi, giri e alcune impostazioni vanno nel tuo iCloud, mai a noi, e i dati di Strava restano sul telefono. È attiva per impostazione predefinita e si disattiva nelle Opzioni, vedi [la libreria](./library).
 
 Su Android, Velorki è deliberatamente escluso dal backup cloud di Google e dal trasferimento da dispositivo a dispositivo, così i tuoi giri non vengono copiati fuori dal telefono nemmeno dal sistema. Passare a un nuovo telefono significa esportare quello che vuoi conservare come file GPX, FIT o TCX, vedi [importa ed esporta](./import-and-export).
 
