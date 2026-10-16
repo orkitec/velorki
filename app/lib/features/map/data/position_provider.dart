@@ -127,8 +127,14 @@ class GeolocatorPositionSource implements PositionSource {
   Stream<geo.Position> positions(geo.LocationSettings settings) =>
       geo.Geolocator.getPositionStream(locationSettings: settings);
 
+  /// The platform's last fix; `null` where it keeps none, the browser
+  /// (geolocator's web side throws for it), so a caller goes on to the
+  /// stream or a fresh fix instead of failing.
   @override
-  Future<geo.Position?> lastKnown() => geo.Geolocator.getLastKnownPosition();
+  Future<geo.Position?> lastKnown() async {
+    if (kIsWeb) return null;
+    return geo.Geolocator.getLastKnownPosition();
+  }
 
   @override
   Future<geo.Position?> current({
@@ -143,9 +149,10 @@ class GeolocatorPositionSource implements PositionSource {
           timeLimit: timeLimit,
         ),
       );
-    } on Object {
+    } on Object catch (e) {
       // Timeout, or the fix was cancelled by the OS; the caller falls back to
       // the last known position.
+      debugPrint('velorki: no position fix: $e');
       return null;
     }
   }

@@ -654,6 +654,7 @@
   "routingTilesDataNotice": "I riquadri sono grandi, spesso 125–250 MB ciascuno, e Velorki non distingue il Wi-Fi dai dati mobili. Avvia il download quando sei sotto Wi-Fi.",
   "routingTilesDownloadFailed": "Download non riuscito: {message}",
   "plannerMissingTiles": "Questo percorso richiede riquadri di routing che non sono su questo dispositivo.",
+  "plannerFetchingTiles": "Scaricamento dei dati di percorso per questa zona ({size})…",
   "settingsRouting": "Calcolo percorso",
   "settingsRoutingAuto": "Automatico",
   "settingsRoutingAutoDetail": "Su questo dispositivo dove i riquadri sono scaricati, sul server di routing altrove.",

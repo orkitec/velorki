@@ -654,6 +654,7 @@
   "routingTilesDataNotice": "Les tuiles sont volumineuses, souvent 125–250 Mo chacune, et Velorki ne sait pas distinguer le Wi-Fi des données mobiles. Lancez plutôt un téléchargement en Wi-Fi.",
   "routingTilesDownloadFailed": "Le téléchargement a échoué : {message}",
   "plannerMissingTiles": "Cet itinéraire nécessite des tuiles de routage absentes de cet appareil.",
+  "plannerFetchingTiles": "Chargement des données de routage de cette zone ({size})…",
   "settingsRouting": "Routage",
   "settingsRoutingAuto": "Automatique",
   "settingsRoutingAutoDetail": "Sur cet appareil partout où les tuiles sont téléchargées, sur le serveur de routage ailleurs.",

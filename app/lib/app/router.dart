@@ -463,23 +463,10 @@ class HomeShell extends ConsumerWidget {
           // resized across the line keeps the shell's state.
           final theme = Theme.of(context);
           final column = wideColumnOf(context);
-          // In a wide window the map's controls stand right beside the
-          // column, at its outer edge, as a phone has them at its right
-          // edge: on the column's left while it stands on the right.
-          final controlsLeft =
-              layout.widePanel &&
-              wideColumnSideOf(context) == WideColumnSide.right;
-          final media = MediaQuery.of(context);
-          final controlsLeftEdge = !layout.widePanel
-              ? 0.0
-              : controlsLeft
-              ? 0.0
-              : column.right - media.padding.left;
-          final controlsRightEdge = !layout.widePanel
-              ? 0.0
-              : controlsLeft
-              ? media.size.width - column.left - media.padding.right
-              : 0.0;
+          // The map's controls stand at the window's edge between the
+          // tab's chrome and its sheet, as on a phone; in a wide window at
+          // the edge the column stands at.
+          final controlsLeft = wideMapControlsAtLeft(context, layout);
           final snackBars = layout.widePanel
               ? theme.copyWith(
                   snackBarTheme: theme.snackBarTheme.copyWith(
@@ -562,18 +549,12 @@ class HomeShell extends ConsumerWidget {
                                     animation: columnGlide.animation,
                                     builder: (context, child) => Padding(
                                       padding: EdgeInsets.only(
-                                        // In a wide window the tabs' chrome
-                                        // is in their column, not over the
-                                        // controls.
-                                        top: layout.widePanel
-                                            ? defaultMapControlsTop
-                                            : columnGlide.animation.value,
-                                        left: controlsLeftEdge + 12,
-                                        right: controlsRightEdge + 12,
+                                        top: columnGlide.animation.value,
+                                        left: controlsLeft ? 12 : 0,
+                                        right: controlsLeft ? 0 : 12,
                                       ),
                                       child: Align(
-                                        alignment:
-                                            layout.widePanel != controlsLeft
+                                        alignment: controlsLeft
                                             ? Alignment.topLeft
                                             : Alignment.topRight,
                                         child: child,

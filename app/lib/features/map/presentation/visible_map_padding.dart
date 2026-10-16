@@ -17,20 +17,13 @@ double mapControlsWidth(BuildContext context) =>
     6 +
     12;
 
-/// What a wide window's column and the map's controls beside it take from
-/// the window's map, and the window's safe areas elsewhere: the free map is
-/// the rest. Read from the window, whatever [context]'s own media.
+/// What a wide window's column (with the map's controls over it) takes
+/// from the window's map, and the window's safe areas elsewhere: the free
+/// map is the rest. Read from the window, whatever [context]'s own media.
 EdgeInsets wideFreeMap(BuildContext context) {
   final screen = MediaQueryData.fromView(View.of(context));
-  final beside = wideMapBeside(context);
-  final controls = mapControlsWidth(context);
-  final free = EdgeInsets.only(
-    top: screen.viewPadding.top,
-    bottom: screen.viewPadding.bottom,
-  );
-  return wideColumnSideOf(context) == WideColumnSide.right
-      ? free.copyWith(left: beside.left, right: beside.right + controls)
-      : free.copyWith(left: beside.left + controls, right: beside.right);
+  return wideMapBeside(context)
+      .copyWith(top: screen.viewPadding.top, bottom: screen.viewPadding.bottom);
 }
 
 /// The padding a camera move or fit on the tab map at [context] uses so its

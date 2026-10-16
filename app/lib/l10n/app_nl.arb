@@ -654,6 +654,7 @@
   "routingTilesDataNotice": "Tegels zijn groot, vaak 125–250 MB per stuk, en Velorki kan wifi niet van mobiele data onderscheiden. Start een download als je op wifi zit.",
   "routingTilesDownloadFailed": "De download is mislukt: {message}",
   "plannerMissingTiles": "Deze route heeft routeringstegels nodig die niet op dit apparaat staan.",
+  "plannerFetchingTiles": "De routegegevens voor dit gebied worden geladen ({size})…",
   "settingsRouting": "Routering",
   "settingsRoutingAuto": "Automatisch",
   "settingsRoutingAutoDetail": "Op dit apparaat overal waar de tegels zijn gedownload, elders op de routeringsserver.",

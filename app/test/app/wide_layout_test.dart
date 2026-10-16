@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
@@ -123,13 +124,27 @@ void _expectPhoneIn(WidgetTester tester, Rect column) {
 
 /// The map's controls right beside [column] on the map's side, at the
 /// top below the safe area, as a phone has them at its right edge.
-void _expectControlsBeside(Rect controls, Rect column, WideColumnSide side) {
+void _expectControlsAtEdge(
+  WidgetTester tester,
+  Size size,
+  WideColumnSide side, {
+  double left = 0,
+  double right = 0,
+}) {
+  final controls = _rect(tester, find.byType(MapControls));
+  // At the window's edge on the column's side, 12 from its safe area.
   if (side == WideColumnSide.right) {
-    expect(controls.right, closeTo(column.left - 12, 1));
+    expect(controls.right, closeTo(size.width - right - 12, 1));
   } else {
-    expect(controls.left, closeTo(column.right + 12, 1));
+    expect(controls.left, closeTo(left + 12, 1));
   }
-  expect(controls.top, closeTo(24 + defaultMapControlsTop, 1));
+  // Under the chips, down towards the sheet, as on a phone: a sheet pulled
+  // up lies over them there too.
+  expect(
+    controls.top,
+    greaterThan(_rect(tester, find.byType(ProfileChipRow)).bottom),
+  );
+  expect(controls.top, lessThan(_sheet(tester).top));
 }
 
 Future<void> _pumpPlan(WidgetTester tester, Size size) =>
@@ -158,8 +173,8 @@ void main() {
       _foldSideways,
     ]) {
       testWidgets('a wide window of $size, the column on the ${side.name}: '
-          'the phone in it, the map full-window, the controls right beside '
-          'it at the top', (tester) async {
+          'the phone in it, the map full-window, the controls at its edge '
+          'between the chips and the sheet', (tester) async {
         testWideColumnSide = side;
         await _window(tester, size);
         await _pumpPlan(tester, size);
@@ -175,10 +190,8 @@ void main() {
           expect(chrome.right, lessThanOrEqualTo(column.right + 1));
         }
         expect(_rect(tester, find.byType(SharedMapHost)), Offset.zero & size);
-        final controls = _rect(tester, find.byType(MapControls));
-        _expectControlsBeside(controls, column, side);
-        // The camera keeps a target in the map beside the column, clear of
-        // the controls beside it.
+        _expectControlsAtEdge(tester, size, side);
+        // The camera keeps a target in the map beside the column.
         final padding = visibleMapPadding(
           tester.element(find.byType(SearchField)),
           chromeTop: defaultMapControlsTop,
@@ -186,24 +199,12 @@ void main() {
         // Only the column and the controls beside it on its side, the safe
         // areas elsewhere, and a margin: the sheet, the search and the
         // chips, all in the column, add nothing.
-        final besideColumn =
-            column.width +
-            widePanelMargin +
-            mapControlsWidth(tester.element(find.byType(SearchField))) +
-            24;
+        final besideColumn = column.width + widePanelMargin + 24;
         expect(
           padding,
           side == WideColumnSide.left
               ? EdgeInsets.fromLTRB(besideColumn, 24 + 24, 24, 20 + 24)
               : EdgeInsets.fromLTRB(24, 24 + 24, besideColumn, 20 + 24),
-        );
-        expect(
-          side == WideColumnSide.left ? padding.left : padding.right,
-          greaterThan(
-            side == WideColumnSide.left
-                ? controls.right
-                : size.width - controls.left,
-          ),
         );
         // Whatever the sheet's extent or the chrome's height.
         expect(
@@ -312,6 +313,93 @@ void main() {
       await unmountApp(tester);
     }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
   }
+
+  group('a full page in the column', () {
+    /// Pushes a page on [navigator] and checks it mid-way in: in a wide
+    /// window it fades, standing still in the column; on a phone it slides
+    /// in from the side as the platform has it.
+    Future<void> walk(
+      WidgetTester tester,
+      Future<void> Function() push,
+      Finder page, {
+      required Rect column,
+      required bool wide,
+    }) async {
+      unawaited(push());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      final rect = tester.getRect(page);
+      final fades = find.ancestor(
+        of: page,
+        matching: find.byType(FadeTransition),
+      );
+      if (wide) {
+        expect(rect.left, closeTo(column.left, 1));
+        expect(
+          tester
+              .widgetList<FadeTransition>(fades)
+              .any((f) => f.opacity.value > 0 && f.opacity.value < 1),
+          isTrue,
+        );
+      } else {
+        // Apple's page slides in from the right.
+        expect(rect.left, greaterThan(column.left + 10));
+      }
+      await tester.pumpAndSettle();
+      expect(tester.getRect(page).left, closeTo(column.left, 1));
+      Navigator.of(tester.element(page)).pop();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      if (wide) expect(tester.getRect(page).left, closeTo(column.left, 1));
+      await tester.pumpAndSettle();
+      expect(page, findsNothing);
+    }
+
+    for (final (size, wide) in const [(_air, true), (Size(402, 874), false)]) {
+      testWidgets(
+        wide
+            ? 'in a wide window fades in and out, as a tab does'
+            : 'on a phone slides as the platform has it',
+        (tester) async {
+          debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+          addTearDown(() => debugDefaultTargetPlatformOverride = null);
+          await _window(tester, size);
+          await _pumpPlan(tester, size);
+          await tester.pumpAndSettle();
+          final column = wide ? _column(size) : Offset.zero & size;
+          const page = Key('pushed page');
+          // On a tab's navigator, as the offline data from the planner.
+          await walk(
+            tester,
+            () => Navigator.of(tester.element(find.byType(SearchField))).push(
+              ColumnPageRoute<void>(builder: (_) => const Scaffold(key: page)),
+            ),
+            find.byKey(page),
+            column: column,
+            wide: wide,
+          );
+          // On the app's own, as a page over a sheet.
+          await walk(
+            tester,
+            () =>
+                Navigator.of(
+                  tester.element(find.byType(SearchField)),
+                  rootNavigator: true,
+                ).push(
+                  ColumnPageRoute<void>(
+                    builder: (_) => const Scaffold(key: page),
+                  ),
+                ),
+            find.byKey(page),
+            column: column,
+            wide: wide,
+          );
+          await unmountApp(tester);
+          debugDefaultTargetPlatformOverride = null;
+        },
+      );
+    }
+  });
 
   testWidgets('a page a tab pushes is over the map beside the column: the '
       'map takes no touch until it goes', (tester) async {
@@ -494,10 +582,12 @@ void main() {
           tester,
           _column(_foldSideways, side: side, left: left, right: right),
         );
-        _expectControlsBeside(
-          _rect(tester, find.byType(MapControls)),
-          _column(_foldSideways, side: side, left: left, right: right),
+        _expectControlsAtEdge(
+          tester,
+          _foldSideways,
           side,
+          left: left,
+          right: right,
         );
         await unmountApp(tester);
       });

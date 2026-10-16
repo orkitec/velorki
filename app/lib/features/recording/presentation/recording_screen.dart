@@ -2033,8 +2033,13 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                       child: BesideSheet(
                         child: Padding(
                           padding: EdgeInsets.only(
-                            left: 12,
-                            right: shellLayout.sideRail || shellLayout.widePanel
+                            // Clear of the controls at their edge.
+                            left: wideMapControlsAtLeft(context, shellLayout)
+                                ? mapControlsWidth(context) + 8
+                                : 12,
+                            right:
+                                shellLayout.sideRail ||
+                                    wideMapControlsAtLeft(context, shellLayout)
                                 ? 12
                                 : mapControlsWidth(context) + 8,
                             top: shellLayout.sideRail

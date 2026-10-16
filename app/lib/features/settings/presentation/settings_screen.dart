@@ -85,7 +85,7 @@ class SettingsScreen extends ConsumerWidget {
           const _SectionHeader.advanced(),
           if (features.offlineMapAreas) const OfflineEntry(),
           const SearchSettingsEntry(),
-          const _RoutingPreferenceSection(),
+          if (features.routingServer) const _RoutingPreferenceSection(),
           const _ServerUrlsSection(),
           const Divider(height: 32),
           const _SectionHeader.about(),
@@ -211,6 +211,7 @@ class _ServerUrlsSection extends ConsumerWidget {
     final overrides = ref.watch(serverOverridesProvider);
     final config = ref.watch(appConfigProvider);
     final notifier = ref.read(serverOverridesProvider.notifier);
+    final routingServer = ref.watch(platformFeaturesProvider).routingServer;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -222,12 +223,13 @@ class _ServerUrlsSection extends ConsumerWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ),
-        _UrlField(
-          label: l10n.settingsBrouterUrl,
-          value: overrides.brouterUrl,
-          hint: config.brouterUrl,
-          onChanged: notifier.setBrouterUrl,
-        ),
+        if (routingServer)
+          _UrlField(
+            label: l10n.settingsBrouterUrl,
+            value: overrides.brouterUrl,
+            hint: config.brouterUrl,
+            onChanged: notifier.setBrouterUrl,
+          ),
         _UrlField(
           label: l10n.settingsPhotonUrl,
           value: overrides.photonUrl,

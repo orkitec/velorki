@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -151,6 +152,10 @@ void main() {
       expect(find.text(gone.toUpperCase()), findsNothing, reason: gone);
     }
     expect(find.byType(OfflineEntry), findsNothing);
+    // It routes on its own: no choice of where, no routing server's address.
+    expect(find.text(l10n.settingsRouting), findsNothing);
+    expect(find.text(l10n.settingsBrouterUrl), findsNothing);
+    expect(find.text(l10n.settingsPhotonUrl), findsOneWidget);
     await _unmount(tester);
   });
 
@@ -171,5 +176,37 @@ void main() {
     expect(find.byType(CloudSyncSection), findsNothing);
     debugDefaultTargetPlatformOverride = null;
     await _unmount(tester);
+  });
+
+  testWidgets('a mouse drag scrolls where the browser says it may, and not '
+      'with the default behaviour', (tester) async {
+    expect(PlatformFeatures.browser.mouseDrags, isTrue);
+    expect(PlatformFeatures.device.mouseDrags, isFalse);
+    Future<double> dragged(ScrollBehavior? behavior) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          scrollBehavior: behavior,
+          home: ListView(
+            controller: controller,
+            children: [
+              for (var i = 0; i < 50; i++)
+                SizedBox(height: 50, child: Text('$i')),
+            ],
+          ),
+        ),
+      );
+      await tester.drag(
+        find.byType(ListView),
+        const Offset(0, -200),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pumpAndSettle();
+      return controller.offset;
+    }
+
+    expect(await dragged(null), 0);
+    expect(await dragged(const PointerDragScrollBehavior()), greaterThan(100));
   });
 }

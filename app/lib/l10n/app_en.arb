@@ -3399,6 +3399,15 @@
   "@plannerMissingTiles": {
     "description": "Planner banner when on-device routing lacks coverage"
   },
+  "plannerFetchingTiles": "Fetching the routing data for this area ({size})…",
+  "@plannerFetchingTiles": {
+    "description": "Planner banner in the web planner while the routing tiles a route needs are downloaded automatically; size is the download size, e.g. 180 MB",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "settingsRouting": "Routing",
   "@settingsRouting": {
     "description": "Settings group choosing where routes are computed"

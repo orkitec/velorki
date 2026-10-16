@@ -654,6 +654,7 @@
   "routingTilesDataNotice": "Kacheln sind groß, oft 125–250 MB pro Stück, und Velorki kann Wi-Fi nicht von mobilen Daten unterscheiden. Starte einen Download am besten im Wi-Fi.",
   "routingTilesDownloadFailed": "Der Download ist fehlgeschlagen: {message}",
   "plannerMissingTiles": "Diese Route braucht Routing-Kacheln, die nicht auf diesem Gerät sind.",
+  "plannerFetchingTiles": "Die Routendaten für dieses Gebiet werden geladen ({size}) …",
   "settingsRouting": "Routing",
   "settingsRoutingAuto": "Automatisch",
   "settingsRoutingAutoDetail": "Auf diesem Gerät überall dort, wo die Kacheln heruntergeladen sind, sonst auf dem Routing-Server.",

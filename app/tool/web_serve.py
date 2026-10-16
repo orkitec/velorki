@@ -22,12 +22,15 @@ import os
 import re
 import shutil
 import sys
+import threading
 import urllib.request
 
 POINTER = "https://raw.githubusercontent.com/orkitec/velorki-data/main/latest.json"
 RELEASES = "https://github.com/orkitec/velorki-data/releases/download/"
 TAG = re.compile(r"^tiles-\d{8}(-s\d+)?$")
 FILE = re.compile(r"^[EW]\d{1,3}_[NS]\d{1,2}\.(rd5|gaz)$|^manifest\.json$")
+LOCKS = {}
+LOCKS_GUARD = threading.Lock()
 AGENT = {"User-Agent": "velorki-web-serve (+https://github.com/orkitec/velorki)"}
 
 args = argparse.ArgumentParser()
@@ -121,17 +124,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404)
             return
         cached = os.path.join(opts.cache, tag, name)
-        if not os.path.isfile(cached):
-            os.makedirs(os.path.dirname(cached), exist_ok=True)
-            sys.stderr.write(f"fetching {tag}/{name} from GitHub…\n")
-            request = urllib.request.Request(f"{RELEASES}{tag}/{name}", headers=AGENT)
-            try:
-                with urllib.request.urlopen(request) as r, open(cached + ".part", "wb") as out:
-                    shutil.copyfileobj(r, out, 1 << 20)
-            except urllib.error.HTTPError as e:
-                self.send_error(e.code)
+        # One fetch per file: a second request for a file being fetched
+        # waits for it and is then served from the cache.
+        with LOCKS_GUARD:
+            lock = LOCKS.setdefault(cached, threading.Lock())
+        with lock:
+            if not os.path.isfile(cached):
+                self.fetch(tag, name, cached)
                 return
-            os.replace(cached + ".part", cached)
         size = os.path.getsize(cached)
         self.send_response(200)
         self.send_header("Content-Type", "application/octet-stream")
@@ -139,6 +139,36 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         with open(cached, "rb") as f:
             shutil.copyfileobj(f, self.wfile, 1 << 20)
+
+    def fetch(self, tag, name, cached):
+        """Streams the release asset to the browser as it arrives (a tile is
+        hundreds of MB; holding the answer back until it is all here runs
+        into the app's receive timeout) and into the cache. A browser that
+        goes away does not stop the cache from filling."""
+        os.makedirs(os.path.dirname(cached), exist_ok=True)
+        sys.stderr.write(f"fetching {tag}/{name} from GitHub…\n")
+        request = urllib.request.Request(f"{RELEASES}{tag}/{name}", headers=AGENT)
+        try:
+            r = urllib.request.urlopen(request)
+        except urllib.error.HTTPError as e:
+            self.send_error(e.code)
+            return
+        client = True
+        with r, open(cached + ".part", "wb") as out:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/octet-stream")
+            length = r.headers.get("Content-Length")
+            if length:
+                self.send_header("Content-Length", length)
+            self.end_headers()
+            while chunk := r.read(1 << 20):
+                out.write(chunk)
+                if client:
+                    try:
+                        self.wfile.write(chunk)
+                    except OSError:
+                        client = False
+        os.replace(cached + ".part", cached)
 
     def log_message(self, fmt, *a):
         sys.stderr.write("%s\n" % (fmt % a))

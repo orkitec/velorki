@@ -8,6 +8,7 @@ import '../features/settings/data/appearance_controller.dart';
 import '../features/settings/data/language_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../features/shared/presentation/gesture_zone_guard.dart';
+import 'platform_features.dart';
 import 'router.dart';
 import 'theme.dart';
 import '../features/shared/presentation/wide_panel.dart';
@@ -37,6 +38,9 @@ class VelorkiApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      scrollBehavior: ref.watch(platformFeaturesProvider).mouseDrags
+          ? const PointerDragScrollBehavior()
+          : null,
       // Modal sheets sit above the shell's own guard; the performance box,
       // when it is on, above everything. One backdrop group for the app:
       // the glass over the map (bar, search, column, chips) is the same blur

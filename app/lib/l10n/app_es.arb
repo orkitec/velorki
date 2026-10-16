@@ -654,6 +654,7 @@
   "routingTilesDataNotice": "Las teselas son grandes, a menudo de 125–250 MB cada una, y Velorki no distingue entre wifi y datos móviles. Empieza las descargas cuando estés con wifi.",
   "routingTilesDownloadFailed": "Falló la descarga: {message}",
   "plannerMissingTiles": "Esta ruta necesita teselas de rutas que no están en este dispositivo.",
+  "plannerFetchingTiles": "Descargando los datos de rutas de esta zona ({size})…",
   "settingsRouting": "Cálculo de rutas",
   "settingsRoutingAuto": "Automático",
   "settingsRoutingAutoDetail": "En este dispositivo donde haya teselas descargadas, en el servidor de rutas en el resto.",

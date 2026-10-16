@@ -6,6 +6,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/map/data/local_file_url.dart';
+import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki_io/io.dart';
 import 'package:velorki_io/memory_fs.dart';
 import 'package:velorki_io/worker.dart';
@@ -46,5 +47,10 @@ void main() {
     final data = Uint8List.fromList(List<int>.generate(2000, (i) => i % 13));
     expect(zlib.decode(zlib.encode(data)), data);
     expect(await runIsolated(() => 6 * 7), 42);
+  });
+
+  test('the browser keeps no last position: none is asked for, so the '
+      'position dot and locate go on to a fresh fix', () async {
+    expect(await const GeolocatorPositionSource().lastKnown(), isNull);
   });
 }

@@ -170,7 +170,9 @@ the gazetteer's SQLite (`gazetteer_sqlite_web.dart`), the app's directories
 and the routing worker (on the page's event loop: a browser has no isolates).
 `platformFeaturesProvider` is what screens ask before offering what a browser
 cannot do (recording and navigation, store purchases, Strava and Ride with
-GPS, offline map packs). Tiles come from the Pages Function under `/tiles/`
+GPS, offline map packs, the routing server: the browser routes on its own,
+and the tiles a route needs are fetched as soon as it needs them,
+`MissingTilesBanner`). Tiles come from the Pages Function under `/tiles/`
 (`deploy/cloudflare/`), so the mirror needs no CORS. `tool/web_assets.sh`
 fetches `sqlite3.wasm`, `drift_worker.js` and maplibre-gl-js before a build
 (`--no-web-resources-cdn`): the page's code comes from no CDN (only the

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/app/platform_features.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
+import 'package:velorki/features/routing_tiles/application/tile_download_controller.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_assets.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_storage.dart';
 import 'package:velorki/features/routing_tiles/data/segments_manifest_service.dart';
@@ -94,6 +96,50 @@ void main() {
     await unmountApp(tester);
   });
 
+  testWidgets('in a browser, which has no routing server, the tiles are '
+      'fetched at once, with their progress', (tester) async {
+    final backend = FakeRoutingBackend()
+      ..error = const RoutingException(
+        kind: RoutingErrorKind.missingTiles,
+        message: 'no tiles for this route',
+        missingTiles: <TileName>[_tile],
+      );
+    final queue = _RecordingQueue();
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: PlannerHarness(backend: backend),
+      extraOverrides: [
+        ..._overrides(storage),
+        platformFeaturesProvider.overrideWithValue(PlatformFeatures.browser),
+        tileDownloadQueueProvider.overrideWith(() => queue),
+      ],
+    );
+
+    h.map.onTap!(_a);
+    h.map.onTap!(_b);
+    await tester.pump(const Duration(milliseconds: 400));
+    // The manifest arrives, the tile is queued after that frame.
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    expect(queue.asked, <TileName>[_tile]);
+    expect(find.text(l10n.plannerFetchingTiles('145 MB')), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    // Nothing to tap: no download button, no screen to open.
+    expect(
+      find.text(l10n.routingTilesDownloadCount(1, '145 MB')),
+      findsNothing,
+    );
+
+    // A rebuild does not queue the tile again.
+    await tester.pump(const Duration(seconds: 1));
+    expect(queue.asked, <TileName>[_tile]);
+
+    await unmountApp(tester);
+  });
+
   testWidgets('any other failure is still reported as before', (tester) async {
     final backend = FakeRoutingBackend()
       ..error = const RoutingException(
@@ -120,4 +166,16 @@ void main() {
 
     await unmountApp(tester);
   });
+}
+
+/// A download queue that records what it is asked for and reports it as
+/// running, downloading nothing.
+class _RecordingQueue extends TileDownloadQueue {
+  final List<TileName> asked = <TileName>[];
+
+  @override
+  Future<void> enqueue(Iterable<SegmentEntry> entries) async {
+    asked.addAll(entries.map((e) => e.tile));
+    state = state.copyWith(current: asked.first);
+  }
 }

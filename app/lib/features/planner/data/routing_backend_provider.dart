@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
 import '../../../app/app_config.dart';
+import '../../../app/platform_features.dart';
 import '../../routing_tiles/data/on_device_routing.dart';
 import '../../routing_tiles/data/routing_preference_controller.dart';
 import '../../routing_tiles/domain/routing_preference.dart';
@@ -22,7 +23,8 @@ part 'routing_backend_provider.g.dart';
 ///   tile at all, so a route fails with `missingTiles` and the planner can
 ///   offer the download instead of claiming there is no routing server;
 /// * [BRouterHttpBackend] against `VELORKI_BROUTER_URL`, unless the rider
-///   chose [RoutingPreference.onDeviceOnly].
+///   chose [RoutingPreference.onDeviceOnly] or the platform asks no routing
+///   server ([PlatformFeatures.routingServer]: the browser).
 ///
 /// Which of the two answers a given query is the plan's rule, and lives in
 /// `velorki_brouter`: on-device when every tile the route's expanded bounding
@@ -35,7 +37,9 @@ part 'routing_backend_provider.g.dart';
 @Riverpod(keepAlive: true)
 RoutingBackend? routingBackend(Ref ref) {
   final config = ref.watch(effectiveConfigProvider);
-  final preference = ref.watch(routingPreferenceSettingProvider);
+  final preference = ref.watch(platformFeaturesProvider).routingServer
+      ? ref.watch(routingPreferenceSettingProvider)
+      : RoutingPreference.onDeviceOnly;
 
   final onDevice = preference.allowsLocal
       ? ref.watch(onDeviceRoutingProvider).value

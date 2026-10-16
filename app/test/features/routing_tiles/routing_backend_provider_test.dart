@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/app/platform_features.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_assets.dart';
@@ -39,6 +40,7 @@ void main() {
     String segmentsUrl = '',
     RoutingPreference preference = RoutingPreference.auto,
     bool withTile = false,
+    PlatformFeatures features = PlatformFeatures.device,
   }) async {
     if (withTile) {
       File('${storage.segments.path}/${_tile.fileName}')
@@ -63,6 +65,7 @@ void main() {
           AppConfig(brouterUrl: brouterUrl, segmentsUrl: segmentsUrl),
         ),
         velorkiDatabaseProvider.overrideWithValue(db),
+        platformFeaturesProvider.overrideWithValue(features),
         brouterStorageProvider.overrideWith((ref) async => storage),
         brouterProfilesProvider.overrideWith((ref) async => storage.profiles),
       ],
@@ -90,6 +93,24 @@ void main() {
     expect(composite.decide(_inTile).source, RoutingSource.remote);
     expect(composite.decide(_inTile).missingTiles, <TileName>[_tile]);
     expect(container.read(onDeviceRoutingActiveProvider), isFalse);
+  });
+
+  test('a browser never asks the routing server: a route without its tiles '
+      'asks for them, whatever the setting says', () async {
+    final container = await containerFor(
+      segmentsUrl: '/tiles/latest.json',
+      preference: RoutingPreference.serverOnly,
+      features: PlatformFeatures.browser,
+    );
+
+    final composite =
+        container.read(routingBackendProvider)! as CompositeRoutingBackend;
+
+    expect(composite.remote, isNull);
+    expect(composite.local, isNotNull);
+    final decision = composite.decide(_inTile);
+    expect(decision.source, isNot(RoutingSource.remote));
+    expect(decision.missingTiles, <TileName>[_tile]);
   });
 
   test('a downloaded tile moves the route onto the device', () async {

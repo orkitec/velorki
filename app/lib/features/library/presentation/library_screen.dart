@@ -27,6 +27,7 @@ import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
 import '../../shared/application/nav_bar_docking.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/sheet_header.dart';
@@ -457,8 +458,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   child: BesideSheet(
                     child: Padding(
                       padding: EdgeInsets.only(
-                        left: 12,
-                        right: geometry.sideways || geometry.layout.widePanel
+                        // Clear of the controls at their edge.
+                        left: wideMapControlsAtLeft(context, geometry.layout)
+                            ? mapControlsWidth(context) + 8
+                            : 12,
+                        right:
+                            geometry.sideways ||
+                                wideMapControlsAtLeft(context, geometry.layout)
                             ? 12
                             : mapControlsWidth(context) + 8,
                       ),

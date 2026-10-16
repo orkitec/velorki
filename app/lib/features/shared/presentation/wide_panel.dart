@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../../../app/shell_layout.dart';
+import '../../../app/tab_fade.dart';
 
 /// The air between a wide window's edge (its safe area) and the column.
 const double widePanelMargin = 16;
@@ -43,6 +44,13 @@ Rect wideColumnOf(BuildContext context) => wideColumnRect(
   MediaQueryData.fromView(View.of(context)),
   wideColumnSideOf(context),
 );
+
+/// Whether the map's controls stand at the window's left edge: in a wide
+/// window ([layout]) whose column stands on the left, where they are over
+/// the column's map between its chrome and its sheet, as at a phone's
+/// right edge. Everywhere else they stand at the right edge.
+bool wideMapControlsAtLeft(BuildContext context, ShellLayout layout) =>
+    layout.widePanel && wideColumnSideOf(context) == WideColumnSide.left;
 
 /// What the column and the window's safe areas take from either side of a
 /// wide window's map: the map in view is the rest, on the column's far
@@ -240,8 +248,25 @@ class ColumnPageRoute<T> extends MaterialPageRoute<T> {
 
   bool _wide = false;
 
+  /// Whether the window is a wide one, whichever navigator the page is on:
+  /// the page then fades in and out in the column, as a tab does there,
+  /// rather than sliding in from the side.
+  bool _wideWindow = false;
+
+  /// The page itself, kept through a change of transition when the window
+  /// is resized across the line.
+  final GlobalKey _pageKey = GlobalKey();
+
   @override
   bool get opaque => !_wide;
+
+  @override
+  Duration get transitionDuration =>
+      _wideWindow ? tabFadeDuration : super.transitionDuration;
+
+  @override
+  Duration get reverseTransitionDuration =>
+      _wideWindow ? tabFadeDuration : super.reverseTransitionDuration;
 
   /// Follows the window the page is laid out in: the map under the page is
   /// kept painted in a wide window, and let go elsewhere.
@@ -260,6 +285,7 @@ class ColumnPageRoute<T> extends MaterialPageRoute<T> {
     final context = navigator?.context;
     final view = context == null ? null : View.maybeOf(context);
     if (view != null) {
+      _wideWindow = _wideAt(view.physicalSize / view.devicePixelRatio);
       // As [_ColumnPage] decides: on the root navigator, not a tab's,
       // which is in the column already.
       _wide =
@@ -283,15 +309,32 @@ class ColumnPageRoute<T> extends MaterialPageRoute<T> {
     Animation<double> animation,
     Animation<double> secondaryAnimation,
     Widget child,
-  ) => _ColumnPage(
-    route: this,
-    child: super.buildTransitions(
-      context,
-      animation,
-      secondaryAnimation,
-      child,
-    ),
-  );
+  ) {
+    // The window's size, which the media here follows (in a tab's column
+    // too), so a resize builds this again.
+    MediaQuery.sizeOf(context);
+    final view = View.of(context);
+    _wideWindow = _wideAt(view.physicalSize / view.devicePixelRatio);
+    final page = KeyedSubtree(key: _pageKey, child: child);
+    return _ColumnPage(
+      route: this,
+      child: _wideWindow
+          // The tabs' own fade, for a page in the column.
+          ? FadeTransition(
+              opacity: CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOut,
+              ),
+              child: page,
+            )
+          : super.buildTransitions(
+              context,
+              animation,
+              secondaryAnimation,
+              page,
+            ),
+    );
+  }
 }
 
 /// A full page of the router's as a [ColumnPageRoute].
