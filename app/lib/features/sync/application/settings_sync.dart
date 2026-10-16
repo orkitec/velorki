@@ -53,7 +53,15 @@ class SettingsSync {
   /// Merges this device's settings with iCloud's.
   Future<void> start() async {
     final remote = await _bridge.readSettings(syncedSettingKeys);
-    final base = _base();
+    // An iCloud store with none of the values last agreed has not been
+    // reached (no account, a store not loaded yet), or was emptied: never
+    // taken as every setting put back to its default on another device,
+    // which would reset this one's. Merged as a first start instead: what
+    // is set here goes up.
+    final agreed = _base();
+    final base = remote.isEmpty && (agreed?.isNotEmpty ?? false)
+        ? null
+        : agreed;
     final push = <String, Object?>{};
     var applied = false;
     for (final key in syncedSettingKeys) {

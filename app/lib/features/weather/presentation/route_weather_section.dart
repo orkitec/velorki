@@ -31,6 +31,7 @@ import '../domain/route_weather_state.dart';
 import 'route_weather_strip.dart';
 import 'weather_digest_text.dart';
 import 'weather_keys.dart';
+import '../../shared/presentation/docking_sheet.dart';
 
 /// The weather on the way, in the planner's sheet under the surfaces and on
 /// a saved route's page.
@@ -618,35 +619,40 @@ Future<void> _showSources(
       builder: (context) {
         final l10n = AppLocalizations.of(context);
         final theme = Theme.of(context);
-        return SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            0,
-            20,
-            MediaQuery.paddingOf(context).bottom + 16,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(l10n.weatherSourcesTitle, style: theme.textTheme.titleLarge),
-              for (final source in sources) ...[
-                const SizedBox(height: 16),
-                Text(source.name, style: theme.textTheme.titleSmall),
-                const SizedBox(height: 4),
-                Text(source.licence, style: theme.textTheme.bodySmall),
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: TextButton(
-                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    onPressed: () {
-                      final url = Uri.tryParse(source.url);
-                      if (url != null) unawaited(open(url));
-                    },
-                    child: Text(source.url),
-                  ),
+        return ScrolledUnderLine(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              0,
+              20,
+              MediaQuery.paddingOf(context).bottom + 16,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.weatherSourcesTitle,
+                  style: theme.textTheme.titleLarge,
                 ),
+                for (final source in sources) ...[
+                  const SizedBox(height: 16),
+                  Text(source.name, style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 4),
+                  Text(source.licence, style: theme.textTheme.bodySmall),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton(
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                      onPressed: () {
+                        final url = Uri.tryParse(source.url);
+                        if (url != null) unawaited(open(url));
+                      },
+                      child: Text(source.url),
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         );
       },

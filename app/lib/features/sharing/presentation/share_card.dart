@@ -12,6 +12,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/domain/route_poi.dart';
 import '../../planner/presentation/route_format.dart';
 import '../data/share_service.dart';
+import '../../shared/presentation/docking_sheet.dart';
 
 /// The detail pages' one "Share" button: it opens the share card, where the
 /// services and the link are rows.
@@ -42,7 +43,9 @@ Future<void> showShareCard(
   useSafeArea: true,
   isScrollControlled: true,
   showDragHandle: true,
-  builder: (context) => ShareCard(title: title, rows: rows),
+  builder: (context) => ScrolledUnderLine(
+    child: ShareCard(title: title, rows: rows),
+  ),
 );
 
 /// The card itself: a title and one row per way out.

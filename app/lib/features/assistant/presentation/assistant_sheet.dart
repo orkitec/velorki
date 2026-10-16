@@ -1021,90 +1021,93 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
           // The platform's scrollbar, while the content scrolls and for a
           // moment when it grows past what the card shows, so an answer
           // under the fold is seen to be there.
-          child: NotificationListener<ScrollMetricsNotification>(
-            onNotification: _contentMetrics,
-            child: Scrollbar(
-              controller: _contentScroll,
-              thumbVisibility: _flashScrollbar ? true : null,
-              // Not a lazy list: a few rows, and an answer scrolled out of
-              // view must still be there to scroll back to.
-              child: SingleChildScrollView(
+          // A line under the handle while the content is scrolled.
+          child: ScrolledUnderLine(
+            child: NotificationListener<ScrollMetricsNotification>(
+              onNotification: _contentMetrics,
+              child: Scrollbar(
                 controller: _contentScroll,
-                // Its end clear of the floating bar upright, as the
-                // planner's card's list is.
-                padding: EdgeInsets.fromLTRB(20, 0, 20, bottomSafe + 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    header,
-                    if (loopMade) ...[
-                      AiAnswer(
-                        child: _RequestSummary(
-                          state: state,
-                          note: l10n.assistantLoopOnMap,
+                thumbVisibility: _flashScrollbar ? true : null,
+                // Not a lazy list: a few rows, and an answer scrolled out of
+                // view must still be there to scroll back to.
+                child: SingleChildScrollView(
+                  controller: _contentScroll,
+                  // Its end clear of the floating bar upright, as the
+                  // planner's card's list is.
+                  padding: EdgeInsets.fromLTRB(20, 0, 20, bottomSafe + 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      header,
+                      if (loopMade) ...[
+                        AiAnswer(
+                          child: _RequestSummary(
+                            state: state,
+                            note: l10n.assistantLoopOnMap,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      // Not having Plus is said first, where it is seen, rather
+                      // than under the answer it stands in for.
+                      if (notEntitled != null) ...[
+                        KeyedSubtree(
+                          key: _notEntitledKey,
+                          child: _ProblemRow(problem: notEntitled),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      // The field and Ask right under it, scrolling with the
+                      // rest as the planner's card's buttons do.
+                      KeyedSubtree(
+                        key: _fieldKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextField(
+                              // Keyed by mode, so each keeps its own text and undo.
+                              key: ValueKey(_mode),
+                              controller: _field,
+                              readOnly: locked,
+                              // Full width, two lines at least and up to four.
+                              minLines: 2,
+                              maxLines: 4,
+                              maxLength: 1000,
+                              // The count only once it matters: it took a line of
+                              // its own.
+                              buildCounter:
+                                  (
+                                    context, {
+                                    required currentLength,
+                                    required isFocused,
+                                    required maxLength,
+                                  }) => currentLength > 900
+                                  ? Text('$currentLength/$maxLength')
+                                  : null,
+                              textInputAction: TextInputAction.send,
+                              style: theme.textTheme.bodyLarge,
+                              decoration: InputDecoration(
+                                hintText: aboutRoute
+                                    ? l10n.assistantRouteHint
+                                    : l10n.assistantHint,
+                              ),
+                              onSubmitted: locked
+                                  ? null
+                                  : (_) => unawaited(_send()),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: actions,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      if (aboutRoute)
+                        ..._routeChildren(l10n, theme, advice, locked: locked)
+                      else
+                        ..._newRouteChildren(l10n, state, locked: locked),
                     ],
-                    // Not having Plus is said first, where it is seen, rather
-                    // than under the answer it stands in for.
-                    if (notEntitled != null) ...[
-                      KeyedSubtree(
-                        key: _notEntitledKey,
-                        child: _ProblemRow(problem: notEntitled),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    // The field and Ask right under it, scrolling with the
-                    // rest as the planner's card's buttons do.
-                    KeyedSubtree(
-                      key: _fieldKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TextField(
-                            // Keyed by mode, so each keeps its own text and undo.
-                            key: ValueKey(_mode),
-                            controller: _field,
-                            readOnly: locked,
-                            // Full width, two lines at least and up to four.
-                            minLines: 2,
-                            maxLines: 4,
-                            maxLength: 1000,
-                            // The count only once it matters: it took a line of
-                            // its own.
-                            buildCounter:
-                                (
-                                  context, {
-                                  required currentLength,
-                                  required isFocused,
-                                  required maxLength,
-                                }) => currentLength > 900
-                                ? Text('$currentLength/$maxLength')
-                                : null,
-                            textInputAction: TextInputAction.send,
-                            style: theme.textTheme.bodyLarge,
-                            decoration: InputDecoration(
-                              hintText: aboutRoute
-                                  ? l10n.assistantRouteHint
-                                  : l10n.assistantHint,
-                            ),
-                            onSubmitted: locked
-                                ? null
-                                : (_) => unawaited(_send()),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: actions,
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (aboutRoute)
-                      ..._routeChildren(l10n, theme, advice, locked: locked)
-                    else
-                      ..._newRouteChildren(l10n, state, locked: locked),
-                  ],
+                  ),
                 ),
               ),
             ),

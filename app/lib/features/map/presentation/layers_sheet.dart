@@ -21,6 +21,7 @@ import '../application/weather_map_binding.dart';
 import '../data/cycle_map_layers.dart';
 import '../data/map_preferences.dart';
 import '../data/weather_map_preferences.dart';
+import '../../shared/presentation/docking_sheet.dart';
 import '../domain/cycle_map.dart';
 import '../domain/weather_map.dart';
 import 'map_chrome.dart';
@@ -87,7 +88,7 @@ Future<void> showLayersSheet(
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    builder: (_) => LayersSheet(offer: offer),
+    builder: (_) => ScrolledUnderLine(child: LayersSheet(offer: offer)),
   ),
 );
 

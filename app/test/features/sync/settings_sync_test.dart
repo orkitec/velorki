@@ -99,6 +99,28 @@ void main() {
     expect(bridge.settingWrites, isEmpty);
   });
 
+  test('an iCloud store with nothing in it never resets the settings here, '
+      'however often the app starts', () async {
+    final (sync, prefs) = await device({
+      'appearance.mode': 'dark',
+      'appearance.bar': 'solid',
+      'appearance.column_side': 'right',
+    });
+    await sync.start();
+    // No account, or a store not there yet: nothing comes back.
+    bridge.settings.clear();
+
+    for (var launch = 0; launch < 3; launch++) {
+      await sync.start();
+      expect(prefs.getString('appearance.mode'), 'dark');
+      expect(prefs.getString('appearance.bar'), 'solid');
+      expect(prefs.getString('appearance.column_side'), 'right');
+    }
+    expect(applied, 0);
+    // And what is set here goes up again.
+    expect(bridge.settings['appearance.bar'], 'solid');
+  });
+
   test('device settings are not among those synced', () {
     for (final key in syncedSettingKeys) {
       expect(key, isNot(startsWith('map.camera')));

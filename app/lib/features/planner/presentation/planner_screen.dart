@@ -671,11 +671,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      builder: (context) => WaypointEditSheet(
-        index: index,
-        count: count,
-        initial: initial,
-        onSwap: onSwap,
+      builder: (context) => ScrolledUnderLine(
+        child: WaypointEditSheet(
+          index: index,
+          count: count,
+          initial: initial,
+          onSwap: onSwap,
+        ),
       ),
     ),
   );

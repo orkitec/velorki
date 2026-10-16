@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/links/link_opener.dart';
 import '../../../core/links/velorki_urls.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/docking_sheet.dart';
 
 /// Shows what connecting Strava means before Strava's page opens, as
 /// Strava's API policy asks: what is read, what is written, how, and how to
@@ -17,7 +18,8 @@ Future<bool> showStravaConsentSheet(BuildContext context) async =>
       useSafeArea: true,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => const StravaConsentSheet(),
+      builder: (context) =>
+          ScrolledUnderLine(child: const StravaConsentSheet()),
     ) ??
     false;
 

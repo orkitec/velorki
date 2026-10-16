@@ -15,6 +15,7 @@ import 'package:velorki/features/map/presentation/stops_ahead_line.dart';
 import 'package:velorki/features/map/presentation/visible_map_padding.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
+import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/search/presentation/search_field.dart'
     show gazetteerPoiKindLabel;
@@ -139,6 +140,41 @@ void main() {
   });
 
   group('the Layers sheet', () {
+    testWidgets('shows a line under its handle while its content is '
+        'scrolled, none at its top', (tester) async {
+      debugShellLayoutOverride = null;
+      await _screen(tester, const Size(375, 667));
+      await _pump(tester, stopsShown: true);
+      await _openSheet(tester);
+      final line = find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.byKey(scrolledUnderLineKey),
+      );
+      double opacity() => tester
+          .widget<AnimatedOpacity>(
+            find.descendant(of: line, matching: find.byType(AnimatedOpacity)),
+          )
+          .opacity;
+      expect(opacity(), 0);
+      // Right under the drag handle, as wide as the sheet.
+      expect(
+        tester.getRect(line).top,
+        greaterThan(tester.getRect(find.byType(BottomSheet)).top),
+      );
+      expect(
+        tester.getRect(line).width,
+        closeTo(tester.getRect(find.byType(BottomSheet)).width, 0.5),
+      );
+
+      await tester.drag(find.byType(LayersSheet), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(opacity(), 1);
+
+      await tester.drag(find.byType(LayersSheet), const Offset(0, 300));
+      await tester.pumpAndSettle();
+      expect(opacity(), 0);
+    });
+
     for (final size in <Size>[..._upright, ..._sideways]) {
       final label = '${size.width.toInt()}x${size.height.toInt()}';
 

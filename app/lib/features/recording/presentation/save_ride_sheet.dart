@@ -7,6 +7,7 @@ import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import 'recording_format.dart';
+import '../../shared/presentation/docking_sheet.dart';
 
 /// What the rider decided about the ride they have just finished.
 sealed class SaveRideOutcome {
@@ -55,7 +56,9 @@ Future<SaveRideOutcome> showSaveRideSheet(
     // The shell's floating navigation bar belongs to the branch navigator, so
     // a sheet opened there would sit under it.
     useRootNavigator: true,
-    builder: (context) => SaveRideSheet(defaultName: defaultName, stats: stats),
+    builder: (context) => ScrolledUnderLine(
+      child: SaveRideSheet(defaultName: defaultName, stats: stats),
+    ),
   );
   // Nothing but the buttons can close it, but a route that is torn down with
   // the screen must not decide anything: the recording is paused with its

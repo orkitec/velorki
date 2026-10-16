@@ -21,6 +21,7 @@ import '../../planner/presentation/route_format.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/covering_sheets.dart';
+import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/smart_loop_controller.dart';
 import '../data/loop_preferences.dart';
@@ -276,22 +277,25 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * 0.9,
       ),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          4,
-          20,
-          MediaQuery.viewPaddingOf(context).bottom + 16,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.loopMakeTitle, style: theme.textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            if (_closeRoute) ..._closeRouteBody(l10n, theme),
-            if (!_closeRoute) ..._makeLoopBody(l10n, theme),
-          ],
+      // A line under the handle while the content is scrolled.
+      child: ScrolledUnderLine(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            4,
+            20,
+            MediaQuery.viewPaddingOf(context).bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l10n.loopMakeTitle, style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 8),
+              if (_closeRoute) ..._closeRouteBody(l10n, theme),
+              if (!_closeRoute) ..._makeLoopBody(l10n, theme),
+            ],
+          ),
         ),
       ),
     );

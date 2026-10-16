@@ -533,7 +533,7 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
                                     padding: const EdgeInsets.only(
                                       top: sheetHandleDp,
                                     ),
-                                    child: content,
+                                    child: ScrolledUnderLine(child: content),
                                   ),
                                 ),
                               ),
@@ -695,3 +695,70 @@ class _ShellBorderPainter extends CustomPainter {
   bool shouldRepaint(_ShellBorderPainter old) =>
       old.radius != radius || old.color != color || old.hairline != hairline;
 }
+
+/// [child], a sheet's scrolling content under its handle, with a hairline
+/// along its top while the content is scrolled away from its start: the
+/// rider sees there is more above. At the start the line fades away.
+///
+/// Only the content's own scrolling counts, the nearest vertical list in
+/// [child]; moving the sheet itself does not.
+class ScrolledUnderLine extends StatefulWidget {
+  /// Creates the line over [child].
+  const ScrolledUnderLine({required this.child, super.key});
+
+  /// The content.
+  final Widget child;
+
+  @override
+  State<ScrolledUnderLine> createState() => _ScrolledUnderLineState();
+}
+
+class _ScrolledUnderLineState extends State<ScrolledUnderLine> {
+  bool _scrolled = false;
+
+  void _follow(ScrollMetrics metrics, int depth) {
+    if (depth != 0 || metrics.axis != Axis.vertical) return;
+    final scrolled = metrics.pixels > metrics.minScrollExtent + 0.5;
+    if (scrolled != _scrolled) setState(() => _scrolled = scrolled);
+  }
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      NotificationListener<ScrollMetricsNotification>(
+        onNotification: (notification) {
+          _follow(notification.metrics, notification.depth);
+          return false;
+        },
+        child: NotificationListener<ScrollUpdateNotification>(
+          onNotification: (notification) {
+            _follow(notification.metrics, notification.depth);
+            return false;
+          },
+          child: widget.child,
+        ),
+      ),
+      Positioned(
+        key: scrolledUnderLineKey,
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 1,
+        child: IgnorePointer(
+          child: AnimatedOpacity(
+            opacity: _scrolled ? 1 : 0,
+            duration: const Duration(milliseconds: 150),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+/// The key of a [ScrolledUnderLine]'s line, for tests.
+const Key scrolledUnderLineKey = ValueKey<String>('scrolled-under-line');

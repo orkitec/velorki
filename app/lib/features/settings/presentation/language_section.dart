@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/language_controller.dart';
+import '../../shared/presentation/docking_sheet.dart';
 
 /// What each shipped language calls itself. A language with no entry here is
 /// named by its code, which is ugly but never wrong.
@@ -51,7 +52,7 @@ Future<void> showLanguagePicker(BuildContext context) => showModalBottomSheet(
   useRootNavigator: true,
   showDragHandle: true,
   isScrollControlled: true,
-  builder: (_) => const _LanguageSheet(),
+  builder: (_) => ScrolledUnderLine(child: const _LanguageSheet()),
 );
 
 class _LanguageSheet extends ConsumerWidget {

@@ -19,6 +19,7 @@ import '../domain/place_links.dart';
 import '../domain/search_result.dart';
 import 'place_details_view.dart';
 import 'search_field.dart';
+import '../../shared/presentation/docking_sheet.dart';
 
 /// What the rider chose to do with a picked place on its card.
 enum PlaceAction {
@@ -84,12 +85,14 @@ Future<PlaceAction?> showPlaceCard(
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    builder: (_) => PlaceCard(
-      place: place,
-      actions: actions,
-      offRouteM: offRouteM,
-      riderPosition: riderPosition,
-      onCover: onCover,
+    builder: (_) => ScrolledUnderLine(
+      child: PlaceCard(
+        place: place,
+        actions: actions,
+        offRouteM: offRouteM,
+        riderPosition: riderPosition,
+        onCover: onCover,
+      ),
     ),
   ),
 );
@@ -292,39 +295,41 @@ class _PlaceCardState extends ConsumerState<PlaceCard> {
               useRootNavigator: true,
               useSafeArea: true,
               isScrollControlled: true,
-              builder: (sheet) => SingleChildScrollView(
-                padding: EdgeInsets.only(
-                  top: 20,
-                  bottom: 8 + MediaQuery.paddingOf(sheet).bottom,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                      child: Text(
-                        l10n.placeCardOpenInTitle,
-                        style: Theme.of(sheet).textTheme.titleMedium,
-                      ),
-                    ),
-                    for (final target in targets)
-                      ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 24,
+              builder: (sheet) => ScrolledUnderLine(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    top: 20,
+                    bottom: 8 + MediaQuery.paddingOf(sheet).bottom,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                        child: Text(
+                          l10n.placeCardOpenInTitle,
+                          style: Theme.of(sheet).textTheme.titleMedium,
                         ),
-                        leading: Icon(_targetIcon(target)),
-                        title: Text(_targetLabel(l10n, target)),
-                        onTap: () => Navigator.of(sheet).pop(target),
                       ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: TextButton(
-                        onPressed: () => Navigator.of(sheet).pop(),
-                        child: Text(l10n.commonCancel),
+                      for (final target in targets)
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                          ),
+                          leading: Icon(_targetIcon(target)),
+                          title: Text(_targetLabel(l10n, target)),
+                          onTap: () => Navigator.of(sheet).pop(target),
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: TextButton(
+                          onPressed: () => Navigator.of(sheet).pop(),
+                          child: Text(l10n.commonCancel),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
