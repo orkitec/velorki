@@ -365,10 +365,16 @@ against it, to see which converts better.
 `.github/workflows/store-assets.yml`, started by hand (Actions → store assets
 → Run workflow), runs `store_screenshots.sh` and then `--platform ipad` and `--platform duo` for the
 `locales` given, and with `preview` the preview too, on a macOS runner, one job
-per language (about half an hour per device). The artifacts
-`store-assets-ios-<locale>`, merged for the upload, hold `slides/set/` (both
-sizes, each language, its contact sheet), `ipad/slides/set/`, `duo/slides/set/`, `watch/` and
-`preview/<locale>/preview.mp4` with its poster. The `ios` and `android` inputs
+per language (about half an hour per device). Each device's set is kept as
+an artifact as soon as it is made, so a failure or a dying runner loses only
+the rest: `store-assets-ios-<locale>` (`slides/set/`, both sizes and the
+contact sheet, and `watch/`), `store-assets-ios-ipad-<locale>`
+(`ipad/slides/set/`), `store-assets-ios-duo-<locale>` (`duo/slides/set/`) and
+`store-assets-ios-preview-<locale>` (`preview/<locale>/preview.mp4` with its
+poster), all merged into one tree for the upload. Before the iPad, the Duo and
+the preview the simulators of the step before are shut down, and every three
+minutes the script logs memory, disk, the busiest processes and the booted
+simulators (`VELORKI_STORE_MONITOR`, seconds). The `ios` and `android` inputs
 choose the sets (`ios` the iPhone's, the iPad's and the Duo's); `android` (off by default) runs
 `--platform android` on an API 35 emulator on Ubuntu, one job per language
 (close to an hour each) into the artifacts `store-assets-android-<locale>`,

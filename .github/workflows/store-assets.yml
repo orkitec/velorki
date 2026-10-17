@@ -96,6 +96,10 @@ jobs:
       fail-fast: false
       matrix:
         locale: ${{ fromJSON(needs.locales.outputs.locales) }}
+    env:
+      # store_screenshots.sh prints memory, disk, the busiest processes, the
+      # booted simulators and the test's last line every three minutes.
+      VELORKI_STORE_MONITOR: "180"
 
     steps:
       # An upload that cannot happen should say so now, not after the capture.
@@ -213,6 +217,7 @@ jobs:
           key: store-tiles-W75_N40-${{ steps.snapshot.outputs.tag }}
 
       - name: Screenshots and slides
+        id: iphone
         working-directory: app
         env:
           LOCALES: ${{ matrix.locale }}
@@ -220,14 +225,44 @@ jobs:
           VELORKI_STORE_START_TIMEOUT: "1500"
         run: tool/store_screenshots.sh --locales "$LOCALES"
 
+      # Each platform's set is kept as soon as it is made, in an artifact of
+      # its own (store-assets-ios-*, merged again for the upload): a runner
+      # that dies later loses only what it was doing. A path's tree is kept
+      # from before its first wildcard, so `?pad` keeps the `ipad/` folder (a
+      # one-letter `[i]` counts as a literal there).
+      - name: Keep the iPhone set
+        if: ${{ !cancelled() && steps.iphone.outcome != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-${{ matrix.locale }}
+          path: |
+            app/build/store_screenshots/slides/set
+            app/build/store_screenshots/watch
+          if-no-files-found: ${{ steps.iphone.outcome == 'success' && 'error' || 'warn' }}
+          retention-days: 30
+
       - name: iPad screenshots and slides
+        id: ipad
         # Each platform's set stands on its own: one failing keeps the others.
         if: ${{ !cancelled() }}
         working-directory: app
         env:
           LOCALES: ${{ matrix.locale }}
           VELORKI_STORE_START_TIMEOUT: "1500"
-        run: tool/store_screenshots.sh --platform ipad --locales "$LOCALES"
+        # The simulators of the steps before (the iPhone's, the watch's) are
+        # shut down first, here and below: one at a time on a 7 GB runner.
+        run: |
+          xcrun simctl shutdown all || true
+          tool/store_screenshots.sh --platform ipad --locales "$LOCALES"
+
+      - name: Keep the iPad set
+        if: ${{ !cancelled() && steps.ipad.outcome != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-ipad-${{ matrix.locale }}
+          path: app/build/store_screenshots/?pad/slides/set
+          if-no-files-found: ${{ steps.ipad.outcome == 'success' && 'error' || 'warn' }}
+          retention-days: 30
 
       # The Duo needs an iOS 27.1 simulator runtime; the image may carry only
       # 27.0. Downloaded (several GB) for the Xcode selected above when no
@@ -243,46 +278,61 @@ jobs:
                            for r in json.load(sys.stdin)["runtimes"]))'
           }
           xcrun simctl list runtimes | grep '^iOS'
+          df -h / "$HOME"
           if ! has_duo; then
             echo "::notice::no iOS runtime with the iPhone Duo on the image; downloading the one for this Xcode"
             xcodebuild -downloadPlatform iOS
             xcrun simctl list runtimes | grep '^iOS'
+            df -h / "$HOME"
             has_duo || { echo "::error::still no iOS simulator runtime with the iPhone Duo"; exit 1; }
           fi
 
       # The Duo's inner display, unfolded (tool/duo_state.c), on a simulator
       # the script creates on the newest runtime that has the device.
       - name: iPhone Duo screenshots and slides
+        id: duo
         # Each platform's set stands on its own: one failing keeps the others.
         if: ${{ !cancelled() }}
+        # About 25 minutes on a Mac, the iPad's 40 here: a run past this is
+        # stuck, and ends with a log rather than with the runner.
+        timeout-minutes: 75
         working-directory: app
         env:
           LOCALES: ${{ matrix.locale }}
           VELORKI_STORE_START_TIMEOUT: "1500"
-        run: tool/store_screenshots.sh --platform duo --locales "$LOCALES"
+        run: |
+          xcrun simctl shutdown all || true
+          tool/store_screenshots.sh --platform duo --locales "$LOCALES"
+
+      - name: Keep the iPhone Duo set
+        if: ${{ !cancelled() && steps.duo.outcome != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-duo-${{ matrix.locale }}
+          path: app/build/store_screenshots/?uo/slides/set
+          if-no-files-found: ${{ steps.duo.outcome == 'success' && 'error' || 'warn' }}
+          retention-days: 30
 
       - name: Preview video
-        if: ${{ inputs.preview }}
+        id: preview
+        if: ${{ !cancelled() && inputs.preview }}
         working-directory: app
         env:
           LOCALES: ${{ matrix.locale }}
           VELORKI_STORE_START_TIMEOUT: "1500"
-        run: tool/store_screenshots.sh --preview --locales "$LOCALES"
+        run: |
+          xcrun simctl shutdown all || true
+          tool/store_screenshots.sh --preview --locales "$LOCALES"
 
-      # Also after a failed step: the sets made before it are kept (the job
-      # still fails, so nothing is uploaded to the store from it).
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: ${{ !cancelled() }}
+      - name: Keep the preview
+        if: ${{ !cancelled() && steps.preview.outcome != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-assets-ios-${{ matrix.locale }}
+          name: store-assets-ios-preview-${{ matrix.locale }}
           path: |
-            app/build/store_screenshots/slides/set
-            app/build/store_screenshots/ipad/slides/set
-            app/build/store_screenshots/duo/slides/set
-            app/build/store_screenshots/watch
-            app/build/store_screenshots/preview/*/preview*.mp4
-            app/build/store_screenshots/preview/*/poster*.png
-          if-no-files-found: error
+            app/build/store_screenshots/?review/*/preview*.mp4
+            app/build/store_screenshots/?review/*/poster*.png
+          if-no-files-found: ${{ steps.preview.outcome == 'success' && 'error' || 'warn' }}
           retention-days: 30
 
       - name: Mirror log
@@ -324,7 +374,8 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      # One artifact per language (store-assets-ios-<locale>), merged.
+      # One artifact per language and set (store-assets-ios-<locale>, -ipad-,
+      # -duo-, -preview-<locale>), merged into one tree.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: store-assets-ios-*

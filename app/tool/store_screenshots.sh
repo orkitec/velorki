@@ -69,6 +69,9 @@
 # under android/: raw/<theme>/<locale>/<screen>.png and slides/ (see
 # tool/store_slides.py --platform android).
 #
+# VELORKI_STORE_MONITOR=<seconds> logs memory, disk, the busiest processes and
+# the booted simulators that often (the workflow sets it).
+#
 # The run clears the library on that simulator; it is meant to be one kept for
 # this. Needs Xcode, mise (Flutter), python3 and Google Chrome; the map style
 # and its tiles come from the network.
@@ -211,7 +214,7 @@ unfold() {  # unfold <udid>
     # Read whole first: grep -q would end the pipe early, and devicectl's
     # broken pipe fails it under pipefail.
     displays="$(xcrun devicectl device info displays -d "$udid" 2> /dev/null || true)"
-    case "$displays" in *'LCD-1 (active)'*) return 0 ;; esac
+    case "$displays" in *'LCD-1 (active)'*) say "unfolded, the inner display active"; return 0 ;; esac
     sleep 1
   done
   xcrun devicectl device info displays -d "$udid" >&2 || true
@@ -387,9 +390,14 @@ print(",".join(c["clip"] + ":" + c["theme"] for c in json.load(open(sys.argv[1])
 
 MIRROR_PID=""
 SHUTTER_PID=""
+MONITOR_PID=""
 DEMO_SERIAL=""
 WORK="$(mktemp -d)"
 cleanup() {
+  if [ -n "$MONITOR_PID" ]; then
+    kill "$MONITOR_PID" 2> /dev/null || true
+    wait "$MONITOR_PID" 2> /dev/null || true
+  fi
   if [ -n "$SHUTTER_PID" ]; then
     kill "$SHUTTER_PID" 2> /dev/null || true
     wait "$SHUTTER_PID" 2> /dev/null || true
@@ -402,6 +410,34 @@ cleanup() {
   rm -rf "$WORK"
 }
 trap cleanup EXIT
+
+# Every VELORKI_STORE_MONITOR seconds (the workflow sets it), what the machine
+# is doing: memory, swap, disk, the busiest processes, the booted simulators
+# and the test's last line, so a runner that dies mid-capture leaves a trail.
+monitor() {
+  # Asleep in the background and waited for, so a TERM ends it at once.
+  local nap
+  trap 'kill "$nap" 2> /dev/null; exit 0' TERM
+  while true; do
+    sleep "$VELORKI_STORE_MONITOR" &
+    nap=$!
+    wait "$nap"
+    {
+      echo "--- $(date -u +%H:%M:%S) monitor"
+      memory_pressure -Q 2> /dev/null | tail -1
+      echo "swap: $(sysctl -n vm.swapusage 2> /dev/null)"
+      df -h / "$HOME" 2> /dev/null | awk 'NR == 1 || !seen[$0]++'
+      top -l 2 -s 1 -n 6 -o cpu -stats pid,command,cpu,mem 2> /dev/null | tail -7
+      xcrun simctl list devices booted 2> /dev/null | grep -v '^[=-]' || true
+      tail -n 1 "$WORK"/test-*.log 2> /dev/null | grep -v '^==>' | cut -c1-200 || true
+      echo "---"
+    } >&2
+  done
+}
+if [ "${VELORKI_STORE_MONITOR:-0}" -gt 0 ] 2> /dev/null; then
+  monitor &
+  MONITOR_PID=$!
+fi
 
 if [ "$CAPTURE" = 1 ]; then
   if ! command -v flutter > /dev/null; then
