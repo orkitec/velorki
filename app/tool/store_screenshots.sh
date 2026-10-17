@@ -199,12 +199,15 @@ unfold() {  # unfold <udid>
   fi
   xcrun simctl spawn "$udid" "$DUO_STATE" hinge 180
   xcrun simctl spawn "$udid" "$DUO_STATE" orientation portrait
+  local displays
   for _ in $(seq 1 60); do
-    if xcrun devicectl device info displays -d "$udid" 2> /dev/null | grep -q 'LCD-1 (active)'; then
-      return 0
-    fi
+    # Read whole first: grep -q would end the pipe early, and devicectl's
+    # broken pipe fails it under pipefail.
+    displays="$(xcrun devicectl device info displays -d "$udid" 2> /dev/null || true)"
+    case "$displays" in *'LCD-1 (active)'*) return 0 ;; esac
     sleep 1
   done
+  xcrun devicectl device info displays -d "$udid" >&2 || true
   die "the Duo's inner display never became active"
 }
 
