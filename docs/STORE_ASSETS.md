@@ -137,7 +137,8 @@ app/tool/store_screenshots.sh --platform duo [--locales en,de] [--themes light,d
 ```
 
 The same test on the simulator "Velorki Shots Duo" (an iPhone Duo on the
-newest iOS runtime, 27.1 or later; created on the first run), on its inner
+newest iOS runtime that has one, 27.1 or later; created on the first run; in
+CI the workflow downloads that runtime when the image lacks it), on its inner
 display unfolded and wide, 2853 × 2007, the size App Store Connect wants for
 the Duo. The simulator boots folded, and nothing in `simctl` unfolds it: after
 every boot the script builds `app/tool/duo_state.c` for the simulator and runs

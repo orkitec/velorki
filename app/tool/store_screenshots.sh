@@ -51,12 +51,12 @@
 #
 # --platform duo takes the same screens on the simulator "Velorki Shots Duo"
 # (VELORKI_STORE_SIM again takes a UDID), created as an iPhone Duo on the
-# newest iOS runtime (27.1 or later). It boots folded: after every boot
-# tool/duo_state.c, built for the simulator and run in it, opens the hinge to
-# 180 degrees and holds the device upright, which lays the inner display on
-# its side, and the pictures are of that display, 2853x2007 (the port of
-# `simctl io enumerate` that is 2007x2853). The slides are the iPad's set;
-# no watch or preview. Output under duo/. Never `simctl io <duo>
+# newest iOS runtime that has one (27.1 or later). It boots folded: after
+# every boot tool/duo_state.c, built for the simulator and run in it, opens
+# the hinge to 180 degrees and holds the device upright, which lays the inner
+# display on its side, and the pictures are of that display, 2853x2007 (the
+# port of `simctl io enumerate` that is 2007x2853). The slides are the iPad's
+# set; no watch or preview. Output under duo/. Never `simctl io <duo>
 # screenConfig`: it crash-loops SpringBoard.
 #
 # --platform android takes the screens the Play set uses (store/
@@ -154,13 +154,20 @@ for devices in json.load(sys.stdin)["devices"].values():
 ' "$SIM_NAME")"
   if [ -z "$udid" ]; then
     local runtime
+    # The newest runtime that has the device: the Duo needs iOS 27.1, and
+    # a runner can have only 27.0.
     runtime="$(xcrun simctl list runtimes -j | python3 -c '
 import json, sys
-ios = [r for r in json.load(sys.stdin)["runtimes"] if r["platform"] == "iOS" and r["isAvailable"]]
+kind = sys.argv[1]
+ios = [r for r in json.load(sys.stdin)["runtimes"] if r["platform"] == "iOS" and r["isAvailable"]
+       and any(d["identifier"] == kind for d in r.get("supportedDeviceTypes", []))]
 print(max(ios, key=lambda r: [int(p) for p in r["version"].split(".")])["identifier"] if ios else "")
-')"
-    [ -n "$runtime" ] || die "no iOS simulator runtime is installed (xcodebuild -downloadPlatform iOS)"
-    udid="$(xcrun simctl create "$SIM_NAME" "$SIM_TYPE" "$runtime")"
+' "$SIM_TYPE")"
+    [ -n "$runtime" ] || die "no installed iOS simulator runtime supports $SIM_TYPE (xcodebuild -downloadPlatform iOS; the iPhone Duo needs iOS 27.1 or later)"
+    # Command substitution does not inherit set -e: a failed create would
+    # go on with its message as the UDID.
+    udid="$(xcrun simctl create "$SIM_NAME" "$SIM_TYPE" "$runtime")" \
+      || die "could not create $SIM_NAME ($SIM_TYPE) on $runtime"
     say "created $SIM_NAME ($udid) on $runtime" >&2
   fi
   echo "$udid"

@@ -221,15 +221,40 @@ jobs:
         run: tool/store_screenshots.sh --locales "$LOCALES"
 
       - name: iPad screenshots and slides
+        # Each platform's set stands on its own: one failing keeps the others.
+        if: ${{ !cancelled() }}
         working-directory: app
         env:
           LOCALES: ${{ matrix.locale }}
           VELORKI_STORE_START_TIMEOUT: "1500"
         run: tool/store_screenshots.sh --platform ipad --locales "$LOCALES"
 
+      # The Duo needs an iOS 27.1 simulator runtime; the image may carry only
+      # 27.0. Downloaded (several GB) for the Xcode selected above when no
+      # installed runtime has the device, as the watchOS step does.
+      - name: iOS simulator runtime for the iPhone Duo
+        if: ${{ !cancelled() }}
+        run: |
+          has_duo() {
+            xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          sys.exit(not any(r["isAvailable"] and any(d["identifier"].endswith(".iPhone-Duo")
+                                                    for d in r.get("supportedDeviceTypes", []))
+                           for r in json.load(sys.stdin)["runtimes"]))'
+          }
+          xcrun simctl list runtimes | grep '^iOS'
+          if ! has_duo; then
+            echo "::notice::no iOS runtime with the iPhone Duo on the image; downloading the one for this Xcode"
+            xcodebuild -downloadPlatform iOS
+            xcrun simctl list runtimes | grep '^iOS'
+            has_duo || { echo "::error::still no iOS simulator runtime with the iPhone Duo"; exit 1; }
+          fi
+
       # The Duo's inner display, unfolded (tool/duo_state.c), on a simulator
-      # the script creates on the newest iOS runtime: 27.1 has the Duo.
+      # the script creates on the newest runtime that has the device.
       - name: iPhone Duo screenshots and slides
+        # Each platform's set stands on its own: one failing keeps the others.
+        if: ${{ !cancelled() }}
         working-directory: app
         env:
           LOCALES: ${{ matrix.locale }}
@@ -244,7 +269,10 @@ jobs:
           VELORKI_STORE_START_TIMEOUT: "1500"
         run: tool/store_screenshots.sh --preview --locales "$LOCALES"
 
+      # Also after a failed step: the sets made before it are kept (the job
+      # still fails, so nothing is uploaded to the store from it).
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: ${{ !cancelled() }}
         with:
           name: store-assets-ios-${{ matrix.locale }}
           path: |
