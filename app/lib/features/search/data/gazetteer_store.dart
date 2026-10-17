@@ -2583,7 +2583,9 @@ Future<GazetteerStore> gazetteerStore(Ref ref) async {
   }
   // In the browser SQLite is WebAssembly, fetched before the first file.
   await prepareGazetteerSqlite();
-  final store = GazetteerStore(directory, background: true);
+  // A browser has no isolates (and the worker could not see the files in
+  // the page's memory), so there the searches run on the page.
+  final store = GazetteerStore(directory, background: !kIsWeb);
   ref.onDispose(store.close);
   await store.refresh();
   if (directory != null) {
