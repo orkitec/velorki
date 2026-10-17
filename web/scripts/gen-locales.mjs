@@ -157,6 +157,7 @@ const SAME_AS_ENGLISH = new Map([
   ['footer.commit', 'same word, a git term'],
   ['cookies.footer', 'borrowed word'],
   ['nav.menu', 'same word in Dutch'],
+  ['nav.planner', 'same word in Dutch'],
   ['home.openSource.title', 'same words in Dutch'],
   ['footer.product', 'same word in Dutch'],
   ['home.features.sensors.panel.rpm', 'unit symbol; Spanish writes rpm too'],

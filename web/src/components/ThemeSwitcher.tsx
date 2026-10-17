@@ -1,7 +1,9 @@
 'use client';
 // SPDX-License-Identifier: AGPL-3.0-only
-// System / Light / Dark, next to the locale switcher: three buttons from `md`,
-// and below it one button that cycles the same three states. The choice lives
+// System / Light / Dark, next to the locale switcher: three buttons from `lg`,
+// and below it one button that cycles the same three states. (From `md` to
+// `lg` the row holds the five links, the Planner among them, and the three
+// buttons do not fit beside them in French or Italian.) The choice lives
 // in the reader's own browser and is applied by `data-theme` on <html>, which
 // globals.css reads; `ThemeScript` in the document puts the stored one back
 // before the first paint, so there is no flash of the wrong palette.
@@ -69,8 +71,9 @@ export function ThemeSwitcher() {
 
   return (
     <>
-      {/* Below `md` the three buttons would push the header past the narrowest
-          phone, so there the switch is one 44 px button that cycles. The icon
+      {/* Below `lg` the three buttons would push the header past the narrowest
+          phone, or past a 768 px tablet's row of links, so there the switch is
+          one 44 px button that cycles. The icon
           shows where it stands; the label has to say the rest. */}
       <button
         type="button"
@@ -78,7 +81,7 @@ export function ThemeSwitcher() {
         onClick={() => {
           remember(next);
         }}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line-soft text-muted transition-colors hover:text-fg md:hidden"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line-soft text-muted transition-colors hover:text-fg lg:hidden"
       >
         <Current width={18} height={18} />
       </button>
@@ -86,7 +89,7 @@ export function ThemeSwitcher() {
       <div
         role="group"
         aria-label={t('label')}
-        className="hidden items-center rounded-full border border-line-soft p-0.5 md:flex"
+        className="hidden items-center rounded-full border border-line-soft p-0.5 lg:flex"
       >
         {THEMES.map((value) => {
           const Glyph = ICONS[value];

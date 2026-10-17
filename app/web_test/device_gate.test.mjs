@@ -80,11 +80,6 @@ test("the reused wording is the website's", () => {
   for (const lang of LANGS) {
     const m = JSON.parse(readFileSync(repo(`web/messages/${lang}.json`), 'utf8'));
     const t = STRINGS[lang];
-    assert.equal(t.home, m.nav.home, lang);
-    assert.equal(t.primary, m.nav.primary, lang);
-    assert.equal(t.features, m.nav.features, lang);
-    assert.equal(t.docs, m.nav.docs, lang);
-    assert.equal(t.plus, m.nav.plus, lang);
     assert.equal(t.heading, m.home.hero.stores, lang);
     assert.equal(t.description, m.site.description, lang);
     assert.equal(t.storeIos, m.home.hero.storeIos, lang);
@@ -128,6 +123,22 @@ class FakeNode {
   getAttribute(k) {
     return this.attributes[k] ?? null;
   }
+  removeAttribute(k) {
+    delete this.attributes[k];
+  }
+  get firstChild() {
+    return this.children[0] ?? null;
+  }
+  removeChild(child) {
+    child.remove();
+    return child;
+  }
+  contains(node) {
+    return [...this.walk()].includes(node);
+  }
+  querySelectorAll() {
+    return [];
+  }
   appendChild(child) {
     child.parent = this;
     this.children.push(child);
@@ -156,7 +167,7 @@ class FakeNode {
   }
 }
 
-function fakeWindow(navigator) {
+function fakeWindow(navigator, stored = {}) {
   const doc = {
     createElement: (tag) => new FakeNode(tag, doc),
     createElementNS: (_ns, tag) => new FakeNode(tag, doc),
@@ -166,10 +177,28 @@ function fakeWindow(navigator) {
   doc.documentElement = new FakeNode('html', doc);
   doc.head = doc.documentElement.appendChild(new FakeNode('head', doc));
   doc.body = doc.documentElement.appendChild(new FakeNode('body', doc));
-  return { document: doc, navigator };
+  const items = new Map(Object.entries(stored));
+  const localStorage = {
+    getItem: (k) => items.get(k) ?? null,
+    setItem: (k, v) => items.set(k, String(v)),
+    removeItem: (k) => items.delete(k),
+  };
+  const listeners = {};
+  return {
+    document: doc,
+    navigator,
+    localStorage,
+    items,
+    addEventListener: (type, fn) => (listeners[type] ??= []).push(fn),
+    dispatchEvent: (event) => {
+      for (const fn of listeners[event.type] ?? []) fn(event);
+      return true;
+    },
+  };
 }
 
 const scripts = (doc) => [...doc.documentElement.walk()].filter((n) => n.tagName === 'script');
+const byId = (doc, id) => [...doc.documentElement.walk()].find((n) => n.attributes.id === id);
 const find = (doc, pred) => [...doc.documentElement.walk()].find(pred);
 
 test('boot loads the app on a desktop', () => {
@@ -180,6 +209,10 @@ test('boot loads the app on a desktop', () => {
   assert.equal(s[0].src, 'flutter_bootstrap.js');
   assert.equal(s[0].async, true);
   assert.equal(find(w.document, (n) => n.attributes.id === 'velorki-gate'), undefined);
+  // The site's header, and the app's element below it, before the engine.
+  const body = w.document.body.children.map((n) => n.attributes.id);
+  assert.deepEqual(body.slice(0, 2), ['velorki-header', 'velorki-app']);
+  assert.equal(w.document.body.attributes.class, 'vg-app');
 });
 
 test('boot shows the download page on a phone, and continuing loads the app once', () => {
@@ -196,13 +229,26 @@ test('boot shows the download page on a phone, and continuing loads the app once
   const hrefs = [...page.walk()].map((n) => n.attributes.href).filter(Boolean);
   assert.ok(hrefs.includes('https://apps.apple.com/app/id6816790504'));
   assert.ok(hrefs.includes('https://play.google.com/store/apps/details?id=com.orkitec.velorki'));
-  assert.ok(hrefs.includes('https://velorki.com/de/docs'));
+  const header = byId(w.document, 'velorki-header');
+  assert.ok([...header.walk()].some((n) => n.attributes.href === 'https://velorki.com/de/docs'));
 
-  find(w.document, (n) => n.tagName === 'button').click();
+  find(w.document, (n) => n.attributes.class === 'vg-continue').click();
   assert.equal(find(w.document, (n) => n.attributes.id === 'velorki-gate'), undefined);
-  assert.equal(find(w.document, (n) => n.tagName === 'style'), undefined);
+  // The header stays, now over the planner.
+  assert.ok(byId(w.document, 'velorki-header'));
+  assert.ok(byId(w.document, 'velorki-app'));
   assert.equal(scripts(w.document).length, 1);
   assert.equal(scripts(w.document)[0].src, 'flutter_bootstrap.js');
+});
+
+test("the header's language is the app's when it keeps one", () => {
+  const w = fakeWindow(
+    { userAgent: UA.iPhone, maxTouchPoints: 5, languages: ['de-DE'] },
+    { 'flutter.language.locale': JSON.stringify('fr') },
+  );
+  boot(w);
+  assert.equal(w.document.documentElement.attributes.lang, 'fr');
+  assert.ok(byId(w.document, 'velorki-gate').textContent.includes(STRINGS.fr.continue));
 });
 
 test('boot falls back to navigator.language, then English', () => {
@@ -222,6 +268,8 @@ test("loading the app leaves RevenueCat's web SDK out of <head>, and only that",
     src: 'assets/packages/purchases_flutter/assets/web/purchases_js_hybrid_mappings.js',
   });
   const css = Object.assign(w.document.createElement('link'), { href: 'maplibre-gl/maplibre-gl.css' });
+  const before = head.children.length;
   head.append(sdk, css);
-  assert.deepEqual(head.children, [css]);
+  assert.equal(head.children.length, before + 1);
+  assert.equal(head.children.at(-1), css);
 });

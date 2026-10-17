@@ -14,7 +14,8 @@ const LINKS: HeaderLink[] = [
   { href: '/de#features', label: 'Funktionen' },
   { href: '/de/docs', label: 'Doku' },
   { href: '/de/plus', label: 'Plus' },
-  { href: 'https://github.com/orkitec/velorki', label: 'GitHub', external: true },
+  { href: 'https://app.velorki.com', label: 'Planer', external: true },
+  { href: 'https://github.com/orkitec/velorki', label: 'GitHub', external: true, github: true },
 ];
 
 const DOWNLOAD: HeaderLink = { href: '/de/download', label: 'Download' };

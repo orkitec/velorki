@@ -16,6 +16,7 @@ import '../app_config.dart';
 import '../bootstrap.dart' show initLogging;
 import '../licenses.dart';
 import 'browser_download.dart';
+import 'header_bridge.dart';
 import 'platform_view_pointer_gate.dart';
 import 'web_file_store.dart';
 import 'web_glass_layer.dart';
@@ -55,6 +56,7 @@ Future<void> bootstrap() async {
 
   startSubscriptions(container);
   WebGlassLayer.install(container);
+  HeaderBridge.install(container);
   prepareOnDeviceRouting(container);
 
   runApp(

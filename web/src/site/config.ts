@@ -14,6 +14,9 @@ export const ORG_NAME = 'Orkitec';
 export const ORG_URL = 'https://orkitec.com';
 
 export const GITHUB_URL = 'https://github.com/orkitec/velorki';
+
+/** The web planner (the app in the browser, app/web), without a trailing slash. */
+export const PLANNER_URL = (process.env.NEXT_PUBLIC_PLANNER_URL || 'https://app.velorki.com').replace(/\/+$/, '');
 export const RELEASES_URL = `${GITHUB_URL}/releases`;
 export const SECURITY_EMAIL = 'ride@velorki.com';
 
