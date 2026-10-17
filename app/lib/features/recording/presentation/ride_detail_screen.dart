@@ -1114,10 +1114,15 @@ class RideHighlightChip extends ConsumerWidget {
                     child: const SizedBox.square(dimension: 10),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.onSurface,
+                  // Cut short rather than run under the map's controls.
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 4),

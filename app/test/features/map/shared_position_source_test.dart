@@ -140,4 +140,21 @@ void main() {
     expect(seen, isA<StateError>());
     await sub.cancel();
   });
+
+  test('with nothing cached by the platform, the last fix passed on is the '
+      'last known one', () async {
+    // A browser keeps no last fix the app can ask for; the locate button
+    // falls back to this one when a fresh fix does not come in time.
+    final inner = _CountingSource();
+    final source = SharedPositionSource(inner);
+    expect(await source.lastKnown(), isNull);
+
+    final sub = source.positions(mapLocationSettings).listen((_) {});
+    await _settle();
+    inner.emit(fakePosition(seconds: 1, meters: 10));
+    await _settle();
+    await sub.cancel();
+
+    expect(await source.lastKnown(), fakePosition(seconds: 1, meters: 10));
+  });
 }

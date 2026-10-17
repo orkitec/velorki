@@ -27,7 +27,8 @@ import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../map/presentation/map_chrome.dart';
-import '../../map/presentation/map_controls.dart' show mapControlButtonSize;
+import '../../map/presentation/map_controls.dart'
+    show mapControlButtonSize, mapControlsColumnHeight;
 import '../../map/presentation/visible_map_padding.dart';
 import '../../map/presentation/shared_map_host.dart';
 import '../../offline/presentation/offline_screen.dart';
@@ -248,6 +249,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
 
   /// The air left between the time control and the bar at rest.
   static const double _restingAirDp = 8;
+
+  /// The air a wide window's card at rest leaves under the map's controls.
+  static const double _controlsAirDp = 12;
 
   /// The most of the screen the resting sheet grows to for the time
   /// control, so the map keeps some room on a short screen.
@@ -1238,7 +1242,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     // tab: room for the variant chips is always there. Upright, where that
     // leaves the time control under Save out of view, as on a short
     // screen, as much more as it takes to show it.
-    final restingSheetSize = geometry.sideways || _restingContentDp <= 0
+    final grownSheetSize = geometry.sideways || _restingContentDp <= 0
         ? geometry.resting
         : math.max(
             geometry.resting,
@@ -1247,6 +1251,27 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               _maxRestingSheetSize,
             ),
           );
+    // Upright, the column stands under the rows that run over its side,
+    // beside the chips under them; the banner of a missing routing server
+    // runs the full width too, and the column goes under it. Sideways the
+    // controls are a row of their own at the top.
+    _ownControlsTop =
+        (geometry.sideways || !hasBackend ? _chromeHeight : _acrossHeight) + 12;
+    // In a wide window the card at rest stays clear of the whole control
+    // column under the chrome: in a short one (a foldable's inner screen
+    // on its side) the card grown for the time control reached over it.
+    // A phone keeps its sheet over the column's end, as it always had.
+    final restingSheetSize = geometry.layout.widePanel
+        ? math.min(
+            grownSheetSize,
+            geometry.restingBelow(
+              MediaQuery.viewPaddingOf(context).top +
+                  _ownControlsTop +
+                  mapControlsColumnHeight(context) +
+                  _controlsAirDp,
+            ),
+          )
+        : grownSheetSize;
     _restingSheetSize = restingSheetSize;
     final hasVariants = state.alternatives.length > 1;
     final hasRoute = state.result != null;
@@ -1284,9 +1309,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final stopsWanted = ref.watch(mapStopsPreferencesProvider);
     _stops.update(shown: stopsWanted.shown, kinds: stopsWanted.kinds);
     final sideways = ShellLayout.of(context).sideRail;
-    // A wide window's narrow column takes the compact top a phone turned
-    // sideways has: the profiles as a menu at the search's end.
-    final compactColumn = wideColumnCompactOf(context);
+    // A wide window's narrow column, and a short wide window, take the
+    // compact top a phone turned sideways has: the profiles as a menu at
+    // the search's end.
+    final compactColumn = wideCompactTopOf(context);
     // Whether the chips below the search run beside the map's control
     // column: upright, on a phone and in a wide window's column; sideways
     // the controls are in the row at the top.
@@ -1298,12 +1324,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       ShellLayout.of(context),
     );
     final besideControls = underColumn ? mapControlButtonSize + 14 : 0.0;
-    // Upright, the column stands under the rows that run over its side,
-    // beside the chips under them; the banner of a missing routing server
-    // runs the full width too, and the column goes under it. Sideways the
-    // controls are a row of their own at the top.
-    _ownControlsTop =
-        (sideways || !hasBackend ? _chromeHeight : _acrossHeight) + 12;
     final controlsTop = ref.read(mapControlsTopProvider);
     if (active && (controlsTop.target - _ownControlsTop).abs() >= 0.5) {
       // A change of this tab's own chrome, on screen: the column glides,
@@ -1471,7 +1491,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   : SafeArea(
                       bottom: false,
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                        // In a wide window flush with the column's edge,
+                        // as the controls and the card are.
+                        padding: wideChromeMargin(
+                          context,
+                          const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                        ),
                         child: Column(
                           key: _chromeKey,
                           // Only as tall as its rows, so its height is the

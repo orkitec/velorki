@@ -269,6 +269,37 @@ void main() {
       expect(await source.current(), isNull);
     });
 
+    test(
+      'a platform that never answers is no fix once the time is up',
+      () async {
+        // geolocator_web hands the browser the limit in microseconds where it
+        // wants milliseconds, so the browser's own timeout never came and the
+        // locate button spun on.
+        platform.currentHangs = true;
+
+        expect(
+          await source.current(timeLimit: const Duration(milliseconds: 50)),
+          isNull,
+        );
+      },
+    );
+
+    test('in a browser, the fix the map\'s stream already has is taken '
+        'rather than waited for', () async {
+      platform
+        ..freshPosition = _fixAt(48)
+        ..cachedPosition = _fixAt(47);
+      const browser = GeolocatorPositionSource(web: true);
+
+      expect((await browser.current())?.latitude, 48);
+      final asked = platform.settings.single;
+      expect(asked, isA<geo.WebSettings>());
+      expect((asked! as geo.WebSettings).maximumAge, webFixMaximumAge);
+      expect(asked.timeLimit, const Duration(seconds: 10));
+      // geolocator's web side throws for the last known position.
+      expect(await browser.lastKnown(), isNull);
+    });
+
     test('a location service switched off mid-request is no fix', () async {
       platform.currentError = const geo.LocationServiceDisabledException();
 

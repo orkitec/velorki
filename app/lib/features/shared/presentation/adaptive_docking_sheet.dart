@@ -216,6 +216,12 @@ class SheetGeometry {
     return math.min(sheetDockingRangeDp / length, room);
   }
 
+  /// The largest extent at which an upright sheet's top stays [topDp] or
+  /// more below the screen's top: a resting height kept clear of what
+  /// stands above it. Never less than the docked strip.
+  double restingBelow(double topDp) =>
+      length <= 0 ? resting : math.max(collapsed, (length - topDp) / length);
+
   /// Where the sheets rest: upright as [sheetRestingExtent] says; sideways
   /// as wide as an upright phone gives the content, beside the rail.
   double get resting => sideways

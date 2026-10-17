@@ -38,15 +38,25 @@ bool wideColumnCompact(double windowWidth) =>
     windowWidth - widePanelMargin - _regularColumnWidth(windowWidth) <
     windowWidth * wideMinMapShare;
 
-/// Whether the tab at [context] is in a compact column: the search then
-/// holds the route profiles as a menu at its end, as on a phone turned
-/// sideways, instead of a row of chips under it.
-bool wideColumnCompactOf(BuildContext context) {
+/// A wide window shorter than this gets the compact top. A foldable's
+/// inner screen on its side (669) has, under the search and a row of
+/// chips, too little height for the map's whole control column above the
+/// Plan card grown at rest for its time control; an iPad on its side (820)
+/// has enough.
+const double wideCompactTopHeight = 720;
+
+/// Whether the tab at [context] has the compact top: the search then holds
+/// the route profiles as a menu at its end, as on a phone turned sideways,
+/// instead of a row of chips under it. So in a compact column, and in a
+/// wide window shorter than [wideCompactTopHeight].
+bool wideCompactTopOf(BuildContext context) {
   if (!ShellLayout.of(context).widePanel) return false;
-  // The window's width: the media here may be the column's.
+  // The window's size: the media here may be the column's.
   MediaQuery.sizeOf(context);
   final view = View.of(context);
-  return wideColumnCompact(view.physicalSize.width / view.devicePixelRatio);
+  final window = view.physicalSize / view.devicePixelRatio;
+  return wideColumnCompact(window.width) ||
+      window.height < wideCompactTopHeight;
 }
 
 /// Where the column stands in a wide window described by [screen] (the
@@ -84,6 +94,24 @@ Rect wideColumnOf(BuildContext context) => wideColumnRect(
 /// right edge. Everywhere else they stand at the right edge.
 bool wideMapControlsAtLeft(BuildContext context, ShellLayout layout) =>
     layout.widePanel && wideColumnSideOf(context) == WideColumnSide.left;
+
+/// Whether the column of a wide window ([layout]) stands at one of the
+/// window's sides: the tab's chrome at its top, the map's controls and its
+/// card then share the column's edge at that side.
+bool wideColumnAtSide(BuildContext context, ShellLayout layout) =>
+    layout.widePanel && wideColumnSideOf(context) != WideColumnSide.centre;
+
+/// [margin], a phone's between the screen's sides and a map tab's chrome
+/// over the map, but with none on the column's outer side when the column
+/// stands at a side of a wide window ([wideColumnAtSide]): the chrome is
+/// flush with the column's edge there, as the map's controls and the card
+/// are.
+EdgeInsets wideChromeMargin(BuildContext context, EdgeInsets margin) {
+  if (!wideColumnAtSide(context, ShellLayout.of(context))) return margin;
+  return wideColumnSideOf(context) == WideColumnSide.left
+      ? margin.copyWith(left: 0)
+      : margin.copyWith(right: 0);
+}
 
 /// What the column and the window's safe areas take from either side of a
 /// wide window's map: the map in view is the rest, on the column's far

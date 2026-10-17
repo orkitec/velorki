@@ -2,15 +2,28 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
+import 'package:velorki/features/map/domain/visible_map.dart';
 import 'package:velorki/features/map/presentation/visible_map_padding.dart';
+import 'package:velorki/core/db/tables/routes.dart' show RouteSource;
+import 'package:velorki/features/planner/application/planner_controller.dart';
+import 'package:velorki/features/planner/domain/route_profile.dart';
+import 'package:velorki/features/planner/domain/routing_options.dart';
+import 'package:velorki/features/planner/domain/saved_route.dart';
+import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/planner/presentation/profile_chip_row.dart';
+import 'package:velorki/features/shared/presentation/stat_tile.dart';
+import 'package:velorki/features/recording/application/ride_highlight.dart';
+import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
+import 'package:velorki/features/recording/domain/ride_range.dart';
+import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/recording/presentation/live_figures_view.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/settings/presentation/settings_screen.dart';
@@ -122,26 +135,37 @@ void _expectPhoneIn(WidgetTester tester, Rect column) {
   expect(bar.bottom, lessThan(column.bottom));
 }
 
-/// The map's controls right beside [column] on the map's side, at the
-/// top below the safe area, as a phone has them at its right edge.
+/// The map's controls at [column]'s edge on the window's side, flush with
+/// the search, the chips and the sheet there, at the top below the safe
+/// area between the chrome and the sheet, as a phone has them at its right
+/// edge.
 void _expectControlsAtEdge(
   WidgetTester tester,
-  Size size,
-  WideColumnSide side, {
-  double left = 0,
-  double right = 0,
-}) {
+  Rect column,
+  WideColumnSide side,
+) {
   final controls = _rect(tester, find.byType(MapControls));
-  // At the window's edge on the column's side, 12 from its safe area.
-  if (side == WideColumnSide.right) {
-    expect(controls.right, closeTo(size.width - right - 12, 1));
-  } else {
-    expect(controls.left, closeTo(left + 12, 1));
+  final sheet = _sheet(tester);
+  // One edge for the controls, the search, the chips (in a regular
+  // column) and the card: the column's.
+  final chips = find.byType(ProfileChipRow);
+  final edges = [
+    controls,
+    _rect(tester, find.byType(SearchField)),
+    if (chips.evaluate().isNotEmpty) _rect(tester, chips),
+    sheet,
+  ];
+  for (final edge in edges) {
+    if (side == WideColumnSide.right) {
+      expect(edge.right, closeTo(column.right, 0.5));
+    } else {
+      expect(edge.left, closeTo(column.left, 0.5));
+    }
   }
   // Under the chips, down towards the sheet, as on a phone: a sheet pulled
   // up lies over them there too.
   expect(controls.top, greaterThan(_chromeBottom(tester)));
-  expect(controls.top, lessThan(_sheet(tester).top));
+  expect(controls.top, lessThan(sheet.top));
 }
 
 /// The bottom of the Plan tab's rows at the column's top: the chips, or in
@@ -199,7 +223,8 @@ void main() {
         _expectPhoneIn(tester, column);
         // The chips under the search; in a compact column the profiles are
         // the menu at the search's end instead.
-        final compact = wideColumnCompact(size.width);
+        final compact =
+            wideColumnCompact(size.width) || size.height < wideCompactTopHeight;
         expect(
           find.byType(ProfileChipRow),
           compact ? findsNothing : findsOneWidget,
@@ -216,7 +241,7 @@ void main() {
           expect(chrome.right, lessThanOrEqualTo(column.right + 1));
         }
         expect(_rect(tester, find.byType(SharedMapHost)), Offset.zero & size);
-        _expectControlsAtEdge(tester, size, side);
+        _expectControlsAtEdge(tester, column, side);
         // The camera keeps a target in the map beside the column.
         final padding = visibleMapPadding(
           tester.element(find.byType(SearchField)),
@@ -246,16 +271,18 @@ void main() {
     }
   }
 
-  for (final (name, size, compact) in const [
-    ('an iPad upright', _air, true),
-    ('an iPad on its side', _airSideways, false),
-    ('a foldable\'s inner screen upright', Size(669, 951), true),
-    ('a foldable\'s inner screen on its side', Size(951, 669), false),
-    ('an iPad Pro upright', _pro, false),
+  for (final (name, size, compact, compactTop) in const [
+    ('an iPad upright', _air, true, true),
+    ('an iPad on its side', _airSideways, false, false),
+    ('a foldable\'s inner screen upright', Size(669, 951), true, true),
+    // A regular column, but too short for the chips row over the whole
+    // control column and the card at rest.
+    ('a foldable\'s inner screen on its side', Size(951, 669), false, true),
+    ('an iPad Pro upright', _pro, false, false),
   ]) {
     testWidgets(
-      '$name: ${compact ? 'a compact column, the profiles a menu '
-                'at the search\'s end' : 'a regular column with the chips'}',
+      '$name: ${compact ? 'a compact column' : 'a regular column'}, '
+      '${compactTop ? 'the profiles a menu at the search\'s end' : 'the chips'}',
       (tester) async {
         await _window(tester, size);
         await _pumpPlan(tester, size);
@@ -267,11 +294,11 @@ void main() {
         _expectPhoneIn(tester, _column(size));
         expect(
           find.byType(ProfileDropdown),
-          compact ? findsOneWidget : findsNothing,
+          compactTop ? findsOneWidget : findsNothing,
         );
         expect(
           find.byType(ProfileChipRow),
-          compact ? findsNothing : findsOneWidget,
+          compactTop ? findsNothing : findsOneWidget,
         );
         // The map keeps at least its share of the width beside the column,
         // or as much as a compact column leaves.
@@ -299,8 +326,141 @@ void main() {
       await emitSnapshot(tester, h, _snapshot());
       await tester.pumpAndSettle();
       expect(_sheet(tester).width, closeTo(wideCompactColumnWidth, 1));
+      // The controls at the column's edge, flush with the card, as on Plan.
+      final column = _column(size);
+      expect(
+        _rect(tester, find.byType(MapControls)).left,
+        closeTo(column.left, 0.5),
+      );
+      expect(_sheet(tester).left, closeTo(column.left, 0.5));
       expect(find.byTooltip(l10n.recordingFinish), findsOneWidget);
       expect(tester.takeException(), isNull);
+      await unmountApp(tester);
+    });
+  }
+
+  for (final side in [WideColumnSide.left, WideColumnSide.right]) {
+    for (final size in const [Size(951, 669), _air, _airSideways]) {
+      testWidgets('a route fitted in a window of $size, the column on the '
+          '${side.name}: a good part of the map beside the column, at a '
+          'street-level zoom', (tester) async {
+        testWideColumnSide = side;
+        await _window(tester, size);
+        await _pumpPlan(tester, size);
+        await tester.pumpAndSettle();
+        final column = _column(size, side: side);
+        final context = tester.element(find.byType(SearchField));
+        // As the Plan tab asks, with a tall chrome and its sheet pulled
+        // high: in the column, neither takes anything from the map.
+        for (final padding in [
+          visibleMapPadding(context, chromeTop: defaultMapControlsTop),
+          visibleMapPadding(context, chromeTop: 300, sheetExtent: 0.9),
+        ]) {
+          final free = Rect.fromLTRB(
+            padding.left,
+            padding.top,
+            size.width - padding.right,
+            size.height - padding.bottom,
+          );
+          if (side == WideColumnSide.left) {
+            expect(free.left, greaterThan(column.right));
+          } else {
+            expect(free.right, lessThan(column.left));
+          }
+          expect(free.width, greaterThan(size.width * 0.35));
+          expect(free.height, greaterThan(size.height * 0.75));
+          // A 20 km ride across Madeira is fitted at a zoom a rider reads
+          // streets at, its middle in the free map.
+          final camera = fitCamera(
+            BoundingBox.fromPoints(const [
+              LatLng(32.65, -16.95),
+              LatLng(32.75, -16.80),
+            ]),
+            size: size,
+            padding: padding,
+          );
+          expect(camera.zoom, greaterThan(10));
+        }
+        await unmountApp(tester);
+      });
+    }
+  }
+
+  for (final side in [WideColumnSide.left, WideColumnSide.right]) {
+    testWidgets('a ride\'s highlight chip, the column on the ${side.name}: '
+        'clear of the controls', (tester) async {
+      testWideColumnSide = side;
+      await _window(tester, _air);
+      final harness = RecordingHarness();
+      final start = DateTime.utc(2026, 9, 12, 10);
+      var at = const LatLng(48, 11);
+      await RideRepository(harness.planner.db.ridesDao).finalizeRide(
+        rideId: 'ride-1',
+        name: 'Morning loop',
+        points: [
+          for (var i = 0; i <= 360; i++)
+            TrackPoint(
+              i == 0 ? at : at = destinationPoint(at, 0, 1000 / 180),
+              time: start.add(Duration(seconds: i)),
+            ),
+        ],
+        startedAt: start,
+        endedAt: start.add(const Duration(seconds: 360)),
+      );
+      await pumpRecordingApp(
+        tester,
+        initialLocation: rideDetailLocation('ride-1'),
+        harness: harness,
+        surfaceSize: _air,
+        expectTextFits: false,
+      );
+      await tester.pumpAndSettle();
+      ProviderScope.containerOf(tester.element(find.byType(MapControls)))
+          .read(rideHighlightProvider.notifier)
+          .set(
+            const RideRange(
+              startM: 0,
+              endM: 1000,
+              source: RideRangeSource.split,
+              index: 1,
+            ),
+          );
+      await tester.pumpAndSettle();
+      final chip = _rect(tester, find.byType(RideHighlightChip));
+      final controls = _rect(tester, find.byType(MapControls));
+      expect(chip.overlaps(controls), isFalse);
+      await unmountApp(tester);
+    });
+  }
+
+  for (final size in const [
+    Size(951, 669),
+    _airSideways,
+    _air,
+    Size(669, 951),
+  ]) {
+    testWidgets('$size: the map\'s whole control column in view above the '
+        'Plan card at rest, with and without a route', (tester) async {
+      await _window(tester, size);
+      await _pumpPlan(tester, size);
+      await tester.pumpAndSettle();
+      for (final route in [false, true]) {
+        if (route) {
+          // A route grows the card at rest for the time control under Save.
+          ProviderScope.containerOf(tester.element(find.byType(MapControls)))
+              .read(plannerControllerProvider.notifier)
+              .loadSavedRoute(_savedRoute());
+          await tester.pumpAndSettle();
+          expect(find.byType(StatTile), findsWidgets);
+        }
+        final controls = _rect(tester, find.byType(MapControls));
+        expect(
+          controls.bottom,
+          lessThanOrEqualTo(_sheet(tester).top - 12 + 0.5),
+          reason: 'route: $route',
+        );
+        expect(controls.top, greaterThan(_chromeBottom(tester)));
+      }
       await unmountApp(tester);
     });
   }
@@ -663,17 +823,14 @@ void main() {
         await _window(tester, _foldSideways, left: left, right: right);
         await _pumpPlan(tester, _foldSideways);
         await tester.pumpAndSettle();
-        _expectPhoneIn(
-          tester,
-          _column(_foldSideways, side: side, left: left, right: right),
-        );
-        _expectControlsAtEdge(
-          tester,
+        final column = _column(
           _foldSideways,
-          side,
+          side: side,
           left: left,
           right: right,
         );
+        _expectPhoneIn(tester, column);
+        _expectControlsAtEdge(tester, column, side);
         await unmountApp(tester);
       });
     }
@@ -718,3 +875,27 @@ void main() {
     await unmountApp(tester);
   });
 }
+
+/// A saved route of three points around Munich, to load into the planner.
+SavedRoute _savedRoute() => SavedRoute(
+  id: 'r1',
+  name: 'Isar loop',
+  source: RouteSource.planned,
+  profile: RouteProfile.trekking,
+  createdAt: DateTime(2026, 9, 1),
+  updatedAt: DateTime(2026, 9, 1),
+  distanceM: 13400,
+  ascentM: 80,
+  descentM: 80,
+  bounds: const BoundingBox(south: 48, west: 11, north: 48.1, east: 11.1),
+  geometryBlob: PackedTrack.encode(const [
+    TrackPoint(LatLng(48, 11)),
+    TrackPoint(LatLng(48.05, 11.05)),
+    TrackPoint(LatLng(48.1, 11.1)),
+  ]),
+  waypoints: const [
+    Waypoint(pos: LatLng(48, 11), name: 'Munich'),
+    Waypoint(pos: LatLng(48.1, 11.1), name: 'Grünwald'),
+  ],
+  options: const RoutingOptions(),
+);

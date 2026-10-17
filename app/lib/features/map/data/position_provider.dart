@@ -119,9 +119,24 @@ abstract interface class PositionSource {
   });
 }
 
+/// How old a browser's cached fix may be for [GeolocatorPositionSource.current]
+/// to take it.
+///
+/// While the map's own position stream runs, Chrome answers a request for a
+/// fix of age zero only with the next fix the stream produces, and a device
+/// that does not move produces none: the locate button spun until the time
+/// limit, which geolocator_web hands the browser in microseconds where it
+/// wants milliseconds (ten seconds became nearly three hours). The browser's
+/// cached fix is the stream's latest, so it is as good as a fresh one.
+const Duration webFixMaximumAge = Duration(minutes: 5);
+
 /// [PositionSource] over geolocator.
 class GeolocatorPositionSource implements PositionSource {
-  const GeolocatorPositionSource();
+  /// [web] picks the browser's settings; it is [kIsWeb] but for tests.
+  const GeolocatorPositionSource({this.web = kIsWeb});
+
+  /// Whether geolocator talks to a browser rather than a phone.
+  final bool web;
 
   @override
   Stream<geo.Position> positions(geo.LocationSettings settings) =>
@@ -132,7 +147,7 @@ class GeolocatorPositionSource implements PositionSource {
   /// stream or a fresh fix instead of failing.
   @override
   Future<geo.Position?> lastKnown() async {
-    if (kIsWeb) return null;
+    if (web) return null;
     return geo.Geolocator.getLastKnownPosition();
   }
 
@@ -142,13 +157,22 @@ class GeolocatorPositionSource implements PositionSource {
     geo.LocationAccuracy accuracy = geo.LocationAccuracy.high,
   }) async {
     try {
+      // Held to the limit here as well: the web plugin passes it on to the
+      // browser a thousand times too long (see [webFixMaximumAge]).
       return await geo.Geolocator.getCurrentPosition(
-        locationSettings: geo.LocationSettings(
-          accuracy: accuracy,
-          distanceFilter: mapLocationSettings.distanceFilter,
-          timeLimit: timeLimit,
-        ),
-      );
+        locationSettings: web
+            ? geo.WebSettings(
+                accuracy: accuracy,
+                distanceFilter: mapLocationSettings.distanceFilter,
+                timeLimit: timeLimit,
+                maximumAge: webFixMaximumAge,
+              )
+            : geo.LocationSettings(
+                accuracy: accuracy,
+                distanceFilter: mapLocationSettings.distanceFilter,
+                timeLimit: timeLimit,
+              ),
+      ).timeout(timeLimit);
     } on Object catch (e) {
       // Timeout, or the fix was cancelled by the OS; the caller falls back to
       // the last known position.

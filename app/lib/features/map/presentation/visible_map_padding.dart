@@ -9,13 +9,15 @@ import '../../shared/presentation/wide_panel.dart';
 import '../domain/visible_map.dart';
 import 'map_controls.dart';
 
-/// The control column's width at [context], glass and its margin included.
+/// The control column's width at [context], glass and its margin included:
+/// none in a wide window whose column stands at a side, where the controls
+/// stand at the column's edge.
 double mapControlsWidth(BuildContext context) =>
     (compactMapControls(context)
         ? compactMapControlButtonSize
         : mapControlButtonSize) +
     6 +
-    12;
+    (wideColumnAtSide(context, ShellLayout.of(context)) ? 0 : 12);
 
 /// What a wide window's column (with the map's controls over it) takes
 /// from the window's map, and the window's safe areas elsewhere: the free

@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
@@ -22,8 +23,10 @@ import 'package:velorki/features/import_export/application/incoming_import_liste
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/data/weather_map_preferences.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
+import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
+import 'package:velorki/features/map/presentation/visible_map_padding.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/planner/presentation/profile_chip_row.dart';
 import 'package:velorki/features/map/data/offline_regions_repository.dart';
@@ -361,6 +364,19 @@ Future<void> frameRoute(
   // The planner's own fit goes first; this one lands after it.
   await pumpFor(tester, const Duration(seconds: 2));
   final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+  final wide = _widePadding(tester);
+  if (wide != null) {
+    // In a wide window the route goes in the map beside the column, the
+    // names' room added at its sides; the phone's measures below would
+    // reach past the window there.
+    await container
+        .read(sharedMapControllerProvider)
+        ?.fitBounds(
+          BoundingBox.fromPoints([for (final point in line) point.pos]),
+          padding: wide.copyWith(left: wide.left + 64, right: wide.right + 48),
+        );
+    return;
+  }
   final chips = tester.getRect(find.byType(ProfileChipRow).first);
   final controls = tester.getRect(find.byType(MapControls).first);
   final sheet = tester.getRect(
@@ -399,15 +415,26 @@ Future<void> frameArea(
 }) async {
   if (glide == null) await pumpFor(tester, const Duration(seconds: 1));
   final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
-  final chips = tester.getRect(find.byType(ProfileChipRow).first);
-  final sheet = tester.getRect(
-    find
-        .descendant(
-          of: find.byType(PlannerScreen),
-          matching: find.byType(SheetHandle),
-        )
-        .first,
-  );
+  final wide = _widePadding(tester);
+  final EdgeInsets padding;
+  if (wide != null) {
+    // The map beside the column, which holds the chrome and the sheet.
+    padding = wide;
+  } else {
+    final chips = tester.getRect(find.byType(ProfileChipRow).first);
+    final sheet = tester.getRect(
+      find
+          .descendant(
+            of: find.byType(PlannerScreen),
+            matching: find.byType(SheetHandle),
+          )
+          .first,
+    );
+    padding = EdgeInsets.only(
+      top: chips.bottom,
+      bottom: screen.height - sheet.top,
+    );
+  }
   await container
       .read(sharedMapControllerProvider)
       ?.moveTo(
@@ -415,11 +442,16 @@ Future<void> frameArea(
         zoom: zoom,
         animate: glide != null,
         duration: glide,
-        padding: EdgeInsets.only(
-          top: chips.bottom,
-          bottom: screen.height - sheet.top,
-        ),
+        padding: padding,
       );
+}
+
+/// The app's own padding for the map beside the column in a wide window;
+/// `null` in a phone's layout.
+EdgeInsets? _widePadding(WidgetTester tester) {
+  final context = tester.element(find.byType(PlannerScreen).first);
+  if (!ShellLayout.of(context).widePanel) return null;
+  return visibleMapPadding(context, chromeTop: defaultMapControlsTop);
 }
 
 /// [route] coloured by the rain on the way, under the map's rain, the time

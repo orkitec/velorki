@@ -2011,7 +2011,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                       bottom: false,
                       child: BesideSheet(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: wideChromeMargin(
+                            context,
+                            const EdgeInsets.symmetric(horizontal: 12),
+                          ),
                           child: TurnBanner(progress: navigation),
                         ),
                       ),

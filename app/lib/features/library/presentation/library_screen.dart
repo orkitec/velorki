@@ -434,11 +434,23 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               if (highlight != null)
                 Positioned(
                   top: topInset + defaultMapControlsTop,
-                  left: 12,
-                  child: RideHighlightChip(
-                    range: highlight,
-                    onClear: () =>
-                        ref.read(rideHighlightProvider.notifier).set(null),
+                  // Clear of the controls at their edge, as the weather's
+                  // hints below.
+                  left: wideMapControlsAtLeft(context, geometry.layout)
+                      ? mapControlsWidth(context) + 8
+                      : 12,
+                  right:
+                      geometry.sideways ||
+                          wideMapControlsAtLeft(context, geometry.layout)
+                      ? 12
+                      : mapControlsWidth(context) + 8,
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: RideHighlightChip(
+                      range: highlight,
+                      onClear: () =>
+                          ref.read(rideHighlightProvider.notifier).set(null),
+                    ),
                   ),
                 ),
               // The rain's moment (this tab has no time control) and the

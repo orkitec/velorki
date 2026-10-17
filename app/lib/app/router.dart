@@ -467,6 +467,11 @@ class HomeShell extends ConsumerWidget {
           // tab's chrome and its sheet, as on a phone; in a wide window at
           // the edge the column stands at.
           final controlsLeft = wideMapControlsAtLeft(context, layout);
+          // A phone's margin; a column at a side of a wide window has them
+          // at its edge, with its chrome and its card.
+          final controlsEdge = wideColumnAtSide(context, layout)
+              ? widePanelMargin
+              : 12.0;
           final snackBars = layout.widePanel
               ? theme.copyWith(
                   snackBarTheme: theme.snackBarTheme.copyWith(
@@ -550,8 +555,8 @@ class HomeShell extends ConsumerWidget {
                                     builder: (context, child) => Padding(
                                       padding: EdgeInsets.only(
                                         top: columnGlide.animation.value,
-                                        left: controlsLeft ? 12 : 0,
-                                        right: controlsLeft ? 0 : 12,
+                                        left: controlsLeft ? controlsEdge : 0,
+                                        right: controlsLeft ? 0 : controlsEdge,
                                       ),
                                       child: Align(
                                         alignment: controlsLeft

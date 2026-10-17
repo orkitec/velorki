@@ -27,6 +27,7 @@ class SharedPositionSource implements PositionSource {
   StreamSubscription<geo.Position>? _subscription;
   geo.LocationSettings? _active;
   Future<void> _reconfiguring = Future<void>.value();
+  geo.Position? _last;
 
   /// The settings the platform stream currently runs with, or `null` when
   /// nobody is listening. For tests and the odd diagnostic.
@@ -49,8 +50,11 @@ class SharedPositionSource implements PositionSource {
     return controller.stream;
   }
 
+  /// The platform's last fix, else the last one this stream passed on: a
+  /// browser keeps none the app can ask for, but the map's stream has had
+  /// one.
   @override
-  Future<geo.Position?> lastKnown() => _inner.lastKnown();
+  Future<geo.Position?> lastKnown() async => await _inner.lastKnown() ?? _last;
 
   @override
   Future<geo.Position?> current({
@@ -80,6 +84,7 @@ class SharedPositionSource implements PositionSource {
           .positions(wanted)
           .listen(
             (position) {
+              _last = position;
               for (final r in List<_Request>.of(_requests)) {
                 r.controller.add(position);
               }

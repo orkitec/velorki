@@ -41,6 +41,16 @@ const double compactMapControlButtonSize = 38;
 /// search field that row is level with, whatever the screen's height.
 const double sidewaysMapControlButtonSize = 50;
 
+/// The height of the plain control column at [context] (locate, layers,
+/// the download where there is room, zoom in and out), glass included: what
+/// a screen keeps clear of under its chrome.
+double mapControlsColumnHeight(BuildContext context) {
+  final compact = compactMapControls(context);
+  final button = compact ? compactMapControlButtonSize : mapControlButtonSize;
+  // The buttons, the divider with its gaps, the glass's padding.
+  return (compact ? 4 : 5) * button + (compact ? 5 : 7) + 2 * (compact ? 3 : 5);
+}
+
 /// Whether the screen at [context] is short enough for the compact column.
 bool compactMapControls(BuildContext context) =>
     MediaQuery.sizeOf(context).height < compactMapControlsHeight;
