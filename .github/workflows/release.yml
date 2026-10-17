@@ -395,12 +395,12 @@ jobs:
         with:
           ref: ${{ needs.version.outputs.sha }}
       # The Xcode the app is built with (the Mac's too). The xcode-27 image
-      # also carries betas, whose builds the App Store refuses: name the
-      # release; 27.1 once its RC or final is on the image (iPhone Duo's
-      # whole inner screen needs the 27.1 SDK).
+      # also carries betas, whose builds the App Store refuses: name a
+      # release or release candidate. 27.1: the iPhone Duo's whole inner
+      # screen needs its SDK.
       - name: Select Xcode
         env:
-          XCODE_VERSION: "27.0"
+          XCODE_VERSION: "27.1"
         run: |
           xcode="/Applications/Xcode_${XCODE_VERSION}.app"
           [ -d "$xcode" ] || { echo "::error::no $xcode on the runner"; ls -d /Applications/Xcode*.app; exit 1; }
