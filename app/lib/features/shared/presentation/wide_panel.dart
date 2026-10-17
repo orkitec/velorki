@@ -11,10 +11,43 @@ import '../../../app/tab_fade.dart';
 const double widePanelMargin = 16;
 
 /// How wide the column of a wide window [windowWidth] wide is: about a
-/// phone held upright, never narrower than the narrowest (an iPhone SE),
-/// so every screen keeps the layout it was made for, and the rest is map.
-double widePanelWidth(double windowWidth) =>
+/// phone held upright, never narrower than an iPhone SE, so every screen
+/// keeps the layout it was made for, and the rest is map. Where that would
+/// leave the map too little ([wideColumnCompact]: an iPad upright, a
+/// foldable's inner screen upright) the column is the narrowest phone's,
+/// [wideCompactColumnWidth], with the compact top.
+double widePanelWidth(double windowWidth) => wideColumnCompact(windowWidth)
+    ? wideCompactColumnWidth
+    : _regularColumnWidth(windowWidth);
+
+double _regularColumnWidth(double windowWidth) =>
     (windowWidth * 0.38).clamp(375.0, 420.0);
+
+/// The width of a compact column: the narrowest phone's, which the app is
+/// laid out for already (an iPad's Slide Over window is as narrow).
+const double wideCompactColumnWidth = 320;
+
+/// The least share of a wide window's width the map beside a regular
+/// column is to have; with less the column is compact.
+const double wideMinMapShare = 0.55;
+
+/// Whether the column of a wide window [windowWidth] wide is compact: a
+/// regular column and its margin would leave the map less than
+/// [wideMinMapShare] of the width.
+bool wideColumnCompact(double windowWidth) =>
+    windowWidth - widePanelMargin - _regularColumnWidth(windowWidth) <
+    windowWidth * wideMinMapShare;
+
+/// Whether the tab at [context] is in a compact column: the search then
+/// holds the route profiles as a menu at its end, as on a phone turned
+/// sideways, instead of a row of chips under it.
+bool wideColumnCompactOf(BuildContext context) {
+  if (!ShellLayout.of(context).widePanel) return false;
+  // The window's width: the media here may be the column's.
+  MediaQuery.sizeOf(context);
+  final view = View.of(context);
+  return wideColumnCompact(view.physicalSize.width / view.devicePixelRatio);
+}
 
 /// Where the column stands in a wide window described by [screen] (the
 /// window's own metrics), on [side]: [widePanelMargin] from that side's

@@ -2529,33 +2529,47 @@ class _LivePanel extends ConsumerWidget {
         Row(
           children: [
             Expanded(
-              child: Row(
-                children: [
-                  // Gives way to the clock and the buttons, but only when
-                  // there is not room for all of it: on a narrow phone in a
-                  // language with a long word for it.
-                  Flexible(
-                    child: _StatusPill(
-                      label: status,
-                      // On a narrow phone "Auto-paused" leaves no room for
-                      // the clock: it is a pause all the same.
-                      shortLabel: snapshot.autoPaused && state.isPaused
-                          ? l10n.recordingStatusPaused
-                          : null,
-                      paused: state.isPaused,
+              child: LayoutBuilder(
+                builder: (context, constraints) => Row(
+                  children: [
+                    // Gives way to the clock and the buttons, but only when
+                    // there is not room for all of it: on a narrow phone in
+                    // a language with a long word for it.
+                    Flexible(
+                      child: _StatusPill(
+                        label: status,
+                        // On a narrow phone "Auto-paused" leaves no room for
+                        // the clock: it is a pause all the same.
+                        shortLabel: snapshot.autoPaused && state.isPaused
+                            ? l10n.recordingStatusPaused
+                            : null,
+                        paused: state.isPaused,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    formatClock(snapshot.elapsed),
-                    style: theme.textTheme.statMedium.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    const SizedBox(width: 12),
+                    // As it is wherever it fits; on the narrowest column
+                    // (a wide window's compact one, a phone 320 wide) made
+                    // smaller rather than pushed past the buttons.
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: math.max(0, constraints.maxWidth - 16),
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          formatClock(snapshot.elapsed),
+                          style: theme.textTheme.statMedium.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                        ),
+                      ),
                     ),
-                    maxLines: 1,
-                  ),
-                  // Clear of the play button even when the row is full.
-                  const SizedBox(width: 4),
-                ],
+                    // Clear of the play button even when the row is full.
+                    const SizedBox(width: 4),
+                  ],
+                ),
               ),
             ),
             _RoundAction(

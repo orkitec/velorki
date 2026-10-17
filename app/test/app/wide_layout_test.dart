@@ -140,15 +140,30 @@ void _expectControlsAtEdge(
   }
   // Under the chips, down towards the sheet, as on a phone: a sheet pulled
   // up lies over them there too.
-  expect(
-    controls.top,
-    greaterThan(_rect(tester, find.byType(ProfileChipRow)).bottom),
-  );
+  expect(controls.top, greaterThan(_chromeBottom(tester)));
   expect(controls.top, lessThan(_sheet(tester).top));
 }
 
-Future<void> _pumpPlan(WidgetTester tester, Size size) =>
-    pumpRecordingApp(tester, initialLocation: plannerRoute, surfaceSize: size);
+/// The bottom of the Plan tab's rows at the column's top: the chips, or in
+/// a compact column the search with the profiles at its end.
+double _chromeBottom(WidgetTester tester) {
+  final chips = find.byType(ProfileChipRow);
+  return _rect(
+    tester,
+    chips.evaluate().isNotEmpty ? chips : find.byType(SearchField),
+  ).bottom;
+}
+
+/// The Plan tab in a window of [size]. The test font draws every glyph a
+/// full em wide, so in a compact column, a phone's narrowest width, the
+/// search's hint counts as cut off where the app's own font fits (as for a
+/// phone at that width); checked on the simulator.
+Future<void> _pumpPlan(WidgetTester tester, Size size) => pumpRecordingApp(
+  tester,
+  initialLocation: plannerRoute,
+  surfaceSize: size,
+  expectTextFits: !wideColumnCompact(size.width),
+);
 
 void main() {
   setUp(() => debugShellLayoutOverride = null);
@@ -182,9 +197,20 @@ void main() {
         final column = _column(size, side: side);
         expect(find.byType(NavigationRail), findsNothing);
         _expectPhoneIn(tester, column);
+        // The chips under the search; in a compact column the profiles are
+        // the menu at the search's end instead.
+        final compact = wideColumnCompact(size.width);
+        expect(
+          find.byType(ProfileChipRow),
+          compact ? findsNothing : findsOneWidget,
+        );
+        expect(
+          find.byType(ProfileDropdown),
+          compact ? findsOneWidget : findsNothing,
+        );
         for (final chrome in [
           _rect(tester, find.byType(SearchField)),
-          _rect(tester, find.byType(ProfileChipRow)),
+          if (!compact) _rect(tester, find.byType(ProfileChipRow)),
         ]) {
           expect(chrome.left, greaterThanOrEqualTo(column.left));
           expect(chrome.right, lessThanOrEqualTo(column.right + 1));
@@ -218,6 +244,65 @@ void main() {
         await unmountApp(tester);
       });
     }
+  }
+
+  for (final (name, size, compact) in const [
+    ('an iPad upright', _air, true),
+    ('an iPad on its side', _airSideways, false),
+    ('a foldable\'s inner screen upright', Size(669, 951), true),
+    ('a foldable\'s inner screen on its side', Size(951, 669), false),
+    ('an iPad Pro upright', _pro, false),
+  ]) {
+    testWidgets(
+      '$name: ${compact ? 'a compact column, the profiles a menu '
+                'at the search\'s end' : 'a regular column with the chips'}',
+      (tester) async {
+        await _window(tester, size);
+        await _pumpPlan(tester, size);
+        await tester.pumpAndSettle();
+        final width = compact
+            ? wideCompactColumnWidth
+            : (size.width * 0.38).clamp(375.0, 420.0);
+        expect(widePanelWidth(size.width), width);
+        _expectPhoneIn(tester, _column(size));
+        expect(
+          find.byType(ProfileDropdown),
+          compact ? findsOneWidget : findsNothing,
+        );
+        expect(
+          find.byType(ProfileChipRow),
+          compact ? findsNothing : findsOneWidget,
+        );
+        // The map keeps at least its share of the width beside the column,
+        // or as much as a compact column leaves.
+        final map = size.width - widePanelMargin - width;
+        if (!compact) {
+          expect(map, greaterThanOrEqualTo(size.width * wideMinMapShare));
+        }
+        await unmountApp(tester);
+      },
+    );
+  }
+
+  for (final size in const [_air, Size(669, 951)]) {
+    testWidgets('a ride in the compact column of $size: the figures and the '
+        'buttons fit its width', (tester) async {
+      await _window(tester, size);
+      final h = await pumpRecordingApp(
+        tester,
+        surfaceSize: size,
+        // The test font's figures are wider than the app's; the layout
+        // must still hold, which an overflow would fail.
+        expectTextFits: false,
+      );
+      await tester.pumpAndSettle();
+      await emitSnapshot(tester, h, _snapshot());
+      await tester.pumpAndSettle();
+      expect(_sheet(tester).width, closeTo(wideCompactColumnWidth, 1));
+      expect(find.byTooltip(l10n.recordingFinish), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await unmountApp(tester);
+    });
   }
 
   testWidgets('the column in the middle, should it be wanted', (tester) async {
@@ -469,10 +554,10 @@ void main() {
       'into the figures bar at the column\'s bottom, as on a phone', (
     tester,
   ) async {
-    await _window(tester, _air);
-    final h = await pumpRecordingApp(tester, surfaceSize: _air);
+    await _window(tester, _airSideways);
+    final h = await pumpRecordingApp(tester, surfaceSize: _airSideways);
     await tester.pumpAndSettle();
-    final column = _column(_air);
+    final column = _column(_airSideways);
     _expectPhoneIn(tester, column);
     await tester.dragFrom(
       tester.getCenter(find.byType(SheetHandle)),
@@ -497,7 +582,7 @@ void main() {
     final figures = _glass(tester, find.byType(FiguresBar));
     expect(figures.left, closeTo(column.left + floatingBarSideMargin, 1));
     expect(figures.right, closeTo(column.right - floatingBarSideMargin, 1));
-    expect(figures.bottom, greaterThan(_air.height - 60));
+    expect(figures.bottom, greaterThan(_airSideways.height - 60));
     await unmountApp(tester);
   });
 

@@ -1284,6 +1284,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final stopsWanted = ref.watch(mapStopsPreferencesProvider);
     _stops.update(shown: stopsWanted.shown, kinds: stopsWanted.kinds);
     final sideways = ShellLayout.of(context).sideRail;
+    // A wide window's narrow column takes the compact top a phone turned
+    // sideways has: the profiles as a menu at the search's end.
+    final compactColumn = wideColumnCompactOf(context);
     // Whether the chips below the search run beside the map's control
     // column: upright, on a phone and in a wide window's column; sideways
     // the controls are in the row at the top.
@@ -1332,7 +1335,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       onFocusChanged: _onSearchFocus,
       bias: () => _map?.center,
       onDownloadArea: _openOfflineData,
-      trailing: sideways
+      trailing: sideways || compactColumn
           ? ({required compact}) => ProfileDropdown(
               selected: state.options.profile,
               onSelected: setProfile,
@@ -1482,12 +1485,16 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 search,
-                                const SizedBox(height: 10),
-                                ProfileChipRow(
-                                  glass: true,
-                                  selected: state.options.profile,
-                                  onSelected: setProfile,
-                                ),
+                                // In a compact column the profiles are the
+                                // menu at the search's end, as sideways.
+                                if (!compactColumn) ...[
+                                  const SizedBox(height: 10),
+                                  ProfileChipRow(
+                                    glass: true,
+                                    selected: state.options.profile,
+                                    onSelected: setProfile,
+                                  ),
+                                ],
                               ],
                             ),
                             ...below,

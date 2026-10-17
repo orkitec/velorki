@@ -66,11 +66,15 @@ class FollowRouteField extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // One line, as the value under it: two would not fit
+                    // the field's height in the narrowest column.
                     Text(
                       l10n.recordingFollowRoute,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       choice,

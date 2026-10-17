@@ -451,6 +451,27 @@ void main() {
       expect(navigation.rejoins, 0, reason: 'the button is not the banner');
     });
 
+    testWidgets('on the narrowest banner the button is its icon, the words '
+        'its tooltip', (tester) async {
+      final navigation = _RecordingNav();
+      // A phone 320 wide, or a wide window's compact column.
+      await _pumpBanner(
+        tester,
+        const NavigationProgress(
+          offRouteState: OffRouteState.guiding,
+          offRoute: true,
+          guidance: _wayBack,
+        ),
+        navigation: navigation,
+        width: 296,
+      );
+
+      expect(find.text(l10n.navNewRouteFromHere), findsNothing);
+      await tester.tap(find.byTooltip(l10n.navNewRouteFromHere));
+      await tester.pumpAndSettle();
+      expect(navigation.reroutes, 1);
+    });
+
     testWidgets('tapping the banner asks for a way back now', (tester) async {
       final navigation = _RecordingNav();
       await _pumpBanner(
