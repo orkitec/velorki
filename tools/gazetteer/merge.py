@@ -41,6 +41,20 @@ from translit import SEARCH_SCRIPT, index_text  # noqa: E402
 
 SCHEMA_VERSION = "1"
 
+
+def build_time() -> str:
+    """The `built_at` meta value: SOURCE_DATE_EPOCH when it is set, else now.
+
+    The file's bytes otherwise depend only on its inputs, so a fixed epoch makes
+    a rebuild of the same extracts byte-identical and a checksum means "changed".
+    """
+    epoch = os.environ.get("SOURCE_DATE_EPOCH")
+    moment = (
+        datetime.fromtimestamp(int(epoch), timezone.utc) if epoch else datetime.now(timezone.utc)
+    )
+    return moment.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 # Streets are matched on their position rounded to this many degrees, because
 # two extracts see different parts of the same street and put its centre in
 # slightly different places.
@@ -575,7 +589,7 @@ def merge(out_dir: str, in_dirs: list[str], verbose: bool = True) -> list[TileRe
         check(path)
 
     os.makedirs(out_dir, exist_ok=True)
-    built_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    built_at = build_time()
     results = []
     for tile, paths in sorted(group_by_tile(inputs).items()):
         result = merge_tile(out_dir, tile, paths, built_at)

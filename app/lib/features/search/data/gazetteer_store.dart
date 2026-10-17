@@ -5,6 +5,7 @@ import 'dart:isolate';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sqlite3/common.dart';
@@ -12,6 +13,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_io/io.dart';
 
+import '../../routing_tiles/application/tile_download_controller.dart';
 import '../../routing_tiles/data/brouter_storage.dart';
 import '../../routing_tiles/data/routing_tiles_repository.dart';
 import '../domain/fuzzy.dart';
@@ -2566,7 +2568,9 @@ class _GazetteerWorker {
   }
 }
 
-/// The app's [GazetteerStore], re-scanned whenever the routing tiles change.
+/// The app's [GazetteerStore], re-scanned whenever the routing tiles change
+/// and whenever the download queue finishes a tile (a tile on the device that
+/// only fetched its missing gazetteer leaves its row as it was).
 @Riverpod(keepAlive: true)
 Future<GazetteerStore> gazetteerStore(Ref ref) async {
   Directory? directory;
@@ -2583,11 +2587,16 @@ Future<GazetteerStore> gazetteerStore(Ref ref) async {
   ref.onDispose(store.close);
   await store.refresh();
   if (directory != null) {
-    ref.listen(
-      routingTilesProvider,
-      (_, _) => unawaited(store.refresh()),
-      onError: (_, _) {},
-    );
+    ref
+      ..listen(
+        routingTilesProvider,
+        (_, _) => unawaited(store.refresh()),
+        onError: (_, _) {},
+      )
+      ..listen(
+        tileDownloadQueueProvider.select((queue) => queue.finished),
+        (_, _) => unawaited(store.refresh()),
+      );
   }
   return store;
 }

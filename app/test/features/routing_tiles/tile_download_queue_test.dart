@@ -14,9 +14,12 @@ import 'package:velorki/features/routing_tiles/data/tile_downloader.dart'
 import 'package:velorki/features/routing_tiles/data/brouter_storage.dart';
 import 'package:velorki/features/routing_tiles/data/routing_tiles_repository.dart';
 import 'package:velorki/features/routing_tiles/data/segments_manifest_service.dart';
+import 'package:velorki/features/routing_tiles/domain/routing_tile.dart';
 import 'package:velorki/features/routing_tiles/domain/sha256.dart';
+import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
+import '../search/support/gazetteer_fixture.dart';
 import 'support/fake_segments.dart';
 
 const TileName _first = TileName(10, 45);
@@ -357,5 +360,149 @@ void main() {
     await queue.enqueue(<SegmentEntry>[_entry(_first, gazetteer: true)]);
 
     expect(_gazFile(storage, _first).readAsBytesSync(), _gaz);
+  });
+
+  /// Puts [tile] on the device as a ready tile of an earlier build, with no
+  /// gazetteer beside it.
+  Future<File> seedReady(ProviderContainer container, TileName tile) async {
+    final repository = await container.read(
+      routingTilesRepositoryProvider.future,
+    );
+    final file = File('${storage.segments.path}/${tile.fileName}')
+      ..writeAsStringSync('old-rd5');
+    await repository.markReady(
+      SegmentEntry(
+        tile: tile,
+        bytes: 7,
+        updatedAt: DateTime.utc(2026, 8, 1),
+        formatVersion: '11.2',
+      ),
+      bytes: 7,
+    );
+    return file;
+  }
+
+  test('a tile on the device only fetches its missing gazetteer', () async {
+    final adapter = _servingBoth();
+    final container = await containerFor(adapter);
+    final rd5 = await seedReady(container, _first);
+    final repository = await container.read(
+      routingTilesRepositoryProvider.future,
+    );
+    final before = repository.cached.single;
+    final rows = <RoutingTile>[];
+    container.listen(tileDownloadQueueProvider, (_, next) {
+      if (next.current == _first) rows.add(repository.cached.single);
+    });
+
+    await container
+        .read(tileDownloadQueueProvider.notifier)
+        .enqueue(
+          const <SegmentEntry>[],
+          gazetteersOnly: <SegmentEntry>[_entry(_first, gazetteer: true)],
+        );
+
+    expect(adapter.requests.map((r) => r.uri.path.split('/').last), <String>[
+      'E10_N45.gaz',
+    ], reason: 'the rd5 on the device is not downloaded again');
+    expect(_gazFile(storage, _first).readAsBytesSync(), _gaz);
+    expect(rd5.readAsStringSync(), 'old-rd5');
+    expect(rows, isNotEmpty, reason: 'the gazetteer really was queued');
+    expect(
+      rows.every((row) => row == before),
+      isTrue,
+      reason: 'the row stays as it was while the gazetteer comes down',
+    );
+    expect(repository.cached.single, before);
+    final state = container.read(tileDownloadQueueProvider);
+    expect(state.finished, <TileName>[_first]);
+    expect(state.failure, isNull);
+  });
+
+  test('a gazetteer-only fetch that fails changes nothing', () async {
+    final adapter = FakeSegmentsAdapter(
+      (_) => FakeSegmentsResponse.text('gone', status: 404),
+    );
+    final container = await containerFor(adapter);
+    await seedReady(container, _first);
+    final repository = await container.read(
+      routingTilesRepositoryProvider.future,
+    );
+    final before = repository.cached.single;
+
+    await container
+        .read(tileDownloadQueueProvider.notifier)
+        .enqueue(
+          const <SegmentEntry>[],
+          gazetteersOnly: <SegmentEntry>[
+            _entry(_first, gazetteer: true),
+            _entry(_second),
+          ],
+        );
+
+    expect(adapter.requests, hasLength(1), reason: 'none for no gazetteer');
+    expect(repository.cached.single, before);
+    expect(repository.readyTiles(), <TileName>{_first});
+    expect(_gazFile(storage, _first).existsSync(), isFalse);
+    expect(container.read(tileDownloadQueueProvider).failure, isNull);
+  });
+
+  test('a tile queued in full is not queued again for its gazetteer', () async {
+    final adapter = _servingBoth();
+    final container = await containerFor(adapter);
+
+    await container
+        .read(tileDownloadQueueProvider.notifier)
+        .enqueue(
+          <SegmentEntry>[_entry(_first, gazetteer: true)],
+          gazetteersOnly: <SegmentEntry>[_entry(_first, gazetteer: true)],
+        );
+
+    expect(adapter.requests.map((r) => r.uri.path.split('/').last), <String>[
+      'E10_N45.rd5',
+      'E10_N45.gaz',
+    ]);
+  });
+
+  test('offline search opens a gazetteer fetched on its own', () async {
+    final source = buildGazetteer(
+      Directory('${storage.root.path}/fixture'),
+      _first.name,
+      places: fixturePlaces,
+    );
+    final bytes = source.readAsBytesSync();
+    final adapter = FakeSegmentsAdapter(
+      (_) => FakeSegmentsResponse.bytes(bytes),
+    );
+    final container = await containerFor(adapter);
+    await seedReady(container, _first);
+    final store = await container.read(gazetteerStoreProvider.future);
+    expect(store.tiles, isEmpty);
+
+    await container
+        .read(tileDownloadQueueProvider.notifier)
+        .enqueue(
+          const <SegmentEntry>[],
+          gazetteersOnly: <SegmentEntry>[
+            SegmentEntry(
+              tile: _first,
+              bytes: 7,
+              updatedAt: DateTime.utc(2026, 8, 1),
+              gazetteer: GazetteerEntry(
+                tile: _first,
+                bytes: bytes.length,
+                sha256: (Sha256()..add(bytes)).hexDigest(),
+                updatedAt: DateTime.utc(2026, 10, 2),
+              ),
+            ),
+          ],
+        );
+    for (var i = 0; i < 100 && store.tiles.isEmpty; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+
+    expect(store.tiles, <String>[
+      _first.name,
+    ], reason: 'the tile list did not change, the queue still says so');
   });
 }

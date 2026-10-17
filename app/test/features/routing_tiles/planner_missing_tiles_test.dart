@@ -174,7 +174,10 @@ class _RecordingQueue extends TileDownloadQueue {
   final List<TileName> asked = <TileName>[];
 
   @override
-  Future<void> enqueue(Iterable<SegmentEntry> entries) async {
+  Future<void> enqueue(
+    Iterable<SegmentEntry> entries, {
+    Iterable<SegmentEntry> gazetteersOnly = const <SegmentEntry>[],
+  }) async {
     asked.addAll(entries.map((e) => e.tile));
     state = state.copyWith(current: asked.first);
   }

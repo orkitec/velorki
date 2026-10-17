@@ -205,8 +205,10 @@ class OfflineScreen extends ConsumerWidget {
     );
     if (!(confirmed ?? false)) return;
 
-    if (entries.isNotEmpty) {
-      await ref.read(tileDownloadQueueProvider.notifier).enqueue(entries);
+    if (entries.isNotEmpty || plan.gazetteers.isNotEmpty) {
+      await ref
+          .read(tileDownloadQueueProvider.notifier)
+          .enqueue(entries, gazetteersOnly: plan.gazetteers);
     }
     if (!mapAreas) return;
     final existing = await ref.read(offlineRegionsRepositoryProvider).regions();
