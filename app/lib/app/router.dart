@@ -565,7 +565,9 @@ class HomeShell extends ConsumerWidget {
                                         child: child,
                                       ),
                                     ),
-                                    child: controls(layout),
+                                    child: _UnderSheetFade(
+                                      child: controls(layout),
+                                    ),
                                   ),
                                 ),
                         ),
@@ -656,6 +658,63 @@ Widget _sidewaysControlsRow(
       ),
     ),
   );
+}
+
+/// The map's control column, upright, fading out as the tab's sheet rises
+/// over it: it stays while the sheet lies over no more than its last button
+/// (as Plan's resting sheet does on a small phone), and is gone within
+/// [_underSheetFadeDp] more, so no button is left showing half under the
+/// sheet. It takes no touch once gone. Sideways the controls are a row
+/// beside the sheet and are not faded.
+class _UnderSheetFade extends ConsumerStatefulWidget {
+  const _UnderSheetFade({required this.child});
+
+  final Widget child;
+
+  @override
+  ConsumerState<_UnderSheetFade> createState() => _UnderSheetFadeState();
+}
+
+/// The sheet's travel over which the column fades out.
+const double _underSheetFadeDp = 24;
+
+class _UnderSheetFadeState extends ConsumerState<_UnderSheetFade> {
+  /// The column's bottom on the screen at its last layout.
+  double? _bottom;
+
+  void _measure() {
+    if (!mounted) return;
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return;
+    final bottom = box.localToGlobal(Offset(0, box.size.height)).dy;
+    if (_bottom != null && (bottom - _bottom!).abs() < 0.5) return;
+    setState(() => _bottom = bottom);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final extent = ref.watch(
+      tabHandoverProvider.select((chrome) => chrome.sheetExtent),
+    );
+    // After each layout: the column glides when a tab's chrome changes.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+    final bottom = _bottom;
+    var opacity = 1.0;
+    if (extent != null && bottom != null) {
+      // The sheet rises from the window's bottom: in a wide window from
+      // the column's, which is as tall as the window.
+      final top = MediaQuery.sizeOf(context).height * (1 - extent);
+      final grace = compactMapControls(context)
+          ? compactMapControlButtonSize
+          : mapControlButtonSize;
+      final covered = bottom - top - grace;
+      opacity = (1 - covered / _underSheetFadeDp).clamp(0.0, 1.0);
+    }
+    return IgnorePointer(
+      ignoring: opacity == 0,
+      child: Opacity(opacity: opacity, child: widget.child),
+    );
+  }
 }
 
 /// Tells [onWidth] the width [child] was laid out at, after the frame,
