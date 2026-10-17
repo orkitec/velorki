@@ -130,6 +130,35 @@ Output, git-ignored, under `app/build/store_screenshots/ipad/`:
 `slides/set/13/<locale>/NN-<slide>.png` (to upload) and
 `slides/set/contact-<locale>.png`.
 
+## iPhone Duo
+
+```
+app/tool/store_screenshots.sh --platform duo [--locales en,de] [--themes light,dark]
+```
+
+The same test on the simulator "Velorki Shots Duo" (an iPhone Duo on the
+newest iOS runtime, 27.1 or later; created on the first run), on its inner
+display unfolded and wide, 2853 × 2007, the size App Store Connect wants for
+the Duo. The simulator boots folded, and nothing in `simctl` unfolds it: after
+every boot the script builds `app/tool/duo_state.c` for the simulator and runs
+it there (`simctl spawn`), which posts the events of Xcode's hinge slider and
+orientation picker: the hinge at 180°, the device upright, which on the Duo
+lays the inner display on its side. It waits until `devicectl device info
+displays` shows `LCD-1` active, and the shutter photographs that display
+(`simctl io screenshot --display`, the port `simctl io enumerate` lists at
+2007 × 2853). The app lays itself out as in any wide window. Never run `simctl
+io <duo> screenConfig`: it crash-loops SpringBoard.
+
+`store_slides.py --platform duo` lays out the iPad's set
+(`slide_set_ipad.json`) at 2853 × 2007 with the iPhone's copy (a slide's
+`duo` object would override it): the copy centred in two lines at most, the
+screenshot whole below it in the inner display's frame. No watch or preview.
+
+Output, git-ignored, under `app/build/store_screenshots/duo/`:
+`raw/<theme>/<locale>/<screen>.png`, `slides/<style>/duo/<locale>/<slide>.png`,
+`slides/set/duo/<locale>/NN-<slide>.png` (to upload) and
+`slides/set/contact-<locale>.png`.
+
 ## Creative asset
 
 ```
@@ -306,7 +335,7 @@ beside the screenshots.
 2. If the store's region for the language is not in `region_of` in
    `store_screenshots.sh`, and to `store_watch.sh`, add it.
 3. `app/tool/store_screenshots.sh --locales <lang>`, and again with
-   `--platform ipad`.
+   `--platform ipad` and `--platform duo`.
 
 ## Uploading
 
@@ -317,6 +346,7 @@ In App Store Connect, the version's page, per localization:
 | `slides/set/6.9/<locale>/` | iPhone 6.9" Display |
 | `slides/set/6.5/<locale>/` | iPhone 6.5" Display |
 | `ipad/slides/set/13/<locale>/` | iPad 13" Display |
+| `duo/slides/set/duo/<locale>/` | iPhone Duo |
 | `watch/<theme>/<locale>/store/` | Apple Watch (Ultra), as JPEG: the store refuses the PNGs' alpha channel |
 
 Upload them in file order; ten is the most a size takes. A localization
@@ -332,13 +362,13 @@ against it, to see which converts better.
 ## In CI
 
 `.github/workflows/store-assets.yml`, started by hand (Actions → store assets
-→ Run workflow), runs `store_screenshots.sh` and then `--platform ipad` for the
+→ Run workflow), runs `store_screenshots.sh` and then `--platform ipad` and `--platform duo` for the
 `locales` given, and with `preview` the preview too, on a macOS runner, one job
 per language (about half an hour per device). The artifacts
 `store-assets-ios-<locale>`, merged for the upload, hold `slides/set/` (both
-sizes, each language, its contact sheet), `ipad/slides/set/`, `watch/` and
+sizes, each language, its contact sheet), `ipad/slides/set/`, `duo/slides/set/`, `watch/` and
 `preview/<locale>/preview.mp4` with its poster. The `ios` and `android` inputs
-choose the sets (`ios` both the iPhone's and the iPad's); `android` (off by default) runs
+choose the sets (`ios` the iPhone's, the iPad's and the Duo's); `android` (off by default) runs
 `--platform android` on an API 35 emulator on Ubuntu, one job per language
 (close to an hour each) into the artifacts `store-assets-android-<locale>`,
 drawn with MapLibre's Vulkan renderer (see above). The runner's
@@ -351,7 +381,7 @@ the App Store version to fill (created if it does not exist yet). The
 `upload` job waits in the `release` environment for the maintainer's
 approval, then `app/tool/store_stage_deliver.sh` lays the set out per store
 locale and `fastlane ios store_assets` (deliver, with the App Store Connect
-API key) replaces that version's 6.9", 6.5", 13" iPad and Apple Watch screenshots in
+API key; fastlane 2.241.1 or later, the first that knows the Duo) replaces that version's 6.9", 6.5", 13" iPad, iPhone Duo and Apple Watch screenshots in
 each language uploaded, the watch getting the four `store/` shots.
 `metadata` also uploads `app/fastlane/metadata/ios`. Nothing is submitted for
 review. The preview video is uploaded by hand, from the Mac's recording.

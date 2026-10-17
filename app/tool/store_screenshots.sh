@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The App Store screenshots, from the app on the iOS simulator to the finished
-# slides; with --platform ipad, the 13" iPad ones; with --platform android,
-# the Google Play ones from an Android emulator.
+# slides; with --platform ipad, the 13" iPad ones; with --platform duo, the
+# iPhone Duo's (its inner display); with --platform android, the Google Play
+# ones from an Android emulator.
 #
 #   tool/store_screenshots.sh                          # every language, light and dark
 #   tool/store_screenshots.sh --locales de --themes dark
@@ -10,6 +11,7 @@
 #   tool/store_screenshots.sh --until variants         # capture only up to that screen
 #   tool/store_screenshots.sh --preview                # the preview video instead (store/preview_set.json)
 #   tool/store_screenshots.sh --platform ipad          # the iPad set; see below
+#   tool/store_screenshots.sh --platform duo           # the iPhone Duo set; see below
 #   tool/store_screenshots.sh --platform android       # the Google Play set; see below
 #
 # Output, under app/build/store_screenshots/ (git-ignored):
@@ -46,6 +48,16 @@
 # those of store/slide_set_ipad.json; no watch or preview. Output under
 # ipad/: raw/<theme>/<locale>/<screen>.png and slides/ (see
 # tool/store_slides.py --platform ipad).
+#
+# --platform duo takes the same screens on the simulator "Velorki Shots Duo"
+# (VELORKI_STORE_SIM again takes a UDID), created as an iPhone Duo on the
+# newest iOS runtime (27.1 or later). It boots folded: after every boot
+# tool/duo_state.c, built for the simulator and run in it, opens the hinge to
+# 180 degrees and holds the device upright, which lays the inner display on
+# its side, and the pictures are of that display, 2853x2007 (the port of
+# `simctl io enumerate` that is 2007x2853). The slides are the iPad's set;
+# no watch or preview. Output under duo/. Never `simctl io <duo>
+# screenConfig`: it crash-loops SpringBoard.
 #
 # --platform android takes the screens the Play set uses (store/
 # slide_set_android.json) on an Android emulator: VELORKI_STORE_EMULATOR names
@@ -103,11 +115,17 @@ case "$PLATFORM" in
     SIM_NAME="Velorki Shots iPad 13"
     SIM_TYPE=com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB
     ;;
+  duo)
+    [ "$PREVIEW" = 0 ] || die "the preview is recorded on the iPhone only"
+    OUT="$OUT/duo"
+    SIM_NAME="Velorki Shots Duo"
+    SIM_TYPE=com.apple.CoreSimulator.SimDeviceType.iPhone-Duo
+    ;;
   android)
     [ "$PREVIEW" = 0 ] || die "the preview is recorded on iOS only"
     OUT="$OUT/android"
     ;;
-  *) die "unknown platform $PLATFORM (ios, ipad or android)" ;;
+  *) die "unknown platform $PLATFORM (ios, ipad, duo or android)" ;;
 esac
 
 # The App Store's region for each language the app ships.
@@ -162,9 +180,43 @@ boot() {  # boot <udid> <language> <region>
     xcrun simctl boot "$udid"
     xcrun simctl bootstatus "$udid" -b > /dev/null
   fi
+  [ "$PLATFORM" = duo ] && unfold "$udid"
   # A moment for SpringBoard to settle before anything is installed.
   sleep 15
   python3 "$APP/tool/store_shutter.py" --status-bar "$udid"
+}
+
+# The iPhone Duo boots folded, on its outer display: opened flat and held
+# upright, its inner display is the active one, wider than tall.
+DUO_STATE=""
+unfold() {  # unfold <udid>
+  local udid=$1
+  if [ -z "$DUO_STATE" ]; then
+    DUO_STATE="$WORK/duo_state"
+    xcrun -sdk iphonesimulator clang -arch "$(uname -m)" -mios-simulator-version-min=17.0 -O2 \
+      -o "$DUO_STATE" "$APP/tool/duo_state.c" -framework IOKit -framework CoreFoundation
+    codesign -f -s - "$DUO_STATE" 2> /dev/null
+  fi
+  xcrun simctl spawn "$udid" "$DUO_STATE" hinge 180
+  xcrun simctl spawn "$udid" "$DUO_STATE" orientation portrait
+  for _ in $(seq 1 60); do
+    if xcrun devicectl device info displays -d "$udid" 2> /dev/null | grep -q 'LCD-1 (active)'; then
+      return 0
+    fi
+    sleep 1
+  done
+  die "the Duo's inner display never became active"
+}
+
+# The UUID of the Duo's inner display, the 2007x2853 framebuffer.
+inner_display() {  # inner_display <udid>
+  xcrun simctl io "$1" enumerate | python3 -c '
+import re, sys
+for port in sys.stdin.read().split("Port:"):
+    uuid = re.search(r"UUID: (\S+)", port)
+    if uuid and "Default width: 2007" in port and "Default height: 2853" in port:
+        print(uuid.group(1)); break
+'
 }
 
 # The adb serial of the emulator to use.
@@ -406,7 +458,13 @@ PY
       python3 "$APP/tool/store_shutter.py" --android "$DEVICE" "$OUT/raw" &
     else
       boot "$UDID" "${region/_/-}" "$region"
-      python3 "$APP/tool/store_shutter.py" "$UDID" "$OUT/raw" &
+      display=()
+      if [ "$PLATFORM" = duo ]; then
+        inner="$(inner_display "$UDID")"
+        [ -n "$inner" ] || die "no 2007x2853 display on $UDID; is it an iPhone Duo?"
+        display=(--display "$inner")
+      fi
+      python3 "$APP/tool/store_shutter.py" ${display[@]+"${display[@]}"} "$UDID" "$OUT/raw" &
     fi
     SHUTTER_PID=$!
     if [ "$PREVIEW" = 1 ]; then say "recording $locale"; else say "capturing $locale ($THEMES)"; fi

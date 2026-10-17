@@ -5,12 +5,14 @@
 #
 # <assets-dir> is app/build/store_screenshots or the store-assets workflow's
 # artifact: slides/set/<size>/<locale>/NN-<slide>.png,
-# ipad/slides/set/13/<locale>/NN-<slide>.png and
+# ipad/slides/set/13/<locale>/NN-<slide>.png,
+# duo/slides/set/duo/<locale>/NN-<slide>.png and
 # watch/<theme>/<locale>/store/N-<state>.png. Every locale with a slide set
-# becomes <out-dir>/<store locale>/, holding its 6.9", 6.5" and 13" iPad
-# slides and the four watch shots. deliver tells the devices apart by pixel
-# size (2064x2752 is the 13" iPad) and orders each device's screenshots by
-# file name, so the NN- prefix is the upload order.
+# becomes <out-dir>/<store locale>/, holding its 6.9", 6.5", 13" iPad and
+# iPhone Duo slides and the four watch shots. deliver tells the devices apart
+# by pixel size (2064x2752 is the 13" iPad, 2853x2007 the Duo's inner display,
+# known from fastlane 2.241.1) and orders each device's screenshots by file
+# name, so the NN- prefix is the upload order.
 #
 # The store locale is the folder fastlane/metadata/ios already has for the
 # language (Crowdin names them, see crowdin.yml), else the one below. The watch
@@ -61,9 +63,10 @@ for dir in "$IN/slides/set/6.9"/*/; do
   locale="$(basename "$dir")"
   target="$OUT/$(store_locale "$locale")"
   mkdir -p "$target"
-  for size in 6.9 6.5 ipad-13; do
+  for size in 6.9 6.5 ipad-13 duo; do
     from="$IN/slides/set/$size/$locale"
     [ "$size" = ipad-13 ] && from="$IN/ipad/slides/set/13/$locale"
+    [ "$size" = duo ] && from="$IN/duo/slides/set/duo/$locale"
     [ -d "$from" ] || die "no $size slides for $locale"
     for slide in "$from"/*.png; do
       cp "$slide" "$target/$size-$(basename "$slide")"

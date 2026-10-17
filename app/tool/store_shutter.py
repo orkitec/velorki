@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Takes the store screenshots integration_test/store asks for.
 
-    tool/store_shutter.py <udid> <out-dir>
+    tool/store_shutter.py [--display <uuid>] <udid> <out-dir>
     tool/store_shutter.py --android <adb-serial> <out-dir>
     tool/store_shutter.py --status-bar <udid>                 # set the bar once
     tool/store_shutter.py --android-status-bar <adb-serial>   # set the bar once
@@ -18,6 +18,9 @@ container: an `id=<token>` line, a `name=<theme>/<locale>/<screen>` line and an
 * `action=record-start` starts `simctl io recordVideo` into
   `<out-dir>/<name>.mp4` and answers once the recorder says it is recording;
   `action=record-stop` stops it and answers once the file is complete.
+
+--display takes the pictures of that display (a port UUID from `simctl io
+<udid> enumerate`), such as the iPhone Duo's inner one; else the main one.
 
 Then the token goes into `shot.ack` beside the request, which lets the test
 go on.
@@ -245,10 +248,15 @@ def main() -> int:
     if len(sys.argv) == 3 and sys.argv[1] == "--android-status-bar":
         android_status_bar(sys.argv[2], online=True)
         return 0
-    if len(sys.argv) != 3:
+    args = sys.argv[1:]
+    display = []
+    if len(args) == 4 and args[0] == "--display":
+        display = [f"--display={args[1]}"]
+        args = args[2:]
+    if len(args) != 2:
         print(__doc__, file=sys.stderr)
         return 2
-    udid, out = sys.argv[1], sys.argv[2]
+    udid, out = args
     last = None
     started = False
     recorder = None
@@ -305,7 +313,7 @@ def main() -> int:
             status_bar(udid, OFFLINE if offline else ONLINE)
             try:
                 subprocess.run(
-                    ["xcrun", "simctl", "io", udid, "screenshot", "--type=png",
+                    ["xcrun", "simctl", "io", udid, "screenshot", "--type=png", *display,
                      target + ".png"],
                     check=True,
                     capture_output=True,

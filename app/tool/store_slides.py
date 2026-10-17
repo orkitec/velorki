@@ -5,6 +5,7 @@
                          [--shots same|light|dark] [--watch DIR]
     tool/store_slides.py --platform android [--locales en,de]
     tool/store_slides.py --platform ipad [--locales en,de]
+    tool/store_slides.py --platform duo [--locales en,de]
 
 Each slide is an HTML page at the target resolution, laid out in vw so one
 page serves every size, and photographed by headless Chrome. The look is the
@@ -59,6 +60,16 @@ Input:  build/store_screenshots/ipad/raw/<theme>/<locale>/<screen>.png
 Output: build/store_screenshots/ipad/slides/<style>/13/<locale>/<slide>.png
         build/store_screenshots/ipad/slides/set/13/<locale>/NN-<slide>.png
         build/store_screenshots/ipad/slides/set/contact-<locale>.png
+
+--platform duo makes the iPhone Duo set from the captures of its inner
+display, unfolded and wide, at 2853x2007: the iPad's set
+(store/slide_set_ipad.json) and the iPhone's copy (a slide's `duo` object in
+slides_<locale>.json would override it), centred above the screenshot, which
+sits whole in the inner display's frame.
+Input:  build/store_screenshots/duo/raw/<theme>/<locale>/<screen>.png
+Output: build/store_screenshots/duo/slides/<style>/duo/<locale>/<slide>.png
+        build/store_screenshots/duo/slides/set/duo/<locale>/NN-<slide>.png
+        build/store_screenshots/duo/slides/set/contact-<locale>.png
 """
 import argparse
 import datetime
@@ -85,6 +96,7 @@ CHROME = os.environ.get(
 SIZES = {"6.9": (1320, 2868), "6.5": (1284, 2778)}
 ANDROID_SIZES = {"android": (1242, 2208)}
 IPAD_SIZES = {"13": (2064, 2752)}
+DUO_SIZES = {"duo": (2853, 2007)}
 
 # The website's tokens (web/src/app/globals.css), per style.
 STYLES = {
@@ -174,6 +186,23 @@ p.sub { font-size: 2.8vw; margin-top: 2.2vw; max-width: 74vw; }
 .screen { border-radius: 2.4vw; }
 """
 
+# The Duo's inner display unfolded is wider than tall: the copy centred in
+# two lines at most above the screenshot, which takes the rest of the height,
+# in the thin bezel and round corners of that display.
+DUO_CSS = """
+.copy { padding: 3vw 6vw 0; text-align: center; }
+.chip { gap: 0.8vw; padding: 0.7vw 1.6vw; border-width: 0.1vw; font-size: 1.5vw; }
+.chip i { width: 0.85vw; height: 0.85vw; }
+.brand { justify-content: center; gap: 1.1vw; margin-bottom: 1.4vw; }
+.brand img { width: 2.8vw; height: 2.8vw; }
+.brand span { font-size: 2.8vw; }
+h1 { font-size: 4.8vw; margin-top: 1.5vw; }
+p.sub { font-size: 1.85vw; margin: 1.1vw auto 0; max-width: 70vw; }
+.stage { margin-top: 2.4vw; height: 80vw; }
+.phone { padding: 0.75vw; border-radius: 2.4vw; }
+.screen { border-radius: 1.7vw; }
+"""
+
 # The Lock Screen, in fractions of the screen width (cqw): the wallpaper,
 # the date and the clock, and the Live Activity card as RideLockScreenView
 # lays it out; the expanded Dynamic Island as the widget's
@@ -224,7 +253,7 @@ LOCK_CSS = """
 """
 
 FIT_JS = """
-const HEAD_FLOOR = 0.09, SUB_FLOOR = 0.036;
+const HEAD_FLOOR = 0.09, SUB_FLOOR = 0.036, HEAD_LINES = 3, GAP = 0.05;
 // A translation longer than the English shrinks until it fits: the headline
 // in three lines at most, the subline in two.
 function fit(el, lines, floor) {
@@ -236,7 +265,7 @@ function fit(el, lines, floor) {
   }
 }
 document.fonts.ready.then(() => {
-  for (const h of document.querySelectorAll('h1')) fit(h, 3, W * HEAD_FLOOR);
+  for (const h of document.querySelectorAll('h1')) fit(h, HEAD_LINES, W * HEAD_FLOOR);
   for (const p of document.querySelectorAll('p.sub')) fit(p, 2, W * SUB_FLOOR);
   // A `whole` phone is sized to end just above the bottom edge, for a
   // screen whose bottom matters as much as its top.
@@ -247,9 +276,9 @@ document.fonts.ready.then(() => {
     document.getElementById('seam').setAttribute('y1', y);
   }
   for (const phone of document.querySelectorAll('.phone.whole')) {
-    const room = H - phone.getBoundingClientRect().top - W * 0.05;
+    const room = H - phone.getBoundingClientRect().top - W * GAP;
     for (let i = 0; i < 2; i++) {
-      phone.style.width = (phone.offsetWidth * room / phone.offsetHeight) + 'px';
+      phone.style.width = Math.min(phone.offsetWidth * room / phone.offsetHeight, W * 0.94) + 'px';
     }
   }
 });
@@ -428,29 +457,34 @@ def layer(style: str, text: dict, stage: str, extra_class: str = "", clip: str =
     )
 
 
-def page(w: int, h: int, body: str, shots: list[str] = (), tablet: bool = False) -> str:
+def page(w: int, h: int, body: str, shots: list[str] = (), tablet: str = "") -> str:
     """The page around [body]; the phone's screen takes the shape of the
-    first of [shots] there is, the iPhone's when none is. [tablet] scales the
-    copy to the iPad's canvas and draws an iPad's frame."""
-    css = (CSS + LOCK_CSS + (IPAD_CSS if tablet else "")).replace("FONTS", "file://" + FONTS) \
+    first of [shots] there is, the iPhone's when none is. [tablet] ("ipad" or
+    "duo") scales the copy to that canvas and draws that device's frame."""
+    extra = {"": "", "ipad": IPAD_CSS, "duo": DUO_CSS}[tablet]
+    css = (CSS + LOCK_CSS + extra).replace("FONTS", "file://" + FONTS) \
         .replace("Wpx", f"{w}px").replace("Hpx", f"{h}px")
     size = next((png_size(shot) for shot in shots if png_size(shot)), None)
     if size:
         css = css.replace("aspect-ratio: 1320 / 2868", f"aspect-ratio: {size[0]} / {size[1]}")
     js = FIT_JS.replace("W *", f"{w} *").replace("H -", f"{h} -")
-    if tablet:
-        # The floors in the same proportion to the copy as on the iPhone.
+    # The floors in the same proportion to the copy as on the iPhone.
+    if tablet == "ipad":
         js = js.replace("HEAD_FLOOR = 0.09, SUB_FLOOR = 0.036", "HEAD_FLOOR = 0.049, SUB_FLOOR = 0.021")
+    elif tablet == "duo":
+        js = js.replace("HEAD_FLOOR = 0.09, SUB_FLOOR = 0.036, HEAD_LINES = 3, GAP = 0.05",
+                        "HEAD_FLOOR = 0.032, SUB_FLOOR = 0.0125, HEAD_LINES = 2, GAP = 0.025")
     return (f'<!doctype html><html><head><meta charset="utf-8"><style>{css}</style></head>'
             f"<body>{body}<script>{js}</script></body></html>")
 
 
 def slide_html(layout: str, style: str, text: dict, raw: str, screen: str, theme: str,
                locale: str, watch: str, w: int, h: int,
-               brand: bool = False, tablet: bool = False) -> tuple[str, list[str]]:
+               brand: bool = False, tablet: str = "") -> tuple[str, list[str]]:
     """The page for one slide, and the input files it needs. [brand] puts
     the app's icon and name above the eyebrow (phone layout). [tablet] is the
-    iPad's slide, every screenshot whole in the frame."""
+    iPad's ("ipad") or the Duo's ("duo") slide, every screenshot whole in the
+    frame."""
     needs = []
     if layout == "split":
         light = os.path.join(raw, "light", locale, f"{screen}.png")
@@ -644,7 +678,7 @@ def check_play_png(path: str, w: int, h: int) -> list[str]:
 def main() -> int:
     global TOPO
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--platform", default="ios", choices=["ios", "android", "ipad"])
+    parser.add_argument("--platform", default="ios", choices=["ios", "android", "ipad", "duo"])
     parser.add_argument("--locales", help="comma-separated; default: every slides_*.json")
     parser.add_argument("--sizes", help="default: every size of the platform")
     parser.add_argument("--shots", default="same", choices=["same", "light", "dark"],
@@ -655,11 +689,11 @@ def main() -> int:
     parser.add_argument("--out")
     args = parser.parse_args()
     android = args.platform == "android"
-    tablet = args.platform == "ipad"
+    tablet = args.platform if args.platform in ("ipad", "duo") else ""
     build = BUILD if args.platform == "ios" else os.path.join(BUILD, args.platform)
     raw = args.raw or os.path.join(build, "raw")
     out = args.out or os.path.join(build, "slides")
-    known = {"ios": SIZES, "android": ANDROID_SIZES, "ipad": IPAD_SIZES}[args.platform]
+    known = {"ios": SIZES, "android": ANDROID_SIZES, "ipad": IPAD_SIZES, "duo": DUO_SIZES}[args.platform]
 
     if not os.access(CHROME, os.X_OK):
         print(f"store_slides: no Chrome at {CHROME}; install Google Chrome or set CHROME "
@@ -692,9 +726,10 @@ def main() -> int:
 
     english = load_json(os.path.join(STORE, "slides_en.json"))
     chosen = load_json(os.path.join(STORE, {"ios": "slide_set.json", "android": "slide_set_android.json",
-                                            "ipad": "slide_set_ipad.json"}[args.platform]))
+                                            "ipad": "slide_set_ipad.json",
+                                            "duo": "slide_set_ipad.json"}[args.platform]))
     if tablet and any(entry["layout"] not in ("whole", "split") for entry in chosen):
-        print("store_slides: the iPad set takes `whole` and `split` slides only", file=sys.stderr)
+        print(f"store_slides: the {tablet} set takes `whole` and `split` slides only", file=sys.stderr)
         return 2
     missing = set()
     problems = []
@@ -740,16 +775,18 @@ def main() -> int:
             folder = set_folder(sizes[0], locale)
             shots = sorted(n for n in os.listdir(folder) if re.match(r"\d\d-", n))
             images = "".join(f'<img src="{url(os.path.join(folder, n))}">' for n in shots)
+            w, h = known[sizes[0]]
+            # A wide slide at the height of a tall one would be hard to read.
+            thumb = 300 if h > w else 520
             sheet = (
                 '<!doctype html><html><head><style>html,body{margin:0;background:#6b7078}'
                 'body{display:flex;gap:16px;padding:24px;width:max-content}'
-                'img{width:300px;border-radius:14px;display:block}</style></head>'
+                f'img{{width:{thumb}px;border-radius:14px;display:block}}</style></head>'
                 f"<body>{images}</body></html>"
             )
             count = len(shots)
-            w, h = known[sizes[0]]
             render(sheet, os.path.join(out, "set", f"contact-{locale}.png"),
-                   48 + count * 300 + max(0, count - 1) * 16, 48 + round(300 * h / w), work)
+                   48 + count * thumb + max(0, count - 1) * 16, 48 + round(thumb * h / w), work)
 
             if android:
                 feature = copy.get("feature") or english["feature"]

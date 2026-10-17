@@ -1,6 +1,6 @@
 name: store assets
 
-# The App Store screenshots (iPhone and 13" iPad), the watch shots and the
+# The App Store screenshots (iPhone, 13" iPad and iPhone Duo), the watch shots and the
 # preview videos, made by app/tool/store_screenshots.sh on iOS simulators
 # exactly as on the Mac, and
 # on request uploaded to an App Store version; and the Google Play set (`android`),
@@ -22,7 +22,7 @@ on:
         type: string
         default: en,de,fr,es,it,nl
       ios:
-        description: The App Store sets, iPhone and iPad (iOS simulator)
+        description: The App Store sets, iPhone, iPad and iPhone Duo (iOS simulator)
         type: boolean
         default: true
       # Off by default: an hour and more on the emulator. The map is drawn
@@ -89,9 +89,9 @@ jobs:
     needs: locales
     if: ${{ inputs.ios && inputs.assets_run_id == '' }}
     runs-on: xcode-27
-    # One language on the iPhone and then on the iPad, each with a simulator
+    # One language on the iPhone, the iPad and the Duo, each with a simulator
     # reboot, and the preview records it again.
-    timeout-minutes: 180
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       matrix:
@@ -227,6 +227,15 @@ jobs:
           VELORKI_STORE_START_TIMEOUT: "1500"
         run: tool/store_screenshots.sh --platform ipad --locales "$LOCALES"
 
+      # The Duo's inner display, unfolded (tool/duo_state.c), on a simulator
+      # the script creates on the newest iOS runtime: 27.1 has the Duo.
+      - name: iPhone Duo screenshots and slides
+        working-directory: app
+        env:
+          LOCALES: ${{ matrix.locale }}
+          VELORKI_STORE_START_TIMEOUT: "1500"
+        run: tool/store_screenshots.sh --platform duo --locales "$LOCALES"
+
       - name: Preview video
         if: ${{ inputs.preview }}
         working-directory: app
@@ -241,6 +250,7 @@ jobs:
           path: |
             app/build/store_screenshots/slides/set
             app/build/store_screenshots/ipad/slides/set
+            app/build/store_screenshots/duo/slides/set
             app/build/store_screenshots/watch
             app/build/store_screenshots/preview/*/preview*.mp4
             app/build/store_screenshots/preview/*/poster*.png
