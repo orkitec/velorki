@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'picture_png.dart';
+
 // The chevrons the cycle map draws along its lines, painted as bitmaps the
 // style can place: all point along the line, the way a symbol on a line is
 // drawn, to the right in the bitmap.
@@ -68,11 +70,5 @@ Future<Uint8List> _png(
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder)..scale(ratio);
   paint(canvas);
-  final image = await recorder.endRecording().toImage(width, height);
-  try {
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    return data!.buffer.asUint8List();
-  } finally {
-    image.dispose();
-  }
+  return pictureToPng(recorder.endRecording(), width, height);
 }

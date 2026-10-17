@@ -4,6 +4,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 
+import 'picture_png.dart';
+
 /// The icons markers wear, drawn at runtime.
 ///
 /// MapLibre can only put a picture on a symbol, and the app's marker icons
@@ -192,13 +194,7 @@ Future<Uint8List> _encodePng(
     ..scale(ratio);
   paint(canvas, ratio);
 
-  final image = await recorder.endRecording().toImage(width, height);
-  try {
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    return data!.buffer.asUint8List();
-  } finally {
-    image.dispose();
-  }
+  return pictureToPng(recorder.endRecording(), width, height);
 }
 
 /// Paints [icon] and encodes it as PNG bytes.
