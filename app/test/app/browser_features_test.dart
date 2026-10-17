@@ -209,4 +209,29 @@ void main() {
     expect(await dragged(null), 0);
     expect(await dragged(const PointerDragScrollBehavior()), greaterThan(100));
   });
+
+  testWidgets('a list in the browser gets no scrollbar of its own, as on '
+      'the phone', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    Future<int> scrollbars(ScrollBehavior? behavior) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          scrollBehavior: behavior,
+          home: ListView(
+            children: [
+              for (var i = 0; i < 50; i++)
+                SizedBox(height: 50, child: Text('$i')),
+            ],
+          ),
+        ),
+      );
+      return find.byType(Scrollbar).evaluate().length;
+    }
+
+    // Material's desktop default, which made the second bar on a sheet.
+    expect(await scrollbars(null), 1);
+    expect(await scrollbars(const PointerDragScrollBehavior()), 0);
+    debugDefaultTargetPlatformOverride = null;
+  });
 }

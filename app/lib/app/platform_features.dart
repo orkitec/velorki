@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
-import 'package:flutter/material.dart' show MaterialScrollBehavior;
+import 'package:flutter/material.dart'
+    show BuildContext, MaterialScrollBehavior, ScrollableDetails, Widget;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// What the device the app runs on lets it do, for the screens that offer
@@ -71,9 +72,20 @@ class PlatformFeatures {
 /// The app's scroll behaviour where [PlatformFeatures.mouseDrags]: a drag
 /// with the mouse or on a trackpad moves a sheet by its handle and scrolls
 /// a list, as a touch does. The wheel still scrolls as before.
+///
+/// Scrollbars are the phone's: only those the app draws itself (the
+/// sheets' thin bar, the search results'). Material's desktop default puts
+/// one on every vertical list, which beside a sheet's own made two.
 class PointerDragScrollBehavior extends MaterialScrollBehavior {
   /// Creates the behaviour.
   const PointerDragScrollBehavior();
+
+  @override
+  Widget buildScrollbar(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) => child;
 
   @override
   Set<PointerDeviceKind> get dragDevices => <PointerDeviceKind>{
