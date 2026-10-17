@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki/features/map/data/cycle_map_layers.dart';
 import 'package:velorki/features/map/data/maplibre_map_controller.dart';
 import 'package:velorki/features/map/domain/cycle_map.dart';
@@ -199,6 +200,51 @@ void main() {
         <Object>[
           '!',
           <Object>['has', 'dr'],
+        ],
+      ]),
+    );
+  });
+
+  test('on a contraflow street with a lane the bikes\' arrow is on the lane '
+      'and the traffic\'s in the middle, as a pair', () {
+    ml.SymbolLayerProperties props(String name) =>
+        layers.firstWhere((l) => l.name == name).properties
+            as ml.SymbolLayerProperties;
+    final pair = layers.firstWhere((l) => l.name == 'contraflow');
+    final traffic = props('contraflow-traffic');
+    final bikes = props('contraflow-bikes-left');
+    // The one picture only where no line runs beside the street.
+    expect(
+      pair.filter,
+      contains(isA<List<Object>>().having((c) => c.first, 'op', '!')),
+    );
+    expect(traffic.iconImage, CycleMapLayers.onewayStreetImage);
+    expect(traffic.iconOffset, isNull);
+    expect(bikes.iconImage, CycleMapLayers.arrowImage);
+    expect(bikes.iconOffset, isNotNull);
+    // Same places along the way.
+    expect(bikes.symbolSpacing, traffic.symbolSpacing);
+    expect(bikes.symbolPlacement, traffic.symbolPlacement);
+    // Not where the lane's own chevrons show its way.
+    final left = layers.firstWhere((l) => l.name == 'contraflow-bikes-left');
+    expect(
+      left.filter,
+      containsAll(<Object>[
+        <Object>[
+          '!',
+          <Object>[
+            '==',
+            <Object>['get', 'dl'],
+            1,
+          ],
+        ],
+        <Object>[
+          '!',
+          <Object>[
+            '==',
+            <Object>['get', 'dl'],
+            2,
+          ],
         ],
       ]),
     );

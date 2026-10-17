@@ -390,9 +390,9 @@ class CycleMapLayers {
     iconIgnorePlacement: true,
   );
 
-  /// The arrows of one side's track, lane or shared lane, beside the road.
-  CycleMapLayer _sideArrows(int side) {
-    final key = _dirKey(side);
+  /// The offset that puts an arrow on [side]'s line beside the road, for an
+  /// arrow turned round where [turned] holds.
+  static List<Object> _onSideLine(int side, List<Object> turned) {
     final sign = side == Side.left ? -1.0 : 1.0;
     // The offset turns with the arrow, so a turned one moves to the other
     // side unless its offset turns too.
@@ -400,7 +400,7 @@ class CycleMapLayers {
       final v = px * sign / _sideArrowSize;
       return <Object>[
         'case',
-        _is(key, Direction.backward),
+        turned,
         <Object>[
           'literal',
           <double>[0, -v],
@@ -412,6 +412,36 @@ class CycleMapLayers {
       ];
     }
 
+    return <Object>[
+      'interpolate',
+      <Object>['linear'],
+      <Object>['zoom'],
+      for (final (zoom, minor, middle, major) in _sideOffsets)
+        if (zoom >= 15) ...[
+          zoom,
+          <Object>[
+            'match',
+            _get('rc'),
+            RoadClass.major,
+            at(major),
+            RoadClass.middle,
+            at(middle),
+            at(minor),
+          ],
+        ],
+    ];
+  }
+
+  /// Whether a track, lane or shared lane runs on [side] of the road.
+  static List<Object> _hasSideLine(int side) => _any(<Object>[
+    _onSide('t', side),
+    _onSide('l', side),
+    _onSide('s', side),
+  ]);
+
+  /// The arrows of one side's track, lane or shared lane, beside the road.
+  CycleMapLayer _sideArrows(int side) {
+    final key = _dirKey(side);
     return CycleMapLayer(
       name: 'side-arrows-${side == Side.left ? 'left' : 'right'}',
       part: CycleMapPart.directions,
@@ -426,24 +456,40 @@ class CycleMapLayers {
         iconImage: arrowImage,
         iconSize: _sideArrowSize,
         iconRotate: <Object>['case', _is(key, Direction.backward), 180, 0],
-        iconOffset: <Object>[
-          'interpolate',
-          <Object>['linear'],
-          <Object>['zoom'],
-          for (final (zoom, minor, middle, major) in _sideOffsets)
-            if (zoom >= 15) ...[
-              zoom,
-              <Object>[
-                'match',
-                _get('rc'),
-                RoadClass.major,
-                at(major),
-                RoadClass.middle,
-                at(middle),
-                at(minor),
-              ],
-            ],
-        ],
+        iconOffset: _onSideLine(side, _is(key, Direction.backward)),
+        iconRotationAlignment: 'map',
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
+      ),
+    );
+  }
+
+  /// The bikes' arrow of a contraflow street on [side]'s track or lane,
+  /// against the traffic. The left side's when both have one; none where
+  /// that line's own chevrons show its direction already.
+  CycleMapLayer _contraflowBikes(int side) {
+    final key = _dirKey(side);
+    // The bikes go against the traffic: along the way where the traffic
+    // goes against it.
+    final turned = <Object>['!', _is('o', Direction.backward)];
+    return CycleMapLayer(
+      name: 'contraflow-bikes-${side == Side.left ? 'left' : 'right'}',
+      part: CycleMapPart.contraflow,
+      minZoom: 15,
+      filter: _all(<Object>[
+        _has('cf'),
+        _hasSideLine(side),
+        if (side == Side.right) <Object>['!', _hasSideLine(Side.left)],
+        <Object>['!', _is(key, Direction.forward)],
+        <Object>['!', _is(key, Direction.backward)],
+      ]),
+      properties: ml.SymbolLayerProperties(
+        symbolPlacement: 'line',
+        symbolSpacing: 100,
+        iconImage: arrowImage,
+        iconSize: _sideArrowSize,
+        iconRotate: <Object>['case', turned, 180, 0],
+        iconOffset: _onSideLine(side, turned),
         iconRotationAlignment: 'map',
         iconAllowOverlap: true,
         iconIgnorePlacement: true,
@@ -807,10 +853,16 @@ class CycleMapLayers {
         spacing: 90,
       ),
     ),
+    // A street one-way for traffic and open to bikes both ways. Where no
+    // track or lane runs beside it, both arrows in its middle, one picture.
     CycleMapLayer(
       name: 'contraflow',
       part: CycleMapPart.contraflow,
-      filter: _has('cf'),
+      filter: _all(<Object>[
+        _has('cf'),
+        <Object>['!', _hasSideLine(Side.left)],
+        <Object>['!', _hasSideLine(Side.right)],
+      ]),
       minZoom: 15,
       properties: _arrows(
         image: contraflowImage,
@@ -818,6 +870,25 @@ class CycleMapLayers {
         spacing: 100,
       ),
     ),
+    // Where one does, the traffic's arrow in the street's middle and the
+    // bikes' on the line beside it, at the same places along the way, so
+    // they still read as a pair.
+    CycleMapLayer(
+      name: 'contraflow-traffic',
+      part: CycleMapPart.contraflow,
+      filter: _all(<Object>[
+        _has('cf'),
+        _any(<Object>[_hasSideLine(Side.left), _hasSideLine(Side.right)]),
+      ]),
+      minZoom: 15,
+      properties: _arrows(
+        image: onewayStreetImage,
+        size: _byZoom(<double>[15, 0.8, 16, 1.0, 18, 1.3]),
+        spacing: 100,
+      ),
+    ),
+    _contraflowBikes(Side.left),
+    _contraflowBikes(Side.right),
     CycleMapLayer(
       name: 'climb-chevrons',
       part: CycleMapPart.climbs,
