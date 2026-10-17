@@ -25,6 +25,7 @@ import 'marker_layers.dart';
 import 'geojson.dart';
 import 'heading_cone.dart';
 import 'local_file_url.dart';
+import 'map_image_ratio.dart';
 import 'heading_smoother.dart';
 import 'tile_template.dart';
 import 'weather_map_preferences.dart' show WeatherOpacity;
@@ -680,10 +681,14 @@ bool isStyleGoneError(PlatformException e) {
 /// an image source over a blob: URL of the picture.
 class PluginMapLibreStyleOps implements MapLibreStyleOps {
   /// Wraps [map], the controller `MapLibreMap.onMapCreated` handed over.
-  PluginMapLibreStyleOps(this.map);
+  /// [imagePixelRatio] is the density the images it is given are painted at.
+  PluginMapLibreStyleOps(this.map, {this.imagePixelRatio = 1.0});
 
   /// The wrapped plugin controller.
   final ml.MapLibreMapController map;
+
+  /// Pixels per logical pixel of every image [addImage] is given.
+  final double imagePixelRatio;
 
   /// In a browser, the URL each image source loads its picture from, let
   /// go when the source goes.
@@ -811,7 +816,13 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
 
   @override
   Future<void> addImage(String name, Uint8List bytes, {bool sdf = false}) =>
-      tolerateMapGone(() => map.addImage(name, bytes, sdf));
+      tolerateMapGone(
+        () => addImageAtRatio(
+          name,
+          imagePixelRatio,
+          () => map.addImage(name, bytes, sdf),
+        ),
+      );
 
   @override
   Future<void> animateCamera(ml.CameraUpdate update, {Duration? duration}) =>
@@ -877,7 +888,7 @@ class MaplibreMapControllerAdapter implements MapController {
     bool weatherDark = false,
     WeatherOpacity weatherOpacity = const WeatherOpacity(radar: 1, clouds: 1),
   }) : this.withOps(
-         PluginMapLibreStyleOps(map),
+         PluginMapLibreStyleOps(map, imagePixelRatio: devicePixelRatio),
          cyclosmTileUrl: cyclosmTileUrl,
          devicePixelRatio: devicePixelRatio,
          palette: palette,
@@ -922,7 +933,8 @@ class MaplibreMapControllerAdapter implements MapController {
   Size? viewSize;
   RasterTone _cyclosmTone;
 
-  /// Screen density the heading cone bitmap is rasterised at.
+  /// Screen density the style images (markers, stops, cycle map signs, wind
+  /// arrows, the heading cone) are rasterised at.
   final double devicePixelRatio;
 
   /// The colours the layers are drawn with.
