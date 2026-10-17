@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:flutter/foundation.dart'
+    show ValueListenable, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -107,8 +108,11 @@ GoRouter createRouter({
 }) {
   // Which tab has a page pushed over it, for the map beside the column.
   final pages = TabPages();
+  // The modal sheets open over the shell, for the map's controls.
+  final sheets = ModalSheets();
   return GoRouter(
     navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'root'),
+    observers: [sheets],
     initialLocation: initialLocation,
     // Links are read by app_links (OAuth returns, shared routes, files), and
     // the platforms are told not to hand them to the router. Should one get
@@ -148,8 +152,9 @@ GoRouter createRouter({
         ),
       ),
       StatefulShellRoute(
-        builder: (context, state, shell) =>
-            HomeShell(shell: shell, pages: pages),
+        builder: (context, state, shell) => WindowSideInsets(
+          child: HomeShell(shell: shell, pages: pages, sheets: sheets),
+        ),
         // Every tab stays alive; a change of tab is a short cross-fade.
         navigatorContainerBuilder: (context, shell, children) => TabFadeStack(
           index: shell.currentIndex,
@@ -243,12 +248,20 @@ GoRouter createRouter({
 
 /// Scaffold around the four tabs; each branch keeps its own navigation stack.
 class HomeShell extends ConsumerWidget {
-  const HomeShell({required this.shell, required this.pages, super.key});
+  const HomeShell({
+    required this.shell,
+    required this.pages,
+    required this.sheets,
+    super.key,
+  });
 
   final StatefulNavigationShell shell;
 
   /// Which tab has a page pushed over it, branch by branch.
   final TabPages pages;
+
+  /// The modal sheets open over the shell.
+  final ModalSheets sheets;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -566,6 +579,7 @@ class HomeShell extends ConsumerWidget {
                                       ),
                                     ),
                                     child: _UnderSheetFade(
+                                      sheets: sheets,
                                       child: controls(layout),
                                     ),
                                   ),
@@ -660,14 +674,46 @@ Widget _sidewaysControlsRow(
   );
 }
 
+/// How many modal bottom sheets are open on the root navigator, where the
+/// app's modal sheets open (in a wide window in the column).
+class ModalSheets extends NavigatorObserver
+    with ChangeNotifier
+    implements ValueListenable<int> {
+  int _open = 0;
+
+  @override
+  int get value => _open;
+
+  void _change(Route<dynamic> route, int by) {
+    if (route is! ModalBottomSheetRoute) return;
+    _open = math.max(0, _open + by);
+    notifyListeners();
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _change(route, 1);
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _change(route, -1);
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _change(route, -1);
+}
+
 /// The map's control column, upright, fading out as the tab's sheet rises
 /// over it: it stays while the sheet lies over no more than its last button
 /// (as Plan's resting sheet does on a small phone), and is gone within
 /// [_underSheetFadeDp] more, so no button is left showing half under the
 /// sheet. It takes no touch once gone. Sideways the controls are a row
-/// beside the sheet and are not faded.
+/// beside the sheet and are not faded. A modal sheet over the shell
+/// ([sheets]) takes it away too, as it comes up, and back as it goes.
 class _UnderSheetFade extends ConsumerStatefulWidget {
-  const _UnderSheetFade({required this.child});
+  const _UnderSheetFade({required this.sheets, required this.child});
+
+  final ModalSheets sheets;
 
   final Widget child;
 
@@ -710,12 +756,24 @@ class _UnderSheetFadeState extends ConsumerState<_UnderSheetFade> {
       final covered = bottom - top - grace;
       opacity = (1 - covered / _underSheetFadeDp).clamp(0.0, 1.0);
     }
-    return IgnorePointer(
-      ignoring: opacity == 0,
+    return ValueListenableBuilder<int>(
+      valueListenable: widget.sheets,
+      builder: (context, modals, child) => IgnorePointer(
+        ignoring: opacity == 0 || modals > 0,
+        child: AnimatedOpacity(
+          opacity: modals > 0 ? 0 : 1,
+          duration: _modalFadeDuration,
+          child: child,
+        ),
+      ),
       child: Opacity(opacity: opacity, child: widget.child),
     );
   }
 }
+
+/// How long the controls take to fade for a modal sheet: about as long as
+/// the sheet takes to come up.
+const Duration _modalFadeDuration = Duration(milliseconds: 200);
 
 /// Tells [onWidth] the width [child] was laid out at, after the frame,
 /// whenever it changed.

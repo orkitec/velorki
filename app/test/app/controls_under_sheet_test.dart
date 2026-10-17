@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/smart_loop/presentation/smart_loop_sheet.dart';
 
 import '../features/recording/support/pump.dart';
 
@@ -97,5 +100,30 @@ void main() {
         await unmountApp(tester);
       });
     }
+  }
+
+  for (final size in const [Size(390, 844), Size(951, 669)]) {
+    testWidgets('$size: the controls fade out under a modal sheet and come '
+        'back when it closes', (tester) async {
+      await _app(tester, size, plannerRoute);
+      double modalOpacity() => tester
+          .widget<AnimatedOpacity>(
+            find
+                .ancestor(
+                  of: find.byType(MapControls),
+                  matching: find.byType(AnimatedOpacity),
+                )
+                .first,
+          )
+          .opacity;
+      expect(modalOpacity(), 1);
+      unawaited(showSmartLoopSheet(tester.element(find.byType(MapControls))));
+      await tester.pumpAndSettle();
+      expect(modalOpacity(), 0);
+      Navigator.of(tester.element(find.byType(SmartLoopSheet))).pop();
+      await tester.pumpAndSettle();
+      expect(modalOpacity(), 1);
+      await unmountApp(tester);
+    });
   }
 }

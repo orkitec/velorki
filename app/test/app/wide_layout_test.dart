@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
+import 'package:velorki/features/map/presentation/layers_sheet.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/map/domain/visible_map.dart';
@@ -27,6 +28,7 @@ import 'package:velorki/features/recording/presentation/ride_detail_screen.dart'
 import 'package:velorki/features/recording/presentation/live_figures_view.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/settings/presentation/settings_screen.dart';
+import 'package:velorki/features/smart_loop/presentation/smart_loop_sheet.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/shared/presentation/floating_bar.dart';
 import 'package:velorki/features/shared/presentation/wide_panel.dart';
@@ -90,6 +92,18 @@ RecordingSnapshot _snapshot() => RecordingSnapshot(
 );
 
 Rect _rect(WidgetTester tester, Finder finder) => tester.getRect(finder);
+
+/// How opaque the map's control column is drawn, under a modal sheet.
+double _controlsOpacity(WidgetTester tester) => tester
+    .widget<AnimatedOpacity>(
+      find
+          .ancestor(
+            of: find.byType(MapControls),
+            matching: find.byType(AnimatedOpacity),
+          )
+          .first,
+    )
+    .opacity;
 
 /// The tab's sheet's box.
 Rect _sheet(WidgetTester tester) =>
@@ -477,44 +491,67 @@ void main() {
   });
 
   for (final side in [WideColumnSide.left, WideColumnSide.right]) {
-    testWidgets('a modal sheet and a dialog open in the column on the '
-        '${side.name}, as on a phone', (tester) async {
-      testWideColumnSide = side;
-      await _window(tester, _air);
-      await _pumpPlan(tester, _air);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip(l10n.mapLayers));
-      await tester.pumpAndSettle();
-      final column = _column(_air, side: side);
-      final sheet = _rect(
-        tester,
-        find
-            .descendant(
-              of: find.byType(BottomSheet),
-              matching: find.byType(Material),
-            )
-            .first,
-      );
-      expect(sheet.left, closeTo(column.left, 1));
-      expect(sheet.width, closeTo(column.width, 1));
-      // Up from the window's bottom, over the bar, as on a phone.
-      expect(sheet.bottom, closeTo(_air.height, 1));
-      Navigator.of(tester.element(find.byType(BottomSheet))).pop();
-      await tester.pumpAndSettle();
+    for (final (size, left, right) in const [
+      (_air, 0.0, 0.0),
+      // A foldable's inner screen on its side, a system bar on one side.
+      (Size(951, 669), 0.0, 84.0),
+      (Size(951, 669), 84.0, 0.0),
+    ]) {
+      testWidgets('$size, system bars $left and $right: a modal sheet and a '
+          'dialog open in the column on the ${side.name}, as wide as it, as on '
+          'a phone, the map\'s controls faded under the sheet', (tester) async {
+        testWideColumnSide = side;
+        await _window(tester, size, left: left, right: right);
+        await _pumpPlan(tester, size);
+        await tester.pumpAndSettle();
+        final column = _column(size, side: side, left: left, right: right);
+        Rect sheet() => _rect(
+          tester,
+          find
+              .descendant(
+                of: find.byType(BottomSheet),
+                matching: find.byType(Material),
+              )
+              .first,
+        );
+        for (final open in <void Function()>[
+          () => unawaited(
+            showLayersSheet(tester.element(find.byType(MapControls))),
+          ),
+          () => unawaited(
+            showSmartLoopSheet(tester.element(find.byType(MapControls))),
+          ),
+        ]) {
+          open();
+          await tester.pumpAndSettle();
+          expect(sheet().left, closeTo(column.left, 1));
+          expect(sheet().right, closeTo(column.right, 1));
+          // Up from the window's bottom, over the bar, as on a phone.
+          expect(sheet().bottom, closeTo(size.height, 1));
+          expect(_controlsOpacity(tester), 0);
+          Navigator.of(tester.element(find.byType(BottomSheet))).pop();
+          await tester.pumpAndSettle();
+          expect(_controlsOpacity(tester), 1);
+        }
 
-      unawaited(
-        showDialog<void>(
-          context: tester.element(find.byType(SearchField)),
-          useRootNavigator: true,
-          builder: (_) => const AlertDialog(content: Text('dialog')),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final dialog = _rect(tester, find.byType(AlertDialog));
-      expect(dialog.center.dx, closeTo(column.center.dx, 1));
-      expect(dialog.width, lessThanOrEqualTo(column.width + 0.5));
-      await unmountApp(tester);
-    });
+        unawaited(
+          showDialog<void>(
+            context: tester.element(find.byType(SearchField)),
+            useRootNavigator: true,
+            builder: (_) => const AlertDialog(content: Text('dialog')),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final dialog = _rect(tester, find.byType(AlertDialog));
+        expect(dialog.center.dx, closeTo(column.center.dx, 1));
+        expect(dialog.width, lessThanOrEqualTo(column.width + 0.5));
+        Navigator.of(tester.element(find.byType(AlertDialog))).pop();
+        await tester.pumpAndSettle();
+        // The map's controls keep clear of a system bar on their side.
+        _expectControlsAtEdge(tester, column, side);
+        await unmountApp(tester);
+      });
+    }
   }
 
   for (final (name, size, wide) in const [

@@ -272,13 +272,20 @@ class WideAppFrame extends StatelessWidget {
     Rect band(double from, double to) =>
         Rect.fromLTRB(from, 0, to, size.height);
     // A MediaQuery either way, so a window resized across the line keeps
-    // the app's state.
+    // the app's state. In a wide window what opens over the shell opens in
+    // the column, where a phone has no safe area at its sides: none is
+    // said there, or a modal sheet's own safe area (taken outside the part
+    // it is placed in) narrowed the sheet by the system bar's width
+    // beside the window. The shell takes the window's back
+    // ([WindowSideInsets]).
     return _SideScope(
       side: side,
       child: MediaQuery(
         data: !_wideAt(size)
             ? media
             : media.copyWith(
+                padding: media.padding.copyWith(left: 0, right: 0),
+                viewPadding: media.viewPadding.copyWith(left: 0, right: 0),
                 displayFeatures: <DisplayFeature>[
                   ...media.displayFeatures,
                   for (final bounds in [
@@ -295,6 +302,38 @@ class WideAppFrame extends StatelessWidget {
               ),
         child: child,
       ),
+    );
+  }
+}
+
+/// [child] with the window's own safe areas at its sides, which
+/// [WideAppFrame] leaves out in a wide window: the shell, whose map and
+/// controls reach the window's edges, keeps clear of a system bar there.
+/// Elsewhere the media as it is.
+class WindowSideInsets extends StatelessWidget {
+  /// Creates the insets.
+  const WindowSideInsets({required this.child, super.key});
+
+  /// The shell.
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    if (!_wideAt(media.size)) return MediaQuery(data: media, child: child);
+    final window = MediaQueryData.fromView(View.of(context));
+    return MediaQuery(
+      data: media.copyWith(
+        padding: media.padding.copyWith(
+          left: window.padding.left,
+          right: window.padding.right,
+        ),
+        viewPadding: media.viewPadding.copyWith(
+          left: window.viewPadding.left,
+          right: window.viewPadding.right,
+        ),
+      ),
+      child: child,
     );
   }
 }
