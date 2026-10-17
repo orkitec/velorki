@@ -232,6 +232,11 @@ class TileDownloader {
       response = await _dio.getUri<ResponseBody>(
         url,
         cancelToken: cancelToken,
+        // A browser's adapter hands the body over only once all of it has
+        // arrived, so the bar follows the request's own progress there.
+        onReceiveProgress: kIsWeb && onProgress != null
+            ? (received, _) => onProgress(offset + received)
+            : null,
         options: Options(
           responseType: ResponseType.stream,
           headers: offset > 0

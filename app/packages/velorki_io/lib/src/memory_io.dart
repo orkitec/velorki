@@ -27,6 +27,15 @@ abstract final class MemoryFileSystem {
   /// ([bytes] `null`), after the change.
   static void Function(String path, Uint8List? bytes)? onChange;
 
+  /// Makes the buffer a file written in parts (an [IOSink], an append, a
+  /// [RandomAccessFile]) is put together in. A browser sets it to bytes
+  /// held by JavaScript, as a download's arrive: copying from those into
+  /// the buffers JavaScript reads into (sqlite's) is one `TypedArray.set`,
+  /// and into Dart's own buffers one bulk copy too, where copying Dart's
+  /// bytes into JavaScript's goes element by element. A file written whole
+  /// ([File.writeAsBytes]) keeps Dart's bytes.
+  static Uint8List Function(int length) newBytes = Uint8List.new;
+
   /// Puts [bytes] at [path] without telling [onChange]: for a store that is
   /// loading what it kept.
   static void seed(String path, Uint8List bytes, {DateTime? modified}) {
@@ -382,10 +391,9 @@ class File extends FileSystemEntity {
     if (mode._appends && existing != null) {
       MemoryFileSystem._write(
         _key,
-        (BytesBuilder(copy: false)
-              ..add(existing)
-              ..add(bytes))
-            .takeBytes(),
+        MemoryFileSystem.newBytes(existing.length + bytes.length)
+          ..setRange(0, existing.length, existing)
+          ..setRange(existing.length, existing.length + bytes.length, bytes),
       );
     } else {
       MemoryFileSystem._write(_key, Uint8List.fromList(bytes));
@@ -423,8 +431,18 @@ class File extends FileSystemEntity {
     final from = start ?? 0;
     final to = end == null || end > bytes.length ? bytes.length : end;
     const chunk = 64 * 1024;
-    for (var i = from; i < to; i += chunk) {
-      yield Uint8List.sublistView(bytes, i, i + chunk < to ? i + chunk : to);
+    // A reader that takes it all at once (a checksum over a tile) gives the
+    // page a frame every so often, as a disk's latency would.
+    const chunksPerTurn = 16;
+    for (var i = from, n = 0; i < to; i += chunk, n++) {
+      if (n > 0 && n % chunksPerTurn == 0) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      // A copy in Dart's own bytes: readers go through it a few bytes at a
+      // time, which is slow on bytes held by JavaScript ([newBytes]).
+      yield Uint8List.fromList(
+        Uint8List.sublistView(bytes, i, i + chunk < to ? i + chunk : to),
+      );
     }
   }
 
@@ -642,7 +660,8 @@ class RandomAccessFile {
     final length = _position + data.length > old.length
         ? _position + data.length
         : old.length;
-    final next = Uint8List(length)..setRange(0, old.length, old);
+    final next = MemoryFileSystem.newBytes(length)
+      ..setRange(0, old.length, old);
     next.setRange(_position, _position + data.length, data);
     _position += data.length;
     MemoryFileSystem._write(_file._key, next);
@@ -670,7 +689,7 @@ class RandomAccessFile {
 
   void truncateSync(int length) {
     final old = _bytes;
-    final next = Uint8List(length)
+    final next = MemoryFileSystem.newBytes(length)
       ..setRange(0, length < old.length ? length : old.length, old);
     MemoryFileSystem._write(_file._key, next);
   }
@@ -683,23 +702,43 @@ class RandomAccessFile {
 /// Collects what is written and puts it into the file on [flush] and
 /// [close].
 class IOSink implements StreamSink<List<int>>, StringSink {
-  IOSink._(this._file, FileMode mode, this.encoding)
-    : _builder = BytesBuilder(copy: false) {
+  IOSink._(this._file, FileMode mode, this.encoding) {
     final existing = MemoryFileSystem._files[_file._key];
-    if (mode._appends && existing != null) _builder.add(existing);
+    if (mode._appends && existing != null) add(existing);
     _commit();
   }
 
   final File _file;
-  final BytesBuilder _builder;
+  final List<List<int>> _chunks = <List<int>>[];
+  int _length = 0;
   final Completer<void> _done = Completer<void>();
 
   Encoding encoding;
 
-  void _commit() => MemoryFileSystem._write(_file._key, _builder.toBytes());
+  /// Puts what was written into the file, unless it is there already.
+  void _commit() {
+    if (_chunks.length == 1 && _chunks.single is Uint8List) {
+      final only = _chunks.single as Uint8List;
+      if (identical(MemoryFileSystem._files[_file._key], only)) return;
+    }
+    final bytes = MemoryFileSystem.newBytes(_length);
+    var at = 0;
+    for (final chunk in _chunks) {
+      bytes.setRange(at, at + chunk.length, chunk);
+      at += chunk.length;
+    }
+    // One chunk from now on, so a flush and then a close copy once.
+    _chunks
+      ..clear()
+      ..add(bytes);
+    MemoryFileSystem._write(_file._key, bytes);
+  }
 
   @override
-  void add(List<int> data) => _builder.add(data);
+  void add(List<int> data) {
+    _chunks.add(data);
+    _length += data.length;
+  }
 
   @override
   void addError(Object error, [StackTrace? stackTrace]) {
@@ -709,12 +748,12 @@ class IOSink implements StreamSink<List<int>>, StringSink {
   @override
   Future<void> addStream(Stream<List<int>> stream) async {
     await for (final chunk in stream) {
-      _builder.add(chunk);
+      add(chunk);
     }
   }
 
   @override
-  void write(Object? object) => _builder.add(encoding.encode('$object'));
+  void write(Object? object) => add(encoding.encode('$object'));
 
   @override
   void writeAll(Iterable<Object?> objects, [String separator = '']) =>

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:test/test.dart';
@@ -29,6 +30,57 @@ void main() {
     expect(rd5.existsSync(), isFalse);
     expect(() => rd5.lengthSync(), throwsA(isA<FileSystemException>()));
   });
+
+  test('files written in parts go into the buffers newBytes makes', () async {
+    final made = <int>[];
+    final changes = <String>[];
+    MemoryFileSystem.newBytes = (length) {
+      made.add(length);
+      return Uint8List(length);
+    };
+    MemoryFileSystem.onChange = (path, _) => changes.add(path);
+    addTearDown(() {
+      MemoryFileSystem.newBytes = Uint8List.new;
+      MemoryFileSystem.onChange = null;
+    });
+    await Directory('/t').create();
+    final file = File('/t/a');
+    final sink = file.openWrite()..add(Uint8List.fromList(<int>[1, 2]));
+    await sink.flush();
+    await sink.close();
+    expect(file.readAsBytesSync(), <int>[1, 2]);
+    // The empty file when opened, then the flush; the close finds it there.
+    expect(made, <int>[0, 2]);
+    expect(changes, <String>['/t/a', '/t/a']);
+
+    made.clear();
+    file.writeAsBytesSync(<int>[3], mode: FileMode.append);
+    file.writeAsBytesSync(<int>[4]);
+    expect(made, <int>[3]);
+    expect(file.readAsBytesSync(), <int>[4]);
+  });
+
+  test(
+    'openRead hands out copies, in chunks, and lets the loop turn',
+    () async {
+      final bytes = Uint8List(64 * 1024 * 40 + 7);
+      for (var i = 0; i < bytes.length; i++) {
+        bytes[i] = i & 0xff;
+      }
+      MemoryFileSystem.seed('/t/big', bytes);
+      var timerRan = false;
+      Timer.run(() => timerRan = true);
+      var seen = 0;
+      var turnedBeforeEnd = false;
+      await for (final chunk in File('/t/big').openRead()) {
+        expect(chunk[0], seen & 0xff);
+        seen += chunk.length;
+        if (timerRan && seen < bytes.length) turnedBeforeEnd = true;
+      }
+      expect(seen, bytes.length);
+      expect(turnedBeforeEnd, isTrue);
+    },
+  );
 
   test('a file needs its directory', () {
     expect(

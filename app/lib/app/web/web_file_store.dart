@@ -30,6 +30,11 @@ abstract final class WebFileStore {
   /// Storage (a page not served over https or from localhost) keeps nothing
   /// and the app downloads again on the next visit.
   static Future<void> open() async {
+    // Files in bytes JavaScript holds, as the kept ones come back: sqlite
+    // reads a gazetteer page by page into its own memory, which from Dart's
+    // bytes went element by element and froze the page for a minute.
+    MemoryFileSystem.newBytes = (length) =>
+        JSUint8Array.withLength(length).toDart;
     final web.Cache cache;
     try {
       cache = await web.window.caches.open(_cacheName).toDart;

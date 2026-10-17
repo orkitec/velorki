@@ -1,8 +1,9 @@
 import 'dart:js_interop';
 
-import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:web/web.dart' as web;
+
+import '../platform_view_hit_test.dart';
 
 /// Gives the map's own DOM element only the pointers that Flutter's hit
 /// test gives the map.
@@ -91,13 +92,11 @@ abstract final class PlatformViewPointerGate {
     final flutter = WidgetsBinding.instance.platformDispatcher.implicitView;
     if (view == null || flutter == null) return true;
     final origin = view.getBoundingClientRect();
-    final result = HitTestResult();
-    WidgetsBinding.instance.hitTestInView(
-      result,
-      Offset(event.clientX - origin.left, event.clientY - origin.top),
+    final at = _Position(event);
+    return platformViewAt(
+      Offset(at.clientX - origin.left, at.clientY - origin.top),
       flutter.viewId,
     );
-    return result.path.any((entry) => entry.target is PlatformViewRenderBox);
   }
 
   static bool _inPlatformView(web.Event event) {
@@ -185,59 +184,13 @@ abstract final class PlatformViewPointerGate {
     event
       ..stopImmediatePropagation()
       ..preventDefault();
-    final web.Event copy;
-    if (event.isA<web.WheelEvent>()) {
-      event as web.WheelEvent;
-      copy = web.WheelEvent(
-        event.type,
-        web.WheelEventInit(
-          bubbles: true,
-          cancelable: true,
-          composed: true,
-          clientX: event.clientX,
-          clientY: event.clientY,
-          screenX: event.screenX,
-          screenY: event.screenY,
-          ctrlKey: event.ctrlKey,
-          shiftKey: event.shiftKey,
-          altKey: event.altKey,
-          metaKey: event.metaKey,
-          buttons: event.buttons,
-          deltaX: event.deltaX,
-          deltaY: event.deltaY,
-          deltaZ: event.deltaZ,
-          deltaMode: event.deltaMode,
-        ),
-      );
-    } else {
-      final pointer = event as web.PointerEvent;
-      copy = web.PointerEvent(
-        event.type,
-        web.PointerEventInit(
-          bubbles: true,
-          cancelable: true,
-          composed: true,
-          clientX: pointer.clientX,
-          clientY: pointer.clientY,
-          screenX: pointer.screenX,
-          screenY: pointer.screenY,
-          ctrlKey: pointer.ctrlKey,
-          shiftKey: pointer.shiftKey,
-          altKey: pointer.altKey,
-          metaKey: pointer.metaKey,
-          button: pointer.button,
-          buttons: pointer.buttons,
-          pointerId: pointer.pointerId,
-          pointerType: pointer.pointerType,
-          isPrimary: pointer.isPrimary,
-          width: pointer.width,
-          height: pointer.height,
-          pressure: pointer.pressure,
-          tiltX: pointer.tiltX,
-          tiltY: pointer.tiltY,
-        ),
-      );
-    }
+    // The event itself is the copy's init: the browser reads every field
+    // from it, positions between pixels included, which the typed inits
+    // would round to whole ones.
+    final init = event as JSObject;
+    final copy = event.isA<web.WheelEvent>()
+        ? web.WheelEvent(event.type, init as web.WheelEventInit)
+        : web.PointerEvent(event.type, init as web.PointerEventInit);
     _dispatching = true;
     try {
       view.dispatchEvent(copy);
@@ -245,4 +198,14 @@ abstract final class PlatformViewPointerGate {
       _dispatching = false;
     }
   }
+}
+
+/// A mouse event's position as the browser gives it: between pixels where
+/// the screen has more than one pixel per point (a Retina display, a zoomed
+/// page). `MouseEvent.clientX` is typed `int`, and reading a fraction
+/// through it throws in WebAssembly; the gate then failed open, and the map
+/// under a button took the click.
+extension type _Position(JSObject _) implements JSObject {
+  external double get clientX;
+  external double get clientY;
 }
