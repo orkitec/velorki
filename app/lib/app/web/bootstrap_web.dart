@@ -18,6 +18,7 @@ import '../licenses.dart';
 import 'browser_download.dart';
 import 'platform_view_pointer_gate.dart';
 import 'web_file_store.dart';
+import 'web_glass_layer.dart';
 
 /// The browser's start: the planner and the library, without what needs the
 /// phone (recording, the watch, sensors, the stores, links from other
@@ -53,6 +54,7 @@ Future<void> bootstrap() async {
   );
 
   startSubscriptions(container);
+  WebGlassLayer.install(container);
   prepareOnDeviceRouting(container);
 
   runApp(

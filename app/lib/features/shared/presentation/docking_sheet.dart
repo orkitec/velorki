@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
+import 'glass_backdrop.dart';
 import 'floating_bar.dart'
     show FloatingBarStyle, floatingBarFilter, floatingBarHeight, glassTint;
 
@@ -596,7 +597,9 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
           right: margin,
           top: 0,
           bottom: math.max(0, dockedBottomInset - floatingBarHeight),
-          child: _DockedPillBlur(filter: pill ? filter : null),
+          child: _DockedPillBlur(
+            style: pill ? FloatingBarStyle.of(context) : null,
+          ),
         ),
         chrome,
       ],
@@ -632,17 +635,18 @@ class _AboveSeamClipper extends CustomClipper<Rect> {
 
 /// The one blur behind the docked strip and the bar under it.
 class _DockedPillBlur extends StatelessWidget {
-  const _DockedPillBlur({required this.filter});
+  const _DockedPillBlur({required this.style});
 
-  /// The blur; `null` when not docked or in a style without one.
-  final ImageFilter? filter;
+  /// The glass style; `null` when not docked.
+  final BarStyle? style;
 
   @override
   Widget build(BuildContext context) => ClipRRect(
     borderRadius: const BorderRadius.all(Radius.circular(dockedPillRadius)),
-    child: BackdropFilter.grouped(
-      enabled: filter != null,
-      filter: filter ?? ImageFilter.blur(),
+    child: GlassBackdrop(
+      style: style ?? BarStyle.solid,
+      grouped: true,
+      borderRadius: const BorderRadius.all(Radius.circular(dockedPillRadius)),
       child: const SizedBox.expand(),
     ),
   );

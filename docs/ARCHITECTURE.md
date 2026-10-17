@@ -185,6 +185,11 @@ up for it (string feature ids as a promoted property, image sources over
 blob: URLs), and the map, an HTML element under Flutter's canvas, only gets
 the pointers Flutter's hit test gives it (`platform_view_pointer_gate.dart`).
 `web/device_gate.mjs` keeps purchases_flutter's web SDK off the page.
+The glass over the map (`GlassBackdrop`: the bar, the panels, the chips, the
+docked pill) blurs the map with the browser's own `backdrop-filter`: boxes in
+the glass's place inside each map's element (`web_glass_layer.dart`); where
+the browser has none, the rider wants less transparency or it is too slow,
+the glass is drawn as Subtle (`GlassBlur`).
 
 ## Data model
 

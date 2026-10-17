@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/shared/presentation/glass_backdrop.dart';
 import 'package:velorki/features/shared/presentation/floating_bar.dart';
 
 import '../../support/app.dart';
@@ -46,8 +47,8 @@ final _strip = find.byWidgetPredicate(
 final _pill = find.byWidgetPredicate(
   (w) =>
       w is ClipRRect &&
-      w.child is BackdropFilter &&
-      (w.child! as BackdropFilter).child is SizedBox,
+      w.child is GlassBackdrop &&
+      (w.child! as GlassBackdrop).child is SizedBox,
 );
 
 /// A [DraggableScrollableSheet] in a 400 x 600 box with a [DockingSheet]

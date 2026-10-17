@@ -5,6 +5,7 @@ import '../../../app/theme.dart' show BarStyle;
 import '../../../core/power/system_power_save.dart';
 import '../../recording/data/battery_saver.dart';
 import '../../settings/data/appearance_controller.dart';
+import 'glass_blur.dart';
 
 part 'shown_bar_style.g.dart';
 
@@ -12,13 +13,19 @@ part 'shown_bar_style.g.dart';
 /// choice, or [BarStyle.solid] while power is being saved, the phone's own
 /// power-saving mode or a ride recorded in Velorki's battery saver. A blur
 /// redrawn over a moving map every frame is the costliest thing the chrome
-/// does. A ride without the saver keeps the glass.
+/// does. A ride without the saver keeps the glass. Where the glass cannot
+/// blur the map ([GlassBlur], a browser without `backdrop-filter`), its
+/// glass styles are Subtle: the more tinted one, which reads without blur.
 @Riverpod(keepAlive: true)
 BarStyle shownBarStyle(Ref ref) {
   if (ref.watch(barStyleOverrideProvider) != null) return BarStyle.solid;
-  return ref.watch(
+  final chosen = ref.watch(
     appearanceSettingProvider.select((appearance) => appearance.barStyle),
   );
+  if (chosen == BarStyle.clear && !ref.watch(glassBlurProvider)) {
+    return BarStyle.subtle;
+  }
+  return chosen;
 }
 
 /// Why the glass is solid whatever the rider picked.

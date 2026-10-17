@@ -1,11 +1,10 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/glass_backdrop.dart';
 import '../../shared/presentation/floating_bar.dart'
-    show FloatingBarStyle, floatingBarFilter, glassTint;
+    show FloatingBarStyle, glassTint;
 import '../domain/route_profile.dart';
 import 'route_format.dart';
 
@@ -55,7 +54,6 @@ class ProfileChipRow extends StatelessWidget {
     // shape with equal corners that iOS clips a blur over the map to.
     final style = FloatingBarStyle.of(context);
     final fill = glass ? glassTint(theme.velorki, style) : null;
-    final filter = glass ? floatingBarFilter(style) : null;
     final row = SizedBox(
       height: 44,
       child: Row(
@@ -69,7 +67,7 @@ class ProfileChipRow extends StatelessWidget {
                   right: index == profiles.length - 1 ? 0 : 6,
                 ),
                 child: _ChipGlass(
-                  filter: filter,
+                  style: glass ? style : null,
                   child: ChoiceChip(
                     label: SizedBox(
                       width: double.infinity,
@@ -132,19 +130,20 @@ class ProfileChipRow extends StatelessWidget {
   }
 }
 
-/// The blur behind one chip, in its stadium; none when [filter] is null.
+/// The blur behind one chip, in its stadium; none when [style] is null.
 class _ChipGlass extends StatelessWidget {
-  const _ChipGlass({required this.filter, required this.child});
+  const _ChipGlass({required this.style, required this.child});
 
-  final ImageFilter? filter;
+  final BarStyle? style;
   final Widget child;
 
   @override
   Widget build(BuildContext context) => ClipRRect(
     clipper: const _StadiumClipper(),
-    child: BackdropFilter.grouped(
-      enabled: filter != null,
-      filter: filter ?? ImageFilter.blur(),
+    child: GlassBackdrop(
+      style: style ?? BarStyle.solid,
+      grouped: true,
+      stadium: true,
       child: child,
     ),
   );

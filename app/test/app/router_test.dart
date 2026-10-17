@@ -27,6 +27,7 @@ import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/shared/presentation/glass_backdrop.dart';
 import 'package:velorki/features/shared/presentation/floating_bar.dart'
     show floatingBarFilter;
 import 'package:velorki/features/shared/presentation/tab_chrome_slide.dart';
@@ -461,8 +462,8 @@ void main() {
       matching: find.byWidgetPredicate(
         (w) =>
             w is ClipRRect &&
-            w.child is BackdropFilter &&
-            (w.child! as BackdropFilter).child is SizedBox,
+            w.child is GlassBackdrop &&
+            (w.child! as GlassBackdrop).child is SizedBox,
       ),
     );
     final barClip = find.descendant(
