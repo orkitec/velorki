@@ -32,9 +32,12 @@ Tests (Node's built-in runner, no dependencies):
 
     node --test deploy/cloudflare/test/*.test.mjs
 
-A `v*` release deploys it (`release.yml`, job `web`, after approval in the
-`release` environment). By hand, from `deploy/cloudflare/pages/`, after
-`app/tool/web_assets.sh` and the build: `npx wrangler pages deploy`.
+`.github/workflows/web-app.yml` deploys it, after approval in the `release`
+environment: on a push to `production` that touches `app/` or this
+directory, by hand (Actions → web app → Run workflow, the branch's head), and
+from a `v*` tag through `release.yml`'s `web` job. Without a workflow, from
+`deploy/cloudflare/pages/`, after `app/tool/web_assets.sh` and the build:
+`npx wrangler pages deploy`.
 
 ## One-time setup
 

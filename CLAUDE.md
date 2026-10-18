@@ -211,7 +211,10 @@ changing structure.
   variable `RELEASE_ACTORS` may start or re-run a release (unset: every run
   fails). A platform job whose store already has the build number reports it
   and uploads nothing; the GitHub Release is made only if missing. A push to the `production`
-  branch (main merged in, which is how a release happens) runs
+  branch (main merged in, which is how a release happens) also runs
+  `web-app.yml` when `app/` or `deploy/cloudflare/` changed (the web planner
+  onto Cloudflare Pages, after approval in `release`; also by hand, and from
+  a tag through `release.yml`), and it runs
   `web-deploy.yml` in the `web-production` environment: it re-runs `web.yml`'s gate
   and then `npx orkify deploy upload .` from `web/`, with `ORKIFY_API_KEY` as
   that environment's only secret. No SSH, no host key, no deploy user. Uploading
