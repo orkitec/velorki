@@ -20,6 +20,11 @@
 	     and rides in a CloudKit zone of the rider's private database, a few
 	     settings in the key-value store. The container must exist and
 	     iCloud be enabled for the app id (docs/OPEN_ITEMS.md). -->
+	<!-- Push, only for CloudKit: CKSyncEngine hears of another device's
+	     change through a silent push and fetches it while the app is open.
+	     The App Store export turns this into production. -->
+	<key>aps-environment</key>
+	<string>development</string>
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>
 		<string>iCloud.com.orkitec.velorki</string>

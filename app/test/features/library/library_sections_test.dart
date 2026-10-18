@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/router.dart';
@@ -7,12 +10,15 @@ import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
+import 'package:velorki/features/sync/application/cloud_sync_controller.dart';
+import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
 import '../../support/format.dart';
 import '../planner/support/fakes.dart' show syntheticRoute;
 import '../recording/support/pump.dart';
+import '../sync/support/fake_cloud.dart';
 
 const List<Waypoint> _waypoints = [
   Waypoint(pos: LatLng(48.0, 11.0), kind: WaypointKind.start),
@@ -49,6 +55,7 @@ Future<void> _seedRide(RecordingHarness h) =>
     );
 
 void main() {
+  group('pull to refresh', _pullRefreshTests);
   testWidgets('the library offers both sections and starts on routes', (
     tester,
   ) async {
@@ -190,4 +197,91 @@ void main() {
     expect(find.text(l10n.rideDetailExportGpx), findsWidgets);
     await unmountApp(tester);
   });
+}
+
+void _pullRefreshTests() {
+  late Directory dir;
+  late FakeCloudSyncBridge bridge;
+  setUp(() {
+    dir = Directory.systemTemp.createTempSync('library_pull');
+    bridge = FakeCloudSyncBridge(FakeCloud(dir));
+  });
+  tearDown(() => dir.deleteSync(recursive: true));
+
+  Future<void> pump(WidgetTester tester, {required bool syncOn}) async {
+    final h = RecordingHarness();
+    await _seedRoute(h);
+    // Enough routes that the list scrolls: a list that fits is a grip for
+    // the sheet, not something to pull.
+    for (var i = 0; i < 30; i++) {
+      await RouteRepository(
+        h.planner.db.routesDao,
+        clock: () => DateTime.utc(2026, 9, 11, 10, i),
+      ).savePlannedRoute(
+        name: 'Route $i',
+        route: syntheticRoute(),
+        waypoints: _waypoints,
+        options: const RoutingOptions(),
+      );
+    }
+    await pumpRecordingApp(
+      tester,
+      initialLocation: libraryRoute,
+      harness: h,
+      extraOverrides: [
+        cloudSyncBridgeProvider.overrideWithValue(bridge),
+        cloudSyncOutboxProvider.overrideWith((ref) async => dir),
+        cloudSyncEnabledProvider.overrideWith(() => _Enabled(syncOn)),
+      ],
+    );
+    ProviderScope.containerOf(
+      tester.element(find.byType(SegmentedButton<LibrarySection>)),
+    ).listen(cloudSyncControllerProvider, (_, _) {});
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('pulling the list fetches from iCloud, bypassing the throttle', (
+    tester,
+  ) async {
+    await pump(tester, syncOn: true);
+    final before = bridge.fetchRequests;
+    expect(find.byType(RefreshIndicator), findsOneWidget);
+    final g = await tester.startGesture(
+      tester.getCenter(find.text('Isar loop')),
+    );
+    for (var i = 0; i < 20; i++) {
+      await g.moveBy(const Offset(0, 40));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await g.up();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(bridge.fetchRequests, before + 1);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await unmountApp(tester);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await tester.pump(const Duration(milliseconds: 1));
+  });
+
+  testWidgets('with sync off the list has no pull', (tester) async {
+    await pump(tester, syncOn: false);
+    expect(find.byType(RefreshIndicator), findsNothing);
+    await unmountApp(tester);
+  });
+}
+
+class _Enabled extends CloudSyncEnabled {
+  _Enabled(this.value);
+
+  final bool value;
+
+  @override
+  bool build() => value;
 }

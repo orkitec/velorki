@@ -33,6 +33,7 @@ import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/sheet_header.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
+import '../../sync/application/cloud_sync_controller.dart';
 import '../application/library_card.dart';
 import '../data/library_section.dart';
 import 'rename_route_dialog.dart';
@@ -536,7 +537,7 @@ class _LibraryList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final section = ref.watch(librarySectionProvider);
-    return CustomScrollView(
+    final list = CustomScrollView(
       controller: SheetContentScroll.maybeOf(context),
       slivers: [
         SliverSheetHeader(
@@ -582,6 +583,14 @@ class _LibraryList extends ConsumerWidget {
           child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 24),
         ),
       ],
+    );
+    // Pulling the list fetches what changed in iCloud; with sync off the
+    // list has no pull at all.
+    if (!ref.watch(cloudSyncActiveProvider)) return list;
+    return RefreshIndicator.adaptive(
+      edgeOffset: sheetHeaderDp,
+      onRefresh: ref.read(cloudSyncControllerProvider.notifier).refresh,
+      child: list,
     );
   }
 }

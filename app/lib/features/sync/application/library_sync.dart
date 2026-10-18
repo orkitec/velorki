@@ -9,7 +9,24 @@ import '../data/cloud_sync_bridge.dart';
 import '../data/record_codec.dart';
 import '../domain/cloud_record.dart';
 
+/// Logs record names and decisions only, never a route's or ride's
+/// content; `initLogging` sends it to the device log in release builds.
 final Logger _log = Logger('velorki.sync.library');
+
+/// What became of one record from iCloud.
+enum _Applied {
+  /// Written here.
+  written,
+
+  /// The very change this device has; only the server's tag was kept.
+  sameChange,
+
+  /// The change here is newer and goes over the server's copy.
+  localWins,
+
+  /// The record could not be read (no body, no line, a name not known).
+  unreadable,
+}
 
 /// Keeps the routes and rides in step with the rider's iCloud.
 ///
@@ -103,6 +120,9 @@ class LibrarySync {
         saves.add(name);
       }
     }
+    if (saves.isNotEmpty || deletes.isNotEmpty) {
+      _log.info('enqueue saves=$saves deletes=$deletes');
+    }
     await _bridge.enqueue(saves: saves, deletes: deletes);
   }
 
@@ -115,19 +135,30 @@ class LibrarySync {
       if (parsed == null) continue;
       final (kind, id) = parsed;
       final sync = await _sync.record(kind.column, id);
-      if (sync == null || sync.deleted) continue;
+      if (sync == null || sync.deleted) {
+        _log.info(
+          'not handed out $name: ${sync == null ? 'no row' : 'deleted'}',
+        );
+        continue;
+      }
       try {
         final record = switch (kind) {
           SyncKind.route => await _routeRecord(id, sync, strava),
           SyncKind.ride => await _rideRecord(id, sync, strava),
         };
-        if (record == null) continue;
+        if (record == null) {
+          _log.info('not handed out $name: gone or Strava');
+          continue;
+        }
         _handedOut[name] = sync.version;
         out.add(record);
       } on Object catch (e, st) {
         _log.warning('could not encode $name', e, st);
       }
     }
+    _log.info(
+      'handed out ${[for (final r in out) '${r.name}@${_handedOut[r.name]}']}',
+    );
     return out;
   }
 
@@ -177,7 +208,8 @@ class LibrarySync {
     );
     for (final record in [...routes, ...rides]) {
       try {
-        await _applyRecord(record);
+        final applied = await _applyRecord(record);
+        _log.info('remote ${record.name}: ${applied.name}');
       } on Object catch (e, st) {
         _log.warning('could not apply ${record.name}', e, st);
       }
@@ -196,10 +228,10 @@ class LibrarySync {
   static bool _localWins(SyncRecordRow? sync, int remoteMs) =>
       sync != null && sync.dirty && sync.changedAtMs > remoteMs;
 
-  /// Applies one record from iCloud; true when it was written.
-  Future<bool> _applyRecord(CloudRecord record) async {
+  /// Applies one record from iCloud.
+  Future<_Applied> _applyRecord(CloudRecord record) async {
     final parsed = parseRecordName(record.name);
-    if (parsed == null) return false;
+    if (parsed == null) return _Applied.unreadable;
     final (kind, id) = parsed;
     final remoteMs = RecordCodec.modifiedAtOf(record);
     final sync = await _sync.record(kind.column, id);
@@ -213,19 +245,19 @@ class LibrarySync {
       if (record.systemFields != null) {
         await _sync.setSystemFields(kind.column, id, record.systemFields!);
       }
-      return true;
+      return _Applied.sameChange;
     }
     if (_localWins(sync, remoteMs)) {
       // Ours is newer and goes over the server's copy on the next save.
       if (record.systemFields != null) {
         await _sync.setSystemFields(kind.column, id, record.systemFields!);
       }
-      return false;
+      return _Applied.localWins;
     }
     switch (kind) {
       case SyncKind.route:
         final decoded = await _codec.decodeRoute(record);
-        if (decoded == null) return false;
+        if (decoded == null) return _Applied.unreadable;
         await _db.transaction(() async {
           await _writeRoute(decoded.row);
           await _sync.markApplied(
@@ -238,7 +270,7 @@ class LibrarySync {
         });
       case SyncKind.ride:
         final decoded = await _codec.decodeRide(record);
-        if (decoded == null) return false;
+        if (decoded == null) return _Applied.unreadable;
         await _db.transaction(() async {
           final pending = await _writeRide(decoded.row);
           await _sync.markApplied(
@@ -250,7 +282,7 @@ class LibrarySync {
           );
         });
     }
-    return true;
+    return _Applied.written;
   }
 
   Future<void> _writeRoute(RoutesCompanion row) async {
@@ -320,15 +352,18 @@ class LibrarySync {
     if (kind == SyncKind.route && (await _sync.stravaRouteIds()).contains(id)) {
       // Taken off iCloud because it is Strava's (this device's own delete
       // coming back): it stays here.
+      _log.info('remote delete $name: kept, Strava');
       await _sync.clearSystemFields(kind.column, id);
       return;
     }
     final sync = await _sync.record(kind.column, id);
     if (sync != null && sync.dirty && !sync.deleted) {
       // Changed here since: it comes back, as a new record.
+      _log.info('remote delete $name: kept, changed here');
       await _sync.clearSystemFields(kind.column, id);
       return;
     }
+    _log.info('remote delete $name: deleted');
     await _db.transaction(() async {
       switch (kind) {
         case SyncKind.route:
@@ -344,16 +379,29 @@ class LibrarySync {
   /// What the engine reports of a round of sending.
   Future<void> sent(SentChanges changes) async {
     final again = <String>[];
+    var fetch = false;
     for (final MapEntry(key: name, value: systemFields)
         in changes.saved.entries) {
       final parsed = parseRecordName(name);
       if (parsed == null) continue;
+      final (kind, id) = parsed;
+      final version = _handedOut.remove(name);
       await _sync.markSaved(
-        parsed.$1.column,
-        parsed.$2,
+        kind.column,
+        id,
         systemFields: systemFields,
-        version: _handedOut.remove(name),
+        version: version,
       );
+      final after = await _sync.record(kind.column, id);
+      if (after != null && after.dirty && !after.deleted) {
+        // Changed again while it was on its way (or handed out before a
+        // restart): the engine has let go of the name, so it is asked for
+        // once more, now over the tag just saved.
+        _log.info('saved $name@$version, changed since: again');
+        again.add(name);
+      } else {
+        _log.info('saved $name@$version');
+      }
     }
     for (final failed in changes.failedSaves) {
       final parsed = parseRecordName(failed.name);
@@ -365,10 +413,26 @@ class LibrarySync {
           final server = failed.serverRecord;
           // The newer of the two stays: the server's is written here, or
           // ours goes again over the server's change tag.
-          if (server == null || !await _applyRecord(server)) {
-            again.add(failed.name);
+          final applied = server == null
+              ? _Applied.unreadable
+              : await _applyRecord(server);
+          _log.info('conflict on ${failed.name}: ${applied.name}');
+          switch (applied) {
+            case _Applied.written:
+            case _Applied.sameChange:
+              break;
+            case _Applied.localWins:
+              again.add(failed.name);
+            case _Applied.unreadable:
+              // Without the server's copy whole there is no telling which
+              // change is newer, and ours sent again over the same stale
+              // tag would only be refused again: the fetch brings the
+              // server's copy and decides, and what is left marked here is
+              // sent on the next push.
+              fetch = true;
           }
         case SaveFailure.unknownItem:
+          _log.info('save of ${failed.name} failed: not on the server, as new');
           await _sync.clearSystemFields(kind.column, id);
           again.add(failed.name);
         case SaveFailure.retrying:
@@ -384,12 +448,20 @@ class LibrarySync {
       final parsed = parseRecordName(name);
       if (parsed == null) continue;
       final (kind, id) = parsed;
+      _log.info('deleted $name');
       await _sync.markDeleted(kind.column, id);
       if (kind == SyncKind.route && strava.contains(id)) {
         await _sync.markClean(kind.column, id);
       }
     }
-    if (again.isNotEmpty) await _bridge.enqueue(saves: again);
+    for (final name in changes.failedDeletes) {
+      _log.info('delete of $name failed');
+    }
+    if (again.isNotEmpty) {
+      _log.info('enqueue again saves=$again');
+      await _bridge.enqueue(saves: again);
+    }
+    if (fetch) await _bridge.fetchNow();
   }
 
   /// Starts over: everything here is sent as new, tombstones forgotten.

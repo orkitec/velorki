@@ -138,6 +138,13 @@ Future<void> bootstrap() async {
 void initLogging() {
   Logger.root.level = kReleaseMode ? Level.INFO : Level.ALL;
   Logger.root.onRecord.listen((record) {
+    // developer.log reaches a debugger and nothing else; iCloud sync is
+    // only seen working between two real devices, so outside debug builds
+    // its lines (record names and decisions, never content) go to the
+    // device log too: `idevicesyslog -p Runner | grep velorki`.
+    if (!kDebugMode && record.loggerName.startsWith('velorki.sync')) {
+      debugPrint('${record.loggerName}: ${record.message}');
+    }
     developer.log(
       record.message,
       time: record.time,

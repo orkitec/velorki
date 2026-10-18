@@ -65,6 +65,9 @@ import UserNotifications
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // CloudKit's silent pushes, which CKSyncEngine turns into fetches while
+    // the app runs. No alert, badge or sound is ever asked for.
+    application.registerForRemoteNotifications()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

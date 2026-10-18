@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/app/router.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/settings/data/appearance_controller.dart';
+import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki/features/sync/application/cloud_sync_controller.dart';
 import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
 import 'package:velorki/features/sync/domain/cloud_sync_status.dart';
@@ -31,9 +33,12 @@ void main() {
     dir.deleteSync(recursive: true);
   });
 
+  var now = DateTime(2026, 10, 18, 12);
+
   Future<ProviderContainer> launch({
     Map<String, Object> prefs = const <String, Object>{},
   }) async {
+    now = DateTime(2026, 10, 18, 12);
     SharedPreferences.setMockInitialValues(prefs);
     final shared = await SharedPreferences.getInstance();
     final container = ProviderContainer(
@@ -41,6 +46,7 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(shared),
         velorkiDatabaseProvider.overrideWithValue(db),
         cloudSyncBridgeProvider.overrideWithValue(bridge),
+        cloudSyncClockProvider.overrideWithValue(() => now),
         cloudSyncOutboxProvider.overrideWith((ref) async => dir),
       ],
     );
@@ -69,6 +75,7 @@ void main() {
     await launch();
     expect(bridge.started, isTrue);
     expect(bridge.pendingSaves, {'route_r1'});
+    expect(bridge.fetchRequests, 1, reason: 'fetched at launch');
   });
 
   test('says what the engine says', () async {
@@ -100,6 +107,28 @@ void main() {
     await container.read(cloudSyncEnabledProvider.notifier).set(enabled: true);
     await settle();
     expect(bridge.started, isTrue);
+  });
+
+  test('opening the Library fetches, at most every 30 seconds', () async {
+    final container = await launch();
+    final tabs = container.read(activeTabProvider.notifier);
+    expect(bridge.fetchRequests, 1);
+    tabs.show(libraryRoute);
+    expect(bridge.fetchRequests, 2);
+    tabs.show(plannerRoute);
+    tabs.show(libraryRoute);
+    expect(bridge.fetchRequests, 2, reason: 'throttled');
+    now = now.add(const Duration(seconds: 31));
+    tabs.show(plannerRoute);
+    tabs.show(libraryRoute);
+    expect(bridge.fetchRequests, 3);
+  });
+
+  test('with sync off, opening the Library fetches nothing', () async {
+    final container = await launch(prefs: {'sync.icloud': false});
+    container.read(activeTabProvider.notifier).show(libraryRoute);
+    await settle();
+    expect(bridge.fetchRequests, 0);
   });
 
   test('another account gets the whole library, which stays here', () async {
