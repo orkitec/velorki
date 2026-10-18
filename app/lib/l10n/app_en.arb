@@ -2238,7 +2238,7 @@
   "@plusFeatureAiAssistant": {
     "description": "Paywall feature: the assistant"
   },
-  "plusFeatureAiAssistantBody": "Describe the ride you want; Velorki turns it into a route and plans it on your phone.",
+  "plusFeatureAiAssistantBody": "Describe the ride you want; Velorki turns it into a route and plans it on your device.",
   "@plusFeatureAiAssistantBody": {
     "description": "Paywall feature detail: the assistant"
   },
@@ -2270,13 +2270,17 @@
   "@plusUnavailableBody": {
     "description": "Paywall body when no store is configured, e.g. a fork or a CI build"
   },
-  "plusUnavailableWebTitle": "Not available on the web yet",
+  "plusUnavailableWebTitle": "Only in the iPhone and Android apps for now",
   "@plusUnavailableWebTitle": {
     "description": "Paywall heading in the web app, where no store sells Plus yet"
   },
-  "plusUnavailableWebBody": "Velorki Plus cannot be bought in the browser yet. Planning, search and the library work here as in the app.",
+  "plusUnavailableWebBody": "Velorki Plus comes with the iPhone and Android apps for now; it cannot be bought in the browser. Planning, search and the library work here as in the app.",
   "@plusUnavailableWebBody": {
-    "description": "Paywall body in the web app, where no store sells Plus yet"
+    "description": "Paywall body in the web app, where no store sells Plus yet: Plus is the phone apps' for now, said first"
+  },
+  "plusGetTheApp": "Get the app",
+  "@plusGetTheApp": {
+    "description": "Button on the web app's paywall that opens the website's download page in a new tab"
   },
   "plusLoadingPrices": "Asking the store for prices…",
   "@plusLoadingPrices": {

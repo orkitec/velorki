@@ -21,3 +21,10 @@ const String osmCopyrightUrl = 'https://www.openstreetmap.org/copyright';
 
 /// Where riders write to: support, questions, deletion requests.
 const String velorkiSupportEmail = 'ride@velorki.com';
+
+/// The site's download page in [languageCode], as the site's own paths are:
+/// English unprefixed, every other language under its code. Where the web
+/// planner sends a rider for what only the phone apps have.
+String velorkiDownloadUrl(String languageCode) => languageCode == 'en'
+    ? 'https://velorki.com/download'
+    : 'https://velorki.com/$languageCode/download';

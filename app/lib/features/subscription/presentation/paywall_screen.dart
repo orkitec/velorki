@@ -85,6 +85,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final available = ref.watch(subscriptionServiceProvider).isAvailable;
+    // A browser sells nothing, so it has no store's renewal terms to show.
+    final storePurchases = ref.watch(platformFeaturesProvider).storePurchases;
     final action = ref.watch(subscriptionControllerProvider);
     final entitled = ref.watch(plusEntitledProvider);
 
@@ -117,7 +119,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           if (entitled)
             const _ActiveBanner()
           else if (!available)
-            const _UnavailableCard()
+            _UnavailableCard(onOpen: (url) => unawaited(_open(url)))
           else
             _Packages(
               selected: _selected,
@@ -149,13 +151,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               ),
             ),
           ],
-          const SizedBox(height: 24),
-          Text(
-            plusLegalText(l10n, theme.platform),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
+          if (storePurchases) ...[
+            const SizedBox(height: 24),
+            Text(
+              plusLegalText(l10n, theme.platform),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 6),
           Wrap(
             alignment: WrapAlignment.center,
@@ -278,14 +282,17 @@ class _ActiveBanner extends StatelessWidget {
 }
 
 class _UnavailableCard extends ConsumerWidget {
-  const _UnavailableCard();
+  const _UnavailableCard({required this.onOpen});
+
+  final void Function(String url) onOpen;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     // A browser has no store at all; any other build simply was not given
-    // one.
+    // one. In the browser, Plus is the phone apps', and the card says so
+    // first and sends the rider to them.
     final web = !ref.watch(platformFeaturesProvider).storePurchases;
     return Card(
       child: Padding(
@@ -302,6 +309,17 @@ class _UnavailableCard extends ConsumerWidget {
               web ? l10n.plusUnavailableWebBody : l10n.plusUnavailableBody,
               style: theme.textTheme.bodySmall,
             ),
+            if (web) ...[
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => onOpen(
+                  velorkiDownloadUrl(
+                    Localizations.localeOf(context).languageCode,
+                  ),
+                ),
+                child: Text(l10n.plusGetTheApp),
+              ),
+            ],
           ],
         ),
       ),

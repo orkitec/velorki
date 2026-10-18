@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -10,7 +11,7 @@ import { PhoneFrame } from '@/components/PhoneFrame';
 import { StoreBadges } from '@/components/StoreBadges';
 import { WatchMock } from '@/components/WatchMock';
 import { routing } from '@/i18n/routing';
-import { GITHUB_URL } from '@/site/config';
+import { GITHUB_URL, PLANNER_URL } from '@/site/config';
 import { faqJsonLd } from '@/site/jsonld';
 import { localePath } from '@/site/paths';
 import { availableLooks } from '@/site/screenshot-files';
@@ -88,6 +89,18 @@ const COMPARISON: ReadonlyArray<{ id: string; free: boolean }> = [
   { id: 'sharing', free: false },
 ];
 
+/**
+ * The web planner, from what the browser build offers (`PlatformFeatures.browser`
+ * in app/lib/app/platform_features.dart): on-device routing only, no recording
+ * or navigation, no offline map areas, no account connections, no iCloud, no
+ * store for Plus.
+ */
+const WEB_DOES = ['routing', 'elevation', 'maps', 'library'] as const;
+const WEB_DOESNT = ['ride', 'offline', 'connections'] as const;
+
+/** A capture of the planner in a 1440 × 900 browser window (light, Madeira), from app/build/web. */
+const WEB_SHOT = { src: '/screenshots/web/planner-light.webp', width: 1600, height: 1000 };
+
 const FAQ_IDS = ['account', 'offline', 'price', 'plus', 'data', 'osm', 'opensource', 'selfhost'] as const;
 
 export function generateStaticParams() {
@@ -117,6 +130,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
       <PlusShowcase locale={locale} />
       <Comparison locale={locale} />
       <OpenSource locale={locale} />
+      {PLANNER_URL ? <WebPlanner locale={locale} /> : null}
       <Faq locale={locale} />
       <FinalCta locale={locale} />
       <JsonLd
@@ -149,6 +163,15 @@ function Hero({ locale }: { locale: string }) {
             </Link>
           </div>
           <StoreBadges className="mt-10" />
+          {/* The web planner, where one is deployed: a quiet line under the
+              badges, not a third call to action beside them. */}
+          {PLANNER_URL ? (
+            <p className="mt-5 text-sm">
+              <a href={PLANNER_URL} className="link-accent font-bold">
+                {t('browserLink')} →
+              </a>
+            </p>
+          ) : null}
         </div>
         <div className="flex justify-center lg:justify-end">
           <PhoneFrame screen={HERO_SCREEN} priority />
@@ -461,6 +484,78 @@ function OpenSource({ locale }: { locale: string }) {
           <Link href={localePath(locale, '/credits')} className="link-accent font-bold">
             {t('creditsLink')}
           </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The web planner, near the end and kept small: what it does in a browser,
+ * plainly what it leaves to the app, and a way to each. Shown only where a
+ * planner is deployed (PLANNER_URL).
+ */
+function WebPlanner({ locale }: { locale: string }) {
+  const t = useTranslations('home.webPlanner');
+  const nav = useTranslations('nav');
+  return (
+    <section id="web-planner" aria-labelledby="web-planner-title" className="hairline scroll-mt-24 py-16">
+      <div className="shell grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-14">
+        <div className="max-w-xl">
+          <p className="overline">{t('eyebrow')}</p>
+          <h2 id="web-planner-title" className="mt-3 text-3xl sm:text-4xl">
+            {t('title')}
+          </h2>
+          <p className="mt-4 text-muted">{t('lead')}</p>
+          <div className="mt-6 grid gap-6 sm:grid-cols-2">
+            <div>
+              <h3 className="font-display text-lg">{t('doesTitle')}</h3>
+              <ul className="mt-3 space-y-2 text-sm">
+                {WEB_DOES.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <CheckIcon width={16} height={16} className="mt-0.5 shrink-0 text-accent" />
+                    <span>{t(`does.${item}`)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-display text-lg">{t('doesntTitle')}</h3>
+              <ul className="mt-3 space-y-2 text-sm">
+                {WEB_DOESNT.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <DashIcon width={16} height={16} className="mt-0.5 shrink-0 text-muted" />
+                    <span className="text-muted">{t(`doesnt.${item}`)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <p className="mt-5 text-sm text-muted">{t('ride')}</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <a href={PLANNER_URL} className="btn btn-primary">
+              {t('open')}
+            </a>
+            <Link href={localePath(locale, '/download')} className="btn btn-secondary">
+              {nav('getApp')}
+            </Link>
+          </div>
+          <p className="mt-4 text-sm text-muted">
+            {t('plus')}{' '}
+            <Link href={localePath(locale, '/download')} className="link-accent font-bold">
+              {t('plusLink')}
+            </Link>
+          </p>
+        </div>
+        <div className="panel overflow-hidden p-0">
+          <Image
+            src={WEB_SHOT.src}
+            alt={t('alt')}
+            width={WEB_SHOT.width}
+            height={WEB_SHOT.height}
+            sizes="(min-width: 1024px) 600px, 100vw"
+            className="block h-auto w-full"
+          />
         </div>
       </div>
     </section>

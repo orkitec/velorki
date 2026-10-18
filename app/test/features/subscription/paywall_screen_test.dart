@@ -214,10 +214,9 @@ void main() {
       expect(find.text(l10n.plusFeatureAiAssistant), findsOneWidget);
     });
 
-    testWidgets('a browser says Plus is not sold on the web yet', (
-      tester,
-    ) async {
-      await _pump(
+    testWidgets('a browser says Plus is in the phone apps only, and sends '
+        'the rider to the download page', (tester) async {
+      final opened = await _pump(
         tester,
         const PaywallScreen(),
         service: FakeSubscriptionService(isAvailable: false),
@@ -233,6 +232,36 @@ void main() {
         find.widgetWithText(FilledButton, l10n.plusSubscribe),
         findsNothing,
       );
+      expect(find.text(l10n.plusRestore), findsNothing);
+      // No store, so no store's renewal terms.
+      expect(find.text(l10n.plusLegalPlay), findsNothing);
+      expect(find.text(l10n.plusLegalAppStore), findsNothing);
+
+      final getApp = find.widgetWithText(FilledButton, l10n.plusGetTheApp);
+      await tester.ensureVisible(getApp);
+      await tester.tap(getApp);
+      await tester.pumpAndSettle();
+      expect(opened.map((u) => u.toString()), [
+        velorkiDownloadUrl(l10n.localeName),
+      ]);
+    });
+
+    testWidgets('a build without a store but not in a browser has no app '
+        'button', (tester) async {
+      await _pump(
+        tester,
+        const PaywallScreen(),
+        service: FakeSubscriptionService(isAvailable: false),
+      );
+      expect(
+        find.widgetWithText(FilledButton, l10n.plusGetTheApp),
+        findsNothing,
+      );
+    });
+
+    test('the download page follows the site\'s locale paths', () {
+      expect(velorkiDownloadUrl('en'), 'https://velorki.com/download');
+      expect(velorkiDownloadUrl('de'), 'https://velorki.com/de/download');
     });
 
     testWidgets('a store that cannot be reached explains itself', (

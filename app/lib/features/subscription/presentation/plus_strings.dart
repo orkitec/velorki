@@ -7,7 +7,7 @@ import '../domain/plus_subscription.dart';
 // The paywall's terms and privacy links; they are the same pages the About
 // section and the store listings point at.
 export '../../../core/links/velorki_urls.dart'
-    show velorkiPrivacyUrl, velorkiTermsUrl;
+    show velorkiDownloadUrl, velorkiPrivacyUrl, velorkiTermsUrl;
 
 /// Google Play's subscription management page.
 const String playSubscriptionsUrl =

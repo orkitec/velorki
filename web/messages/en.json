@@ -78,7 +78,8 @@
       "storeIos": "Download on the App Store",
       "storeAndroid": "Get it on Google Play",
       "storeGithub": "Get it on GitHub",
-      "storesPending": "The store listings are not live yet. The source and the builds are on GitHub in the meantime."
+      "storesPending": "The store listings are not live yet. The source and the builds are on GitHub in the meantime.",
+      "browserLink": "or plan in your browser"
     },
     "free": {
       "title": "Everything on the phone is free",
@@ -285,6 +286,29 @@
       "body": "Velorki is open source under the AGPL: the app, the relay and this website. Everything it draws, routes on and searches in comes from OpenStreetMap, the map anyone can edit. So anyone can read the code, check what it does and improve it.",
       "githubLink": "Read the source on GitHub",
       "creditsLink": "Credits and licences"
+    },
+    "webPlanner": {
+      "eyebrow": "In the browser",
+      "title": "Plan on a big screen",
+      "lead": "The planner also runs in the browser: free, nothing to install, no account. It computes routes on your computer with the same routing as the app, from the routing data for the area you plan in.",
+      "doesTitle": "What it does",
+      "does": {
+        "routing": "Routes with the Touring, Road, Gravel and MTB profiles, variants and loops",
+        "elevation": "Distance, ascent and the elevation profile, coloured by gradient or surface",
+        "maps": "Place search, the cycle map, stops along the way and the weather map",
+        "library": "A library of your routes, and GPX files to download"
+      },
+      "doesntTitle": "What stays in the app",
+      "doesnt": {
+        "ride": "Recording rides and turn-by-turn navigation",
+        "offline": "Map areas kept for riding without a signal",
+        "connections": "Strava, Ride with GPS and iCloud sync"
+      },
+      "ride": "The app is for riding: it records, navigates and works offline on the way.",
+      "open": "Open the planner",
+      "plus": "Velorki Plus is in the iPhone and Android apps for now.",
+      "plusLink": "Get the app",
+      "alt": "The Velorki planner in a browser window: a route along the coast of Madeira from Funchal to Caniço, with distance, ascent and the route coloured by gradient."
     },
     "faq": {
       "eyebrow": "Questions",

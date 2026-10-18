@@ -78,7 +78,8 @@
       "storeIos": "Scarica su App Store",
       "storeAndroid": "Disponibile su Google Play",
       "storeGithub": "Scarica da GitHub",
-      "storesPending": "Le schede negli store non sono ancora online. Nel frattempo il codice sorgente e le build sono su GitHub."
+      "storesPending": "Le schede negli store non sono ancora online. Nel frattempo il codice sorgente e le build sono su GitHub.",
+      "browserLink": "oppure pianifica nel browser"
     },
     "free": {
       "title": "Tutto quello che gira sul telefono è gratis",
@@ -285,6 +286,29 @@
       "body": "Velorki è open source sotto licenza AGPL: l'app, il relay e questo sito. Tutto ciò che disegna, su cui calcola i percorsi e in cui cerca viene da OpenStreetMap, la mappa che chiunque può modificare. Così chiunque può leggere il codice, verificare cosa fa e migliorarlo.",
       "githubLink": "Leggi il codice su GitHub",
       "creditsLink": "Crediti e licenze"
+    },
+    "webPlanner": {
+      "eyebrow": "Nel browser",
+      "title": "Pianifica su uno schermo grande",
+      "lead": "Il pianificatore funziona anche nel browser: gratis, niente da installare, senza account. Calcola i percorsi sul tuo computer con lo stesso calcolo dei percorsi dell’app, dai dati di routing della zona in cui pianifichi.",
+      "doesTitle": "Cosa fa",
+      "does": {
+        "routing": "Percorsi con i profili Trekking, Corsa, Gravel e MTB, varianti e anelli",
+        "elevation": "Distanza, dislivello e altimetria, colorati per pendenza o fondo",
+        "maps": "Ricerca di luoghi, la mappa ciclabile, le soste lungo il percorso e la mappa meteo",
+        "library": "Una libreria dei tuoi percorsi e file GPX da scaricare"
+      },
+      "doesntTitle": "Cosa resta nell’app",
+      "doesnt": {
+        "ride": "Registrare le uscite e la navigazione passo passo",
+        "offline": "Le aree di mappa salvate per pedalare senza segnale",
+        "connections": "Strava, Ride with GPS e la sincronizzazione con iCloud"
+      },
+      "ride": "L’app è fatta per pedalare: registra, naviga e funziona offline lungo la strada.",
+      "open": "Apri il pianificatore",
+      "plus": "Per ora Velorki Plus è disponibile solo nelle app per iPhone e Android.",
+      "plusLink": "Scarica l'app",
+      "alt": "Il pianificatore di Velorki in una finestra del browser: un percorso lungo la costa di Madeira da Funchal a Caniço, con distanza, dislivello e il percorso colorato per pendenza."
     },
     "faq": {
       "eyebrow": "Domande",

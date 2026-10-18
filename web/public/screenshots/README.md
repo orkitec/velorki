@@ -50,6 +50,19 @@ A page in a locale falls back to `en/watch/ride.webp`, as the phone frames do.
 The watch app's own words are English in every language, so one capture per
 language is only worth taking for the figures the phone sends it.
 
+## The browser slot
+
+```
+public/screenshots/web/planner-light.webp
+```
+
+One file, outside the grid and not written by the pipeline: the web planner
+(`app/web`, built with `flutter build web`) in a 1440 × 900 Chrome window at
+twice the density, light, with a route along Madeira's coast, as the landing
+page's web planner section shows it. Taken by hand from `app/build/web` served
+with `app/tool/web_serve.py`, resized to 1600 × 1000 and saved as WebP
+(quality 86). Shown only where `NEXT_PUBLIC_PLANNER_URL` is set.
+
 ## Format
 
 Lossy WebP (`cwebp -q 88 -m 6 -metadata none`: the pipeline captures PNG and

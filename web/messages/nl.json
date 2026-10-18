@@ -78,7 +78,8 @@
       "storeIos": "Download in de App Store",
       "storeAndroid": "Ontdek het op Google Play",
       "storeGithub": "Download op GitHub",
-      "storesPending": "De app staat nog niet in de stores. De broncode en de builds staan in de tussentijd op GitHub."
+      "storesPending": "De app staat nog niet in de stores. De broncode en de builds staan in de tussentijd op GitHub.",
+      "browserLink": "of plan in je browser"
     },
     "free": {
       "title": "Alles op de telefoon is gratis",
@@ -285,6 +286,29 @@
       "body": "Velorki is open source onder de AGPL: de app, de relay en deze website. Alles wat de app tekent, waarop hij routeert en waarin hij zoekt, komt van OpenStreetMap, de kaart die iedereen kan bewerken. Zo kan iedereen de code lezen, controleren wat hij doet en hem verbeteren.",
       "githubLink": "Lees de broncode op GitHub",
       "creditsLink": "Bronvermelding en licenties"
+    },
+    "webPlanner": {
+      "eyebrow": "In de browser",
+      "title": "Plannen op een groot scherm",
+      "lead": "De planner draait ook in de browser: gratis, niets te installeren, zonder account. Hij berekent routes op je computer met dezelfde routeberekening als de app, uit de routegegevens van het gebied waar je plant.",
+      "doesTitle": "Wat hij kan",
+      "does": {
+        "routing": "Routes met de profielen Toer, Racefiets, Gravel en MTB, varianten en rondjes",
+        "elevation": "Afstand, stijging en het hoogteprofiel, gekleurd naar helling of ondergrond",
+        "maps": "Plaatsen zoeken, de fietskaart, stops onderweg en de weerkaart",
+        "library": "Een bibliotheek van je routes en GPX-bestanden om te downloaden"
+      },
+      "doesntTitle": "Wat in de app blijft",
+      "doesnt": {
+        "ride": "Ritten opnemen en navigatie met afslagen",
+        "offline": "Kaartgebieden bewaard om zonder bereik te rijden",
+        "connections": "Strava, Ride with GPS en synchronisatie met iCloud"
+      },
+      "ride": "De app is om mee te rijden: hij neemt op, navigeert en werkt onderweg offline.",
+      "open": "Planner openen",
+      "plus": "Velorki Plus is voorlopig alleen beschikbaar in de apps voor iPhone en Android.",
+      "plusLink": "Download de app",
+      "alt": "De Velorki-planner in een browservenster: een route langs de kust van Madeira van Funchal naar Caniço, met afstand, stijging en de route gekleurd naar helling."
     },
     "faq": {
       "eyebrow": "Vragen",
