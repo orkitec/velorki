@@ -13,6 +13,9 @@ import 'waypoint.dart';
 
 part 'saved_route.freezed.dart';
 
+/// The key a Strava route's id is kept under in [SavedRoute.externalIds].
+const String stravaRouteIdKey = 'strava_route_id';
+
 /// A row of the `routes` table as the app thinks of it.
 ///
 /// The geometry stays packed in [geometryBlob] so a library list of a hundred
@@ -47,6 +50,10 @@ abstract class SavedRoute with _$SavedRoute {
     /// rows saved before the app stored them.
     @Default(<TurnHint>[]) List<TurnHint> turns,
 
+    /// Whether [turns] were worked out on the phone from the map, for a
+    /// route read from a file that had none.
+    @Default(false) bool turnsGenerated,
+
     /// Whether [description] was written by the model rather than by the
     /// rider. Shown next to the text and re-set when it is written again.
     @Default(false) bool aiDescriptionGenerated,
@@ -76,9 +83,22 @@ abstract class SavedRoute with _$SavedRoute {
     /// Whether [options] name a bike: `false` for a file that named none,
     /// which then opens with the bike the rider rode last.
     @Default(true) bool profileKnown,
+
+    /// The partner services' own ids for the route, as `external_ids_json`
+    /// holds them (`{"strava_route_id": "123"}`); empty for a route that
+    /// came from none.
+    @Default(<String, String>{}) Map<String, String> externalIds,
   }) = _SavedRoute;
 
   const SavedRoute._();
+
+  /// The Strava route this one came from, or `null`.
+  String? get stravaRouteId => externalIds[stravaRouteIdKey];
+
+  /// Whether the route is Strava data: read from Strava, or edited from a
+  /// route that was. Strava's API terms keep such a route away from the AI,
+  /// from share links and from every other service.
+  bool get fromStrava => source == RouteSource.strava || stravaRouteId != null;
 
   /// The track points, decoded from [geometryBlob] on every call.
   List<TrackPoint> get geometry => PackedTrack.decode(geometryBlob);

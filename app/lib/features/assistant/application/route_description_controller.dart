@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_api/velorki_api.dart';
 
-import '../../../core/db/database.dart' show RouteSource;
 import '../../../core/plus/plus_gate.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
 import '../../planner/data/route_repository.dart';
@@ -20,8 +19,9 @@ part 'route_description_controller.g.dart';
 /// Whether a description may be generated for [route].
 ///
 /// Strava's API terms forbid using their data for AI, so a route that came
-/// from Strava never gets one — the button is not shown at all.
-bool canDescribe(SavedRoute route) => route.source != RouteSource.strava;
+/// from Strava, or was edited from one, never gets one — the button is not
+/// shown at all.
+bool canDescribe(SavedRoute route) => !route.fromStrava;
 
 /// The state of one "Describe this route" run.
 class RouteDescriptionState {

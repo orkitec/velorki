@@ -1,0 +1,128 @@
+name: web app
+
+# The web planner (app.velorki.com): the app built for the browser and
+# uploaded to the Cloudflare Pages project `velorki-app` together with the
+# Pages Function that serves the routing tiles under /tiles/ (see
+# deploy/cloudflare/README.md). No secret config: the web build reads only
+# app/env/web.json. Without CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in
+# the `release` environment it builds and uploads nothing.
+#
+# Three ways in, each only for a login in RELEASE_ACTORS and through the
+# `release` environment's approval (a required reviewer):
+# - a push to `production` that touches the app or the Pages project (main
+#   merged in, which is how the website is released too);
+# - by hand (Actions → web app → Run workflow) on any branch, building that
+#   branch's head, version name from app/pubspec.yaml;
+# - release.yml's `web` job, building a `v*` tag.
+on:
+  push:
+    branches: [production]
+    paths:
+      - 'app/**'
+      - 'deploy/cloudflare/**'
+      - '.github/workflows/web-app.yml'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build only, upload nothing"
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      sha:
+        type: string
+        required: true
+      version_name:
+        type: string
+        required: true
+      build_number:
+        type: string
+        required: true
+      dry_run:
+        type: string
+        default: 'false'
+    secrets:
+      CLOUDFLARE_API_TOKEN:
+        required: false
+      CLOUDFLARE_ACCOUNT_ID:
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # One upload at a time; a newer one waits rather than cancelling an upload
+  # half-way.
+  group: web-app
+  cancel-in-progress: false
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release
+    env:
+      HAVE_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' && 'true' || 'false' }}
+      SHA: ${{ inputs.sha || github.sha }}
+      DRY_RUN: ${{ inputs.dry_run == true || inputs.dry_run == 'true' }}
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      # The same gate as release.yml: whoever pushed, dispatched or re-ran
+      # this must be listed in RELEASE_ACTORS, before anything is checked out.
+      - name: Who may deploy
+        working-directory: .
+        env:
+          ACTOR: ${{ github.triggering_actor }}
+          RELEASE_ACTORS: ${{ vars.RELEASE_ACTORS }}
+        run: |
+          actor="$(echo "$ACTOR" | tr '[:upper:]' '[:lower:]')"
+          for a in $(echo "$RELEASE_ACTORS" | tr ',[:upper:]' ' [:lower:]'); do
+            [ "$a" = "$actor" ] && exit 0
+          done
+          echo "::error::'$ACTOR' started this run but is not in RELEASE_ACTORS; only those logins may deploy the web app."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.SHA }}
+      - name: Version
+        env:
+          INPUT_VERSION_NAME: ${{ inputs.version_name }}
+          INPUT_BUILD_NUMBER: ${{ inputs.build_number }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          version_name="${INPUT_VERSION_NAME:-$(sed -nE 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+)(\+[0-9]+)?[[:space:]]*$/\1/p' pubspec.yaml)}"
+          build_number="${INPUT_BUILD_NUMBER:-$RUN_NUMBER}"
+          [ -n "$version_name" ] || { echo "::error::No version in app/pubspec.yaml."; exit 1; }
+          echo "::notice::Web app $version_name ($build_number) from $SHA, dry run: $DRY_RUN"
+          { echo "VERSION_NAME=$version_name"; echo "BUILD_NUMBER=$build_number"; } >> "$GITHUB_ENV"
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter gen-l10n
+      - name: The web page's and the tile function's own tests
+        working-directory: .
+        run: node --test app/web_test/*.test.mjs deploy/cloudflare/test/*.test.mjs
+      - run: bash tool/web_assets.sh
+      - name: Build for the web
+        run: |
+          flutter build web --wasm --release --no-web-resources-cdn --dart-define-from-file=env/web.json \
+            --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
+      - name: Upload to Cloudflare Pages
+        if: ${{ env.HAVE_CLOUDFLARE == 'true' && env.DRY_RUN != 'true' }}
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # functions/ is picked up from here; the output directory comes
+          # from wrangler.toml.
+          workingDirectory: deploy/cloudflare/pages
+          command: pages deploy --project-name=velorki-app --branch=main --commit-hash=${{ env.SHA }}
+      - name: Not uploaded
+        if: ${{ env.HAVE_CLOUDFLARE != 'true' || env.DRY_RUN == 'true' }}
+        run: echo "::notice::Web build $VERSION_NAME ($BUILD_NUMBER) finished; nothing was uploaded (dry run or no Cloudflare secrets)."

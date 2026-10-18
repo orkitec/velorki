@@ -120,6 +120,20 @@ class RideRepository {
     );
   }
 
+  /// Forgets the upload records of [serviceId] on every ride, which is what
+  /// disconnecting that service asks for: the ride stays, the activity's
+  /// id and link go.
+  Future<void> forgetUploadsTo(String serviceId) async {
+    for (final (id, json) in await _dao.uploadsTo(serviceId)) {
+      final remaining = <String, RideUpload>{...decodeRideUploads(json)}
+        ..remove(serviceId);
+      await _dao.setRideUploads(
+        id,
+        remaining.isEmpty ? null : encodeRideUploads(remaining),
+      );
+    }
+  }
+
   /// Keeps the surface breakdown matched for [rideId], so the page never
   /// routes the track twice. An unknown id changes nothing.
   Future<void> setSurface(String rideId, SurfaceStats stats) =>

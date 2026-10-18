@@ -1,5 +1,6 @@
-# Tag `vX.Y.Z` → Android (signed AAB + APK, GitHub Release, Play internal track)
-# and iOS (signed build → TestFlight), both with the same version name and
+# Tag `vX.Y.Z` → Android (signed AAB + APK, GitHub Release, Play internal track),
+# iOS (signed build → TestFlight) and the web planner (Cloudflare Pages, once
+# its secrets are set; see the `web` job), all with the same version name and
 # build number, computed once by the `version` job. A tag with a suffix
 # (`v1.0.1-rc1`) is a trial: it reaches Play and TestFlight but makes no GitHub
 # Release. The .ipa is never attached: it is signed for the App Store and
@@ -16,7 +17,7 @@
 #
 # Two gates: the `version` job fails unless whoever started the run (the tag
 # pusher, the dispatcher, or whoever re-runs it) is listed in the repository
-# variable RELEASE_ACTORS (comma-separated logins), and both platform jobs run
+# variable RELEASE_ACTORS (comma-separated logins), and the platform jobs run
 # in the `release` environment, which has the maintainer as a required
 # reviewer: nothing is signed or uploaded until the run is approved in the
 # Actions UI. Without the secrets (a fork, or before the setup in
@@ -47,10 +48,10 @@ on:
         required: true
         type: string
       platforms:
-        description: "Stores to release to"
+        description: "Where to release to: all (both stores and the web app), or one of them"
         type: choice
-        options: [both, android, ios]
-        default: both
+        options: [all, android, ios, web]
+        default: all
       dry_run:
         description: "Build and sign, but upload nothing and make no GitHub Release"
         type: boolean
@@ -61,7 +62,7 @@ on:
         required: false
 
 run-name: >-
-  release ${{ inputs.tag || github.ref_name }}${{ inputs.dry_run && ' (dry run)' || '' }}${{ inputs.platforms && inputs.platforms != 'both' && format(' ({0} only)', inputs.platforms) || '' }}
+  release ${{ inputs.tag || github.ref_name }}${{ inputs.dry_run && ' (dry run)' || '' }}${{ inputs.platforms && inputs.platforms != 'all' && inputs.platforms != 'both' && format(' ({0} only)', inputs.platforms) || '' }}
 
 permissions:
   contents: read
@@ -123,11 +124,11 @@ jobs:
 
           if [ "$EVENT" = workflow_dispatch ]; then
             tag="$INPUT_TAG"
-            platforms="${INPUT_PLATFORMS:-both}"
+            platforms="${INPUT_PLATFORMS:-all}"
             dry_run="${INPUT_DRY_RUN:-false}"
           elif [ "$REF_TYPE" = tag ]; then
             tag="$REF_NAME"
-            platforms=both
+            platforms=all
             dry_run=false
           else
             echo "::error::A release runs on a v* tag or by dispatch with a tag, not on $EVENT of $REF_TYPE '$REF_NAME'."
@@ -137,8 +138,10 @@ jobs:
             echo "::error::Tag '$tag' is not vX.Y.Z or vX.Y.Z-suffix."
             exit 1
           fi
-          case "$platforms" in both|android|ios) ;; *)
-            echo "::error::platforms must be both, android or ios, not '$platforms'."
+          # "both" is what this input was called before the web app.
+          if [ "$platforms" = both ]; then platforms=all; fi
+          case "$platforms" in all|android|ios|web) ;; *)
+            echo "::error::platforms must be all, android, ios or web, not '$platforms'."
             exit 1;;
           esac
           case "$dry_run" in true|false) ;; *)
@@ -204,7 +207,7 @@ jobs:
 
   android:
     needs: version
-    if: ${{ needs.version.outputs.platforms != 'ios' }}
+    if: ${{ contains(fromJSON('["all","android"]'), needs.version.outputs.platforms) }}
     runs-on: ubuntu-latest
     # Gated: waits for an approval before it can use the signing secrets.
     environment: release
@@ -372,8 +375,8 @@ jobs:
 
   ios:
     needs: version
-    if: ${{ needs.version.outputs.platforms != 'android' }}
-    runs-on: macos-15
+    if: ${{ contains(fromJSON('["all","ios"]'), needs.version.outputs.platforms) }}
+    runs-on: xcode-27
     timeout-minutes: 90
     # Required reviewer: the approval gate for signing and uploading.
     environment: release
@@ -391,12 +394,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.version.outputs.sha }}
-      # The image's default Xcode 16.4 cannot compile device_info_plus (an
-      # iOS 17 NSProcessInfo selector); the app is built with Xcode 26 on the
-      # Mac, so pick the newest 26 on the runner.
-      - name: Select Xcode 26
+      # The Xcode the app is built with (the Mac's too). The xcode-27 image
+      # also carries betas, whose builds the App Store refuses: name a
+      # release or release candidate. 27.1: the iPhone Duo's whole inner
+      # screen needs its SDK.
+      - name: Select Xcode
+        env:
+          XCODE_VERSION: "27.1"
         run: |
-          xcode="$(ls -d /Applications/Xcode_26.*.app | sort -V | tail -1)"
+          xcode="/Applications/Xcode_${XCODE_VERSION}.app"
+          [ -d "$xcode" ] || { echo "::error::no $xcode on the runner"; ls -d /Applications/Xcode*.app; exit 1; }
           sudo xcode-select -s "$xcode"
           xcodebuild -version
 
@@ -540,3 +547,20 @@ jobs:
           if [ -n "${KEYCHAIN_PATH:-}" ]; then
             security delete-keychain "$KEYCHAIN_PATH" || true
           fi
+
+  # The web planner (app.velorki.com), built from the tag by web-app.yml
+  # (which also deploys it on a push to `production` or by hand).
+  web:
+    needs: version
+    if: ${{ contains(fromJSON('["all","web"]'), needs.version.outputs.platforms) }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/web-app.yml
+    with:
+      sha: ${{ needs.version.outputs.sha }}
+      version_name: ${{ needs.version.outputs.version_name }}
+      build_number: ${{ needs.version.outputs.build_number }}
+      dry_run: ${{ needs.version.outputs.dry_run }}
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

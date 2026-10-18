@@ -133,13 +133,19 @@ jobs:
         env:
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
-      - name: Strip ARB metadata from the translations
+      # Crowdin also writes its own locale code into "@@locale" ("es-ES" for
+      # app_es.arb), which gen-l10n refuses: the file name decides it.
+      - name: Strip ARB metadata from the translations, set their locale
         run: |
           # The action runs in a container and leaves root-owned files.
           sudo chown -R "$(id -u):$(id -g)" .
           for f in app/lib/l10n/app_*.arb; do
             [ "$f" = app/lib/l10n/app_en.arb ] && continue
-            jq --indent 2 'with_entries(select(.key | test("^@[^@]") | not))' "$f" > "$f.tmp"
+            code="${f##*/app_}"
+            code="${code%.arb}"
+            jq --indent 2 --arg code "$code" \
+              'with_entries(select(.key | test("^@[^@]") | not)) | .["@@locale"] = $code' \
+              "$f" > "$f.tmp"
             mv "$f.tmp" "$f"
           done
       - name: Open or update the pull request

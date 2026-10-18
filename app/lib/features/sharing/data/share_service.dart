@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:logging/logging.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -13,8 +12,6 @@ import '../../../core/l10n/relay_error_text.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
 import '../../planner/domain/route_poi.dart';
-
-final Logger _log = Logger('ShareService');
 
 /// A share link that could not be created.
 class ShareException implements LocalizedException {
@@ -54,6 +51,7 @@ class ShareService {
   ///
   /// [kind] decides both the GPX shape and what the share page calls it: a
   /// route becomes a `<rte>`, a recorded ride a `<trk>` with its timestamps.
+  /// [fromStrava] marks a route that is Strava data, which is refused.
   Future<ShareLink> share({
     required String name,
     required List<TrackPoint> points,
@@ -62,7 +60,10 @@ class ShareService {
     double? ascentM,
     Duration? duration,
     List<RoutePoi> pois = const <RoutePoi>[],
+    bool fromStrava = false,
   }) async {
+    // Strava's terms keep a route read from Strava off any public page.
+    if (fromStrava) throw const ShareException(_stravaRefused);
     if (points.isEmpty) {
       throw const ShareException(_nothingToShare);
     }
@@ -146,20 +147,8 @@ final textSharerProvider = Provider<TextSharer>(
   (ref) => shareTextWithSharePlus,
 );
 
-/// Puts [text] on the clipboard.
-typedef ClipboardWriter = Future<void> Function(String text);
-
-/// The clipboard. Overridden in widget tests.
-final clipboardWriterProvider = Provider<ClipboardWriter>(
-  (ref) => (text) async {
-    try {
-      await Clipboard.setData(ClipboardData(text: text));
-    } on Object catch (e) {
-      _log.warning('could not write to the clipboard', e);
-    }
-  },
-);
-
 String _nothingToShare(AppLocalizations l10n) => l10n.shareNothing;
 
 String _sharedFileEmpty(AppLocalizations l10n) => l10n.shareFileEmpty;
+
+String _stravaRefused(AppLocalizations l10n) => l10n.shareStravaRouteRefused;

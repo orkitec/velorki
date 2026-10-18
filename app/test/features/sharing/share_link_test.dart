@@ -9,9 +9,10 @@ import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/import_export/data/incoming_file_service.dart';
 import 'package:velorki/features/import_export/domain/imported_track.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
+import 'package:velorki/features/planner/presentation/route_format.dart';
 import 'package:velorki/features/sharing/application/share_link_listener.dart';
 import 'package:velorki/features/sharing/data/share_service.dart';
-import 'package:velorki/features/sharing/presentation/share_link_button.dart';
+import 'package:velorki/features/sharing/presentation/share_card.dart';
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -166,6 +167,29 @@ void main() {
       );
     });
 
+    test('a route from Strava is refused before the relay is asked', () async {
+      final relay = FakeRelayClient(
+        shareLink: const ShareLink(id: 'abc', url: 'https://velorki.com/s/abc'),
+      );
+      await expectLater(
+        ShareService(relay).share(
+          name: 'From Strava',
+          points: _points,
+          kind: ShareKind.route,
+          distanceM: 42000,
+          fromStrava: true,
+        ),
+        throwsA(
+          isA<ShareException>().having(
+            (e) => e.describe(l10n),
+            'text',
+            l10n.shareStravaRouteRefused,
+          ),
+        ),
+      );
+      expect(relay.shareCalls, isEmpty);
+    });
+
     test('an empty track is refused before the relay is asked', () async {
       final relay = FakeRelayClient();
       await expectLater(
@@ -263,23 +287,26 @@ void main() {
     });
   });
 
-  group('ShareLinkButton', () {
-    Future<ProviderContainer> pump(
+  group('the share card link row', () {
+    Future<List<String>> pump(
       WidgetTester tester, {
       required FakeRelayClient relay,
       bool entitled = true,
       bool withRelay = true,
+      bool fromStrava = false,
     }) async {
       await tester.binding.setSurfaceSize(const Size(1000, 2000));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final prefs = await SharedPreferences.getInstance();
+      final shared = <String>[];
       final container = ProviderContainer(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           relayClientProvider.overrideWithValue(withRelay ? relay : null),
-          clipboardWriterProvider.overrideWithValue((text) async {}),
-          textSharerProvider.overrideWithValue((text, {subject}) async {}),
+          textSharerProvider.overrideWithValue((text, {subject}) async {
+            shared.add(text);
+          }),
         ],
       );
       addTearDown(container.dispose);
@@ -289,58 +316,81 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: testApp(
-            home: const Scaffold(
-              body: ShareLinkButton(
+            home: Scaffold(
+              body: ShareLinkRow(
                 name: 'Isar loop',
                 points: _points,
                 kind: ShareKind.route,
                 distanceM: 42000,
+                fromStrava: fromStrava,
               ),
             ),
           ),
         ),
       );
       await tester.pumpAndSettle();
-      return container;
+      return shared;
     }
 
-    testWidgets('creates the link and shows it', (tester) async {
+    testWidgets('creates the link, opens the share sheet at once and says '
+        'how long it works', (tester) async {
       final relay = FakeRelayClient(
-        shareLink: const ShareLink(id: 'abc', url: 'https://velorki.com/s/abc'),
+        shareLink: ShareLink(
+          id: 'abc',
+          url: 'https://velorki.com/s/abc',
+          expiresAt: DateTime.utc(2027, 9, 12).millisecondsSinceEpoch ~/ 1000,
+        ),
       );
-      await pump(tester, relay: relay);
+      final shared = await pump(tester, relay: relay);
 
-      await tester.tap(find.text(l10n.shareLinkAction));
+      await tester.tap(find.text(l10n.shareLinkTitle));
       await tester.pumpAndSettle();
 
-      expect(find.text('https://velorki.com/s/abc'), findsOneWidget);
+      expect(shared, ['https://velorki.com/s/abc']);
       expect(relay.shareCalls, hasLength(1));
+      expect(
+        find.text(
+          l10n.shareLinkWorksUntil(
+            formatDate(l10n, DateTime.utc(2027, 9, 12).toLocal()),
+          ),
+        ),
+        findsOneWidget,
+      );
 
-      await tester.tap(find.text(l10n.shareLinkCopy));
+      // Shared again, the same link: no second one is made.
+      await tester.tap(find.text(l10n.shareLinkTitle));
       await tester.pumpAndSettle();
-      expect(find.text(l10n.shareLinkCopied), findsOneWidget);
+      expect(shared, hasLength(2));
+      expect(relay.shareCalls, hasLength(1));
     });
 
-    testWidgets('without Velorki Plus it offers the paywall instead', (
-      tester,
-    ) async {
+    testWidgets('without Velorki Plus the row shows the lock', (tester) async {
       final relay = FakeRelayClient();
       await pump(tester, relay: relay, entitled: false);
 
-      await tester.tap(find.text(l10n.shareLinkAction));
-      await tester.pumpAndSettle();
-
-      expect(find.text(l10n.shareLinkPlus), findsOneWidget);
-      expect(find.text(l10n.plusSeeDetails), findsOneWidget);
+      expect(find.text(l10n.sharePlusLabel), findsOneWidget);
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+      expect(find.text(l10n.shareLinkTitle), findsNothing);
       expect(relay.shareCalls, isEmpty);
     });
 
-    testWidgets('a build without a relay hides the button', (tester) async {
-      await pump(tester, relay: FakeRelayClient(), withRelay: false);
-      expect(find.text(l10n.shareLinkAction), findsNothing);
+    testWidgets('a route from Strava is never put in a link', (tester) async {
+      final relay = FakeRelayClient(
+        shareLink: const ShareLink(id: 'abc', url: 'https://velorki.com/s/abc'),
+      );
+      await pump(tester, relay: relay, fromStrava: true);
+
+      expect(find.text(l10n.shareNotForStravaRoutes), findsOneWidget);
+      expect(find.text(l10n.shareLinkTitle), findsNothing);
+      expect(relay.shareCalls, isEmpty);
     });
 
-    testWidgets('a failure is reported', (tester) async {
+    testWidgets('a build without a relay hides the row', (tester) async {
+      await pump(tester, relay: FakeRelayClient(), withRelay: false);
+      expect(find.text(l10n.shareLinkRowTitle), findsNothing);
+    });
+
+    testWidgets('a failure is reported in the row', (tester) async {
       final relay = FakeRelayClient(
         failure: const RelayException(
           RelayError(
@@ -352,7 +402,7 @@ void main() {
       );
       await pump(tester, relay: relay);
 
-      await tester.tap(find.text(l10n.shareLinkAction));
+      await tester.tap(find.text(l10n.shareLinkTitle));
       await tester.pumpAndSettle();
 
       expect(find.text(l10n.shareLinkFailed(l10n.relayBusy)), findsOneWidget);

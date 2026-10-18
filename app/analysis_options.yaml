@@ -14,6 +14,7 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "**/*.drift.dart"
+    - web/**
   errors:
     invalid_annotation_target: ignore
 

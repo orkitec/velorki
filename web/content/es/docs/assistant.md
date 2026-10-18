@@ -94,15 +94,15 @@ El botón no está disponible para una ruta importada de Strava, porque las cond
 
 El asistente tiene un límite de uso: veinte peticiones por hora y cien al día.
 
-| Lo que dice el panel | Qué significa |
-|---|---|
-| "Demasiadas peticiones. Inténtalo de nuevo en 90 segundos." | has llegado al límite de uso |
-| "El asistente de IA forma parte de Velorki Plus." | no hay suscripción |
-| "El asistente necesita tu consentimiento antes de poder enviar nada." | falta el consentimiento o lo has rechazado |
-| "No estoy seguro de haberlo entendido. Prueba a indicar una distancia y un lugar." | el modelo no estaba seguro |
-| "No encontré «Friburgo». Prueba otra grafía o una localidad cercana." | no se pudo resolver el nombre del lugar |
-| "Necesito saber dónde empezar. Activa la ubicación o indica un lugar de inicio." | "desde aquí" sin posición |
-| "El asistente no pudo responder:" | ha fallado el servidor o el modelo |
+| Lo que dice el panel                                                                                               | Qué significa                              |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| "Demasiadas peticiones. Inténtalo de nuevo en 90 segundos."                        | has llegado al límite de uso               |
+| "El asistente de IA forma parte de Velorki Plus."                                                  | no hay suscripción                         |
+| "El asistente necesita tu consentimiento antes de poder enviar nada."                              | falta el consentimiento o lo has rechazado |
+| "No estoy seguro de haberlo entendido. Prueba a indicar una distancia y un lugar." | el modelo no estaba seguro                 |
+| "No encontré «Friburgo». Prueba otra grafía o una localidad cercana."              | no se pudo resolver el nombre del lugar    |
+| "Necesito saber dónde empezar. Activa la ubicación o indica un lugar de inicio."   | "desde aquí" sin posición                  |
+| "El asistente no pudo responder:"                                                                  | ha fallado el servidor o el modelo         |
 
 **Reintentar** borra el error y conserva lo que escribiste.
 

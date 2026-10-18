@@ -229,21 +229,39 @@ clear_emulator() {
 # had refused the VM service three times running on API 35 in CI, each try
 # two seconds after the last. Reconnect adb, wait until the emulator reports
 # booted again and give it a moment, so the retry is on a fresh connection.
+# With [reboot] (the last try) the emulator is restarted first, and given
+# back the position in VELORKI_ITEST_GEO ("longitude latitude") if set: a CI emulator
+# that came up "offline" from its snapshot has stayed unable to start the
+# app across reconnects, and only a fresh boot got it going.
 recover_emulator() {
   [[ "$DEVICE" == emulator-* ]] || return 0
-  adb -s "$DEVICE" reconnect >/dev/null 2>&1 || true
+  local reboot=${1:-}
+  if [ -n "$reboot" ]; then
+    printf '    restarting %s\n' "$DEVICE"
+    adb -s "$DEVICE" reboot >/dev/null 2>&1 || true
+    sleep 10
+    adb kill-server >/dev/null 2>&1 || true
+    adb start-server >/dev/null 2>&1 || true
+  else
+    adb -s "$DEVICE" reconnect >/dev/null 2>&1 || true
+  fi
   # coreutils' timeout is on Linux CI; a Mac without it waits unbounded.
   if command -v timeout >/dev/null 2>&1; then
-    timeout 60 adb -s "$DEVICE" wait-for-device >/dev/null 2>&1 || true
+    timeout 120 adb -s "$DEVICE" wait-for-device >/dev/null 2>&1 || true
   else
     adb -s "$DEVICE" wait-for-device >/dev/null 2>&1 || true
   fi
   local i
-  for ((i = 0; i < 30; i++)); do
+  for ((i = 0; i < 90; i++)); do
     [ "$(adb -s "$DEVICE" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && break
     sleep 2
   done
   sleep 15
+  # A restarted emulator has forgotten the simulated position.
+  if [ -n "$reboot" ] && [ -n "${VELORKI_ITEST_GEO:-}" ]; then
+    # shellcheck disable=SC2086 # "longitude latitude", two words on purpose
+    adb -s "$DEVICE" emu geo fix $VELORKI_ITEST_GEO >/dev/null 2>&1 || true
+  fi
 }
 
 flutter_test_one() {
@@ -360,7 +378,7 @@ run_one() {
     if [ "$try" -lt "$TRIES" ] && tooling_failed "$rc" "$log"; then
       printf '    the tooling did not get going; running %s again (%s of %s)\n' \
         "$(basename "$f")" "$((try + 1))" "$TRIES"
-      recover_emulator
+      if [ "$((try + 1))" -eq "$TRIES" ]; then recover_emulator reboot; else recover_emulator; fi
       continue
     fi
     break

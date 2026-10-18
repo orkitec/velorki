@@ -115,7 +115,8 @@ way arrives twice, as the way and as the area, and is counted once.
 
 ```sql
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
--- schema_version='1', tile, built_at (ISO-8601 UTC), source, has_streets, has_pois,
+-- schema_version='1', tile, built_at (ISO-8601 UTC; SOURCE_DATE_EPOCH when set, so a rebuild
+-- of the same extracts is byte-identical), source, has_streets, has_pois,
 -- search_script='latin' (the index holds translit(name); absent in older files)
 
 CREATE TABLE places (

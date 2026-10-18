@@ -245,7 +245,9 @@ void main() {
       expect(source['type'], 'geojson');
       expect(source['cluster'], isTrue);
       expect(source['clusterRadius'], stopsClusterRadiusPx);
-      expect(source['clusterMaxZoom'], 14);
+      // MapLibre gathers stops in the source's tiles up to this whole zoom;
+      // from the next one every stop is its own.
+      expect(source['clusterMaxZoom'], 15);
 
       const bubble = <Object>['has', 'point_count'];
       const single = <Object>[

@@ -8,6 +8,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
+import '../../../core/db/tables/routes.dart' show RouteSource;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/application/assistant_sheet_memory.dart';
 import '../../assistant/application/route_advice_controller.dart';
@@ -20,13 +21,14 @@ import '../../map/application/locate_on_open.dart';
 import '../../map/application/map_stops_controller.dart';
 import '../../map/application/route_cursor.dart';
 import '../../map/domain/visible_map.dart';
+import '../../map/presentation/stops_download_chip.dart';
 import '../../map/presentation/weather_time_row.dart';
-import '../../map/presentation/stops_zoom_chip.dart';
 import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../map/presentation/map_chrome.dart';
-import '../../map/presentation/map_controls.dart' show mapControlButtonSize;
+import '../../map/presentation/map_controls.dart'
+    show mapControlButtonSize, mapControlsColumnHeight;
 import '../../map/presentation/visible_map_padding.dart';
 import '../../map/presentation/shared_map_host.dart';
 import '../../offline/presentation/offline_screen.dart';
@@ -65,9 +67,13 @@ import 'surface_stats_bar.dart';
 import 'waypoint_edit_sheet.dart';
 import '../../weather/application/route_weather_controller.dart';
 import '../../weather/application/route_colouring.dart';
+import '../../weather/application/free_route_weather.dart';
+import '../../weather/application/route_overlay.dart';
 import '../../weather/presentation/route_colour_choice.dart';
 import '../../weather/presentation/route_weather_section.dart';
+import '../../weather/presentation/weather_time_hint_dialog.dart';
 import '../../shared/presentation/error_text.dart';
+import '../../shared/presentation/wide_panel.dart';
 
 /// The Plan tab: the search and profile controls at the top and the route
 /// details in a draggable sheet at the bottom, over the map the shell
@@ -106,6 +112,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// Whether a draw is on its way, from the microtask it waits for.
   bool _drawPending = false;
 
+  /// The theme's colours the route's colouring was last drawn with
+  /// ([routeColourThemeKey]).
+  Object? _colourTheme;
+
   /// The place whose card is open: pinned on the map until the card closes.
   SearchResult? _shownPlace;
 
@@ -115,10 +125,24 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   final GlobalKey _chromeKey = GlobalKey();
   double _chromeHeight = 8 + 56 + 10 + 44;
 
+  /// Upright, the rows of the chrome that run the full width, over the
+  /// column's side: the search field and the profile chips. The chips and
+  /// hints under them keep clear of the column, so it stands beside them
+  /// rather than below, and does not move as they come and go.
+  final GlobalKey _acrossKey = GlobalKey();
+  double _acrossHeight = 8 + 56 + 10 + 44;
+
   void _measureChrome() {
     final height = _chromeKey.currentContext?.size?.height;
-    if (height == null || (height - _chromeHeight).abs() < 0.5) return;
-    setState(() => _chromeHeight = height);
+    final across = _acrossKey.currentContext?.size?.height;
+    if ((height == null || (height - _chromeHeight).abs() < 0.5) &&
+        (across == null || (across - _acrossHeight).abs() < 0.5)) {
+      return;
+    }
+    setState(() {
+      if (height != null) _chromeHeight = height;
+      if (across != null) _acrossHeight = across;
+    });
   }
 
   /// The air between the things in the row at the top sideways.
@@ -211,6 +235,71 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   double _collapsedSheetSize = 0.1;
   double _restingSheetSize = 0.48;
 
+  /// How much of the sheet, in dp from its top edge, the resting sheet
+  /// keeps in view upright: down to the time control under Save, measured
+  /// once a route has shown it ([_measureRestingContent]); 0 before. It
+  /// only grows, so the sheet does not move up and down with the variants
+  /// or the route coming and going.
+  double _restingContentDp = 0;
+
+  /// Where the time control under Save is built, measured for
+  /// [_restingContentDp]. (Not a global key: one here tripped the
+  /// semantics' geometry while the AI's card was over the sheet.)
+  BuildContext? _restingEnd;
+
+  /// The air left between the time control and the bar at rest.
+  static const double _restingAirDp = 8;
+
+  /// The air a wide window's card at rest leaves under the map's controls.
+  static const double _controlsAirDp = 12;
+
+  /// The most of the screen the resting sheet grows to for the time
+  /// control, so the map keeps some room on a short screen.
+  static const double _maxRestingSheetSize = 0.7;
+
+  /// Measures where the time control under Save ends in the sheet, and
+  /// grows the resting sheet to show it where it does not: a sheet at rest
+  /// rises to the new resting size there and then, once, so nothing later
+  /// (the AI's card, a tab change) moves it there by the way. A sheet the
+  /// rider has left elsewhere stays.
+  void _measureRestingContent() {
+    final end = _restingEnd;
+    if (end == null || !end.mounted) return;
+    final box = end.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return;
+    // No control (no route's weather): nothing more to show.
+    if (box.size.height <= 0) return;
+    final scrollable = Scrollable.maybeOf(end);
+    final viewport = scrollable?.context.findRenderObject();
+    if (scrollable == null || viewport is! RenderBox) return;
+    // Its bottom in the list's content, wherever the list is scrolled.
+    final bottom =
+        box.localToGlobal(Offset(0, box.size.height), ancestor: viewport).dy +
+        scrollable.position.pixels;
+    final dp = sheetHandleDp + bottom + _restingAirDp;
+    if (dp <= _restingContentDp + 0.5) return;
+    final before = _restingSheetSize;
+    setState(() => _restingContentDp = dp);
+    // After the build that gives the sheet its new resting size.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_sheet.isAttached) return;
+      final target = _restingSheetSize;
+      if ((target - before).abs() < 0.001) return;
+      if ((_sheet.size - before).abs() >= 0.005) return;
+      if (MediaQuery.disableAnimationsOf(context)) {
+        _sheet.jumpTo(target);
+        return;
+      }
+      unawaited(
+        _sheet.animateTo(
+          target,
+          duration: tabSheetSettleDuration,
+          curve: tabChromeSlideCurve,
+        ),
+      );
+    });
+  }
+
   /// How far the sheet opens.
   static const double _maxSheetSize = sheetMaxExtent;
 
@@ -267,7 +356,15 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// Asked for by work that finishes after an await; a screen that has gone
   /// in the meantime has no context to measure, and nothing left to fit.
   EdgeInsets _visiblePadding() => mounted
-      ? visibleMapPadding(context, chromeTop: _ownControlsTop)
+      ? visibleMapPadding(
+          context,
+          chromeTop: _ownControlsTop,
+          // Upright, this tab's own resting height, which may be more than
+          // the shared one; sideways the sheet's cover as the layout says.
+          sheetExtent: ShellLayout.of(context).sideRail
+              ? null
+              : _restingSheetSize,
+        )
       : EdgeInsets.zero;
 
   /// Where the map's control column rests under this tab's chrome. The
@@ -578,11 +675,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      builder: (context) => WaypointEditSheet(
-        index: index,
-        count: count,
-        initial: initial,
-        onSwap: onSwap,
+      builder: (context) => ScrolledUnderLine(
+        child: WaypointEditSheet(
+          index: index,
+          count: count,
+          initial: initial,
+          onSwap: onSwap,
+        ),
       ),
     ),
   );
@@ -658,10 +757,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             null => null,
             final place => shownPoi(place),
           };
-      // What the route is coloured by: its gradient, or the wind or the
-      // rain on it, as the rider chose.
-      binding.routeColours = () =>
-          ref.read(routeColouringProvider(plannerWeatherRoute)).lines;
+      // What the route is coloured by: its gradient, its surface, or the
+      // wind or the rain on it, as the rider chose.
+      binding.routeColours = () => mounted
+          ? routeColourLinesOf(
+              ref.read(routeColouringProvider(plannerWeatherRoute)),
+              Theme.of(context),
+            )
+          : RouteColourLines.none;
       _binding = binding;
     }
     binding.attach();
@@ -802,6 +905,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// and a card covering [cover] of the screen's bottom.
   EdgeInsets _paddingAbove(double cover) {
     final base = _visiblePadding();
+    // In a wide window the card is in the column beside the map.
+    if (ShellLayout.of(context).widePanel) return base;
     final height = MediaQuery.sizeOf(context).height;
     // Some map is left between the two, however tall the card.
     final bottom = math.max(0.0, math.min(cover + 24, height - base.top - 48));
@@ -824,7 +929,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     if (map == null) return;
     unawaited(
       Navigator.of(context).push(
-        MaterialPageRoute<void>(
+        ColumnPageRoute<void>(
           builder: (_) => OfflineScreen(mapController: map),
         ),
       ),
@@ -1054,6 +1159,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           pois: state.pois,
           options: state.options,
           id: state.savedRouteId,
+          // A route edited from a Strava route stays Strava's, even when
+          // the row it came from is gone by now.
+          source: state.savedRouteSource == RouteSource.strava
+              ? RouteSource.strava
+              : RouteSource.planned,
           surfaceStats: state.surfaceStats,
           original: state.original,
         );
@@ -1086,6 +1196,17 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     ref.listen(routeColouringProvider(plannerWeatherRoute), (_, _) {
       if (_drawing) unawaited(_binding?.syncColours());
     });
+    // Or the theme's colours it is drawn in: the accent, light or dark.
+    final colourTheme = routeColourThemeKey(Theme.of(context));
+    if (colourTheme != _colourTheme) {
+      final redraw = _colourTheme != null;
+      _colourTheme = colourTheme;
+      if (redraw) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _drawing) unawaited(_binding?.syncColours());
+        });
+      }
+    }
     ref.listen(plannerControllerProvider, (previous, next) {
       // Only while this tab's layers are on the map; a plan that changes
       // while the tab is away is drawn whole when it comes back.
@@ -1118,10 +1239,47 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     _collapsedSheetSize = collapsedSheetSize;
     final dockedRange = geometry.dockedRange;
     // One resting height whatever the sheet holds, shared with the Record
-    // tab: room for the variant chips is always there.
-    final restingSheetSize = geometry.resting;
+    // tab: room for the variant chips is always there. Upright, where that
+    // leaves the time control under Save out of view, as on a short
+    // screen, as much more as it takes to show it.
+    final grownSheetSize = geometry.sideways || _restingContentDp <= 0
+        ? geometry.resting
+        : math.max(
+            geometry.resting,
+            math.min(
+              geometry.fraction(_restingContentDp),
+              _maxRestingSheetSize,
+            ),
+          );
+    // Upright, the column stands under the rows that run over its side,
+    // beside the chips under them; the banner of a missing routing server
+    // runs the full width too, and the column goes under it. Sideways the
+    // controls are a row of their own at the top.
+    _ownControlsTop =
+        (geometry.sideways || !hasBackend ? _chromeHeight : _acrossHeight) + 12;
+    // In a wide window the card at rest stays clear of the whole control
+    // column under the chrome: in a short one (a foldable's inner screen
+    // on its side) the card grown for the time control reached over it.
+    // A phone keeps its sheet over the column's end, as it always had.
+    final restingSheetSize = geometry.layout.widePanel
+        ? math.min(
+            grownSheetSize,
+            geometry.restingBelow(
+              MediaQuery.viewPaddingOf(context).top +
+                  _ownControlsTop +
+                  mapControlsColumnHeight(context) +
+                  _controlsAirDp,
+            ),
+          )
+        : grownSheetSize;
     _restingSheetSize = restingSheetSize;
     final hasVariants = state.alternatives.length > 1;
+    final hasRoute = state.result != null;
+    if (hasRoute && !geometry.sideways) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _measureRestingContent();
+      });
+    }
 
     // The tab on screen: the chrome over the map slides in when it is this
     // one, the plan goes on the map, and the map's control column and the
@@ -1150,7 +1308,22 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     }
     final stopsWanted = ref.watch(mapStopsPreferencesProvider);
     _stops.update(shown: stopsWanted.shown, kinds: stopsWanted.kinds);
-    _ownControlsTop = _chromeHeight + 12;
+    final sideways = ShellLayout.of(context).sideRail;
+    // A wide window's narrow column, and a short wide window, take the
+    // compact top a phone turned sideways has: the profiles as a menu at
+    // the search's end.
+    final compactColumn = wideCompactTopOf(context);
+    // Whether the chips below the search run beside the map's control
+    // column: upright, on a phone and in a wide window's column; sideways
+    // the controls are in the row at the top.
+    final underColumn = !sideways;
+    // In a wide window whose column stands on the left the controls stand
+    // at the left edge, and the chips keep clear of them there.
+    final controlsAtLeft = wideMapControlsAtLeft(
+      context,
+      ShellLayout.of(context),
+    );
+    final besideControls = underColumn ? mapControlButtonSize + 14 : 0.0;
     final controlsTop = ref.read(mapControlsTopProvider);
     if (active && (controlsTop.target - _ownControlsTop).abs() >= 0.5) {
       // A change of this tab's own chrome, on screen: the column glides,
@@ -1172,7 +1345,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       if (mounted) _measureChrome();
     });
 
-    final sideways = ShellLayout.of(context).sideRail;
     final setProfile = ref.read(plannerControllerProvider.notifier).setProfile;
     // Keyed, so a search under way survives the phone turning, which moves
     // the field from its own row into the row with the controls. Sideways
@@ -1183,7 +1355,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       onFocusChanged: _onSearchFocus,
       bias: () => _map?.center,
       onDownloadArea: _openOfflineData,
-      trailing: sideways
+      trailing: sideways || compactColumn
           ? ({required compact}) => ProfileDropdown(
               selected: state.options.profile,
               onSelected: setProfile,
@@ -1197,10 +1369,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final dismissedAreas = ref.watch(areaHintDismissalsProvider);
     // What the chrome shows under its first rows, now and then.
     final below = <Widget>[
-      // The area is not downloaded, or stops are on and the map is too far
-      // out for them. The download first, since zooming in would show
-      // nothing either; said for the stops or the cycle map where those
-      // are on, for the area where neither is. Closed over an area, none of
+      // The area is not downloaded: said for the stops or the cycle map
+      // where those are on, for the area where neither is. Closed over an area, none of
       // them shows there again this session.
       ListenableBuilder(
         listenable: Listenable.merge(<Listenable>[_stops, _areaHint]),
@@ -1226,19 +1396,19 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   message: l10n.searchAreaNotDownloaded,
                   onClose: () => _closeAreaHint(_areaHint.missingArea),
                 )
-              // Not after the stops' own chip was closed: zooming in would
-              // show none either.
-              : _stops.needsZoom && stopsMissing == null
-              ? StopsZoomChip(onZoomIn: () => unawaited(_stops.zoomIn()))
               : null;
           return chip == null
               ? const SizedBox.shrink()
               : Padding(
                   // Clear of the map's control column at the side: a long
                   // message wraps rather than run over its top button.
-                  padding: const EdgeInsetsDirectional.only(
+                  // Sideways the controls are in the row at the top, so the
+                  // chip has the width beside the sheet; kept clear of a
+                  // column that is not there it was a column of words.
+                  padding: EdgeInsetsDirectional.only(
                     top: 10,
-                    end: mapControlButtonSize + 14,
+                    start: controlsAtLeft ? besideControls : 0,
+                    end: controlsAtLeft ? 0 : besideControls,
                   ),
                   child: Align(
                     alignment: AlignmentDirectional.centerStart,
@@ -1251,7 +1421,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       // and gone with it.
       if (state.differsFromOriginal)
         Padding(
-          padding: const EdgeInsets.only(top: 10),
+          // Clear of the control column, as the chip above.
+          padding: EdgeInsetsDirectional.only(
+            top: 10,
+            start: controlsAtLeft ? besideControls : 0,
+            end: controlsAtLeft ? 0 : besideControls,
+          ),
           child: Align(
             alignment: AlignmentDirectional.centerStart,
             child: OriginalRouteChip(
@@ -1264,7 +1439,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       // Shown with the dashed lines of the stretches the router keeps off.
       if (state.avoid.isNotEmpty)
         Padding(
-          padding: const EdgeInsets.only(top: 10),
+          // Clear of the control column, as the chip above.
+          padding: EdgeInsetsDirectional.only(
+            top: 10,
+            start: controlsAtLeft ? besideControls : 0,
+            end: controlsAtLeft ? 0 : besideControls,
+          ),
           child: Align(
             alignment: AlignmentDirectional.centerStart,
             child: AvoidedStretchesChip(
@@ -1277,12 +1457,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         ),
       // The clouds' time, and a weather layer that did not answer: clear
       // of the control column, as the chips above.
-      const Align(
+      Align(
         alignment: AlignmentDirectional.centerStart,
         child: WeatherMapHints(
           padding: EdgeInsetsDirectional.only(
             top: 10,
-            end: mapControlButtonSize + 14,
+            start: controlsAtLeft ? besideControls : 0,
+            end: controlsAtLeft ? 0 : besideControls,
           ),
         ),
       ),
@@ -1310,7 +1491,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   : SafeArea(
                       bottom: false,
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                        // In a wide window flush with the column's edge,
+                        // as the controls and the card are.
+                        padding: wideChromeMargin(
+                          context,
+                          const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                        ),
                         child: Column(
                           key: _chromeKey,
                           // Only as tall as its rows, so its height is the
@@ -1318,12 +1504,23 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            search,
-                            const SizedBox(height: 10),
-                            ProfileChipRow(
-                              glass: true,
-                              selected: state.options.profile,
-                              onSelected: setProfile,
+                            Column(
+                              key: _acrossKey,
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                search,
+                                // In a compact column the profiles are the
+                                // menu at the search's end, as sideways.
+                                if (!compactColumn) ...[
+                                  const SizedBox(height: 10),
+                                  ProfileChipRow(
+                                    glass: true,
+                                    selected: state.options.profile,
+                                    onSelected: setProfile,
+                                  ),
+                                ],
+                              ],
                             ),
                             ...below,
                           ],
@@ -1342,8 +1539,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 child: AdaptiveDockingSheet(
                   controller: _sheet,
                   // Enough for the headline, the toolbar and Save above the
-                  // floating navigation bar on a 20:9 phone.
-                  initialExtent: restingSheetSize,
+                  // floating navigation bar on a 20:9 phone. The shared
+                  // resting size, not the one grown for the time control:
+                  // an untouched sheet given a new initial size jumps to it
+                  // at its next build, whatever that build is for. The
+                  // growth moves the sheet itself ([_measureRestingContent]).
+                  initialExtent: geometry.resting,
                   collapsedExtent: collapsedSheetSize,
                   maxExtent: _maxSheetSize,
                   // One resting height, not one per state: with two in the list
@@ -1378,11 +1579,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       ),
                       children: [
                         _SheetHeader(state: state),
-                        // The time control right under the figures, in view
-                        // at the resting height, while the rain or the wind
-                        // is on, or the route's weather is shown: with a
-                        // route it is the route's departure.
-                        const _PlannerTimeRow(),
+                        // The time control, while the rain or the wind is
+                        // on, right under the hint without a route; with one
+                        // under Save, where it is the route's departure,
+                        // always shown, and the colours and the weather the
+                        // sheet shows follow it. In view at the resting
+                        // height either way.
+                        if (!hasRoute) const _PlannerTimeRow(),
                         const SizedBox(height: 14),
                         // The variants right under the figures, where the sheet
                         // grows to show them; then the actions, so Loop and Save
@@ -1398,6 +1601,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                           onAsk: _ask,
                           onSave: _save,
                         ),
+                        if (hasRoute)
+                          Builder(
+                            builder: (context) {
+                              _restingEnd = context;
+                              return const _PlannerTimeRow();
+                            },
+                          ),
                         const SizedBox(height: 16),
                         _SheetBody(
                           state: state,
@@ -1569,7 +1779,8 @@ class _SheetHeader extends ConsumerWidget {
   }
 }
 
-/// Everything under the actions: chart, surfaces, alternatives.
+/// Everything under the actions and the time control: the route's colours,
+/// the profile, the surfaces and the weather.
 ///
 /// The profile and the weather strip run along the same distance and share
 /// one zoom window and one cursor, which puts the rider badge on the route.
@@ -1638,8 +1849,10 @@ class _SheetBodyState extends State<_SheetBody> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // The profile, coloured as the route on the map is, and the choice
-        // of what that is under it.
+        // What the route on the map is coloured by, and the profile under
+        // it coloured alike.
+        const RouteColourControls(route: plannerWeatherRoute),
+        const SizedBox(height: 12),
         RouteElevationProfile(
           route: plannerWeatherRoute,
           samples: elevationProfile(route.geometry),
@@ -1801,8 +2014,8 @@ class _PlannerActions extends ConsumerWidget {
 }
 
 /// The map's time control on the Plan tab: with a route, also the route's
-/// departure, and shown while the route's weather is
-/// ([plannerTimeControlProvider]).
+/// departure, and then always shown ([plannerTimeControlProvider]). Its
+/// spinner also turns while the forecast the route is coloured by loads.
 class _PlannerTimeRow extends ConsumerWidget {
   const _PlannerTimeRow();
 
@@ -1813,6 +2026,28 @@ class _PlannerTimeRow extends ConsumerWidget {
       padding: const EdgeInsets.only(top: 10),
       leave: control != PlannerTimeControl.map,
       shown: control == PlannerTimeControl.departureShown,
+      forecastLoading: _forecastLoading(ref),
+      // With a route, moved where nothing in view follows it: what it
+      // moves, once.
+      onMoved: control == PlannerTimeControl.departureShown
+          ? () => unawaited(showWeatherTimeHint(context, ref))
+          : null,
     );
+  }
+
+  /// Whether the route is coloured by the wind or the rain and the
+  /// forecast of the step set is being fetched: the relay's with Velorki
+  /// Plus, the free one otherwise, as [RouteColourWeather] picks. The free
+  /// grids of the other steps, fetched ahead, do not count.
+  static bool _forecastLoading(WidgetRef ref) {
+    if (!ref.watch(routeColouringOnProvider) ||
+        !isWeatherOverlay(ref.watch(routeOverlayShownProvider))) {
+      return false;
+    }
+    return ref.watch(routeWeatherFromRelayProvider)
+        ? ref
+              .watch(routeWeatherControllerProvider(plannerWeatherRoute))
+              .isLoading
+        : ref.watch(freeRouteWeatherProvider(plannerWeatherRoute)).isLoading;
   }
 }

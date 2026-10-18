@@ -5,12 +5,20 @@
     "subline": "Pianifica, calcola percorsi e naviga sull'iPhone, anche offline.",
     "android": {
       "subline": "Pianifica, calcola percorsi e naviga sul telefono, anche offline."
+    },
+    "ipad": {
+      "subline": "Pianifica, calcola percorsi e naviga sull'iPad, anche offline."
     }
   },
   "variants": {
     "eyebrow": "Pianificazione",
     "headline": "Percorsi su misura per **la tua bici**",
     "subline": "Trekking, corsa, gravel o MTB, con alternative, altimetria e fondo."
+  },
+  "weather": {
+    "eyebrow": "Meteo",
+    "headline": "Guarda la pioggia **prima di partire**",
+    "subline": "Radar pioggia, vento e nuvole sulla mappa, e il meteo lungo il percorso per quando parti."
   },
   "cyclemap": {
     "eyebrow": "Mappa ciclabile",
@@ -38,9 +46,9 @@
     "subline": "Altimetria, velocità, frequenza cardiaca e parziali per ogni giro."
   },
   "offline-themes": {
-    "eyebrow": "Offline · Chiaro e scuro",
-    "headline": "Giorno o notte, **con o senza rete**",
-    "subline": "Scarica una regione una volta, poi mappe, percorsi e ricerca funzionano ovunque. Chiaro o scuro, del tuo colore."
+    "eyebrow": "Soste · Offline · Chiaro e scuro",
+    "headline": "Caffè e acqua, **con o senza rete**",
+    "subline": "Soste lungo il percorso dalla regione scaricata. Chiaro o scuro, del tuo colore."
   },
   "import": {
     "eyebrow": "File",

@@ -12,6 +12,7 @@ import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
 import '../application/recording_controller.dart';
 import '../domain/follow_choice.dart';
+import '../../shared/presentation/docking_sheet.dart';
 
 part 'follow_route_picker.g.dart';
 
@@ -65,11 +66,15 @@ class FollowRouteField extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // One line, as the value under it: two would not fit
+                    // the field's height in the narrowest column.
                     Text(
                       l10n.recordingFollowRoute,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       choice,
@@ -103,7 +108,7 @@ Future<void> showFollowRoutePicker(BuildContext context) =>
       useSafeArea: true,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (_) => const FollowRoutePicker(),
+      builder: (_) => ScrolledUnderLine(child: const FollowRoutePicker()),
     );
 
 /// The choice as the ride will see it: the plan only counts while there is

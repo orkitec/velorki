@@ -1,5 +1,7 @@
 /// A [RoutingWorker] runs the ported engine in its own isolate so that the UI
-/// isolate stays responsive, with cooperative cancellation: the engine yields
+/// isolate stays responsive (in a browser, which has no isolates, on the
+/// page's own event loop: see `package:velorki_io/worker.dart`), with cooperative
+/// cancellation: the engine yields
 /// to the worker's event loop every [RoutingWorker.yieldInterval] node
 /// expansions (`RoutingEngine.yieldHook`), which is when a `cancel` message
 /// can reach it (`RoutingEngine.terminate()`, the thread-priority watchdog
@@ -19,10 +21,12 @@
 library;
 
 import 'dart:async';
-import 'dart:io';
-import 'dart:isolate';
+
+import 'package:velorki_io/io.dart';
 
 import 'brouter_dart.dart';
+
+import 'package:velorki_io/worker.dart';
 
 /// Search progress: links expanded so far and the size of the open set.
 class RoutingProgress {
@@ -44,7 +48,6 @@ class RoutingCancelledException implements Exception {
 
 class _Init {
   _Init(
-    this.port,
     this.segmentsDir,
     this.profilesDir,
     this.memoryclass,
@@ -53,7 +56,6 @@ class _Init {
     this.rawCacheBytes,
   );
 
-  final SendPort port;
   final String segmentsDir;
   final String profilesDir;
   final int memoryclass;
@@ -63,16 +65,9 @@ class _Init {
 }
 
 class RoutingWorker {
-  RoutingWorker._(
-    this._isolate,
-    this._toWorker,
-    this._fromWorker,
-    this.yieldInterval,
-  );
+  RoutingWorker._(this._channel, this.yieldInterval);
 
-  final Isolate _isolate;
-  final SendPort _toWorker;
-  final ReceivePort _fromWorker;
+  final WorkerChannel _channel;
 
   /// Node expansions between two yields of the engine.
   final int yieldInterval;
@@ -105,20 +100,10 @@ class RoutingWorker {
     bool retainRawCache = false,
     int rawCacheBytes = RawCellCache.defaultMaxBytes,
   }) async {
-    final fromWorker = ReceivePort();
-    final ready = Completer<SendPort>();
     late final RoutingWorker worker;
-    fromWorker.listen((Object? message) {
-      if (message is SendPort) {
-        ready.complete(message);
-        return;
-      }
-      worker._onMessage(message as Map<Object?, Object?>);
-    });
-    final isolate = await Isolate.spawn<_Init>(
+    final channel = await spawnWorkerChannel(
       _workerMain,
       _Init(
-        fromWorker.sendPort,
         segmentsDir.path,
         profilesDir.path,
         memoryclass ??
@@ -127,10 +112,10 @@ class RoutingWorker {
         retainRawCache,
         rawCacheBytes,
       ),
+      (message) => worker._onMessage(message! as Map<Object?, Object?>),
       debugName: 'brouter_dart RoutingWorker',
     );
-    final toWorker = await ready.future;
-    worker = RoutingWorker._(isolate, toWorker, fromWorker, yieldInterval);
+    worker = RoutingWorker._(channel, yieldInterval);
     return worker;
   }
 
@@ -166,7 +151,7 @@ class RoutingWorker {
         return;
       }
       _current = id;
-      _toWorker.send(<String, Object?>{
+      _channel.send(<String, Object?>{
         'cmd': 'route',
         'id': id,
         'query': query,
@@ -188,7 +173,7 @@ class RoutingWorker {
   void cancel() {
     final id = _current;
     if (id == null || _disposed) return;
-    _toWorker.send(<String, Object?>{'cmd': 'cancel', 'id': id});
+    _channel.send(<String, Object?>{'cmd': 'cancel', 'id': id});
   }
 
   /// Cancels the request in progress and kills the isolate.
@@ -199,9 +184,8 @@ class RoutingWorker {
     for (final id in _pending.keys.toList()) {
       _fail(id, RoutingCancelledException());
     }
-    _toWorker.send(const <String, Object?>{'cmd': 'dispose'});
-    _fromWorker.close();
-    _isolate.kill(priority: Isolate.beforeNextEvent);
+    _channel.send(const <String, Object?>{'cmd': 'dispose'});
+    _channel.close();
   }
 
   void _fail(int id, Object error) {
@@ -235,9 +219,14 @@ class RoutingWorker {
   }
 }
 
-void _workerMain(_Init init) {
-  final port = ReceivePort();
-  init.port.send(port.sendPort);
+/// The worker's side: answers every message [listen] delivers through [send].
+void _workerMain(
+  Object? message,
+  void Function(Object? message) send,
+  void Function(void Function(Object? message) onMessage) listen,
+  void Function() stop,
+) {
+  final init = message! as _Init;
   final router =
       BRouter(
           segmentsDir: Directory(init.segmentsDir),
@@ -253,7 +242,7 @@ void _workerMain(_Init init) {
   router.progressListener = (links, open) {
     final id = currentId;
     if (id != null) {
-      init.port.send(<String, Object?>{
+      send(<String, Object?>{
         'type': 'progress',
         'id': id,
         'links': links,
@@ -270,22 +259,18 @@ void _workerMain(_Init init) {
     try {
       final body = await router.routeQuery(query, memoryclass: memoryclass);
       if (cancelled) {
-        init.port.send(<String, Object?>{'type': 'cancelled', 'id': id});
+        send(<String, Object?>{'type': 'cancelled', 'id': id});
       } else {
-        init.port.send(<String, Object?>{
-          'type': 'result',
-          'id': id,
-          'body': body,
-        });
+        send(<String, Object?>{'type': 'result', 'id': id, 'body': body});
       }
     } on RoutingException catch (e) {
-      init.port.send(<String, Object?>{
+      send(<String, Object?>{
         'type': cancelled ? 'cancelled' : 'error',
         'id': id,
         'message': e.message,
       });
     } catch (e, st) {
-      init.port.send(<String, Object?>{
+      send(<String, Object?>{
         'type': 'failure',
         'id': id,
         'message': '$e\n$st',
@@ -295,8 +280,8 @@ void _workerMain(_Init init) {
     }
   }
 
-  port.listen((Object? message) {
-    final m = message as Map<Object?, Object?>;
+  listen((Object? message) {
+    final m = message! as Map<Object?, Object?>;
     switch (m['cmd']) {
       case 'route':
         unawaited(
@@ -310,7 +295,7 @@ void _workerMain(_Init init) {
         }
         break;
       case 'dispose':
-        port.close();
+        stop();
         break;
     }
   });

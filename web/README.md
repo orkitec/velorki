@@ -35,6 +35,10 @@ Host separation is strict and enforced before any handler runs, in
 
 - An unknown `(method, path)` on the API host answers the Fastify-shaped JSON
   404 `No route for GET /nope?a=1.`
+- CORS: `CORS_ORIGINS` (default `https://app.velorki.com`) may call `/health`,
+  `/weather*`, `/ai/plan` and `POST /share` from a browser; the preflight is
+  answered in `proxy.ts` (`src/server/cors.ts`), `/oauth/*` and `/proxy/*`
+  never get it. No credentials, never `*`.
 - `api.velorki.com/s/<id>` answers 308 to the site host: links handed out before
   the split keep working.
 - A loopback `Host` (`localhost`, `127.0.0.1`, `::1`) is the API role in every
@@ -60,8 +64,14 @@ Host separation is strict and enforced before any handler runs, in
 | `GET /weather/radar/dpc/frames` · `/image` | The same for Italy from the Dipartimento della Protezione Civile's Radar-DPC (surface rainfall intensity, CC BY-SA 4.0, drawn from it alone): the frames are the five-minute steps up to the newest its API names; a frame is the GeoTIFF its API links to, the link followed only to that frame's file on the DPC's S3 bucket (`src/weather/dpc/`). Both radars share `src/weather/radar/` (store, classes, drawing, routes) and differ only in their source. |
 | `GET /s/<id>` · `/s/<id>.gpx` | The public share page and the raw GPX, on `velorki.com`. No auth. |
 
-Everything under `/oauth/*`, `/proxy/*`, `/ai/*`, `/weather/*`, `POST /share` and `POST /weather` requires
+Everything under `/ai/*`, `/weather/*`, `POST /share` and `POST /weather` requires
 `Authorization: Bearer <revenuecat_app_user_id>` and an active entitlement.
+`/oauth/*` and `/proxy/*` are free, since Strava's API Policy does not allow
+charging for its functionality (Ride with GPS is treated the same): the token
+routes are limited per IP, and `/proxy/*` takes the app's install id as the
+bearer, only as a rate-limit key (missing or malformed: 400
+`invalid_request`). What authenticates a pass-through call is the wrapped
+token, which only this relay can open.
 
 ### Wrapped tokens
 
@@ -70,18 +80,19 @@ routes encrypt `access_token` and `refresh_token` with AES-256-GCM under
 `TOKEN_WRAP_KEYS` before answering (`v1.<kid>.<nonce>.<ciphertext>`, the
 service and the token kind as additional data), the phone stores that, and
 every service call goes through `/proxy/<service>/…` with the wrapped token in
-`X-Velorki-Token`. The relay checks the entitlement, refuses anything off the
-allowlist, unwraps in memory, forwards with `Authorization: Bearer`, streams
+`X-Velorki-Token`. The relay limits per IP, then per install id, refuses
+anything off the allowlist, unwraps in memory, forwards with `Authorization: Bearer`, streams
 the answer back and keeps nothing. A token that arrived under an older key is
 re-wrapped with the current one and returned in `X-Velorki-Token-Rewrapped`;
 the phone replaces what it stored. A call leaves nothing behind but its
-per-rider rate-limit window; the host's per-route metrics give the totals.
+per-IP and per-install rate-limit windows; the host's per-route metrics give the totals.
 
 ### Conventions
 
 - Errors always look like
   `{"error": {"code": "...", "message": "...", "retry_after_s": 30}}`.
-  Codes: `invalid_request` (400), `not_entitled` (401), `consent_required`
+  Codes: `invalid_request` (400), `authorization_revoked` (400, Strava refused
+  a refresh token: the rider has to connect again), `not_entitled` (401), `consent_required`
   (403), `not_found` (404), `rate_limited` (429), `upstream_error` (502),
   `unavailable` (503).
 - `X-Request-Id` is echoed when it is short and safe (≤128 chars, `[\w.:@/+-]`)
@@ -138,7 +149,7 @@ These are deliberate, and worth keeping that way in a fork:
   message.
 - Service tokens exist in clear only inside one pass-through request. The
   phone holds them wrapped, so a copy of the phone's storage is useless
-  without this relay's key and an active subscription.
+  without this relay's key.
 
 ## Configuration
 

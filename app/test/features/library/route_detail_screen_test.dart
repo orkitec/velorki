@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
+import 'package:velorki/features/integrations/application/strava_route_checks.dart';
+import 'package:velorki/features/settings/presentation/settings_screen.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:velorki/features/integrations/common/data/connected_accounts_repository.dart';
+import 'package:velorki/features/integrations/common/data/secure_key_value_store.dart';
+import 'package:velorki/features/integrations/common/domain/connected_account.dart';
+import 'package:velorki/features/integrations/presentation/strava_brand.dart';
+import 'package:velorki/features/integrations/testing/in_memory_secure_key_value_store.dart';
 import 'package:velorki/core/db/tables/routes.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
@@ -16,6 +25,8 @@ import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki/core/links/link_opener.dart';
 import 'package:velorki/features/library/presentation/route_detail_screen.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/navigation/presentation/cue_sheet_list.dart';
+import 'package:velorki/features/weather/presentation/route_colour_choice.dart';
 import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
 import 'package:velorki/features/shared/presentation/metric_chart.dart';
 import 'package:fl_chart/fl_chart.dart' show LineChart;
@@ -29,6 +40,11 @@ import 'package:velorki/features/weather/presentation/route_weather_section.dart
 import 'package:velorki/features/weather/presentation/route_weather_strip.dart';
 import 'package:velorki/features/weather/presentation/weather_keys.dart';
 import 'package:velorki/core/geo/route_gradient.dart';
+import 'package:velorki/core/files/track_exporter.dart';
+import 'package:velorki/features/planner/presentation/route_stats_row.dart';
+import 'package:velorki/features/planner/presentation/surface_section.dart';
+import 'package:velorki/features/shared/presentation/button_menu.dart';
+import 'package:velorki/features/weather/application/route_overlay.dart';
 
 import '../../support/app.dart';
 import '../../support/chart_cursor.dart';
@@ -106,7 +122,13 @@ void main() {
     // moves the map.
     expect(find.text(l10n.elevationTitle.toUpperCase()), findsOneWidget);
     expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsOneWidget);
-    expect(find.text(l10n.cueSheetStart), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(CueSheetList),
+        matching: find.text(l10n.cueSheetStart),
+      ),
+      findsOneWidget,
+    );
     expect(h.map.waypoints, hasLength(2), reason: 'start and finish drawn');
     expect(find.text('Right at the barn'), findsOneWidget);
     expect(find.text('All riders must dismount'), findsNothing);
@@ -173,7 +195,12 @@ void main() {
     await finger.up();
     await tester.pump(const Duration(seconds: 3));
     expect(haversineMeters(h.map.routeCursor!, start), closeTo(3000, 20));
-    expect(chartCursorHandles, findsOneWidget);
+    // The profile's handle; the weather strip under it shares the cursor.
+    final handle = find.descendant(
+      of: find.byType(RouteElevationProfile),
+      matching: chartCursorHandles,
+    );
+    expect(handle, findsOneWidget);
 
     // Two fingers apart: the profile zooms.
     final centre = at(0.5);
@@ -194,10 +221,13 @@ void main() {
     expect(data.maxX - data.minX, lessThan(3));
     expect(find.text(l10n.chartResetZoomRoute), findsOneWidget);
 
-    // Zoomed, the handle drags the cursor back towards the middle.
+    // Zoomed, the handle drags the cursor back towards the middle; the
+    // profile in the middle of the card, its handle clear of the header.
+    await Scrollable.ensureVisible(tester.element(chart), alignment: 0.5);
+    await tester.pumpAndSettle();
     final kmPerPixel = (data.maxX - data.minX) / (at(1).dx - at(0).dx);
     final from = haversineMeters(h.map.routeCursor!, start);
-    await dragChartCursor(tester, const Offset(-40, 0));
+    await dragChartCursor(tester, const Offset(-40, 0), handle: handle);
     expect(
       haversineMeters(h.map.routeCursor!, start),
       closeTo(from - 40 * kmPerPixel * 1000, 20),
@@ -378,6 +408,156 @@ void main() {
       'Flat and fast',
     );
     expect(find.text('Flat and fast'), findsWidgets);
+    await unmountApp(tester);
+  });
+
+  group('sharing', () {
+    const config = AppConfig(
+      apiUrl: 'https://relay.test',
+      stravaClientId: '1234',
+      rwgpsClientId: 'abcd',
+    );
+
+    List<Override> overrides(
+      List<Uri> opened, {
+      Map<IntegrationService, ConnectedAccount> accounts = const {},
+    }) => [
+      appConfigProvider.overrideWithValue(config),
+      secureKeyValueStoreProvider.overrideWithValue(
+        InMemorySecureKeyValueStore(<String, String>{
+          for (final entry in accounts.entries)
+            ConnectedAccountsRepository.keyFor(entry.key): entry.value.encode(),
+        }),
+      ),
+      linkOpenerProvider.overrideWithValue((url) async {
+        opened.add(url);
+        return true;
+      }),
+    ];
+
+    Future<void> openCard(WidgetTester tester) async {
+      await tester.ensureVisible(find.text(l10n.shareLinkAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.shareLinkAction));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.shareRouteTitle), findsOneWidget);
+    }
+
+    testWidgets('one Share button; with Ride with GPS connected its card '
+        'offers Send', (tester) async {
+      final h = PlannerHarness();
+      final saved = await _seed(h);
+      await pumpApp(
+        tester,
+        initialLocation: routeDetailLocation(saved.id),
+        harness: h,
+        extraOverrides: overrides(
+          <Uri>[],
+          accounts: const {
+            IntegrationService.rwgps: ConnectedAccount(
+              service: IntegrationService.rwgps,
+              accessToken: 'rw',
+            ),
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The separate Send and Share link buttons are one Share button now.
+      expect(find.text(l10n.shareLinkAction), findsOneWidget);
+      await openCard(tester);
+      expect(find.text(l10n.shareRwgpsRouteBody), findsOneWidget);
+      expect(find.text(l10n.shareSend), findsOneWidget);
+      expect(find.text(l10n.shareStravaRouteBody), findsOneWidget);
+      expect(find.text(l10n.shareLinkRowBody), findsOneWidget);
+      await unmountApp(tester);
+    });
+
+    testWidgets('without Ride with GPS connected the card leads to Settings', (
+      tester,
+    ) async {
+      final h = PlannerHarness();
+      final saved = await _seed(h);
+      await pumpApp(
+        tester,
+        initialLocation: routeDetailLocation(saved.id),
+        harness: h,
+        extraOverrides: overrides(<Uri>[]),
+      );
+      await tester.pumpAndSettle();
+
+      await openCard(tester);
+      await tester.tap(find.text(l10n.shareConnect));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.shareRouteTitle), findsNothing);
+      expect(find.byType(SettingsScreen), findsOneWidget);
+      await unmountApp(tester);
+    });
+
+    testWidgets('a route from Strava credits Strava, links back to it, and '
+        'goes to no other service and into no link', (tester) async {
+      final h = PlannerHarness();
+      final opened = <Uri>[];
+      final repository = RouteRepository(h.db.routesDao);
+      final saved = await repository.saveImportedRoute(
+        name: 'From Strava',
+        points: syntheticRoute().geometry,
+        source: RouteSource.strava,
+      );
+      await repository.markExternal(
+        saved.id,
+        externalIds: const <String, Object?>{'strava_route_id': '4242'},
+      );
+      await pumpApp(
+        tester,
+        initialLocation: routeDetailLocation(saved.id),
+        harness: h,
+        extraOverrides: overrides(
+          opened,
+          accounts: const {
+            IntegrationService.rwgps: ConnectedAccount(
+              service: IntegrationService.rwgps,
+              accessToken: 'rw',
+            ),
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PoweredByStrava), findsOneWidget);
+      await tester.tap(find.text(l10n.rideDetailViewOnStrava));
+      await tester.pumpAndSettle();
+      expect(opened, [Uri.parse('https://www.strava.com/routes/4242')]);
+
+      await openCard(tester);
+      expect(find.text(l10n.shareNotForStravaRoutes), findsNWidgets(2));
+      expect(find.text(l10n.shareSend), findsNothing);
+      expect(find.text(l10n.shareLinkTitle), findsNothing);
+      await unmountApp(tester);
+    });
+  });
+
+  testWidgets('routes from Strava the checks removed are told once', (
+    tester,
+  ) async {
+    final h = PlannerHarness();
+    final saved = await _seed(h);
+    await pumpApp(
+      tester,
+      initialLocation: routeDetailLocation(saved.id),
+      harness: h,
+    );
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RouteDetailScreen)),
+    );
+
+    container.read(stravaRoutesRemovedNoticeProvider.notifier).add(2);
+    await tester.pump();
+
+    expect(find.text(l10n.stravaRoutesRemoved(2)), findsOneWidget);
+    expect(container.read(stravaRoutesRemovedNoticeProvider), 0);
     await unmountApp(tester);
   });
 
@@ -594,11 +774,59 @@ void main() {
       await unmountApp(tester);
     });
 
+    testWidgets('the page in the planner\'s order: figures, Open in '
+        'planner and the actions, the departure, the colour choice and its '
+        'key, the profile, then the surfaces and the weather', (tester) async {
+      await pumpWeather(tester, access: PlusAccess.granted);
+      // The departure is the only slider, under the actions; the weather
+      // section has none of its own.
+      expect(find.byType(Slider), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(RouteDepartureSlider),
+          matching: find.byType(Slider),
+        ),
+        findsOneWidget,
+      );
+      final order = [
+        find.byType(RouteStatsRow),
+        find.widgetWithText(FilledButton, l10n.routeDetailOpenInPlanner),
+        find.widgetWithText(ButtonMenu<TrackFormat>, l10n.routeDetailExport),
+        find.byType(RouteDepartureSlider),
+        find.byType(SegmentedButton<RouteOverlay>),
+        find.byType(RouteColourKey),
+        find.byType(ElevationProfileChart),
+        find.byType(SurfaceSection),
+        find.byType(RouteWeatherStrip),
+      ];
+      for (var i = 1; i < order.length; i++) {
+        expect(
+          tester.getRect(order[i]).top,
+          greaterThanOrEqualTo(tester.getRect(order[i - 1]).bottom),
+          reason: '${order[i]} under ${order[i - 1]}',
+        );
+      }
+      // Directly under the actions, and the key right under the choice.
+      final actions = tester.getRect(
+        find.ancestor(of: order[2], matching: find.byType(Wrap)).first,
+      );
+      expect(
+        tester.getRect(find.byType(RouteDepartureSlider)).top - actions.bottom,
+        lessThan(12),
+      );
+      expect(
+        tester.getRect(find.byType(RouteColourKey)).top -
+            tester.getRect(find.byType(SegmentedButton<RouteOverlay>)).bottom,
+        lessThanOrEqualTo(8),
+      );
+      await unmountApp(tester);
+    });
+
     testWidgets('the departure slider stands on the time control\'s steps '
         'and sets the step all tabs share', (tester) async {
       await pumpWeather(tester, access: PlusAccess.granted);
       final slider = find.descendant(
-        of: find.byType(RouteWeatherSection),
+        of: find.byType(RouteDepartureSlider),
         matching: find.byType(Slider),
       );
       await tester.ensureVisible(slider);
@@ -617,12 +845,19 @@ void main() {
       await unmountApp(tester);
     });
 
-    testWidgets('without Plus: the teaser', (tester) async {
+    testWidgets('without Plus: the free forecast, its gusts and chance of '
+        'rain locked', (tester) async {
       await pumpWeather(tester, access: PlusAccess.missing);
-      final body = find.text(l10n.plusFeatureWeatherBody);
-      await tester.ensureVisible(body);
-      expect(body, findsOneWidget);
-      expect(find.byType(RouteWeatherStrip), findsNothing);
+      // The free forecast is asked for once the route has stood a moment.
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      final strip = find.byType(RouteWeatherStrip);
+      await tester.ensureVisible(strip);
+      await tester.pumpAndSettle();
+      expect(tester.widget<RouteWeatherStrip>(strip).weather, isNotNull);
+      expect(find.textContaining(l10n.weatherDry), findsOneWidget);
+      expect(find.text(l10n.weatherPlusExtrasLocked), findsOneWidget);
+      expect(find.text(l10n.plusFeatureWeatherBody), findsNothing);
       await unmountApp(tester);
     });
   });

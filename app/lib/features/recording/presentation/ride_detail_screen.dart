@@ -16,7 +16,8 @@ import '../../../core/geo/route_gradient.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/domain/connected_account.dart';
 import '../../integrations/presentation/integration_labels.dart';
-import '../../integrations/presentation/ride_upload_menu.dart';
+import '../../integrations/application/connections_controller.dart';
+import '../../integrations/presentation/share_rows.dart';
 import '../../map/application/route_cursor.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/shared_map_layers.dart';
@@ -33,7 +34,8 @@ import '../../shared/presentation/metric_chart.dart';
 import '../../shared/presentation/sheet_header.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/placeholder_body.dart';
-import '../../sharing/presentation/share_link_button.dart';
+import '../../sharing/data/share_service.dart';
+import '../../sharing/presentation/share_card.dart';
 import '../../weather/presentation/weather_keys.dart' show GradientColourKey;
 import '../application/recording_controller.dart';
 import '../application/ride_analysis_provider.dart';
@@ -609,7 +611,6 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
           leading: BackButton(onPressed: () => context.go(libraryRoute)),
           title: ride.value?.name ?? l10n.tabLibrary,
           actions: [
-            if (ride.value != null) RideUploadMenu(ride: ride.value!),
             if (ride.value != null)
               PopupMenuButton<_RideAction>(
                 onSelected: (action) => unawaited(switch (action) {
@@ -1007,14 +1008,36 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                           icon: const Icon(Icons.ios_share),
                           label: Text(l10n.rideDetailExportFit),
                         ),
-                        ShareLinkButton(
-                          name: saved.name,
-                          points: saved.points,
-                          kind: ShareKind.ride,
-                          distanceM: stats.distanceM,
-                          ascentM: stats.ascentM,
-                          duration: stats.elapsedTime,
-                        ),
+                        if (ref.watch(shareServiceProvider) != null ||
+                            IntegrationService.values.any(
+                              (service) => ref.watch(
+                                integrationConfiguredProvider(service),
+                              ),
+                            ))
+                          ShareButton(
+                            onPressed: () => unawaited(
+                              showShareCard(
+                                context,
+                                title: l10n.shareRideTitle,
+                                rows: [
+                                  for (final service
+                                      in IntegrationService.values)
+                                    RideUploadShareRow(
+                                      ride: saved,
+                                      service: service,
+                                    ),
+                                  ShareLinkRow(
+                                    name: saved.name,
+                                    points: saved.points,
+                                    kind: ShareKind.ride,
+                                    distanceM: stats.distanceM,
+                                    ascentM: stats.ascentM,
+                                    duration: stats.elapsedTime,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ],
@@ -1091,10 +1114,15 @@ class RideHighlightChip extends ConsumerWidget {
                     child: const SizedBox.square(dimension: 10),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.onSurface,
+                  // Cut short rather than run under the map's controls.
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 4),

@@ -6,7 +6,7 @@ order: 10
 
 La pestaña Biblioteca guarda todo lo que has conservado: las rutas que planificaste y las salidas que grabaste. Es una tarjeta sobre el mapa, como las pestañas Planificar y Grabar: su contenido se desplaza a cualquier altura, y el asa de arriba la mueve; cuando no hay nada que desplazar, se mueve la tarjeta entera. Súbela para tener más espacio, bájala del todo y la tarjeta se pliega en la barra de navegación y deja el mapa. Ven aquí para volver a abrir una ruta, leer los gráficos y parciales de una salida, y meter y sacar archivos.
 
-Todo lo que hay en la biblioteca está en el teléfono. No hay cuenta y no se sincroniza nada en ninguna parte.
+Todo lo que hay en la biblioteca está en el teléfono. No hay cuenta. En un iPhone o iPad puede sincronizarse entre tus propios dispositivos a través de iCloud, véase más abajo [sincronización con iCloud](#sincronizacion-con-icloud-iphone-y-ipad).
 
 ## Rutas y Salidas
 
@@ -40,6 +40,7 @@ Al abrir una ruta se dibuja en el mapa, ajustada a la parte de la pantalla que q
 - una fila **Descripción** y una fila **Enlace**, cada una con un lápiz: la descripción es la del archivo, la del asistente o la tuya, el enlace es el `<link>` del archivo o uno que escribas, y al tocarlo se abre la página,
 - el desglose de superficies: las cifras del propio enrutador para una ruta planificada aquí, y para una leída de un archivo la misma comparación con el mapa que se hace con una salida, ver más abajo,
 - el perfil de altitud,
+- debajo, el mismo color que en el planificador: pendiente, superficie, viento o lluvia,
 - **Puntos de interés**: los puntos de la ruta que no están en su track, cada uno con el icono de su tipo, su nombre y su nota: los que traía un archivo fuera del recorrido y los lugares que marcaste junto a la ruta en el planificador; los que están en el track son líneas de la hoja de ruta,
 - para una ruta importada con giros o puntos de interés, o con puntos a los que pusiste nombre o una nota en el planificador, la hoja de ruta: cada giro y punto con su distancia desde el inicio; al tocar una línea el mapa se desplaza hasta allí con tu zoom, y al tocar un marcador la tarjeta se desplaza hasta esa línea.
 
@@ -47,8 +48,7 @@ Las acciones:
 
 - **Abrir en el planificador** la carga en la pestaña Planificar con todos sus puntos, incluidos los puntos de paso y sus nombres, tipos y notas, donde puedes editarla y volver a guardarla. Una ruta importada en lugar de planificada se abre con la línea exacta del archivo y con puntos solo en sus extremos y en los puntos propios del archivo que están en el track, que vienen con su tipo y su nota; una edición solo recalcula los tramos de al lado, y la línea del archivo se mantiene en todo lo demás. La línea del archivo se guarda con la ruta en cada edición y cada guardado, así que **Restaurar** en el planificador puede recuperarla. Los puntos fuera del track vienen como lugares junto a la ruta, donde se les puede poner nombre o tipo, moverlos a la ruta o quitarlos como cualquier otro punto. El siguiente Guardar escribe los dos conjuntos, así que un lugar que eliminas en el planificador también desaparece de la tarjeta.
 - **Exportar** ofrece **Ruta GPX** y **Recorrido FIT**, consulta [importar y exportar](./import-and-export).
-- **Enviar** ofrece **Enviar a Ride with GPS** y **Enviar a Strava**, consulta [Strava y Ride with GPS](./strava-and-ridewithgps).
-- **Compartir enlace** la convierte en un enlace, consulta [compartir](./sharing).
+- **Compartir** abre la tarjeta para compartir: un **Enlace** a la ruta, **Ride with GPS** y **Strava**, ver [compartir](./sharing) y [Strava y Ride with GPS](./strava-and-ridewithgps).
 - **Describir esta ruta** pide al asistente que escriba un párrafo sobre ella, consulta [asistente](./assistant).
 
 ## La tarjeta de una salida
@@ -102,9 +102,8 @@ Bajo las subidas, una barra de **Superficie** como la de la tarjeta de una ruta:
 
 ### Acciones de la salida
 
-- El botón de la nube a la derecha de la cabecera de la tarjeta sube la salida a un servicio conectado.
-- El menú de al lado: **Exportar track GPX**, **Exportar actividad FIT**, **Continuar esta salida**, **Renombrar**, **Eliminar**.
-- Abajo del todo: las mismas dos exportaciones y **Compartir enlace**.
+- El menú a la derecha de la cabecera de la tarjeta: **Exportar track GPX**, **Exportar actividad FIT**, **Continuar esta salida**, **Renombrar**, **Eliminar**.
+- Abajo del todo: las mismas dos exportaciones y **Compartir**, que abre la tarjeta para compartir con **Enlace**, **Ride with GPS** y **Strava**, ver [compartir](./sharing).
 
 ## Meter archivos y rutas
 
@@ -114,6 +113,14 @@ Los dos botones a la derecha de la cabecera de la tarjeta:
 - El botón de la nube ofrece **Importar de Strava** e **Importar de Ride with GPS**, si esos servicios están configurados.
 
 Ambos se explican en [importar y exportar](./import-and-export) y en [Strava y Ride with GPS](./strava-and-ridewithgps).
+
+## Sincronización con iCloud (iPhone y iPad)
+
+En un iPhone o iPad con iOS 17 o posterior, tus rutas guardadas y tus salidas grabadas, con el track, las notas y las cifras de cada salida, se sincronizan entre tus propios dispositivos que han iniciado sesión con la misma cuenta de Apple, a través de tu iCloud. Unos pocos ajustes van con ellas: tema, color de acento, aspecto del mapa, estilo de la barra, lado de la columna, unidades y los ajustes de los avisos de giro y de voz. Velorki no tiene ningún servidor para esto y no puede leer lo almacenado; véase la [política de privacidad](/privacy).
+
+Está activada por defecto. **Sincronizar con iCloud** en Ajustes la desactiva en ese dispositivo; lo que ya está en iCloud se queda allí hasta que lo elimines en los ajustes de iCloud del dispositivo. Una línea de estado en Ajustes dice cómo va: **Sincronizado ahora mismo**, **Sincronizando…**, **iCloud está desactivado en este dispositivo** o **El almacenamiento de iCloud está lleno**.
+
+Las rutas leídas de Strava y las rutas editadas a partir de ellas se quedan en el teléfono, y también los enlaces de Strava de las salidas; los enlaces de las subidas a Ride with GPS tampoco se sincronizan. Los mapas descargados y las teselas de enrutamiento no se sincronizan. La app para Android no sincroniza.
 
 ## Relacionado
 

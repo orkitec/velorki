@@ -20,19 +20,36 @@ import '../../shared/presentation/error_text.dart';
 import '../../shared/presentation/metric_chart.dart' show DistanceWindow;
 import '../../shared/presentation/stat_tile.dart';
 import '../../subscription/application/plus_access.dart';
+import '../application/free_route_weather.dart';
+import '../application/route_colouring.dart';
+import '../application/route_overlay.dart';
 import '../application/route_weather_controller.dart';
+import '../data/dwd_route_forecast.dart';
 import '../domain/route_weather.dart';
+import '../domain/route_sampling.dart' show departureAfter;
 import '../domain/route_weather_state.dart';
 import 'route_weather_strip.dart';
 import 'weather_digest_text.dart';
 import 'weather_keys.dart';
+import '../../shared/presentation/docking_sheet.dart';
 
-/// The weather on the way, in the planner's sheet under the surfaces.
+/// The weather on the way, in the planner's sheet under the surfaces and on
+/// a saved route's page.
 ///
-/// Nothing in a build without the relay, nor while the store has not said
-/// whether the rider has Velorki Plus; a short teaser for a rider without
-/// it. While the forecast is on its way the section keeps the height it will
-/// have, so the sheet's content does not jump when it arrives.
+/// For everyone: the weather [routeColourWeatherProvider] gives, the one the
+/// route is coloured by, so the section, the colours and their key always
+/// tell the same forecast. With Velorki Plus the relay's, finer, from local
+/// weather services, with gusts and the chance of rain; without it (or in a
+/// build without the relay) the free forecast the phone loads from the DWD
+/// itself: wind, rain and temperature. Then a locked line says what Plus
+/// adds, where the build offers Plus, and the source line under it leads to
+/// the Plus page.
+///
+/// Nothing while there is no route, nor, in a build with the relay, while
+/// the store has not said whether the rider has Plus (which forecast to
+/// show is not known yet). While the forecast is on its way the section
+/// keeps the height it will have, so the sheet's content does not jump
+/// when it arrives.
 ///
 /// Its strip shares the elevation profile's [window] and [cursor].
 class RouteWeatherSection extends ConsumerWidget {
@@ -59,26 +76,26 @@ class RouteWeatherSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(relayClientProvider) == null) return const SizedBox.shrink();
-    switch (ref.watch(plusAccessProvider(PlusFeature.weather))) {
-      case PlusAccess.unknown:
-        return const SizedBox.shrink();
-      case PlusAccess.missing:
-        return const _Frame(child: _LockedTeaser());
-      case PlusAccess.granted:
-        break;
+    if (ref.watch(relayClientProvider) != null &&
+        ref.watch(plusAccessProvider(PlusFeature.weather)) ==
+            PlusAccess.unknown) {
+      return const SizedBox.shrink();
     }
-    return switch (ref.watch(routeWeatherControllerProvider(route))) {
+    final plus = ref.watch(routeWeatherFromRelayProvider);
+    return switch (ref.watch(routeColourWeatherProvider(route))) {
       AsyncError(:final error) => _Frame(
-        child: _WeatherError(route: route, error: error),
+        child: _WeatherError(route: route, plus: plus, error: error),
       ),
-      AsyncLoading() => _Frame(child: _WeatherBody(route: route, state: null)),
+      AsyncLoading() => _Frame(
+        child: _WeatherBody(route: route, plus: plus, state: null),
+      ),
       AsyncData(:final value) =>
         value == null
             ? const SizedBox.shrink()
             : _Frame(
                 child: _WeatherBody(
                   route: route,
+                  plus: plus,
                   state: value,
                   window: window,
                   onWindow: onWindow,
@@ -100,51 +117,18 @@ class _Frame extends StatelessWidget {
       Padding(padding: const EdgeInsets.only(top: 24), child: child);
 }
 
-/// What a rider without Velorki Plus sees: what the section would show and
-/// the way to the paywall.
-class _LockedTeaser extends StatelessWidget {
-  const _LockedTeaser();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return Card(
-      margin: EdgeInsets.zero,
-      color: theme.colorScheme.surfaceContainerLow,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(child: SectionCaption(l10n.weatherTitle)),
-                // The product name, not a translatable label.
-                const SectionCaption('Plus', accent: true),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(l10n.plusFeatureWeatherBody, style: theme.textTheme.bodySmall),
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: TextButton(
-                onPressed: () => context.push(paywallRoute),
-                child: Text(l10n.plusSeeDetails),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// The forecast could not be had: why, and a way to ask again.
 class _WeatherError extends ConsumerWidget {
-  const _WeatherError({required this.route, required this.error});
+  const _WeatherError({
+    required this.route,
+    required this.plus,
+    required this.error,
+  });
 
   final WeatherRoute route;
+
+  /// Whether it is the relay's forecast that failed, or the free one.
+  final bool plus;
   final Object error;
 
   @override
@@ -164,8 +148,11 @@ class _WeatherError extends ConsumerWidget {
         ),
         TextButton(
           style: TextButton.styleFrom(padding: EdgeInsets.zero),
-          onPressed: () =>
-              ref.read(routeWeatherControllerProvider(route).notifier).retry(),
+          onPressed: plus
+              ? () => ref
+                    .read(routeWeatherControllerProvider(route).notifier)
+                    .retry()
+              : () => ref.invalidate(freeRouteWeatherProvider(route)),
           child: Text(l10n.weatherTryAgain),
         ),
       ],
@@ -173,26 +160,37 @@ class _WeatherError extends ConsumerWidget {
   }
 }
 
-/// The best departure of each forecast, worked out once for where its
-/// steps start and the departure chosen.
+/// The best departure of each route's samples, worked out once for the
+/// forecast, where its steps start, the departure chosen and, from the free
+/// forecast, how many of its grids had come.
 final Expando<_Best> _bestDepartures = Expando<_Best>('bestDeparture');
 
 class _Best {
-  const _Best(this.from, this.departure, this.offset);
+  const _Best(
+    this.forecast,
+    this.from,
+    this.departure,
+    this.loaded,
+    this.offset,
+  );
 
+  final Object forecast;
   final DateTime from;
   final DateTime departure;
+  final int loaded;
 
   /// The time control's step it is at, minutes from [from].
   final int? offset;
 }
 
 /// The forecast: the line that sums it up, the strip with its key, the
-/// departure and the attribution. Without [state], the same rows, empty, at
-/// the same height.
+/// departure and the attribution; from the free forecast, the line of what
+/// Plus adds over the departure and the free source line for the
+/// attribution. Without [state], the same rows, empty, at the same height.
 class _WeatherBody extends ConsumerWidget {
   const _WeatherBody({
     required this.route,
+    required this.plus,
     required this.state,
     this.window,
     this.onWindow,
@@ -200,6 +198,9 @@ class _WeatherBody extends ConsumerWidget {
   });
 
   final WeatherRoute route;
+
+  /// Whether [state] is the relay's forecast, not the free one.
+  final bool plus;
   final RouteWeatherState? state;
   final DistanceWindow? window;
   final ValueChanged<DistanceWindow?>? onWindow;
@@ -273,11 +274,21 @@ class _WeatherBody extends ConsumerWidget {
                 false,
           ),
         ),
+        // What the relay's forecast has and the free one has not.
+        if (!plus && ref.watch(relayClientProvider) != null) ...[
+          const SizedBox(height: 4),
+          const _LockedPlusRows(),
+        ],
         const SizedBox(height: 12),
-        _Departure(route: route, state: s),
+        _Departure(route: route, plus: plus, state: s),
         const SizedBox(height: 4),
         // Always there while the forecast is shown: the services ask for it.
-        if (s == null)
+        if (!plus)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 4),
+            child: FreeForecastSourceLine(),
+          )
+        else if (s == null)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Text(' ', style: muted),
@@ -331,126 +342,210 @@ class _SummaryLine extends StatelessWidget {
 
 /// When the rider leaves: the time and the best time. The departure is the
 /// time control's ([weatherRadarOffsetProvider]): on the Plan tab the one
-/// over the map, so here only the time is said; on a saved route's page,
-/// which has none, a slider on the same steps ([weatherRadarOffsets]), set
-/// when it is let go as the map's is. Best time moves the control to its
-/// step with the least rain and headwind. Without [state], the same row,
-/// idle.
-class _Departure extends ConsumerStatefulWidget {
-  const _Departure({required this.route, required this.state});
+/// under Save, on a saved route's page [RouteDepartureSlider] under its
+/// actions, so here only the time is said. Best time moves the control to
+/// its step with the least rain and headwind. Without [state], the same
+/// row, idle.
+class _Departure extends ConsumerWidget {
+  const _Departure({
+    required this.route,
+    required this.plus,
+    required this.state,
+  });
 
   final WeatherRoute route;
+
+  /// Whether [state] is the relay's forecast, not the free one.
+  final bool plus;
   final RouteWeatherState? state;
 
   @override
-  ConsumerState<_Departure> createState() => _DepartureState();
-}
-
-class _DepartureState extends ConsumerState<_Departure> {
-  /// The slider's step while a finger moves it.
-  int? _dragging;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final s = widget.state;
-    final controller = ref.read(
-      routeWeatherControllerProvider(widget.route).notifier,
-    );
-    final committed = ref.watch(weatherRadarOffsetProvider);
-    final offset = _dragging ?? committed;
+    final s = state;
+    // The free forecast's best time is worked out from the grids fetched
+    // ahead, again as more of them come.
+    final loaded = plus ? 0 : ref.watch(freeForecastPrefetchProvider(route));
 
     String? when;
     int? best;
     if (s != null) {
       final now = ref.read(weatherClockProvider)();
-      final shown = _dragging == null
-          ? s.departure
-          : s.earliestDeparture.add(Duration(minutes: offset));
-      when = _formatDeparture(context, l10n, shown, now);
-      var cached = _bestDepartures[s.forecast];
+      when = _formatDeparture(context, l10n, s.departure, now);
+      var cached = _bestDepartures[s.samples];
       if (cached == null ||
+          !identical(cached.forecast, s.forecast) ||
           cached.from != s.earliestDeparture ||
-          cached.departure != s.departure) {
+          cached.departure != s.departure ||
+          cached.loaded != loaded) {
         cached = _Best(
+          s.forecast,
           s.earliestDeparture,
           s.departure,
-          controller.suggestBestOffset(),
+          loaded,
+          plus
+              ? ref
+                    .read(routeWeatherControllerProvider(route).notifier)
+                    .suggestBestOffset()
+              : suggestFreeBestOffset(ref.read(dwdForecastClientProvider), s),
         );
-        _bestDepartures[s.forecast] = cached;
+        _bestDepartures[s.samples] = cached;
       }
       best = cached.offset;
     }
     final bestIsNow = s != null && best != null && best == s.offsetMinutes;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Row(
       children: [
-        Row(
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.weatherStart,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(
+                  when ?? ' ',
+                  style: theme.textTheme.titleSmall,
+                  maxLines: 1,
+                  softWrap: false,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        TextButton(
+          onPressed: s == null || best == null || bestIsNow
+              ? null
+              : () => ref.read(weatherRadarOffsetProvider.notifier).set(best!),
+          child: Text(
+            bestIsNow ? l10n.weatherBestTimeNow : l10n.weatherBestTime,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A saved route's departure, on its page under the actions: a slider on
+/// the time control's steps ([weatherRadarOffsets]), set when it is let go
+/// as the map's is ([weatherRadarOffsetProvider]), the departure the route
+/// weather section and the colours follow. The page's only time control,
+/// so there whenever there is a route, and movable while the forecast is
+/// on its way or has failed: a new departure asks for it again. Nothing
+/// without a route, nor, as the section, while the store has not said
+/// whether the rider has Plus in a build with the relay.
+class RouteDepartureSlider extends ConsumerStatefulWidget {
+  /// Creates the slider of [route]'s departure.
+  const RouteDepartureSlider({required this.route, super.key});
+
+  /// Whose departure it is.
+  final WeatherRoute route;
+
+  @override
+  ConsumerState<RouteDepartureSlider> createState() =>
+      _RouteDepartureSliderState();
+}
+
+class _RouteDepartureSliderState extends ConsumerState<RouteDepartureSlider> {
+  /// The slider's step while a finger moves it.
+  int? _dragging;
+
+  @override
+  Widget build(BuildContext context) {
+    if (ref.watch(relayClientProvider) != null &&
+        ref.watch(plusAccessProvider(PlusFeature.weather)) ==
+            PlusAccess.unknown) {
+      return const SizedBox.shrink();
+    }
+    final RouteWeatherState? s;
+    switch (ref.watch(routeColourWeatherProvider(widget.route))) {
+      case AsyncData(:final value):
+        // No route.
+        if (value == null) return const SizedBox.shrink();
+        s = value;
+      case AsyncError() || AsyncLoading():
+        s = null;
+    }
+    final l10n = AppLocalizations.of(context);
+    final committed = ref.watch(weatherRadarOffsetProvider);
+    final offset = _dragging ?? committed;
+    final now = ref.read(weatherClockProvider)();
+    // The forecast's departure where there is one; else the step from now.
+    final departure = s == null
+        ? departureAfter(now, offset)
+        : _dragging == null
+        ? s.departure
+        : s.earliestDeparture.add(Duration(minutes: offset));
+    final when = _formatDeparture(context, l10n, departure, now);
+    return Semantics(
+      label: l10n.mapWeatherDepartureTime,
+      child: Slider(
+        value: weatherSliderIndexOf(offset).toDouble(),
+        max: (weatherRadarOffsets.length - 1).toDouble(),
+        divisions: weatherRadarOffsets.length - 1,
+        label: when,
+        semanticFormatterCallback: (_) => when,
+        onChanged: (v) =>
+            setState(() => _dragging = weatherOffsetOfSliderIndex(v.round())),
+        onChangeEnd: (v) {
+          setState(() => _dragging = null);
+          ref
+              .read(weatherRadarOffsetProvider.notifier)
+              .set(weatherOffsetOfSliderIndex(v.round()));
+        },
+      ),
+    );
+  }
+}
+
+/// What the free forecast lacks and Velorki Plus has, the gusts and the
+/// chance of rain, as one locked line under the strip's key: a lock where
+/// the rows' names stand, the words on the plot's edge; a tap opens the
+/// Plus page.
+class _LockedPlusRows extends StatelessWidget {
+  const _LockedPlusRows();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colour = theme.colorScheme.onSurfaceVariant;
+    return InkWell(
+      onTap: () => unawaited(context.push(paywallRoute)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.weatherStart,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: AlignmentDirectional.centerStart,
-                    child: Text(
-                      when ?? ' ',
-                      style: theme.textTheme.titleSmall,
-                      maxLines: 1,
-                      softWrap: false,
-                    ),
-                  ),
-                ],
+            SizedBox(
+              width: weatherStripLeftInset,
+              child: Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: Padding(
+                  // Where the rows' names end, clear of the plot.
+                  padding: const EdgeInsetsDirectional.only(end: 10),
+                  child: Icon(Icons.lock_outline, size: 14, color: colour),
+                ),
               ),
             ),
-            const SizedBox(width: 8),
-            TextButton(
-              onPressed: s == null || best == null || bestIsNow
-                  ? null
-                  : () => ref
-                        .read(weatherRadarOffsetProvider.notifier)
-                        .set(best!),
+            Flexible(
               child: Text(
-                bestIsNow ? l10n.weatherBestTimeNow : l10n.weatherBestTime,
+                l10n.weatherPlusExtrasLocked,
+                style: theme.textTheme.labelSmall?.copyWith(color: colour),
               ),
             ),
+            Icon(Icons.chevron_right, size: 14, color: colour),
           ],
         ),
-        // The Plan tab's departure is the time control over the map.
-        if (widget.route is! PlannerWeatherRoute)
-          Semantics(
-            label: l10n.mapWeatherDepartureTime,
-            child: Slider(
-              value: weatherSliderIndexOf(offset).toDouble(),
-              max: (weatherRadarOffsets.length - 1).toDouble(),
-              divisions: weatherRadarOffsets.length - 1,
-              label: when,
-              semanticFormatterCallback: (_) => when ?? '',
-              onChanged: s == null
-                  ? null
-                  : (v) => setState(
-                      () => _dragging = weatherOffsetOfSliderIndex(v.round()),
-                    ),
-              onChangeEnd: s == null
-                  ? null
-                  : (v) {
-                      setState(() => _dragging = null);
-                      ref
-                          .read(weatherRadarOffsetProvider.notifier)
-                          .set(weatherOffsetOfSliderIndex(v.round()));
-                    },
-            ),
-          ),
-      ],
+      ),
     );
   }
 }
@@ -524,35 +619,40 @@ Future<void> _showSources(
       builder: (context) {
         final l10n = AppLocalizations.of(context);
         final theme = Theme.of(context);
-        return SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            0,
-            20,
-            MediaQuery.paddingOf(context).bottom + 16,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(l10n.weatherSourcesTitle, style: theme.textTheme.titleLarge),
-              for (final source in sources) ...[
-                const SizedBox(height: 16),
-                Text(source.name, style: theme.textTheme.titleSmall),
-                const SizedBox(height: 4),
-                Text(source.licence, style: theme.textTheme.bodySmall),
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: TextButton(
-                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    onPressed: () {
-                      final url = Uri.tryParse(source.url);
-                      if (url != null) unawaited(open(url));
-                    },
-                    child: Text(source.url),
-                  ),
+        return ScrolledUnderLine(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              0,
+              20,
+              MediaQuery.paddingOf(context).bottom + 16,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.weatherSourcesTitle,
+                  style: theme.textTheme.titleLarge,
                 ),
+                for (final source in sources) ...[
+                  const SizedBox(height: 16),
+                  Text(source.name, style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 4),
+                  Text(source.licence, style: theme.textTheme.bodySmall),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton(
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                      onPressed: () {
+                        final url = Uri.tryParse(source.url);
+                        if (url != null) unawaited(open(url));
+                      },
+                      child: Text(source.url),
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         );
       },

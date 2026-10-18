@@ -107,6 +107,25 @@ changing structure.
   `BesideSheet`. Widget tests run upright (`test/flutter_test_config.dart`);
   a landscape test clears `debugShellLayoutOverride`. Flutter's
   `landscapeLeft` is not the same physical turn on iOS and Android.
+- Layout is decided by the window's size alone, never the device or its
+  orientation APIs: a window wider than tall with a shortest side under 600
+  is a phone on its side and gets the rail; a tablet-class window
+  (`isWideWindow`: shortest side and width both 600 or more, an iPad or a
+  foldable's inner screen) gets `ShellLayout.wide`: a phone placed in a
+  column over a full-window map (`wide_panel.dart`), on the side the rider
+  picks (Settings → Appearance, left or right; `WideColumnSide` also has a
+  centre). Everything in the column runs the phone's own code: each tab's
+  navigator is in it with a phone's media (`WidePanelColumn`), the bar at
+  its bottom; full pages too (push `ColumnPageRoute`, `ColumnPage` for
+  the router's, which keeps the map painted beside the page); modal sheets,
+  dialogs and menus land there because `WideAppFrame` gives the root
+  navigator display features (hinges, as a foldable has) either side of
+  the column. The map takes no touch while a page covers its tab
+  (`TabPages`). Anything else is upright. Each side keeps its own
+  safe-area inset (a system bar can stand on one side). Camera padding in a map tab reads the window
+  (`MediaQueryData.fromView`), not the column (`visibleMapPadding`), and
+  counts the column as covered; nothing caches a size in `State`, and the
+  widgets are the same in every layout, so a resize mid-ride switches live.
 
 ## Tests
 
@@ -141,7 +160,8 @@ changing structure.
   oracle tile; New York when `VELORKI_NYC_SEGMENTS_DIR` holds `W75_N40.rd5`.
   `integration_test/live_reroute_test.dart` rides each mode off the route and
   back on the iOS simulator.
-- Landscape: `test/app/landscape_test.dart` (three phone sizes) and
+- Landscape: `test/app/landscape_test.dart` (three phone sizes),
+  `test/app/wide_layout_test.dart` (iPad and foldable windows, live resize) and
   `integration_test/orientation_test.dart` (turns the phone with a ride
   running). The test font draws every glyph a full em wide, so
   `expectNoClippedText` fails at a phone's width sideways where the real font
@@ -165,7 +185,7 @@ changing structure.
   `app/lib/l10n/app_*.arb`; `app.yml` itself runs English and German),
   `gazetteer-perf.yml` (nightly, times the search against New York off the
   mirror), `routing-scenarios.yml` (nightly, the routing scenarios over the
-  New York tile, cached per mirror snapshot), `brouter-oracle.yml` (weekly), `store-assets.yml` (by hand: the App Store screenshots, slides and preview as an artifact, and from a `v*` tag, after approval in `release`, the screenshots onto an App Store version; the Google Play set from an Android emulator as an artifact, and with `upload`, after approval in `release`, onto the Play store listing), `web.yml` (every push touching
+  New York tile, cached per mirror snapshot), `brouter-oracle.yml` (weekly), `store-assets.yml` (by hand: the App Store screenshots (iPhone, iPad and the iPhone Duo's inner display, unfolded by `app/tool/duo_state.c`), slides and preview as an artifact, and from a `v*` tag, after approval in `release`, the screenshots onto an App Store version; the Google Play set from an Android emulator as an artifact, and with `upload`, after approval in `release`, onto the Play store listing), `web.yml` (every push touching
   `web/`: lint, typecheck, vitest, `check:deps`, the locale check,
   `npm audit --omit=dev` and `next build`). No rd5 comes off brouter.de; the oracle job
   does fetch the pinned upstream release zip. Every workflow declares the least
@@ -191,7 +211,10 @@ changing structure.
   variable `RELEASE_ACTORS` may start or re-run a release (unset: every run
   fails). A platform job whose store already has the build number reports it
   and uploads nothing; the GitHub Release is made only if missing. A push to the `production`
-  branch (main merged in, which is how a release happens) runs
+  branch (main merged in, which is how a release happens) also runs
+  `web-app.yml` when `app/` or `deploy/cloudflare/` changed (the web planner
+  onto Cloudflare Pages, after approval in `release`; also by hand, and from
+  a tag through `release.yml`), and it runs
   `web-deploy.yml` in the `web-production` environment: it re-runs `web.yml`'s gate
   and then `npx orkify deploy upload .` from `web/`, with `ORKIFY_API_KEY` as
   that environment's only secret. No SSH, no host key, no deploy user. Uploading

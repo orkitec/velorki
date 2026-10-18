@@ -4,46 +4,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme.dart';
-import '../../../core/plus/plus_gate.dart';
+import '../../../core/links/link_opener.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../subscription/presentation/plus_upsell_card.dart';
 import '../application/connections_controller.dart';
 import '../common/data/connected_accounts_repository.dart';
 import '../common/domain/connected_account.dart';
 import '../common/domain/integration_exception.dart';
 import 'integration_labels.dart';
 import 'strava_brand.dart';
+import 'strava_consent_sheet.dart';
 
-/// The Plus feature that gates [service].
-PlusFeature plusFeatureFor(IntegrationService service) => switch (service) {
-  IntegrationService.strava => PlusFeature.stravaConnection,
-  IntegrationService.rwgps => PlusFeature.rwgpsConnection,
-};
-
-/// Settings → Connections: one tile per partner service.
-///
-/// Both connections are Velorki Plus features, so an unentitled rider sees
-/// the upsell card, which leads to the paywall, and disabled Connect
-/// buttons.
-class ConnectionsSection extends ConsumerWidget {
+/// Settings → Connections: one tile per partner service. Both are free.
+class ConnectionsSection extends StatelessWidget {
   /// Creates the section.
   const ConnectionsSection({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final gated = IntegrationService.values.any(
-      (service) => !ref.watch(plusFeatureProvider(plusFeatureFor(service))),
-    );
-    final l10n = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (gated) PlusUpsellCard(body: l10n.connectionsPlusBody),
-        for (final service in IntegrationService.values)
-          ConnectionTile(service: service),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (final service in IntegrationService.values)
+        ConnectionTile(service: service),
+    ],
+  );
 }
 
 /// One partner service's connect or disconnect tile.
@@ -57,6 +40,12 @@ class ConnectionTile extends ConsumerWidget {
   Future<void> _connect(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    // Strava's terms: the rider hears what is read and written, and how to
+    // undo it, before Strava's own page opens.
+    if (service == IntegrationService.strava &&
+        !await showStravaConsentSheet(context)) {
+      return;
+    }
     try {
       await ref.read(integrationConnectionsProvider.notifier).connect(service);
     } on IntegrationException catch (e) {
@@ -78,7 +67,11 @@ class ConnectionTile extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.connectionsDisconnectTitle(label)),
-        content: Text(l10n.connectionsDisconnectBody),
+        content: Text(
+          service == IntegrationService.strava
+              ? l10n.connectionsDisconnectStravaBody
+              : l10n.connectionsDisconnectBody,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -93,8 +86,17 @@ class ConnectionTile extends ConsumerWidget {
     );
     if (confirmed != true) return;
     await ref.read(integrationConnectionsProvider.notifier).disconnect(service);
-    messenger.showSnackBar(
-      SnackBar(content: Text(l10n.connectionsDisconnected(label))),
+    if (service != IntegrationService.strava) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.connectionsDisconnected(label))),
+      );
+      return;
+    }
+    // Strava's terms ask for a written confirmation that their data is gone.
+    if (!context.mounted) return;
+    await showStravaDataDeletedDialog(
+      context,
+      title: l10n.connectionsDisconnected(label),
     );
   }
 
@@ -102,12 +104,9 @@ class ConnectionTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final account = ref.watch(connectedAccountProvider(service));
-    final entitled = ref.watch(plusFeatureProvider(plusFeatureFor(service)));
     final configured = ref.watch(integrationConfiguredProvider(service));
     final busy = ref.watch(integrationBusyProvider(service));
-    final connect = entitled && configured
-        ? () => unawaited(_connect(context, ref))
-        : null;
+    final connect = configured ? () => unawaited(_connect(context, ref)) : null;
     // Strava's button is their artwork at its own width; RideWithGPS' label is
     // long enough to squeeze the title into three lines. Neither fits a list
     // tile's trailing slot, so the connect button sits under the tile.
@@ -115,6 +114,9 @@ class ConnectionTile extends ConsumerWidget {
 
     final theme = Theme.of(context);
     final connected = account != null;
+    final stravaAthlete = service == IntegrationService.strava
+        ? account?.athleteId
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -153,6 +155,19 @@ class ConnectionTile extends ConsumerWidget {
                 )
               : null,
         ),
+        // Strava's brand guidelines: a link back to the athlete on Strava.
+        if (stravaAthlete case final id? when id.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(48, 0, 20, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ViewOnStravaLink(
+                onPressed: () => unawaited(
+                  ref.read(linkOpenerProvider)(stravaAthleteUrl(id)),
+                ),
+              ),
+            ),
+          ),
         if (!busy && account == null)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),

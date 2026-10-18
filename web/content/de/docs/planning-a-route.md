@@ -110,6 +110,14 @@ Das Diagramm **Höhenprofil** zeichnet die Höhe über der Distanz. Berühre es 
 
 Der Balken **Belag** ist ein einzelner gestapelter Balken aus drei Anteilen, die zusammen die ganze Route ergeben: **Befestigt**, **Unbefestigt** und **Unbekannt**, mit einer Legende mit Prozentwerten darunter. Zwei weitere Einträge in der Legende, **Radwege & -streifen** und **Stark befahren**, überlagern die ersten drei, statt sich dazuzuaddieren: Sie sagen dir, wie viel der Route auf Radwegen, für Räder beschilderten Wegen, Fahrradstraßen oder auf einem Radstreifen oder Radweg an der Straße verläuft und wie viel auf einer großen Straße. Ist die Route nicht ganz die des Routers, etwa mit der Linie einer Datei darin, wird für die Zahlen die ganze Linie über die Routing-Daten gelegt; dafür muss die Region geladen sein.
 
+### Die Route einfärben
+
+Ein Schalter in der Kopfzeile und vier Auswahlmöglichkeiten bestimmen, wonach die Route eingefärbt wird: **Steigung**, **Belag**, **Wind** und **Regen**. Die Farben erscheinen auf der Karte und unter dem Höhenprofil, im Planer und auf der Seite einer gespeicherten Route. **Belag** färbt jeden Abschnitt wie der Balken darüber: befestigt, unbefestigt, unbekannt, Radwege und stark befahrene Straßen, in denselben Farben. Wind und Regen folgen der Vorhersage für die Abfahrtszeit. Alle vier sind kostenlos; ohne Plus kommen Wind und Regen aus der gröberen öffentlichen Vorhersage, und die App sagt das, bevor sie die Route einfärbt.
+
+### Abfahrtszeit
+
+Ein Regler legt fest, wann du losfährst. Er verschiebt Regenradar und Wind auf der Karte, das Wetter entlang der Route und die Einfärbung der Route auf diese Zeit. Er ist kostenlos. Steigung und Belag ändern sich mit der Zeit nicht.
+
 ## Speichern
 
 1. Tippe auf **Speichern**.

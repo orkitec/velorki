@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'package:velorki_io/io.dart';
+
 import 'dart:typed_data';
 
 /// Streaming SHA-256, enough to verify a downloaded rd5 tile.

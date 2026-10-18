@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app_config.dart';
+import '../../../app/platform_features.dart';
 import '../../../features/assistant/presentation/ai_settings_section.dart';
 import '../../../features/integrations/presentation/connections_section.dart';
 import '../../../features/routing_tiles/data/routing_preference_controller.dart';
@@ -13,6 +14,8 @@ import '../../../features/sensors/data/health_gateway.dart';
 import '../../../features/sensors/presentation/sensors_section.dart';
 import '../../../features/offline/presentation/offline_entry.dart';
 import '../../../features/subscription/presentation/plus_settings_section.dart';
+import '../../../features/sync/application/cloud_sync_controller.dart';
+import '../../../features/sync/presentation/cloud_sync_section.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/presentation/stat_tile.dart';
 import 'about_section.dart';
@@ -29,6 +32,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final features = ref.watch(platformFeaturesProvider);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.tabSettings)),
       body: ListView(
@@ -40,36 +44,48 @@ class SettingsScreen extends ConsumerWidget {
           const AppearanceSection(),
           const UnitsSection(),
           const LanguageSection(),
-          const Divider(height: 32),
-          const _SectionHeader.navigation(),
-          const NavigationSection(),
-          const Divider(height: 32),
-          const _SectionHeader.recording(),
-          const RecordingSection(),
+          // Where nothing records, nothing navigates either.
+          if (features.recording) ...const [
+            Divider(height: 32),
+            _SectionHeader.navigation(),
+            NavigationSection(),
+            Divider(height: 32),
+            _SectionHeader.recording(),
+            RecordingSection(),
+          ],
           const Divider(height: 32),
           const _SectionHeader.rider(),
           const RiderSection(),
           // Hidden where there is no health store to talk to, rather than
           // shown as a switch that cannot do anything.
-          if (ref.watch(healthGatewayProvider) != null) ...const [
+          if (features.recording &&
+              ref.watch(healthGatewayProvider) != null) ...const [
             Divider(height: 32),
             _SectionHeader.sensors(),
             SensorsSection(),
           ],
+          // iOS 17 and later only; hidden everywhere else.
+          if (ref.watch(cloudSyncSupportedProvider).value ?? false) ...const [
+            Divider(height: 32),
+            _SectionHeader.sync(),
+            CloudSyncSection(),
+          ],
           const Divider(height: 32),
           const _SectionHeader.subscription(),
           const PlusSettingsSection(),
-          const Divider(height: 32),
-          const _SectionHeader.connections(),
-          const ConnectionsSection(),
+          if (features.accountConnections) ...const [
+            Divider(height: 32),
+            _SectionHeader.connections(),
+            ConnectionsSection(),
+          ],
           const Divider(height: 32),
           const _SectionHeader.ai(),
           const AiSettingsSection(),
           const Divider(height: 32),
           const _SectionHeader.advanced(),
-          const OfflineEntry(),
+          if (features.offlineMapAreas) const OfflineEntry(),
           const SearchSettingsEntry(),
-          const _RoutingPreferenceSection(),
+          if (features.routingServer) const _RoutingPreferenceSection(),
           const _ServerUrlsSection(),
           const Divider(height: 32),
           const _SectionHeader.about(),
@@ -86,6 +102,7 @@ class _SectionHeader extends StatelessWidget {
   const _SectionHeader.recording() : _section = _Section.recording;
   const _SectionHeader.rider() : _section = _Section.rider;
   const _SectionHeader.sensors() : _section = _Section.sensors;
+  const _SectionHeader.sync() : _section = _Section.sync;
   const _SectionHeader.subscription() : _section = _Section.subscription;
   const _SectionHeader.connections() : _section = _Section.connections;
   const _SectionHeader.ai() : _section = _Section.ai;
@@ -105,6 +122,7 @@ class _SectionHeader extends StatelessWidget {
         _Section.recording => l10n.settingsRecording,
         _Section.rider => l10n.settingsRider,
         _Section.sensors => l10n.settingsSensors,
+        _Section.sync => l10n.settingsSync,
         _Section.subscription => l10n.settingsSubscription,
         _Section.connections => l10n.settingsConnections,
         _Section.ai => l10n.settingsAi,
@@ -121,6 +139,7 @@ enum _Section {
   recording,
   rider,
   sensors,
+  sync,
   subscription,
   connections,
   ai,
@@ -192,6 +211,7 @@ class _ServerUrlsSection extends ConsumerWidget {
     final overrides = ref.watch(serverOverridesProvider);
     final config = ref.watch(appConfigProvider);
     final notifier = ref.read(serverOverridesProvider.notifier);
+    final routingServer = ref.watch(platformFeaturesProvider).routingServer;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -203,12 +223,13 @@ class _ServerUrlsSection extends ConsumerWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ),
-        _UrlField(
-          label: l10n.settingsBrouterUrl,
-          value: overrides.brouterUrl,
-          hint: config.brouterUrl,
-          onChanged: notifier.setBrouterUrl,
-        ),
+        if (routingServer)
+          _UrlField(
+            label: l10n.settingsBrouterUrl,
+            value: overrides.brouterUrl,
+            hint: config.brouterUrl,
+            onChanged: notifier.setBrouterUrl,
+          ),
         _UrlField(
           label: l10n.settingsPhotonUrl,
           value: overrides.photonUrl,

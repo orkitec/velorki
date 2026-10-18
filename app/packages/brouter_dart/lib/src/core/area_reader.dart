@@ -4,7 +4,8 @@
 // without a `direction`), which the oracle never exercises.
 
 import 'dart:collection';
-import 'dart:io';
+
+import 'package:velorki_io/io.dart';
 
 import '../codec/data_buffers.dart';
 import '../expressions/b_expression_context_way.dart';

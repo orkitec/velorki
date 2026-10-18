@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
@@ -204,8 +205,22 @@ class SheetGeometry {
   /// See [collapsedFor], with the bar or rail in place.
   double get collapsed => collapsedFor(endInset);
 
-  /// The travel over which the sheet morphs into the docked pill.
-  double get dockedRange => length <= 0 ? 0.15 : sheetDockingRangeDp / length;
+  /// The travel over which the sheet morphs into the docked pill: ending
+  /// short of where the sheet rests, so a sheet at rest is all sheet. On a
+  /// short screen (a small phone, a foldable's inner screen on its side)
+  /// the full range began above the resting height, and the sheet at rest
+  /// was part glass, the map showing through it.
+  double get dockedRange {
+    if (length <= 0) return 0.15;
+    final room = math.max(0.0, (resting - collapsed) * 0.8);
+    return math.min(sheetDockingRangeDp / length, room);
+  }
+
+  /// The largest extent at which an upright sheet's top stays [topDp] or
+  /// more below the screen's top: a resting height kept clear of what
+  /// stands above it. Never less than the docked strip.
+  double restingBelow(double topDp) =>
+      length <= 0 ? resting : math.max(collapsed, (length - topDp) / length);
 
   /// Where the sheets rest: upright as [sheetRestingExtent] says; sideways
   /// as wide as an upright phone gives the content, beside the rail.

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/core/db/database.dart' show RouteSource;
+import 'package:velorki/features/integrations/presentation/strava_brand.dart';
 import 'package:velorki/features/library/presentation/route_detail_screen.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
@@ -28,6 +30,7 @@ Future<SavedRoute> _seed(
   String name = 'Isar loop',
   double lengthM = 10000,
   RouteProfile profile = RouteProfile.trekking,
+  RouteSource source = RouteSource.planned,
 }) =>
     RouteRepository(
       h.db.routesDao,
@@ -37,6 +40,7 @@ Future<SavedRoute> _seed(
       route: syntheticRoute(lengthM: lengthM),
       waypoints: _waypoints,
       options: RoutingOptions(profile: profile),
+      source: source,
     );
 
 void main() {
@@ -64,6 +68,27 @@ void main() {
           testDistance(10000),
           testHeight(120),
         ),
+      ),
+      findsOneWidget,
+    );
+    await unmountApp(tester);
+  });
+
+  testWidgets('a route from Strava carries Strava\'s logo, others do not', (
+    tester,
+  ) async {
+    final h = PlannerHarness();
+    await _seed(h, name: 'Sunday loop', source: RouteSource.strava);
+    await _seed(h);
+    await pumpApp(tester, harness: h);
+    await tester.pumpAndSettle();
+
+    final logo = find.byType(PoweredByStrava);
+    expect(logo, findsOneWidget);
+    expect(
+      find.ancestor(
+        of: logo,
+        matching: find.widgetWithText(RouteRow, 'Sunday loop'),
       ),
       findsOneWidget,
     );

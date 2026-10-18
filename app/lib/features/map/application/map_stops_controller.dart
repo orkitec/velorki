@@ -9,10 +9,12 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../navigation/application/route_geometry.dart';
 import '../../search/data/gazetteer_store.dart';
+import '../../search/domain/search_kinds.dart' show searchPoiKinds;
 import '../../search/domain/search_result.dart';
 import '../../search/presentation/search_field.dart' show poiKindIcon;
 import '../domain/map_controller.dart';
 import '../domain/stops_along_route.dart';
+import '../domain/stops_tiles.dart';
 
 part 'map_stops_controller.g.dart';
 
@@ -21,15 +23,28 @@ part 'map_stops_controller.g.dart';
 /// close together into counted bubbles.
 const double stopsMinZoom = 11;
 
-/// The most stops one query for the area on screen asks for, per gazetteer,
-/// and the most drawn: the ones nearest the middle, so a limit drops the
-/// far ones.
-const int stopsAreaLimit = 500;
+/// The most stops one square of the grid ([StopsTile]) asks a gazetteer
+/// for: a bound against a pathological square, not a share. A square
+/// otherwise holds every stop of the kinds shown; one that reaches the
+/// bound keeps the kinds taking turns, each kind's most important first.
+const int stopsTileSafetyLimit = 20000;
 
-/// How far beyond the visible part of the map the stops are asked for, as a
-/// share of its width and height on each side: stops come in and go out
-/// off screen while the map is panned, not in the middle of it.
+/// The most stops one drawing puts on the map: a bound against a
+/// pathological area (every kind over a whole city zoomed out), not a
+/// share. Past it the squares on screen come first and what is left over
+/// in the margin is left out, which is logged.
+const int stopsDrawSafetyLimit = 20000;
+
+/// How far beyond the visible part of the map the stops are loaded, as a
+/// share of its width and height on each side: every square of the grid
+/// this reaches is loaded, so stops come in off screen while the map is
+/// panned, not in the middle of it.
 const double stopsAreaMargin = 0.5;
+
+/// How far beyond the visible part of the map a square already loaded is
+/// kept, as the same share: further than [stopsAreaMargin], so panning to
+/// and fro across a square's edge does not load and drop it each time.
+const double stopsKeepMargin = 1;
 
 /// The part of [bounds] that [share] of the map shows (the whole of it when
 /// `null` or empty): shares of the width from the west and of the height
@@ -82,8 +97,11 @@ List<SearchResult> onePerPlace(List<SearchResult> stops) {
   ];
 }
 
-/// The most stops one stretch of the route ahead asks for, per gazetteer.
-const int stopsChunkLimit = 200;
+/// The most stops one stretch of the route ahead ([stopsChunkM]) asks a
+/// gazetteer for: a bound against a pathological stretch, not a share. A
+/// stretch otherwise holds every stop of the kinds shown; one that reaches
+/// the bound keeps the kinds taking turns, each kind's most important first.
+const int stopsChunkSafetyLimit = 20000;
 
 /// How long the camera has to rest before the area on screen is asked for
 /// its stops: a pan that stops and goes on is not asked about.
@@ -96,21 +114,24 @@ const double stopsChunkM = 5000;
 /// again, in metres: the far end of the search then moves on with them.
 const double stopsRefetchM = 1000;
 
-/// Finds the stops of [kinds] inside [box], at most [limit] per gazetteer.
+/// Finds the stops of [kinds] inside [box], at most [limit] per gazetteer:
+/// the nearest the box's middle, or with `ranked` the kinds taking turns,
+/// each kind's most important first, then the first in the file.
 typedef StopsFinder = Future<List<SearchResult>> Function(
   BoundingBox box,
   List<String> kinds,
   int limit, {
-  LatLng? near,
+  bool ranked,
 });
 
 /// The stops come from the gazetteers on the device, on the store's worker
 /// isolate.
 @Riverpod(keepAlive: true)
-StopsFinder mapStopsFinder(Ref ref) => (box, kinds, limit, {near}) async {
-  final store = await ref.read(gazetteerStoreProvider.future);
-  return store.inBox(box, poiKinds: kinds, limit: limit, near: near);
-};
+StopsFinder mapStopsFinder(Ref ref) =>
+    (box, kinds, limit, {ranked = false}) async {
+      final store = await ref.read(gazetteerStoreProvider.future);
+      return store.inBox(box, poiKinds: kinds, limit: limit, ranked: ranked);
+    };
 
 /// Where the device has stops to show: the areas its gazetteers cover.
 ///
@@ -179,7 +200,24 @@ MapPoi stopMarker(SearchResult stop, {bool selected = false}) => MapPoi(
   kind: mapPoiKindOfStop(stop.detail),
   icon: poiKindIcon(stop.detail),
   selected: selected,
+  group: stop.detail,
 );
+
+/// The order the stops of [kinds] are drawn in on the map, each kind's
+/// bubbles a layer of their own: the order the app knows the kinds in
+/// ([searchPoiKinds]), any it does not know after them by name. The same
+/// kinds always give the same order, so a kind's bubbles keep their place.
+List<String> stopGroupOrder(Iterable<String> kinds) {
+  int rank(String kind) {
+    final i = searchPoiKinds.indexOf(kind);
+    return i < 0 ? searchPoiKinds.length : i;
+  }
+
+  return kinds.toList()..sort((a, b) {
+    final byRank = rank(a).compareTo(rank(b));
+    return byRank != 0 ? byRank : a.compareTo(b);
+  });
+}
 
 /// Where the stops come from right now.
 enum MapStopsMode {
@@ -200,8 +238,12 @@ enum MapStopsMode {
 /// shared map and takes it back through [detach], which takes the stops off
 /// again so the other tab does not inherit them.
 ///
-/// In the area on screen the stops are asked for once the camera has rested
-/// for [debounce]; along a route whenever the route or the kinds change and
+/// In the area on screen the stops are loaded once the camera has rested
+/// for [debounce], by the squares of a grid ([StopsTile]) around the part of
+/// the map in view: a square is asked for once and its stops kept while it
+/// stays within [stopsKeepMargin], so a pan inside the squares loaded leaves
+/// the map's stops as they are, and its bubbles where they were. Along a
+/// route whenever the route or the kinds change and
 /// every [stopsRefetchM] the rider rides. An answer that comes back after a
 /// newer question was asked is dropped.
 class MapStopsController extends ChangeNotifier {
@@ -249,12 +291,23 @@ class MapStopsController extends ChangeNotifier {
   Set<String>? _askedKinds;
   double? _askedAtM;
 
-  List<SearchResult> _area = const <SearchResult>[];
+  /// The stops of each square of the grid loaded, in the order drawn.
+  final Map<StopsTile, List<SearchResult>> _tiles =
+      <StopsTile, List<SearchResult>>{};
+
+  /// The squares whose stops are on the map.
+  Set<StopsTile> _drawnTiles = const <StopsTile>{};
+
+  /// Counts up whenever what the squares loaded hold goes stale (other
+  /// kinds, a gazetteer came or went), so an answer asked before is not
+  /// kept.
+  int _tilesEpoch = 0;
   List<StopAlongRoute<SearchResult>> _placed =
       const <StopAlongRoute<SearchResult>>[];
 
   List<SearchResult> _drawnStops = const <SearchResult>[];
   List<MapPoi> _drawn = const <MapPoi>[];
+  List<String> _drawnGroups = const <String>[];
   SearchResult? _selected;
 
   /// Where the stops come from right now.
@@ -271,16 +324,10 @@ class MapStopsController extends ChangeNotifier {
   /// The stop the rider picked, if any.
   SearchResult? get selected => _selected;
 
-  /// Whether stops are wanted in the area on screen but the map is zoomed
-  /// out too far to show them: the rider is told to zoom in.
-  bool get needsZoom => mode == MapStopsMode.area && _zoomedOut;
-  bool _zoomedOut = false;
-
   /// Whether stops are wanted but there are none to show, because no
   /// gazetteer on the device covers the middle of the visible map (in the
   /// area on screen) or any of the route ahead (along a route): the rider is
-  /// offered the download. Wins over [needsZoom], since zooming in would
-  /// show nothing either.
+  /// offered the download.
   bool get needsDownload => missingArea != null;
 
   /// The 5° area [needsDownload] speaks of: the tile under the middle of
@@ -343,6 +390,7 @@ class MapStopsController extends ChangeNotifier {
   /// again, and what can now be found is asked for.
   void _handleCoverageChanged() {
     if (_disposed || _map == null) return;
+    _forgetTiles();
     _checkCoverage();
     switch (mode) {
       case MapStopsMode.off:
@@ -353,43 +401,6 @@ class MapStopsController extends ChangeNotifier {
         _askedRoute = null;
         unawaited(_fetchAlongRoute());
     }
-  }
-
-  /// Zooms the map in to where the stops show, on the same middle.
-  Future<void> zoomIn() async {
-    final map = _map;
-    final bounds = map?.visibleBounds;
-    final center = bounds == null
-        ? map?.center
-        : visiblePart(bounds, visibleShare?.call()).center;
-    if (map == null || center == null) return;
-    // The middle of what can be seen stays where it is on the screen.
-    final share = visibleShare?.call();
-    if (share == null || bounds == null) {
-      await map.moveTo(center, zoom: stopsMinZoom);
-      return;
-    }
-    // Zoomed in, a distance on the ground takes 2^Δzoom as many pixels, so
-    // the map's middle moves that much closer to the visible middle.
-    final scale = math.pow(2, (map.zoom ?? stopsMinZoom) - stopsMinZoom);
-    final whole = map.center ?? bounds.center;
-    await map.moveTo(
-      LatLng(
-        center.lat + (whole.lat - center.lat) * scale,
-        center.lon + (whole.lon - center.lon) * scale,
-      ),
-      zoom: stopsMinZoom,
-    );
-  }
-
-  /// Notes whether [map] is zoomed out too far for the stops, telling the
-  /// listeners when that changes.
-  void _noteZoom(MapController map) {
-    final zoom = map.zoom;
-    final out = zoom != null && _belowStopsZoom(zoom);
-    if (out == _zoomedOut) return;
-    _zoomedOut = out;
-    _changed();
   }
 
   /// Along a route: every stop beside the route still ahead, nearest first.
@@ -450,6 +461,7 @@ class MapStopsController extends ChangeNotifier {
         if (modeBefore != MapStopsMode.off) _stop();
       case MapStopsMode.area:
         if (modeBefore != MapStopsMode.area || kindsChanged || shownChanged) {
+          _forgetTiles();
           _placed = const <StopAlongRoute<SearchResult>>[];
           _askedRoute = null;
           _scheduleArea();
@@ -472,7 +484,6 @@ class MapStopsController extends ChangeNotifier {
     if (identical(map, _map)) return;
     if (_map != null) detach();
     _map = map;
-    _noteZoom(map);
     _checkCoverage();
     map.addCameraIdleListener(_handleCameraIdle);
     map.onStopTapped = _handleStopTapped;
@@ -499,7 +510,6 @@ class MapStopsController extends ChangeNotifier {
       unawaited(map.setStops(const <MapPoi>[]));
     }
     _map = null;
-    _zoomedOut = false;
     _missingArea = null;
     _forget();
     _changed();
@@ -555,10 +565,19 @@ class MapStopsController extends ChangeNotifier {
     _askedRoute = null;
     _askedKinds = null;
     _askedAtM = null;
-    _area = const <SearchResult>[];
+    _forgetTiles();
     _placed = const <StopAlongRoute<SearchResult>>[];
     _drawnStops = const <SearchResult>[];
     _drawn = const <MapPoi>[];
+    _drawnGroups = const <String>[];
+  }
+
+  /// The squares loaded hold what is no longer wanted: they are asked for
+  /// again, and what is on its way for them dropped.
+  void _forgetTiles() {
+    _tilesEpoch++;
+    _tiles.clear();
+    _drawnTiles = const <StopsTile>{};
   }
 
   /// Stops are off: everything on its way is dropped and the map cleared.
@@ -569,8 +588,6 @@ class MapStopsController extends ChangeNotifier {
   }
 
   void _handleCameraIdle() {
-    final map = _map;
-    if (map != null) _noteZoom(map);
     if (mode == MapStopsMode.area) {
       _checkCoverage();
       _scheduleArea();
@@ -596,39 +613,76 @@ class MapStopsController extends ChangeNotifier {
     final generation = ++_generation;
     final zoom = map.zoom;
     if (zoom == null || _belowStopsZoom(zoom)) {
-      _area = const <SearchResult>[];
-      _draw(_area);
+      _forgetTiles();
+      _draw(const <SearchResult>[]);
       return;
     }
     final bounds = map.visibleBounds;
     if (bounds == null) return;
     final visible = visiblePart(bounds, visibleShare?.call());
-    final List<SearchResult> found;
-    try {
-      // Nearest the visible middle first: what the limit keeps of a full
-      // box is what the rider sees, not the margin or what the sheet covers.
-      found = await find(
-        grownBox(visible, stopsAreaMargin),
-        _kinds.toList()..sort(),
-        stopsAreaLimit,
-        near: visible.center,
-      );
-    } on Object catch (e) {
-      debugPrint('velorki: stops in the area failed: $e');
-      return;
+    final grid = stopsTileZoom(zoom);
+    final wanted = tilesCovering(grownBox(visible, stopsAreaMargin), grid);
+    final reach = tilesCovering(grownBox(visible, stopsKeepMargin), grid);
+    _tiles.removeWhere((tile, _) => !reach.contains(tile));
+    final missing = <StopsTile>[
+      for (final tile in wanted)
+        if (!_tiles.containsKey(tile)) tile,
+    ]..sort();
+    if (missing.isNotEmpty) {
+      final epoch = _tilesEpoch;
+      final kinds = _kinds.toList()..sort();
+      final List<List<SearchResult>> answers;
+      try {
+        answers = await Future.wait(<Future<List<SearchResult>>>[
+          for (final tile in missing)
+            find(tile.box, kinds, stopsTileSafetyLimit, ranked: true),
+        ]);
+      } on Object catch (e) {
+        debugPrint('velorki: stops in the area failed: $e');
+        return;
+      }
+      if (epoch != _tilesEpoch || !identical(map, _map)) return;
+      // Kept even when a newer question overtook this one: a square holds
+      // the same stops whoever asked for it.
+      for (var i = 0; i < missing.length; i++) {
+        if (answers[i].length >= stopsTileSafetyLimit) {
+          debugPrint(
+            'velorki: stops square ${missing[i]} reached the bound of '
+            '$stopsTileSafetyLimit',
+          );
+        }
+        _tiles[missing[i]] = answers[i];
+      }
     }
-    if (generation != _generation || !identical(map, _map)) return;
-    if (mode != MapStopsMode.area) return;
-    final middle = visible.center;
-    final nearest = <SearchResult>[...found]
-      ..sort(
-        (a, b) => haversineMeters(
-          a.position,
-          middle,
-        ).compareTo(haversineMeters(b.position, middle)),
+    if (generation != _generation || mode != MapStopsMode.area) return;
+    final shown = <StopsTile>{
+      for (final tile in _tiles.keys)
+        if (reach.contains(tile)) tile,
+    };
+    // A pan inside what is loaded: the map's stops stay as they are.
+    if (setEquals(shown, _drawnTiles)) return;
+    _drawnTiles = shown;
+    var stops = onePerPlace(<SearchResult>[
+      for (final tile in shown.toList()..sort()) ..._tiles[tile]!,
+    ]);
+    if (stops.length > stopsDrawSafetyLimit) {
+      debugPrint(
+        'velorki: ${stops.length} stops in the area, drawing '
+        '$stopsDrawSafetyLimit, the squares on screen first',
       );
-    _area = onePerPlace(nearest).take(stopsAreaLimit).toList();
-    _draw(_area);
+      final onScreen = tilesCovering(visible, grid);
+      int offScreen(StopsTile tile) => onScreen.contains(tile) ? 0 : 1;
+      stops = onePerPlace(<SearchResult>[
+        for (final tile
+            in shown.toList()..sort(
+              (a, b) => offScreen(a) != offScreen(b)
+                  ? offScreen(a) - offScreen(b)
+                  : a.compareTo(b),
+            ))
+          ..._tiles[tile]!,
+      ]).take(stopsDrawSafetyLimit).toList();
+    }
+    _draw(stops);
   }
 
   bool _needsRouteFetch() {
@@ -666,7 +720,8 @@ class MapStopsController extends ChangeNotifier {
     final List<List<SearchResult>> answers;
     try {
       answers = await Future.wait(<Future<List<SearchResult>>>[
-        for (final box in boxes) find(box, kinds, stopsChunkLimit),
+        for (final box in boxes)
+          find(box, kinds, stopsChunkSafetyLimit, ranked: true),
       ]);
     } on Object catch (e) {
       debugPrint('velorki: stops along the route failed: $e');
@@ -675,16 +730,32 @@ class MapStopsController extends ChangeNotifier {
       return;
     }
     if (generation != _generation || !identical(map, _map)) return;
+    for (var i = 0; i < answers.length; i++) {
+      if (answers[i].length >= stopsChunkSafetyLimit) {
+        debugPrint(
+          'velorki: stops along the route: stretch ${boxes[i]} reached the '
+          'bound of $stopsChunkSafetyLimit',
+        );
+      }
+    }
     final candidates = onePerPlace(<SearchResult>[
       for (final a in answers) ...a,
     ]);
-    _placed = stopsAlongRoute<SearchResult>(
+    var placed = stopsAlongRoute<SearchResult>(
       line: line,
       cumulative: cumulative,
       alongM: from,
       candidates: candidates,
       positionOf: (stop) => stop.position,
     );
+    if (placed.length > stopsDrawSafetyLimit) {
+      debugPrint(
+        'velorki: ${placed.length} stops along the route, keeping the '
+        '$stopsDrawSafetyLimit nearest ahead',
+      );
+      placed = placed.take(stopsDrawSafetyLimit).toList();
+    }
+    _placed = placed;
     _drawAhead(force: true);
   }
 
@@ -705,9 +776,11 @@ class MapStopsController extends ChangeNotifier {
     final markers = <MapPoi>[
       for (final stop in stops) stopMarker(stop, selected: stop == _selected),
     ];
-    if (!listEquals(markers, _drawn)) {
+    final groups = stopGroupOrder(_kinds);
+    if (!listEquals(markers, _drawn) || !listEquals(groups, _drawnGroups)) {
       _drawn = List<MapPoi>.unmodifiable(markers);
-      unawaited(map.setStops(_drawn));
+      _drawnGroups = List<String>.unmodifiable(groups);
+      unawaited(map.setStops(_drawn, groups: _drawnGroups));
     }
     _changed();
   }

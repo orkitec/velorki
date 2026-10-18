@@ -25,6 +25,9 @@ class CueSheetList extends ConsumerStatefulWidget {
     required this.selected,
     required this.onSelect,
     this.collapsedLines = 8,
+    this.showOnMap,
+    this.onShowOnMap,
+    this.note,
     super.key,
   });
 
@@ -39,6 +42,16 @@ class CueSheetList extends ConsumerStatefulWidget {
 
   /// How many lines show before "Show all"; a long route has a hundred.
   final int collapsedLines;
+
+  /// Whether the turns are marked on the map, for the switch in the header;
+  /// no switch without [onShowOnMap].
+  final bool? showOnMap;
+
+  /// The switch in the header was flipped.
+  final ValueChanged<bool>? onShowOnMap;
+
+  /// A muted line under the caption: where the turns came from.
+  final String? note;
 
   @override
   ConsumerState<CueSheetList> createState() => _CueSheetListState();
@@ -80,7 +93,31 @@ class _CueSheetListState extends ConsumerState<CueSheetList> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SectionCaption(l10n.cueSheetTitle),
+        if (widget.onShowOnMap case final onShowOnMap?)
+          Row(
+            children: [
+              Expanded(child: SectionCaption(l10n.cueSheetTitle)),
+              Text(
+                l10n.cueSheetShowOnMap,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Switch(value: widget.showOnMap ?? false, onChanged: onShowOnMap),
+            ],
+          )
+        else
+          SectionCaption(l10n.cueSheetTitle),
+        if (widget.note case final note?) ...[
+          const SizedBox(height: 2),
+          Text(
+            note,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         for (var i = 0; i < shown; i++)
           _CueLine(

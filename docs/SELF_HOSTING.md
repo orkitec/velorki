@@ -51,9 +51,10 @@ The same server also serves the tiles the app downloads: point
 ## Optional: the website and relay
 
 `web/` is one Next.js app holding both the website (landing page, user guide,
-privacy, terms, imprint) and the relay. The relay exists only for the Plus
-features: the Strava and RideWithGPS OAuth token exchange, the AI assistant and
-share links. **Leave `VELORKI_API_URL` empty and the app hides all three**;
+privacy, terms, imprint) and the relay. The relay exists only for what the
+phone cannot do alone: the Strava and RideWithGPS OAuth token exchange (free)
+and the Plus features, the AI assistant, share links and the relay's weather.
+**Leave `VELORKI_API_URL` empty and the app hides them all**;
 everything else keeps working.
 
 It serves **two hostnames from one process**, separated by the Host header:
@@ -88,6 +89,7 @@ production shape):
 | `PUBLIC_BASE_URL` | the origin share links are built from (the site host) |
 | `STRAVA_CLIENT_ID` / `_SECRET` | Strava sign-in; missing means `/oauth/strava/*` → 503 |
 | `RWGPS_CLIENT_ID` / `_SECRET` | RideWithGPS sign-in |
+| `CORS_ORIGINS` | browser origins of the web planner allowed to call the relay (default `https://app.velorki.com`, empty = off) |
 | `OAUTH_REDIRECT_ALLOWLIST` | the exact redirect URIs your build uses |
 | `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | any OpenAI-compatible endpoint, for the assistant |
 | `LLM_REASONING_EFFORT` | optional `reasoning_effort` for every call (`low` for a model that reasons at its maximum by default) |

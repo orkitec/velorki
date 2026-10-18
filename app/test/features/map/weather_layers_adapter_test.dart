@@ -86,6 +86,42 @@ void main() {
     ]);
   });
 
+  test('an image on the antimeridian is drawn a hair inside it, where '
+      'MapLibre does not smear it across the world copy beside it', () async {
+    // GOES-West's strip from 165° to 180° east, and its part west of the
+    // antimeridian: zoomed out sideways, with a second copy of the world in
+    // view, MapLibre drew the first in streaks over the whole Pacific.
+    for (final (region, west, east) in <(int, double, double)>[
+      (2, 165, 180 - weatherImageAntimeridianInset),
+      (0, -180 + weatherImageAntimeridianInset, -110),
+    ]) {
+      final box = goesWestClouds.coverage[region];
+      await map.setWeatherLayers([
+        WeatherLayer.image(
+          id: 'clouds_goes_west.$region',
+          kind: WeatherKind.clouds,
+          image: Uint8List.fromList(<int>[1]),
+          imageBox: box,
+          frameKey: 'clouds_goes_west.$region@a',
+          attribution: 'Clouds: GOES',
+        ),
+      ]);
+      final corners =
+          ops.lastCall('addImageSource')!.properties!['coordinates'] as List;
+      expect(corners.first, [
+        box.north,
+        closeTo(west, 1e-9),
+      ], reason: '$box'); // top left
+      expect(corners[2], [
+        box.south,
+        closeTo(east, 1e-9),
+      ], reason: '$box'); // bottom right
+    }
+    // Inside the antimeridian, a box is drawn as it is.
+    const inside = BoundingBox(south: 0, west: -179.9, north: 70, east: 179.9);
+    expect(drawnImageBox(inside), same(inside));
+  });
+
   test('both stay under the cycle map', () async {
     await map.setCycleMap('/cycle.geojson');
     await map.setWeatherLayers([_radar('radar_dwd', '1')]);

@@ -43,7 +43,7 @@ class Routes extends Table {
   TextColumn get poisJson => text().nullable()();
   TextColumn get externalIdsJson => text().nullable()();
 
-  /// Drives Strava's 7-day cache rule for imported routes.
+  /// When the route was read from the partner service it came from.
   DateTimeColumn get externalFetchedAt => dateTime().nullable()();
   BoolColumn get aiDescriptionGenerated =>
       boolean().withDefault(const Constant(false))();
@@ -63,6 +63,12 @@ class Routes extends Table {
   /// The file's own line, packed like [geometry], once an edit saved over
   /// it; null while [geometry] still is that line.
   BlobColumn get originalGeometry => blob().nullable()();
+
+  /// Whether [turnsJson] was worked out on the phone from the map, for a
+  /// route whose file had no turns, rather than given by the router or the
+  /// file.
+  BoolColumn get turnsGenerated =>
+      boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

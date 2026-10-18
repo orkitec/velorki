@@ -7,7 +7,7 @@ draft: false
 > **Hinweis zur Übersetzung.** Dies ist eine Übersetzung der englischen
 > Fassung. Bei Abweichungen gilt die englische Fassung.
 
-Gültig ab: 27. September 2026.
+Gültig ab: 13. Oktober 2026.
 
 ## 1. Zwischen wem diese Bedingungen gelten
 
@@ -81,12 +81,12 @@ ist verbindlich.
 
 Alles, was auf deinem Handy läuft, ist kostenlos und bleibt es: Planen, smarte
 Runden, Offline-Karten und Offline-Routing, Ortssuche, Navigation mit
-Abbiegehinweisen, Aufnahme, Fahrtenstatistik sowie GPX-, FIT- und TCX-Import und
--Export.
+Abbiegehinweisen, Aufnahme, Fahrtenstatistik, GPX-, FIT- und TCX-Import und
+-Export sowie die Verbindungen zu Strava und Ride with GPS.
 
 **Velorki Plus** ist ein freiwilliges Abo für die Funktionen, die unsere Server
-oder ein Konto bei einem anderen Dienst brauchen: die Strava-Verbindung, die
-Verbindung zu Ride with GPS, den Assistenten und die Teilen-Links.
+brauchen: den Assistenten, die Teilen-Links und das genauere Routenwetter samt
+Regenradar.
 
 ### 4.1 Wie es gekauft wird
 
@@ -131,8 +131,8 @@ anderen wiederherstellen.
 
 ### 4.5 Wenn eine Plus-Funktion ausfällt
 
-Wir dürfen eine Plus-Funktion ändern, aussetzen oder einstellen, etwa wenn eine
-Partner-API schließt oder ein KI-Anbieter nicht mehr verfügbar ist. Entfernen
+Wir dürfen eine Plus-Funktion ändern, aussetzen oder einstellen, etwa wenn ein
+Wetterdienst oder ein KI-Anbieter nicht mehr verfügbar ist. Entfernen
 wir einen wesentlichen Teil dessen, was Plus bietet, dauerhaft, kannst du
 kündigen; es gelten dann die Erstattungs- und Anteilsregeln des Stores. Alles
 Kostenlose funktioniert davon unabhängig weiter, auch offline, und deine Routen

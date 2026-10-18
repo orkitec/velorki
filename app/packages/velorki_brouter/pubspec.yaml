@@ -18,6 +18,8 @@ dependencies:
     path: ../velorki_cycle_map
   velorki_geo:
     path: ../velorki_geo
+  velorki_io:
+    path: ../velorki_io
 
 dev_dependencies:
   lints: ^6.0.0

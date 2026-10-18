@@ -5,12 +5,17 @@ import '../application/route_cues.dart';
 
 /// Draws the markers a cue sheet refers to and reports taps on them as
 /// cue indices, so a screen with a [CueSheetList] wires the map once.
+///
+/// Without [showTurns] the turns get no dot: the places and the ends of
+/// the route are still drawn, and a turn chosen in the list is still shown
+/// by [goToCue]'s pin.
 void showCuesOnMap(
   MapController map,
   List<RouteCue> cues, {
   required List<RoutePoi> pois,
   required void Function(int cueIndex) onCueTapped,
   int? selected,
+  bool showTurns = true,
 }) {
   final chosen = selected == null || selected >= cues.length
       ? null
@@ -28,19 +33,24 @@ void showCuesOnMap(
       finishSelected: chosen != null && chosen.isFinish,
     ),
   );
-  map.setTurnMarkers(<MapTurnMarker>[
-    for (final cue in cues)
-      if (cue.turnIndex != null) MapTurnMarker(position: cue.pos),
-  ]);
-  // The turn markers are the cues with a turn, in cue order, so the marker
-  // index maps back through that same order.
-  final turnCues = <int>[
-    for (var i = 0; i < cues.length; i++)
-      if (cues[i].turnIndex != null) i,
-  ];
-  map.onTurnTapped = (index) {
-    if (index < turnCues.length) onCueTapped(turnCues[index]);
-  };
+  if (!showTurns) {
+    map.setTurnMarkers(const <MapTurnMarker>[]);
+    map.onTurnTapped = null;
+  } else {
+    map.setTurnMarkers(<MapTurnMarker>[
+      for (final cue in cues)
+        if (cue.turnIndex != null) MapTurnMarker(position: cue.pos),
+    ]);
+    // The turn markers are the cues with a turn, in cue order, so the marker
+    // index maps back through that same order.
+    final turnCues = <int>[
+      for (var i = 0; i < cues.length; i++)
+        if (cues[i].turnIndex != null) i,
+    ];
+    map.onTurnTapped = (index) {
+      if (index < turnCues.length) onCueTapped(turnCues[index]);
+    };
+  }
   map.onPoiTapped = (index) {
     final cue = cues.indexWhere((c) => c.poiIndex == index);
     if (cue >= 0) onCueTapped(cue);
@@ -62,6 +72,7 @@ Future<void> goToCue(
   required List<RoutePoi> pois,
   required void Function(int cueIndex) onCueTapped,
   String turnLabel = '',
+  bool showTurns = true,
 }) async {
   if (index < 0 || index >= cues.length) return;
   final cue = cues[index];
@@ -71,6 +82,7 @@ Future<void> goToCue(
     pois: pois,
     onCueTapped: onCueTapped,
     selected: index,
+    showTurns: showTurns,
   );
   final isPoint = cue.poiIndex != null || cue.isStart || cue.isFinish;
   await map.setSearchPin(isPoint ? null : cue.pos, label: turnLabel);

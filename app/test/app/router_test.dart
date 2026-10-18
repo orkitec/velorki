@@ -27,6 +27,7 @@ import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/shared/presentation/glass_backdrop.dart';
 import 'package:velorki/features/shared/presentation/floating_bar.dart'
     show floatingBarFilter;
 import 'package:velorki/features/shared/presentation/tab_chrome_slide.dart';
@@ -461,8 +462,8 @@ void main() {
       matching: find.byWidgetPredicate(
         (w) =>
             w is ClipRRect &&
-            w.child is BackdropFilter &&
-            (w.child! as BackdropFilter).child is SizedBox,
+            w.child is GlassBackdrop &&
+            (w.child! as GlassBackdrop).child is SizedBox,
       ),
     );
     final barClip = find.descendant(
@@ -1349,12 +1350,15 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 135));
     expect(columnTop(tester), closeTo(planTop, 0.01));
-    // Where the chrome rests: the search field and the chips, measured, plus
-    // the gap; and nothing moves it afterwards.
+    // Where the chrome rests: the search field, the chips and, with no
+    // routing server here, the banner under them that runs over the
+    // column's side, measured, plus the gap; and nothing moves it
+    // afterwards. (The nearest column is the search field's and the chips'
+    // alone.)
     final chrome = tester.getRect(
       find
           .ancestor(of: find.byType(SearchField), matching: find.byType(Column))
-          .first,
+          .at(1),
     );
     expect(planTop, closeTo(chrome.height + 12, 0.5));
     for (var i = 0; i < 10; i++) {

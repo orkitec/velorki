@@ -14,7 +14,7 @@ Velorki kann die Orte, an denen eine Fahrt hält, auf der Karte zeichnen: Trinkw
 
 ## Im Gebiet, das du ansiehst
 
-Mit **Stopps** an erscheinen die Stopps im sichtbaren Teil der Karte ab Zoomstufe 11. Weiter draußen werden nahe Stopps zu Blasen mit einer Zahl zusammengefasst; ab Zoomstufe 15 lösen sie sich in einzelne Stopps mit ihren Symbolen auf. Tippe auf eine Blase, um dorthin zu zoomen, wo sie sich auflöst.
+Mit **Stopps** an erscheinen die Stopps im sichtbaren Teil der Karte ab Zoomstufe 11. Weiter draußen werden nahe Stopps zu Blasen mit einer Zahl zusammengefasst; ab Zoomstufe 15 lösen sie sich in einzelne Stopps mit ihren Symbolen auf. Tippe auf eine Blase, um dorthin zu zoomen, wo sie sich auflöst. Jeder Stopp der gewählten Arten im sichtbaren Ausschnitt wird geladen, keiner fällt weg.
 
 Weiter draußen als das sagt ein Chip **Hineinzoomen, um Stopps zu sehen**; tippe darauf, und die Karte zoomt dorthin, wo sie sichtbar sind.
 

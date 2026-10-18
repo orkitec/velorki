@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,9 +8,13 @@ import 'package:velorki/features/map/application/area_download_hint.dart';
 import 'package:velorki/features/map/application/cycle_map_binding.dart';
 import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
+import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/stops_ahead_line.dart';
+import 'package:velorki/features/map/presentation/stops_download_chip.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/offline/presentation/offline_screen.dart';
+import 'package:velorki/features/planner/application/planner_controller.dart';
+import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
@@ -48,10 +54,16 @@ void main() {
           box,
           kinds,
           limit, {
-          near,
+          ranked = false,
         }) async {
           asked.add(box);
-          return [fountain];
+          final at = fountain.position;
+          final inside =
+              at.lat >= box.south &&
+              at.lat <= box.north &&
+              at.lon >= box.west &&
+              at.lon <= box.east;
+          return [if (inside) fountain];
         }),
       ],
     );
@@ -68,13 +80,12 @@ void main() {
     await tester.pump(stopsDebounce * 2);
     await tester.pumpAndSettle();
 
-    // Around what the rider sees: the sheet covers the lower part, so the
-    // box's middle sits higher than the whole map's.
-    expect(asked, hasLength(1));
-    expect(
-      (asked.single.north + asked.single.south) / 2,
-      greaterThan((view.north + view.south) / 2),
-    );
+    // Around what the rider sees, square by square: the sheet covers the
+    // lower part, so what is asked for reaches further north than south.
+    expect(asked, isNotEmpty);
+    final north = asked.map((b) => b.north).reduce(math.max);
+    final south = asked.map((b) => b.south).reduce(math.min);
+    expect(north - view.north, greaterThan(view.south - south));
     expect(h.map.stops.single.name, 'Brunnen');
 
     h.map.onStopTapped!(0);
@@ -93,14 +104,14 @@ void main() {
     expect(h.map.onStopTapped, isNull);
   });
 
-  testWidgets('Plan: zoomed out too far, a chip says to zoom in, and a tap '
-      'zooms in to where the stops show', (tester) async {
+  testWidgets('Plan: zoomed out too far, nothing is drawn and nothing '
+      'said', (tester) async {
     final h = await pumpScreen(
       tester,
       const PlannerScreen(),
       extraOverrides: [
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit, {near}) async => const <SearchResult>[],
+          (box, kinds, limit, {ranked = false}) async => const <SearchResult>[],
         ),
       ],
     );
@@ -116,34 +127,15 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(PlannerScreen)),
     );
-    // Not while stops are off.
-    for (final listener in [...h.map.cameraIdleListeners]) {
-      listener();
-    }
-    await tester.pumpAndSettle();
-    expect(find.text(l10n.mapStopsZoomIn), findsNothing);
-
     await container.read(mapStopsPreferencesProvider.notifier).setShown(true);
     for (final listener in [...h.map.cameraIdleListeners]) {
       listener();
     }
     await tester.pump(stopsDebounce * 2);
     await tester.pumpAndSettle();
-    expect(find.text(l10n.mapStopsZoomIn), findsOneWidget);
-
-    await tester.tap(find.text(l10n.mapStopsZoomIn));
-    await tester.pump();
-    expect(h.map.zoom, stopsMinZoom);
-    // The middle of what is visible stays put: above the sheet, so the
-    // map's own middle moves up towards it.
-    expect(h.map.center!.lat, greaterThan(48.05));
-
-    for (final listener in [...h.map.cameraIdleListeners]) {
-      listener();
-    }
-    await tester.pump(stopsDebounce * 2);
-    await tester.pumpAndSettle();
-    expect(find.text(l10n.mapStopsZoomIn), findsNothing);
+    expect(h.map.stops, isEmpty);
+    expect(find.byType(StopsDownloadChip), findsNothing);
+    expect(find.byIcon(Icons.zoom_in_rounded), findsNothing);
   });
 
   testWidgets('Record: along a followed route the next stops ahead are '
@@ -164,7 +156,7 @@ void main() {
           GuidedRoute(key: 'r1', line: line, turns: const []),
         ),
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit, {near}) async => [
+          (box, kinds, limit, {ranked = false}) async => [
             for (final s in [tap, cafe])
               if (box.contains(s.position) && kinds.contains(s.detail)) s,
           ],
@@ -246,8 +238,8 @@ void main() {
     expect(h.map.stops[0].selected, isFalse);
   });
 
-  testWidgets('Plan: over an area not downloaded a chip says so, ahead of '
-      'the zoom chip, opens the download, and goes once the area is '
+  testWidgets('Plan: over an area not downloaded a chip says so, also '
+      'zoomed out, opens the download, and goes once the area is '
       'covered', (tester) async {
     final harness = PlannerHarness();
     harness.stopsCoverage.covered = (_) => false;
@@ -259,7 +251,7 @@ void main() {
       surfaceSize: const Size(360, 780),
       extraOverrides: [
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit, {near}) async => const <SearchResult>[],
+          (box, kinds, limit, {ranked = false}) async => const <SearchResult>[],
         ),
       ],
     );
@@ -289,7 +281,6 @@ void main() {
     await tester.pump(stopsDebounce * 2);
     await tester.pumpAndSettle();
     expect(find.text(l10n.mapStopsNotDownloaded), findsOneWidget);
-    expect(find.text(l10n.mapStopsZoomIn), findsNothing);
     expectNoClippedText(tester);
 
     await tester.tap(find.text(l10n.mapStopsDownload));
@@ -302,7 +293,63 @@ void main() {
     await tester.pump(stopsDebounce * 2);
     await tester.pumpAndSettle();
     expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
-    expect(find.text(l10n.mapStopsZoomIn), findsOneWidget);
+    // Zoomed out too far: nothing said in its place.
+    expect(find.byType(StopsDownloadChip), findsNothing);
+  });
+
+  testWidgets('Plan: the control column stays where it is when the area '
+      'chip comes, and the screen builds again under it', (tester) async {
+    final harness = PlannerHarness();
+    // The whole shell: the column is the shell's.
+    final h = await pumpApp(
+      tester,
+      initialLocation: plannerRoute,
+      harness: harness,
+      surfaceSize: const Size(390, 844),
+    );
+    h.map
+      ..zoom = 13
+      ..center = const LatLng(48.05, 11.05)
+      ..visibleBounds = const BoundingBox(
+        south: 48.0,
+        west: 11.0,
+        north: 48.1,
+        east: 11.1,
+      );
+    await tester.pumpAndSettle();
+    final column = find.byType(MapControls);
+    final top = tester.getTopLeft(column).dy;
+    final right = tester.getTopLeft(column).dx;
+
+    // The chip comes on its own, from the camera coming to rest over an
+    // area not downloaded; the screen around it builds again later, for a
+    // change of its own (another profile), and measures its chrome then.
+    harness.stopsCoverage.changed((_) => false);
+    for (final listener in [...h.map.cameraIdleListeners]) {
+      listener();
+    }
+    await tester.pumpAndSettle();
+    final chip = find.text(l10n.searchAreaNotDownloaded);
+    expect(chip, findsOneWidget);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    container
+        .read(plannerControllerProvider.notifier)
+        .setProfile(RouteProfile.gravel);
+    await tester.pumpAndSettle();
+    expect(chip, findsOneWidget);
+    expect(tester.getTopLeft(column).dy, top);
+    // Beside it, not over it.
+    expect(
+      tester.getRect(find.byType(StopsDownloadChip)).right,
+      lessThan(right),
+    );
+
+    harness.stopsCoverage.changed((_) => true);
+    await tester.pumpAndSettle();
+    expect(chip, findsNothing);
+    expect(tester.getTopLeft(column).dy, top);
   });
 
   testWidgets('Plan: with no layer on, an area not downloaded is said too, '
@@ -408,7 +455,7 @@ void main() {
       surfaceSize: const Size(360, 780),
       extraOverrides: [
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit, {near}) async => const <SearchResult>[],
+          (box, kinds, limit, {ranked = false}) async => const <SearchResult>[],
         ),
       ],
     );
@@ -448,7 +495,6 @@ void main() {
     // No other chip about the same area takes its place.
     expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
     expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
-    expect(find.text(l10n.mapStopsZoomIn), findsNothing);
 
     // Panned within the same downloadable area: still closed.
     await lookAt(13.8, 46.2);
@@ -536,7 +582,7 @@ void main() {
           GuidedRoute(key: 'r1', line: line, turns: const []),
         ),
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit, {near}) async => const <SearchResult>[],
+          (box, kinds, limit, {ranked = false}) async => const <SearchResult>[],
         ),
       ],
     );
@@ -576,7 +622,7 @@ void main() {
           GuidedRoute(key: 'r1', line: line, turns: const []),
         ),
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit, {near}) async => const <SearchResult>[],
+          (box, kinds, limit, {ranked = false}) async => const <SearchResult>[],
         ),
       ],
     );

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
+import '../../../app/platform_features.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/data/offline_regions_repository.dart';
@@ -14,6 +15,7 @@ import '../../routing_tiles/data/routing_tiles_repository.dart';
 import '../../routing_tiles/presentation/routing_tiles_screen.dart';
 import '../../shared/presentation/byte_size.dart';
 import '../../shared/presentation/error_text.dart';
+import '../../shared/presentation/wide_panel.dart';
 
 /// Everything a ride without a signal needs, in one place: the map to look
 /// at and the routing data routes are computed from. One button downloads
@@ -38,6 +40,8 @@ class OfflineScreen extends ConsumerWidget {
     final queue = ref.watch(tileDownloadQueueProvider);
     final mapProgress = ref.watch(offlineDownloadControllerProvider);
     final bounds = mapController?.visibleBounds;
+    // A browser keeps no map packs: only the routing data is offered there.
+    final mapAreas = ref.watch(platformFeaturesProvider).offlineMapAreas;
 
     final regionBytes = regions.fold<int>(0, (sum, r) => sum + r.sizeBytes);
     final now = DateTime.now();
@@ -63,31 +67,33 @@ class OfflineScreen extends ConsumerWidget {
               children: <Widget>[
                 Text(l10n.offlineIntro, style: theme.textTheme.bodyMedium),
                 const SizedBox(height: 16),
-                _KindCard(
-                  icon: Icons.map_outlined,
-                  title: l10n.offlineMapsTitle,
-                  source: l10n.offlineMapsSource,
-                  summary: l10n.offlineMapsSummary(
-                    regions.length,
-                    formatBytes(regionBytes),
-                  ),
-                  hint: refreshDue == 0
-                      ? null
-                      : l10n.offlineMapsRefreshHint(refreshDue),
-                  progress: mapProgress == null
-                      ? null
-                      : _Progress(
-                          label: l10n.offlineMapDownloading,
-                          fraction: mapProgress.fraction,
-                        ),
-                  onManage: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) =>
-                          OfflineRegionsScreen(mapController: mapController),
+                if (mapAreas) ...[
+                  _KindCard(
+                    icon: Icons.map_outlined,
+                    title: l10n.offlineMapsTitle,
+                    source: l10n.offlineMapsSource,
+                    summary: l10n.offlineMapsSummary(
+                      regions.length,
+                      formatBytes(regionBytes),
+                    ),
+                    hint: refreshDue == 0
+                        ? null
+                        : l10n.offlineMapsRefreshHint(refreshDue),
+                    progress: mapProgress == null
+                        ? null
+                        : _Progress(
+                            label: l10n.offlineMapDownloading,
+                            fraction: mapProgress.fraction,
+                          ),
+                    onManage: () => Navigator.of(context).push(
+                      ColumnPageRoute<void>(
+                        builder: (_) =>
+                            OfflineRegionsScreen(mapController: mapController),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
+                ],
                 _KindCard(
                   icon: Icons.grid_on_outlined,
                   title: l10n.offlineRoutingTitle,
@@ -106,7 +112,7 @@ class OfflineScreen extends ConsumerWidget {
                         )
                       : null,
                   onManage: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
+                    ColumnPageRoute<void>(
                       builder: (_) =>
                           RoutingTilesScreen(mapController: mapController),
                     ),
@@ -138,6 +144,7 @@ class OfflineScreen extends ConsumerWidget {
     final messenger = ScaffoldMessenger.maybeOf(context);
     final bounds = mapController?.visibleBounds;
     if (bounds == null) return;
+    final mapAreas = ref.read(platformFeaturesProvider).offlineMapAreas;
 
     final TileDownloadPlan plan;
     try {
@@ -171,8 +178,10 @@ class OfflineScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(l10n.offlineDialogMap),
-            const SizedBox(height: 8),
+            if (mapAreas) ...[
+              Text(l10n.offlineDialogMap),
+              const SizedBox(height: 8),
+            ],
             if (entries.isEmpty)
               Text(l10n.offlineDialogRoutingPresent)
             else
@@ -196,9 +205,12 @@ class OfflineScreen extends ConsumerWidget {
     );
     if (!(confirmed ?? false)) return;
 
-    if (entries.isNotEmpty) {
-      await ref.read(tileDownloadQueueProvider.notifier).enqueue(entries);
+    if (entries.isNotEmpty || plan.gazetteers.isNotEmpty) {
+      await ref
+          .read(tileDownloadQueueProvider.notifier)
+          .enqueue(entries, gazetteersOnly: plan.gazetteers);
     }
+    if (!mapAreas) return;
     final existing = await ref.read(offlineRegionsRepositoryProvider).regions();
     final spec = OfflineRegionSpec(
       name: l10n.mapOfflineRegionName(existing.length + 1),

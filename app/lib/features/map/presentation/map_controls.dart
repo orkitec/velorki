@@ -10,6 +10,7 @@ import '../../../core/permissions/location_permission.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../offline/presentation/offline_screen.dart';
 import '../../shared/presentation/stat_tile.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../data/map_preferences.dart';
 import '../data/position_provider.dart';
 import '../data/weather_map_preferences.dart';
@@ -39,6 +40,16 @@ const double compactMapControlButtonSize = 38;
 /// on a phone turned sideways: with the glass's padding as tall as the
 /// search field that row is level with, whatever the screen's height.
 const double sidewaysMapControlButtonSize = 50;
+
+/// The height of the plain control column at [context] (locate, layers,
+/// the download where there is room, zoom in and out), glass included: what
+/// a screen keeps clear of under its chrome.
+double mapControlsColumnHeight(BuildContext context) {
+  final compact = compactMapControls(context);
+  final button = compact ? compactMapControlButtonSize : mapControlButtonSize;
+  // The buttons, the divider with its gaps, the glass's padding.
+  return (compact ? 4 : 5) * button + (compact ? 5 : 7) + 2 * (compact ? 3 : 5);
+}
 
 /// Whether the screen at [context] is short enough for the compact column.
 bool compactMapControls(BuildContext context) =>
@@ -174,7 +185,7 @@ class MapControls extends ConsumerWidget {
     if (map == null) return;
     unawaited(
       Navigator.of(context).push(
-        MaterialPageRoute<void>(
+        ColumnPageRoute<void>(
           builder: (_) => OfflineScreen(mapController: map),
         ),
       ),

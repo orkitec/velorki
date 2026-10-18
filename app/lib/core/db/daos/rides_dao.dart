@@ -38,6 +38,18 @@ class RidesDao extends DatabaseAccessor<VelorkiDatabase> with _$RidesDaoMixin {
         RidesCompanion(uploadsJson: Value(uploadsJson)),
       );
 
+  /// The id and `uploads_json` of every ride whose uploads name
+  /// [serviceId], without the geometry.
+  Future<List<(String, String)>> uploadsTo(String serviceId) async {
+    final query = selectOnly(rides)
+      ..addColumns([rides.id, rides.uploadsJson])
+      ..where(rides.uploadsJson.like('%"$serviceId"%'));
+    return [
+      for (final row in await query.get())
+        (row.read(rides.id)!, row.read(rides.uploadsJson)!),
+    ];
+  }
+
   /// Replaces the `surface_stats_json` column of [id]; `null` clears it.
   Future<int> setRideSurface(String id, String? surfaceStatsJson) =>
       (update(rides)..where((t) => t.id.equals(id))).write(

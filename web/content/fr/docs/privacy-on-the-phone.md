@@ -1,6 +1,6 @@
 ---
 title: Confidentialité sur le téléphone
-description: "En termes de cycliste : ce qui reste sur votre téléphone, ce qui en sort, quand et vers qui. Il n’y a pas de compte et rien n’est téléversé sans que vous le demandiez."
+description: "En termes de cycliste : ce qui reste sur votre téléphone, ce qui en sort, quand et vers qui. Il n’y a pas de compte et rien ne nous parvient sans que vous le demandiez."
 order: 17
 ---
 
@@ -14,9 +14,10 @@ Tout ce que vous créez et tout ce que vous téléchargez :
 - vos réglages, y compris les unités et la voix que vous avez choisies, ainsi que le poids, l’année de naissance, le sexe, la fréquence cardiaque maximale, le poids du vélo, le type de vélo et la puissance seuil que vous pouvez saisir dans Réglages → Cycliste : ce sont des réglages du téléphone, qui ne sont jamais envoyés nulle part,
 - les zones de carte hors ligne téléchargées,
 - les tuiles de routage téléchargées et les index de recherche de lieux qui les accompagnent,
-- les jetons d’accès à Strava et Ride with GPS si vous les connectez, qui vont dans le stockage sécurisé du téléphone sous une forme que seul le relais Velorki peut ouvrir.
+- les jetons d’accès à Strava et Ride with GPS si vous les connectez, qui vont dans le stockage sécurisé du téléphone sous une forme que seul le relais Velorki peut ouvrir, et sont exclus des sauvegardes,
+- ce que vous récupérez de Strava : votre nom Strava, la liste de vos itinéraires Strava pendant 48 heures au plus, les itinéraires que vous importez et les liens entre les sorties téléversées et leurs activités Strava. La déconnexion supprime tout cela.
 
-Rien de tout cela n’est téléversé où que ce soit sans que vous le demandiez.
+Rien de tout cela n’est téléversé où que ce soit sans que vous le demandiez. La seule exception est la synchronisation iCloud sur un iPhone ou un iPad (iOS 17 ou plus récent) : vos itinéraires, vos sorties et quelques réglages vont dans votre propre iCloud, jamais chez nous, et les données Strava restent sur le téléphone. Elle est activée par défaut et se désactive dans les Réglages, voir [la bibliothèque](./library).
 
 Sur Android, Velorki est volontairement exclu de la sauvegarde cloud de Google et du transfert d’appareil à appareil : vos sorties ne sont donc pas non plus copiées hors du téléphone par le système. Pour passer à un nouveau téléphone, exportez ce que vous voulez garder en fichiers GPX, FIT ou TCX, voir [import et export](./import-and-export).
 
@@ -56,7 +57,9 @@ Seulement avec votre consentement, et seulement ce que vous avez autorisé : v
 
 Rien n’est envoyé à l’un ou l’autre tant que vous n’avez pas connecté le compte puis demandé quelque chose, un téléversement ou un import.
 
-La connexion transmet un code à usage unique au relais Velorki, qui le transforme en jeton d’accès en y ajoutant le secret de notre application, et remet le jeton à votre téléphone sous forme enveloppée, de sorte que seul le relais puisse l’ouvrir. Nous ne conservons pas le jeton. Ensuite, chaque téléversement et chaque import transite par le relais : il vérifie votre abonnement, ouvre le jeton pour cette seule requête et le transmet à Strava ou Ride with GPS. Il ne conserve ni le fichier ni le jeton, et ne peut pas utiliser le jeton de lui-même.
+La connexion transmet un code à usage unique au relais Velorki, qui le transforme en jeton d’accès en y ajoutant le secret de notre application, et remet le jeton à votre téléphone sous forme enveloppée, de sorte que seul le relais puisse l’ouvrir. Nous ne conservons pas le jeton. Ensuite, chaque téléversement et chaque import transite par le relais : il ouvre le jeton pour cette seule requête et le transmet à Strava ou Ride with GPS. Il ne conserve ni le fichier ni le jeton, ni aucune trace de l’appel, et ne peut pas utiliser le jeton de lui-même. Les connexions sont gratuites, aucun abonnement n’est donc vérifié ; le relais compte seulement les appels par identifiant d’installation anonyme et par adresse, pendant un court moment, pour empêcher les abus.
+
+Les données Strava restent sur votre téléphone : elles ne vont jamais à l’assistant, dans un lien de partage, ni vers Ride with GPS ou un autre service. Voir [Strava et Ride with GPS](./strava-and-ridewithgps).
 
 ### Quand vous créez un lien de partage
 
@@ -80,7 +83,7 @@ Le store gère le paiement et nous ne voyons jamais votre carte. L’abonnement 
 |---|---|
 | Un itinéraire ou une sortie | supprimez-le dans la [bibliothèque](./library) |
 | Zones de carte hors ligne et tuiles de routage | supprimez-les dans les [données hors ligne](./offline-maps-and-routing) |
-| Un jeton Strava ou Ride with GPS | **Déconnecter** dans Réglages → Connexions |
+| Un jeton Strava ou Ride with GPS, et tout ce qui vient de Strava | **Déconnecter** dans Réglages → Connexions |
 | Tout ce que l’app a stocké | désinstallez l’app |
 | Un lien de partage | il expire au bout d’un an ; écrivez à [hello@orkitec.com](mailto:hello@orkitec.com) avec le lien pour le faire retirer plus tôt |
 

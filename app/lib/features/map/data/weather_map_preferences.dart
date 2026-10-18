@@ -1,12 +1,12 @@
-import 'dart:io' show Directory;
+import 'package:velorki_io/io.dart' show Directory;
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_api/velorki_api.dart';
 
 import '../../../app/app_config.dart';
+import '../../../core/files/app_directories.dart';
 import '../../../core/http/user_agent.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
@@ -296,6 +296,12 @@ class WeatherMapSources extends _$WeatherMapSources {
 bool weatherKindAvailable(List<WeatherMapSource> sources, WeatherKind kind) =>
     sources.any((s) => s.enabled && s.kind == kind);
 
+/// The clock the map's weather layers tell the time by.
+///
+/// A provider so tests can set it.
+@Riverpod(keepAlive: true)
+DateTime Function() weatherMapClock(Ref ref) => DateTime.now;
+
 /// The network the weather layers are fetched over. Only the requests to
 /// the relay's radars carry the rider's credentials ([relayAuthFor]).
 @Riverpod(keepAlive: true)
@@ -304,9 +310,8 @@ WeatherFetcher weatherFetcher(Ref ref) {
   ref.onDispose(dio.close);
   return HttpWeatherFetcher(
     dio: dio,
-    cacheDir: () async => Directory(
-      p.join((await getApplicationCacheDirectory()).path, 'clouds'),
-    ),
+    cacheDir: () async =>
+        Directory(p.join((await appCacheDirectory()).path, 'clouds')),
     headersFor: (url) => relayAuthFor(ref.read(relayClientProvider), url),
   );
 }

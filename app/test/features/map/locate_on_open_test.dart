@@ -164,7 +164,7 @@ Future<bool> _open(_Harness h) async {
 
 void main() {
   test('a cold start with the permission and no plan glides to the rider, '
-      'into the visible map, zoomed in to 14 from further out', () async {
+      'into the visible map, zoomed in to 15 from further out', () async {
     final h = await _harness();
     expect(await _open(h), isTrue);
     expect(h.map.movedTo, _rider);

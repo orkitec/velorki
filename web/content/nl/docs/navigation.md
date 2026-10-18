@@ -26,7 +26,7 @@ De aanwijzingen zijn: **Linksaf**, **Rechtsaf**, **Flauw linksaf**, **Flauw rech
 
 Volgt er vlak na de eerste afslag nog een, dan staat daar een klein grijs pijltje voor aan het einde van de balk.
 
-Een route die met een routebeschrijving is geïmporteerd, toont in plaats daarvan de eigen woorden van de maker voor een afslag, "Turn left onto Main Street", en de stem spreekt die ook uit.
+Een route die met een routebeschrijving is geïmporteerd, toont in plaats daarvan de eigen woorden van de maker voor een afslag, "Turn left onto Main Street", en de stem spreekt die ook uit. Voor een GPX-track zonder afslaginstructies kan de telefoon ze maken uit de routeringsgegevens, zie [importeren en exporteren](./import-and-export).
 
 Een interessant punt op de route, een drinkwaterpunt of een afstapzone uit een geïmporteerd bestand, neemt de banner over als het dichterbij is dan de volgende afslag en binnen 300 m ligt: het icoon, de afstand en de naam, een gevaar als "Let op: …" in de waarschuwingskleur. De stem kondigt het één keer aan, met dezelfde aanloop als een afslag, "Over 100 meter let op: begin afstapzone". Zie [sensoren en je horloge](./sensors-and-watch) voor wat er op het horloge komt, en [importeren en exporteren](./import-and-export) voor waar de punten vandaan komen.
 

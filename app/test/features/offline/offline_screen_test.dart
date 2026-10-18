@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/app/platform_features.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/data/offline_regions_repository.dart';
 import 'package:velorki/features/map/testing/testing.dart';
@@ -14,6 +16,8 @@ import 'package:velorki/features/offline/presentation/offline_screen.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_assets.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_storage.dart';
 import 'package:velorki/features/routing_tiles/data/segments_manifest_service.dart';
+import 'package:velorki/features/routing_tiles/domain/sha256.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
@@ -24,21 +28,37 @@ final Uint8List _body = Uint8List.fromList(
   utf8.encode(List<String>.generate(16, (i) => 'rd5-$i;').join()),
 );
 
-Map<String, Object?> _manifest() => <String, Object?>{
+final Uint8List _gaz = Uint8List.fromList(utf8.encode('gazetteer-body'));
+
+Map<String, Object?> _manifest({bool gazetteer = false}) => <String, Object?>{
   'formatVersion': '11.2',
   'tiles': <Object?>[
     <String, Object?>{
       'tile': 'E10_N45',
       'bytes': _body.length,
       'updatedAt': '2026-09-12T01:03:00Z',
+      if (gazetteer)
+        'gazetteer': <String, Object?>{
+          'bytes': _gaz.length,
+          'sha256': (Sha256()..add(_gaz)).hexDigest(),
+          'updatedAt': '2026-10-02T18:53:15Z',
+        },
     },
   ],
 };
 
 /// The map, the tile mirror and the region store, all faked.
 class _Harness {
-  _Harness()
-    : db = VelorkiDatabase.memory(),
+  _Harness({bool gazetteer = false})
+    : adapter = FakeSegmentsAdapter((options) {
+        if (options.uri.path.endsWith('manifest.json')) {
+          return FakeSegmentsResponse.json(_manifest(gazetteer: gazetteer));
+        }
+        return FakeSegmentsResponse.bytes(
+          options.uri.path.endsWith('.gaz') ? _gaz : _body,
+        );
+      }),
+      db = VelorkiDatabase.memory(),
       storage = BrouterStorage(tempDir('velorki-offline')) {
     storage.segments.createSync(recursive: true);
     storage.profiles.createSync(recursive: true);
@@ -47,12 +67,7 @@ class _Harness {
   final VelorkiDatabase db;
   final BrouterStorage storage;
   final FakeOfflineMapApi api = FakeOfflineMapApi();
-  final FakeSegmentsAdapter adapter = FakeSegmentsAdapter((options) {
-    if (options.uri.path.endsWith('manifest.json')) {
-      return FakeSegmentsResponse.json(_manifest());
-    }
-    return FakeSegmentsResponse.bytes(_body);
-  });
+  final FakeSegmentsAdapter adapter;
 
   List<Override> get overrides => <Override>[
     velorkiDatabaseProvider.overrideWithValue(db),
@@ -66,9 +81,16 @@ class _Harness {
   ];
 }
 
-Future<_Harness> _pump(WidgetTester tester, {FakeMapController? map}) async {
-  final h = _Harness();
+Future<_Harness> _pump(
+  WidgetTester tester, {
+  FakeMapController? map,
+  PlatformFeatures features = PlatformFeatures.device,
+  bool gazetteer = false,
+  Future<void> Function(_Harness harness)? seed,
+}) async {
+  final h = _Harness(gazetteer: gazetteer);
   addTearDown(h.db.close);
+  await seed?.call(h);
   await tester.binding.setSurfaceSize(const Size(1080, 2000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -77,6 +99,7 @@ Future<_Harness> _pump(WidgetTester tester, {FakeMapController? map}) async {
     ProviderScope(
       overrides: <Override>[
         sharedPreferencesProvider.overrideWithValue(prefs),
+        platformFeaturesProvider.overrideWithValue(features),
         ...h.overrides,
       ],
       child: testApp(home: OfflineScreen(mapController: map)),
@@ -189,6 +212,91 @@ void main() {
     expect(
       find.textContaining(l10n.routingTilesTotal(1, '').split(',').first),
       findsOneWidget,
+    );
+    await _unmount(tester);
+  });
+
+  testWidgets('in a browser only the routing data is offered and fetched', (
+    tester,
+  ) async {
+    final h = await _pump(
+      tester,
+      map: _mapOverTyrol(),
+      features: PlatformFeatures.browser,
+    );
+
+    expect(find.text(l10n.offlineMapsTitle), findsNothing);
+    expect(find.text(l10n.offlineRoutingTitle), findsOneWidget);
+    expect(find.text(l10n.plusManage), findsOneWidget);
+
+    await tester.tap(find.text(l10n.offlineDownloadVisible));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(l10n.offlineDialogMap), findsNothing);
+    expect(find.textContaining('E10_N45 ·'), findsOneWidget);
+
+    await tester.tap(find.text(l10n.offlineDialogDownload));
+    await _runDownloads(
+      tester,
+      until: () =>
+          h.storage.segments.listSync().isNotEmpty &&
+          find
+              .textContaining(l10n.routingTilesTotal(1, '').split(',').first)
+              .evaluate()
+              .isNotEmpty,
+    );
+    await tester.pumpAndSettle();
+
+    expect(h.api.downloads, isEmpty);
+    expect(h.storage.segments.listSync().map((f) => f.path.split('/').last), [
+      'E10_N45.rd5',
+    ]);
+    await _unmount(tester);
+  });
+
+  testWidgets('a routing tile on the device gets the gazetteer it lacks', (
+    tester,
+  ) async {
+    const tile = TileName(10, 45);
+    final h = await _pump(
+      tester,
+      map: _mapOverTyrol(),
+      gazetteer: true,
+      seed: (h) async {
+        File('${h.storage.segments.path}/${tile.fileName}')
+            .writeAsStringSync('the-current-build');
+        await h.db.routingTilesDao.markReady(
+          tile.name,
+          bytes: 17,
+          updatedAt: DateTime.utc(2026, 9, 12, 1, 3),
+          formatVersion: '11.2',
+        );
+      },
+    );
+    final gazetteer = File(
+      '${h.storage.gazetteer.path}/${tile.gazetteerFileName}',
+    );
+
+    await tester.tap(find.text(l10n.offlineDownloadVisible));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining(l10n.offlineDialogRoutingPresent),
+      findsOneWidget,
+    );
+    await tester.tap(find.text(l10n.offlineDialogDownload));
+    await _runDownloads(
+      tester,
+      until: () => h.api.downloads.isNotEmpty && gazetteer.existsSync(),
+    );
+    await tester.pumpAndSettle();
+
+    expect(gazetteer.readAsBytesSync(), _gaz);
+    expect(
+      h.adapter.requests.where((r) => r.uri.path.endsWith('.rd5')),
+      isEmpty,
+    );
+    expect(
+      File('${h.storage.segments.path}/${tile.fileName}').readAsStringSync(),
+      'the-current-build',
     );
     await _unmount(tester);
   });

@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/features/assistant/application/route_advice_controller.dart'
+    show canAskAboutRoute;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/db/database.dart';
@@ -907,6 +909,34 @@ void main() {
         totalLengthM: 4321,
       ),
     );
+
+    testWidgets('a route edited from Strava opens as Strava\'s: the '
+        'assistant may not ask about it, and forgetting Strava clears it', (
+      tester,
+    ) async {
+      final container = _container(FakeRoutingBackend());
+      final planner = container.read(plannerControllerProvider.notifier);
+      final track = <TrackPoint>[
+        for (var i = 0; i < 20; i++)
+          TrackPoint(LatLng(40.75 + i * 0.0004, -73.85 + i * 0.0003)),
+      ];
+      // Saved over before the source was kept: "planned", with Strava's id.
+      planner.loadSavedRoute(
+        importedRoute(track).copyWith(
+          source: RouteSource.planned,
+          externalIds: const {'strava_route_id': '4242'},
+        ),
+      );
+      final state = container.read(plannerControllerProvider);
+      expect(state.savedRouteSource, RouteSource.strava);
+      expect(canAskAboutRoute(state), isFalse);
+
+      planner.forgetStravaRoute();
+      final cleared = container.read(plannerControllerProvider);
+      expect(cleared.waypoints, isEmpty);
+      expect(cleared.savedRouteId, isNull);
+      expect(cleared.undoStack, isEmpty);
+    });
 
     testWidgets('an imported route comes back as the file drew it, not as '
         'the router would draw it', (tester) async {

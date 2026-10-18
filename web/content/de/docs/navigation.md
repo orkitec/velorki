@@ -26,7 +26,7 @@ Die Hinweise sind: **Links abbiegen**, **Rechts abbiegen**, **Leicht links abbie
 
 Folgt eine zweite Abbiegung dicht auf die erste, sitzt am Ende der Plakette ein kleiner grauer Pfeil dafür.
 
-Eine Route, die mit einer Abbiegeliste importiert wurde, zeigt stattdessen die Worte des Autors für eine Abbiegung, "Turn left onto Main Street", und die Stimme sagt sie auch.
+Eine Route, die mit einer Abbiegeliste importiert wurde, zeigt stattdessen die Worte des Autors für eine Abbiegung, "Turn left onto Main Street", und die Stimme sagt sie auch. Für einen GPX-Track ohne Abbiegehinweise lassen sie sich auf dem Telefon aus den Routingdaten erstellen, siehe [Import und Export](./import-and-export).
 
 Ein Punkt von Interesse auf der Route, ein Trinkbrunnen oder eine Absteigezone aus einer importierten Datei, übernimmt das Band, wenn er näher ist als die nächste Abbiegung und keine 300 m mehr entfernt: sein Symbol, die Entfernung und sein Name, eine Gefahrenstelle als "Achtung: …" in der Warnfarbe. Die Stimme kündigt ihn einmal an, mit demselben Vorlauf wie eine Abbiegung, "In 100 Metern, Achtung: start dismount zone". Woher die Punkte kommen, steht unter [Import und Export](./import-and-export).
 

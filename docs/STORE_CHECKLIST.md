@@ -154,7 +154,6 @@ routes to our share store.
       train on nor retain requests (set in the OpenRouter account).
 - [x] It states retention for share links (one year) and that uninstalling
       removes local data. — `docs/PRIVACY.md`, "Retention and deletion".
-- [ ] It has been reviewed by a lawyer (`docs/PRIVACY.md` is a draft).
 - [x] The crash-reporting section is resolved rather than "to be decided". —
       "there is none", `web/content/en/legal/privacy.md`.
 - [x] The server-log retention period is filled in, and so are the controller's
@@ -208,7 +207,8 @@ routes to our share store.
 - [x] Every gated feature unlocks through in-app purchase only; there is no
       external payment link. — `lib/core/plus/plus_gate.dart` is the single
       list of gated features, and nothing in the app links to a payment page.
-- [ ] A lapsed subscription hides the integrations and keeps all user data.
+- [ ] A lapsed subscription hides the Plus features and keeps all user data;
+      the Strava and Ride with GPS connections are free and stay.
       Verify on a real expiry or a sandbox cancellation.
 
 ## Age rating
@@ -263,26 +263,39 @@ routes to our share store.
       `app/assets/icon/icon.svg`. It does appear in the long descriptions,
       which is allowed.
 - [x] Every view of a Strava activity links back to that activity on Strava. —
-      "View on Strava" in `lib/features/integrations/presentation/ride_upload_menu.dart`,
-      opening the activity URL returned by the upload.
+      "View on Strava" (`ViewOnStravaLink`, `strava_brand.dart`) in the ride's
+      share card (`share_rows.dart`), opening the activity URL returned by the
+      upload; Strava routes and the athlete link back the same way.
 - [x] Strava data is shown only to the athlete it belongs to. — there are no
       accounts and no sharing of imported Strava content; the token lives in
       the device keychain.
-- [x] The cached Strava route list is evicted after 7 days. —
+- [x] The cached Strava route list is evicted after 48 hours. —
       `ExternalRouteListCache.maxAge`; `purgeExpired()` runs in `bootstrap()`.
-      (Routes the user has actually imported keep their `external_fetched_at`
-      column and are the user's own data, not a cache.)
-- [x] Strava data is never sent to the AI provider. — `canDescribe` refuses
-      `RouteSource.strava`.
+      Imported Strava routes, and routes edited from them, are checked
+      against Strava every 48 hours and removed when gone there or unchecked
+      for 7 days — `StravaRouteChecks` in
+      `app/lib/features/integrations/application/strava_route_checks.dart`.
+- [x] Strava data is never sent to the AI provider, into a share link or to
+      Ride with GPS. — `SavedRoute.fromStrava` (source or Strava id, kept
+      through edits) gates `canDescribe`, the planner's `savedRouteSource`,
+      `ShareService.share` and `RouteSender.sendToRwgps`.
+- [x] Disconnecting, or Strava refusing a refresh (`authorization_revoked`),
+      deletes all Strava data on the phone and confirms it in writing. —
+      `IntegrationConnections.forgetStravaData`.
+- [x] A consent sheet says what is read and written before the OAuth page
+      (`strava_consent_sheet.dart`); scopes are `read,activity:write`.
 - [ ] The Strava API review is submitted before the app exceeds 10 connected
       athletes (self-service works up to 10).
 - [ ] The developer account holds an active Strava subscription, as their
       API terms require.
-- [ ] The base URL move to `api-v3.strava.com` on 2027-01-04 is scheduled.
+- [ ] The base URL move to `api-v3.strava.com` (available 2027-01-04,
+      required 2027-06-01) is scheduled; see `docs/OPEN_ITEMS.md`.
+- [x] Nothing Strava-backed is charged for (API Policy §5.8): the
+      connection is free, outside `plus_gate.dart`.
 - [x] The UI states clearly that a route cannot be created in Strava through
       the API, and offers "export GPX, then share" instead. — the
       "Strava cannot receive routes" dialog in
-      `lib/features/integrations/presentation/route_send_menu.dart`.
+      `lib/features/integrations/presentation/share_rows.dart`.
 - [x] **(iOS)** `LSApplicationQueriesSchemes` contains `strava`, so the
       app-to-app authorisation can check for the Strava app before falling
       back to the web flow. Without it `canOpenURL("strava://")` always

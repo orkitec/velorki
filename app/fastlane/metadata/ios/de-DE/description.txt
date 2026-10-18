@@ -1,36 +1,40 @@
-Velorki plant Radrouten, führt dich darauf entlang und zeichnet deine Fahrten auf. Das Routing ist für Räder gemacht und läuft auf deinem iPhone, und die ganze App ist Open Source.
+Velorki plant Radrouten, führt dich darauf entlang und zeichnet deine Fahrten auf. Das Routing ist für Räder gemacht und läuft auf deinem iPhone, auch offline, und die ganze App ist Open Source. Jede Route ist für dich gemacht: für dein Rad, deine Strecke und deinen Standort.
 
 PLANEN
-• Tippe Wegpunkte auf die Karte und bekomme eine Route für das Rad, auf dem du sitzt: Tour, Rennrad, Gravel, Mountainbike oder der direkte Weg.
-• Alternativrouten, ein Höhenprofil und eine Aufstellung der Beläge, über die du fährst.
-• Rundtouren: Sag, wie weit du fahren willst und, wenn du magst, einen Ort, an dem du vorbeikommen willst, und Velorki schlägt Runden vor, die dorthin zurückführen, wo du losgefahren bist.
-• Orte suchen und Routen in deiner Bibliothek speichern.
-• Eine Region einmal herunterladen und dort ohne Verbindung planen, suchen und navigieren.
+• Tippe Wegpunkte auf die Karte und bekomme eine Route für dein Rad: Tour, Rennrad, Gravel, Mountainbike oder der direkte Weg.
+• Rundtouren ab deiner Haustür: Sag, wie weit du fahren willst und, wenn du magst, wo du vorbeikommen willst, und Velorki schlägt Runden vor, die zum Start zurückführen.
+• Alternativrouten, ein Höhenprofil und die Beläge, über die du fährst.
+• Route nach Steigung, Belag, Wind oder Regen einfärben.
+• Orte offline suchen, Routen in der Bibliothek speichern, eine Region einmal laden und dort ohne Verbindung planen, suchen und navigieren.
+
+KARTE UND WETTER
+• Eine Radkarte aus den Routingdaten, offline: Radwege, Radstreifen, Einbahnstraßen, Treppen, Anstiege.
+• Stopps auf der Karte: Trinkwasser, Cafés, Bäckereien, Toiletten, Fahrradwerkstätten und mehr, auch auf der Route vor dir.
+• Regenradar, Wind und Wolken auf der Karte, mit Zeitschieber in die nächsten Stunden.
+• Wind und Regen entlang der Route für deine Abfahrtszeit.
 
 NAVIGATION
-• Abbiegehinweise mit Sprachansagen, auch bei gesperrtem Bildschirm.
-• Kommst du von der Route ab, entscheidest du, was passiert: ein Weg zurück, eine neue Route zum Ziel oder gar nichts.
-• Die Karte folgt dir in Fahrtrichtung, die nächste Abbiegung immer im Blick.
+• Abbiegehinweise mit Sprachansagen, auch bei gesperrtem Bildschirm und für importierte Routen.
+• Kommst du von der Route ab, entscheidest du: ein Weg zurück, eine neue Route zum Ziel oder gar nichts.
 
 AUFZEICHNEN
-• Zeichnet bei ausgeschaltetem Bildschirm auf, mit automatischer Pause, und zeigt die Fahrt auf dem Sperrbildschirm und in der Dynamic Island.
-• Wähle und ordne die Werte, die du beim Fahren siehst: Strecke, Tempo, Zeit, Anstieg, Puls, Trittfrequenz, Leistung, was von der Route noch bleibt.
-• Ein Energiesparmodus für lange Tage: dunkle Karte, gedimmter Bildschirm und eine schlichte Seite mit den Zahlen.
-• Puls von der Apple Watch, von Bluetooth-Sensoren und aus Apple Health. Geschwindigkeits-, Trittfrequenz- und Leistungssensoren gehen auch.
-• Die Velorki-App auf der Apple Watch zeigt die Fahrt und startet, pausiert und beendet sie am Handgelenk.
-• Jede Fahrt bekommt eine Seite mit Karte, Diagrammen für Höhe, Tempo und Puls sowie Splits.
+• Zeichnet bei ausgeschaltetem Bildschirm auf, mit automatischer Pause, und zeigt die Fahrt auf Sperrbildschirm und Dynamic Island.
+• Wähle die Werte beim Fahren: Strecke, Tempo, Zeit, Anstieg, Puls, Trittfrequenz, Leistung, Rest der Route.
+• Puls von Apple Watch, Bluetooth-Sensoren und Apple Health; Sensoren für Tempo, Trittfrequenz und Leistung auch.
+• Die Velorki-App auf der Apple Watch startet, pausiert und beendet die Fahrt vom Handgelenk.
+• Jede Fahrt bekommt eine Seite mit Karte, Diagrammen und Splits.
 
-DATEIEN
-• GPX-, FIT- und TCX-Dateien aus Dateien, Mail, Safari oder dem Teilen-Menü öffnen.
-• Routen und Fahrten als GPX oder FIT exportieren und überall sonst verwenden.
+DATEIEN UND VERBINDUNGEN
+• GPX-, FIT- und TCX-Dateien aus Dateien, Mail, Safari oder dem Teilen-Menü öffnen; Routen und Fahrten als GPX oder FIT exportieren.
+• Zwei beliebte Plattformen für Routen und Fahrten verbinden: Fahrten hochladen, Routen holen. Kostenlos.
 
 KOSTENLOS, UND VELORKI PLUS
-Alles, was auf dem Handy läuft, ist kostenlos: Planen, Rundtouren, Navigation, Aufzeichnen, die Bibliothek, Offline-Regionen, Sensoren sowie Import und Export von Dateien.
+Alles, was das Handy allein kann, ist kostenlos: Planen, Rundtouren, Navigation, Aufzeichnen, Wetterkarte, Wetter auf der Route, Offline-Regionen, Sensoren, Dateien, Verbindungen.
 
-Velorki Plus ist ein Abo für die Teile, die einen Server brauchen:
-• Der Assistent: Beschreibe in einem Satz, welche Fahrt du willst, und bekomme eine Route. Frag ihn zur Route auf der Karte, lass dir die Fahrt beschreiben oder lass ihn einen Café-Stopp einbauen oder einen Abschnitt meiden.
-• Links teilen: Aus einer Route oder Fahrt wird ein Link, den jeder im Browser öffnen kann.
-• Verbindungen zu zwei beliebten Routen- und Fahrtenplattformen, um Fahrten hochzuladen und Routen zu holen.
+Velorki Plus ist ein Abo für das, was unsere Server braucht:
+• Genaueres Wetter: Radar für ganz Europa von nationalen Wetterdiensten, schärfere Vorhersage auf der Route.
+• Der Assistent: Beschreibe die Fahrt in einem Satz und bekomme eine Route, oder frag ihn zur Route auf der Karte.
+• Links teilen: Aus einer Route oder Fahrt wird ein Link, den jeder im Browser öffnet.
 
 Velorki Plus gibt es als monatliches und als jährliches, sich automatisch verlängerndes Abo; das jährliche beginnt mit einer kostenlosen Testphase. Die Zahlung wird bei Bestätigung des Kaufs über deinen Apple Account abgerechnet. Das Abo verlängert sich automatisch, sofern es nicht mindestens 24 Stunden vor Ende der laufenden Periode deaktiviert wird, und lässt sich in den Einstellungen deines Apple Accounts verwalten und kündigen. Ein ungenutzter Teil einer kostenlosen Testphase verfällt mit dem Kauf eines Abos.
 

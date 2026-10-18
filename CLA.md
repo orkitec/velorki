@@ -1,10 +1,5 @@
 # Velorki Contributor Licence Agreement
 
-> **Not legal advice.** This text is written in plain language so that it can
-> be read without a lawyer. It has not been reviewed by one. Before this
-> project relies on it in earnest, a lawyer should read it — the open item is
-> tracked in `docs/OPEN_ITEMS.md`.
-
 This agreement is between **Orkitec** (Steffen Römer, Germany — "Orkitec",
 "we") and you, the contributor. It is modelled on the Apache Individual and
 Corporate Contributor Licence Agreements. Sign it once, and it covers every

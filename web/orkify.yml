@@ -36,6 +36,8 @@ deploy:
     NEXT_PUBLIC_SITE_URL: 'https://velorki.com'
     NEXT_PUBLIC_STORE_URL_IOS: 'https://apps.apple.com/app/id6816790504'
     NEXT_PUBLIC_STORE_URL_ANDROID: 'https://play.google.com/store/apps/details?id=com.orkitec.velorki'
+    # The web planner (deploy/cloudflare); unset hides its links and section.
+    NEXT_PUBLIC_PLANNER_URL: 'https://app.velorki.com'
 
   # Seconds a freshly started worker has to stay alive before the release
   # counts as good. A crash inside this window rolls back to the previous

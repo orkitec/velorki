@@ -783,6 +783,17 @@ class PlannerController extends _$PlannerController {
     );
   }
 
+  /// Drops a route from Strava off the plan, with nothing to undo it by:
+  /// what disconnecting Strava asks of every copy on the phone. A plan that
+  /// is not Strava's stays as it is.
+  void forgetStravaRoute() {
+    if (state.savedRouteSource != RouteSource.strava) return;
+    _debounce?.cancel();
+    _pending?.cancel('Strava route forgotten');
+    _pending = null;
+    state = PlannerState(options: state.options);
+  }
+
   /// Puts back the route as its file drew it: the file's line and markers,
   /// every leg kept, in one undoable step. The points beside the route stay
   /// as they are.
@@ -1069,7 +1080,9 @@ class PlannerController extends _$PlannerController {
           : null,
       savedRouteId: saved.id,
       savedRouteName: saved.name,
-      savedRouteSource: saved.source,
+      // A route edited from a Strava route before the source was kept
+      // through edits still carries Strava's id: it is Strava's all the same.
+      savedRouteSource: saved.fromStrava ? RouteSource.strava : saved.source,
       routeIsSaved: true,
     );
     if (!saved.surfaceUnavailable) _matchSurface();

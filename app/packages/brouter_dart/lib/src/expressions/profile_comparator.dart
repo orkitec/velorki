@@ -1,6 +1,6 @@
 // Port of btools.expressions.ProfileComparator (BRouter v1.7.10).
 
-import 'dart:io';
+import 'package:velorki_io/io.dart';
 
 import '../jfloat.dart';
 import 'b_expression_context.dart';

@@ -469,6 +469,10 @@ class FakeGeolocatorPlatform extends geo.GeolocatorPlatform {
   /// Thrown by [getCurrentPosition] instead of a fix, when set.
   Object? currentError;
 
+  /// Whether [getCurrentPosition] never answers, as a browser does while
+  /// its own position stream runs and the device stands still.
+  bool currentHangs = false;
+
   /// What both settings pages answer.
   bool settingsOpen = true;
 
@@ -525,6 +529,7 @@ class FakeGeolocatorPlatform extends geo.GeolocatorPlatform {
     geo.LocationSettings? locationSettings,
   }) async {
     settings.add(locationSettings);
+    if (currentHangs) return Completer<geo.Position>().future;
     final failure = currentError;
     if (failure != null) throw failure;
     final position = freshPosition;

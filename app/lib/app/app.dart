@@ -8,8 +8,10 @@ import '../features/settings/data/appearance_controller.dart';
 import '../features/settings/data/language_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../features/shared/presentation/gesture_zone_guard.dart';
+import 'platform_features.dart';
 import 'router.dart';
 import 'theme.dart';
+import '../features/shared/presentation/wide_panel.dart';
 
 class VelorkiApp extends ConsumerWidget {
   const VelorkiApp({super.key});
@@ -36,6 +38,9 @@ class VelorkiApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      scrollBehavior: ref.watch(platformFeaturesProvider).mouseDrags
+          ? const PointerDragScrollBehavior()
+          : null,
       // Modal sheets sit above the shell's own guard; the performance box,
       // when it is on, above everything. One backdrop group for the app:
       // the glass over the map (bar, search, column, chips) is the same blur
@@ -43,7 +48,15 @@ class VelorkiApp extends ConsumerWidget {
       // it instead of once per piece.
       builder: (context, child) => BackdropGroup(
         child: PerformanceHudLayer(
-          child: gestureZoneAppBuilder(context, child),
+          child: gestureZoneAppBuilder(
+            context,
+            // In a wide window the routes lay themselves out in the column
+            // on the left, as on a phone.
+            WideAppFrame(
+              side: appearance.columnSide,
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
         ),
       ),
       routerConfig: ref.watch(routerProvider),

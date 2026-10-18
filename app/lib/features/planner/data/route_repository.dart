@@ -74,7 +74,8 @@ class RouteRepository {
     final now = _clock();
     final existing = id == null ? null : await _dao.routeById(id);
     // Saving over a route keeps what the planner does not carry: its
-    // description, its link and who wrote the file it came from. The points
+    // description, its link, who wrote the file it came from and where it
+    // came from. The points
     // of interest it does carry — the plan's points beside the route — are
     // written as they stand, so one that was removed there goes here too.
     final kept = existing == null ? null : toDomain(existing);
@@ -87,7 +88,11 @@ class RouteRepository {
       description: description ?? kept?.description,
       link: kept?.link,
       creator: kept?.creator,
-      source: source,
+      // Where the route came from outlives every edit: a route edited from
+      // a Strava route is still bound by Strava's terms, so neither its
+      // source nor the ids it came with are given up for "planned".
+      source: kept?.source ?? source,
+      externalIds: kept?.externalIds ?? const <String, String>{},
       profile: options.profile,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
@@ -199,9 +204,8 @@ class RouteRepository {
 
   /// Records which partner service a route came from, and when it was read.
   ///
-  /// `external_fetched_at` exists for Strava's seven-day cache rule: data read
-  /// from Strava may be kept for a week, after which it has to be fetched
-  /// again or dropped. Writing the two columns separately keeps the geometry
+  /// `external_fetched_at` records when the route was read. Writing the two
+  /// columns separately keeps the geometry
   /// out of the statement and leaves [saveImportedRoute] unaware of partner
   /// services.
   ///
@@ -228,6 +232,10 @@ class RouteRepository {
 
   /// Deletes the route with [id].
   Future<void> delete(String id) => _dao.deleteRoute(id);
+
+  /// Deletes every route that is Strava data ([SavedRoute.fromStrava]) and
+  /// returns how many went.
+  Future<int> deleteStravaRoutes() => _dao.deleteStravaRoutes();
 
   /// Writes the route's description.
   ///
@@ -306,6 +314,35 @@ class RouteRepository {
     );
   }
 
+  /// Gives the route with [id] the [turns] worked out from the map, and
+  /// marks them so. Only while the route still has no turns of its own and
+  /// still has the line of [geometryBlob] they were worked out for: an
+  /// edit in the meantime, or turns from elsewhere, win. Returns whether
+  /// they were written.
+  ///
+  /// Not a change to the route itself, like the surface: the card's
+  /// "edited" date stays put.
+  Future<bool> setGeneratedTurns(
+    String id,
+    List<TurnHint> turns, {
+    required Uint8List geometryBlob,
+  }) async {
+    final row = await _dao.routeById(id);
+    if (row == null) return false;
+    if (!_sameBytes(Uint8List.fromList(row.geometry), geometryBlob)) {
+      return false;
+    }
+    if (!lacksTurns(decodeTurns(row.turnsJson))) return false;
+    await _dao.updateRoute(
+      row.copyWith(
+        turnsJson: Value(encodeTurns(turns)),
+        turnsGenerated: true,
+        updatedAt: row.updatedAt,
+      ),
+    );
+    return true;
+  }
+
   /// Replaces the points of interest of the route with [id], everything
   /// else as it is: what a change to a point beside the route needs, since
   /// it leaves the geometry and the waypoints alone. An unknown id changes
@@ -370,10 +407,12 @@ class RouteRepository {
     surfaceUnavailable:
         decodeTrackSurface(row.surfaceStatsJson)?.unavailable ?? false,
     turns: decodeTurns(row.turnsJson),
+    turnsGenerated: row.turnsGenerated,
     aiDescriptionGenerated: row.aiDescriptionGenerated,
     pois: decodePois(row.poisJson),
     link: row.link,
     creator: row.creator,
+    externalIds: decodeExternalIds(row.externalIdsJson),
   );
 
   /// Maps the domain model into a row for `INSERT OR REPLACE`.
@@ -404,10 +443,16 @@ class RouteRepository {
           : jsonEncode(encodeSurfaceStats(route.surfaceStats!)),
     ),
     turnsJson: Value(encodeTurns(route.turns)),
+    turnsGenerated: Value(route.turnsGenerated),
     aiDescriptionGenerated: Value(route.aiDescriptionGenerated),
     poisJson: Value(encodePois(route.pois)),
     link: Value(route.link),
     creator: Value(route.creator),
+    // Absent rather than null for a route without any: [markExternal]
+    // writes them apart, after the row exists.
+    externalIdsJson: route.externalIds.isEmpty
+        ? const Value.absent()
+        : Value(jsonEncode(route.externalIds)),
     originalJson: Value(encodeOriginal(route.original)),
     // The file's line is stored apart only once it is not the line any
     // more.
@@ -431,6 +476,19 @@ bool _sameBytes(Uint8List a, Uint8List b) {
     if (a[i] != b[i]) return false;
   }
   return true;
+}
+
+/// The `external_ids_json` column as a map of strings; empty when there is
+/// nothing readable in it.
+Map<String, String> decodeExternalIds(String? json) {
+  if (json == null || json.isEmpty) return const <String, String>{};
+  final decoded = _tryDecode(json);
+  if (decoded is! Map) return const <String, String>{};
+  return <String, String>{
+    for (final entry in decoded.entries)
+      if (entry.key is String && entry.value != null)
+        entry.key as String: '${entry.value}',
+  };
 }
 
 /// Whether the `routing_options_json` column names a bike; a file that
@@ -542,6 +600,11 @@ List<RoutePoi> decodePois(String? json) {
       if (entry is Map<String, dynamic>) RoutePoi.fromMap(entry),
   ];
 }
+
+/// Whether [turns] say nothing a rider could be told: none at all, or only
+/// the finish.
+bool lacksTurns(List<TurnHint> turns) =>
+    turns.every((t) => t.kind == TurnKind.end);
 
 /// The `turns_json` column: null rather than `[]` for a route without turn
 /// instructions, so the column stays empty for everything that never went

@@ -5,4 +5,6 @@
 #   cd app && bundle install && bundle exec fastlane android internal
 source "https://rubygems.org"
 
-gem "fastlane", "~> 2.228"
+# 2.241.1 is the first deliver that knows the iPhone Duo's 2853x2007 (2.230
+# the 13" iPad's 2064x2752).
+gem "fastlane", "~> 2.241", ">= 2.241.1"

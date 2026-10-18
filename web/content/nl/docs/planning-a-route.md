@@ -110,6 +110,14 @@ De grafiek **Hoogteprofiel** tekent de hoogte tegen de afstand. Raak hem aan en 
 
 De balk **Ondergrond** is één gestapelde balk van drie delen die samen de hele route vormen, **Verhard**, **Onverhard** en **Onbekend**, met daaronder een legenda met percentages. Twee andere items in de legenda, **Fietspaden & -stroken** en **Drukke wegen**, overlappen met de eerste drie in plaats van erbij op te tellen: ze vertellen hoeveel van de route over fietspaden, voor fietsers bewegwijzerde paden, fietsstraten, of een fietsstrook of fietspad naast de weg gaat, en hoeveel over een grote weg. Voor een route die niet helemaal van de router zelf komt, met de lijn van een bestand erin, wordt de hele lijn voor de cijfers over de routeringsgegevens gelegd, en daarvoor moet de regio gedownload zijn.
 
+### De route kleuren
+
+Een schakelaar in de kop en vier keuzes bepalen waarnaar de route wordt gekleurd: **Helling**, **Ondergrond**, **Wind** en **Regen**. De kleur staat op de kaart en onder het hoogteprofiel, in de planner en op de pagina van een bewaarde route. **Ondergrond** kleurt elk stuk zoals de balk hierboven: verhard, onverhard, onbekend, fietspaden en drukke wegen, in dezelfde kleuren. Wind en regen volgen de verwachting voor je vertrektijd. Alle vier zijn gratis; zonder Plus komen wind en regen uit de grovere openbare verwachting, en de app zegt dat voordat hij de route kleurt.
+
+### Vertrektijd
+
+Een schuifregelaar bepaalt wanneer je vertrekt. Hij zet de regenradar en de wind op de kaart, het weer langs de route en de kleuring van de route op dat tijdstip. Hij is gratis. Helling en ondergrond veranderen niet met de tijd.
+
 ## Opslaan
 
 1. Tik op **Opslaan**.

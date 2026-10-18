@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme.dart';
 import '../../../core/links/link_opener.dart';
 import '../../../core/plus/plus_gate.dart';
+import '../../../app/platform_features.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/presentation/error_text.dart';
 import '../../shared/presentation/stat_tile.dart';
@@ -84,6 +85,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final available = ref.watch(subscriptionServiceProvider).isAvailable;
+    // A browser sells nothing, so it has no store's renewal terms to show.
+    final storePurchases = ref.watch(platformFeaturesProvider).storePurchases;
     final action = ref.watch(subscriptionControllerProvider);
     final entitled = ref.watch(plusEntitledProvider);
 
@@ -116,7 +119,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           if (entitled)
             const _ActiveBanner()
           else if (!available)
-            const _UnavailableCard()
+            _UnavailableCard(onOpen: (url) => unawaited(_open(url)))
           else
             _Packages(
               selected: _selected,
@@ -148,13 +151,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               ),
             ),
           ],
-          const SizedBox(height: 24),
-          Text(
-            plusLegalText(l10n, theme.platform),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
+          if (storePurchases) ...[
+            const SizedBox(height: 24),
+            Text(
+              plusLegalText(l10n, theme.platform),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 6),
           Wrap(
             alignment: WrapAlignment.center,
@@ -179,8 +184,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 /// The icon standing for [feature] on the paywall's list.
 IconData _featureIcon(PlusFeature feature) => switch (feature) {
   PlusFeature.aiAssistant => Icons.auto_awesome_outlined,
-  PlusFeature.stravaConnection => Icons.directions_bike_outlined,
-  PlusFeature.rwgpsConnection => Icons.map_outlined,
   PlusFeature.linkSharing => Icons.link_rounded,
   PlusFeature.weather => Icons.air_rounded,
 };
@@ -278,22 +281,45 @@ class _ActiveBanner extends StatelessWidget {
   }
 }
 
-class _UnavailableCard extends StatelessWidget {
-  const _UnavailableCard();
+class _UnavailableCard extends ConsumerWidget {
+  const _UnavailableCard({required this.onOpen});
+
+  final void Function(String url) onOpen;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    // A browser has no store at all; any other build simply was not given
+    // one. In the browser, Plus is the phone apps', and the card says so
+    // first and sends the rider to them.
+    final web = !ref.watch(platformFeaturesProvider).storePurchases;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.plusUnavailableTitle, style: theme.textTheme.titleMedium),
+            Text(
+              web ? l10n.plusUnavailableWebTitle : l10n.plusUnavailableTitle,
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 6),
-            Text(l10n.plusUnavailableBody, style: theme.textTheme.bodySmall),
+            Text(
+              web ? l10n.plusUnavailableWebBody : l10n.plusUnavailableBody,
+              style: theme.textTheme.bodySmall,
+            ),
+            if (web) ...[
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => onOpen(
+                  velorkiDownloadUrl(
+                    Localizations.localeOf(context).languageCode,
+                  ),
+                ),
+                child: Text(l10n.plusGetTheApp),
+              ),
+            ],
           ],
         ),
       ),

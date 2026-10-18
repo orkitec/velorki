@@ -12,7 +12,10 @@ import 'package:velorki/features/planner/presentation/route_format.dart';
 import 'package:velorki/core/units/units.dart' show formatSpeed;
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/subscription/application/plus_access.dart';
+import 'package:velorki/features/weather/application/free_route_weather.dart';
+import 'package:velorki/features/weather/application/route_colouring.dart';
 import 'package:velorki/features/weather/application/route_weather_controller.dart';
+import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
 import 'package:velorki/features/weather/domain/route_sampling.dart';
 import 'package:velorki/features/weather/domain/route_weather_state.dart';
 import 'package:velorki/features/weather/presentation/route_weather_section.dart';
@@ -69,6 +72,9 @@ RouteWeatherState weatherState({
 /// What the section asked of the controller.
 class _Asked {
   int retries = 0;
+
+  /// New departures asked for while there was no forecast to move.
+  int refetches = 0;
 }
 
 /// The controller, holding whatever the test gives it.
@@ -84,7 +90,12 @@ class _FakeWeather extends RouteWeatherController {
     ref.keepAlive();
     // As the real one does: the departure follows the time control.
     ref.listen(weatherRadarOffsetProvider, (_, offset) {
-      final s = state.value!;
+      final s = state.value;
+      // Without a forecast the real one asks for it again.
+      if (s == null) {
+        _asked.refetches++;
+        return;
+      }
       state = AsyncData<RouteWeatherState?>(
         s.withDeparture(s.earliestDeparture.add(Duration(minutes: offset))),
       );
@@ -110,6 +121,7 @@ Future<_Pumped> _pump(
   PlusAccess access = PlusAccess.granted,
   bool withRelay = true,
   WeatherRoute route = plannerWeatherRoute,
+  FakeDwdClient? free,
 }) async {
   SharedPreferences.setMockInitialValues(<String, Object>{});
   final prefs = await SharedPreferences.getInstance();
@@ -127,6 +139,9 @@ Future<_Pumped> _pump(
           body: ListView(
             padding: const EdgeInsets.all(20),
             children: [
+              // A saved route's page has its departure under its actions.
+              if (route is! PlannerWeatherRoute)
+                RouteDepartureSlider(route: route),
               const SizedBox(key: Key('above'), height: 10),
               RouteWeatherSection(route: route),
               const SizedBox(key: Key('below'), height: 10),
@@ -148,6 +163,11 @@ Future<_Pumped> _pump(
       relayClientProvider.overrideWithValue(withRelay ? relay.client() : null),
       plusAccessProvider.overrideWith((ref, feature) => access),
       routeWeatherControllerProvider.overrideWith2((_) => fake),
+      // The free forecast's route: the same ride north at 18 km/h.
+      weatherRouteGeometryProvider(route)
+          .overrideWithValue(straightRoute().geometry),
+      weatherRouteSpeedProvider(route).overrideWithValue(18),
+      dwdForecastClientProvider.overrideWithValue(free ?? FakeDwdClient()),
       weatherClockProvider.overrideWithValue(
         () => DateTime.utc(2026, 10, 11, 7, 50),
       ),
@@ -171,25 +191,165 @@ double _gap(WidgetTester tester) =>
     tester.getBottomLeft(find.byKey(const Key('above'))).dy;
 
 void main() {
-  testWidgets('a build without the relay shows nothing', (tester) async {
-    await _pump(tester, withRelay: false);
-    expect(_gap(tester), 0);
-    expect(find.text(l10n.weatherTitle.toUpperCase()), findsNothing);
-  });
-
   testWidgets('shows nothing while the store has not answered', (tester) async {
     await _pump(tester, access: PlusAccess.unknown);
     expect(_gap(tester), 0);
   });
 
-  testWidgets('without Plus, a teaser leads to the paywall', (tester) async {
-    await _pump(tester, access: PlusAccess.missing);
-    expect(find.text(l10n.weatherTitle.toUpperCase()), findsOneWidget);
-    expect(find.text(l10n.plusFeatureWeatherBody), findsOneWidget);
-    expect(find.byType(RouteWeatherStrip), findsNothing);
-    await tester.tap(find.text(l10n.plusSeeDetails));
-    await tester.pumpAndSettle();
-    expect(find.text('paywall'), findsOneWidget);
+  group('without Plus, the free forecast', () {
+    /// The free forecast in, once the route has stood still a moment.
+    Future<void> settle(WidgetTester tester) async {
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+    }
+
+    testWidgets('shows the wind, the rain, the temperature and the line that '
+        'sums them up, without gusts', (tester) async {
+      await _pump(
+        tester,
+        access: PlusAccess.missing,
+        free: FakeDwdClient(temp: 14),
+      );
+      // Its place held while it loads.
+      expect(find.text(l10n.weatherTitle.toUpperCase()), findsOneWidget);
+      expect(find.byType(RouteWeatherStrip), findsOneWidget);
+      final loading = _gap(tester);
+      await settle(tester);
+      expect(_gap(tester), loading);
+
+      // Dry, the wind from the north on a route north, 14 °C.
+      final line = [
+        l10n.weatherDry,
+        l10n.weatherMostlyHeadwind,
+        formatTemperature(l10n, UnitSystem.metric, 14),
+      ].join(' · ');
+      expect(find.text(line), findsOneWidget);
+      final strip = tester.widget<RouteWeatherStrip>(
+        find.byType(RouteWeatherStrip),
+      );
+      final weather = strip.weather!.weather;
+      expect(weather, everyElement(isNotNull));
+      expect(weather.map((w) => w!.temp), everyElement(closeTo(14, 1e-9)));
+      expect(weather.map((w) => w!.gust), everyElement(isNull));
+      expect(
+        strip.maxTempLabel,
+        formatTemperature(l10n, UnitSystem.metric, 14),
+      );
+      expect(find.byType(WindColourKey), findsOneWidget);
+      // The departure, as with Plus.
+      expect(
+        find.textContaining(l10n.weatherDepartureToday('').trim()),
+        findsOneWidget,
+      );
+      // The free source, not the relay's attribution.
+      expect(find.byType(FreeForecastSourceLine), findsOneWidget);
+      expect(find.textContaining(l10n.weatherAttribution('')), findsNothing);
+      expectNoClippedText(tester);
+    });
+
+    testWidgets('the gusts and the chance of rain are locked, and lead to '
+        'the Plus page', (tester) async {
+      await _pump(tester, access: PlusAccess.missing);
+      await settle(tester);
+      final locked = find.text(l10n.weatherPlusExtrasLocked);
+      expect(locked, findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.ancestor(of: locked, matching: find.byType(InkWell)),
+          matching: find.byIcon(Icons.lock_outline),
+        ),
+        findsOneWidget,
+      );
+      // Under the key, over the departure.
+      expect(
+        tester.getTopLeft(locked).dy,
+        greaterThan(tester.getBottomLeft(find.byType(WindColourKey)).dy),
+      );
+      await tester.tap(locked);
+      await tester.pumpAndSettle();
+      expect(find.text('paywall'), findsOneWidget);
+    });
+
+    testWidgets('the source line leads to the Plus page', (tester) async {
+      await _pump(tester, access: PlusAccess.missing);
+      await settle(tester);
+      await tester.tap(find.byType(FreeForecastSourceLine));
+      await tester.pumpAndSettle();
+      expect(find.text('paywall'), findsOneWidget);
+    });
+
+    testWidgets('Best time moves the time control to the first dry step, '
+        'judged by the amount of rain alone', (tester) async {
+      // Rain until 12:00 UTC, dry after; no chance of rain to weigh.
+      final pumped = await _pump(
+        tester,
+        access: PlusAccess.missing,
+        free: FakeDwdClient(
+          rainAt: (t) => t.isAfter(DateTime.utc(2026, 10, 11, 12)) ? 0 : 3,
+        ),
+      );
+      await settle(tester);
+      final rainy = l10n.weatherRainLikelyAtStart;
+      expect(find.textContaining(rainy), findsOneWidget);
+      await tester.tap(find.text(l10n.weatherBestTime));
+      await tester.pump();
+      final step = pumped.container.read(weatherRadarOffsetProvider);
+      expect(weatherRadarOffsets, contains(step));
+      expect(step, greaterThan(180));
+      // Worked out at once from the grids fetched ahead.
+      expect(find.text(l10n.weatherBestTimeNow), findsOneWidget);
+      expect(find.textContaining(rainy), findsNothing);
+      await settle(tester);
+      expect(find.text(l10n.weatherBestTimeNow), findsOneWidget);
+    });
+
+    testWidgets('a failure says so and asks again on Try again', (
+      tester,
+    ) async {
+      final free = FakeDwdClient(down: true);
+      await _pump(tester, access: PlusAccess.missing, free: free);
+      await settle(tester);
+      expect(find.text(l10n.weatherForecastUnavailable), findsOneWidget);
+      final asked = free.requests.length;
+      await tester.tap(find.text(l10n.weatherTryAgain));
+      await settle(tester);
+      expect(find.text(l10n.weatherForecastUnavailable), findsOneWidget);
+      expect(free.requests.length, greaterThanOrEqualTo(asked));
+    });
+
+    testWidgets('a build without the relay shows it too, with nothing of '
+        'Plus', (tester) async {
+      await _pump(tester, withRelay: false);
+      await settle(tester);
+      expect(find.text(l10n.weatherTitle.toUpperCase()), findsOneWidget);
+      expect(find.byType(RouteWeatherStrip), findsOneWidget);
+      expect(
+        tester
+            .widget<RouteWeatherStrip>(find.byType(RouteWeatherStrip))
+            .weather,
+        isNotNull,
+      );
+      expect(find.byType(FreeForecastSourceLine), findsOneWidget);
+      expect(find.text(l10n.weatherPlusExtrasLocked), findsNothing);
+      expect(find.byIcon(Icons.chevron_right), findsNothing);
+    });
+
+    testWidgets('on a saved route\'s page too', (tester) async {
+      await _pump(
+        tester,
+        access: PlusAccess.missing,
+        route: const SavedWeatherRoute('r1'),
+      );
+      await settle(tester);
+      expect(find.byType(Slider), findsOneWidget);
+      expect(find.text(l10n.weatherPlusExtrasLocked), findsOneWidget);
+      expect(
+        tester
+            .widget<RouteWeatherStrip>(find.byType(RouteWeatherStrip))
+            .weather,
+        isNotNull,
+      );
+    });
   });
 
   testWidgets('no route: nothing', (tester) async {
@@ -207,7 +367,9 @@ void main() {
     expect(loading, greaterThan(weatherStripHeight));
 
     // A line of two lines: the test's font, a full em a letter, makes the
-    // gusts' line three.
+    // gusts' line three. The first tree goes first, its providers with it.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
     await _pump(
       tester,
       weather: AsyncData<RouteWeatherState?>(weatherState(gust: null)),
@@ -268,6 +430,9 @@ void main() {
       greaterThan(tester.getBottomLeft(find.byType(RouteWeatherStrip)).dy),
     );
     expect(find.text(l10n.weatherAttribution('MET Norway')), findsOneWidget);
+    // Nothing locked, nor the free source, with Plus.
+    expect(find.text(l10n.weatherPlusExtrasLocked), findsNothing);
+    expect(find.byType(FreeForecastSourceLine), findsNothing);
     expect(
       tester.getSemantics(find.byType(RouteWeatherStrip)).label,
       contains(l10n.weatherDry),
@@ -340,6 +505,58 @@ void main() {
       weatherSliderIndexOf(180).toDouble(),
     );
   });
+
+  // A saved route's departure slider, the page's only time control: there
+  // and movable whenever there is a route, the forecast on its way or
+  // failed too; gone without a route and while Plus is not known.
+  for (final (name, weather, access, shown) in [
+    (
+      'loading',
+      const AsyncLoading<RouteWeatherState?>(),
+      PlusAccess.granted,
+      true,
+    ),
+    (
+      'failed',
+      AsyncError<RouteWeatherState?>(Exception('down'), StackTrace.empty),
+      PlusAccess.granted,
+      true,
+    ),
+    (
+      'no route',
+      const AsyncData<RouteWeatherState?>(null),
+      PlusAccess.granted,
+      false,
+    ),
+    ('Plus unknown', null, PlusAccess.unknown, false),
+    ('a forecast', null, PlusAccess.granted, true),
+  ]) {
+    testWidgets('a saved route\'s departure slider, $name', (tester) async {
+      final pumped = await _pump(
+        tester,
+        weather: weather,
+        access: access,
+        route: const SavedWeatherRoute('r1'),
+      );
+      expect(find.byType(Slider), shown ? findsOneWidget : findsNothing);
+      if (shown) {
+        final slider = find.byType(Slider);
+        expect(tester.widget<Slider>(slider).onChanged, isNotNull);
+        // Moved, it sets the departure, which asks for the forecast anew.
+        final container = ProviderScope.containerOf(tester.element(slider));
+        tester.widget<Slider>(slider).onChangeEnd!(
+          weatherSliderIndexOf(60).toDouble(),
+        );
+        await tester.pump();
+        expect(container.read(weatherRadarOffsetProvider), 60);
+        if (weather != null && !weather.hasValue) {
+          expect(pumped.weather.refetches, 1);
+        }
+      }
+      // The free forecast's wait runs out.
+      await tester.pump(const Duration(seconds: 2));
+    });
+  }
 
   testWidgets('Best time moves the time control to the best step, then says '
       'so', (tester) async {

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/core/db/database.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/import_export/data/incoming_file_service.dart';
 import 'package:velorki/features/integrations/application/connections_controller.dart';
@@ -82,6 +83,21 @@ class IntegrationsHarness {
   /// The stand-in for the platform keychain.
   final InMemorySecureKeyValueStore store;
 
+  /// The library, in memory: what a Strava disconnect deletes from. Made
+  /// when first read, so a test with a database of its own has one only.
+  late final VelorkiDatabase db = _open();
+  bool _opened = false;
+
+  VelorkiDatabase _open() {
+    _opened = true;
+    return VelorkiDatabase.memory();
+  }
+
+  /// Closes [db] if it was ever opened.
+  Future<void> close() async {
+    if (_opened) await db.close();
+  }
+
   /// The connectors the controller runs.
   final Map<IntegrationService, FakeConnector> connectors =
       <IntegrationService, FakeConnector>{
@@ -99,6 +115,7 @@ class IntegrationsHarness {
     localeCountryProvider.overrideWithValue(null),
     appConfigProvider.overrideWithValue(config),
     secureKeyValueStoreProvider.overrideWithValue(store),
+    velorkiDatabaseProvider.overrideWith((ref) => db),
     integrationConnectorProvider.overrideWith(
       (ref, service) => connectors[service],
     ),
@@ -171,6 +188,7 @@ Future<IntegrationsHarness> pumpIntegrations(
   Size surfaceSize = const Size(1000, 2000),
 }) async {
   final h = harness ?? IntegrationsHarness();
+  addTearDown(h.close);
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
 

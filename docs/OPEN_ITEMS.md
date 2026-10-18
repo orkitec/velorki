@@ -8,37 +8,30 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
 
 ## Servers and accounts (Steffen)
 
-- [ ] **Website settings**: `NEXT_PUBLIC_STORE_URL_ANDROID` once Play is
-      live, in `web/orkify.yml`'s `buildEnv` beside the iOS one (read at build
-      time; the dashboard's environment only reaches the processes); and in
-      the Orkify dashboard `ANDROID_CERT_SHA256` — the Play app signing key's
-      SHA-256 from Play Console → App integrity, then the upload key's — so
-      `/.well-known/assetlinks.json` stops answering 404 and Android's App
-      Links verify, and `WEATHER_CONTACT` for the relay's weather calls.
 - [ ] **Measure the battery saver**: everything [BATTERY.md](BATTERY.md)
       describes is in the app; the two comparison rides that would prove it are
       not. That file's "How to measure" is the procedure; write both numbers
       into it.
 - [ ] **Strava**: submit the API review before 10 athletes connect; keep the
-      developer account's Strava subscription active; move to
-      `api-v3.strava.com` before 2027-01-04.
+      developer account's Strava subscription active.
+- [ ] **Strava API host**: `api-v3.strava.com` is available from 2027-01-04
+      and required by 2027-06-01. Switch `UPSTREAMS.strava.base` in
+      `web/src/server/passthrough.ts` (and `STRAVA_TOKEN_URL` in
+      `web/src/server/oauth.ts`, and any Strava host in the app). Strava's
+      `/oauth/deauthorize` retires 2027-06-01: move revocation to a
+      relay-side `POST /oauth/revoke` before then.
+- [ ] App attestation (App Attest / Play Integrity) for the relay's free
+      Strava/RWGPS paths — only if abuse shows (rate limits now); unverified
+      callers would get tighter limits rather than a block.
 - [ ] **Head-unit sync** (Plus): send a route to Garmin, Wahoo and Hammerhead.
       None takes courses over Bluetooth from a third party; each has a cloud
       API behind a partner programme (Garmin Courses via Connect, Wahoo Cloud
       API, Hammerhead dashboard) that needs a server-side secret, so it lives
       in the relay. Garmin first. GPX export into the makers' apps works today.
-- [ ] **velorki.com**: the `ride@velorki.com`
-      mailbox (support and security reports).
-- [ ] **Website legal pages**: the imprint, the privacy policy and the terms
-      are filled in and published (`draft: false`, effective 27 September 2026,
-      provider data from the Orkify imprint). What is left is a lawyer's read of
-      all three — and of `CLA.md`, the Contributor Licence Agreement, with them:
-      it is written in plain language and has not been reviewed by one. Two
-      statements in the privacy policy have to be kept true as things change:
-      the AI section says requests go through OpenRouter only to providers that
-      neither train on nor retain them (keep those account settings on), and the log retention says
-      14 days for the web server's access logs and 90 for the application log
-      lines in Orkify.
+- [ ] **Privacy policy, kept true**: the AI section says requests go through
+      OpenRouter only to providers that neither train on nor retain them (keep
+      those account settings on), and the log retention says 14 days for the
+      web server's access logs and 90 for the application log lines in Orkify.
 - [ ] **Geocoder**: the on-device gazetteer is done — a rider with routing
       tiles searches `<TILE>.gaz` first and only reaches Photon by tapping
       "Search online for …". The `publish-gazetteer` workflow in
@@ -55,13 +48,25 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
 
 [data]: https://github.com/orkitec/velorki-data
 
+## Weather
+
+- [ ] **OPERA radar**: the edge of its coverage leaves a pale wedge of
+      satellite estimate west of Ireland. A MeteoGate API key
+      (devportal.meteogate.eu) as a relay secret once the open bucket is not
+      enough; the anonymous API is rate-limited.
+- [ ] **More radar countries for Plus**: Austria from GeoSphere's 1 km
+      nowcast (CC BY 4.0, 240 requests an hour); Latvia, the Balkans and
+      Greece's gaps not yet looked into.
+- [ ] **Plus forecast maps**: 2 km regional models for 2–60 h — DMI's
+      HARMONIE DINI over most of Europe (CC BY 4.0, simple-packed GRIB2 from
+      its EDR API) and DWD's ICON-D2 over central Europe — and the chance of
+      rain as a map (DINI's ensemble percentiles, NOAA's NBM in the US).
+- [ ] **WeatherKit** for the Plus route forecast worldwide, minute by minute
+      for the first hour; Apple's terms on caching and attribution first.
+
 ## On the Mac (Xcode)
 
-- [ ] The file-open handler in `ios/Runner/AppDelegate.swift` (a GPX opened
-      from Files or another app) has not been tried on a phone.
-- [ ] **Apple Watch app** (`app/ios/VelorkiWatch`): its buttons and footnotes
-      are English only (the ARB cannot reach a native target; add
-      `Localizable.strings` for German); no complications. A ride on the
+- [ ] **Apple Watch app** (`app/ios/VelorkiWatch`): no complications. A ride on the
       Series 6 with the phone locked is the real check: pulse arriving, wrist
       taps on time, watch battery after a ride. A paused ride ends the watch's
       session at every standstill, auto-pause included, and the first reading
@@ -84,6 +89,25 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
       to confirm the held audio session and the silent lead-in really do stop
       cues arriving scrambled or cut short (`turn_speaker.dart`,
       `LeadInPlayer` in `ios/Runner/AppDelegate.swift`).
+
+- [ ] **iCloud sync before the release** (`ios/Runner/CloudSync.swift`):
+      automatic signing already put iCloud (CloudKit, container
+      `iCloud.com.orkitec.velorki`, key-value store) on the App ID and into
+      the development profile on 2026-10-16; check in the developer portal
+      that the container is the one listed there and that the App Store
+      profile CI makes carries it too (a `dry_run` of `release.yml`). Before
+      shipping, **deploy the CloudKit schema to Production** in the CloudKit
+      console (record types `Route` and `Ride`, created in Development by the
+      first sync from a debug build): a release build talks to Production and
+      fails every save without it. Then two devices on one Apple Account:
+      first sync of an existing library, a new device downloading it, a
+      rename on each side, a delete against an edit, a Strava route staying
+      put, iCloud off in iOS Settings, the switch off and on.
+- [ ] iCloud sync without push: changes are fetched at launch, on return to
+      the app and when the engine schedules it. Adding the Push Notifications
+      capability (`aps-environment`) and the remote-notification background
+      mode would let CKSyncEngine bring changes in while the app is open on
+      the other device.
 
 ## Still to try on the Android phone
 
@@ -111,6 +135,10 @@ stopped ride, the Library's rides list.
 ## Store consoles
 
 Everything still unticked in [STORE_CHECKLIST.md](STORE_CHECKLIST.md).
+
+- [ ] **Store texts**: the free and Plus sections of the store descriptions
+      say nothing of the weather yet; the French iOS description is 5
+      characters short of Apple's 4000, so something has to go there.
 
 ## Later
 

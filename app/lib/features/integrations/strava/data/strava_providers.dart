@@ -12,16 +12,45 @@ import '../../common/data/oauth_token_source.dart';
 import '../../common/data/relay_client_provider.dart';
 import '../../common/data/token_bucket.dart';
 import '../../common/domain/connected_account.dart';
+import '../../common/domain/integration_exception.dart';
 import 'strava_client.dart';
 import 'strava_connector.dart';
 
-/// Keeps the Strava access token fresh, 60 seconds before it expires.
+/// Counts the times Strava refused the rider's authorization: they removed
+/// Velorki's access on strava.com. Whoever has to act on it — delete the
+/// Strava data on the phone and tell the rider — listens here.
+class StravaAccessRevoked extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  /// Reports one more refusal.
+  void report() => state++;
+}
+
+/// See [StravaAccessRevoked].
+final stravaAccessRevokedProvider = NotifierProvider<StravaAccessRevoked, int>(
+  StravaAccessRevoked.new,
+);
+
+/// Keeps the Strava access token fresh, 60 seconds before it expires, and
+/// reports a refresh Strava refused because the access was revoked.
 final stravaTokenSourceProvider = Provider<OAuthTokenSource>(
   (ref) => OAuthTokenSource(
     service: IntegrationService.strava,
     repository: ref.watch(connectedAccountsRepositoryProvider),
-    refresher: (expiring) =>
-        refreshStravaThroughRelay(expiring, relayClient: requireRelay(ref)),
+    refresher: (expiring) async {
+      try {
+        return await refreshStravaThroughRelay(
+          expiring,
+          relayClient: requireRelay(ref),
+        );
+      } on IntegrationException catch (e) {
+        if (e.failure == IntegrationFailure.revoked) {
+          ref.read(stravaAccessRevokedProvider.notifier).report();
+        }
+        rethrow;
+      }
+    },
     onRefreshed: (account) =>
         ref.read(connectedAccountsProvider.notifier).publish(account),
   ),

@@ -1,1 +1,1 @@
-Itinéraires vélo, guidage vocal et enregistrement des sorties, sans compte ni pub, même hors ligne. Nouveau avec Velorki Plus : décrivez une sortie, recevez l’itinéraire.
+Nouveau : radar de pluie, vent et nuages sur la carte, météo sur l’itinéraire, itinéraires colorés par pente, revêtement, vent ou pluie. Guidage vocal aussi en import.

@@ -188,6 +188,11 @@ File buildGazetteer(
     db
       ..execute('PRAGMA page_size = 4096;')
       ..execute('PRAGMA journal_mode = DELETE;')
+      // One transaction, not one per row: a commit per insert syncs the
+      // disk thousands of times, which a busy CI runner takes half a minute
+      // over for the bigger fixtures.
+      ..execute('PRAGMA synchronous = OFF;')
+      ..execute('BEGIN;')
       ..execute(
         'CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);',
       )
@@ -403,7 +408,9 @@ CREATE TABLE house_numbers (
         )
         ..execute('INSERT INTO vocab SELECT term, doc FROM temp.v;');
     }
-    db.execute('VACUUM;');
+    db
+      ..execute('COMMIT;')
+      ..execute('VACUUM;');
   } finally {
     db.close();
   }

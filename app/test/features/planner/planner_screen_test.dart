@@ -657,9 +657,15 @@ void main() {
     expect(find.byType(SingleChildScrollView), findsNothing);
   });
 
-  testWidgets('the sheet has one resting height, with or without variants', (
-    tester,
-  ) async {
+  testWidgets('the sheet has one resting height, with or without variants, '
+      'on a screen that holds the time control under them', (tester) async {
+    // A 20:9 phone: the resting sheet holds the figures, the chips, the
+    // actions, Save and the time control. (A shorter screen grows it for
+    // the time control: weather_time_row_placement_test.)
+    tester.view.devicePixelRatio = 2.625;
+    tester.view.physicalSize = const Size(1080, 2400);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final h = await pumpScreen(tester, const PlannerScreen());
     DraggableScrollableSheet sheet() => tester.widget<DraggableScrollableSheet>(
       find.byType(DraggableScrollableSheet),

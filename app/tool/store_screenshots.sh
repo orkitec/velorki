@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The App Store screenshots, from the app on the iOS simulator to the finished
-# slides; with --platform android, the Google Play ones from an Android
-# emulator.
+# slides; with --platform ipad, the 13" iPad ones; with --platform duo, the
+# iPhone Duo's (its inner display); with --platform android, the Google Play
+# ones from an Android emulator.
 #
 #   tool/store_screenshots.sh                          # every language, light and dark
 #   tool/store_screenshots.sh --locales de --themes dark
@@ -9,6 +10,8 @@
 #   tool/store_screenshots.sh --shots dark             # both slide styles show the dark app
 #   tool/store_screenshots.sh --until variants         # capture only up to that screen
 #   tool/store_screenshots.sh --preview                # the preview video instead (store/preview_set.json)
+#   tool/store_screenshots.sh --platform ipad          # the iPad set; see below
+#   tool/store_screenshots.sh --platform duo           # the iPhone Duo set; see below
 #   tool/store_screenshots.sh --platform android       # the Google Play set; see below
 #
 # Output, under app/build/store_screenshots/ (git-ignored):
@@ -39,6 +42,23 @@
 #   showed, on the watch simulator;
 # * then tool/store_slides.py makes the slides.
 #
+# --platform ipad takes the same screens on the simulator "Velorki Shots iPad
+# 13" (VELORKI_STORE_SIM again takes a UDID), created as an iPad Pro 13-inch
+# (M5): 2064x2752, the size App Store Connect wants for 13". The slides are
+# those of store/slide_set_ipad.json; no watch or preview. Output under
+# ipad/: raw/<theme>/<locale>/<screen>.png and slides/ (see
+# tool/store_slides.py --platform ipad).
+#
+# --platform duo takes the same screens on the simulator "Velorki Shots Duo"
+# (VELORKI_STORE_SIM again takes a UDID), created as an iPhone Duo on the
+# newest iOS runtime that has one (27.1 or later). It boots folded: after
+# every boot tool/duo_state.c, built for the simulator and run in it, opens
+# the hinge to 180 degrees and holds the device upright, which lays the inner
+# display on its side, and the pictures are of that display, 2853x2007 (the
+# port of `simctl io enumerate` that is 2007x2853). The slides are the iPad's
+# set; no watch or preview. Output under duo/. Never `simctl io <duo>
+# screenConfig`: it crash-loops SpringBoard.
+#
 # --platform android takes the screens the Play set uses (store/
 # slide_set_android.json) on an Android emulator: VELORKI_STORE_EMULATOR names
 # its adb serial, else the one emulator running is taken (start one first: a
@@ -48,6 +68,9 @@
 # mirror is reached as 10.0.2.2. No watch, Lock Screen or preview. Output
 # under android/: raw/<theme>/<locale>/<screen>.png and slides/ (see
 # tool/store_slides.py --platform android).
+#
+# VELORKI_STORE_MONITOR=<seconds> logs memory, disk, the busiest processes and
+# the booted simulators that often (the workflow sets it).
 #
 # The run clears the library on that simulator; it is meant to be one kept for
 # this. Needs Xcode, mise (Flutter), python3 and Google Chrome; the map style
@@ -59,6 +82,7 @@ APP="$PWD"
 ROOT="$(cd .. && pwd)"
 OUT="$APP/build/store_screenshots"
 SIM_NAME="Velorki Shots 6.9"
+SIM_TYPE=com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max
 PORT="${VELORKI_STORE_MIRROR_PORT:-8000}"
 
 LOCALES=en,de,fr,es,it,nl
@@ -88,11 +112,23 @@ die() { printf 'store_screenshots: %s\n' "$*" >&2; exit 1; }
 
 case "$PLATFORM" in
   ios) ;;
+  ipad)
+    [ "$PREVIEW" = 0 ] || die "the preview is recorded on the iPhone only"
+    OUT="$OUT/ipad"
+    SIM_NAME="Velorki Shots iPad 13"
+    SIM_TYPE=com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB
+    ;;
+  duo)
+    [ "$PREVIEW" = 0 ] || die "the preview is recorded on the iPhone only"
+    OUT="$OUT/duo"
+    SIM_NAME="Velorki Shots Duo"
+    SIM_TYPE=com.apple.CoreSimulator.SimDeviceType.iPhone-Duo
+    ;;
   android)
     [ "$PREVIEW" = 0 ] || die "the preview is recorded on iOS only"
     OUT="$OUT/android"
     ;;
-  *) die "unknown platform $PLATFORM (ios or android)" ;;
+  *) die "unknown platform $PLATFORM (ios, ipad, duo or android)" ;;
 esac
 
 # The App Store's region for each language the app ships.
@@ -121,13 +157,20 @@ for devices in json.load(sys.stdin)["devices"].values():
 ' "$SIM_NAME")"
   if [ -z "$udid" ]; then
     local runtime
+    # The newest runtime that has the device: the Duo needs iOS 27.1, and
+    # a runner can have only 27.0.
     runtime="$(xcrun simctl list runtimes -j | python3 -c '
 import json, sys
-ios = [r for r in json.load(sys.stdin)["runtimes"] if r["platform"] == "iOS" and r["isAvailable"]]
+kind = sys.argv[1]
+ios = [r for r in json.load(sys.stdin)["runtimes"] if r["platform"] == "iOS" and r["isAvailable"]
+       and any(d["identifier"] == kind for d in r.get("supportedDeviceTypes", []))]
 print(max(ios, key=lambda r: [int(p) for p in r["version"].split(".")])["identifier"] if ios else "")
-')"
-    [ -n "$runtime" ] || die "no iOS simulator runtime is installed (xcodebuild -downloadPlatform iOS)"
-    udid="$(xcrun simctl create "$SIM_NAME" com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max "$runtime")"
+' "$SIM_TYPE")"
+    [ -n "$runtime" ] || die "no installed iOS simulator runtime supports $SIM_TYPE (xcodebuild -downloadPlatform iOS; the iPhone Duo needs iOS 27.1 or later)"
+    # Command substitution does not inherit set -e: a failed create would
+    # go on with its message as the UDID.
+    udid="$(xcrun simctl create "$SIM_NAME" "$SIM_TYPE" "$runtime")" \
+      || die "could not create $SIM_NAME ($SIM_TYPE) on $runtime"
     say "created $SIM_NAME ($udid) on $runtime" >&2
   fi
   echo "$udid"
@@ -147,12 +190,46 @@ boot() {  # boot <udid> <language> <region>
     xcrun simctl boot "$udid"
     xcrun simctl bootstatus "$udid" -b > /dev/null
   fi
+  [ "$PLATFORM" = duo ] && unfold "$udid"
   # A moment for SpringBoard to settle before anything is installed.
   sleep 15
-  xcrun simctl status_bar "$udid" override --time 9:41 \
-    --dataNetwork wifi --wifiMode active --wifiBars 3 \
-    --cellularMode active --cellularBars 4 --operatorName '' \
-    --batteryState discharging --batteryLevel 100
+  python3 "$APP/tool/store_shutter.py" --status-bar "$udid"
+}
+
+# The iPhone Duo boots folded, on its outer display: opened flat and held
+# upright, its inner display is the active one, wider than tall.
+DUO_STATE=""
+unfold() {  # unfold <udid>
+  local udid=$1
+  if [ -z "$DUO_STATE" ]; then
+    DUO_STATE="$WORK/duo_state"
+    xcrun -sdk iphonesimulator clang -arch "$(uname -m)" -mios-simulator-version-min=17.0 -O2 \
+      -o "$DUO_STATE" "$APP/tool/duo_state.c" -framework IOKit -framework CoreFoundation
+    codesign -f -s - "$DUO_STATE" 2> /dev/null
+  fi
+  xcrun simctl spawn "$udid" "$DUO_STATE" hinge 180
+  xcrun simctl spawn "$udid" "$DUO_STATE" orientation portrait
+  local displays
+  for _ in $(seq 1 60); do
+    # Read whole first: grep -q would end the pipe early, and devicectl's
+    # broken pipe fails it under pipefail.
+    displays="$(xcrun devicectl device info displays -d "$udid" 2> /dev/null || true)"
+    case "$displays" in *'LCD-1 (active)'*) say "unfolded, the inner display active"; return 0 ;; esac
+    sleep 1
+  done
+  xcrun devicectl device info displays -d "$udid" >&2 || true
+  die "the Duo's inner display never became active"
+}
+
+# The UUID of the Duo's inner display, the 2007x2853 framebuffer.
+inner_display() {  # inner_display <udid>
+  xcrun simctl io "$1" enumerate | python3 -c '
+import re, sys
+for port in sys.stdin.read().split("Port:"):
+    uuid = re.search(r"UUID: (\S+)", port)
+    if uuid and "Default width: 2007" in port and "Default height: 2853" in port:
+        print(uuid.group(1)); break
+'
 }
 
 # The adb serial of the emulator to use.
@@ -313,9 +390,14 @@ print(",".join(c["clip"] + ":" + c["theme"] for c in json.load(open(sys.argv[1])
 
 MIRROR_PID=""
 SHUTTER_PID=""
+MONITOR_PID=""
 DEMO_SERIAL=""
 WORK="$(mktemp -d)"
 cleanup() {
+  if [ -n "$MONITOR_PID" ]; then
+    kill "$MONITOR_PID" 2> /dev/null || true
+    wait "$MONITOR_PID" 2> /dev/null || true
+  fi
   if [ -n "$SHUTTER_PID" ]; then
     kill "$SHUTTER_PID" 2> /dev/null || true
     wait "$SHUTTER_PID" 2> /dev/null || true
@@ -328,6 +410,34 @@ cleanup() {
   rm -rf "$WORK"
 }
 trap cleanup EXIT
+
+# Every VELORKI_STORE_MONITOR seconds (the workflow sets it), what the machine
+# is doing: memory, swap, disk, the busiest processes, the booted simulators
+# and the test's last line, so a runner that dies mid-capture leaves a trail.
+monitor() {
+  # Asleep in the background and waited for, so a TERM ends it at once.
+  local nap
+  trap 'kill "$nap" 2> /dev/null; exit 0' TERM
+  while true; do
+    sleep "$VELORKI_STORE_MONITOR" &
+    nap=$!
+    wait "$nap"
+    {
+      echo "--- $(date -u +%H:%M:%S) monitor"
+      memory_pressure -Q 2> /dev/null | tail -1
+      echo "swap: $(sysctl -n vm.swapusage 2> /dev/null)"
+      df -h / "$HOME" 2> /dev/null | awk 'NR == 1 || !seen[$0]++'
+      top -l 2 -s 1 -n 6 -o cpu -stats pid,command,cpu,mem 2> /dev/null | tail -7
+      xcrun simctl list devices booted 2> /dev/null | grep -v '^[=-]' || true
+      tail -n 1 "$WORK"/test-*.log 2> /dev/null | grep -v '^==>' | cut -c1-200 || true
+      echo "---"
+    } >&2
+  done
+}
+if [ "${VELORKI_STORE_MONITOR:-0}" -gt 0 ] 2> /dev/null; then
+  monitor &
+  MONITOR_PID=$!
+fi
 
 if [ "$CAPTURE" = 1 ]; then
   if ! command -v flutter > /dev/null; then
@@ -394,7 +504,13 @@ PY
       python3 "$APP/tool/store_shutter.py" --android "$DEVICE" "$OUT/raw" &
     else
       boot "$UDID" "${region/_/-}" "$region"
-      python3 "$APP/tool/store_shutter.py" "$UDID" "$OUT/raw" &
+      display=()
+      if [ "$PLATFORM" = duo ]; then
+        inner="$(inner_display "$UDID")"
+        [ -n "$inner" ] || die "no 2007x2853 display on $UDID; is it an iPhone Duo?"
+        display=(--display "$inner")
+      fi
+      python3 "$APP/tool/store_shutter.py" ${display[@]+"${display[@]}"} "$UDID" "$OUT/raw" &
     fi
     SHUTTER_PID=$!
     if [ "$PREVIEW" = 1 ]; then say "recording $locale"; else say "capturing $locale ($THEMES)"; fi
@@ -419,8 +535,8 @@ if [ "$PREVIEW" = 1 ]; then
 fi
 
 say "making the slides"
-if [ "$PLATFORM" = android ]; then
-  python3 "$APP/tool/store_slides.py" --platform android --locales "$LOCALES" \
+if [ "$PLATFORM" != ios ]; then
+  python3 "$APP/tool/store_slides.py" --platform "$PLATFORM" --locales "$LOCALES" \
     --shots "$SHOTS" --raw "$OUT/raw" --out "$OUT/slides" | tail -1
   exit 0
 fi

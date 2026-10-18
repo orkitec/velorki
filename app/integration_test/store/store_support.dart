@@ -5,10 +5,12 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
@@ -19,9 +21,12 @@ import 'package:velorki/features/assistant/domain/intent_resolver.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/import_export/application/incoming_import_listener.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
+import 'package:velorki/features/map/data/weather_map_preferences.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
+import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
+import 'package:velorki/features/map/presentation/visible_map_padding.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/planner/presentation/profile_chip_row.dart';
 import 'package:velorki/features/map/data/offline_regions_repository.dart';
@@ -36,6 +41,9 @@ import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/subscription/application/offered_plus_features.dart';
+import 'package:velorki/features/weather/application/route_colouring.dart';
+import 'package:velorki/features/weather/application/route_overlay.dart';
+import 'package:velorki/features/weather/application/route_weather_controller.dart';
 import 'package:velorki/features/subscription/data/subscription_service.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/recording/data/recording_gateways.dart';
@@ -59,6 +67,7 @@ import '../support/fakes.dart';
 import '../support/harness.dart';
 import '../support/tiles.dart';
 import 'demo_data.dart';
+import 'store_weather.dart';
 
 /// The loop distance the loop sheet opens at: a morning's ride from Funchal.
 const double storeLoopKm = 25;
@@ -114,7 +123,10 @@ Future<StoreSession> startStoreApp(
   await prefs.remove('planner.profile');
   final container = await pumpApp(
     tester,
+    // The weather of one rainy afternoon, the same on every run.
+    dwd: StoreDwdClient(),
     overrides: [
+      ...storeWeatherOverrides(),
       positionSourceProvider.overrideWithValue(positions),
       locationPermissionGatewayProvider.overrideWithValue(
         const GrantedLocationPermission(),
@@ -184,6 +196,11 @@ Future<StoreSession> startStoreApp(
   await container.read(cycleMapPreferencesProvider.notifier).setShown(false);
   await container.read(cyclosmOverlayProvider.notifier).set(false);
   await container.read(mapStopsPreferencesProvider.notifier).setShown(false);
+  final weather = container.read(weatherMapPreferencesProvider.notifier);
+  await weather.setRadar(false);
+  await weather.setClouds(false);
+  await weather.setWind(false);
+  container.read(weatherRadarOffsetProvider.notifier).set(0);
   await pumpFor(tester, const Duration(seconds: 2));
   return StoreSession(container, positions, ride, relay);
 }
@@ -347,6 +364,19 @@ Future<void> frameRoute(
   // The planner's own fit goes first; this one lands after it.
   await pumpFor(tester, const Duration(seconds: 2));
   final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+  final wide = _widePadding(tester);
+  if (wide != null) {
+    // In a wide window the route goes in the map beside the column, the
+    // names' room added at its sides; the phone's measures below would
+    // reach past the window there.
+    await container
+        .read(sharedMapControllerProvider)
+        ?.fitBounds(
+          BoundingBox.fromPoints([for (final point in line) point.pos]),
+          padding: wide.copyWith(left: wide.left + 64, right: wide.right + 48),
+        );
+    return;
+  }
   final chips = tester.getRect(find.byType(ProfileChipRow).first);
   final controls = tester.getRect(find.byType(MapControls).first);
   final sheet = tester.getRect(
@@ -374,17 +404,86 @@ Future<void> frameRoute(
 }
 
 /// Centres the map on [center] at [zoom], in the part of the Plan tab's map
-/// between its chrome and its sheet.
+/// between its chrome and its sheet: at once, or gliding there over
+/// [glide].
 Future<void> frameArea(
   WidgetTester tester,
   ProviderContainer container,
   LatLng center,
-  double zoom,
-) async {
-  await pumpFor(tester, const Duration(seconds: 1));
+  double zoom, {
+  Duration? glide,
+}) async {
+  if (glide == null) await pumpFor(tester, const Duration(seconds: 1));
   final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
-  final chips = tester.getRect(find.byType(ProfileChipRow).first);
-  final sheet = tester.getRect(
+  final wide = _widePadding(tester);
+  final EdgeInsets padding;
+  if (wide != null) {
+    // The map beside the column, which holds the chrome and the sheet.
+    padding = wide;
+  } else {
+    final chips = tester.getRect(find.byType(ProfileChipRow).first);
+    final sheet = tester.getRect(
+      find
+          .descendant(
+            of: find.byType(PlannerScreen),
+            matching: find.byType(SheetHandle),
+          )
+          .first,
+    );
+    padding = EdgeInsets.only(
+      top: chips.bottom,
+      bottom: screen.height - sheet.top,
+    );
+  }
+  await container
+      .read(sharedMapControllerProvider)
+      ?.moveTo(
+        center,
+        zoom: zoom,
+        animate: glide != null,
+        duration: glide,
+        padding: padding,
+      );
+}
+
+/// The app's own padding for the map beside the column in a wide window;
+/// `null` in a phone's layout.
+EdgeInsets? _widePadding(WidgetTester tester) {
+  final context = tester.element(find.byType(PlannerScreen).first);
+  if (!ShellLayout.of(context).widePanel) return null;
+  return visibleMapPadding(context, chromeTop: defaultMapControlsTop);
+}
+
+/// [route] coloured by the rain on the way, under the map's rain, the time
+/// control at [offsetMinutes]: the weather of store_weather.dart, the same
+/// on every run, set as the controls set it, without the dialogs they show
+/// a rider first. The sheet's content is scrolled up to its [save] button,
+/// so the time control and the colours' choice and key show under it at the
+/// sheet's height. Hands back what puts it all as it was.
+Future<Future<void> Function()> showRouteRain(
+  WidgetTester tester,
+  ProviderContainer container,
+  SavedRoute route, {
+  required int offsetMinutes,
+  required String save,
+}) async {
+  container.read(plusEntitledProvider.notifier).value = false;
+  final overlay = container.read(routeOverlayChoiceProvider);
+  final colouringOn = container.read(routeColouringOnProvider);
+  final weatherMap = container.read(weatherMapPreferencesProvider.notifier);
+  final planner = container.read(plannerControllerProvider.notifier);
+  // The weather first, so the frames are loading while the route comes in.
+  planner.clear();
+  await container
+      .read(routeOverlayChoiceProvider.notifier)
+      .set(RouteOverlay.rain);
+  await container.read(routeColouringOnProvider.notifier).set(on: true);
+  await weatherMap.setRadar(true);
+  container.read(weatherRadarOffsetProvider.notifier).set(offsetMinutes);
+  await pumpFor(tester, const Duration(seconds: 3));
+  planner.loadSavedRoute(route);
+  await pumpFor(tester, const Duration(seconds: 1));
+  final handle = tester.getRect(
     find
         .descendant(
           of: find.byType(PlannerScreen),
@@ -392,17 +491,114 @@ Future<void> frameArea(
         )
         .first,
   );
-  await container
-      .read(sharedMapControllerProvider)
-      ?.moveTo(
-        center,
-        zoom: zoom,
-        animate: false,
-        padding: EdgeInsets.only(
-          top: chips.bottom,
-          bottom: screen.height - sheet.top,
+  final button = tester.getRect(find.widgetWithText(FilledButton, save).first);
+  final list = tester
+      .stateList<ScrollableState>(
+        find.descendant(
+          of: find.byType(PlannerScreen),
+          matching: find.byType(Scrollable),
         ),
-      );
+      )
+      .firstWhere((s) => s.position.axis == Axis.vertical)
+      .position;
+  list.jumpTo(list.pixels + button.top - handle.bottom - 2);
+  await frameRoute(tester, container, route.geometry);
+  await waitUntil(
+    tester,
+    () => container
+        .read(routeColouringProvider(plannerWeatherRoute))
+        .colours
+        .isNotEmpty,
+    describe: 'the route coloured by the rain',
+  );
+  return () async {
+    await weatherMap.setRadar(false);
+    container.read(weatherRadarOffsetProvider.notifier).set(0);
+    scrollSheetToTop(tester);
+    await container.read(routeOverlayChoiceProvider.notifier).set(overlay);
+    await container
+        .read(routeColouringOnProvider.notifier)
+        .set(on: colouringOn);
+  };
+}
+
+/// A finger on the screen, its touches sent as the device's own: the test
+/// binding draws a crosshair over every touch a test makes, which would be
+/// in a recording.
+class DeviceFinger {
+  DeviceFinger._(this._tester, this._binding, this._gesture, this._at);
+
+  final WidgetTester _tester;
+  final LiveTestWidgetsFlutterBinding _binding;
+  final TestGesture _gesture;
+  Offset _at;
+
+  /// Puts a finger down at [at], ready to drag what is there: it lands a
+  /// touch slop to the left and slides onto [at], so the drag has begun
+  /// when it gets there and moves from there as the finger does.
+  static Future<DeviceFinger> press(WidgetTester tester, Offset at) async {
+    final binding = tester.binding as LiveTestWidgetsFlutterBinding;
+    binding.shouldPropagateDevicePointerEvents = true;
+    final gesture = TestGesture(
+      dispatcher: (event) async => binding.handlePointerEventForSource(
+        event,
+        source: TestBindingEventSource.device,
+      ),
+    );
+    final start = at - const Offset(kTouchSlop + 2, 0);
+    await gesture.down(start);
+    final finger = DeviceFinger._(tester, binding, gesture, start);
+    await finger.slide(at, const Duration(milliseconds: 300));
+    return finger;
+  }
+
+  /// Slides to [to] at an even pace [over] that long, however long the
+  /// frames take.
+  Future<void> slide(Offset to, Duration over) async {
+    final from = _at;
+    final clock = Stopwatch()..start();
+    while (clock.elapsed < over) {
+      await _tester.pump(const Duration(milliseconds: 16));
+      final t = clock.elapsedMicroseconds / over.inMicroseconds;
+      await _gesture.moveTo(Offset.lerp(from, to, t.clamp(0.0, 1.0))!);
+    }
+    await _gesture.moveTo(to);
+    _at = to;
+    await _tester.pump(const Duration(milliseconds: 16));
+  }
+
+  /// Slides to the right ([pixelsPerSecond] > 0) or the left at that pace
+  /// until [done] holds, failing after [timeout] with what [describe] says.
+  Future<void> slideUntil(
+    bool Function() done, {
+    required double pixelsPerSecond,
+    Duration timeout = const Duration(seconds: 10),
+    String Function()? describe,
+  }) async {
+    final from = _at;
+    final clock = Stopwatch()..start();
+    while (!done()) {
+      if (clock.elapsed > timeout) {
+        fail(
+          'the drag never got where it was going: at $_at'
+          '${describe == null ? '' : ', ${describe()}'}',
+        );
+      }
+      await _tester.pump(const Duration(milliseconds: 16));
+      _at = from + Offset(pixelsPerSecond * clock.elapsedMicroseconds / 1e6, 0);
+      await _gesture.moveTo(_at);
+    }
+    await _tester.pump(const Duration(milliseconds: 16));
+  }
+
+  /// Lifts the finger.
+  Future<void> lift() async {
+    try {
+      await _gesture.up();
+    } finally {
+      _binding.shouldPropagateDevicePointerEvents = false;
+    }
+  }
 }
 
 /// Scrolls every list in the planner's sheet back to its top.

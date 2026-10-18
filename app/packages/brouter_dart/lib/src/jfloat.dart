@@ -711,7 +711,9 @@ int _estimateDecExp(int fractBits, int binExp) {
     final r = ((dBits & _signifBitMask) | _fractHob) >> (_expShift - exponent);
     return isNegative ? ((mask & dBits) == 0 ? -r : -r - 1) : r;
   } else if (exponent < 0) {
-    return (dBits & 0x7FFFFFFFFFFFFFFF) == 0 ? 0 : (isNegative ? -1 : 0);
+    return (dBits & (0x7fffffff << 32 | 0xffffffff)) == 0
+        ? 0
+        : (isNegative ? -1 : 0);
   } else {
     return d2i(d);
   }

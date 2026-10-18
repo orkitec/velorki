@@ -10,6 +10,7 @@
     "docs": "Guida",
     "plus": "Plus",
     "download": "Download",
+    "getApp": "Scarica l'app",
     "github": "GitHub",
     "menu": "Menù",
     "primary": "Principale",
@@ -56,7 +57,7 @@
       "offline": "Download offline: regioni di mappa e di calcolo percorso sul telefono con dimensione e stato.",
       "settings": "Opzioni: la sezione Aspetto con il selettore chiaro, scuro e sistema e i cinque accenti.",
       "assistant": "L'assistente nella scheda Pianifica: la richiesta di un anello gravel di 40 km con sosta al caffè, ciò che ha capito e l'anello calcolato sulla mappa.",
-      "paywall": "La pagina Velorki Plus come la vede un abbonato: le quattro funzioni incluse e l'abbonamento attivo.",
+      "paywall": "La pagina Velorki Plus come la vede un abbonato: le funzioni incluse e l'abbonamento attivo.",
       "cyclemap": "La mappa ciclabile a Chelsea, New York: la Hudson River Greenway, corsie protette sulle avenue, itinerari locali, frecce di senso unico e soste per caffè e fontanelle sulla mappa.",
       "layers": "Il pannello Livelli: la mappa ciclabile attiva con un chip per ogni elemento, la mappa ciclabile online e le soste con i loro tipi."
     }
@@ -77,11 +78,12 @@
       "storeIos": "Scarica su App Store",
       "storeAndroid": "Disponibile su Google Play",
       "storeGithub": "Scarica da GitHub",
-      "storesPending": "Le schede negli store non sono ancora online. Nel frattempo il codice sorgente e le build sono su GitHub."
+      "storesPending": "Le schede negli store non sono ancora online. Nel frattempo il codice sorgente e le build sono su GitHub.",
+      "browserLink": "oppure pianifica nel browser"
     },
     "free": {
       "title": "Tutto quello che gira sul telefono è gratis",
-      "body": "Pianificazione, anelli, mappe e calcolo del percorso offline, ricerca, navigazione, registrazione, sensori e Apple Watch, statistiche dei giri, file GPX, FIT e TCX: per tutti, per sempre. I dati per il calcolo del percorso e l'indice di ricerca te li mettiamo a disposizione gratis.",
+      "body": "Pianificazione, anelli, mappe e calcolo del percorso offline, ricerca, navigazione, registrazione, sensori e Apple Watch, statistiche dei giri, la mappa meteo e il meteo lungo il percorso, file GPX, FIT e TCX, e le connessioni a Strava e Ride with GPS: per tutti, per sempre. I dati per il calcolo del percorso e l'indice di ricerca te li mettiamo a disposizione gratis.",
       "items": {
         "routing": "Calcolo percorso sul telefono",
         "loops": "Anelli",
@@ -90,7 +92,9 @@
         "navigation": "Svolta per svolta",
         "recording": "Registrazione",
         "sensors": "Sensori e orologio",
-        "files": "GPX, FIT e TCX"
+        "files": "GPX, FIT e TCX",
+        "weather": "Mappa meteo e meteo sul percorso",
+        "connections": "Compatibile con Strava e Ride with GPS"
       }
     },
     "features": {
@@ -99,7 +103,7 @@
       "plan": {
         "eyebrow": "Pianificazione",
         "title": "Un percorso per la bici che stai usando",
-        "body": "Tocca i punti sulla mappa e il percorso viene calcolato sul telefono, su riquadri di 5°×5° scaricati. Profili trekking, bici da corsa, gravel, MTB e più breve, fino a tre alternative, l'altimetria e la ripartizione dei fondi su cui pedalerai.",
+        "body": "Tocca i punti sulla mappa e il percorso viene calcolato sul telefono, su riquadri di 5°×5° scaricati. Profili trekking, bici da corsa, gravel, MTB e più breve, fino a tre alternative, l'altimetria e la ripartizione dei fondi su cui pedalerai. Il percorso si può colorare secondo pendenza, fondo, vento o pioggia, e un cursore del tempo stabilisce quando parti e sposta il meteo sulla mappa e lungo il percorso.",
         "bullets": {
           "one": "Cinque profili bici, fino a tre alternative per percorso",
           "two": "Altimetria e statistiche del fondo per ogni opzione",
@@ -129,7 +133,7 @@
       "navigate": {
         "eyebrow": "Navigazione",
         "title": "Svolte a voce, sul telefono",
-        "body": "Un banner con la svolta e indicazioni vocali mentre segui un percorso, e quando lo lasci, a tua scelta, una via per tornare sul piano, un nuovo percorso verso la destinazione o solo la direzione per rientrare, tutto calcolato sul telefono. Modalità di inseguimento con bussola o con il nord in alto. Le indicazioni nascono dagli stessi dati che hanno calcolato il percorso, quindi funzionano anche dove non c'è rete. Un percorso GPX porta con sé il suo elenco svolte e i suoi punti di interesse, e la scheda di registrazione aggiunge, come pagine sfogliabili, un'altimetria con la salita davanti a te, l'orario di arrivo e l'elenco svolte.",
+        "body": "Un banner con la svolta e indicazioni vocali mentre segui un percorso, e quando lo lasci, a tua scelta, una via per tornare sul piano, un nuovo percorso verso la destinazione o solo la direzione per rientrare, tutto calcolato sul telefono. Modalità di inseguimento con bussola o con il nord in alto. Le indicazioni nascono dagli stessi dati che hanno calcolato il percorso, quindi funzionano anche dove non c'è rete. Un percorso GPX porta con sé il suo elenco svolte e i suoi punti di interesse, e la scheda di registrazione aggiunge, come pagine sfogliabili, un'altimetria con la salita davanti a te, l'orario di arrivo e l'elenco svolte. Un GPX senza svolte le riceve create sul telefono a partire dalla mappa.",
         "bullets": {
           "one": "Banner svolte e indicazioni vocali, offline",
           "two": "Esci dalla linea: ti riporta sul percorso, ne calcola uno nuovo o indica solo la direzione",
@@ -169,11 +173,11 @@
       "files": {
         "eyebrow": "File e servizi",
         "title": "I tuoi giri sono file che ti appartengono",
-        "body": "Importa ed esporta GPX, FIT e TCX dal foglio di condivisione e da “Apri con”, così percorsi e giri passano a Komoot, Garmin Connect, Strava o a qualunque altra cosa legga quei formati. Un percorso GPX conserva il suo elenco svolte e i suoi punti di interesse, e un link di Ride with GPS si apre in Velorki. Le connessioni a Strava e Ride with GPS e i link di condivisione sono la parte Plus.",
+        "body": "Importa ed esporta GPX, FIT e TCX dal foglio di condivisione e da “Apri con”, così percorsi e giri passano a Komoot, Garmin Connect, Strava o a qualunque altra cosa legga quei formati. Un percorso GPX conserva il suo elenco svolte e i suoi punti di interesse, e un link di Ride with GPS si apre in Velorki. Velorki funziona con Strava e Ride with GPS gratis; i link di condivisione fanno parte di Plus. Un solo pulsante Condividi su un percorso o un giro riunisce link, Strava e Ride with GPS.",
         "bullets": {
           "one": "GPX, FIT e TCX in entrata e in uscita, da File, Mail o browser, con elenchi svolte e punti di interesse",
           "two": "Una libreria di percorsi salvati e giri registrati",
-          "three": "Strava, Ride with GPS e link di condivisione con Plus"
+          "three": "Compatibile con Strava e Ride with GPS, gratis; link di condivisione con Plus"
         }
       }
     },
@@ -199,7 +203,7 @@
       },
       "partsNote": "Ogni elemento si attiva e si disattiva da solo, nel pannello Livelli della mappa. Lì i chip fanno da legenda: ognuno mostra la sua linea.",
       "stopsTitle": "Soste sulla mappa",
-      "stopsBody": "Per cominciare caffè, fontanelle, panetterie, bagni e stazioni di riparazione, dagli stessi dati scaricati. Scegli qualsiasi altro tipo da questi gruppi, e tocca una sosta per pianificare fin lì.",
+      "stopsBody": "Per cominciare caffè, fontanelle, panetterie, bagni e stazioni di riparazione, dagli stessi dati scaricati. Scegli qualsiasi altro tipo da questi gruppi, e tocca una sosta per pianificare fin lì. Con la mappa lontana, le soste vicine si raccolgono in bolle con un numero; le soste singole compaiono dallo zoom 15, e lungo un percorso vedi le soste che ti aspettano.",
       "stopGroups": {
         "cyclingStops": "Soste in bici",
         "overnight": "Pernottamento",
@@ -213,7 +217,7 @@
     "plus": {
       "eyebrow": "Velorki Plus",
       "title": "Chiedi il giro che vuoi",
-      "lead": "Plus è l'abbonamento facoltativo per ciò che richiede un server o l'account di un partner. La parte principale è l'assistente: dici cosa hai in mente, e il percorso viene comunque calcolato sul tuo telefono.",
+      "lead": "Plus è l'abbonamento facoltativo per ciò che richiede i nostri server. La parte principale è l'assistente: dici cosa hai in mente, e il percorso viene comunque calcolato sul tuo telefono.",
       "items": {
         "describe": {
           "title": "Descrivere un giro",
@@ -227,9 +231,17 @@
           "title": "Una descrizione per i tuoi percorsi",
           "body": "“Descrivi questo percorso” scrive un paragrafo a partire da ciò che il telefono sa del percorso: salite, fondi, paesi e i caffè lungo la strada."
         },
-        "connect": {
-          "title": "Strava, Ride with GPS e link di condivisione",
-          "body": "Carica i giri su Strava e importa i tuoi percorsi, scambia percorsi e trip in entrambe le direzioni con Ride with GPS, e condividi un percorso o un giro come link che si apre in qualsiasi browser."
+        "sharing": {
+          "title": "Link di condivisione",
+          "body": "Condividi un percorso o un giro come link che si apre in qualsiasi browser, con la mappa, le statistiche e il download del GPX."
+        },
+        "weather": {
+          "title": "Meteo più preciso lungo il percorso",
+          "body": "Il meteo gratuito lungo il percorso viene da una previsione pubblica più grossolana. Plus interroga invece servizi meteo locali — il National Weather Service negli Stati Uniti, le previsioni per stazione del Deutscher Wetterdienst in Germania, MET Norway altrove — per vento, pioggia e temperatura più precisi, con raffiche e probabilità di pioggia."
+        },
+        "radar": {
+          "title": "Radar pioggia in tutta Europa",
+          "body": "Dove la mappa gratuita ha solo stime da satellite, come in Francia, Spagna, Italia, Regno Unito, Svizzera e Scandinavia, Plus mostra un vero radar di EUMETNET OPERA e Radar-DPC (Italia): celle di 1 km, una nuova immagine ogni 5 minuti, le ultime 2 ore."
         }
       },
       "privacy": "L'assistente chiede prima di inviare qualcosa: ciò che scrivi e, solo se lo consenti, la tua posizione arrotondata a circa un chilometro. Nessun account, nessuna cronologia dei percorsi.",
@@ -240,7 +252,7 @@
     "comparison": {
       "eyebrow": "Gratis vs Plus",
       "title": "Gratis è tutto quello che gira sul telefono",
-      "lead": "Velorki Plus è un piccolo abbonamento solo per le parti che hanno bisogno dei nostri server o di un account partner. Tutto il resto è gratis, per tutti, per sempre.",
+      "lead": "Velorki Plus è un piccolo abbonamento solo per le parti che hanno bisogno dei nostri server. Tutto il resto è gratis, per tutti, per sempre.",
       "feature": "Funzionalità",
       "free": "Gratis",
       "plus": "Plus",
@@ -257,9 +269,13 @@
         "sensors": "Frequenza cardiaca, cadenza e potenza da sensori, orologio e app salute",
         "library": "Libreria di percorsi e giri",
         "files": "Importazione ed esportazione GPX, FIT e TCX",
+        "weatherMap": "Mappa meteo: radar pioggia, nuvole e vento, con cursore del tempo",
+        "routeColours": "Meteo lungo il percorso da una previsione pubblica più grossolana: vento, pioggia, temperatura, un riepilogo e l'ora migliore per partire, e il percorso colorato secondo pendenza, fondo, vento o pioggia",
+        "routeWeather": "Meteo più preciso lungo il percorso da servizi meteo locali, con raffiche e probabilità di pioggia",
+        "radarEurope": "Vero radar pioggia in tutta Europa dove la mappa gratuita ha solo stime da satellite",
         "assistant": "L'assistente: una frase diventa un percorso",
-        "strava": "Strava: carica i giri, importa i percorsi",
-        "rwgps": "Ride with GPS: percorsi e giri in entrambe le direzioni",
+        "strava": "Compatibile con Strava: carica i giri, importa i tuoi percorsi",
+        "rwgps": "Compatibile con Ride with GPS: percorsi e giri in entrambe le direzioni",
         "sharing": "Link di condivisione per percorsi e giri"
       },
       "note": "Il codice di tutto questo è qui, quindi puoi anche far girare il tuo relay e saltare del tutto l'abbonamento.",
@@ -271,6 +287,29 @@
       "githubLink": "Leggi il codice su GitHub",
       "creditsLink": "Crediti e licenze"
     },
+    "webPlanner": {
+      "eyebrow": "Nel browser",
+      "title": "Pianifica su uno schermo grande",
+      "lead": "Il pianificatore funziona anche nel browser: gratis, niente da installare, senza account. Calcola i percorsi sul tuo computer con lo stesso calcolo dei percorsi dell’app, dai dati di routing della zona in cui pianifichi.",
+      "doesTitle": "Cosa fa",
+      "does": {
+        "routing": "Percorsi con i profili Trekking, Corsa, Gravel e MTB, varianti e anelli",
+        "elevation": "Distanza, dislivello e altimetria, colorati per pendenza o fondo",
+        "maps": "Ricerca di luoghi, la mappa ciclabile, le soste lungo il percorso e la mappa meteo",
+        "library": "Una libreria dei tuoi percorsi e file GPX da scaricare"
+      },
+      "doesntTitle": "Cosa resta nell’app",
+      "doesnt": {
+        "ride": "Registrare le uscite e la navigazione passo passo",
+        "offline": "Le aree di mappa salvate per pedalare senza segnale",
+        "connections": "Strava, Ride with GPS e la sincronizzazione con iCloud"
+      },
+      "ride": "L’app è fatta per pedalare: registra, naviga e funziona offline lungo la strada.",
+      "open": "Apri il pianificatore",
+      "plus": "Per ora Velorki Plus è disponibile solo nelle app per iPhone e Android.",
+      "plusLink": "Scarica l'app",
+      "alt": "Il pianificatore di Velorki in una finestra del browser: un percorso lungo la costa di Madeira da Funchal a Caniço, con distanza, dislivello e il percorso colorato per pendenza."
+    },
     "faq": {
       "eyebrow": "Domande",
       "title": "Domande frequenti",
@@ -281,15 +320,15 @@
         },
         "offline": {
           "q": "Funziona davvero senza connessione?",
-          "a": "Sì. Scarica una regione una volta sola e la mappa, il calcolo del percorso, la ricerca dei luoghi e le svolte a voce girano tutti sul telefono. Solo l'assistente, le connessioni a Strava e Ride with GPS e i link di condivisione hanno bisogno della rete, e sono le funzionalità Plus."
+          "a": "Sì. Scarica una regione una volta sola e la mappa, il calcolo del percorso, la ricerca dei luoghi e le svolte a voce girano tutti sul telefono. Solo il meteo, l'assistente, le connessioni a Strava e Ride with GPS e i link di condivisione hanno bisogno della rete."
         },
         "price": {
           "q": "Quanto costa Velorki?",
-          "a": "Tutto quello che gira sul telefono è gratis: pianificazione, anelli, mappe e calcolo del percorso offline, ricerca, navigazione, registrazione, frequenza cardiaca, cadenza e potenza dai tuoi sensori, statistiche dei giri e file GPX, FIT e TCX. Velorki Plus è un abbonamento per le funzionalità lato server; il prezzo attuale lo mostra lo store nell'app, nella tua valuta."
+          "a": "Tutto quello che gira sul telefono è gratis: pianificazione, anelli, mappe e calcolo del percorso offline, ricerca, navigazione, registrazione, frequenza cardiaca, cadenza e potenza dai tuoi sensori, statistiche dei giri, la mappa meteo, il meteo lungo il percorso da una previsione pubblica, file GPX, FIT e TCX, e le connessioni a Strava e Ride with GPS. Velorki Plus è un abbonamento per le funzionalità lato server; il prezzo attuale lo mostra lo store nell'app, nella tua valuta."
         },
         "plus": {
           "q": "Cos'è Velorki Plus?",
-          "a": "Un piccolo abbonamento per le parti che hanno bisogno dei nostri server o di un account partner: l'assistente, la connessione a Strava, la connessione a Ride with GPS e i link di condivisione. Si acquista, si gestisce e si annulla nell'App Store o su Google Play."
+          "a": "Un piccolo abbonamento per le parti che hanno bisogno dei nostri server: l'assistente, i link di condivisione, il meteo più preciso lungo il percorso da servizi meteo locali e il radar pioggia in tutta Europa. Si acquista, si gestisce e si annulla nell'App Store o su Google Play."
         },
         "data": {
           "q": "Cosa esce dal mio telefono?",
@@ -319,32 +358,32 @@
   "plus": {
     "meta": {
       "title": "Velorki Plus",
-      "description": "Velorki Plus è un piccolo abbonamento per le parti che richiedono i nostri server o un account partner: assistente, Strava, Ride with GPS, link di condivisione."
+      "description": "Velorki Plus è un piccolo abbonamento per le parti che richiedono i nostri server: assistente, link di condivisione, meteo più preciso sul percorso, radar pioggia in tutta Europa."
     },
     "eyebrow": "Abbonamento",
     "title": "Velorki Plus",
-    "lead": "Tutto quello che gira sul tuo telefono è gratis. Plus paga le parti che hanno bisogno dei nostri server o di un account partner.",
+    "lead": "Tutto quello che gira sul tuo telefono è gratis, e lo sono anche le connessioni a Strava e Ride with GPS. Plus paga le parti che hanno bisogno dei nostri server.",
     "includes": "Cosa include Plus",
     "features": {
       "assistant": {
         "title": "L'assistente",
         "body": "Descrivi il giro che vuoi in una frase — “40 km, soprattutto gravel, una sosta al caffè” — e Velorki lo trasforma in un percorso e lo calcola sul tuo telefono. Il modello gira dietro un relay che custodisce la chiave; l'app non la vede mai."
       },
-      "strava": {
-        "title": "Connessione a Strava",
-        "body": "Carica un giro registrato su Strava e importa i tuoi percorsi Strava nella libreria."
-      },
-      "rwgps": {
-        "title": "Connessione a Ride with GPS",
-        "body": "Percorsi e giri in entrambe le direzioni, tra Ride with GPS e la tua libreria."
-      },
       "sharing": {
         "title": "Link di condivisione",
         "body": "Trasforma un percorso o un giro in un link che chiunque può aprire nel browser, con la mappa, le statistiche e il download del GPX."
+      },
+      "weather": {
+        "title": "Meteo più preciso lungo il percorso",
+        "body": "Il meteo gratuito lungo il percorso viene da una previsione pubblica più grossolana. Plus interroga invece servizi meteo locali — il National Weather Service negli Stati Uniti, le previsioni per stazione del Deutscher Wetterdienst in Germania, MET Norway altrove — per vento, pioggia e temperatura più precisi, con raffiche e probabilità di pioggia."
+      },
+      "radar": {
+        "title": "Radar pioggia in tutta Europa",
+        "body": "Dove la mappa gratuita ha solo stime da satellite, come in Francia, Spagna, Italia, Regno Unito, Svizzera e Scandinavia, Plus mostra un vero radar di EUMETNET OPERA e Radar-DPC (Italia): celle di 1 km, una nuova immagine ogni 5 minuti, le ultime 2 ore."
       }
     },
     "freeTitle": "Cosa resta gratis",
-    "freeBody": "Pianificazione, anelli, mappe e calcolo del percorso offline, ricerca, navigazione svolta per svolta, registrazione, statistiche dei giri e file GPX, FIT e TCX restano gratis, con o senza Plus.",
+    "freeBody": "Pianificazione, anelli, mappe e calcolo del percorso offline, ricerca, navigazione svolta per svolta, registrazione, statistiche dei giri, la mappa meteo, il meteo lungo il percorso da una previsione pubblica più grossolana (vento, pioggia, temperatura, l'ora migliore per partire) con il percorso colorato secondo pendenza, fondo, vento o pioggia, file GPX, FIT e TCX, e le connessioni a Strava e Ride with GPS restano gratis, con o senza Plus.",
     "priceTitle": "Quanto costa",
     "priceBody": "Il prezzo lo vedi nell'app. Lo store mostra il prezzo mensile e annuale attuale nella tua valuta, con un periodo di prova gratuito, e qui non lo riportiamo mai, così non può diventare obsoleto.",
     "restoreTitle": "Ripristinare un abbonamento",
@@ -363,13 +402,16 @@
     },
     "eyebrow": "Download",
     "title": "Scarica Velorki",
-    "lead": "Gratis su entrambe le piattaforme. Tutto quello che gira sul telefono funziona senza account e senza connessione.",
+    "lead": "Gratis su entrambe le piattaforme. Tutto quello che gira sul telefono funziona senza account e senza connessione. L'app parla inglese, tedesco, francese, spagnolo, italiano e olandese.",
     "requirementsTitle": "Cosa serve",
     "android": "Android",
     "ios": "iOS",
     "androidRequirement": "Android {version} o successivo",
     "iosRequirement": "iOS {version} o successivo",
     "storage": "Circa 60 MB per l'app, più tutto quello che scarichi in regioni di mappa e calcolo percorso.",
+    "browserTitle": "Oppure nel browser",
+    "browserBody": "Pianifica i percorsi al computer con il pianificatore web: le stesse mappe, lo stesso calcolo dei percorsi e la stessa libreria, senza installare nulla.",
+    "browserLink": "Apri il pianificatore",
     "apkTitle": "APK e build dal sorgente",
     "apkBody": "Ogni release è taggata su GitHub con il suo APK allegato, per chi preferisce non usare uno store. Installando così, gli aggiornamenti sono manuali.",
     "apkLink": "GitHub Releases",

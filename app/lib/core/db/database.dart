@@ -1,42 +1,43 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'connection/connection.dart';
 import 'daos/offline_regions_dao.dart';
 import 'daos/rides_dao.dart';
 import 'daos/routes_dao.dart';
 import 'daos/routing_tiles_dao.dart';
+import 'daos/sync_dao.dart';
+import 'sync_triggers.dart';
 import 'tables/offline_regions.dart';
 import 'tables/rides.dart';
 import 'tables/routes.dart';
 import 'tables/routing_tiles.dart';
+import 'tables/sync_records.dart';
 
 export 'tables/offline_regions.dart';
 export 'tables/rides.dart';
 export 'tables/routes.dart';
 export 'tables/routing_tiles.dart';
+export 'tables/sync_records.dart';
 
 part 'database.g.dart';
 
 @DriftDatabase(
-  tables: [Routes, Rides, OfflineRegions, RoutingTiles],
-  daos: [RoutesDao, RidesDao, OfflineRegionsDao, RoutingTilesDao],
+  tables: [Routes, Rides, OfflineRegions, RoutingTiles, SyncRecords],
+  daos: [RoutesDao, RidesDao, OfflineRegionsDao, RoutingTilesDao, SyncDao],
 )
 class VelorkiDatabase extends _$VelorkiDatabase {
   VelorkiDatabase(super.e);
 
   /// In-memory instance for tests.
-  VelorkiDatabase.memory() : super(NativeDatabase.memory());
+  VelorkiDatabase.memory() : super(inMemoryDatabase());
 
-  /// The on-device database, opened on a background isolate.
-  factory VelorkiDatabase.open() => VelorkiDatabase(_openConnection());
+  /// The on-device database, opened on a background isolate (in the browser,
+  /// in a web worker).
+  factory VelorkiDatabase.open() => VelorkiDatabase(openVelorkiDatabase());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -85,6 +86,20 @@ class VelorkiDatabase extends _$VelorkiDatabase {
         await m.addColumn(routes, routes.originalJson);
         await m.addColumn(routes, routes.originalGeometry);
       }
+      // 10 marked the turns the phone worked out from the map for a file
+      // that had none; older routes keep false.
+      if (from < 10) await m.addColumn(routes, routes.turnsGenerated);
+      // 11 added the iCloud sync outbox, kept by triggers; the library
+      // that was there is marked to be sent once.
+      if (from < 11) {
+        await m.createTable(syncRecords);
+        await createSyncTriggers(this);
+        await markLibraryUnsynced(this);
+      }
+    },
+    onCreate: (m) async {
+      await m.createAll();
+      await createSyncTriggers(this);
     },
     beforeOpen: (_) async {
       // SQLite needs this per connection for the rides → routes foreign key.
@@ -92,13 +107,6 @@ class VelorkiDatabase extends _$VelorkiDatabase {
     },
   );
 }
-
-QueryExecutor _openConnection() => LazyDatabase(() async {
-  final dir = await getApplicationDocumentsDirectory();
-  return NativeDatabase.createInBackground(
-    File(p.join(dir.path, 'velorki.sqlite')),
-  );
-});
 
 @Riverpod(keepAlive: true)
 VelorkiDatabase velorkiDatabase(Ref ref) {
@@ -120,3 +128,6 @@ OfflineRegionsDao offlineRegionsDao(Ref ref) =>
 @Riverpod(keepAlive: true)
 RoutingTilesDao routingTilesDao(Ref ref) =>
     ref.watch(velorkiDatabaseProvider).routingTilesDao;
+
+@Riverpod(keepAlive: true)
+SyncDao syncDao(Ref ref) => ref.watch(velorkiDatabaseProvider).syncDao;

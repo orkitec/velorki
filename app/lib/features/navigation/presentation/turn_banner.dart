@@ -41,6 +41,10 @@ const double thenPreviewM = 250;
 /// How close a point of interest has to be before it takes the banner.
 const double poiBannerM = 300;
 
+/// The least banner width at which "New route from here" is written out;
+/// narrower, the button is its icon.
+const double _wordsButtonMinWidth = 336;
+
 class TurnBanner extends ConsumerWidget {
   /// Creates the banner.
   const TurnBanner({required this.progress, super.key});
@@ -83,19 +87,9 @@ class TurnBanner extends ConsumerWidget {
         _distance(theme, distanceLabel(guidance.distanceM, l10n, units), tint),
         _instruction(theme, backToRouteLabel(guidance.direction, l10n)),
         const SizedBox(width: 4),
-        TextButton(
-          style: TextButton.styleFrom(
-            visualDensity: VisualDensity.compact,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            minimumSize: const Size(0, 36),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            textStyle: theme.textTheme.labelLarge,
-          ),
-          onPressed: () => ref
-              .read(navigationControllerProvider.notifier)
-              .requestFullReroute(),
-          child: Text(l10n.navNewRouteFromHere),
-        ),
+        // Written out, or its icon where the banner is narrow: see
+        // [_NewRouteButton].
+        const _NewRouteButton(narrow: false),
       ];
     } else if (progress.rerouting) {
       // A request is out for a way back onto the route: say that rather than
@@ -199,7 +193,13 @@ class TurnBanner extends ConsumerWidget {
                     children: [
                       Icon(icon, size: 28, color: tint),
                       const SizedBox(width: 10),
-                      ...row,
+                      for (final item in row)
+                        if (item is _NewRouteButton)
+                          _NewRouteButton(
+                            narrow: constraints.maxWidth < _wordsButtonMinWidth,
+                          )
+                        else
+                          item,
                       // Quiet for this ride, without walking to Settings and
                       // losing the choice for every ride after it. Nothing to
                       // mute while the voice is off, so the button is gone.
@@ -354,5 +354,46 @@ class _Instruction extends StatelessWidget {
     final fits = !painter.didExceedMaxLines && painter.height <= height;
     painter.dispose();
     return fits;
+  }
+}
+
+/// "New route from here", while the rider is guided back to the route. On
+/// the narrowest banners (a phone 320 wide, a wide window's compact column)
+/// the words leave the distance no room: [narrow], it is its icon, with the
+/// words as its tooltip.
+class _NewRouteButton extends ConsumerWidget {
+  const _NewRouteButton({required this.narrow});
+
+  /// Whether the banner is too narrow for the words.
+  final bool narrow;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    void reroute() =>
+        ref.read(navigationControllerProvider.notifier).requestFullReroute();
+    if (narrow) {
+      return IconButton(
+        icon: const Icon(Icons.alt_route),
+        color: theme.velorki.accent,
+        tooltip: l10n.navNewRouteFromHere,
+        visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        onPressed: reroute,
+      );
+    }
+    return TextButton(
+      style: TextButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        minimumSize: const Size(0, 36),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        textStyle: theme.textTheme.labelLarge,
+      ),
+      onPressed: reroute,
+      child: Text(l10n.navNewRouteFromHere),
+    );
   }
 }

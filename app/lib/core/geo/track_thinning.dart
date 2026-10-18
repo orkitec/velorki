@@ -23,10 +23,31 @@ List<LatLng> thinTrack(
   double turnDeg = 35,
   int maxPoints = 200,
   double turnSpanM = 30,
+}) => [
+  for (final i in thinTrackIndices(
+    points,
+    everyM: everyM,
+    turnDeg: turnDeg,
+    maxPoints: maxPoints,
+    turnSpanM: turnSpanM,
+  ))
+    points[i].pos,
+];
+
+/// [thinTrack]'s waypoints as indices into [points], in order: for a caller
+/// that has to know which stretch of the track each waypoint stands for.
+List<int> thinTrackIndices(
+  List<TrackPoint> points, {
+  double everyM = 250,
+  double turnDeg = 35,
+  int maxPoints = 200,
+  double turnSpanM = 30,
 }) {
-  if (points.isEmpty) return const <LatLng>[];
+  if (points.isEmpty) return const <int>[];
   final positions = points.map((p) => p.pos).toList(growable: false);
-  if (positions.length <= 2) return positions;
+  if (positions.length <= 2) {
+    return List<int>.generate(positions.length, (i) => i);
+  }
 
   // Cumulative distance along the track.
   final along = List<double>.filled(positions.length, 0);
@@ -52,7 +73,7 @@ List<LatLng> thinTrack(
     kept = _spaced(positions, along, kept, spacing);
     spacing *= 1.25;
   }
-  return kept.map((i) => positions[i]).toList(growable: false);
+  return kept;
 }
 
 /// Walks [candidates] in order and keeps the first, the last, every index in

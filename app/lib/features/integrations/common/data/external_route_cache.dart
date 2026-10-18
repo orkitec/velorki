@@ -25,24 +25,23 @@ class CachedRouteList {
       (now ?? DateTime.now()).toUtc().difference(fetchedAt) > maxAge;
 }
 
-/// The seven-day cache of the route lists read from Strava and Ride with GPS.
+/// The 48-hour cache of the route lists read from Strava and Ride with GPS.
 ///
-/// Strava's API agreement allows Strava data to be kept for seven days; after
-/// that it must be fetched again or thrown away. The rule is applied to both
-/// services so there is only one policy to reason about, and it is enforced on
-/// read as well as by [purgeExpired] at launch — an app that is never opened
-/// for a fortnight must not still be holding a Strava route list.
+/// Strava's API policy lets an app cache Strava data for at most 48 hours;
+/// after that it must be fetched again or thrown away. The rule is applied
+/// to both services so there is only one policy to reason about, and it is
+/// enforced on read as well as by [purgeExpired] at launch — an app that is
+/// not opened for a week must not still be holding a Strava route list.
 ///
-/// Only the list is cached. A route the rider actually imported becomes their
-/// own `routes` row; its `external_fetched_at` records when it was read so a
-/// later milestone can refresh it.
+/// Only the list is cached. A route the rider actually imported becomes a
+/// `routes` row; its `external_fetched_at` records when it was read.
 class ExternalRouteListCache {
   /// Creates a cache over [prefs].
   ExternalRouteListCache(this._prefs, {DateTime Function()? clock})
     : _clock = clock ?? DateTime.now;
 
   /// How long a fetched list may be kept.
-  static const Duration maxAge = Duration(days: 7);
+  static const Duration maxAge = Duration(hours: 48);
 
   /// The shared_preferences key [service] is cached under.
   static String keyFor(IntegrationService service) =>
@@ -62,7 +61,7 @@ class ExternalRouteListCache {
       return null;
     }
     if (decoded.isStale(maxAge: maxAge, now: _clock().toUtc())) {
-      _log.info('dropping the ${service.id} route list: older than 7 days');
+      _log.info('dropping the ${service.id} route list: older than 48 hours');
       _prefs.remove(keyFor(service)).ignore();
       return null;
     }

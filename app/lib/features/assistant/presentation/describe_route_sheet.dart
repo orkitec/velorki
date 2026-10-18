@@ -13,6 +13,7 @@ import '../data/ai_consent_controller.dart';
 import 'ai_consent_dialog.dart';
 import 'assistant_sheet.dart' show ButtonProgress, PlusRequiredBanner;
 import 'assistant_strings.dart';
+import '../../shared/presentation/docking_sheet.dart';
 
 /// Opens "Describe this route" for [route].
 Future<void> showDescribeRouteSheet(BuildContext context, SavedRoute route) =>
@@ -22,7 +23,8 @@ Future<void> showDescribeRouteSheet(BuildContext context, SavedRoute route) =>
       useSafeArea: true,
       // Over the shell's floating navigation bar, not under it.
       useRootNavigator: true,
-      builder: (context) => DescribeRouteSheet(route: route),
+      builder: (context) =>
+          ScrolledUnderLine(child: DescribeRouteSheet(route: route)),
     );
 
 /// A sheet that streams a description of a route and offers to keep it.

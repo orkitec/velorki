@@ -5,7 +5,8 @@
 library;
 
 import 'dart:convert';
-import 'dart:io';
+
+import 'package:velorki_io/io.dart';
 
 import 'core/format_csv.dart';
 import 'core/format_gpx.dart';

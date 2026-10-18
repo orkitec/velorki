@@ -135,8 +135,9 @@ class RoutingTilesScreen extends ConsumerWidget {
 /// Asks whether [wanted] should be downloaded and enqueues them.
 ///
 /// What a download of [wanted] would fetch: the tiles not yet on the device
-/// that this build can read, and those it cannot. Throws
-/// [SegmentsManifestException] when the mirror cannot be read.
+/// that this build can read, those it cannot, and the gazetteers missing
+/// beside tiles that are on it. Throws [SegmentsManifestException] when the
+/// mirror cannot be read.
 class TileDownloadPlan {
   /// Creates the plan.
   const TileDownloadPlan({
@@ -144,10 +145,16 @@ class TileDownloadPlan {
     required this.tooNew,
     required this.manifest,
     required this.supported,
+    this.gazetteers = const <SegmentEntry>[],
   });
 
   /// Tiles to fetch.
   final List<SegmentEntry> entries;
+
+  /// Tiles on the device whose gazetteer the mirror offers but the device
+  /// lacks (it failed to arrive, or the mirror added it later): only the
+  /// `.gaz` is fetched for these.
+  final List<SegmentEntry> gazetteers;
 
   /// Tiles in a format newer than this build reads.
   final List<SegmentEntry> tooNew;
@@ -168,7 +175,8 @@ class TileDownloadPlan {
 }
 
 /// Works out what downloading [wanted] means. Tiles already on the device are
-/// dropped silently.
+/// dropped silently, unless they lack the gazetteer the mirror offers for
+/// them: that much is fetched, in [TileDownloadPlan.gazetteers].
 ///
 /// With [refreshStale] the rider asked for an update rather than for the tiles
 /// they are missing, so a tile the mirror has rebuilt since it was downloaded
@@ -189,10 +197,16 @@ Future<TileDownloadPlan> planTileDownload(
   };
   final entries = <SegmentEntry>[];
   final tooNew = <SegmentEntry>[];
+  final gazetteers = <SegmentEntry>[];
   for (final tile in wanted) {
     final onDevice = present[tile];
     if (onDevice != null &&
         !(refreshStale && onDevice.isOutdatedBy(manifest[tile]))) {
+      final entry = manifest[tile];
+      if (entry?.gazetteer != null &&
+          !repository.gazetteerFileFor(tile).existsSync()) {
+        gazetteers.add(entry!);
+      }
       continue;
     }
     final entry = manifest[tile] ?? SegmentEntry(tile: tile, bytes: 0);
@@ -205,6 +219,7 @@ Future<TileDownloadPlan> planTileDownload(
     tooNew: tooNew,
     manifest: manifest,
     supported: supported,
+    gazetteers: gazetteers,
   );
 }
 
@@ -232,6 +247,14 @@ Future<void> confirmTileDownload(
     return;
   }
   final entries = plan.entries;
+  final queue = ref.read(tileDownloadQueueProvider.notifier);
+  // No tile to fetch: the gazetteers some tiles on the device lack are all
+  // that is left of what the rider asked for, and they need no dialog.
+  if (entries.isEmpty && plan.gazetteers.isNotEmpty) {
+    unawaited(
+      queue.enqueue(const <SegmentEntry>[], gazetteersOnly: plan.gazetteers),
+    );
+  }
   if (plan.tooNew.isNotEmpty && plan.supported != null) {
     if (!context.mounted) return;
     await explainNewerTileFormat(
@@ -292,7 +315,7 @@ Future<void> confirmTileDownload(
     ),
   );
   if (confirmed ?? false) {
-    await ref.read(tileDownloadQueueProvider.notifier).enqueue(entries);
+    await queue.enqueue(entries, gazetteersOnly: plan.gazetteers);
   }
 }
 

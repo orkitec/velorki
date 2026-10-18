@@ -1,6 +1,6 @@
 ---
 title: Privacy on the phone
-description: "In rider's terms: what stays on your phone, what leaves it, when, and to whom. There is no account and nothing is uploaded unless you ask."
+description: "In rider's terms: what stays on your phone, what leaves it, when, and to whom. There is no account, and nothing reaches us unless you ask."
 order: 17
 ---
 
@@ -14,9 +14,10 @@ Everything you make and everything you download:
 - your settings, including which units and which voice you chose, and the weight, year of birth, sex, maximum heart rate, bike weight, bike type and threshold power you may enter under Settings → Rider, which are settings on the phone and are never sent anywhere,
 - downloaded offline map areas,
 - downloaded routing tiles and the place-search indexes that come with them,
-- the access tokens for Strava and Ride with GPS if you connect them, which go into the phone's secure storage in a form only the Velorki relay can open.
+- the access tokens for Strava and Ride with GPS if you connect them, which go into the phone's secure storage in a form only the Velorki relay can open, and are left out of backups.
+- what you take from Strava: your Strava name, the list of your Strava routes for at most 48 hours, the routes you import and the links from uploaded rides to their Strava activities. Disconnecting deletes all of it.
 
-None of it is uploaded anywhere unless you ask for it.
+None of it is uploaded anywhere unless you ask for it. The one exception is iCloud sync on an iPhone or iPad (iOS 17 or later): your routes, rides and a few settings go to your own iCloud, never to us, and Strava data stays on the phone. It is on by default and switched off in Settings, see [the library](./library#syncing-with-icloud-iphone-and-ipad).
 
 On Android, Velorki is deliberately left out of Google's cloud backup and out of device-to-device transfer, so your rides do not get copied off the phone by the system either. Moving to a new phone means exporting what you want to keep as GPX, FIT or TCX files, see [import and export](./import-and-export).
 
@@ -56,7 +57,9 @@ Only with your consent, and only what you allowed: your text, optionally a posit
 
 Nothing goes to either until you connect the account and then ask for something, an upload or an import.
 
-Connecting hands a one-time code to the Velorki relay, which turns it into an access token by adding our application secret, and gives the token to your phone wrapped, so that only the relay can open it. We do not keep the token. After that every upload and import passes through the relay: it checks your subscription, opens the token for that one request and forwards it to Strava or Ride with GPS. It keeps neither the file nor the token, and cannot use the token on its own.
+Connecting hands a one-time code to the Velorki relay, which turns it into an access token by adding our application secret, and gives the token to your phone wrapped, so that only the relay can open it. We do not keep the token. After that every upload and import passes through the relay: it opens the token for that one request and forwards it to Strava or Ride with GPS. It keeps neither the file nor the token, nor any record of the call, and cannot use the token on its own. The connections are free, so no subscription is checked; the relay only counts calls per anonymous install id and per address, for a short while, to stop abuse.
+
+Strava data stays on your phone: it never goes to the assistant, into a share link or to Ride with GPS or any other service. See [Strava and Ride with GPS](./strava-and-ridewithgps).
 
 ### When you make a share link
 
@@ -80,7 +83,7 @@ The store handles the payment and we never see your card. The subscription is ch
 |---|---|
 | A route or a ride | delete it in the [library](./library) |
 | Offline map areas and routing tiles | delete them in [offline data](./offline-maps-and-routing) |
-| A Strava or Ride with GPS token | **Disconnect** in Settings → Connections |
+| A Strava or Ride with GPS token, and everything from Strava | **Disconnect** in Settings → Connections |
 | Everything the app stored | uninstall the app |
 | A share link | it expires after a year; mail [hello@orkitec.com](mailto:hello@orkitec.com) with the link to have it removed sooner |
 

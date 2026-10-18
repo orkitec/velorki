@@ -1,6 +1,7 @@
 // Port of btools.mapaccess.OsmFile (BRouter v1.7.10).
 
-import 'dart:io';
+import 'package:velorki_io/io.dart';
+
 import 'dart:typed_data';
 
 import '../codec/data_buffers.dart';

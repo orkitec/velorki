@@ -26,7 +26,7 @@ Le istruzioni sono: **Svolta a sinistra**, **Svolta a destra**, **Svolta leggerm
 
 Quando una seconda svolta segue subito dopo la prima, una piccola freccia grigia per essa sta in fondo alla pillola.
 
-Un percorso importato con un elenco svolte mostra invece le parole dell'autore per una svolta, "Turn left onto Main Street", e la voce dice anche quelle.
+Un percorso importato con un elenco svolte mostra invece le parole dell'autore per una svolta, "Turn left onto Main Street", e la voce dice anche quelle. Per una traccia GPX senza istruzioni di svolta, il telefono può crearle dai dati di calcolo del percorso, vedi [importare ed esportare](./import-and-export).
 
 Un punto di interesse sul percorso, una fontanella o una zona in cui scendere dalla bici da un file importato, prende il banner quando è più vicino della prossima svolta ed entro 300 m: la sua icona, la distanza e il nome, un pericolo come "Attenzione: …" nel colore di avviso. La voce lo annuncia una volta, con lo stesso anticipo di una svolta, "Tra 100 metri, attenzione: start dismount zone". Vedi [sensori e il tuo orologio](./sensors-and-watch) per cosa arriva all'orologio, e [importare ed esportare](./import-and-export) per da dove vengono i punti.
 

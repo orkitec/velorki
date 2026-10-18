@@ -17,16 +17,13 @@ const ConnectedAccount _strava = ConnectedAccount(
 );
 
 void main() {
-  testWidgets('an entitled rider sees both connect buttons, enabled', (
-    tester,
-  ) async {
+  testWidgets('both connect buttons are enabled', (tester) async {
     await pumpIntegrations(tester, const ConnectionsSection());
 
     expect(find.text(l10n.serviceStrava), findsOneWidget);
     expect(find.text(l10n.serviceRwgps), findsOneWidget);
     expect(find.text(l10n.connectionsNotConnected), findsNWidgets(2));
     expect(find.text(l10n.connectionsConnectRwgps), findsOneWidget);
-    expect(find.text(l10n.connectionsPlusTitle), findsNothing);
 
     // Strava's official button carries the artwork; the wording lives in its
     // accessibility label, which their guidelines require verbatim.
@@ -60,24 +57,24 @@ void main() {
     expect(title.height, lessThan(40));
   });
 
-  testWidgets('without the entitlement the buttons are dead and the Plus '
-      'placeholder explains why', (tester) async {
+  testWidgets('both connections are free: without Plus the buttons work '
+      'and nothing mentions the subscription', (tester) async {
     await pumpIntegrations(
       tester,
       const ConnectionsSection(),
       harness: IntegrationsHarness(entitled: false),
     );
 
-    expect(find.text(l10n.connectionsPlusTitle), findsOneWidget);
-    expect(find.textContaining(l10n.connectionsPlusBody), findsOneWidget);
+    expect(find.text(l10n.sharePlusLabel), findsNothing);
+    expect(find.text(l10n.plusTitle), findsNothing);
     final strava = tester.widget<StravaConnectButton>(
       find.byType(StravaConnectButton),
     );
-    expect(strava.onPressed, isNull);
+    expect(strava.onPressed, isNotNull);
     final rwgps = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, l10n.connectionsConnectRwgps),
     );
-    expect(rwgps.onPressed, isNull);
+    expect(rwgps.onPressed, isNotNull);
   });
 
   testWidgets('a build without a relay says so instead of offering a button', (
@@ -118,6 +115,10 @@ void main() {
 
     await tester.tap(find.byType(StravaConnectButton));
     await tester.pumpAndSettle();
+    // What is read and written, before Strava's page opens.
+    expect(find.text(l10n.stravaConsentTitle), findsOneWidget);
+    await tester.tap(find.text(l10n.commonContinue));
+    await tester.pumpAndSettle();
 
     expect(harness.connectors[IntegrationService.strava]!.connects, 1);
     expect(find.text('Steffen Römer'), findsOneWidget);
@@ -130,6 +131,8 @@ void main() {
         const IntegrationException.cancelled();
 
     await tester.tap(find.byType(StravaConnectButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.commonContinue));
     await tester.pumpAndSettle();
 
     expect(find.byType(SnackBar), findsNothing);
@@ -174,6 +177,7 @@ void main() {
       find.text(l10n.connectionsDisconnectTitle('Strava')),
       findsOneWidget,
     );
+    expect(find.text(l10n.connectionsDisconnectStravaBody), findsOneWidget);
 
     await tester.tap(
       find.widgetWithText(FilledButton, l10n.connectionsDisconnect),
@@ -182,7 +186,12 @@ void main() {
 
     expect(harness.connectors[IntegrationService.strava]!.revokes, 1);
     expect(harness.store.values, isEmpty);
+    // Strava's terms: a written confirmation that their data is gone.
     expect(find.text(l10n.connectionsDisconnected('Strava')), findsOneWidget);
+    expect(find.text(l10n.stravaDataDeleted), findsOneWidget);
+    await tester.tap(find.text(l10n.commonOk));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.stravaDataDeleted), findsNothing);
     expect(find.byType(StravaConnectButton), findsOneWidget);
   });
 
@@ -206,5 +215,58 @@ void main() {
 
     expect(harness.connectors[IntegrationService.strava]!.revokes, 0);
     expect(find.text('Steffen Römer'), findsOneWidget);
+  });
+
+  testWidgets('cancelling the consent sheet opens nothing', (tester) async {
+    final harness = await pumpIntegrations(tester, const ConnectionsSection());
+
+    await tester.tap(find.byType(StravaConnectButton));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.stravaConsentReadsTitle), findsOneWidget);
+    expect(find.text(l10n.stravaConsentWritesBody), findsOneWidget);
+    expect(find.text(l10n.stravaConsentDisconnectBody), findsOneWidget);
+    expect(
+      find.text(l10n.stravaConsentSupport('ride@velorki.com')),
+      findsOneWidget,
+    );
+    expect(find.text(l10n.settingsPrivacyPolicy), findsOneWidget);
+    await tester.tap(find.text(l10n.commonCancel));
+    await tester.pumpAndSettle();
+
+    expect(harness.connectors[IntegrationService.strava]!.connects, 0);
+    expect(find.text(l10n.stravaConsentTitle), findsNothing);
+  });
+
+  testWidgets('Ride with GPS connects without the Strava consent sheet', (
+    tester,
+  ) async {
+    final harness = await pumpIntegrations(tester, const ConnectionsSection());
+
+    await tester.tap(find.text(l10n.connectionsConnectRwgps));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.stravaConsentTitle), findsNothing);
+    expect(harness.connectors[IntegrationService.rwgps]!.connects, 1);
+  });
+
+  testWidgets('a connected Strava account links to the athlete on Strava', (
+    tester,
+  ) async {
+    final harness = await pumpIntegrations(
+      tester,
+      const ConnectionsSection(),
+      harness: IntegrationsHarness(
+        accounts: const <IntegrationService, ConnectedAccount>{
+          IntegrationService.strava: _strava,
+        },
+      ),
+    );
+
+    await tester.tap(find.text(l10n.rideDetailViewOnStrava));
+    await tester.pumpAndSettle();
+
+    expect(harness.openedLinks, [
+      Uri.parse('https://www.strava.com/athletes/42'),
+    ]);
   });
 }

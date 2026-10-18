@@ -133,7 +133,10 @@ class TestMapController implements MapController {
       cameraIdleListeners.remove(listener);
 
   @override
-  Future<void> setStops(List<MapPoi> stops) async {
+  Future<void> setStops(
+    List<MapPoi> stops, {
+    List<String> groups = const <String>[],
+  }) async {
     this.stops = stops;
   }
 

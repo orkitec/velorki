@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -90,7 +91,7 @@ class ImportFileButton extends ConsumerWidget {
         fileName: picked.name,
         sourceHint: 'picker',
       );
-      router.go(importRoute, extra: candidate);
+      unawaited(router.push<void>(importRoute, extra: candidate));
     } on ImportException catch (e) {
       messenger.showSnackBar(
         SnackBar(content: Text(importFailureMessage(l10n, e.failure))),

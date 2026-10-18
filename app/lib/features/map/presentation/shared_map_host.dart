@@ -18,6 +18,7 @@ import '../domain/map_controller.dart';
 import 'map_attribution.dart' show shellAttributionFloor;
 import 'map_chrome.dart';
 import 'puck_ownership.dart';
+import '../../shared/presentation/wide_panel.dart';
 
 part 'shared_map_host.g.dart';
 
@@ -180,8 +181,17 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
       layout,
       defaultTargetPlatform,
     );
-    final attributionInsets = !layout.sideRail
-        ? EdgeInsets.zero
+    // Upright, each side's own safe area: a foldable's system bar can stand
+    // on one side only, and the chip is centred between them. In a wide
+    // window it is centred on the map beside the column.
+    final screen = MediaQueryData.fromView(View.of(context));
+    final attributionInsets = layout.widePanel
+        ? wideMapBeside(context)
+        : !layout.sideRail
+        ? EdgeInsets.only(
+            left: screen.viewPadding.left,
+            right: screen.viewPadding.right,
+          )
         : layout.side == RailSide.left
         ? EdgeInsets.only(left: cover)
         : EdgeInsets.only(right: cover);

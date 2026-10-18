@@ -437,9 +437,14 @@ class RecordingStyleOps implements MapLibreStyleOps {
       if (layerIds.contains(feature['layer'])) feature,
   ];
 
+  /// The source each [clusterExpansionZoom] asked, in order.
+  final List<String> clusterExpansionSources = <String>[];
+
   @override
-  Future<int> clusterExpansionZoom(String sourceId, int clusterId) async =>
-      clusterExpansionZooms[clusterId] ?? 0;
+  Future<int> clusterExpansionZoom(String sourceId, int clusterId) async {
+    clusterExpansionSources.add(sourceId);
+    return clusterExpansionZooms[clusterId] ?? 0;
+  }
 
   @override
   Future<ml.LatLngBounds> getVisibleRegion() async {

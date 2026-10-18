@@ -13,6 +13,8 @@ environment:
 dependencies:
   brouter_dart:
     path: ../brouter_dart
+  velorki_io:
+    path: ../velorki_io
 
 dev_dependencies:
   lints: ^6.0.0

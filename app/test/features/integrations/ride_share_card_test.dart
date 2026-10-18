@@ -1,0 +1,275 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/core/db/database.dart';
+import 'package:velorki/features/integrations/application/ride_uploader.dart';
+import 'package:velorki/features/integrations/common/domain/connected_account.dart';
+import 'package:velorki/features/integrations/presentation/share_rows.dart';
+import 'package:velorki/features/integrations/rwgps/data/rwgps_client.dart';
+import 'package:velorki/features/integrations/strava/data/strava_client.dart';
+import 'package:velorki/features/recording/data/ride_repository.dart';
+import 'package:velorki/features/recording/domain/ride.dart';
+import 'package:velorki/features/recording/domain/ride_upload.dart';
+import 'package:velorki/features/sharing/presentation/share_card.dart';
+import 'package:velorki_geo/velorki_geo.dart';
+
+import '../../support/app.dart';
+import 'support/fake_dio.dart';
+import 'support/pump.dart';
+
+Future<void> _noSleep(Duration _) async {}
+
+const ConnectedAccount _stravaAccount = ConnectedAccount(
+  service: IntegrationService.strava,
+  accessToken: 'access',
+  athleteId: '42',
+  athleteName: 'Steffen',
+  scopes: <String>['read', 'activity:write'],
+);
+
+const ConnectedAccount _rwgpsAccount = ConnectedAccount(
+  service: IntegrationService.rwgps,
+  accessToken: 'rw',
+  athleteId: '1',
+  athleteName: 'Steffen',
+);
+
+List<TrackPoint> _track() => <TrackPoint>[
+  for (var i = 0; i < 10; i++)
+    TrackPoint(
+      LatLng(48 + i * 0.001, 11),
+      ele: 500 + i.toDouble(),
+      time: DateTime.utc(2026, 9, 12, 10, 0, i * 10),
+    ),
+];
+
+void main() {
+  late VelorkiDatabase db;
+  late RideRepository rides;
+
+  setUp(() {
+    db = VelorkiDatabase.memory();
+    rides = RideRepository(db.ridesDao);
+    addTearDown(db.close);
+  });
+
+  Future<Ride> seedRide() => rides.finalizeRide(
+    rideId: 'ride-1',
+    name: 'Morning loop',
+    points: _track(),
+    startedAt: DateTime.utc(2026, 9, 12, 10),
+    endedAt: DateTime.utc(2026, 9, 12, 10, 1, 30),
+  );
+
+  RideUploader uploader(FakeApiAdapter strava) => RideUploader(
+    rides: rides,
+    strava: StravaClient(dio: dioWith(strava), sleep: _noSleep),
+    rwgps: RwgpsClient(
+      dio: dioWith(
+        FakeApiAdapter((_) => FakeResponse.json(<String, Object?>{})),
+      ),
+      sleep: _noSleep,
+    ),
+  );
+
+  /// A Share button that opens the ride's card, as the ride detail does.
+  Widget opener(Ride ride) => Builder(
+    builder: (context) => ShareButton(
+      onPressed: () => showShareCard(
+        context,
+        title: l10n.shareRideTitle,
+        rows: [
+          for (final service in IntegrationService.values)
+            RideUploadShareRow(ride: ride, service: service),
+        ],
+      ),
+    ),
+  );
+
+  Future<void> open(WidgetTester tester) async {
+    await tester.tap(find.text(l10n.shareLinkAction));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.shareRideTitle), findsOneWidget);
+  }
+
+  testWidgets('a connected service offers Upload, the other Connect', (
+    tester,
+  ) async {
+    final ride = await seedRide();
+    await pumpIntegrations(
+      tester,
+      opener(ride),
+      harness: IntegrationsHarness(
+        accounts: const <IntegrationService, ConnectedAccount>{
+          IntegrationService.strava: _stravaAccount,
+        },
+      ),
+    );
+    await open(tester);
+
+    expect(find.text(l10n.shareStravaRideBody), findsOneWidget);
+    expect(find.text(l10n.shareUpload), findsOneWidget);
+    expect(find.text(l10n.shareNotConnected), findsOneWidget);
+    expect(find.text(l10n.shareConnect), findsOneWidget);
+  });
+
+  testWidgets('uploads are free: both connected services offer Upload '
+      'without Plus', (tester) async {
+    final ride = await seedRide();
+    await pumpIntegrations(
+      tester,
+      opener(ride),
+      harness: IntegrationsHarness(
+        entitled: false,
+        accounts: const <IntegrationService, ConnectedAccount>{
+          IntegrationService.strava: _stravaAccount,
+          IntegrationService.rwgps: _rwgpsAccount,
+        },
+      ),
+    );
+    await open(tester);
+
+    expect(find.text(l10n.shareUpload), findsNWidgets(2));
+    expect(find.text(l10n.shareRwgpsRideBody), findsOneWidget);
+  });
+
+  testWidgets('a Strava account without the upload permission is not '
+      'offered an upload', (tester) async {
+    final ride = await seedRide();
+    await pumpIntegrations(
+      tester,
+      opener(ride),
+      harness: IntegrationsHarness(
+        accounts: const <IntegrationService, ConnectedAccount>{
+          IntegrationService.strava: ConnectedAccount(
+            service: IntegrationService.strava,
+            accessToken: 'access',
+            athleteId: '42',
+            scopes: <String>['read'],
+          ),
+        },
+      ),
+    );
+    await open(tester);
+
+    expect(find.text(l10n.shareStravaNoUpload), findsOneWidget);
+    expect(find.text(l10n.shareUpload), findsNothing);
+  });
+
+  testWidgets('uploading ends in a View on Strava link', (tester) async {
+    final ride = await seedRide();
+    final strava = FakeApiAdapter((options) {
+      if (options.method == 'POST') {
+        return FakeResponse.json(<String, Object?>{'id_str': '77'});
+      }
+      return FakeResponse.json(<String, Object?>{
+        'id_str': '77',
+        'activity_id': 5555,
+      });
+    });
+    final harness = await pumpIntegrations(
+      tester,
+      opener(ride),
+      harness: IntegrationsHarness(
+        accounts: const <IntegrationService, ConnectedAccount>{
+          IntegrationService.strava: _stravaAccount,
+        },
+      ),
+      extraOverrides: [
+        rideUploaderProvider.overrideWithValue(uploader(strava)),
+      ],
+    );
+    await open(tester);
+
+    await tester.tap(find.text(l10n.shareUpload));
+    await tester.pump();
+    expect(find.byType(ShareRowProgress), findsOneWidget);
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.rideDetailUploaded('Strava')), findsOneWidget);
+    await tester.tap(find.text(l10n.rideDetailViewOnStrava));
+    await tester.pumpAndSettle();
+    expect(
+      harness.openedLinks.single.toString(),
+      'https://www.strava.com/activities/5555',
+    );
+
+    // The ride now remembers where it went.
+    final stored = await rides.rideById('ride-1');
+    expect(stored!.uploadFor(IntegrationService.strava.id)!.activityId, '5555');
+  });
+
+  testWidgets('a failed upload says why', (tester) async {
+    final ride = await seedRide();
+    final strava = FakeApiAdapter(
+      (_) => FakeResponse.json(<String, Object?>{
+        'message': 'Bad Request',
+      }, status: 400),
+    );
+    await pumpIntegrations(
+      tester,
+      opener(ride),
+      harness: IntegrationsHarness(
+        accounts: const <IntegrationService, ConnectedAccount>{
+          IntegrationService.strava: _stravaAccount,
+        },
+      ),
+      extraOverrides: [
+        rideUploaderProvider.overrideWithValue(uploader(strava)),
+      ],
+    );
+    await open(tester);
+
+    await tester.tap(find.text(l10n.shareUpload));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining(l10n.rideDetailUploadFailed('').trim()),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Bad Request'), findsOneWidget);
+  });
+
+  testWidgets('a ride already on Strava is opened, not uploaded again', (
+    tester,
+  ) async {
+    await seedRide();
+    await rides.recordUpload(
+      'ride-1',
+      serviceId: IntegrationService.strava.id,
+      upload: RideUpload(
+        status: RideUploadStatus.done,
+        uploadedAt: DateTime.utc(2026, 9, 12, 11),
+        activityId: '5555',
+        url: 'https://www.strava.com/activities/5555',
+      ),
+    );
+    final ride = (await rides.rideById('ride-1'))!;
+    final strava = FakeApiAdapter(
+      (_) => FakeResponse.json(<String, Object?>{}),
+    );
+    final harness = await pumpIntegrations(
+      tester,
+      opener(ride),
+      harness: IntegrationsHarness(
+        accounts: const <IntegrationService, ConnectedAccount>{
+          IntegrationService.strava: _stravaAccount,
+        },
+      ),
+      extraOverrides: [
+        rideUploaderProvider.overrideWithValue(uploader(strava)),
+      ],
+    );
+    await open(tester);
+
+    expect(find.text(l10n.shareStravaRideBody), findsNothing);
+    await tester.tap(find.text(l10n.rideDetailViewOnStrava));
+    await tester.pumpAndSettle();
+
+    expect(
+      harness.openedLinks.single.toString(),
+      'https://www.strava.com/activities/5555',
+    );
+    // Nothing was sent to Strava.
+    expect(strava.requests, isEmpty);
+  });
+}

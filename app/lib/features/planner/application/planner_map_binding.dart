@@ -69,7 +69,15 @@ class PlannerMapBinding {
   (String, List<LatLng>)? _drawn;
   // `null` until the first sync: the first state is the baseline, not a change.
   int? _lastWaypointCount;
+
+  /// Whether a route that appeared at once still waits for the camera to
+  /// fit it: a [sync] cut short by a newer one leaves the fit to that one.
+  bool _fitPending = false;
   bool _attached = false;
+
+  /// Counts the syncs begun, so one still awaiting the map when a newer
+  /// state arrives stops there instead of drawing an older plan over it.
+  int _syncs = 0;
 
   /// Counts the detaches, so a [sync] still awaiting the map when the
   /// binding is detached stops there: the screen that owns it may be gone,
@@ -174,11 +182,30 @@ class PlannerMapBinding {
   ///
   /// A detached binding does nothing, and a sync that is detached while it
   /// awaits the map stops at its next step, before anything else is drawn
-  /// and before [fitPadding] is asked for.
+  /// and before [fitPadding] is asked for. So does one that a newer sync
+  /// overtakes: finished after it, it would put back the lines of the plan
+  /// it was given and take off the newer plan's (the variants of a plan
+  /// cleared and replaced by a saved route).
   Future<void> sync(PlannerState state) async {
     if (!_attached) return;
     final epoch = _epoch;
-    bool gone() => epoch != _epoch;
+    final turn = ++_syncs;
+    bool gone() => epoch != _epoch || turn != _syncs;
+    // Only a plan that went from nothing to a whole route in one step (a
+    // saved route being loaded) moves the camera. A binding that is new
+    // because the map's style reloaded must not: the rider was somewhere
+    // else on purpose, and a jump to the route would look like a jump back
+    // to the start. Told as each state arrives, so a sync cut short still
+    // counts; an edit after it calls the fit off.
+    final previous = _lastWaypointCount;
+    final count = state.waypoints.length;
+    _lastWaypointCount = count;
+    if (previous != null && previous != count) {
+      _fitPending =
+          previous == 0 &&
+          count > 1 &&
+          (state.result?.positions.isNotEmpty ?? false);
+    }
     // A closed loop's last waypoint sits exactly on its first: one marker
     // is enough, and the start marker stays the one to drag.
     final shown = state.isClosedLoop
@@ -272,16 +299,8 @@ class PlannerMapBinding {
     await syncColours();
     if (gone()) return;
 
-    // Only a plan that went from nothing to a whole route in one step (a
-    // saved route being loaded) moves the camera. A binding that is new
-    // because the map's style reloaded must not: the rider was somewhere
-    // else on purpose, and a jump to the route would look like a jump back
-    // to the start.
-    final previous = _lastWaypointCount;
-    final appearedAtOnce = previous == 0 && state.waypoints.length > 1;
-    _lastWaypointCount = state.waypoints.length;
-    if (previous != null && appearedAtOnce && positions.isNotEmpty) {
-      if (gone()) return;
+    if (_fitPending && positions.isNotEmpty) {
+      _fitPending = false;
       final padding = fitPadding?.call();
       await map.fitBounds(
         BoundingBox.fromPoints(positions),

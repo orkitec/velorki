@@ -28,27 +28,39 @@ class JMath {
 
   // 32/pi, pi/32 in three parts, and the polynomial coefficients of the
   // HotSpot stubs (StubRoutines::x86::_PI32INV, _P_1.._P_3, _SC_1.._SC_4).
-  static final double _pi32inv = longBitsToDouble(0x40245f306dc9c883);
+  static final double _pi32inv = longBitsToDouble(
+    (0x40245f30 << 32 | 0x6dc9c883),
+  );
   static final double _p1 = longBitsToDouble(0x3fb921fb54400000);
   static final double _p2 = longBitsToDouble(0x3d90b4611a600000);
-  static final double _p3 = longBitsToDouble(0x3b63198a2e037073);
-  static final double _sc4lo = longBitsToDouble(0x3ec71de3a556c734);
-  static final double _sc4hi = longBitsToDouble(0x3efa01a01a01a01a);
-  static final double _sc2lo = longBitsToDouble(0x3f81111111111111);
-  static final double _sc2hi = longBitsToDouble(0x3fa5555555555555);
+  static final double _p3 = longBitsToDouble((0x3b63198a << 32 | 0x2e037073));
+  static final double _sc4lo = longBitsToDouble(
+    (0x3ec71de3 << 32 | 0xa556c734),
+  );
+  static final double _sc4hi = longBitsToDouble(
+    (0x3efa01a0 << 32 | 0x1a01a01a),
+  );
+  static final double _sc2lo = longBitsToDouble(
+    (0x3f811111 << 32 | 0x11111111),
+  );
+  static final double _sc2hi = longBitsToDouble(
+    (0x3fa55555 << 32 | 0x55555555),
+  );
   static final double _sc3lo = longBitsToDouble(
-    0xbf2a01a01a01a01a.toSigned(64),
+    (0xbf2a01a0 << 32 | 0x1a01a01a).toSigned(64),
   );
   static final double _sc3hi = longBitsToDouble(
-    0xbf56c16c16c16c17.toSigned(64),
+    (0xbf56c16c << 32 | 0x16c16c17).toSigned(64),
   );
   static final double _sc1lo = longBitsToDouble(
-    0xbfc5555555555555.toSigned(64),
+    (0xbfc55555 << 32 | 0x55555555).toSigned(64),
   );
   static final double _sc1hi = longBitsToDouble(
     0xbfe0000000000000.toSigned(64),
   );
-  static final double _allOnes = longBitsToDouble(0x3fefffffffffffff);
+  static final double _allOnes = longBitsToDouble(
+    (0x3fefffff << 32 | 0xffffffff),
+  );
   static final double _twoPow55 = longBitsToDouble(0x4360000000000000);
   static final double _twoPowM55 = longBitsToDouble(0x3c80000000000000);
 
@@ -63,256 +75,256 @@ class JMath {
     0x0000000000000000,
     0x0000000000000000,
     0x3ff0000000000000, // 0
-    0xbf73b92e176d6d31,
-    0x3fb917a6bc29b42c,
+    (0xbf73b92e << 32 | 0x176d6d31),
+    (0x3fb917a6 << 32 | 0xbc29b42c),
     0xbc3e2718e0000000,
     0x3ff0000000000000, // 1
-    0xbf93ad06011469fb,
-    0x3fc8f8b83c69a60b,
+    (0xbf93ad06 << 32 | 0x011469fb),
+    (0x3fc8f8b8 << 32 | 0x3c69a60b),
     0xbc626d19c0000000,
     0x3ff0000000000000, // 2
-    0xbfa60bea939d225a,
-    0x3fd294062ed59f06,
+    (0xbfa60bea << 32 | 0x939d225a),
+    (0x3fd29406 << 32 | 0x2ed59f06),
     0xbc75d28da0000000,
     0x3ff0000000000000, // 3
-    0xbfb37ca1866b95cf,
-    0x3fd87de2a6aea963,
+    (0xbfb37ca1 << 32 | 0x866b95cf),
+    (0x3fd87de2 << 32 | 0xa6aea963),
     0xbc672cede0000000,
     0x3ff0000000000000, // 4
-    0xbfbe3a6873fa1279,
-    0x3fde2b5d3806f63b,
+    (0xbfbe3a68 << 32 | 0x73fa1279),
+    (0x3fde2b5d << 32 | 0x3806f63b),
     0x3c5e0d8920000000,
     0x3ff0000000000000, // 5
-    0xbfc592675bc57974,
-    0x3fe1c73b39ae68c8,
+    (0xbfc59267 << 32 | 0x5bc57974),
+    (0x3fe1c73b << 32 | 0x39ae68c8),
     0x3c8b25dd20000000,
     0x3ff0000000000000, // 6
-    0xbfcd0dfe53aba2fd,
-    0x3fe44cf325091dd6,
+    (0xbfcd0dfe << 32 | 0x53aba2fd),
+    (0x3fe44cf3 << 32 | 0x25091dd6),
     0x3c68076a20000000,
     0x3ff0000000000000, // 7
-    0x3fca827999fcef32,
-    0x3fe6a09e667f3bcd,
+    (0x3fca8279 << 32 | 0x99fcef32),
+    (0x3fe6a09e << 32 | 0x667f3bcd),
     0xbc8bdd3420000000,
     0x3fe0000000000000, // 8
-    0x3fc133cc94247758,
-    0x3fe8bc806b151741,
+    (0x3fc133cc << 32 | 0x94247758),
+    (0x3fe8bc80 << 32 | 0x6b151741),
     0xbc82c5e120000000,
     0x3fe0000000000000, // 9
-    0x3fac73b39ae68c87,
-    0x3fea9b66290ea1a3,
+    (0x3fac73b3 << 32 | 0x9ae68c87),
+    (0x3fea9b66 << 32 | 0x290ea1a3),
     0x3c39f630e0000000,
     0x3fe0000000000000, // 10
-    0xbf9d4a2c7f909c4e,
-    0x3fec38b2f180bdb1,
+    (0xbf9d4a2c << 32 | 0x7f909c4e),
+    (0x3fec38b2 << 32 | 0xf180bdb1),
     0xbc76e0b180000000,
     0x3fe0000000000000, // 11
-    0xbfbe087565455a75,
-    0x3fed906bcf328d46,
+    (0xbfbe0875 << 32 | 0x65455a75),
+    (0x3fed906b << 32 | 0xcf328d46),
     0x3c7457e620000000,
     0x3fe0000000000000, // 12
-    0x3fa4a03176acf82d,
-    0x3fee9f4156c62dda,
+    (0x3fa4a031 << 32 | 0x76acf82d),
+    (0x3fee9f41 << 32 | 0x56c62dda),
     0x3c8760b1e0000000,
     0x3fd0000000000000, // 13
-    0xbfac1d1f0e5967d5,
-    0x3fef6297cff75cb0,
+    (0xbfac1d1f << 32 | 0x0e5967d5),
+    (0x3fef6297 << 32 | 0xcff75cb0),
     0x3c75621720000000,
     0x3fd0000000000000, // 14
-    0xbf9ba1650f592f50,
-    0x3fefd88da3d12526,
+    (0xbf9ba165 << 32 | 0x0f592f50),
+    (0x3fefd88d << 32 | 0xa3d12526),
     0xbc887df640000000,
     0x3fc0000000000000, // 15
     0x0000000000000000,
     0x3ff0000000000000,
     0x0000000000000000,
     0x0000000000000000, // 16
-    0x3f9ba1650f592f50,
-    0x3fefd88da3d12526,
+    (0x3f9ba165 << 32 | 0x0f592f50),
+    (0x3fefd88d << 32 | 0xa3d12526),
     0xbc887df640000000,
     0xbfc0000000000000, // 17
-    0x3fac1d1f0e5967d5,
-    0x3fef6297cff75cb0,
+    (0x3fac1d1f << 32 | 0x0e5967d5),
+    (0x3fef6297 << 32 | 0xcff75cb0),
     0x3c75621720000000,
     0xbfd0000000000000, // 18
-    0xbfa4a03176acf82d,
-    0x3fee9f4156c62dda,
+    (0xbfa4a031 << 32 | 0x76acf82d),
+    (0x3fee9f41 << 32 | 0x56c62dda),
     0x3c8760b1e0000000,
     0xbfd0000000000000, // 19
-    0x3fbe087565455a75,
-    0x3fed906bcf328d46,
+    (0x3fbe0875 << 32 | 0x65455a75),
+    (0x3fed906b << 32 | 0xcf328d46),
     0x3c7457e620000000,
     0xbfe0000000000000, // 20
-    0x3f9d4a2c7f909c4e,
-    0x3fec38b2f180bdb1,
+    (0x3f9d4a2c << 32 | 0x7f909c4e),
+    (0x3fec38b2 << 32 | 0xf180bdb1),
     0xbc76e0b180000000,
     0xbfe0000000000000, // 21
-    0xbfac73b39ae68c87,
-    0x3fea9b66290ea1a3,
+    (0xbfac73b3 << 32 | 0x9ae68c87),
+    (0x3fea9b66 << 32 | 0x290ea1a3),
     0x3c39f630e0000000,
     0xbfe0000000000000, // 22
-    0xbfc133cc94247758,
-    0x3fe8bc806b151741,
+    (0xbfc133cc << 32 | 0x94247758),
+    (0x3fe8bc80 << 32 | 0x6b151741),
     0xbc82c5e120000000,
     0xbfe0000000000000, // 23
-    0xbfca827999fcef32,
-    0x3fe6a09e667f3bcd,
+    (0xbfca8279 << 32 | 0x99fcef32),
+    (0x3fe6a09e << 32 | 0x667f3bcd),
     0xbc8bdd3420000000,
     0xbfe0000000000000, // 24
-    0x3fcd0dfe53aba2fd,
-    0x3fe44cf325091dd6,
+    (0x3fcd0dfe << 32 | 0x53aba2fd),
+    (0x3fe44cf3 << 32 | 0x25091dd6),
     0x3c68076a20000000,
     0xbff0000000000000, // 25
-    0x3fc592675bc57974,
-    0x3fe1c73b39ae68c8,
+    (0x3fc59267 << 32 | 0x5bc57974),
+    (0x3fe1c73b << 32 | 0x39ae68c8),
     0x3c8b25dd20000000,
     0xbff0000000000000, // 26
-    0x3fbe3a6873fa1279,
-    0x3fde2b5d3806f63b,
+    (0x3fbe3a68 << 32 | 0x73fa1279),
+    (0x3fde2b5d << 32 | 0x3806f63b),
     0x3c5e0d8920000000,
     0xbff0000000000000, // 27
-    0x3fb37ca1866b95cf,
-    0x3fd87de2a6aea963,
+    (0x3fb37ca1 << 32 | 0x866b95cf),
+    (0x3fd87de2 << 32 | 0xa6aea963),
     0xbc672cede0000000,
     0xbff0000000000000, // 28
-    0x3fa60bea939d225a,
-    0x3fd294062ed59f06,
+    (0x3fa60bea << 32 | 0x939d225a),
+    (0x3fd29406 << 32 | 0x2ed59f06),
     0xbc75d28da0000000,
     0xbff0000000000000, // 29
-    0x3f93ad06011469fb,
-    0x3fc8f8b83c69a60b,
+    (0x3f93ad06 << 32 | 0x011469fb),
+    (0x3fc8f8b8 << 32 | 0x3c69a60b),
     0xbc626d19c0000000,
     0xbff0000000000000, // 30
-    0x3f73b92e176d6d31,
-    0x3fb917a6bc29b42c,
+    (0x3f73b92e << 32 | 0x176d6d31),
+    (0x3fb917a6 << 32 | 0xbc29b42c),
     0xbc3e2718e0000000,
     0xbff0000000000000, // 31
     0x0000000000000000,
     0x0000000000000000,
     0x0000000000000000,
     0xbff0000000000000, // 32
-    0x3f73b92e176d6d31,
-    0xbfb917a6bc29b42c,
+    (0x3f73b92e << 32 | 0x176d6d31),
+    (0xbfb917a6 << 32 | 0xbc29b42c),
     0x3c3e2718e0000000,
     0xbff0000000000000, // 33
-    0x3f93ad06011469fb,
-    0xbfc8f8b83c69a60b,
+    (0x3f93ad06 << 32 | 0x011469fb),
+    (0xbfc8f8b8 << 32 | 0x3c69a60b),
     0x3c626d19c0000000,
     0xbff0000000000000, // 34
-    0x3fa60bea939d225a,
-    0xbfd294062ed59f06,
+    (0x3fa60bea << 32 | 0x939d225a),
+    (0xbfd29406 << 32 | 0x2ed59f06),
     0x3c75d28da0000000,
     0xbff0000000000000, // 35
-    0x3fb37ca1866b95cf,
-    0xbfd87de2a6aea963,
+    (0x3fb37ca1 << 32 | 0x866b95cf),
+    (0xbfd87de2 << 32 | 0xa6aea963),
     0x3c672cede0000000,
     0xbff0000000000000, // 36
-    0x3fbe3a6873fa1279,
-    0xbfde2b5d3806f63b,
+    (0x3fbe3a68 << 32 | 0x73fa1279),
+    (0xbfde2b5d << 32 | 0x3806f63b),
     0xbc5e0d8920000000,
     0xbff0000000000000, // 37
-    0x3fc592675bc57974,
-    0xbfe1c73b39ae68c8,
+    (0x3fc59267 << 32 | 0x5bc57974),
+    (0xbfe1c73b << 32 | 0x39ae68c8),
     0xbc8b25dd20000000,
     0xbff0000000000000, // 38
-    0x3fcd0dfe53aba2fd,
-    0xbfe44cf325091dd6,
+    (0x3fcd0dfe << 32 | 0x53aba2fd),
+    (0xbfe44cf3 << 32 | 0x25091dd6),
     0xbc68076a20000000,
     0xbff0000000000000, // 39
-    0xbfca827999fcef32,
-    0xbfe6a09e667f3bcd,
+    (0xbfca8279 << 32 | 0x99fcef32),
+    (0xbfe6a09e << 32 | 0x667f3bcd),
     0x3c8bdd3420000000,
     0xbfe0000000000000, // 40
-    0xbfc133cc94247758,
-    0xbfe8bc806b151741,
+    (0xbfc133cc << 32 | 0x94247758),
+    (0xbfe8bc80 << 32 | 0x6b151741),
     0x3c82c5e120000000,
     0xbfe0000000000000, // 41
-    0xbfac73b39ae68c87,
-    0xbfea9b66290ea1a3,
+    (0xbfac73b3 << 32 | 0x9ae68c87),
+    (0xbfea9b66 << 32 | 0x290ea1a3),
     0xbc39f630e0000000,
     0xbfe0000000000000, // 42
-    0x3f9d4a2c7f909c4e,
-    0xbfec38b2f180bdb1,
+    (0x3f9d4a2c << 32 | 0x7f909c4e),
+    (0xbfec38b2 << 32 | 0xf180bdb1),
     0x3c76e0b180000000,
     0xbfe0000000000000, // 43
-    0x3fbe087565455a75,
-    0xbfed906bcf328d46,
+    (0x3fbe0875 << 32 | 0x65455a75),
+    (0xbfed906b << 32 | 0xcf328d46),
     0xbc7457e620000000,
     0xbfe0000000000000, // 44
-    0xbfa4a03176acf82d,
-    0xbfee9f4156c62dda,
+    (0xbfa4a031 << 32 | 0x76acf82d),
+    (0xbfee9f41 << 32 | 0x56c62dda),
     0xbc8760b1e0000000,
     0xbfd0000000000000, // 45
-    0x3fac1d1f0e5967d5,
-    0xbfef6297cff75cb0,
+    (0x3fac1d1f << 32 | 0x0e5967d5),
+    (0xbfef6297 << 32 | 0xcff75cb0),
     0xbc75621720000000,
     0xbfd0000000000000, // 46
-    0x3f9ba1650f592f50,
-    0xbfefd88da3d12526,
+    (0x3f9ba165 << 32 | 0x0f592f50),
+    (0xbfefd88d << 32 | 0xa3d12526),
     0x3c887df640000000,
     0xbfc0000000000000, // 47
     0x0000000000000000,
     0xbff0000000000000,
     0x0000000000000000,
     0x0000000000000000, // 48
-    0xbf9ba1650f592f50,
-    0xbfefd88da3d12526,
+    (0xbf9ba165 << 32 | 0x0f592f50),
+    (0xbfefd88d << 32 | 0xa3d12526),
     0x3c887df640000000,
     0x3fc0000000000000, // 49
-    0xbfac1d1f0e5967d5,
-    0xbfef6297cff75cb0,
+    (0xbfac1d1f << 32 | 0x0e5967d5),
+    (0xbfef6297 << 32 | 0xcff75cb0),
     0xbc75621720000000,
     0x3fd0000000000000, // 50
-    0x3fa4a03176acf82d,
-    0xbfee9f4156c62dda,
+    (0x3fa4a031 << 32 | 0x76acf82d),
+    (0xbfee9f41 << 32 | 0x56c62dda),
     0xbc8760b1e0000000,
     0x3fd0000000000000, // 51
-    0xbfbe087565455a75,
-    0xbfed906bcf328d46,
+    (0xbfbe0875 << 32 | 0x65455a75),
+    (0xbfed906b << 32 | 0xcf328d46),
     0xbc7457e620000000,
     0x3fe0000000000000, // 52
-    0xbf9d4a2c7f909c4e,
-    0xbfec38b2f180bdb1,
+    (0xbf9d4a2c << 32 | 0x7f909c4e),
+    (0xbfec38b2 << 32 | 0xf180bdb1),
     0x3c76e0b180000000,
     0x3fe0000000000000, // 53
-    0x3fac73b39ae68c87,
-    0xbfea9b66290ea1a3,
+    (0x3fac73b3 << 32 | 0x9ae68c87),
+    (0xbfea9b66 << 32 | 0x290ea1a3),
     0xbc39f630e0000000,
     0x3fe0000000000000, // 54
-    0x3fc133cc94247758,
-    0xbfe8bc806b151741,
+    (0x3fc133cc << 32 | 0x94247758),
+    (0xbfe8bc80 << 32 | 0x6b151741),
     0x3c82c5e120000000,
     0x3fe0000000000000, // 55
-    0x3fca827999fcef32,
-    0xbfe6a09e667f3bcd,
+    (0x3fca8279 << 32 | 0x99fcef32),
+    (0xbfe6a09e << 32 | 0x667f3bcd),
     0x3c8bdd3420000000,
     0x3fe0000000000000, // 56
-    0xbfcd0dfe53aba2fd,
-    0xbfe44cf325091dd6,
+    (0xbfcd0dfe << 32 | 0x53aba2fd),
+    (0xbfe44cf3 << 32 | 0x25091dd6),
     0xbc68076a20000000,
     0x3ff0000000000000, // 57
-    0xbfc592675bc57974,
-    0xbfe1c73b39ae68c8,
+    (0xbfc59267 << 32 | 0x5bc57974),
+    (0xbfe1c73b << 32 | 0x39ae68c8),
     0xbc8b25dd20000000,
     0x3ff0000000000000, // 58
-    0xbfbe3a6873fa1279,
-    0xbfde2b5d3806f63b,
+    (0xbfbe3a68 << 32 | 0x73fa1279),
+    (0xbfde2b5d << 32 | 0x3806f63b),
     0xbc5e0d8920000000,
     0x3ff0000000000000, // 59
-    0xbfb37ca1866b95cf,
-    0xbfd87de2a6aea963,
+    (0xbfb37ca1 << 32 | 0x866b95cf),
+    (0xbfd87de2 << 32 | 0xa6aea963),
     0x3c672cede0000000,
     0x3ff0000000000000, // 60
-    0xbfa60bea939d225a,
-    0xbfd294062ed59f06,
+    (0xbfa60bea << 32 | 0x939d225a),
+    (0xbfd29406 << 32 | 0x2ed59f06),
     0x3c75d28da0000000,
     0x3ff0000000000000, // 61
-    0xbf93ad06011469fb,
-    0xbfc8f8b83c69a60b,
+    (0xbf93ad06 << 32 | 0x011469fb),
+    (0xbfc8f8b8 << 32 | 0x3c69a60b),
     0x3c626d19c0000000,
     0x3ff0000000000000, // 62
-    0xbf73b92e176d6d31,
-    0xbfb917a6bc29b42c,
+    (0xbf73b92e << 32 | 0x176d6d31),
+    (0xbfb917a6 << 32 | 0xbc29b42c),
     0x3c3e2718e0000000,
     0x3ff0000000000000, // 63
   ];
@@ -414,14 +426,28 @@ class JMath {
   // StubRoutines::x86::_cv / _shifter of macroAssembler_x86_exp.cpp (jdk17u):
   // 64/ln2, ln2/64 in two parts, the polynomial coefficients and the
   // 1.5 * 2^52 rounding shifter.
-  static final double _expL2e64 = longBitsToDouble(0x40571547652b82fe);
+  static final double _expL2e64 = longBitsToDouble(
+    (0x40571547 << 32 | 0x652b82fe),
+  );
   static final double _expLn2hi64 = longBitsToDouble(0x3f862e42fefa0000);
-  static final double _expLn2lo64 = longBitsToDouble(0x3d1cf79abc9e3b3a);
-  static final double _expHalf = longBitsToDouble(0x3fdffffffffffffe);
-  static final double _expC6 = longBitsToDouble(0x3f56c15ce3289860);
-  static final double _expC4 = longBitsToDouble(0x3fa55555555b9e25);
-  static final double _expC5 = longBitsToDouble(0x3f811115c090cf0f);
-  static final double _expC3 = longBitsToDouble(0x3fc5555555548ba1);
+  static final double _expLn2lo64 = longBitsToDouble(
+    (0x3d1cf79a << 32 | 0xbc9e3b3a),
+  );
+  static final double _expHalf = longBitsToDouble(
+    (0x3fdfffff << 32 | 0xfffffffe),
+  );
+  static final double _expC6 = longBitsToDouble(
+    (0x3f56c15c << 32 | 0xe3289860),
+  );
+  static final double _expC4 = longBitsToDouble(
+    (0x3fa55555 << 32 | 0x555b9e25),
+  );
+  static final double _expC5 = longBitsToDouble(
+    (0x3f811115 << 32 | 0xc090cf0f),
+  );
+  static final double _expC3 = longBitsToDouble(
+    (0x3fc55555 << 32 | 0x55548ba1),
+  );
   static final double _expShifter = longBitsToDouble(0x4338000000000000);
 
   /// `_Tbl_addr`: per j = 0..63 the low part `T_lo[j]` (a double) and the
@@ -495,7 +521,7 @@ class JMath {
     growable: false,
   );
 
-  static const int _mask64 = 0xffffffffffffffff;
+  static const int _mask64 = (0xffffffff << 32 | 0xffffffff);
 
   /// `Math.exp(x)`: a transcription of `MacroAssembler::fast_exp`
   /// (macroAssembler_x86_exp.cpp of jdk17u, the 64-bit stub), the LIBM
@@ -603,7 +629,7 @@ class JMath {
     final aBits = doubleToRawLongBits(saved * x3);
     final bBits = doubleToRawLongBits(x4 * x3);
     final s = ((aBits ^ bBits) < 0) ? _mask64 : 0; // psrad 31, pshufd 85
-    var out = aBits & 0x7fffffffffffffff; // psllq 1, psrlq 1
+    var out = aBits & (0x7fffffff << 32 | 0xffffffff); // psllq 1, psrlq 1
     out ^= s;
     out = (out + (s == 0 ? 0 : 1)) & _mask64; // paddq(xmm0, xmm6 >>> 63)
     out = (out + bBits) & _mask64;

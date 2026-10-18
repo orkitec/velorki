@@ -44,7 +44,7 @@ class ExternalRoute {
   /// When the route was created in the partner account.
   final DateTime? createdAt;
 
-  /// This summary as JSON, for the seven-day list cache.
+  /// This summary as JSON, for the 48-hour list cache.
   Map<String, Object?> toJson() => <String, Object?>{
     'id': id,
     'name': name,

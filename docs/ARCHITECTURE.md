@@ -18,10 +18,13 @@ in [`web/README.md`](../web/README.md).
 
 Upstreams: brouter.de (rd5 tiles), Geofabrik (the OSM extracts the `.gaz` files
 are built from), OpenFreeMap and CyclOSM (map tiles), Photon (online search),
-DWD, NOAA, the Iowa Environmental Mesonet, NASA GIBS and EUMETSAT (the free
-weather map: rain radar, H SAF satellite rain, ICON and HRRR forecasts, clouds
-and ICON wind, fetched by the phone, no relay), EUMETNET OPERA (the Plus rain
-radar across Europe, drawn by the relay from its open archive).
+DWD, KNMI, FMI, NOAA, the Iowa Environmental Mesonet, NASA GIBS and EUMETSAT
+(the free weather map: rain radar, H SAF satellite rain, ICON and HRRR
+forecasts, clouds and ICON wind, and the free route weather from ICON, fetched
+by the phone, no relay), EUMETNET OPERA and the Dipartimento della Protezione
+Civile's Radar-DPC (the Plus rain radar across Europe and over Italy, drawn by
+the relay from their open data), NWS, DWD MOSMIX via Bright Sky and
+MET Norway (the Plus route forecast, through the relay).
 
 ```
  brouter.de/segments4                      Geofabrik extracts
@@ -45,9 +48,9 @@ radar across Europe, drawn by the relay from its open archive).
   +-----------------------------------------------------------+
      |             |                  |               |
  OpenFreeMap,   Photon            BRouter server    Relay (web/)
- CyclOSM        online search,    (optional):       Plus only: OAuth
- map tiles      no tiles needed   areas with no     exchange, LLM,
-                                  tiles             share links
+ CyclOSM        online search,    (optional):       OAuth exchange,
+ map tiles      no tiles needed   areas with no     LLM, share links,
+                                  tiles             weather
 ```
 File format and builder: [`tools/gazetteer/README.md`](../tools/gazetteer/README.md).
 Mirror layout, sharding, `latest.json` and the resume path:
@@ -78,7 +81,7 @@ and hides the Plus features — see [SELF_HOSTING.md](SELF_HOSTING.md).
                               ├─ OAuth code → token (secrets added) → Strava,
                               │  RideWithGPS; tokens handed back wrapped, and
                               │  every service call passes through /proxy/*
-                              │  (entitlement, unwrap, forward, keep nothing)
+                              │  (free: unwrap, forward, keep nothing)
                               ├─ AI: prompt → an OpenAI-compatible LLM provider
                               └─ share links
 ```
@@ -95,7 +98,7 @@ and hides the Plus features — see [SELF_HOSTING.md](SELF_HOSTING.md).
 | HTTP | dio | interceptors for token refresh, the rate-limit bucket, multipart, cancellation |
 | Map | maplibre_gl behind a `MapController` interface so widget tests can fake it; style URL from config | BSD-licensed, vector tiles, offline regions. Mapbox is proprietary and metered per monthly active user |
 | Map tiles | OpenFreeMap vector tiles by default; an offline cycle map drawn from the rd5 tiles, or CyclOSM raster as an online overlay | no key, no limits; swappable to self-hosted PMTiles |
-| Weather map | rain from a ranked list of sources, picked per time-control step (now, quarter hours to +2 h, hours to +24 h) by `rainPartsAt`: radar (DWD WMS, NOAA ImageServer) and the DWD nowcast where they reach, with Velorki Plus the EUMETNET OPERA composite after the free radars (one image of the view from the relay, which fetches each five-minute GeoTIFF from the open archive once, keeps it as a grid of DWD classes in the cluster's shared cache and draws it in the DWD radar's colours and grey; the one weather request that carries the relay's credentials, so drawn as an image in either look), H SAF satellite rain (EUMETSAT WMS) around them at "Now", ICON-EU (hourly, in the DWD radar's style), HRRR over the contiguous US (IEM's reflectivity tiles every 15 minutes of the newest run its `refd_0000.json` names, put together on the phone into one image of the view, at most 16 tiles) and global ICON (six-hour sums) ahead, forecasts as opaque as measurements; each source masked on the phone by those before it: drawn soft, by where the DWD's or the HRRR's frame of the same step measures (read from that image: not its grey "no data", inside its grid), crossfaded over 25 km inside that edge, else by their fixed reach or coverage. Soft by default: one image of the view and its surroundings per source at its native resolution, fetched when the camera rests, each pixel read against the service's legend (hard-coded per source in `rain_legend.dart`; anything not in it, such as the DWD's reach line, dropped), its alpha by the class's rank and its edges blurred in an isolate, drawn as an image source with linear resampling; "As measured" in Settings → Appearance keeps the radars' raster tiles and draws satellite and model images as they come, masked only; clouds as one image per region (EUMETSAT and NASA GIBS WMS), and from zoom 6 a second image of the view and its surroundings at the service's native resolution over it, fetched when the camera rests, both whitened by brightness on the phone and drawn as image sources with linear resampling; wind as one plain-text grid of the view and a quarter around it per time-control hour (global ICON 10 m u/v, DWD WCS `GetCoverage` `format=text/plain`, thinned by the service's `scalesize` when zoomed out; a box across the antimeridian is one request, the service wraps), cached for an hour, from zoom 3, turned on the phone into our own arrows: points on a world-fixed ~70 px grid, bilinearly interpolated, a GeoJSON symbol layer of one SDF arrow coloured and sized by speed over the rain and clouds; `WeatherMapDriver` picks the sources over the view and refreshes them | free public services; EUMETSAT's Meteosat images only on the full hour, which its data policy makes free; SAF products are Core data at any latency |
+| Weather map | rain from a ranked list of sources, picked per time-control step (now, quarter hours to +2 h, hours to +24 h) by `rainPartsAt`: radar (DWD, KNMI and FMI WMS, NOAA ImageServer) and the DWD nowcast where they reach, with Velorki Plus the DPC's rainfall over Italy and then the EUMETNET OPERA composite after the free radars (one image of the view from the relay, which fetches each five-minute GeoTIFF from its publisher once, keeps it as a grid of DWD classes in the cluster's shared cache and draws it in the DWD radar's colours and grey, the DPC's apart from any other source as its CC BY-SA asks; the only weather requests that carry the relay's credentials, so drawn as an image in either look), H SAF satellite rain (EUMETSAT WMS) around them at "Now", ICON-EU (hourly, in the DWD radar's style), HRRR over the contiguous US (IEM's reflectivity tiles every 15 minutes of the newest run its `refd_0000.json` names, put together on the phone into one image of the view, at most 16 tiles) and global ICON (six-hour sums) ahead, forecasts as opaque as measurements; each source masked on the phone by those before it: drawn soft, by where the DWD's or the HRRR's frame of the same step measures (read from that image: not its grey "no data", inside its grid), crossfaded over 25 km inside that edge, else by their fixed reach or coverage. Soft by default: one image of the view and its surroundings per source at its native resolution, fetched when the camera rests, each pixel read against the service's legend (hard-coded per source in `rain_legend.dart`; anything not in it, such as the DWD's reach line, dropped), its alpha by the class's rank and its edges blurred in an isolate, drawn as an image source with linear resampling; "As measured" in Settings → Appearance keeps the radars' raster tiles and draws satellite and model images as they come, masked only; clouds as one image per region (EUMETSAT and NASA GIBS WMS), and from zoom 6 a second image of the view and its surroundings at the service's native resolution over it, fetched when the camera rests, both whitened by brightness on the phone and drawn as image sources with linear resampling; wind as one plain-text grid of the view and a quarter around it per time-control hour (global ICON 10 m u/v, DWD WCS `GetCoverage` `format=text/plain`, thinned by the service's `scalesize` when zoomed out; a box across the antimeridian is one request, the service wraps), cached for an hour, from zoom 3, turned on the phone into our own arrows: points on a world-fixed ~70 px grid, bilinearly interpolated, a GeoJSON symbol layer of one SDF arrow coloured and sized by speed over the rain and clouds; `WeatherMapDriver` picks the sources over the view and refreshes them | free public services; EUMETSAT's Meteosat images only on the full hour, which its data policy makes free; SAF products are Core data at any latency |
 
 Versions live in `app/pubspec.yaml`. Deliberately not used: `strava_client` (it
 expects the client secret inside the app) and `latlong2`.
@@ -150,13 +153,47 @@ None depend on Flutter, so they run and are tested on the desktop Dart VM.
 | `velorki_cycle_map` | the offline cycle map: ways classified from the rd5 tiles, cached per cell, written as GeoJSON in an isolate |
 | `velorki_api` | the client for the relay |
 | `brouter_dart` | the Dart port of the BRouter routing runtime |
+| `velorki_io` | `dart:io` on the phone, an in-memory stand-in for its files in the browser |
 
 `RoutingBackend` is the seam that keeps the planner free of where a route comes
 from: it only ever calls `route()`.
 
+### The web planner (`flutter build web --wasm`)
+
+The same app, compiled to WebAssembly (64-bit ints for the routing engine), as
+the planner and the library on app.velorki.com. `main.dart` picks
+`lib/app/web/bootstrap_web.dart`; where the phone and the browser differ, a
+conditional import (`if (dart.library.js_interop)`) picks the implementation:
+files (`velorki_io`, kept across visits in Cache Storage by `WebFileStore`),
+the database (drift's WebAssembly SQLite in a worker, `connection_web.dart`),
+the gazetteer's SQLite (`gazetteer_sqlite_web.dart`), the app's directories
+and the routing worker (on the page's event loop: a browser has no isolates).
+`platformFeaturesProvider` is what screens ask before offering what a browser
+cannot do (recording and navigation, store purchases, Strava and Ride with
+GPS, offline map packs, the routing server: the browser routes on its own,
+and the tiles a route needs are fetched as soon as it needs them,
+`MissingTilesBanner`). Tiles come from the Pages Function under `/tiles/`
+(`deploy/cloudflare/`), so the mirror needs no CORS. `tool/web_assets.sh`
+fetches `sqlite3.wasm`, `drift_worker.js` and maplibre-gl-js before a build
+(`--no-web-resources-cdn`): the page's code comes from no CDN (only the
+engine's fallback fonts do, from fonts.gstatic.com), and
+`web/_headers` holds the Content-Security-Policy naming every host it does
+talk to. The isolate work (cycle map, weather images) runs inline through
+`package:velorki_io/worker.dart`, zlib is package:archive's. Where the
+maplibre web plugin differs from the phones, `PluginMapLibreStyleOps` makes
+up for it (string feature ids as a promoted property, image sources over
+blob: URLs), and the map, an HTML element under Flutter's canvas, only gets
+the pointers Flutter's hit test gives it (`platform_view_pointer_gate.dart`).
+`web/device_gate.mjs` keeps purchases_flutter's web SDK off the page.
+The glass over the map (`GlassBackdrop`: the bar, the panels, the chips, the
+docked pill) blurs the map with the browser's own `backdrop-filter`: boxes in
+the glass's place inside each map's element (`web_glass_layer.dart`); where
+the browser has none, the rider wants less transparency or it is too slow,
+the glass is drawn as Subtle (`GlassBlur`).
+
 ## Data model
 
-Drift owns four tables, schema version 3. Connected accounts live in secure
+Drift owns five tables, schema version 11. Connected accounts live in secure
 storage, not in the database.
 
 - **`routes`** — id (uuid), name, description, `source`
@@ -171,6 +208,10 @@ storage, not in the database.
 - **`offline_regions`** — the downloaded MapLibre offline map regions.
 - **`routing_tiles`** — the rd5 segment tiles downloaded for on-device routing:
   name, bytes, `updated_at`, `format_version`, state.
+- **`sync_records`** — the iCloud outbox, one row per route and ride, written
+  by SQLite triggers on `routes` and `rides` (`core/db/sync_triggers.dart`):
+  last change time, a version, dirty and tombstone flags, the CloudKit system
+  fields, a ride's route link still waiting for its route.
 
 ## Key flows
 
@@ -340,15 +381,31 @@ exchange the code **through the relay**, store the tokens in secure storage
 **as the relay wrapped them** (AES-GCM under a key only the relay has); a dio
 interceptor refreshes 60 s before expiry. Every service call goes through the
 relay's `/proxy/<service>/…` with the wrapped token in `X-Velorki-Token`: the
-relay checks the entitlement, unwraps in memory, forwards
+relay limits per IP and per install id (no subscription: Strava's API Policy
+forbids charging for its functionality), unwraps in memory, forwards
 with the service's bearer and streams the answer back, storing nothing; a
 token under a retired key comes back re-wrapped and replaces the stored one.
 Strava rides go up as multipart uploads, polled with backoff and then linked
 to; the imported route list is
-cached for 7 days, a client-side bucket keeps reads under 90 per 15 minutes, and
+cached for 48 hours, a client-side bucket keeps reads under 90 per 15 minutes, and
 AI descriptions are refused for `source == strava`. Strava's API cannot create
 routes, so sending one *to* Strava is "export GPX, then share"; Komoot and
 Garmin are file-based only.
+
+**iCloud sync.** iOS 17 and later, on by default (Settings → iCloud), nothing
+on Android. `ios/Runner/CloudSync.swift` runs CKSyncEngine on the private
+database's `Library` zone (container `iCloud.com.orkitec.velorki`) and keeps
+its state in Application Support; the rows stay in Drift, so the engine asks
+Dart for each record as it sends and hands every fetched change to Dart,
+waiting for it to be written (`features/sync`, channel `velorki/cloud_sync`).
+The triggers mark every write, whatever path made it; the record format is
+`RecordCodec` (versioned fields, the track and other large columns as one
+gzip JSON asset). The newer change wins per record, the server's copy on a
+tie; a delete from elsewhere loses to a local change not yet sent. Strava
+routes and every upload link stay on the phone, partner ids too. Another
+account, a sign-out or a reset zone resends the library as new and never
+deletes it; data deleted from iCloud in Settings switches sync off. A few
+settings (`syncedSettingKeys`) go through the iCloud key-value store.
 
 **Smart loops.** `velorki_loops` is a pure algorithm, no model involved. From a
 `LoopRequest` three strategies generate candidates: `RoundtripStrategy` (BRouter
@@ -486,9 +543,14 @@ Settings → Advanced overrides the server URLs at runtime.
 
 ## Free vs Plus
 
-Free is everything that runs on the phone. Plus is everything that needs our
-servers or a partner account: the assistant, the Strava and RideWithGPS
-connections, link sharing. `app/lib/core/plus/plus_gate.dart` is the switch.
+Free is everything that runs on the phone, plus the Strava and Ride with GPS
+connections (Strava's API Policy forbids charging for its functionality; Ride
+with GPS follows for consistency). Plus is what needs our servers: the
+assistant, link sharing, and the weather through the relay (the route
+forecast from NWS, DWD MOSMIX and MET Norway, and the OPERA and DPC radars). The weather
+map and the route weather from the DWD's open ICON forecast (wind, rain and 2 m
+temperature: the route's weather section, its best time and its colours) stay
+free: the phone fetches them itself. `app/lib/core/plus/plus_gate.dart` is the switch.
 
 ## Licences
 

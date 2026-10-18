@@ -11,11 +11,10 @@ Links delen hoort bij [Velorki Plus](./velorki-plus). De link van iemand anders 
 ## Een link maken
 
 1. Open een route in **Bibliotheek → Routes**, of een rit in **Bibliotheek → Ritten**.
-2. Tik op **Link delen**.
-3. Velorki uploadt de track en opent een paneel met de titel **Link delen**: "Iedereen met deze link kan de route op een kaart zien en de GPX downloaden. Bekijken kan zonder account." De link staat er als selecteerbare tekst, met daaronder de datum waarop hij ophoudt te werken.
-4. **Link kopiëren** zet hem op het klembord, **Delen** geeft hem aan het deelmenu van de telefoon.
+2. Tik onderaan de kaart op **Delen**. De deelkaart toont **Link**, **Ride with GPS** en **Strava**.
+3. Tik in de rij **Link** op **Link delen**. Velorki uploadt de track en geeft de link aan het deelmenu van de telefoon. De rij zegt daarna "Werkt tot 17 sep. 2027." Daarvoor staat er "Iedereen met de link kan het op een kaart zien en de GPX downloaden."
 
-Zonder Plus is de knop er nog steeds, en als je erop tikt, staat er "Links delen hoort bij Velorki Plus." met een weg naar de abonnementspagina.
+Zonder Plus draagt de rij **Link** het label **Velorki Plus** en leidt ze naar de abonnementspagina. De rijen voor Strava en Ride with GPS zijn gratis.
 
 ## Wat degene die hem opent ziet
 
@@ -41,7 +40,7 @@ Niets op de pagina zegt wie je bent, want Velorki heeft geen account en bewaart 
 
 ## Verlopen
 
-Een gedeeld item wordt **één jaar** bewaard en daarna automatisch verwijderd; dat bedoelt de regel "De link werkt vanaf 17 sep. 2027 niet meer." in het paneel. Daarna geeft de link een eenvoudige pagina "niet gevonden".
+Een gedeeld item wordt **één jaar** bewaard en daarna automatisch verwijderd; de rij **Link** zegt tot wanneer: "Werkt tot 17 sep. 2027." Daarna geeft de link een eenvoudige pagina "niet gevonden".
 
 Er is in de app op dit moment geen knop om een link eerder in te trekken. Moet een link eerder offline, schrijf dan naar [hello@orkitec.com](mailto:hello@orkitec.com) met de link zelf; er is geen account om hem bij op te zoeken, dus de link is wat nodig is.
 

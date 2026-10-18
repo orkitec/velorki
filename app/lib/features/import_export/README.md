@@ -127,6 +127,14 @@ span, and saves through `ImportRepository`:
   `computeRouteGeometryStats`: distance and climb from the geometry, every
   duration zero.
 
+A route whose file had no turns gets them from the map: `ImportRepository`
+hands each saved route to `RouteTurnGenerator.fillAfterImport`, which, when
+every tile is on the phone, routes the line in overlapping chunks with the
+on-device engine (`TrackTurnService`, `lib/core/geo/track_turns.dart`) and
+puts the router's turns on the file's own points; the rules are in that file.
+They are stored with `turns_generated` set, and the cue sheet says so. A ride
+started on such a route without them asks first (`confirmRouteTurns`).
+
 ## Export
 
 `ShareTrackExporter` (`lib/core/files/track_exporter_impl.dart`) implements the

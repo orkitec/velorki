@@ -110,6 +110,14 @@ Le graphique **Profil altimétrique** trace la hauteur en fonction de la distanc
 
 La barre **Revêtement** est une barre empilée unique de trois parts dont la somme fait tout l’itinéraire, **Revêtu**, **Non revêtu** et **Inconnu**, avec une légende de pourcentages en dessous. Deux autres entrées de la légende, **Pistes & bandes** et **Routes fréquentées**, recoupent les trois premières au lieu de s’y ajouter : elles indiquent quelle part de l’itinéraire suit des pistes cyclables, des chemins signalés pour les vélos, des rues cyclables, ou une bande ou piste cyclable le long de la route, et quelle part suit une grande route. Pour un itinéraire dont tout n’est pas du calculateur, avec une ligne de fichier dedans, toute la ligne est superposée aux données de routage pour établir les chiffres, ce qui demande que la région soit téléchargée.
 
+### Colorer l’itinéraire
+
+Un interrupteur dans l’en-tête et quatre choix fixent selon quoi l’itinéraire est coloré : **Pente**, **Revêtement**, **Vent** et **Pluie**. La couleur apparaît sur la carte et sous le profil altimétrique, dans le planificateur et sur la page d’un itinéraire enregistré. **Revêtement** colore chaque tronçon comme la barre ci-dessus : revêtu, non revêtu, inconnu, pistes cyclables et routes fréquentées, avec les mêmes couleurs. Le vent et la pluie suivent la prévision de l’heure de départ. Les quatre sont gratuits ; sans Plus, le vent et la pluie viennent de la prévision publique plus grossière, et l’app le dit avant de colorer l’itinéraire.
+
+### Heure de départ
+
+Un curseur fixe l’heure à laquelle vous partez. Il déplace à cette heure le radar de pluie et le vent sur la carte, la météo le long de l’itinéraire et la coloration de l’itinéraire. Il est gratuit. La pente et le revêtement ne changent pas avec l’heure.
+
 ## L’enregistrer
 
 1. Touchez **Enregistrer**.

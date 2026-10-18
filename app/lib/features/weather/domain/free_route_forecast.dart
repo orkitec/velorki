@@ -10,8 +10,8 @@ import 'route_weather.dart';
 // model grids (see `dwd_route_forecast.dart` for what they are).
 //
 // Each sample takes the hour its moment falls in, as the wind map takes the
-// hour of "Now": the wind at that full hour, and the rain of that hour (the
-// hour from it to the next). Both are interpolated bilinearly between the
+// hour of "Now": the wind and the temperature at that full hour, and the rain
+// of that hour (the hour from it to the next). Both are interpolated bilinearly between the
 // four grid points around the sample, as the wind map's arrows are; not in
 // time, as the grids are hourly and the route's colours do not need more.
 //
@@ -45,7 +45,8 @@ enum FreeRain {
 }
 
 /// The requests the free forecast of a route makes: the box of each hour's
-/// wind grid and of each rain grid, by the full UTC hour asked for.
+/// wind grid and of each rain grid, by the full UTC hour asked for. The
+/// temperature is asked for at the wind's hours over the wind's boxes.
 class FreeForecastPlan {
   /// Creates the plan.
   const FreeForecastPlan({
@@ -130,19 +131,30 @@ BoundingBox _boxAround(List<LatLng> points) {
 }
 
 /// The weather [plan] gives each of [samples], from the grids fetched:
-/// [wind] the u/v grid of an hour, [rain] the rain grid of an hour, each
-/// `null` where it could not be had. A sample is `null` (a gap) where its
-/// wind or its rain is missing. The free forecast has no temperature, no
-/// gusts and no chance of rain.
+/// [wind] the u/v grid of an hour, [rain] the rain grid of an hour,
+/// [temperature] the 2 m temperature grid of an hour (°C), each `null`
+/// where it could not be had. A sample is `null` (a gap) where its wind or
+/// its rain is missing; without its temperature it has none
+/// ([SampleWeather.temp] `null`). The free forecast has no gusts and no
+/// chance of rain.
 List<SampleWeather?> freeSampleWeather(
   List<RouteWeatherSample> samples,
   FreeForecastPlan plan,
   DateTime departure, {
   required WcsGrid? Function(DateTime hour) wind,
   required WcsGrid? Function(DateTime hour) rain,
+  WcsGrid? Function(DateTime hour)? temperature,
 }) => <SampleWeather?>[
   for (final (i, s) in samples.indexed)
-    _sampleWeather(s, plan.hours[i], plan.rain, departure, wind, rain),
+    _sampleWeather(
+      s,
+      plan.hours[i],
+      plan.rain,
+      departure,
+      wind,
+      rain,
+      temperature,
+    ),
 ];
 
 SampleWeather? _sampleWeather(
@@ -152,6 +164,7 @@ SampleWeather? _sampleWeather(
   DateTime departure,
   WcsGrid? Function(DateTime hour) windAt,
   WcsGrid? Function(DateTime hour) rainAt,
+  WcsGrid? Function(DateTime hour)? temperatureAt,
 ) {
   if (hour == null) return null;
   final lat = sample.position.lat;
@@ -177,7 +190,7 @@ SampleWeather? _sampleWeather(
   return SampleWeather(
     distanceM: sample.distanceM,
     at: departure.toUtc().add(sample.offset),
-    temp: null,
+    temp: temperatureAt?.call(hour)?.sampleBands(lat, lon)?.first,
     windMs: blowing.ms,
     windFromDeg: from,
     precipMm: precip,

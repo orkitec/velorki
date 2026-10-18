@@ -1,0 +1,9 @@
+# Cloudflare Pages project for the web app on app.velorki.com.
+# Deploy from this directory: wrangler pages deploy
+# (functions/ is picked up from here, the static files from the Flutter build).
+
+name = "velorki-app"
+# flutter build web --wasm, run in app/, writes here; app/web/_headers comes with it.
+pages_build_output_dir = "../../../app/build/web"
+# Pinned so a Workers runtime change never alters the function unannounced.
+compatibility_date = "2025-09-01"

@@ -55,17 +55,21 @@ env:
 
 jobs:
   simulator:
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 75
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      # The image's default Xcode 16.4 cannot compile device_info_plus (an
-      # iOS 17 NSProcessInfo selector); the app is built with Xcode 26 on the
-      # Mac, so pick the newest 26 on the runner.
-      - name: Select Xcode 26
+      # The Xcode the app is built with (the Mac's too). The xcode-27 image
+      # also carries betas, whose builds the App Store refuses: name a
+      # release or release candidate. 27.1: the iPhone Duo's whole inner
+      # screen needs its SDK.
+      - name: Select Xcode
+        env:
+          XCODE_VERSION: "27.1"
         run: |
-          xcode="$(ls -d /Applications/Xcode_26.*.app | sort -V | tail -1)"
+          xcode="/Applications/Xcode_${XCODE_VERSION}.app"
+          [ -d "$xcode" ] || { echo "::error::no $xcode on the runner"; ls -d /Applications/Xcode*.app; exit 1; }
           sudo xcode-select -s "$xcode"
           xcodebuild -version
 
@@ -99,10 +103,10 @@ jobs:
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: >-
-            derived-${{ env.FLUTTER_VERSION }}-${{
+            derived-xcode27-${{ env.FLUTTER_VERSION }}-${{
             hashFiles('app/ios/Podfile.lock') }}-${{ steps.stamp.outputs.week }}
           restore-keys: |
-            derived-${{ env.FLUTTER_VERSION }}-${{ hashFiles('app/ios/Podfile.lock') }}-
+            derived-xcode27-${{ env.FLUTTER_VERSION }}-${{ hashFiles('app/ios/Podfile.lock') }}-
 
       - name: Prepare the app package
         working-directory: app
@@ -118,14 +122,20 @@ jobs:
         id: sim
         run: |
           set -euo pipefail
-          # The newest available iPhone runtime; the list is sorted by the
-          # simulator tool, so the last iPhone line is the newest device.
-          udid=$(xcrun simctl list devices available --json | python3 -c '
-          import json, sys
+          # An iPhone on the runtime of the selected Xcode's simulator SDK
+          # (the image also carries the betas' newer runtimes), else the
+          # newest one; the list is sorted by the simulator tool, so the last
+          # iPhone line is the newest device.
+          sdk=$(xcrun --sdk iphonesimulator --show-sdk-version)
+          udid=$(xcrun simctl list devices available --json | SDK="$sdk" python3 -c '
+          import json, os, sys
           devices = json.load(sys.stdin)["devices"]
-          phones = [d for runtime, ds in devices.items() if "iOS" in runtime
-                    for d in ds if d["name"].startswith("iPhone") and d["isAvailable"]]
-          print(phones[-1]["udid"])
+          want = "iOS-" + os.environ["SDK"].replace(".", "-")
+          def phones(match):
+              return [d for runtime, ds in devices.items() if match(runtime)
+                      for d in ds if d["name"].startswith("iPhone") and d["isAvailable"]]
+          picked = phones(lambda r: r.endswith(want)) or phones(lambda r: "iOS" in r)
+          print(picked[-1]["udid"])
           ')
           echo "udid=$udid" >> "$GITHUB_OUTPUT"
           xcrun simctl boot "$udid"
@@ -152,7 +162,7 @@ jobs:
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: >-
-            derived-${{ env.FLUTTER_VERSION }}-${{
+            derived-xcode27-${{ env.FLUTTER_VERSION }}-${{
             hashFiles('app/ios/Podfile.lock') }}-${{ steps.stamp.outputs.week }}
 
       - name: Mirror log

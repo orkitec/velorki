@@ -77,10 +77,12 @@ class TileDownloadQueueState {
 ///
 /// A tile that is already on the device is replaced rather than downloaded
 /// from nothing: it keeps routing for the whole download, and its row only
-/// changes once the new file is in place.
+/// changes once the new file is in place. A tile on the device that only
+/// lacks its gazetteer gets just that, its rd5 and its row left alone.
 @Riverpod(keepAlive: true)
 class TileDownloadQueue extends _$TileDownloadQueue {
-  final List<SegmentEntry> _queue = <SegmentEntry>[];
+  final List<({SegmentEntry entry, bool gazetteerOnly})> _queue =
+      <({SegmentEntry entry, bool gazetteerOnly})>[];
   CancelToken? _cancel;
   bool _running = false;
   bool _disposed = false;
@@ -97,18 +99,28 @@ class TileDownloadQueue extends _$TileDownloadQueue {
 
   /// Adds [entries] to the queue and starts it if it is idle.
   ///
+  /// [gazetteersOnly] are tiles already on the device whose gazetteer is
+  /// missing: only the `.gaz` is fetched for them.
+  ///
   /// Tiles already queued or already being downloaded are ignored, so tapping
   /// "Download" twice does not download twice.
-  Future<void> enqueue(Iterable<SegmentEntry> entries) async {
+  Future<void> enqueue(
+    Iterable<SegmentEntry> entries, {
+    Iterable<SegmentEntry> gazetteersOnly = const <SegmentEntry>[],
+  }) async {
     final known = <TileName>{
       ...state.queued,
       if (state.current != null) state.current!,
     };
     final added = <TileName>[];
-    for (final entry in entries) {
+    for (final (entry, gazetteerOnly) in <(SegmentEntry, bool)>[
+      for (final entry in entries) (entry, false),
+      for (final entry in gazetteersOnly)
+        if (entry.gazetteer != null) (entry, true),
+    ]) {
       if (known.contains(entry.tile)) continue;
       known.add(entry.tile);
-      _queue.add(entry);
+      _queue.add((entry: entry, gazetteerOnly: gazetteerOnly));
       added.add(entry.tile);
     }
     if (added.isEmpty) return;
@@ -134,7 +146,7 @@ class TileDownloadQueue extends _$TileDownloadQueue {
     StreamSubscription<TileDownloadProgress>? progress;
     try {
       while (_queue.isNotEmpty && !_disposed) {
-        final entry = _queue.removeAt(0);
+        final (:entry, :gazetteerOnly) = _queue.removeAt(0);
         final token = CancelToken();
         _cancel = token;
         state = state.copyWith(
@@ -145,7 +157,7 @@ class TileDownloadQueue extends _$TileDownloadQueue {
           ],
           progress: TileDownloadProgress(
             tile: entry.tile,
-            received: 0,
+            received: gazetteerOnly ? entry.bytes : 0,
             total: entry.downloadBytes,
           ),
         );
@@ -155,6 +167,17 @@ class TileDownloadQueue extends _$TileDownloadQueue {
             .listen((p) {
               if (!_disposed) state = state.copyWith(progress: p);
             });
+
+        // Only the missing gazetteer: the rd5 and the row stay as they are.
+        if (gazetteerOnly) {
+          await _fetchGazetteer(downloader, entry, token);
+          if (_disposed) return;
+          if (token.isCancelled) break;
+          state = state.copyWith(
+            finished: <TileName>[...state.finished, entry.tile],
+          );
+          continue;
+        }
 
         // A tile that is already on the device is being replaced — an update,
         // or a retry of its gazetteer. Its row then stays as it is, ready or

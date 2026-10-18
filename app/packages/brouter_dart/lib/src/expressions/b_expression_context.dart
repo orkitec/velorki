@@ -7,7 +7,9 @@
 // - the lookup-input variables
 
 import 'dart:convert';
-import 'dart:io';
+
+import 'package:velorki_io/io.dart';
+
 import 'dart:typed_data';
 
 import '../jfloat.dart';

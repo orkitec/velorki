@@ -115,14 +115,134 @@ CREATE TABLE rides (
 const String _offlineRegionsV1Ddl =
     'CREATE TABLE offline_regions (id TEXT NOT NULL, name TEXT NOT NULL, bbox_min_lat REAL NOT NULL, bbox_min_lon REAL NOT NULL, bbox_max_lat REAL NOT NULL, bbox_max_lon REAL NOT NULL, maplibre_region_id INTEGER NULL, size_bytes INTEGER NOT NULL, PRIMARY KEY (id))';
 
+/// `routes` and `rides` as schema 10 left them: everything but the sync
+/// outbox.
+List<String> _v10Ddl() => [
+  _routesV1Ddl,
+  for (final column in [
+    'turns_json TEXT NULL',
+    'pois_json TEXT NULL',
+    'link TEXT NULL',
+    'creator TEXT NULL',
+    'original_json TEXT NULL',
+    'original_geometry BLOB NULL',
+    'turns_generated INTEGER NOT NULL DEFAULT 0',
+  ])
+    'ALTER TABLE routes ADD COLUMN $column',
+  _ridesV3Ddl,
+  for (final column in [
+    'avg_heart_rate_bpm INTEGER NULL',
+    'max_heart_rate_bpm INTEGER NULL',
+    'avg_cadence_rpm INTEGER NULL',
+    'avg_power_w INTEGER NULL',
+    'surface_stats_json TEXT NULL',
+    'laps_json TEXT NULL',
+    'device_totals_json TEXT NULL',
+    'temperatures BLOB NULL',
+    'source_format TEXT NULL',
+    'creator TEXT NULL',
+  ])
+    'ALTER TABLE rides ADD COLUMN $column',
+  _offlineRegionsV1Ddl,
+];
+
 void main() {
   late VelorkiDatabase db;
 
   setUp(() => db = VelorkiDatabase.memory());
   tearDown(() => db.close());
 
-  test('schema version is 9', () {
-    expect(db.schemaVersion, 9);
+  test('schema version is 11', () {
+    expect(db.schemaVersion, 11);
+  });
+
+  test('a schema 10 database gains the iCloud outbox, with its library '
+      'marked to be sent once', () async {
+    await db.close();
+
+    final v10 = VelorkiDatabase(
+      NativeDatabase.memory(
+        setup: (raw) {
+          for (final statement in _v10Ddl()) {
+            raw.execute(statement);
+          }
+          raw
+            ..execute(
+              "INSERT INTO routes VALUES ('old', 'Before the upgrade', NULL, "
+              "'importedGpx', 'trekking', '2026-09-12T10:00:00.000Z', "
+              "'2026-09-12T10:00:00.000Z', 1000.0, 10.0, 5.0, "
+              "48.0, 11.0, 48.1, 11.1, x'010203', '[]', '{}', "
+              'NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, 0)',
+            )
+            ..execute(
+              'INSERT INTO rides (id, name, started_at, ended_at, distance_m, '
+              'moving_time_s, elapsed_time_s, ascent_m, descent_m, '
+              'avg_speed_mps, max_speed_mps, route_id, geometry, pauses_json) '
+              "VALUES ('ride', 'Old ride', '2026-09-12T08:00:00.000Z', "
+              "'2026-09-12T10:00:00.000Z', 1, 1, 1, 1, 1, 1, 1, 'old', "
+              "x'0909', '[]')",
+            )
+            ..userVersion = 10;
+        },
+      ),
+    );
+    addTearDown(v10.close);
+
+    final waiting = await v10.syncDao.dirtyRecords();
+    expect(
+      {for (final r in waiting) '${r.kind}:${r.recordId}'},
+      {'route:old', 'ride:ride'},
+    );
+    expect(waiting.every((r) => r.systemFields == null && !r.deleted), isTrue);
+
+    // The triggers are there too.
+    await v10.customStatement('UPDATE sync_records SET dirty = 0');
+    await v10.ridesDao.renameRide('ride', 'Renamed');
+    expect((await v10.syncDao.record('ride', 'ride'))!.dirty, isTrue);
+    await v10.routesDao.deleteRoute('old');
+    expect((await v10.syncDao.record('route', 'old'))!.deleted, isTrue);
+  });
+
+  test('a schema 9 database gains the mark on turns made from the map, '
+      'off for every route it has', () async {
+    await db.close();
+
+    final v9 = VelorkiDatabase(
+      NativeDatabase.memory(
+        setup: (raw) {
+          raw
+            ..execute(_routesV1Ddl)
+            ..execute(_ridesV3Ddl)
+            ..execute('ALTER TABLE routes ADD COLUMN turns_json TEXT NULL')
+            ..execute('ALTER TABLE routes ADD COLUMN pois_json TEXT NULL')
+            ..execute('ALTER TABLE routes ADD COLUMN link TEXT NULL')
+            ..execute('ALTER TABLE routes ADD COLUMN creator TEXT NULL')
+            ..execute('ALTER TABLE routes ADD COLUMN original_json TEXT NULL')
+            ..execute(
+              'ALTER TABLE routes ADD COLUMN original_geometry BLOB NULL',
+            )
+            ..execute(
+              "INSERT INTO routes VALUES ('old', 'Before the upgrade', NULL, "
+              "'importedGpx', 'trekking', '2026-09-12T10:00:00.000Z', "
+              "'2026-09-12T10:00:00.000Z', 1000.0, 10.0, 5.0, "
+              "48.0, 11.0, 48.1, 11.1, x'010203', '[]', '{}', "
+              "NULL, NULL, NULL, 0, '[{\"i\":3,\"k\":2}]', NULL, NULL, "
+              'NULL, NULL, NULL)',
+            )
+            ..userVersion = 9;
+        },
+      ),
+    );
+    addTearDown(v9.close);
+
+    final row = await v9.routesDao.routeById('old');
+
+    expect(row, isNotNull);
+    expect(row!.turnsGenerated, isFalse, reason: 'the file\'s own turns');
+    expect(row.turnsJson, '[{"i":3,"k":2}]');
+
+    await v9.routesDao.updateRoute(row.copyWith(turnsGenerated: true));
+    expect((await v9.routesDao.routeById('old'))!.turnsGenerated, isTrue);
   });
 
   test('a schema 1 database is upgraded and keeps its routes', () async {

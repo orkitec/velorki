@@ -10,6 +10,7 @@
     "docs": "Docs",
     "plus": "Plus",
     "download": "Download",
+    "getApp": "Get the app",
     "github": "GitHub",
     "menu": "Menu",
     "primary": "Main",
@@ -56,7 +57,7 @@
       "offline": "Offline downloads: map and routing regions on the phone with their size and state.",
       "settings": "Settings: the appearance section with the light, dark and system switch and the five accents.",
       "assistant": "The assistant on the Plan tab: a request for a 40 km gravel loop with a café stop, what it understood, and the loop it planned on the map.",
-      "paywall": "The Velorki Plus page as a subscriber sees it: the four features it includes and the active subscription.",
+      "paywall": "The Velorki Plus page as a subscriber sees it: the features it includes and the active subscription.",
       "cyclemap": "The cycle map in Chelsea, New York: the Hudson River Greenway, protected lanes on the avenues, local cycle routes, one-way arrows and café and drinking water stops on the map.",
       "layers": "The Layers sheet: the cycle map switched on with a chip for each part, the online cycle map, and stops with their kinds."
     }
@@ -77,11 +78,12 @@
       "storeIos": "Download on the App Store",
       "storeAndroid": "Get it on Google Play",
       "storeGithub": "Get it on GitHub",
-      "storesPending": "The store listings are not live yet. The source and the builds are on GitHub in the meantime."
+      "storesPending": "The store listings are not live yet. The source and the builds are on GitHub in the meantime.",
+      "browserLink": "or plan in your browser"
     },
     "free": {
       "title": "Everything on the phone is free",
-      "body": "Planning, loops, offline maps and routing, search, navigation, recording, sensors and the Apple Watch, ride stats, GPX, FIT and TCX files — for everyone, for good. The routing data and the search index are mirrored for you at no charge.",
+      "body": "Planning, loops, offline maps and routing, search, navigation, recording, sensors and the Apple Watch, ride stats, the weather map and the weather along the route, GPX, FIT and TCX files, and the Strava and Ride with GPS connections — for everyone, for good. The routing data and the search index are mirrored for you at no charge.",
       "items": {
         "routing": "Routing on the phone",
         "loops": "Loops",
@@ -90,7 +92,9 @@
         "navigation": "Turn-by-turn",
         "recording": "Recording",
         "sensors": "Sensors and watch",
-        "files": "GPX, FIT and TCX"
+        "files": "GPX, FIT and TCX",
+        "weather": "Weather map and route weather",
+        "connections": "Compatible with Strava and Ride with GPS"
       }
     },
     "features": {
@@ -99,7 +103,7 @@
       "plan": {
         "eyebrow": "Planning",
         "title": "A route for the bike you are on",
-        "body": "Tap waypoints on the map and the route is calculated on the phone, on downloaded 5°×5° tiles. Touring, road, gravel, MTB and direct profiles, up to three alternatives, the elevation profile and a breakdown of the surfaces you will ride on.",
+        "body": "Tap waypoints on the map and the route is calculated on the phone, on downloaded 5°×5° tiles. Touring, road, gravel, MTB and direct profiles, up to three alternatives, the elevation profile and a breakdown of the surfaces you will ride on. The route can be coloured by gradient, surface, wind or rain, and one time slider sets when you leave and moves the weather on the map and along the route.",
         "bullets": {
           "one": "Five bike profiles, up to three alternatives per route",
           "two": "Elevation profile and surface statistics for every option",
@@ -129,7 +133,7 @@
       "navigate": {
         "eyebrow": "Navigation",
         "title": "Spoken turns, on the phone",
-        "body": "A turn banner and spoken cues while you ride a route, and when you leave it, your choice of a way back onto the plan, a new route to the destination or just the direction back, all worked out on the phone. Compass or north-up follow modes. The cues are generated from the same routing data that planned the ride, so they work where there is no network. A GPX route brings its own cue sheet and points of interest along, and the record sheet adds an elevation profile with the climb ahead, the arrival time and the cue list as swipeable pages.",
+        "body": "A turn banner and spoken cues while you ride a route, and when you leave it, your choice of a way back onto the plan, a new route to the destination or just the direction back, all worked out on the phone. Compass or north-up follow modes. The cues are generated from the same routing data that planned the ride, so they work where there is no network. A GPX route brings its own cue sheet and points of interest along, and the record sheet adds an elevation profile with the climb ahead, the arrival time and the cue list as swipeable pages. A GPX without turns gets them created on the phone from the map.",
         "bullets": {
           "one": "Turn banner and voice cues, offline",
           "two": "Leave the line: guided back, a new route, or just the direction back",
@@ -169,11 +173,11 @@
       "files": {
         "eyebrow": "Files and services",
         "title": "Your rides are files you own",
-        "body": "GPX, FIT and TCX import and export through the share sheet and open-with, so routes and rides move to Komoot, Garmin Connect, Strava or anything else that reads those formats. A GPX route keeps its cue sheet and points of interest, and a Ride with GPS link opens in Velorki. Strava and Ride with GPS connections and share links are the Plus part.",
+        "body": "GPX, FIT and TCX import and export through the share sheet and open-with, so routes and rides move to Komoot, Garmin Connect, Strava or anything else that reads those formats. A GPX route keeps its cue sheet and points of interest, and a Ride with GPS link opens in Velorki. Velorki works with Strava and Ride with GPS for free; share links are part of Plus. One Share button on a route or a ride holds the link, Strava and Ride with GPS.",
         "bullets": {
           "one": "GPX, FIT and TCX in and out, from Files, Mail or a browser, with cue sheets and points of interest",
           "two": "A library of saved routes and recorded rides",
-          "three": "Strava, Ride with GPS and share links with Plus"
+          "three": "Compatible with Strava and Ride with GPS, free; share links with Plus"
         }
       }
     },
@@ -199,7 +203,7 @@
       },
       "partsNote": "Each part switches on and off on its own, in the map's Layers sheet. The chips there are the legend: each one shows its line.",
       "stopsTitle": "Stops on the map",
-      "stopsBody": "Cafés, drinking water, bakeries, toilets and repair stations to start with, from the same downloaded data. Pick any other kind from these groups, and tap a stop to plan to it.",
+      "stopsBody": "Cafés, drinking water, bakeries, toilets and repair stations to start with, from the same downloaded data. Pick any other kind from these groups, and tap a stop to plan to it. Zoomed out, close stops gather into bubbles with a count; single stops show from zoom 15, and along a route you see the stops ahead.",
       "stopGroups": {
         "cyclingStops": "Cycling stops",
         "overnight": "Overnight",
@@ -213,7 +217,7 @@
     "plus": {
       "eyebrow": "Velorki Plus",
       "title": "Ask for the ride you want",
-      "lead": "Plus is the optional subscription for what needs a server or a partner account. Most of it is the assistant: you say what you have in mind, and the route is still planned on your phone.",
+      "lead": "Plus is the optional subscription for what needs our servers. Most of it is the assistant: you say what you have in mind, and the route is still planned on your phone.",
       "items": {
         "describe": {
           "title": "Describe a ride",
@@ -227,9 +231,17 @@
           "title": "A description for your routes",
           "body": "Describe this route writes a paragraph from what the phone knows about the route: its climbs, surfaces, towns and the cafés along it."
         },
-        "connect": {
-          "title": "Strava, Ride with GPS and share links",
-          "body": "Upload rides to Strava and import your routes, send routes and trips both ways with Ride with GPS, and share a route or a ride as a link that opens in any browser."
+        "sharing": {
+          "title": "Share links",
+          "body": "Share a route or a ride as a link that opens in any browser, with the map, the stats and a GPX download."
+        },
+        "weather": {
+          "title": "Finer weather along the route",
+          "body": "The free weather along the route comes from a coarser public forecast. Plus asks local weather services instead — the US National Weather Service, the Deutscher Wetterdienst's station forecasts in Germany, MET Norway elsewhere — for finer wind, rain and temperature, with gusts and the chance of rain."
+        },
+        "radar": {
+          "title": "Rain radar across Europe",
+          "body": "Where the free map has only satellite estimates, such as in France, Spain, Italy, the UK, Switzerland and Scandinavia, Plus shows real radar from EUMETNET OPERA and Radar-DPC (Italy): 1 km cells, a new image every 5 minutes, the last 2 hours."
         }
       },
       "privacy": "The assistant asks before it sends anything: what you type and, only if you allow it, your position rounded to about a kilometre. No account, no route history.",
@@ -240,7 +252,7 @@
     "comparison": {
       "eyebrow": "Free vs Plus",
       "title": "Free is everything that runs on the phone",
-      "lead": "Velorki Plus is a small subscription only for the parts that need our servers or a partner account. Everything else is free, for everyone, for good.",
+      "lead": "Velorki Plus is a small subscription only for the parts that need our servers. Everything else is free, for everyone, for good.",
       "feature": "Feature",
       "free": "Free",
       "plus": "Plus",
@@ -257,9 +269,13 @@
         "sensors": "Heart rate, cadence and power from sensors, watch and health app",
         "library": "Library of routes and rides",
         "files": "GPX, FIT and TCX import and export",
+        "weatherMap": "Weather map: rain radar, clouds and wind, with a time slider",
+        "routeColours": "Weather along the route from a coarser public forecast: wind, rain, temperature, a summary and the best time to leave, and the route coloured by gradient, surface, wind or rain",
+        "routeWeather": "Finer weather along the route from local weather services, with gusts and chance of rain",
+        "radarEurope": "Real rain radar across Europe where the free map has only satellite estimates",
         "assistant": "The assistant: a sentence becomes a route",
-        "strava": "Strava: upload rides, import routes",
-        "rwgps": "Ride with GPS: routes and trips both ways",
+        "strava": "Compatible with Strava: upload rides, import your routes",
+        "rwgps": "Compatible with Ride with GPS: routes and trips both ways",
         "sharing": "Share links for routes and rides"
       },
       "note": "The code for all of it is here, so you can also run your own relay and skip the subscription entirely.",
@@ -271,6 +287,29 @@
       "githubLink": "Read the source on GitHub",
       "creditsLink": "Credits and licences"
     },
+    "webPlanner": {
+      "eyebrow": "In the browser",
+      "title": "Plan on a big screen",
+      "lead": "The planner also runs in the browser: free, nothing to install, no account. It computes routes on your computer with the same routing as the app, from the routing data for the area you plan in.",
+      "doesTitle": "What it does",
+      "does": {
+        "routing": "Routes with the Touring, Road, Gravel and MTB profiles, variants and loops",
+        "elevation": "Distance, ascent and the elevation profile, coloured by gradient or surface",
+        "maps": "Place search, the cycle map, stops along the way and the weather map",
+        "library": "A library of your routes, and GPX files to download"
+      },
+      "doesntTitle": "What stays in the app",
+      "doesnt": {
+        "ride": "Recording rides and turn-by-turn navigation",
+        "offline": "Map areas kept for riding without a signal",
+        "connections": "Strava, Ride with GPS and iCloud sync"
+      },
+      "ride": "The app is for riding: it records, navigates and works offline on the way.",
+      "open": "Open the planner",
+      "plus": "Velorki Plus is in the iPhone and Android apps for now.",
+      "plusLink": "Get the app",
+      "alt": "The Velorki planner in a browser window: a route along the coast of Madeira from Funchal to Caniço, with distance, ascent and the route coloured by gradient."
+    },
     "faq": {
       "eyebrow": "Questions",
       "title": "Frequently asked",
@@ -281,15 +320,15 @@
         },
         "offline": {
           "q": "Does it really work without a connection?",
-          "a": "Yes. Download a region once and the map, the routing, the place search and the spoken turns all run on the phone. Only the assistant, the Strava and Ride with GPS connections and share links need a network, and those are the Plus features."
+          "a": "Yes. Download a region once and the map, the routing, the place search and the spoken turns all run on the phone. Only the weather, the assistant, the Strava and Ride with GPS connections and share links need a network."
         },
         "price": {
           "q": "What does Velorki cost?",
-          "a": "Everything that runs on the phone is free: planning, loops, offline maps and routing, search, navigation, recording, heart rate, cadence and power from your sensors, ride stats and GPX, FIT and TCX files. Velorki Plus is a subscription for the server-side features; the current price is shown in the app, in your currency, by the store."
+          "a": "Everything that runs on the phone is free: planning, loops, offline maps and routing, search, navigation, recording, heart rate, cadence and power from your sensors, ride stats, the weather map, the weather along the route from a public forecast, GPX, FIT and TCX files, and the Strava and Ride with GPS connections. Velorki Plus is a subscription for the server-side features; the current price is shown in the app, in your currency, by the store."
         },
         "plus": {
           "q": "What is Velorki Plus?",
-          "a": "A small subscription for the parts that need our servers or a partner account: the assistant, the Strava connection, the Ride with GPS connection and share links. It is bought, managed and cancelled in the App Store or Google Play."
+          "a": "A small subscription for the parts that need our servers: the assistant, share links, finer weather along the route from local weather services and rain radar across Europe. It is bought, managed and cancelled in the App Store or Google Play."
         },
         "data": {
           "q": "What leaves my phone?",
@@ -319,32 +358,32 @@
   "plus": {
     "meta": {
       "title": "Velorki Plus",
-      "description": "Velorki Plus is a small subscription for the parts that need our servers or a partner account: the assistant, Strava, Ride with GPS and share links."
+      "description": "Velorki Plus is a small subscription for the parts that need our servers: the assistant, share links, finer route weather and rain radar across Europe."
     },
     "eyebrow": "Subscription",
     "title": "Velorki Plus",
-    "lead": "Everything that runs on your phone is free. Plus pays for the parts that need our servers or a partner account.",
+    "lead": "Everything that runs on your phone is free, and so are the Strava and Ride with GPS connections. Plus pays for the parts that need our servers.",
     "includes": "What Plus includes",
     "features": {
       "assistant": {
         "title": "The assistant",
         "body": "Describe the ride you want in a sentence — “40 km, mostly gravel, a café stop” — and Velorki turns it into a route and plans it on your phone. The model runs behind a relay that holds the key; the app never sees it."
       },
-      "strava": {
-        "title": "Strava connection",
-        "body": "Upload a recorded ride to Strava and import your Strava routes into the library."
-      },
-      "rwgps": {
-        "title": "Ride with GPS connection",
-        "body": "Routes and trips both ways, between Ride with GPS and your library."
-      },
       "sharing": {
         "title": "Share links",
         "body": "Turn a route or a ride into a link anyone can open in a browser, with the map, the stats and a GPX download."
+      },
+      "weather": {
+        "title": "Finer weather along the route",
+        "body": "The free weather along the route comes from a coarser public forecast. Plus asks local weather services instead — the US National Weather Service, the Deutscher Wetterdienst's station forecasts in Germany, MET Norway elsewhere — for finer wind, rain and temperature, with gusts and the chance of rain."
+      },
+      "radar": {
+        "title": "Rain radar across Europe",
+        "body": "Where the free map has only satellite estimates, such as in France, Spain, Italy, the UK, Switzerland and Scandinavia, Plus shows real radar from EUMETNET OPERA and Radar-DPC (Italy): 1 km cells, a new image every 5 minutes, the last 2 hours."
       }
     },
     "freeTitle": "What stays free",
-    "freeBody": "Planning, loops, offline maps and routing, search, turn-by-turn navigation, recording, ride stats and GPX, FIT and TCX files stay free, with or without Plus.",
+    "freeBody": "Planning, loops, offline maps and routing, search, turn-by-turn navigation, recording, ride stats, the weather map, the weather along the route from a coarser public forecast (wind, rain, temperature, the best time to leave) with the route coloured by gradient, surface, wind or rain, GPX, FIT and TCX files, and the Strava and Ride with GPS connections stay free, with or without Plus.",
     "priceTitle": "What it costs",
     "priceBody": "See the price in the app. The store shows the current monthly and yearly price in your own currency, with a free trial, and the price is never quoted here so it cannot go stale.",
     "restoreTitle": "Restoring a subscription",
@@ -363,13 +402,16 @@
     },
     "eyebrow": "Download",
     "title": "Get Velorki",
-    "lead": "Free on both platforms. Everything that runs on the phone works without an account and without a connection.",
+    "lead": "Free on both platforms. Everything that runs on the phone works without an account and without a connection. The app speaks English, German, French, Spanish, Italian and Dutch.",
     "requirementsTitle": "What it needs",
     "android": "Android",
     "ios": "iOS",
     "androidRequirement": "Android {version} or newer",
     "iosRequirement": "iOS {version} or newer",
     "storage": "About 60 MB for the app, plus whatever you download in map and routing regions.",
+    "browserTitle": "Or in the browser",
+    "browserBody": "Plan routes on a computer with the planner on the web: the same maps, routing and library, nothing to install.",
+    "browserLink": "Open the planner",
     "apkTitle": "APK and source builds",
     "apkBody": "Every release is tagged on GitHub with its APK attached, for people who would rather not use a store. Updates are manual when you install this way.",
     "apkLink": "GitHub Releases",

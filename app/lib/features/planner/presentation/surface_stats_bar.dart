@@ -28,9 +28,12 @@ class SurfaceStatsBar extends StatelessWidget {
     }
 
     final segments = <(String, double, Color)>[
-      (l10n.surfacePaved, s.pavedShare, theme.velorki.accent),
-      (l10n.surfaceUnpaved, s.unpavedShare, theme.colorScheme.tertiary),
-      (l10n.surfaceUnknown, s.unknownShare, theme.colorScheme.outlineVariant),
+      for (final (kind, share) in [
+        (SurfaceKind.paved, s.pavedShare),
+        (SurfaceKind.unpaved, s.unpavedShare),
+        (SurfaceKind.unknown, s.unknownShare),
+      ])
+        (surfaceKindLabel(l10n, kind), share, surfaceKindColour(theme, kind)),
     ];
     final total = segments.fold<double>(0, (sum, e) => sum + e.$2);
 
@@ -68,15 +71,15 @@ class SurfaceStatsBar extends StatelessWidget {
             for (final (label, share, color) in segments)
               _ShareChip(label: label, share: share, color: color),
             _ShareChip(
-              label: l10n.surfaceBikeInfrastructure,
+              label: surfaceKindLabel(l10n, SurfaceKind.bikeInfrastructure),
               // Stored before the share existed: the old, looser count.
               share: s.bikeInfrastructureShare ?? s.cyclewayShare,
-              color: theme.colorScheme.secondary,
+              color: surfaceKindColour(theme, SurfaceKind.bikeInfrastructure),
             ),
             _ShareChip(
-              label: l10n.surfaceBusy,
+              label: surfaceKindLabel(l10n, SurfaceKind.busy),
               share: s.busyShare,
-              color: theme.colorScheme.error,
+              color: surfaceKindColour(theme, SurfaceKind.busy),
             ),
           ],
         ),
@@ -84,6 +87,27 @@ class SurfaceStatsBar extends StatelessWidget {
     );
   }
 }
+
+/// The colour [kind] is drawn in, in the Surface section and on the route
+/// coloured by its surface alike.
+Color surfaceKindColour(ThemeData theme, SurfaceKind kind) => switch (kind) {
+  SurfaceKind.paved => theme.velorki.accent,
+  SurfaceKind.unpaved => theme.colorScheme.tertiary,
+  SurfaceKind.unknown => theme.colorScheme.outlineVariant,
+  SurfaceKind.bikeInfrastructure => theme.colorScheme.secondary,
+  SurfaceKind.busy => theme.colorScheme.error,
+};
+
+/// What [kind] is called, in the Surface section and in the key to the
+/// route coloured by its surface alike.
+String surfaceKindLabel(AppLocalizations l10n, SurfaceKind kind) =>
+    switch (kind) {
+      SurfaceKind.paved => l10n.surfacePaved,
+      SurfaceKind.unpaved => l10n.surfaceUnpaved,
+      SurfaceKind.unknown => l10n.surfaceUnknown,
+      SurfaceKind.bikeInfrastructure => l10n.surfaceBikeInfrastructure,
+      SurfaceKind.busy => l10n.surfaceBusy,
+    };
 
 /// One legend entry: the colour of a share and how much of the route it is.
 class _ShareChip extends StatelessWidget {

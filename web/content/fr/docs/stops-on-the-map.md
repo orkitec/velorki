@@ -14,7 +14,7 @@ Velorki peut dessiner sur la carte les lieux où l’on s’arrête en sortie :
 
 ## Dans la zone que vous regardez
 
-Avec **Haltes** activé, les haltes de la partie visible de la carte apparaissent à partir du zoom 11. De loin, les haltes proches sont regroupées en bulles avec un nombre ; à partir du zoom 15, elles se séparent en haltes isolées avec leurs icônes. Touchez une bulle pour zoomer là où elle se sépare.
+Avec **Haltes** activé, les haltes de la partie visible de la carte apparaissent à partir du zoom 11. De loin, les haltes proches sont regroupées en bulles avec un nombre ; à partir du zoom 15, elles se séparent en haltes isolées avec leurs icônes. Touchez une bulle pour zoomer là où elle se sépare. Toutes les haltes des types choisis dans la vue sont chargées, aucune n’est laissée de côté.
 
 Plus loin que cela, une pastille indique **Zoomez pour voir les haltes** ; touchez-la et la carte zoome là où elles s’affichent.
 

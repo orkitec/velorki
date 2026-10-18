@@ -9,7 +9,10 @@ import { GitHubIcon } from './Icons';
 import { LocaleSwitcher } from './LocaleSwitcher';
 import { ThemeSwitcher } from './ThemeSwitcher';
 
-/** Features, Docs and Plus, in that order; Download is the call to action. */
+/** Features, Docs and Plus, in that order; "Get the app" (/download) is the
+    call to action. The web planner's copy of this header
+    (app/web/site_header.mjs) is held to this list and to messages/*.json by
+    app/web_test/site_header.test.mjs. */
 const NAV = [
   { key: 'features', href: '/#features' },
   { key: 'docs', href: '/docs' },
@@ -23,7 +26,7 @@ export function SiteHeader({ locale }: { locale: string }) {
     ...NAV.map((item) => ({ href: localePath(locale, item.href), label: t(item.key) })),
     { href: GITHUB_URL, label: t('github'), external: true },
   ];
-  const download: HeaderLink = { href: localePath(locale, '/download'), label: t('download') };
+  const download: HeaderLink = { href: localePath(locale, '/download'), label: t('getApp') };
   return (
     // The header is `sticky`, so it is a positioned element already and the
     // menu panel below hangs off it without a `relative` that would fight it.

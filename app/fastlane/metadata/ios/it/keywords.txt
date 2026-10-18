@@ -1,1 +1,1 @@
-ciclismo,bici,bicicletta,gpx,fit,navigatore,mappe offline,anello,gravel,mtb,bici da corsa,trekking
+ciclismo,bici,bicicletta,percorsi bici,gpx,navigatore,mappe offline,anello,gravel,mtb,bici da corsa

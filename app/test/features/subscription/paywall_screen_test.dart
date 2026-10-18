@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/app/platform_features.dart';
 import 'package:velorki/core/links/link_opener.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/integrations/rwgps/data/rwgps_providers.dart';
@@ -57,9 +58,8 @@ Future<List<Uri>> _pump(
 
 void main() {
   group('PaywallScreen', () {
-    testWidgets('lists the four gated features and the legal copy', (
-      tester,
-    ) async {
+    testWidgets('lists the gated features and the legal copy, and never '
+        'the free Strava and Ride with GPS connections', (tester) async {
       await _pump(
         tester,
         const PaywallScreen(),
@@ -71,9 +71,10 @@ void main() {
       );
 
       expect(find.text(l10n.plusFeatureAiAssistant), findsOneWidget);
-      expect(find.text(l10n.plusFeatureStrava), findsOneWidget);
-      expect(find.text(l10n.plusFeatureRwgps), findsOneWidget);
       expect(find.text(l10n.plusFeatureLinkSharing), findsOneWidget);
+      // Strava's API policy forbids charging for Strava functionality.
+      expect(find.textContaining(l10n.serviceStrava), findsNothing);
+      expect(find.textContaining(l10n.serviceRwgps), findsNothing);
       // The test platform is Android: Google Play's terms.
       expect(find.text(l10n.plusLegalPlay), findsOneWidget);
       expect(find.text(l10n.plusLegalAppStore), findsNothing);
@@ -101,28 +102,6 @@ void main() {
         );
       });
     }
-
-    testWidgets('does not sell an integration this build cannot connect', (
-      tester,
-    ) async {
-      // A build without a Ride with GPS client id hides the connection
-      // everywhere else; offering it on the paywall would charge for a feature
-      // the rider then cannot find - the App Review 2.1 rejection.
-      await _pump(
-        tester,
-        const PaywallScreen(),
-        service: FakeSubscriptionService(offering: defaultOffering),
-        extraOverrides: [
-          stravaConfiguredProvider.overrideWithValue(true),
-          rwgpsConfiguredProvider.overrideWithValue(false),
-        ],
-      );
-
-      expect(find.text(l10n.plusFeatureStrava), findsOneWidget);
-      expect(find.text(l10n.plusFeatureRwgps), findsNothing);
-      expect(find.text(l10n.plusFeatureAiAssistant), findsOneWidget);
-      expect(find.text(l10n.plusFeatureLinkSharing), findsOneWidget);
-    });
 
     testWidgets('shows every package with its price, period and trial', (
       tester,
@@ -233,6 +212,56 @@ void main() {
       // The feature list is still there: a fork's users should know what the
       // official build sells.
       expect(find.text(l10n.plusFeatureAiAssistant), findsOneWidget);
+    });
+
+    testWidgets('a browser says Plus is in the phone apps only, and sends '
+        'the rider to the download page', (tester) async {
+      final opened = await _pump(
+        tester,
+        const PaywallScreen(),
+        service: FakeSubscriptionService(isAvailable: false),
+        extraOverrides: [
+          platformFeaturesProvider.overrideWithValue(PlatformFeatures.browser),
+        ],
+      );
+
+      expect(find.text(l10n.plusUnavailableWebTitle), findsOneWidget);
+      expect(find.text(l10n.plusUnavailableWebBody), findsOneWidget);
+      expect(find.text(l10n.plusUnavailableBody), findsNothing);
+      expect(
+        find.widgetWithText(FilledButton, l10n.plusSubscribe),
+        findsNothing,
+      );
+      expect(find.text(l10n.plusRestore), findsNothing);
+      // No store, so no store's renewal terms.
+      expect(find.text(l10n.plusLegalPlay), findsNothing);
+      expect(find.text(l10n.plusLegalAppStore), findsNothing);
+
+      final getApp = find.widgetWithText(FilledButton, l10n.plusGetTheApp);
+      await tester.ensureVisible(getApp);
+      await tester.tap(getApp);
+      await tester.pumpAndSettle();
+      expect(opened.map((u) => u.toString()), [
+        velorkiDownloadUrl(l10n.localeName),
+      ]);
+    });
+
+    testWidgets('a build without a store but not in a browser has no app '
+        'button', (tester) async {
+      await _pump(
+        tester,
+        const PaywallScreen(),
+        service: FakeSubscriptionService(isAvailable: false),
+      );
+      expect(
+        find.widgetWithText(FilledButton, l10n.plusGetTheApp),
+        findsNothing,
+      );
+    });
+
+    test('the download page follows the site\'s locale paths', () {
+      expect(velorkiDownloadUrl('en'), 'https://velorki.com/download');
+      expect(velorkiDownloadUrl('de'), 'https://velorki.com/de/download');
     });
 
     testWidgets('a store that cannot be reached explains itself', (

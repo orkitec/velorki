@@ -198,6 +198,25 @@ class StravaClient {
     }
   }
 
+  /// Whether route [routeId] still exists on Strava. `GET /routes/{id}`.
+  ///
+  /// Strava's 404 is the one "no"; every other failure throws, because a
+  /// route that could not be checked is not a route that is gone. A 404 in
+  /// the relay's own words is the relay refusing the path, and throws too.
+  Future<bool> routeExists(String routeId) async {
+    _bucket?.consume();
+    try {
+      await dio.get<dynamic>('$apiBase/routes/$routeId');
+      return true;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404 &&
+          relayErrorOf(e.response?.data) == null) {
+        return false;
+      }
+      throw integrationExceptionFromDio(e, service: 'Strava');
+    }
+  }
+
   /// Revokes the app's access. `POST /oauth/deauthorize`.
   ///
   /// The newer `POST /oauth/revoke` needs HTTP basic auth with the client

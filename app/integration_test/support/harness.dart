@@ -21,6 +21,9 @@ import 'package:velorki/features/map/presentation/map_view.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
+
+import 'fakes.dart';
 
 /// How long a step of the pump loop is. Short enough that a tap is picked up
 /// quickly, long enough that a few hundred of them cover a minute.
@@ -30,13 +33,15 @@ const Duration pumpStep = Duration(milliseconds: 100);
 ///
 /// [overrides] are appended to the two the app itself always needs, so a test
 /// can replace the GPS, the geocoder or the recorder without repeating the
-/// boilerplate. Pass `realMap: false` to keep the placeholder map: the tests
+/// boilerplate; [dwd] answers the free route forecast ([OfflineDwdClient],
+/// no answer at all, by default). Pass `realMap: false` to keep the placeholder map: the tests
 /// that only assert on state run a good deal faster without maplibre, but the
 /// ones that care about the style reload need the real thing.
 Future<ProviderContainer> pumpApp(
   WidgetTester tester, {
   List<Override> overrides = const <Override>[],
   bool realMap = true,
+  DwdForecastClient dwd = const OfflineDwdClient(),
   Duration warmUp = const Duration(seconds: 3),
 }) async {
   final prefs = await SharedPreferences.getInstance();
@@ -46,6 +51,8 @@ Future<ProviderContainer> pumpApp(
       // The emulator says en-US, which would open the app in miles; these
       // flows are written in metric.
       localeCountryProvider.overrideWithValue(null),
+      // No DWD on the emulator: see OfflineDwdClient.
+      dwdForecastClientProvider.overrideWithValue(dwd),
       if (realMap)
         mapViewBuilderProvider.overrideWithValue(
           (onReady) => MapView(onControllerReady: onReady),

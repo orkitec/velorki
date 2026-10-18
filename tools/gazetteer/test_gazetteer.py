@@ -1811,7 +1811,9 @@ class GazetteerTest(unittest.TestCase):
 
     # ------------------------------------------------------------- merge ---
 
-    def run_merge(self, *inputs: str, expect: int = 0) -> str:
+    def run_merge(
+        self, *inputs: str, expect: int = 0, env: dict[str, str] | None = None
+    ) -> str:
         """Run merge.py over the given inputs; returns the merged tile path."""
         out = tempfile.mkdtemp(prefix="gaz-merged-", dir=self.tmp)
         self.addCleanup(shutil.rmtree, out, ignore_errors=True)
@@ -1819,6 +1821,7 @@ class GazetteerTest(unittest.TestCase):
             [sys.executable, os.path.join(HERE, "merge.py"), out] + list(inputs),
             capture_output=True,
             text=True,
+            env={**os.environ, **(env or {})},
         )
         self.assertEqual(result.returncode, expect, result.stderr)
         if expect == 0:
@@ -2263,6 +2266,26 @@ class GazetteerTest(unittest.TestCase):
         self.assertEqual(meta["has_pois"], "1")
         self.assertEqual(meta["search_script"], "latin")
         self.assertRegex(meta["built_at"], r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
+
+    def test_source_date_epoch_makes_a_merge_reproducible(self) -> None:
+        # The mirror skips an upload whose checksum it already has, which only
+        # means "unchanged" when the same inputs give the same bytes.
+        inputs = self.copies(self.path(), self.path(streets=False))
+        epoch = {"SOURCE_DATE_EPOCH": "1759314241"}
+        first = self.run_merge(*inputs, env=epoch)
+        second = self.run_merge(*inputs, env=epoch)
+        with open(first, "rb") as a, open(second, "rb") as b:
+            self.assertEqual(a.read(), b.read())
+        self.assertEqual(self.meta_of(first)["built_at"], "2025-10-01T10:24:01Z")
+
+    def test_build_time_reads_source_date_epoch(self) -> None:
+        for module in (build, merge):
+            with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "0"}):
+                self.assertEqual(module.build_time(), "1970-01-01T00:00:00Z")
+            with mock.patch.dict(os.environ):
+                os.environ.pop("SOURCE_DATE_EPOCH", None)
+                self.assertRegex(module.build_time(), r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
+                self.assertNotEqual(module.build_time(), "1970-01-01T00:00:00Z")
 
     def test_merge_finds_inputs_in_nested_directories(self) -> None:
         root = tempfile.mkdtemp(prefix="gaz-nested-", dir=self.tmp)

@@ -45,6 +45,38 @@ String turnFeatureId(int index) => 'velorki-turn-$index';
 int? turnIndexFromFeatureId(String? featureId) =>
     _indexAfter('velorki-turn-', featureId);
 
+/// The property a feature's id travels in to maplibre-gl-js, whose GeoJSON
+/// sources keep a top-level `id` only when it is a number: the ids above
+/// are strings, so in a browser each source promotes this property to the
+/// id instead (`promoteId`), and taps and drags report it as on the phone.
+const String promotedIdProperty = 'velorki_id';
+
+/// [geojson] with each feature's `id` also in its properties, as
+/// [promotedIdProperty]; a feature without one is left as it is.
+Map<String, dynamic> withPromotedIds(Map<String, dynamic> geojson) {
+  Object? feature(Object? f) {
+    if (f is! Map || f['id'] == null) return f;
+    return <String, dynamic>{
+      ...f.cast<String, dynamic>(),
+      'properties': <String, dynamic>{
+        ...?(f['properties'] as Map?)?.cast<String, dynamic>(),
+        promotedIdProperty: f['id'],
+      },
+    };
+  }
+
+  return switch (geojson['type']) {
+    'FeatureCollection' => <String, dynamic>{
+      ...geojson,
+      'features': <Object?>[
+        for (final f in geojson['features'] as List<dynamic>) feature(f),
+      ],
+    },
+    'Feature' => feature(geojson)! as Map<String, dynamic>,
+    _ => geojson,
+  };
+}
+
 int? _indexAfter(String prefix, String? featureId) {
   if (featureId == null || !featureId.startsWith(prefix)) return null;
   return int.tryParse(featureId.substring(prefix.length));

@@ -4,6 +4,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 
+import 'picture_png.dart';
+
 /// The icons markers wear, drawn at runtime.
 ///
 /// MapLibre can only put a picture on a symbol, and the app's marker icons
@@ -192,13 +194,7 @@ Future<Uint8List> _encodePng(
     ..scale(ratio);
   paint(canvas, ratio);
 
-  final image = await recorder.endRecording().toImage(width, height);
-  try {
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    return data!.buffer.asUint8List();
-  } finally {
-    image.dispose();
-  }
+  return pictureToPng(recorder.endRecording(), width, height);
 }
 
 /// Paints [icon] and encodes it as PNG bytes.
@@ -263,6 +259,10 @@ const double markerDiscBitmapPadPx = 1;
 /// translucent outline as on a bare glyph, where the disc sets it off and
 /// that would only blur its edges, but the icon font's thin lines made a
 /// little more solid.
+///
+/// [badge], relative to the disc's centre, adds a pill in [badgeFill] with
+/// the same rim over the disc, for a count the style writes on it; the
+/// picture stays centred on the disc.
 Future<Uint8List> buildDiscMarkerImage({
   required Color fill,
   required Color stroke,
@@ -273,6 +273,8 @@ Future<Uint8List> buildDiscMarkerImage({
   double glyphPx = markerGlyphOnDiscSizePx,
   double glyphBoldPx = markerDiscGlyphBoldPx,
   Color glyphColor = const Color(0xFFFFFFFF),
+  Rect? badge,
+  Color? badgeFill,
 }) async {
   final glyph = icon == null
       ? null
@@ -284,7 +286,18 @@ Future<Uint8List> buildDiscMarkerImage({
           haloPx: glyphBoldPx,
         );
   try {
-    final side = (radiusPx + strokePx + markerDiscBitmapPadPx) * 2;
+    // Square and centred on the disc, so the picture's middle is the
+    // point's place whatever sticks out of it.
+    final reach = badge == null
+        ? radiusPx
+        : <double>[
+            radiusPx,
+            badge.left.abs(),
+            badge.right.abs(),
+            badge.top.abs(),
+            badge.bottom.abs(),
+          ].reduce(math.max);
+    final side = (reach + strokePx + markerDiscBitmapPadPx) * 2;
     final center = Offset(side / 2, side / 2);
     return await _encodePng(Size(side, side), devicePixelRatio, (
       canvas,
@@ -318,6 +331,27 @@ Future<Uint8List> buildDiscMarkerImage({
         );
         glyph.halo.paint(canvas, origin);
         glyph.fill.paint(canvas, origin);
+      }
+      if (badge != null) {
+        // A pill over the disc's shoulder, rimmed like the disc, for the
+        // style to write a number on.
+        final pill = RRect.fromRectAndRadius(
+          badge.shift(center),
+          Radius.circular(badge.height / 2),
+        );
+        canvas
+          ..drawRRect(
+            pill.inflate(strokePx),
+            Paint()
+              ..color = stroke
+              ..isAntiAlias = true,
+          )
+          ..drawRRect(
+            pill,
+            Paint()
+              ..color = badgeFill ?? stroke
+              ..isAntiAlias = true,
+          );
       }
     });
   } finally {

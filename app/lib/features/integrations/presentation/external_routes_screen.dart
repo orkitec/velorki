@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/links/link_opener.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/placeholder_body.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../application/external_route_importer.dart';
 import '../application/external_routes_loader.dart';
+import '../common/data/connected_accounts_repository.dart';
 import '../common/domain/connected_account.dart';
 import '../common/domain/external_route.dart';
 import '../common/domain/integration_exception.dart';
@@ -18,8 +21,8 @@ import 'strava_brand.dart';
 /// The routes of a connected partner account, with an Import action each.
 ///
 /// One screen for both services: Strava and Ride with GPS describe a route
-/// with the same numbers, and the cache policy — drop the list after seven
-/// days, which is Strava's rule — is applied to both.
+/// with the same numbers, and the cache policy — drop the list after 48
+/// hours, which is Strava's rule — is applied to both.
 class ExternalRoutesScreen extends ConsumerStatefulWidget {
   /// Creates the screen for [service].
   const ExternalRoutesScreen({required this.service, super.key});
@@ -46,6 +49,14 @@ class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
   }
 
   Future<void> _load({bool forceRefresh = false}) async {
+    // The accounts first: read before they are loaded, a connected service
+    // looks unconnected and its list empty.
+    try {
+      await ref.read(connectedAccountsProvider.future);
+    } on Object {
+      // Unreadable accounts are no accounts; the null loader below says so.
+    }
+    if (!mounted) return;
     final loader = ref.read(externalRoutesLoaderProvider(widget.service));
     if (loader == null) {
       setState(() {
@@ -132,13 +143,13 @@ class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
 
   Widget _body(AppLocalizations l10n, String label, {required bool connected}) {
     final units = ref.watch(unitSystemProvider);
+    if (_loading) return const Center(child: CircularProgressIndicator());
     if (!connected) {
       return PlaceholderBody(
         icon: Icons.link_off,
         message: l10n.externalRoutesNotConnected(label),
       );
     }
-    if (_loading) return const Center(child: CircularProgressIndicator());
     final error = _error;
     if (error != null) {
       return PlaceholderBody(
@@ -190,12 +201,29 @@ class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
         return ListTile(
           leading: const Icon(Icons.route_outlined),
           title: Text(route.name),
-          subtitle: Text(
-            l10n.externalRouteSubtitle(
-              formatDistance(l10n, units, route.distanceM),
-              formatHeight(l10n, units, route.elevationGainM),
-              route.createdAt == null ? '' : formatDate(l10n, route.createdAt!),
-            ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.externalRouteSubtitle(
+                  formatDistance(l10n, units, route.distanceM),
+                  formatHeight(l10n, units, route.elevationGainM),
+                  route.createdAt == null
+                      ? ''
+                      : formatDate(l10n, route.createdAt!),
+                ),
+              ),
+              // Strava's brand guidelines: each route links back to it.
+              if (strava)
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: ViewOnStravaLink(
+                    onPressed: () => unawaited(
+                      ref.read(linkOpenerProvider)(stravaRouteUrl(route.id)),
+                    ),
+                  ),
+                ),
+            ],
           ),
           trailing: _importing == route.id
               ? const SizedBox(
@@ -220,7 +248,5 @@ Future<void> openExternalRoutes(
   BuildContext context,
   IntegrationService service,
 ) => Navigator.of(context).push(
-  MaterialPageRoute<void>(
-    builder: (_) => ExternalRoutesScreen(service: service),
-  ),
+  ColumnPageRoute<void>(builder: (_) => ExternalRoutesScreen(service: service)),
 );

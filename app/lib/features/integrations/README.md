@@ -6,8 +6,8 @@ secrets, and the key the service tokens are wrapped with. The relay exchanges
 an OAuth code for tokens and hands them to the phone **wrapped** (AES-GCM
 under its own key), the phone stores that form in secure storage, and every
 service call goes to `<relay>/proxy/<service>/<upstream path>` with the
-wrapped token in `X-Velorki-Token` and the relay's own bearer. The relay
-checks the subscription, opens the token in memory, forwards
+wrapped token in `X-Velorki-Token` and the relay's own bearer (the install
+id, for its rate limits). The relay opens the token in memory, forwards
 the call with `Authorization: Bearer` and streams the answer back. It keeps
 neither the file nor the token, and the phone never holds a token in clear.
 
@@ -17,12 +17,33 @@ features/integrations/
 ├── strava/            Strava client, authorise URLs, connector
 ├── rwgps/             Ride with GPS client, authorise URL, connector
 ├── application/       upload, send, import and the connect controller
-└── presentation/      settings tiles, route lists, the two menus
+└── presentation/      settings tiles, route lists, the share card rows
 ```
 
-Both connections are **Velorki Plus** features (`PlusFeature.stravaConnection`,
-`PlusFeature.rwgpsConnection`). Until the paywall lands in M6 an unentitled
-rider sees a placeholder card and disabled buttons.
+Both connections are **free**: Strava's API policy forbids charging for
+anything built on it, and Ride with GPS follows the same rule. Share links,
+which live on our server, stay Velorki Plus.
+
+**Strava's terms, as the app keeps them:**
+
+* A route read from Strava, or edited from one (`SavedRoute.fromStrava`:
+  source `strava` or a `strava_route_id` in `external_ids`), never goes to
+  the AI, into a share link or to Ride with GPS. Saving over a route keeps
+  its source and external ids.
+* Connecting shows what is read and written first (`StravaConsentSheet`);
+  the scopes are `read,activity:write`, and upload is only offered with
+  `activity:write` granted.
+* Disconnecting, or a refresh Strava refuses (`authorization_revoked` from
+  the relay), deletes every Strava route, the cached list, the activity links
+  on rides and a Strava route open in the planner, and says so.
+* "View on Strava" links (those English words in every language) and
+  "Powered by Strava" where Strava data shows.
+* Imported Strava routes are a cache (`StravaRouteChecks`): checked with
+  `GET /routes/{id}` once their last check is 48 hours old, deleted on a 404
+  or after 7 days without a successful check; the rider is told once.
+* The relay holds each install to a share of the app-wide Strava quota
+  (uploads 6/hour and 20/day, other calls 60/hour) and stops all Strava calls
+  after a Strava 429 until its window turns.
 
 An empty `VELORKI_API_URL`, or an empty `VELORKI_STRAVA_CLIENT_ID` /
 `VELORKI_RWGPS_CLIENT_ID`, hides the service entirely — that is the pure-local
@@ -42,8 +63,8 @@ fork build.
   relay is retiring the key the token was wrapped under, replaces the stored
   token through `OAuthTokenSource.replaceAccessToken`.
 * Errors: an answer in the relay's own shape (`{"error": {"code": …}}`) is
-  the relay speaking — `not_entitled` becomes the Plus message
-  (`relayPlusNeededText`), `invalid_request` "connect again",
+  the relay speaking — `invalid_request` "connect again",
+  `authorization_revoked` the revoked case above,
   `upstream_error` "<service> could not be reached"; no answer at all is
   "Velorki's server could not be reached" (`relayUnreachableText`),
   because the relay, not the service, is what the phone dials. An
@@ -131,19 +152,18 @@ Notes:
 * **Reads are budgeted** by a client-side sliding-window bucket of 90 per 15
   minutes (`TokenBucket.stravaReads`); Strava's own limit is 100, and the
   remaining ten are left as headroom. Uploads are writes and are not counted.
-* **Seven-day cache.** The fetched route list is stored in
-  `shared_preferences` and dropped after seven days, on read and at launch
+* **48-hour cache.** The fetched route list is stored in
+  `shared_preferences` and dropped after 48 hours, on read and at launch
   (`ExternalRouteListCache`). An imported route keeps its
-  `external_fetched_at` and `external_ids` in the `routes` row.
+  `external_fetched_at` (its last check) and `external_ids` in the `routes`
+  row.
 * **`POST /oauth/revoke`** (the successor to `deauthorize`) needs HTTP basic
   auth with the client secret and therefore cannot be called from the app; the
   legacy `deauthorize` endpoint authenticates with the access token itself.
-* **Routes cannot be created** through Strava's API. "Send to Strava" in the
-  route detail explains that and offers the GPX export instead.
+* **Routes cannot be created** through Strava's API. The Strava row of the
+  route's share card explains that and offers the GPX export instead.
 * **Base URL** moves to `https://api-v3.strava.com` on 2027-01-04; that is the
   single constant `StravaClient.apiBase`.
-* AI descriptions must be disabled for `source == strava`; M4 only sets the
-  source correctly, the rule itself lands with the assistant in M6.
 
 ## Ride with GPS
 
@@ -222,8 +242,8 @@ store and no deployed relay.
    `DEV_HOSTS=1` the `/__api` prefix reaches the API role from any host, which
    is why the app's relay URL below carries it (`RelayClient` accepts a path
    prefix). `API_HOST=<mac-ip>` in `.env.local` is the alternative.
-3. **Build the phone app** against that relay, with the same client ids and
-   the Plus stub:
+3. **Build the phone app** against that relay, with the same client ids
+   (the Plus stub only matters for share links and the AI):
 
    ```sh
    flutter run --dart-define=VELORKI_API_URL=http://<mac-ip>:3000/__api \
@@ -233,8 +253,8 @@ store and no deployed relay.
    ```
 
    `VELORKI_PLUS_STUB=1` makes `startSubscriptions` grant the entitlement at
-   launch instead of asking a store, so the connection tiles are live and no
-   paywall opens; the log says so in one line. It only counts when no
+   launch instead of asking a store, so no paywall opens; the log says so in
+   one line. It only counts when no
    RevenueCat key is defined, and only in debug and profile builds, which
    cannot ship through a store: a release build ignores it completely.
    Android debug builds allow cleartext; iOS does not, so a plain `http://`

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/shared/presentation/glass_backdrop.dart';
 import 'package:velorki/features/shared/presentation/floating_bar.dart';
 
 import '../../support/app.dart';
@@ -46,8 +47,8 @@ final _strip = find.byWidgetPredicate(
 final _pill = find.byWidgetPredicate(
   (w) =>
       w is ClipRRect &&
-      w.child is BackdropFilter &&
-      (w.child! as BackdropFilter).child is SizedBox,
+      w.child is GlassBackdrop &&
+      (w.child! as GlassBackdrop).child is SizedBox,
 );
 
 /// A [DraggableScrollableSheet] in a 400 x 600 box with a [DockingSheet]
@@ -163,6 +164,47 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(extent, closeTo(0.5, 0.001));
+  });
+
+  testWidgets('a line under the handle while the content is scrolled from '
+      'its top, gone at the top, and not for a move of the sheet', (
+    tester,
+  ) async {
+    var extent = 0.0;
+    await tester.pumpWidget(_Sheet(onExtent: (e) => extent = e));
+    await tester.pumpAndSettle();
+    double line() => tester
+        .widget<AnimatedOpacity>(
+          find.descendant(
+            of: find.byKey(scrolledUnderLineKey),
+            matching: find.byType(AnimatedOpacity),
+          ),
+        )
+        .opacity;
+    expect(line(), 0);
+    // Right under the handle strip, as wide as the sheet.
+    final rect = tester.getRect(find.byKey(scrolledUnderLineKey));
+    final sheet = tester.getRect(find.byType(DockingSheetShell));
+    expect(rect.top, closeTo(sheet.top + sheetHandleDp, 0.5));
+    expect(rect.width, closeTo(sheet.width, 0.5));
+
+    // The sheet moved by its handle: the content has not scrolled.
+    await tester.dragFrom(
+      tester.getCenter(find.byType(SheetHandle)),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+    expect(extent, closeTo(0.9, 0.001));
+    expect(line(), 0);
+
+    await tester.drag(find.text('row 3'), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(line(), 1);
+
+    await tester.drag(find.text('row 10'), const Offset(0, 2000));
+    await tester.pumpAndSettle();
+    expect(find.text('title'), findsOneWidget);
+    expect(line(), 0);
   });
 
   testWidgets('content that fits is a grip all over: a drag on it moves the '

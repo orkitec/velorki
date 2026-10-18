@@ -1,7 +1,8 @@
 name: store assets
 
-# The App Store screenshots, the watch shots and the preview videos, made by
-# app/tool/store_screenshots.sh on an iOS simulator exactly as on the Mac, and
+# The App Store screenshots (iPhone, 13" iPad and iPhone Duo), the watch shots and the
+# preview videos, made by app/tool/store_screenshots.sh on iOS simulators
+# exactly as on the Mac, and
 # on request uploaded to an App Store version; and the Google Play set (`android`),
 # made by the same script on an Android emulator, and on request uploaded to
 # the Play store listing. Started by hand only; see docs/STORE_ASSETS.md.
@@ -21,14 +22,13 @@ on:
         type: string
         default: en,de,fr,es,it,nl
       ios:
-        description: The App Store set (iOS simulator)
+        description: The App Store sets, iPhone, iPad and iPhone Duo (iOS simulator)
         type: boolean
         default: true
-      # Off by default: on the runner's software renderer the map draws no
-      # labels, icons or dashed lines, so the Play set for the store is made
-      # on a Mac (docs/STORE_ASSETS.md).
+      # Off by default: an hour and more on the emulator. The map is drawn
+      # with MapLibre's Vulkan renderer there (docs/STORE_ASSETS.md).
       android:
-        description: The Google Play set (map labels missing on the runner)
+        description: The Google Play set (Android emulator)
         type: boolean
         default: false
       # The runner's simulator has no GPU and drops frames of the moving map;
@@ -57,20 +57,49 @@ on:
 permissions:
   contents: read
 
+# One run at a time per ref and platform set: a Play upload waiting days for
+# its approval must not hold up an App Store run.
 concurrency:
-  group: store-assets-${{ github.ref }}
+  group: store-assets-${{ github.ref }}-ios-${{ inputs.ios }}-android-${{ inputs.android }}
   cancel-in-progress: false
 
 env:
   FLUTTER_VERSION: "3.47.4"  # keep in sync with mise.toml and app/.fvmrc
 
 jobs:
+  # The languages as a list, one capture job each per platform: a language
+  # takes about half an hour on the simulator and close to an hour on the
+  # emulator, so all of them in one job ran for hours or past its limit.
+  locales:
+    if: ${{ (inputs.ios || inputs.android) && inputs.assets_run_id == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      locales: ${{ steps.list.outputs.locales }}
+    steps:
+      - id: list
+        env:
+          LOCALES: ${{ inputs.locales }}
+        run: |
+          json=$(printf '%s' "$LOCALES" | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | jq -R . | jq -cs .)
+          [ "$json" != "[]" ] || { echo "::error::no locales"; exit 1; }
+          echo "locales=$json" >> "$GITHUB_OUTPUT"
+
   assets:
+    needs: locales
     if: ${{ inputs.ios && inputs.assets_run_id == '' }}
-    runs-on: macos-15
-    # Each language is its own capture with a simulator reboot, and the
-    # preview records every language again.
+    runs-on: xcode-27
+    # One language on the iPhone, the iPad and the Duo, each with a simulator
+    # reboot, and the preview records it again.
     timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        locale: ${{ fromJSON(needs.locales.outputs.locales) }}
+    env:
+      # store_screenshots.sh prints memory, disk, the busiest processes, the
+      # booted simulators and the test's last line every three minutes.
+      VELORKI_STORE_MONITOR: "180"
 
     steps:
       # An upload that cannot happen should say so now, not after the capture.
@@ -87,12 +116,16 @@ jobs:
           esac
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      # The image's default Xcode 16.4 cannot compile device_info_plus (an
-      # iOS 17 NSProcessInfo selector); the app is built with Xcode 26 on the
-      # Mac, so pick the newest 26 on the runner.
-      - name: Select Xcode 26
+      # The Xcode the app is built with (the Mac's too). The xcode-27 image
+      # also carries betas, whose builds the App Store refuses: name a
+      # release or release candidate. 27.1: the iPhone Duo's whole inner
+      # screen needs its SDK.
+      - name: Select Xcode
+        env:
+          XCODE_VERSION: "27.1"
         run: |
-          xcode="$(ls -d /Applications/Xcode_26.*.app | sort -V | tail -1)"
+          xcode="/Applications/Xcode_${XCODE_VERSION}.app"
+          [ -d "$xcode" ] || { echo "::error::no $xcode on the runner"; ls -d /Applications/Xcode*.app; exit 1; }
           sudo xcode-select -s "$xcode"
           xcodebuild -version
 
@@ -151,10 +184,10 @@ jobs:
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: >-
-            derived-${{ env.FLUTTER_VERSION }}-${{
+            derived-xcode27-${{ env.FLUTTER_VERSION }}-${{
             hashFiles('app/ios/Podfile.lock') }}-${{ steps.stamp.outputs.week }}
           restore-keys: |
-            derived-${{ env.FLUTTER_VERSION }}-${{ hashFiles('app/ios/Podfile.lock') }}-
+            derived-xcode27-${{ env.FLUTTER_VERSION }}-${{ hashFiles('app/ios/Podfile.lock') }}-
 
       - name: Prepare the app package
         working-directory: app
@@ -184,30 +217,122 @@ jobs:
           key: store-tiles-W75_N40-${{ steps.snapshot.outputs.tag }}
 
       - name: Screenshots and slides
+        id: iphone
         working-directory: app
         env:
-          LOCALES: ${{ inputs.locales }}
+          LOCALES: ${{ matrix.locale }}
           # The runner's first build of the test app alone takes eight minutes.
           VELORKI_STORE_START_TIMEOUT: "1500"
         run: tool/store_screenshots.sh --locales "$LOCALES"
 
-      - name: Preview video
-        if: ${{ inputs.preview }}
-        working-directory: app
-        env:
-          LOCALES: ${{ inputs.locales }}
-          VELORKI_STORE_START_TIMEOUT: "1500"
-        run: tool/store_screenshots.sh --preview --locales "$LOCALES"
-
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      # Each platform's set is kept as soon as it is made, in an artifact of
+      # its own (store-assets-ios-*, merged again for the upload): a runner
+      # that dies later loses only what it was doing. A path's tree is kept
+      # from before its first wildcard, so `?pad` keeps the `ipad/` folder (a
+      # one-letter `[i]` counts as a literal there).
+      - name: Keep the iPhone set
+        if: ${{ !cancelled() && steps.iphone.outcome != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-assets
+          name: store-assets-ios-${{ matrix.locale }}
           path: |
             app/build/store_screenshots/slides/set
             app/build/store_screenshots/watch
-            app/build/store_screenshots/preview/*/preview*.mp4
-            app/build/store_screenshots/preview/*/poster*.png
-          if-no-files-found: error
+          if-no-files-found: ${{ steps.iphone.outcome == 'success' && 'error' || 'warn' }}
+          retention-days: 30
+
+      - name: iPad screenshots and slides
+        id: ipad
+        # Each platform's set stands on its own: one failing keeps the others.
+        if: ${{ !cancelled() }}
+        working-directory: app
+        env:
+          LOCALES: ${{ matrix.locale }}
+          VELORKI_STORE_START_TIMEOUT: "1500"
+        # The simulators of the steps before (the iPhone's, the watch's) are
+        # shut down first, here and below: one at a time on a 7 GB runner.
+        run: |
+          xcrun simctl shutdown all || true
+          tool/store_screenshots.sh --platform ipad --locales "$LOCALES"
+
+      - name: Keep the iPad set
+        if: ${{ !cancelled() && steps.ipad.outcome != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-ipad-${{ matrix.locale }}
+          path: app/build/store_screenshots/?pad/slides/set
+          if-no-files-found: ${{ steps.ipad.outcome == 'success' && 'error' || 'warn' }}
+          retention-days: 30
+
+      # The Duo needs an iOS 27.1 simulator runtime; the image may carry only
+      # 27.0. Downloaded (several GB) for the Xcode selected above when no
+      # installed runtime has the device, as the watchOS step does.
+      - name: iOS simulator runtime for the iPhone Duo
+        if: ${{ !cancelled() }}
+        run: |
+          has_duo() {
+            xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          sys.exit(not any(r["isAvailable"] and any(d["identifier"].endswith(".iPhone-Duo")
+                                                    for d in r.get("supportedDeviceTypes", []))
+                           for r in json.load(sys.stdin)["runtimes"]))'
+          }
+          xcrun simctl list runtimes | grep '^iOS'
+          df -h / "$HOME"
+          if ! has_duo; then
+            echo "::notice::no iOS runtime with the iPhone Duo on the image; downloading the one for this Xcode"
+            xcodebuild -downloadPlatform iOS
+            xcrun simctl list runtimes | grep '^iOS'
+            df -h / "$HOME"
+            has_duo || { echo "::error::still no iOS simulator runtime with the iPhone Duo"; exit 1; }
+          fi
+
+      # The Duo's inner display, unfolded (tool/duo_state.c), on a simulator
+      # the script creates on the newest runtime that has the device.
+      - name: iPhone Duo screenshots and slides
+        id: duo
+        # Each platform's set stands on its own: one failing keeps the others.
+        if: ${{ !cancelled() }}
+        # About 25 minutes on a Mac, the iPad's 40 here: a run past this is
+        # stuck, and ends with a log rather than with the runner.
+        timeout-minutes: 75
+        working-directory: app
+        env:
+          LOCALES: ${{ matrix.locale }}
+          VELORKI_STORE_START_TIMEOUT: "1500"
+        run: |
+          xcrun simctl shutdown all || true
+          tool/store_screenshots.sh --platform duo --locales "$LOCALES"
+
+      - name: Keep the iPhone Duo set
+        if: ${{ !cancelled() && steps.duo.outcome != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-duo-${{ matrix.locale }}
+          path: app/build/store_screenshots/?uo/slides/set
+          if-no-files-found: ${{ steps.duo.outcome == 'success' && 'error' || 'warn' }}
+          retention-days: 30
+
+      - name: Preview video
+        id: preview
+        if: ${{ !cancelled() && inputs.preview }}
+        working-directory: app
+        env:
+          LOCALES: ${{ matrix.locale }}
+          VELORKI_STORE_START_TIMEOUT: "1500"
+        run: |
+          xcrun simctl shutdown all || true
+          tool/store_screenshots.sh --preview --locales "$LOCALES"
+
+      - name: Keep the preview
+        if: ${{ !cancelled() && steps.preview.outcome != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-preview-${{ matrix.locale }}
+          path: |
+            app/build/store_screenshots/?review/*/preview*.mp4
+            app/build/store_screenshots/?review/*/poster*.png
+          if-no-files-found: ${{ steps.preview.outcome == 'success' && 'error' || 'warn' }}
           retention-days: 30
 
       - name: Mirror log
@@ -222,7 +347,7 @@ jobs:
       && (needs.assets.result == 'success'
       || (needs.assets.result == 'skipped' && inputs.assets_run_id != '')) }}
     # macOS for sips, which the staging script uses.
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 45
     # Required reviewer: nothing reaches App Store Connect before approval.
     environment: release
@@ -249,9 +374,12 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # One artifact per language and set (store-assets-ios-<locale>, -ipad-,
+      # -duo-, -preview-<locale>), merged into one tree.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: store-assets
+          pattern: store-assets-ios-*
+          merge-multiple: true
           path: ${{ runner.temp }}/assets
           run-id: ${{ inputs.assets_run_id || github.run_id }}
           github-token: ${{ github.token }}
@@ -294,9 +422,14 @@ jobs:
   # profile), with its system image step and, read only, its Gradle and AVD
   # caches.
   android:
+    needs: locales
     if: ${{ inputs.android && inputs.assets_run_id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        locale: ${{ fromJSON(needs.locales.outputs.locales) }}
     env:
       API_LEVEL: "35"
 
@@ -417,8 +550,9 @@ jobs:
       - name: Screenshots and slides
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         env:
-          LOCALES: ${{ inputs.locales }}
+          LOCALES: ${{ matrix.locale }}
           VELORKI_STORE_START_TIMEOUT: "1500"
+          ORG_GRADLE_PROJECT_velorkiMapVulkan: "true"
         with:
           api-level: ${{ env.API_LEVEL }}
           target: google_apis
@@ -426,15 +560,16 @@ jobs:
           profile: pixel_6
           working-directory: app
           force-avd-creation: false
-          # guest: Android renders in software itself. On the runner,
-          # swiftshader_indirect is the old GLES translator, under which the
-          # map draws no labels, icons or dashed lines (everything MapLibre
-          # takes from a texture atlas), and swangle_indirect kills the
-          # emulator half a minute into the capture. -no-snapshot:
-          # integration.yml's snapshot was made under another renderer.
+          # software: Lavapipe for Vulkan; GLES is still the old SwiftShader
+          # translator, under which MapLibre's OpenGL renderer draws no
+          # labels, icons or dashed lines. So the app is built with
+          # MapLibre's Vulkan renderer here (velorkiMapVulkan, see the
+          # app's build.gradle.kts). guest is only an alias for
+          # swiftshader_indirect. -no-snapshot: integration.yml's snapshot
+          # was made under another renderer.
           emulator-options: >-
             -no-window -no-snapshot -no-audio -no-boot-anim
-            -gpu guest -camera-back none -camera-front none
+            -gpu software -camera-back none -camera-front none
           disable-animations: true
           # One line: the action runs the script line by line.
           # The device log is kept for a failed run: the emulator is gone
@@ -443,7 +578,7 @@ jobs:
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-assets-android
+          name: store-assets-android-${{ matrix.locale }}
           path: app/build/store_screenshots/android/slides/set
           if-no-files-found: error
           retention-days: 30
@@ -456,7 +591,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-assets-android-logcat
+          name: store-logcat-android-${{ matrix.locale }}
           path: app/build/logcat.txt
           if-no-files-found: ignore
           retention-days: 7
@@ -493,9 +628,12 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # One artifact per language (store-assets-android-<locale>), or one
+      # for all from a run before the split; merged into one set.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: store-assets-android
+          pattern: store-assets-android*
+          merge-multiple: true
           path: ${{ runner.temp }}/assets
           run-id: ${{ inputs.assets_run_id || github.run_id }}
           github-token: ${{ github.token }}

@@ -47,7 +47,16 @@ class RouteSender {
   final RwgpsClient rwgps;
 
   /// Uploads [route] to Ride with GPS as a route.
+  ///
+  /// Refuses a route that is Strava data ([SavedRoute.fromStrava]): Strava's
+  /// terms let it go to no other service.
   Future<SentRoute> sendToRwgps(SavedRoute route) async {
+    if (route.fromStrava) {
+      throw IntegrationException(
+        IntegrationFailure.rejected,
+        (l10n) => l10n.shareStravaRouteRefused,
+      );
+    }
     final points = route.geometry;
     if (points.isEmpty) {
       throw IntegrationException(

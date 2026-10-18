@@ -14,8 +14,8 @@ import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/application/area_download_hint.dart';
 import '../../map/application/map_stops_controller.dart';
+import '../../map/presentation/stops_download_chip.dart';
 import '../../map/presentation/weather_time_row.dart';
-import '../../map/presentation/stops_zoom_chip.dart';
 import '../../map/data/compass_heading.dart';
 import '../../map/data/map_preferences.dart';
 import '../../map/presentation/stops_ahead_line.dart';
@@ -35,6 +35,7 @@ import '../../navigation/application/navigation_controller.dart';
 import '../../navigation/application/route_cues.dart';
 import '../../navigation/application/off_route_thresholds.dart';
 import '../../navigation/domain/navigation_progress.dart';
+import '../../navigation/presentation/missing_turns_dialog.dart';
 import '../../navigation/presentation/navigation_toggles.dart';
 import '../../navigation/presentation/turn_banner.dart';
 import '../../map/domain/visible_map.dart';
@@ -56,6 +57,7 @@ import '../../shared/application/active_tab.dart';
 import '../../shared/application/nav_bar_docking.dart';
 import '../../../app/shell_layout.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
 import '../../shared/presentation/stat_tile.dart';
@@ -279,7 +281,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     if (map == null) return;
     unawaited(
       Navigator.of(context).push(
-        MaterialPageRoute<void>(
+        ColumnPageRoute<void>(
           builder: (_) => OfflineScreen(mapController: map),
         ),
       ),
@@ -775,6 +777,48 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
 
   // --------------------------------------------------------- follow mode
 
+  /// The follow padding on a phone, upright or turned sideways, for a
+  /// screen of [size]: above the sheet and below the banner or the status
+  /// bar.
+  EdgeInsets _followPaddingIn(
+    Size size,
+    ShellLayout layout,
+    MediaQueryData screen,
+    FollowMode mode, {
+    required bool banner,
+  }) {
+    // Turned sideways the sheet comes out from the rail's side, beside the
+    // map: the rider is kept in the middle of the map between it and the far
+    // edge, below the row at the top.
+    final sheet = layout.sideRail ? _sheetRect() : null;
+    // The far side keeps clear of the camera island's safe area.
+    final left = sheet == null
+        ? 0.0
+        : layout.side == RailSide.left
+        ? sheet.right.clamp(0.0, size.width)
+        : screen.viewPadding.left;
+    final right = sheet == null
+        ? 0.0
+        : layout.side == RailSide.right
+        ? (size.width - sheet.left).clamp(0.0, size.width)
+        : screen.viewPadding.right;
+    final bannerCover = banner ? turnBannerHeight + _bannerGapPx : 0.0;
+    return followPadding(
+      size: size,
+      // Sideways the controls' row stands at the top too, beside the docked
+      // sheet, level with the banner.
+      top:
+          MediaQuery.viewPaddingOf(context).top +
+          (layout.sideRail
+              ? math.max(bannerCover, sidewaysTopRowTop + sidewaysTopRowHeight)
+              : bannerCover),
+      bottom: layout.sideRail ? screen.viewPadding.bottom : _sheetCover(size),
+      left: left,
+      right: right,
+      headingUp: mode == FollowMode.headingUp,
+    );
+  }
+
   /// Sends the camera to [position] and marks the move as ours.
   void _followTo(
     MapController map,
@@ -813,39 +857,28 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _sentZoom = zoom;
     // Above the sheet and below the banner or the status bar; low in that,
     // heading-up, so most of what shows is the road ahead.
-    final size = MediaQuery.sizeOf(context);
-    // Turned sideways the sheet comes out from the rail's side, beside the
-    // map: the rider is kept in the middle of the map between it and the far
-    // edge, below the row at the top.
     final layout = ShellLayout.of(context);
     final screen = MediaQueryData.fromView(View.of(context));
-    final sheet = layout.sideRail ? _sheetRect() : null;
-    // The far side keeps clear of the camera island's safe area.
-    final left = sheet == null
-        ? 0.0
-        : layout.side == RailSide.left
-        ? sheet.right.clamp(0.0, size.width)
-        : screen.viewPadding.left;
-    final right = sheet == null
-        ? 0.0
-        : layout.side == RailSide.right
-        ? (size.width - sheet.left).clamp(0.0, size.width)
-        : screen.viewPadding.right;
-    final bannerCover = banner ? turnBannerHeight + _bannerGapPx : 0.0;
-    final padding = followPadding(
-      size: size,
-      // Sideways the controls' row stands at the top too, beside the docked
-      // sheet, level with the banner.
-      top:
-          MediaQuery.viewPaddingOf(context).top +
-          (layout.sideRail
-              ? math.max(bannerCover, sidewaysTopRowTop + sidewaysTopRowHeight)
-              : bannerCover),
-      bottom: layout.sideRail ? screen.viewPadding.bottom : _sheetCover(size),
-      left: left,
-      right: right,
-      headingUp: mode == FollowMode.headingUp,
-    );
+    // In a wide window this screen is in the column; the map is the
+    // window's, and the rider is kept in the middle of it beside the
+    // column.
+    final EdgeInsets padding;
+    final Size size;
+    if (layout.widePanel) {
+      size = screen.size;
+      final free = wideFreeMap(context);
+      padding = followPadding(
+        size: size,
+        top: free.top,
+        bottom: free.bottom,
+        left: free.left,
+        right: free.right,
+        headingUp: mode == FollowMode.headingUp,
+      );
+    } else {
+      size = MediaQuery.sizeOf(context);
+      padding = _followPaddingIn(size, layout, screen, mode, banner: banner);
+    }
     // Where the camera itself comes to rest: the rider's placement moves it
     // off the rider, and a camera found there is not a hand pan.
     _followCamera = offsetCenter(
@@ -1442,6 +1475,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   Future<void> _start() async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    if (!await _ensureTurns()) return;
+    if (!mounted) return;
     if (!await _ensureLocation(l10n, messenger)) return;
     if (!mounted) return;
     await _ensureNotifications(l10n, messenger);
@@ -1457,6 +1492,16 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         SnackBar(content: Text(l10n.recordingFailed(error.describe(l10n)))),
       );
     }
+  }
+
+  /// A saved route without turn instructions is offered them from the map
+  /// before the ride starts; `false` when the rider backed out.
+  Future<bool> _ensureTurns() async {
+    final id = ref.read(recordingControllerProvider).followedRouteId;
+    if (id == null) return true;
+    final route = await ref.read(routeRepositoryProvider).routeById(id);
+    if (route == null || !mounted) return true;
+    return confirmRouteTurns(context, ref, route);
   }
 
   Future<bool> _ensureLocation(
@@ -1966,7 +2011,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                       bottom: false,
                       child: BesideSheet(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: wideChromeMargin(
+                            context,
+                            const EdgeInsets.symmetric(horizontal: 12),
+                          ),
                           child: TurnBanner(progress: navigation),
                         ),
                       ),
@@ -1988,8 +2036,13 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                       child: BesideSheet(
                         child: Padding(
                           padding: EdgeInsets.only(
-                            left: 12,
-                            right: shellLayout.sideRail
+                            // Clear of the controls at their edge.
+                            left: wideMapControlsAtLeft(context, shellLayout)
+                                ? mapControlsWidth(context) + 8
+                                : 12,
+                            right:
+                                shellLayout.sideRail ||
+                                    wideMapControlsAtLeft(context, shellLayout)
                                 ? 12
                                 : mapControlsWidth(context) + 8,
                             top: shellLayout.sideRail
@@ -2011,9 +2064,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                                 ListenableBuilder(
                                   listenable: _stops,
                                   // Where nothing is downloaded: offered the
-                                  // download. In the area on screen, zoomed out
-                                  // too far: told to zoom in. Both where the
-                                  // line would be.
+                                  // download, where the line would be.
                                   builder: (context, _) => _stops.needsDownload
                                       ? dismissedAreas.contains(
                                               _stops.missingArea,
@@ -2023,11 +2074,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                                                 onDownload: _openOfflineData,
                                                 onClose: _closeStopsHint,
                                               )
-                                      : _stops.needsZoom
-                                      ? StopsZoomChip(
-                                          onZoomIn: () =>
-                                              unawaited(_stops.zoomIn()),
-                                        )
                                       : StopsAheadLine(
                                           entries: _stops.nextPerKind(),
                                           onTap: _onStopAheadTapped,
@@ -2486,33 +2532,47 @@ class _LivePanel extends ConsumerWidget {
         Row(
           children: [
             Expanded(
-              child: Row(
-                children: [
-                  // Gives way to the clock and the buttons, but only when
-                  // there is not room for all of it: on a narrow phone in a
-                  // language with a long word for it.
-                  Flexible(
-                    child: _StatusPill(
-                      label: status,
-                      // On a narrow phone "Auto-paused" leaves no room for
-                      // the clock: it is a pause all the same.
-                      shortLabel: snapshot.autoPaused && state.isPaused
-                          ? l10n.recordingStatusPaused
-                          : null,
-                      paused: state.isPaused,
+              child: LayoutBuilder(
+                builder: (context, constraints) => Row(
+                  children: [
+                    // Gives way to the clock and the buttons, but only when
+                    // there is not room for all of it: on a narrow phone in
+                    // a language with a long word for it.
+                    Flexible(
+                      child: _StatusPill(
+                        label: status,
+                        // On a narrow phone "Auto-paused" leaves no room for
+                        // the clock: it is a pause all the same.
+                        shortLabel: snapshot.autoPaused && state.isPaused
+                            ? l10n.recordingStatusPaused
+                            : null,
+                        paused: state.isPaused,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    formatClock(snapshot.elapsed),
-                    style: theme.textTheme.statMedium.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    const SizedBox(width: 12),
+                    // As it is wherever it fits; on the narrowest column
+                    // (a wide window's compact one, a phone 320 wide) made
+                    // smaller rather than pushed past the buttons.
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: math.max(0, constraints.maxWidth - 16),
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          formatClock(snapshot.elapsed),
+                          style: theme.textTheme.statMedium.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                        ),
+                      ),
                     ),
-                    maxLines: 1,
-                  ),
-                  // Clear of the play button even when the row is full.
-                  const SizedBox(width: 4),
-                ],
+                    // Clear of the play button even when the row is full.
+                    const SizedBox(width: 4),
+                  ],
+                ),
               ),
             ),
             _RoundAction(

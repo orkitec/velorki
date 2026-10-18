@@ -1,6 +1,6 @@
 ---
 title: Privacy op de telefoon
-description: "In fietsertaal: wat er op je telefoon blijft, wat hem verlaat, wanneer en naar wie. Er is geen account en er wordt niets geüpload tenzij je erom vraagt."
+description: "In fietsertaal: wat er op je telefoon blijft, wat hem verlaat, wanneer en naar wie. Er is geen account en er komt niets bij ons tenzij je erom vraagt."
 order: 17
 ---
 
@@ -14,9 +14,10 @@ Alles wat je maakt en alles wat je downloadt:
 - je instellingen, waaronder welke eenheden en welke stem je koos, en het gewicht, geboortejaar, geslacht, de maximale hartslag, het fietsgewicht, het fietstype en het drempelvermogen die je misschien invult onder Instellingen → Fietser; dat zijn instellingen op de telefoon en ze worden nergens heen gestuurd,
 - gedownloade offline kaartgebieden,
 - gedownloade routeringstegels en de zoekindexen voor plaatsen die erbij horen,
-- de toegangstokens voor Strava en Ride with GPS als je die koppelt, die in de beveiligde opslag van de telefoon gaan in een vorm die alleen de Velorki-relay kan openen.
+- de toegangstokens voor Strava en Ride with GPS als je die koppelt, die in de beveiligde opslag van de telefoon gaan in een vorm die alleen de Velorki-relay kan openen, en buiten back-ups worden gehouden.
+- wat je van Strava neemt: je Strava-naam, de lijst met je Strava-routes gedurende hooguit 48 uur, de routes die je importeert en de koppelingen van geüploade ritten naar hun Strava-activiteiten. Ontkoppelen verwijdert dat allemaal.
 
-Niets daarvan wordt ergens heen geüpload, tenzij je erom vraagt.
+Niets daarvan wordt ergens heen geüpload, tenzij je erom vraagt. De enige uitzondering is iCloud-synchronisatie op een iPhone of iPad (iOS 17 of nieuwer): je routes, ritten en een paar instellingen gaan naar je eigen iCloud, nooit naar ons, en Strava-gegevens blijven op de telefoon. Het staat standaard aan en gaat uit in Instellingen, zie [de bibliotheek](./library).
 
 Op Android is Velorki bewust uitgesloten van de cloudback-up van Google en van overzetten van apparaat naar apparaat, dus ook het systeem kopieert je ritten niet van de telefoon af. Overstappen op een nieuwe telefoon betekent wat je wilt houden exporteren als GPX-, FIT- of TCX-bestanden, zie [importeren en exporteren](./import-and-export).
 
@@ -56,7 +57,9 @@ Alleen met je toestemming, en alleen wat je toestond: je tekst, eventueel een po
 
 Naar geen van beide gaat iets voordat je het account koppelt en dan om iets vraagt, een upload of een import.
 
-Koppelen geeft een eenmalige code aan de Velorki-relay, die er een toegangstoken van maakt door ons applicatiegeheim toe te voegen, en het token verpakt aan je telefoon geeft, zodat alleen de relay het kan openen. Wij bewaren het token niet. Daarna gaat elke upload en import via de relay: die controleert je abonnement, opent het token voor dat ene verzoek en stuurt het door naar Strava of Ride with GPS. Hij bewaart het bestand noch het token, en kan het token niet zelfstandig gebruiken.
+Koppelen geeft een eenmalige code aan de Velorki-relay, die er een toegangstoken van maakt door ons applicatiegeheim toe te voegen, en het token verpakt aan je telefoon geeft, zodat alleen de relay het kan openen. Wij bewaren het token niet. Daarna gaat elke upload en import via de relay: die opent het token voor dat ene verzoek en stuurt het door naar Strava of Ride with GPS. Hij bewaart het bestand noch het token, ook geen enkel spoor van de aanroep, en kan het token niet zelfstandig gebruiken. De koppelingen zijn gratis, dus er wordt geen abonnement gecontroleerd; de relay telt alleen even de aanroepen per anonieme installatie-id en per adres, om misbruik te voorkomen.
+
+Strava-gegevens blijven op je telefoon: ze gaan nooit naar de assistent, in een deellink of naar Ride with GPS of een andere dienst. Zie [Strava en Ride with GPS](./strava-and-ridewithgps).
 
 ### Als je een deellink maakt
 
@@ -80,7 +83,7 @@ De store regelt de betaling en wij zien je kaart nooit. Het abonnement wordt gec
 |---|---|
 | Een route of een rit | verwijder hem in de [bibliotheek](./library) |
 | Offline kaartgebieden en routeringstegels | verwijder ze in [offline gegevens](./offline-maps-and-routing) |
-| Een token voor Strava of Ride with GPS | **Ontkoppelen** in Instellingen → Koppelingen |
+| Een token voor Strava of Ride with GPS, en alles van Strava | **Ontkoppelen** in Instellingen → Koppelingen |
 | Alles wat de app heeft opgeslagen | verwijder de app |
 | Een deellink | die verloopt na een jaar; mail [hello@orkitec.com](mailto:hello@orkitec.com) met de link om hem eerder te laten verwijderen |
 

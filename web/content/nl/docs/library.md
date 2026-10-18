@@ -6,7 +6,7 @@ order: 10
 
 Het tabblad Bibliotheek bevat alles wat je hebt bewaard: de routes die je hebt gepland en de ritten die je hebt opgenomen. Het is een kaart boven de landkaart, net als de tabbladen Plannen en Opnemen: de inhoud scrolt op elke hoogte, en de greep bovenaan verschuift hem; als er niets te scrollen is, verschuift de hele kaart. Trek hem omhoog voor meer ruimte, trek hem helemaal naar beneden en de kaart klapt in tot in de navigatiebalk, zodat de landkaart overblijft. Hier open je een route opnieuw, lees je de grafieken en splits van een rit, en haal je bestanden binnen en zet je ze naar buiten.
 
-Alles in de bibliotheek staat op de telefoon. Er is geen account en er wordt nergens iets gesynchroniseerd.
+Alles in de bibliotheek staat op de telefoon. Er is geen account. Op een iPhone of iPad kan het via iCloud tussen je eigen apparaten worden gesynchroniseerd, zie hieronder [iCloud-synchronisatie](#icloud-synchronisatie-iphone-en-ipad).
 
 ## Routes en Ritten
 
@@ -40,6 +40,7 @@ Een route openen tekent hem op de landkaart, passend in het deel van het scherm 
 - een rij **Beschrijving** en een rij **Link**, elk met een potlood: de beschrijving is die van het bestand, de assistent of van jou, de link is de `<link>` van het bestand of een die je typt, en een tik erop opent de pagina,
 - de verdeling van de ondergrond: de eigen cijfers van de router voor een hier geplande route, en voor een route uit een bestand dezelfde koppeling die een rit krijgt, zie hieronder,
 - het hoogteprofiel,
+- eronder dezelfde kleuring als in de planner: helling, ondergrond, wind of regen,
 - **Interessante punten**: de punten van de route die niet op de track liggen, elk met het pictogram van het soort, de naam en de notitie — de punten naast het parcours die een bestand meebracht, en de plekken die je in de planner naast de route hebt gemarkeerd; de punten op de track zijn in plaats daarvan regels van de routebeschrijving,
 - voor een route die met afslagen of interessante punten is geïmporteerd, of met punten die je in de planner een naam of notitie hebt gegeven, de routebeschrijving: elke afslag en elk punt met de afstand vanaf de start, waarbij een tik op een regel de kaart daarheen schuift op je zoomniveau en een tik op een markering de kaart naar die regel scrolt.
 
@@ -47,8 +48,7 @@ De acties:
 
 - **Openen in planner** laadt hem in het tabblad Plannen met al zijn punten, viapunten en hun namen, soorten en notities inbegrepen, waar je hem kunt bewerken en opnieuw opslaan. Een route die geïmporteerd is in plaats van gepland, opent met de exacte lijn van het bestand en punten alleen aan de uiteinden en op de eigen punten van het bestand die op de track liggen, die met hun soort en notitie meekomen; een bewerking berekent alleen de stukken ernaast opnieuw, en overal elders blijft de lijn van het bestand staan. De lijn van het bestand blijft bij elke bewerking en elke keer opslaan bij de route, zodat **Herstellen** in de planner hem kan terugzetten. De punten naast de track komen mee als plekken naast de route, waar ze een naam en een soort kunnen krijgen, op de route kunnen worden gezet of verwijderd zoals elk ander punt. De volgende keer opslaan schrijft beide sets terug, dus een plek die je in de planner verwijdert, is ook van de kaart verdwenen.
 - **Exporteren** biedt **GPX-route** en **FIT-course**, zie [importeren en exporteren](./import-and-export).
-- **Sturen** biedt **Naar Ride with GPS sturen** en **Naar Strava sturen**, zie [Strava en Ride with GPS](./strava-and-ridewithgps).
-- **Link delen** maakt er een link van, zie [delen](./sharing).
+- **Delen** opent de deelkaart: een **Link** naar de route, **Ride with GPS** en **Strava**, zie [delen](./sharing) en [Strava en Ride with GPS](./strava-and-ridewithgps).
 - **Deze route beschrijven** vraagt de assistent er een alinea over te schrijven, zie [assistent](./assistant).
 
 ## De kaart van een rit
@@ -102,9 +102,8 @@ Onder de klimmen een balk **Ondergrond** zoals die op de kaart van een route: ho
 
 ### Acties voor een rit
 
-- De wolkknop rechts in de kop van de kaart uploadt de rit naar een gekoppelde dienst.
-- Het menu ernaast: **GPX-track exporteren**, **FIT-activiteit exporteren**, **Deze rit voortzetten**, **Naam wijzigen**, **Verwijderen**.
-- Onderaan: dezelfde twee exports en **Link delen**.
+- Het menu rechts in de kop van de kaart: **GPX-track exporteren**, **FIT-activiteit exporteren**, **Deze rit voortzetten**, **Naam wijzigen**, **Verwijderen**.
+- Onderaan: dezelfde twee exports en **Delen**, dat de deelkaart opent met **Link**, **Ride with GPS** en **Strava**, zie [delen](./sharing).
 
 ## Bestanden en routes binnenhalen
 
@@ -114,6 +113,14 @@ De twee knoppen rechts in de kop van de kaart:
 - De wolkknop biedt **Importeren uit Strava** en **Importeren uit Ride with GPS**, als die diensten zijn ingesteld.
 
 Beide worden behandeld in [importeren en exporteren](./import-and-export) en [Strava en Ride with GPS](./strava-and-ridewithgps).
+
+## iCloud-synchronisatie (iPhone en iPad)
+
+Op een iPhone of iPad met iOS 17 of nieuwer worden je opgeslagen routes en opgenomen ritten, met de track, de notities en de cijfers van elke rit, via je iCloud gesynchroniseerd tussen je eigen apparaten die met hetzelfde Apple-account zijn aangemeld. Een paar instellingen gaan mee: thema, accentkleur, kaartstijl, balkstijl, kant van de kolom, eenheden en de instellingen voor afslag- en spraakmeldingen. Velorki heeft hiervoor geen server en kan niet lezen wat er is opgeslagen; zie de [privacyverklaring](/privacy).
+
+Het staat standaard aan. **Synchroniseren met iCloud** in Instellingen zet het op dat apparaat uit; wat al in iCloud staat, blijft daar totdat je het verwijdert in de iCloud-instellingen van het apparaat. Een statusregel in Instellingen laat zien hoe het ervoor staat: **Zojuist gesynchroniseerd**, **Synchroniseren…**, **iCloud staat uit op dit apparaat** of **iCloud-opslag is vol**.
+
+Routes die uit Strava zijn gelezen en routes die daaruit zijn bewerkt, blijven op de telefoon, net als de Strava-links van ritten; ook de links van uploads naar Ride with GPS worden niet gesynchroniseerd. Gedownloade kaarten en routeringstegels worden niet gesynchroniseerd. De Android-app synchroniseert niet.
 
 ## Zie ook
 

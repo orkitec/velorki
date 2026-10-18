@@ -1,0 +1,19 @@
+name: velorki_io
+description: >-
+  dart:io on the phone, an in-memory stand-in for the part of it Velorki uses
+  in the browser. Pure Dart, no Flutter dependency.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.3
+
+dependencies:
+  # zlib in the browser, which has no dart:io one.
+  archive: ^4.2.0
+  path: ^1.9.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0

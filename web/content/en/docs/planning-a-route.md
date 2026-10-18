@@ -110,6 +110,14 @@ The **Elevation** chart draws height against distance. Touch it and drag along i
 
 The **Surface** bar is a single stacked bar of three shares that add up to the whole route, **Paved**, **Unpaved** and **Unknown**, with a legend of percentages underneath. Two more entries in the legend, **Bike paths & lanes** and **Busy roads**, overlap the first three rather than adding to them: they tell you how much of the route runs on cycleways, paths signed for bikes, cycle streets, or a bike lane or track beside the road, and how much is on a big road. For a route that is not all the router's own, a file's line in it, the whole line is laid over the routing data for the figures, which needs the region downloaded.
 
+### Colour the route
+
+A switch in the header and four choices set what the route is coloured by: **Gradient**, **Surface**, **Wind** and **Rain**. The colour shows on the map and under the elevation profile, in the planner and on a saved route's page. **Surface** colours each stretch as the bar above does: paved, unpaved, unknown, bike paths and busy roads, in the same colours. Wind and rain follow the forecast for the time you leave. All four are free; without Plus, wind and rain come from the coarser public forecast, and the app says so before it colours the route.
+
+### Departure time
+
+One slider sets when you leave. It moves the rain radar and the wind on the map, the weather along the route and the route's colouring to that time. It is free. Gradient and surface do not change with the time.
+
 ## Save it
 
 1. Tap **Save**.

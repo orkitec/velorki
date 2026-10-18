@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:velorki_cycle_map/velorki_cycle_map.dart';
 
 import 'segment_message.dart';
@@ -166,20 +168,14 @@ class SurfaceStats {
       if (!(d > 0)) continue;
       covered += d;
       final tags = m.wayTags;
-      final surface = tags['surface'];
       final highway = tags['highway'];
-      if (surface != null && pavedSurfaces.contains(surface)) {
-        paved += d;
-      } else if (surface != null && unpavedSurfaces.contains(surface)) {
-        unpaved += d;
-      } else if (surface == null &&
-          highway != null &&
-          unpavedByDefaultHighways.contains(highway)) {
-        unpaved += d;
-      } else {
-        // No usable surface tag, or one we do not know: better unknown than a
-        // wrong guess.
-        unknown += d;
+      switch (_pavingOf(tags)) {
+        case _Paving.paved:
+          paved += d;
+        case _Paving.unpaved:
+          unpaved += d;
+        case _Paving.unknown:
+          unknown += d;
       }
 
       if (highway == 'cycleway' || _hasCycleInfrastructure(tags)) {
@@ -300,4 +296,97 @@ class SurfaceStats {
       '${bikeInfrastructureShare == null ? '-' : _pct(bikeInfrastructureShare!)})';
 
   static String _pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
+}
+
+enum _Paving { paved, unpaved, unknown }
+
+/// Whether a way with [tags] is paved, as [SurfaceStats.fromMessages]
+/// classifies it.
+_Paving _pavingOf(Map<String, String> tags) {
+  final surface = tags['surface'];
+  final highway = tags['highway'];
+  if (surface != null && SurfaceStats.pavedSurfaces.contains(surface)) {
+    return _Paving.paved;
+  }
+  if (surface != null && SurfaceStats.unpavedSurfaces.contains(surface)) {
+    return _Paving.unpaved;
+  }
+  if (surface == null &&
+      highway != null &&
+      SurfaceStats.unpavedByDefaultHighways.contains(highway)) {
+    return _Paving.unpaved;
+  }
+  // No usable surface tag, or one we do not know: better unknown than a
+  // wrong guess.
+  return _Paving.unknown;
+}
+
+/// What one stretch of a route is, for colouring it: a single class per
+/// way, where [SurfaceStats] lets the shares overlap.
+enum SurfaceKind {
+  /// A primary or trunk road ([SurfaceStats.busyHighways]).
+  busy,
+
+  /// An unpaved surface.
+  unpaved,
+
+  /// Bike infrastructure ([SurfaceStats.isBikeInfrastructure]).
+  bikeInfrastructure,
+
+  /// A paved surface.
+  paved,
+
+  /// A surface the data does not say.
+  unknown,
+}
+
+/// The one [SurfaceKind] of a way with [tags], by precedence: a busy road,
+/// then unpaved, then bike infrastructure, then paved, else unknown. The
+/// same rules as [SurfaceStats.fromMessages] counts its shares by.
+SurfaceKind surfaceKindOf(Map<String, String> tags) {
+  final highway = tags['highway'];
+  if (highway != null && SurfaceStats.busyHighways.contains(highway)) {
+    return SurfaceKind.busy;
+  }
+  final paving = _pavingOf(tags);
+  if (paving == _Paving.unpaved) return SurfaceKind.unpaved;
+  if (SurfaceStats.isBikeInfrastructure(tags)) {
+    return SurfaceKind.bikeInfrastructure;
+  }
+  return paving == _Paving.paved ? SurfaceKind.paved : SurfaceKind.unknown;
+}
+
+/// A stretch of a route of one [SurfaceKind], in metres from its start.
+typedef SurfaceRun = ({double startM, double endM, SurfaceKind kind});
+
+/// The stretches of a route along [messages], each of one [SurfaceKind],
+/// neighbours of the same kind joined, laid on a line [lengthM] long.
+///
+/// The messages' own lengths are rounded to the metre and need not add up
+/// to the line's; they are stretched onto it, as the route digest does.
+/// Empty without messages, a length, or any message with a length.
+List<SurfaceRun> surfaceRunsOf(List<SegmentMessage> messages, double lengthM) {
+  if (!(lengthM > 0)) return const <SurfaceRun>[];
+  final total = messages.fold<double>(
+    0,
+    (sum, m) => m.distanceM > 0 ? sum + m.distanceM : sum,
+  );
+  if (!(total > 0)) return const <SurfaceRun>[];
+  final scale = lengthM / total;
+  final runs = <SurfaceRun>[];
+  var at = 0.0;
+  for (final m in messages) {
+    if (!(m.distanceM > 0)) continue;
+    final end = math.min(lengthM, at + m.distanceM * scale);
+    final kind = surfaceKindOf(m.wayTags);
+    if (runs.isNotEmpty && runs.last.kind == kind) {
+      runs.last = (startM: runs.last.startM, endM: end, kind: kind);
+    } else {
+      runs.add((startM: at, endM: end, kind: kind));
+    }
+    at = end;
+  }
+  // The last run ends where the line does, whatever the rounding left.
+  runs.last = (startM: runs.last.startM, endM: lengthM, kind: runs.last.kind);
+  return runs;
 }

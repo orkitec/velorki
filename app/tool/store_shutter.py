@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Takes the store screenshots integration_test/store asks for.
 
-    tool/store_shutter.py <udid> <out-dir>
+    tool/store_shutter.py [--display <uuid>] <udid> <out-dir>
     tool/store_shutter.py --android <adb-serial> <out-dir>
+    tool/store_shutter.py --status-bar <udid>                 # set the bar once
     tool/store_shutter.py --android-status-bar <adb-serial>   # set the bar once
 
 The test writes `Library/Application Support/itest/shot.txt` in the app's
@@ -18,6 +19,9 @@ container: an `id=<token>` line, a `name=<theme>/<locale>/<screen>` line and an
   `<out-dir>/<name>.mp4` and answers once the recorder says it is recording;
   `action=record-stop` stops it and answers once the file is complete.
 
+--display takes the pictures of that display (a port UUID from `simctl io
+<udid> enumerate`), such as the iPhone Duo's inner one; else the main one.
+
 Then the token goes into `shot.ack` beside the request, which lets the test
 go on.
 
@@ -30,6 +34,7 @@ and checked before every picture. There is no recording on Android.
 The script runs until it is killed; tool/store_screenshots.sh starts and
 stops it around each run.
 """
+import datetime
 import os
 import re
 import shutil
@@ -43,7 +48,12 @@ NAME = re.compile(r"^[a-z]+/[a-z]{2,3}(-[A-Za-z]+)?/[a-z0-9-]+$")
 # What tool/store_screenshots.sh sets after booting, and the same with no
 # signal. A change is always made from a cleared bar with every value given:
 # overriding a few of them after "searching" leaves the icons in disorder.
-BASE = ["--time", "9:41", "--operatorName", "", "--batteryState", "discharging",
+# The time as an ISO date sets the date too, which an iPad's status bar shows:
+# 9:41 on the day of the demo ride, in UTC for the simulator, which shows it
+# in the Mac's time zone.
+STATUS_TIME = datetime.datetime(2026, 9, 12, 9, 41).astimezone(datetime.timezone.utc) \
+    .strftime("%Y-%m-%dT%H:%M:%S.000Z")
+BASE = ["--time", STATUS_TIME, "--operatorName", "", "--batteryState", "discharging",
         "--batteryLevel", "100"]
 ONLINE = BASE + ["--dataNetwork", "wifi", "--wifiMode", "active", "--wifiBars", "3",
                  "--cellularMode", "active", "--cellularBars", "4"]
@@ -77,6 +87,10 @@ def status_bar(udid: str, network: list[str]) -> None:
     # before the bars, no wifi) for the rest of the run.
     time.sleep(2.5)
     subprocess.run(["xcrun", "simctl", "status_bar", udid, "override", *network],
+                   check=True, capture_output=True)
+    # Sent with the battery's values, the date comes out on the wrong weekday
+    # (Tue Sep 12 for a Saturday); the time alone once more puts it right.
+    subprocess.run(["xcrun", "simctl", "status_bar", udid, "override", "--time", STATUS_TIME],
                    check=True, capture_output=True)
     # The status bar animates the change; a picture taken sooner catches
     # the icons half way.
@@ -228,13 +242,21 @@ def main_android(serial: str, out: str) -> int:
 def main() -> int:
     if len(sys.argv) == 4 and sys.argv[1] == "--android":
         return main_android(sys.argv[2], sys.argv[3])
+    if len(sys.argv) == 3 and sys.argv[1] == "--status-bar":
+        status_bar(sys.argv[2], ONLINE)
+        return 0
     if len(sys.argv) == 3 and sys.argv[1] == "--android-status-bar":
         android_status_bar(sys.argv[2], online=True)
         return 0
-    if len(sys.argv) != 3:
+    args = sys.argv[1:]
+    display = []
+    if len(args) == 4 and args[0] == "--display":
+        display = [f"--display={args[1]}"]
+        args = args[2:]
+    if len(args) != 2:
         print(__doc__, file=sys.stderr)
         return 2
-    udid, out = sys.argv[1], sys.argv[2]
+    udid, out = args
     last = None
     started = False
     recorder = None
@@ -291,7 +313,7 @@ def main() -> int:
             status_bar(udid, OFFLINE if offline else ONLINE)
             try:
                 subprocess.run(
-                    ["xcrun", "simctl", "io", udid, "screenshot", "--type=png",
+                    ["xcrun", "simctl", "io", udid, "screenshot", "--type=png", *display,
                      target + ".png"],
                     check=True,
                     capture_output=True,

@@ -14,7 +14,8 @@ import 'package:velorki_geo/velorki_geo.dart';
 // Recorded off the DWD's WCS on 2026-10-12, run 12 UTC, over
 // Lat(40.5,41) Long(23.5,24.5) (northern Greece, in rain):
 // the wind at 2026-10-13T12, the global rain sums at 12 and 13 UTC, and
-// ICON-EU's rain of the hour up to 13 UTC.
+// ICON-EU's rain of the hour up to 13 UTC; and, recorded on 2026-10-13 off
+// the same run, the temperature 2 m up at 2026-10-13T12.
 String _fixture(String name) =>
     File('test/fixtures/weather/$name').readAsStringSync();
 
@@ -98,6 +99,19 @@ void main() {
       expect(v, closeTo(-1.4637, 1e-4));
       // A one-band text is no wind.
       expect(parseWcsWindGrid(_fixture('dwd_route_totprec_12.txt')), isNull);
+    });
+
+    test('the temperature 2 m up: one band in °C on the wind\'s grid', () {
+      final grid = parseWcsGrid(_fixture('dwd_route_t2m.txt'))!;
+      expect(grid.columns, 4);
+      expect(grid.rows, 2);
+      expect(grid.lonStep, 0.25);
+      expect(grid.latStep, -0.25);
+      // Degrees Celsius as a thermometer reads them (northern Greece at
+      // noon in October), not kelvin.
+      expect(grid.sampleBands(40.75, 24)!.single, closeTo(15.4326, 1e-4));
+      expect(grid.sampleBands(40.5, 24.5)!.single, closeTo(17.5517, 1e-4));
+      expect(dwdTemperatureCoverage, 'dwd__Icon_reg025_fd_sl_T2M');
     });
 
     test('the global rain is a sum from the run: an hour is the difference '
@@ -227,10 +241,33 @@ void main() {
       expect(weather.headwindMs, closeTo(expected.headwind, 1e-9));
       expect(weather.windClass, WindClass.headwind);
       expect(weather.precipMm, closeTo(eu13.sampleBands(40.75, 24)!.single, 0));
+      // No temperature grid, no temperature.
       expect(weather.temp, isNull);
       expect(weather.gust, isNull);
       expect(weather.precipProb, isNull);
       expect(weather.at, _noon);
+    });
+
+    test('the temperature of the hour, where its grid has come', () {
+      final t2m = parseWcsGrid(_fixture('dwd_route_t2m.txt'))!;
+      final plan = planFreeForecast(samples, _noon, europe: dwdRainEuArea);
+      SampleWeather? at(WcsGrid? Function(DateTime hour) temperature) =>
+          freeSampleWeather(
+            samples,
+            plan,
+            _noon,
+            wind: (_) => wind,
+            rain: (_) => eu13,
+            temperature: temperature,
+          ).single;
+      expect(
+        at((h) => h == _noon ? t2m : null)!.temp,
+        closeTo(t2m.sampleBands(40.75, 24)!.single, 1e-9),
+      );
+      // Missing, the sample keeps its wind and rain.
+      final without = at((_) => null)!;
+      expect(without.temp, isNull);
+      expect(without.windMs, greaterThan(0));
     });
 
     test('the global rain from the sums at both ends of the hour', () {

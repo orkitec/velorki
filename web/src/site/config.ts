@@ -14,6 +14,13 @@ export const ORG_NAME = 'Orkitec';
 export const ORG_URL = 'https://orkitec.com';
 
 export const GITHUB_URL = 'https://github.com/orkitec/velorki';
+
+/**
+ * The web planner (the app in the browser, app/web), without a trailing
+ * slash. Empty until it is deployed: the download page offers it only when
+ * it is set, so no build links to a planner that is not there.
+ */
+export const PLANNER_URL = (process.env.NEXT_PUBLIC_PLANNER_URL ?? '').trim().replace(/\/+$/, '');
 export const RELEASES_URL = `${GITHUB_URL}/releases`;
 export const SECURITY_EMAIL = 'ride@velorki.com';
 

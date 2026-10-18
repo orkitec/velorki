@@ -80,7 +80,7 @@ Met een schakelaar aan verschijnen de velden: **Gewicht** (kg, of lb bij imperia
 
 ## Koppelingen
 
-Eén rij voor **Strava** en één voor **Ride with GPS**, elk met **Niet gekoppeld**, je naam zodra er gekoppeld is, of **Niet beschikbaar in deze build**. **Koppelen met Strava** en **Koppelen met Ride with GPS** staan onder de niet-gekoppelde, **Ontkoppelen** naast de gekoppelde. Zie [Strava en Ride with GPS](./strava-and-ridewithgps).
+Eén rij voor **Strava** en één voor **Ride with GPS**, elk met **Niet gekoppeld**, je naam zodra er gekoppeld is, of **Niet beschikbaar in deze build**. **Koppelen met Strava** en **Koppelen met Ride with GPS** staan onder de niet-gekoppelde, **Ontkoppelen** naast de gekoppelde. Beide koppelingen zijn gratis. Zie [Strava en Ride with GPS](./strava-and-ridewithgps).
 
 ## AI-assistent
 

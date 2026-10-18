@@ -21,6 +21,10 @@ enum IntegrationFailure {
   /// The rider closed the authorisation page, or denied the scopes.
   cancelled,
 
+  /// The service no longer accepts the authorisation: the rider removed
+  /// Velorki's access on the service's own site.
+  revoked,
+
   /// The relay is not configured in this build, or refused the request.
   relayUnavailable,
 }

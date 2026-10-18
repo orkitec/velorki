@@ -23,7 +23,7 @@ const String stravaPoweredByWhite =
 const double stravaConnectButtonHeight = 48;
 
 /// The height the "Powered by Strava" logo is drawn at.
-const double stravaPoweredByHeight = 24;
+const double stravaPoweredByHeight = 16;
 
 /// Strava's official connect button, used unmodified.
 ///
@@ -72,13 +72,54 @@ class StravaConnectButton extends StatelessWidget {
   }
 }
 
+/// Strava's orange, which their brand guidelines give a "View on Strava"
+/// link.
+const Color stravaOrange = Color(0xFFFC5200);
+
+/// The athlete's page on Strava.
+Uri stravaAthleteUrl(String athleteId) =>
+    Uri.parse('https://www.strava.com/athletes/$athleteId');
+
+/// A route's page on Strava.
+Uri stravaRouteUrl(String routeId) =>
+    Uri.parse('https://www.strava.com/routes/$routeId');
+
+/// "View on Strava", as Strava's brand guidelines want the link back to
+/// their data: those exact words, bold, underlined, in Strava's orange.
+class ViewOnStravaLink extends StatelessWidget {
+  /// Creates the link; [onPressed] opens the page.
+  const ViewOnStravaLink({required this.onPressed, super.key});
+
+  /// Opens the page on Strava.
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => TextButton(
+    onPressed: onPressed,
+    style: TextButton.styleFrom(foregroundColor: stravaOrange),
+    child: Text(
+      AppLocalizations.of(context).rideDetailViewOnStrava,
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+        decoration: TextDecoration.underline,
+        decorationColor: stravaOrange,
+      ),
+    ),
+  );
+}
+
 /// Strava's "Powered by Strava" logo.
 ///
 /// Their API terms require it on every surface that shows data coming from
-/// Strava, which in Velorki is the list of imported Strava routes.
+/// Strava: the list of Strava routes, a Strava route's page and its row in
+/// the Library.
 class PoweredByStrava extends StatelessWidget {
-  /// Creates the logo.
-  const PoweredByStrava({super.key});
+  /// Creates the logo, [height] tall.
+  const PoweredByStrava({super.key, this.height = stravaPoweredByHeight});
+
+  /// How tall the logo is drawn: [stravaPoweredByHeight] on a page, less in
+  /// a list row.
+  final double height;
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +127,7 @@ class PoweredByStrava extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Image.asset(
       dark ? stravaPoweredByWhite : stravaPoweredByOrange,
-      height: stravaPoweredByHeight,
+      height: height,
       semanticLabel: l10n.poweredByStrava,
       errorBuilder: (context, _, _) => Text(
         l10n.poweredByStrava,

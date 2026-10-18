@@ -1,6 +1,6 @@
 // Port of btools.mapaccess.NodesCache (BRouter v1.7.10).
 
-import 'dart:io';
+import 'package:velorki_io/io.dart';
 
 import '../codec/data_buffers.dart';
 import '../codec/micro_cache.dart';

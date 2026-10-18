@@ -70,6 +70,65 @@ void main() {
     });
   });
 
+  group('ShellLayout.resolve by the window alone', () {
+    ShellLayout resolve(Size window) =>
+        ShellLayout.resolve(window, RailSide.left);
+
+    test('a tablet-class window gets the panel, either way up', () {
+      for (final window in const [
+        // iPad Air 11", iPad Pro 13", iPad mini.
+        Size(820, 1180),
+        Size(1032, 1376),
+        Size(744, 1133),
+        // A foldable's inner screen, and half of an iPad's.
+        Size(626, 890),
+        Size(669, 951),
+        Size(683, 1024),
+        Size(600, 1000),
+      ]) {
+        expect(resolve(window), ShellLayout.wide, reason: '$window');
+        expect(resolve(window.flipped), ShellLayout.wide, reason: '$window');
+      }
+    });
+
+    test('a narrow window is upright, the bar at the bottom', () {
+      for (final window in const [
+        // A third of Split View, Slide Over, a foldable's outer screen.
+        Size(507, 1180),
+        Size(320, 1100),
+        Size(466, 678),
+        // As tall as a tablet, not wide enough beside the panel.
+        Size(599, 1180),
+        Size(402, 874),
+      ]) {
+        expect(resolve(window), ShellLayout.bottomBar, reason: '$window');
+      }
+    });
+
+    test('a window shaped like a phone on its side gets the rail, whatever '
+        'it runs on', () {
+      for (final window in const [
+        Size(874, 402),
+        Size(956, 440),
+        Size(667, 375),
+        // A foldable's outer screen sideways, a short Stage Manager window.
+        Size(678, 466),
+        Size(800, 500),
+      ]) {
+        final layout = resolve(window);
+        expect(layout.sideRail, isTrue, reason: '$window');
+        expect(layout.side, RailSide.left);
+      }
+    });
+
+    test('the wide layout is neither the bar\'s nor the rail\'s', () {
+      expect(ShellLayout.wide.widePanel, isTrue);
+      expect(ShellLayout.wide.sideRail, isFalse);
+      expect(ShellLayout.wide, isNot(ShellLayout.bottomBar));
+      expect(ShellLayout.bottomBar.widePanel, isFalse);
+    });
+  });
+
   test('the platform answer is read as a side, anything else as none', () {
     expect(ScreenSideChannel.parse('left'), RailSide.left);
     expect(ScreenSideChannel.parse('right'), RailSide.right);

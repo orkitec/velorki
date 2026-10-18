@@ -25,7 +25,7 @@ const Duration locateOnOpenFixTimeout = Duration(seconds: 10);
 
 /// The zoom the map goes to when it was further out than
 /// [locateOnOpenMinZoom].
-const double locateOnOpenZoom = 14;
+const double locateOnOpenZoom = 15;
 
 /// A map at this zoom or closer keeps its zoom when it moves to the rider.
 const double locateOnOpenMinZoom = 12;

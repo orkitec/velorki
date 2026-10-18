@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../app/shell_layout.dart';
 import '../../../app/theme.dart';
 import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
@@ -20,6 +21,7 @@ import '../../planner/presentation/route_format.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/covering_sheets.dart';
+import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/smart_loop_controller.dart';
 import '../data/loop_preferences.dart';
@@ -227,18 +229,20 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       final box = context.findRenderObject();
       final sheetHeight = box is RenderBox && box.hasSize ? box.size.height : 0;
       final screen = MediaQuery.sizeOf(context);
+      final sheetCover = sheetHeight + MediaQuery.viewPaddingOf(context).bottom;
+      // In a wide window the map is beside the column this sheet is in.
       unawaited(
         map.fitBounds(
           BoundingBox.fromPoints(result.positions),
-          padding: visibleMapInsets(
-            size: screen,
-            topInset: MediaQuery.viewPaddingOf(context).top,
-            chromeTop: widget.chromeTop,
-            sheetExtent:
-                (sheetHeight + MediaQuery.viewPaddingOf(context).bottom) /
-                screen.height,
-            columnWidth: mapControlsWidth(context),
-          ),
+          padding: ShellLayout.of(context).widePanel
+              ? visibleMapPadding(context, chromeTop: widget.chromeTop)
+              : visibleMapInsets(
+                  size: screen,
+                  topInset: MediaQuery.viewPaddingOf(context).top,
+                  chromeTop: widget.chromeTop,
+                  sheetExtent: sheetCover / screen.height,
+                  columnWidth: mapControlsWidth(context),
+                ),
         ),
       );
     });
@@ -273,22 +277,25 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * 0.9,
       ),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          4,
-          20,
-          MediaQuery.viewPaddingOf(context).bottom + 16,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.loopMakeTitle, style: theme.textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            if (_closeRoute) ..._closeRouteBody(l10n, theme),
-            if (!_closeRoute) ..._makeLoopBody(l10n, theme),
-          ],
+      // A line under the handle while the content is scrolled.
+      child: ScrolledUnderLine(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            4,
+            20,
+            MediaQuery.viewPaddingOf(context).bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l10n.loopMakeTitle, style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 8),
+              if (_closeRoute) ..._closeRouteBody(l10n, theme),
+              if (!_closeRoute) ..._makeLoopBody(l10n, theme),
+            ],
+          ),
         ),
       ),
     );

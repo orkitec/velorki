@@ -1,36 +1,40 @@
-Velorki planifica rutas en bici, te guía por ellas y graba tus salidas. Su cálculo de rutas está pensado para la bici y funciona en tu iPhone, y toda la app es de código abierto.
+Velorki planifica rutas en bici, te guía por ellas y graba tus salidas. Su cálculo de rutas está pensado para la bici y funciona en tu iPhone, también sin conexión, y toda la app es de código abierto. Cada ruta está hecha para ti: para tu bici, tu distancia y dónde estás ahora.
 
 PLANIFICAR
 • Toca puntos de paso en el mapa y obtén una ruta para tu bici: cicloturismo, carretera, gravel, bici de montaña o el camino directo.
-• Rutas alternativas, un perfil de altitud y un desglose de las superficies por las que vas a rodar.
-• Rutas circulares: di cuánto quieres pedalear y, si quieres, un lugar por el que pasar, y Velorki te propone recorridos que vuelven al punto de partida.
-• Busca lugares y guarda rutas en tu biblioteca.
-• Descarga una región una vez y planifica, busca y navega allí sin conexión.
+• Rutas circulares desde tu puerta: di cuánto quieres pedalear y, si quieres, un lugar por el que pasar, y Velorki propone recorridos que vuelven al inicio.
+• Rutas alternativas, un perfil de altitud y las superficies por las que vas a rodar.
+• Colorea la ruta según la pendiente, la superficie, el viento o la lluvia.
+• Busca lugares sin conexión, guarda rutas en tu biblioteca y descarga una región para planificar, buscar y navegar allí sin red.
+
+MAPA Y TIEMPO
+• Un mapa ciclista sin conexión: carriles bici y sendas, sentidos únicos, escaleras y subidas.
+• Paradas en el mapa: agua, cafeterías, panaderías, aseos, talleres de bicis y más, también en la ruta por delante.
+• Radar de lluvia, viento y nubes en el mapa, con un deslizador de tiempo hacia las próximas horas.
+• Viento y lluvia a lo largo de tu ruta para tu hora de salida.
 
 NAVEGACIÓN
-• Indicaciones paso a paso con avisos hablados, también con la pantalla bloqueada.
-• Si te sales de la ruta, tú eliges qué pasa: un camino para volver a ella, una ruta nueva al destino o nada.
-• El mapa te sigue orientado según tu dirección, con el próximo giro siempre a la vista.
+• Indicaciones paso a paso con avisos hablados, con la pantalla bloqueada y también para rutas importadas.
+• Si te sales de la ruta, tú eliges: un camino de vuelta, una ruta nueva al destino o nada.
 
 GRABACIÓN
 • Graba con la pantalla apagada, con pausa automática, y muestra la salida en la pantalla bloqueada y en la Dynamic Island.
-• Elige y ordena los datos que ves mientras ruedas: distancia, velocidad, tiempo, desnivel, pulso, cadencia, potencia y lo que queda de ruta.
-• Un ahorro de batería para jornadas largas: mapa oscuro, pantalla atenuada y una página sencilla con las cifras.
-• Pulso del Apple Watch, de sensores Bluetooth y de la app Salud. También funcionan sensores de velocidad, cadencia y potencia.
-• La app de Velorki para Apple Watch muestra la salida y la inicia, pausa y termina desde tu muñeca.
-• Cada salida tiene su página con mapa, gráficas de altitud, velocidad y pulso, y parciales.
+• Elige los datos que ves al rodar: distancia, velocidad, tiempo, desnivel, pulso, cadencia, potencia y lo que queda de ruta.
+• Pulso del Apple Watch, sensores Bluetooth y app Salud; también sensores de velocidad, cadencia y potencia.
+• La app de Velorki para Apple Watch inicia, pausa y termina la salida desde la muñeca.
+• Cada salida tiene su página con mapa, gráficas y parciales.
 
-ARCHIVOS
-• Abre archivos GPX, FIT y TCX desde Archivos, Mail, Safari o el menú de compartir.
-• Exporta rutas y salidas como GPX o FIT para usarlas en cualquier otro sitio.
+ARCHIVOS Y CONEXIONES
+• Abre archivos GPX, FIT y TCX desde Archivos, Mail, Safari o el menú de compartir; exporta rutas y salidas como GPX o FIT.
+• Conecta dos plataformas populares de rutas y salidas: sube tus salidas, trae tus rutas. Gratis.
 
 GRATIS, Y VELORKI PLUS
-Todo lo que funciona en el teléfono es gratis: planificar, rutas circulares, navegación, grabación, la biblioteca, las regiones sin conexión, los sensores y la importación y exportación de archivos.
+Todo lo que el teléfono hace por sí solo es gratis: planificar, rutas circulares, navegación, grabación, mapa del tiempo, tiempo en la ruta, regiones sin conexión, sensores, archivos y conexiones.
 
-Velorki Plus es una suscripción para las partes que necesitan un servidor:
-• El asistente: describe en una frase la salida que quieres y recibe una ruta. Pregúntale por la ruta del mapa, pídele que describa la salida o deja que añada una parada para tomar un café o evite un tramo.
-• Enlaces para compartir: convierte una ruta o una salida en un enlace que cualquiera puede abrir en un navegador.
-• Conexiones con dos plataformas populares de rutas y salidas, para subir tus salidas y traer tus rutas.
+Velorki Plus es una suscripción para lo que depende de nuestros servidores:
+• Tiempo más preciso: radar de toda Europa de servicios meteorológicos nacionales y mejor previsión en la ruta.
+• El asistente: describe la salida en una frase y recibe una ruta, o pregúntale por la ruta del mapa.
+• Enlaces para compartir: una ruta o una salida se convierte en un enlace que cualquiera abre en un navegador.
 
 Velorki Plus se ofrece como suscripción mensual y anual con renovación automática; la anual empieza con una prueba gratuita. El pago se carga a tu cuenta de Apple al confirmar la compra. La suscripción se renueva automáticamente salvo que se desactive al menos 24 horas antes del final del periodo actual, y se puede gestionar y cancelar en los ajustes de tu cuenta de Apple. La parte no usada de una prueba gratuita se pierde al comprar una suscripción.
 

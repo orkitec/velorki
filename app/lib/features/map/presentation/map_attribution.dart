@@ -15,6 +15,7 @@ import '../../shared/presentation/floating_bar.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../data/map_preferences.dart';
 import 'map_chrome.dart';
+import '../../shared/presentation/docking_sheet.dart';
 
 /// How far above the bottom of a map view in [context] the attribution chip
 /// sits: [gap] over the bottom view padding the view is given. The shell
@@ -180,9 +181,11 @@ Future<void> showMapCredits(
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    builder: (_) => MapCreditsSheet(
-      cyclosmActive: cyclosmActive,
-      weatherCredits: weatherCredits,
+    builder: (_) => ScrolledUnderLine(
+      child: MapCreditsSheet(
+        cyclosmActive: cyclosmActive,
+        weatherCredits: weatherCredits,
+      ),
     ),
   ),
 );

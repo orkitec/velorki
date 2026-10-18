@@ -1,4 +1,8 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart'
+    show ValueListenable, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,9 +12,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../features/shared/presentation/adaptive_docking_sheet.dart';
 import '../features/shared/presentation/floating_bar.dart';
 import '../features/shared/presentation/gesture_zone_guard.dart';
+import '../features/shared/presentation/wide_panel.dart';
 import '../features/import_export/data/track_decoder.dart';
 import '../features/import_export/domain/imported_track.dart';
 import '../features/import_export/presentation/import_preview_screen.dart';
+import '../features/integrations/application/connections_controller.dart';
+import '../features/integrations/application/strava_route_checks.dart';
+import '../features/integrations/presentation/strava_consent_sheet.dart';
 import '../features/library/presentation/library_screen.dart';
 import '../features/map/presentation/map_chrome.dart';
 import '../features/map/presentation/map_controls.dart';
@@ -27,8 +35,10 @@ import '../features/shared/application/active_tab.dart';
 import '../features/shared/application/nav_bar_docking.dart';
 import '../features/shared/application/shown_bar_style.dart';
 import '../features/subscription/presentation/paywall_screen.dart';
+import '../features/sync/application/cloud_sync_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'map_tab_page.dart';
+import 'platform_features.dart';
 import 'shell_layout.dart';
 import 'tab_fade.dart';
 
@@ -85,41 +95,66 @@ MapTabPage<void> _libraryPage(GoRouterState state, Widget child) =>
     );
 
 @Riverpod(keepAlive: true)
-GoRouter router(Ref ref) => createRouter();
+GoRouter router(Ref ref) =>
+    createRouter(recording: ref.read(platformFeaturesProvider).recording);
 
 /// Built by a function rather than a top-level final so widget tests can start
 /// from any tab with a fresh navigator state.
-GoRouter createRouter({String initialLocation = plannerRoute}) {
+///
+/// Without [recording] the Record tab cannot be reached, not even by a link.
+GoRouter createRouter({
+  String initialLocation = plannerRoute,
+  bool recording = true,
+}) {
+  // Which tab has a page pushed over it, for the map beside the column.
+  final pages = TabPages();
+  // The modal sheets open over the shell, for the map's controls.
+  final sheets = ModalSheets();
   return GoRouter(
     navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'root'),
+    observers: [sheets],
     initialLocation: initialLocation,
     // Links are read by app_links (OAuth returns, shared routes, files), and
     // the platforms are told not to hand them to the router. Should one get
     // here all the same, the rider stays where they were rather than on an
     // error page with no way back.
     onException: (context, state, router) {},
+    redirect: recording
+        ? null
+        : (context, state) =>
+              state.matchedLocation == recordingRoute ? plannerRoute : null,
     routes: [
       GoRoute(
         path: paywallRoute,
-        builder: (context, state) => const PaywallScreen(),
+        pageBuilder: (context, state) => ColumnPage<void>(
+          key: state.pageKey,
+          name: state.name ?? state.path,
+          child: const PaywallScreen(),
+        ),
       ),
       GoRoute(
         path: importRoute,
         // A decoded file, a refused one with its reason, or nothing at all
         // (a stale deep link).
-        builder: (context, state) => switch (state.extra) {
-          final ImportCandidate candidate => ImportPreviewScreen(
-            candidate: candidate,
-          ),
-          final ImportException rejection => ImportPreviewScreen(
-            candidate: null,
-            rejection: rejection,
-          ),
-          _ => const ImportPreviewScreen(candidate: null),
-        },
+        pageBuilder: (context, state) => ColumnPage<void>(
+          key: state.pageKey,
+          name: state.name ?? state.path,
+          child: switch (state.extra) {
+            final ImportCandidate candidate => ImportPreviewScreen(
+              candidate: candidate,
+            ),
+            final ImportException rejection => ImportPreviewScreen(
+              candidate: null,
+              rejection: rejection,
+            ),
+            _ => const ImportPreviewScreen(candidate: null),
+          },
+        ),
       ),
       StatefulShellRoute(
-        builder: (context, state, shell) => HomeShell(shell: shell),
+        builder: (context, state, shell) => WindowSideInsets(
+          child: HomeShell(shell: shell, pages: pages, sheets: sheets),
+        ),
         // Every tab stays alive; a change of tab is a short cross-fade.
         navigatorContainerBuilder: (context, shell, children) => TabFadeStack(
           index: shell.currentIndex,
@@ -127,10 +162,15 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
           // cross-fade over it while Plan's search field and chips slide
           // and the control column glides across.
           chromeTabs: mapTabs,
-          children: children,
+          // In a wide window every tab is in a column on the left, laid
+          // out as on a phone held upright, with the map beside it.
+          children: [
+            for (final child in children) WidePanelColumn(child: child),
+          ],
         ),
         branches: [
           StatefulShellBranch(
+            observers: [pages.observer()],
             routes: [
               GoRoute(
                 path: plannerRoute,
@@ -146,6 +186,7 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
             ],
           ),
           StatefulShellBranch(
+            observers: [pages.observer()],
             routes: [
               GoRoute(
                 path: recordingRoute,
@@ -159,6 +200,7 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
             ],
           ),
           StatefulShellBranch(
+            observers: [pages.observer()],
             // Three locations, one card: the list, a route, a ride. They
             // are siblings rather than a stack, so only one card is ever
             // over the map, and the card's own back arrow goes to the list.
@@ -185,10 +227,16 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
             ],
           ),
           StatefulShellBranch(
+            observers: [pages.observer()],
             routes: [
               GoRoute(
                 path: settingsRoute,
-                builder: (context, state) => const SettingsScreen(),
+                // In its column in a wide window, as every full page.
+                pageBuilder: (context, state) => ColumnPage<void>(
+                  key: state.pageKey,
+                  name: state.name ?? state.path,
+                  child: const SettingsScreen(),
+                ),
               ),
             ],
           ),
@@ -200,9 +248,20 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
 
 /// Scaffold around the four tabs; each branch keeps its own navigation stack.
 class HomeShell extends ConsumerWidget {
-  const HomeShell({required this.shell, super.key});
+  const HomeShell({
+    required this.shell,
+    required this.pages,
+    required this.sheets,
+    super.key,
+  });
 
   final StatefulNavigationShell shell;
+
+  /// Which tab has a page pushed over it, branch by branch.
+  final TabPages pages;
+
+  /// The modal sheets open over the shell.
+  final ModalSheets sheets;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -210,10 +269,55 @@ class HomeShell extends ConsumerWidget {
     // Turn-by-turn is kept alive for the whole session, and a keep-alive
     // provider only exists once something has read it. Listening rather than
     // watching: the shell has nothing to redraw when a turn comes closer.
-    ref.listen(navigationControllerProvider, (previous, next) {});
+    final features = ref.watch(platformFeaturesProvider);
+    if (features.recording) {
+      ref.listen(navigationControllerProvider, (previous, next) {});
+    }
     // The same for what a recording ride puts on the lock screen: the Android
     // notification's turn line and the iOS live activity.
-    ref.listen(rideNotificationUpdaterProvider, (previous, next) {});
+    if (features.recording) {
+      ref.listen(rideNotificationUpdaterProvider, (previous, next) {});
+    }
+    // Strava refused Velorki's access and the Strava data went: the rider
+    // is told in writing, wherever they are.
+    // Routes from Strava the checks deleted: said once, in a snack bar.
+    ref.listen(stravaRoutesRemovedNoticeProvider, (previous, next) {
+      if (next == 0) return;
+      ref.read(stravaRoutesRemovedNoticeProvider.notifier).dismiss();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.stravaRoutesRemoved(next))));
+    });
+    // A rider whose library was there before iCloud sync came is told
+    // once that it syncs now, and where to switch it off.
+    ref.listen(cloudSyncNoticeProvider, (previous, next) {
+      if (!next) return;
+      ref.read(cloudSyncNoticeProvider.notifier).dismiss();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.cloudSyncNotice),
+          duration: const Duration(seconds: 10),
+          action: SnackBarAction(
+            label: l10n.cloudSyncNoticeAction,
+            onPressed: () {
+              ref.read(activeTabProvider.notifier).show(settingsRoute);
+              context.go(settingsRoute);
+            },
+          ),
+        ),
+      );
+    });
+    ref.listen(stravaAccessLostNoticeProvider, (previous, next) {
+      if (!next) return;
+      ref.read(stravaAccessLostNoticeProvider.notifier).dismiss();
+      unawaited(
+        showStravaDataDeletedDialog(
+          context,
+          title: l10n.stravaAccessLostTitle,
+          body: l10n.stravaAccessLostBody,
+        ),
+      );
+    });
     // While a ride is being recorded on the Record tab the bar only takes
     // space from the figures; it comes back when the ride ends or the
     // rider leaves the tab through the system back gesture.
@@ -266,10 +370,7 @@ class HomeShell extends ConsumerWidget {
             chromeTop: ref.read(mapControlsTopProvider).target,
             sheetExtent: ref.read(tabHandoverProvider).sheetExtent,
             // This context is above the layout the shell hands down.
-            layout: ShellLayout.resolve(
-              MediaQuery.sizeOf(context),
-              ref.read(railSideProvider),
-            ),
+            layout: ShellLayout.resolveAt(context, ref.read(railSideProvider)),
           )
         : EdgeInsets.zero;
     locate.cardOpen = () =>
@@ -280,14 +381,17 @@ class HomeShell extends ConsumerWidget {
         atTabRoot &&
         (chrome?.visible ?? true);
     final columnGlide = ref.watch(mapControlsTopProvider);
+    // The tabs the bar offers, by branch: no Record where nothing records.
+    final branches = <int>[0, if (features.recording) 1, 2, 3];
     // The layout the screen implies, handed down to the tabs: a bar at the
     // bottom upright, a rail at the side on a phone turned sideways.
     FloatingNavigationBar navigation(RailSide? railSide) =>
         FloatingNavigationBar(
           railSide: railSide,
           docked: docked,
-          selectedIndex: shell.currentIndex,
-          onDestinationSelected: (index) {
+          selectedIndex: math.max(0, branches.indexOf(shell.currentIndex)),
+          onDestinationSelected: (position) {
+            final index = branches[position];
             // Told first, so the screens arrange themselves before the
             // branch shows.
             ref.read(activeTabProvider.notifier).show(tabRoutes[index]);
@@ -298,26 +402,29 @@ class HomeShell extends ConsumerWidget {
             );
           },
           destinations: [
-            NavigationDestination(
-              icon: const Icon(Icons.route_outlined),
-              selectedIcon: const Icon(Icons.route),
-              label: l10n.tabPlan,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.radio_button_unchecked),
-              selectedIcon: const Icon(Icons.radio_button_checked),
-              label: l10n.tabRecord,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.bookmarks_outlined),
-              selectedIcon: const Icon(Icons.bookmarks),
-              label: l10n.tabLibrary,
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.tune_outlined),
-              selectedIcon: const Icon(Icons.tune),
-              label: l10n.tabSettings,
-            ),
+            for (final branch in branches)
+              switch (branch) {
+                0 => NavigationDestination(
+                  icon: const Icon(Icons.route_outlined),
+                  selectedIcon: const Icon(Icons.route),
+                  label: l10n.tabPlan,
+                ),
+                1 => NavigationDestination(
+                  icon: const Icon(Icons.radio_button_unchecked),
+                  selectedIcon: const Icon(Icons.radio_button_checked),
+                  label: l10n.tabRecord,
+                ),
+                2 => NavigationDestination(
+                  icon: const Icon(Icons.bookmarks_outlined),
+                  selectedIcon: const Icon(Icons.bookmarks),
+                  label: l10n.tabLibrary,
+                ),
+                _ => NavigationDestination(
+                  icon: const Icon(Icons.tune_outlined),
+                  selectedIcon: const Icon(Icons.tune),
+                  label: l10n.tabSettings,
+                ),
+              },
           ],
         );
     Widget controls(ShellLayout layout) => MapChromeInsets(
@@ -364,96 +471,168 @@ class HomeShell extends ConsumerWidget {
             MediaQuery.of(context),
             defaultTargetPlatform,
           );
-          return Scaffold(
-            // The bar floats over the content; screens read the bottom padding
-            // from MediaQuery to keep their last rows above it.
-            extendBody: true,
-            // The keyboard inset is left to each tab's own scaffold: the map
-            // screens keep their full height under the keyboard, the settings
-            // screen resizes as usual.
-            resizeToAvoidBottomInset: false,
-            // A touch that starts in that zone moves neither the sheet nor the
-            // map: iOS hands the start of its swipe to the app before taking
-            // it over, and the sheet flung itself open. The bar upright is
-            // outside the body and above the zone; the rail lets it through.
-            body: GestureZoneGuard(
-              zone: gestureZone,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // The one map under the Plan, Record and Library tabs, which draw
-                  // on it and are transparent over it. Never hidden and never moved
-                  // in the stack: the platform view would start over and show black.
-                  // The settings tab is an opaque page over it.
-                  //
-                  // Its bottom inset is pinned to nothing: the scaffold takes the
-                  // bottom view padding off its body only while it has a bar, so
-                  // with the bar hidden for a ride the map's credit and (i) would
-                  // climb by the home indicator's height into the figures bar.
-                  MediaQuery.removeViewPadding(
-                    context: context,
-                    removeBottom: true,
-                    child: const SharedMapHost(
-                      key: ValueKey<String>('shared-map'),
+          // In a wide window a snack bar shows over the column's bar, as
+          // wide as the column. The same theme elsewhere, so a window
+          // resized across the line keeps the shell's state.
+          final theme = Theme.of(context);
+          final column = wideColumnOf(context);
+          // The map's controls stand at the window's edge between the
+          // tab's chrome and its sheet, as on a phone; in a wide window at
+          // the edge the column stands at.
+          final controlsLeft = wideMapControlsAtLeft(context, layout);
+          // A phone's margin; a column at a side of a wide window has them
+          // at its edge, with its chrome and its card.
+          final controlsEdge = wideColumnAtSide(context, layout)
+              ? widePanelMargin
+              : 12.0;
+          final snackBars = layout.widePanel
+              ? theme.copyWith(
+                  snackBarTheme: theme.snackBarTheme.copyWith(
+                    insetPadding: EdgeInsets.fromLTRB(
+                      column.left + 15,
+                      5,
+                      MediaQuery.sizeOf(context).width - column.right + 15,
+                      10,
                     ),
                   ),
-                  if (showColumn)
-                    Positioned.fill(
-                      child: FadeTransition(
-                        opacity: fade,
-                        child: layout.sideRail
-                            ? _sidewaysControlsRow(
-                                context,
-                                layout,
-                                onWidth: ref
-                                    .read(mapControlsRowWidthProvider.notifier)
-                                    .set,
-                                child: controls(layout),
-                              )
-                            : SafeArea(
-                                child: AnimatedBuilder(
-                                  animation: columnGlide.animation,
-                                  builder: (context, child) => Padding(
-                                    padding: EdgeInsets.only(
-                                      top: columnGlide.animation.value,
-                                      right: 12,
+                )
+              : theme;
+          return Theme(
+            data: snackBars,
+            child: Scaffold(
+              // The bar floats over the content; screens read the bottom padding
+              // from MediaQuery to keep their last rows above it.
+              extendBody: true,
+              // The keyboard inset is left to each tab's own scaffold: the map
+              // screens keep their full height under the keyboard, the settings
+              // screen resizes as usual.
+              resizeToAvoidBottomInset: false,
+              // A touch that starts in that zone moves neither the sheet nor the
+              // map: iOS hands the start of its swipe to the app before taking
+              // it over, and the sheet flung itself open. The bar upright is
+              // outside the body and above the zone; the rail lets it through.
+              body: GestureZoneGuard(
+                zone: gestureZone,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // The one map under the Plan, Record and Library tabs, which draw
+                    // on it and are transparent over it. Never hidden and never moved
+                    // in the stack: the platform view would start over and show black.
+                    // The settings tab is an opaque page over it.
+                    //
+                    // Its bottom inset is pinned to nothing: the scaffold takes the
+                    // bottom view padding off its body only while it has a bar, so
+                    // with the bar hidden for a ride the map's credit and (i) would
+                    // climb by the home indicator's height into the figures bar.
+                    MediaQuery.removeViewPadding(
+                      context: context,
+                      removeBottom: true,
+                      // In a wide window the map stays in view beside a
+                      // page in the column (the settings, a page pushed
+                      // over a tab) but, as on a phone, under it: it takes
+                      // no touch while such a page is up.
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: pages,
+                        child: const SharedMapHost(
+                          key: ValueKey<String>('shared-map'),
+                        ),
+                        builder: (context, _, map) => IgnorePointer(
+                          ignoring:
+                              layout.widePanel &&
+                              (!mapTabs.contains(shell.currentIndex) ||
+                                  !atTabRoot ||
+                                  pages.covers(shell.currentIndex)),
+                          child: map,
+                        ),
+                      ),
+                    ),
+                    if (showColumn)
+                      Positioned.fill(
+                        child: FadeTransition(
+                          opacity: fade,
+                          child: layout.sideRail
+                              ? _sidewaysControlsRow(
+                                  context,
+                                  layout,
+                                  onWidth: ref
+                                      .read(
+                                        mapControlsRowWidthProvider.notifier,
+                                      )
+                                      .set,
+                                  child: controls(layout),
+                                )
+                              : SafeArea(
+                                  child: AnimatedBuilder(
+                                    animation: columnGlide.animation,
+                                    builder: (context, child) => Padding(
+                                      padding: EdgeInsets.only(
+                                        top: columnGlide.animation.value,
+                                        left: controlsLeft ? controlsEdge : 0,
+                                        right: controlsLeft ? 0 : controlsEdge,
+                                      ),
+                                      child: Align(
+                                        alignment: controlsLeft
+                                            ? Alignment.topLeft
+                                            : Alignment.topRight,
+                                        child: child,
+                                      ),
                                     ),
-                                    child: Align(
-                                      alignment: Alignment.topRight,
-                                      child: child,
+                                    child: _UnderSheetFade(
+                                      sheets: sheets,
+                                      child: controls(layout),
                                     ),
                                   ),
-                                  child: controls(layout),
                                 ),
-                              ),
+                        ),
                       ),
+                    // Over the column: a sheet or card pulled up covers it, and a
+                    // touch beside a tab's chrome falls through to it and to the map,
+                    // since the map tabs' routes put no barrier under their content.
+                    _besideRail(
+                      context,
+                      layout,
+                      railShown: !hideRail,
+                      opaque:
+                          !(mapTabs.contains(shell.currentIndex) && atTabRoot),
+                      child: shell,
                     ),
-                  // Over the column: a sheet or card pulled up covers it, and a
-                  // touch beside a tab's chrome falls through to it and to the map,
-                  // since the map tabs' routes put no barrier under their content.
-                  _besideRail(
-                    context,
-                    layout,
-                    railShown: !hideRail,
-                    opaque:
-                        !(mapTabs.contains(shell.currentIndex) && atTabRoot),
-                    child: shell,
-                  ),
-                  if (layout.sideRail && !hideRail)
-                    Positioned.fill(
-                      child: GestureZonePassThrough(
-                        child: navigation(layout.side),
+                    if (layout.sideRail && !hideRail)
+                      Positioned.fill(
+                        child: GestureZonePassThrough(
+                          child: navigation(layout.side),
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
+              // Upright the bar floats at the bottom, hidden under the keyboard;
+              // turned sideways it is a rail at the side, which the keyboard
+              // leaves alone.
+              bottomNavigationBar: layout.sideRail || hideBar
+                  ? null
+                  : layout.widePanel
+                  // In a wide window the bar is at the bottom of the tabs'
+                  // column, as wide as it, as on a phone at the bottom of the
+                  // screen.
+                  ? Padding(
+                      padding: EdgeInsets.only(left: column.left),
+                      child: Align(
+                        alignment: Alignment.bottomLeft,
+                        heightFactor: 1,
+                        child: SizedBox(
+                          width: column.width,
+                          child: MediaQuery.removeViewPadding(
+                            context: context,
+                            removeLeft: true,
+                            removeRight: true,
+                            child: navigation(null),
+                          ),
+                        ),
+                      ),
+                    )
+                  : navigation(null),
             ),
-            // Upright the bar floats at the bottom, hidden under the keyboard;
-            // turned sideways it is a rail at the side, which the keyboard
-            // leaves alone.
-            bottomNavigationBar: layout.sideRail || hideBar
-                ? null
-                : navigation(null),
           );
         },
       ),
@@ -494,6 +673,107 @@ Widget _sidewaysControlsRow(
     ),
   );
 }
+
+/// How many modal bottom sheets are open on the root navigator, where the
+/// app's modal sheets open (in a wide window in the column).
+class ModalSheets extends NavigatorObserver
+    with ChangeNotifier
+    implements ValueListenable<int> {
+  int _open = 0;
+
+  @override
+  int get value => _open;
+
+  void _change(Route<dynamic> route, int by) {
+    if (route is! ModalBottomSheetRoute) return;
+    _open = math.max(0, _open + by);
+    notifyListeners();
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _change(route, 1);
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _change(route, -1);
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _change(route, -1);
+}
+
+/// The map's control column, upright, fading out as the tab's sheet rises
+/// over it: it stays while the sheet lies over no more than its last button
+/// (as Plan's resting sheet does on a small phone), and is gone within
+/// [_underSheetFadeDp] more, so no button is left showing half under the
+/// sheet. It takes no touch once gone. Sideways the controls are a row
+/// beside the sheet and are not faded. A modal sheet over the shell
+/// ([sheets]) takes it away too, as it comes up, and back as it goes.
+class _UnderSheetFade extends ConsumerStatefulWidget {
+  const _UnderSheetFade({required this.sheets, required this.child});
+
+  final ModalSheets sheets;
+
+  final Widget child;
+
+  @override
+  ConsumerState<_UnderSheetFade> createState() => _UnderSheetFadeState();
+}
+
+/// The sheet's travel over which the column fades out.
+const double _underSheetFadeDp = 24;
+
+class _UnderSheetFadeState extends ConsumerState<_UnderSheetFade> {
+  /// The column's bottom on the screen at its last layout.
+  double? _bottom;
+
+  void _measure() {
+    if (!mounted) return;
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return;
+    final bottom = box.localToGlobal(Offset(0, box.size.height)).dy;
+    if (_bottom != null && (bottom - _bottom!).abs() < 0.5) return;
+    setState(() => _bottom = bottom);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final extent = ref.watch(
+      tabHandoverProvider.select((chrome) => chrome.sheetExtent),
+    );
+    // After each layout: the column glides when a tab's chrome changes.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+    final bottom = _bottom;
+    var opacity = 1.0;
+    if (extent != null && bottom != null) {
+      // The sheet rises from the window's bottom: in a wide window from
+      // the column's, which is as tall as the window.
+      final top = MediaQuery.sizeOf(context).height * (1 - extent);
+      final grace = compactMapControls(context)
+          ? compactMapControlButtonSize
+          : mapControlButtonSize;
+      final covered = bottom - top - grace;
+      opacity = (1 - covered / _underSheetFadeDp).clamp(0.0, 1.0);
+    }
+    return ValueListenableBuilder<int>(
+      valueListenable: widget.sheets,
+      builder: (context, modals, child) => IgnorePointer(
+        ignoring: opacity == 0 || modals > 0,
+        child: AnimatedOpacity(
+          opacity: modals > 0 ? 0 : 1,
+          duration: _modalFadeDuration,
+          child: child,
+        ),
+      ),
+      child: Opacity(opacity: opacity, child: widget.child),
+    );
+  }
+}
+
+/// How long the controls take to fade for a modal sheet: about as long as
+/// the sheet takes to come up.
+const Duration _modalFadeDuration = Duration(milliseconds: 200);
 
 /// Tells [onWidth] the width [child] was laid out at, after the frame,
 /// whenever it changed.

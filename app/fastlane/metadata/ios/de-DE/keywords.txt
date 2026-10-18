@@ -1,1 +1,1 @@
-Radfahren,Rad,Navigation,GPX,FIT,Tracker,Offline-Karten,Rundtour,Gravel,MTB,Rennrad,Radtour
+Radfahren,Fahrrad,Radroute,GPX,Navigation,Fahrradnavi,Offline-Karten,Rundtour,Gravel,MTB,Rennrad

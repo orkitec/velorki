@@ -220,7 +220,7 @@ void main() {
     });
   });
 
-  group('the seven-day cache the loaders share', () {
+  group('the 48-hour cache the loaders share', () {
     test('a second read is served without touching the network', () async {
       final container = await _connectedContainer();
       final adapter = _intercept(
@@ -256,8 +256,8 @@ void main() {
       expect(adapter.requests, hasLength(2));
     });
 
-    test('a list read more than seven days ago is fetched again', () async {
-      final stale = DateTime.now().toUtc().subtract(const Duration(days: 8));
+    test('a list read more than 48 hours ago is fetched again', () async {
+      final stale = DateTime.now().toUtc().subtract(const Duration(hours: 49));
       final key = ExternalRouteListCache.keyFor(IntegrationService.strava);
       final container = await _connectedContainer(
         initialPrefs: <String, Object>{
@@ -283,15 +283,15 @@ void main() {
       expect(adapter.requests, hasLength(1));
     });
 
-    test('a list read six days ago is still good', () async {
-      final fresh = DateTime.now().toUtc().subtract(const Duration(days: 6));
+    test('a list read 47 hours ago is still good', () async {
+      final fresh = DateTime.now().toUtc().subtract(const Duration(hours: 47));
       final key = ExternalRouteListCache.keyFor(IntegrationService.strava);
       final container = await _connectedContainer(
         initialPrefs: <String, Object>{
           key: jsonEncode(<String, Object?>{
             'fetched_at': fresh.toIso8601String(),
             'routes': <Object?>[
-              <String, Object?>{'id': '1', 'name': 'Last week'},
+              <String, Object?>{'id': '1', 'name': 'Yesterday'},
             ],
           }),
         },
@@ -306,7 +306,7 @@ void main() {
           .load();
 
       expect(result.fromCache, isTrue);
-      expect(result.routes.single.name, 'Last week');
+      expect(result.routes.single.name, 'Yesterday');
       expect(result.fetchedAt, fresh);
       expect(adapter.requests, isEmpty);
     });

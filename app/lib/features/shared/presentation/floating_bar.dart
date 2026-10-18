@@ -7,6 +7,7 @@ import '../../../app/shell_layout.dart';
 import '../../../app/theme.dart';
 import 'docking_sheet.dart' show dockedPillRadius;
 import 'gesture_zone_guard.dart';
+import 'glass_backdrop.dart';
 
 /// The height of the floating bar's glass: the tab bar's, and the figures
 /// bar's that takes its place during a ride.
@@ -122,11 +123,11 @@ Color glassTint(VelorkiColors colors, BarStyle style) {
 /// its thinner glass, not a weaker blur. A blur only: over the map's native
 /// view iOS applies a plain blur, and a blur composed with a colour filter
 /// (it once lifted the saturation) came out barely blurred at all.
-ImageFilter? floatingBarFilter(BarStyle style) => switch (style) {
-  BarStyle.solid || BarStyle.transparent => null,
-  BarStyle.subtle => ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-  BarStyle.clear => ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-};
+ImageFilter? floatingBarFilter(BarStyle style) =>
+    switch (glassBlurSigma(style)) {
+      null => null,
+      final sigma => ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+    };
 
 /// The glass pill a bar floats in at the bottom of the screen: the tab bar,
 /// and the figures bar Record's sheet folds into during a ride, so the two
@@ -157,7 +158,6 @@ class FloatingBarShell extends StatelessWidget {
     final colors = Theme.of(context).velorki;
     final style = FloatingBarStyle.of(context);
     final fill = glassTint(colors, style);
-    final filter = floatingBarFilter(style);
     // Docked, the bar paints its own shape — square top, round bottom —
     // and clips nothing: over the map's native view a rounded clip with
     // straight top corners is not applied, and the glass came out square at
@@ -165,15 +165,20 @@ class FloatingBarShell extends StatelessWidget {
     // painted shape need no such favour from the compositor.
     final radius = docked ? BorderRadius.zero : BorderRadius.circular(30);
     // Turned sideways the shell is the rail, its air the plain gap.
-    final gap = ShellLayout.of(context).sideRail
+    final sideways = ShellLayout.of(context).sideRail;
+    final gap = sideways
         ? floatingBarBottomGap
         : floatingBarBottomGapOf(context);
+    // Upright, clear of each side's own safe area: a foldable's system bar
+    // can stand on one side only. Turned, the frame's sides are the
+    // screen's top and bottom, which the rail keeps as it always has.
+    final viewPadding = MediaQuery.viewPaddingOf(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        floatingBarSideMargin,
+        floatingBarSideMargin + (sideways ? 0 : viewPadding.left),
         0,
-        floatingBarSideMargin,
-        MediaQuery.viewPaddingOf(context).bottom + gap,
+        floatingBarSideMargin + (sideways ? 0 : viewPadding.right),
+        viewPadding.bottom + gap,
       ),
       // Docked there is no shadow to keep off the sheet, but the clip stays
       // in the tree either way so the bar keeps its state.
@@ -204,9 +209,10 @@ class FloatingBarShell extends StatelessWidget {
           // shared backdrop showed the map through the card.
           child: ClipRRect(
             borderRadius: radius,
-            child: BackdropFilter(
-              enabled: filter != null && !docked,
-              filter: filter ?? ImageFilter.blur(),
+            child: GlassBackdrop(
+              style: style,
+              enabled: !docked,
+              borderRadius: radius,
               child: Container(
                 decoration: docked
                     ? BarGlassDecoration(

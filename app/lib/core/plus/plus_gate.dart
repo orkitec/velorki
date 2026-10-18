@@ -1,20 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Features that belong to the Velorki Plus subscription: everything that
-/// needs our servers or a partner account. Everything on the phone is free.
-enum PlusFeature {
-  stravaConnection,
-  rwgpsConnection,
-  aiAssistant,
-  linkSharing,
-  weather,
-}
+/// Features that belong to the Velorki Plus subscription: the ones that need
+/// our servers. Everything on the phone is free, and so are the Strava and
+/// Ride with GPS connections: Strava's API policy forbids charging for
+/// anything built on it, and Ride with GPS follows the same rule here.
+enum PlusFeature { aiAssistant, linkSharing, weather }
 
 /// The single place that says which features are gated. Moving a feature to
 /// the free tier is a one-line change here.
 const Set<PlusFeature> gatedFeatures = {
-  PlusFeature.stravaConnection,
-  PlusFeature.rwgpsConnection,
   PlusFeature.aiAssistant,
   PlusFeature.linkSharing,
   PlusFeature.weather,

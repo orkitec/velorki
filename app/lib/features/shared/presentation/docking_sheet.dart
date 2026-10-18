@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
+import 'glass_backdrop.dart';
 import 'floating_bar.dart'
     show FloatingBarStyle, floatingBarFilter, floatingBarHeight, glassTint;
 
@@ -533,7 +534,7 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
                                     padding: const EdgeInsets.only(
                                       top: sheetHandleDp,
                                     ),
-                                    child: content,
+                                    child: ScrolledUnderLine(child: content),
                                   ),
                                 ),
                               ),
@@ -596,7 +597,9 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
           right: margin,
           top: 0,
           bottom: math.max(0, dockedBottomInset - floatingBarHeight),
-          child: _DockedPillBlur(filter: pill ? filter : null),
+          child: _DockedPillBlur(
+            style: pill ? FloatingBarStyle.of(context) : null,
+          ),
         ),
         chrome,
       ],
@@ -605,16 +608,26 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
 }
 
 /// Everything above the sheet's lower edge, which docked is the seam with
-/// the bar.
+/// the bar, its shadow round the top and the sides included: cut at the
+/// sheet's box, the shadow showed as a dark square in each rounded corner,
+/// plain beside a sheet that does not reach the screen's sides (a wide
+/// window's column).
 class _AboveSeamClipper extends CustomClipper<Rect> {
   const _AboveSeamClipper(this.bottom);
 
   /// How far above the sheet's box the painted chrome ends.
   final double bottom;
 
+  /// How far the shadow reaches beyond the sheet.
+  static const double _shadowReach = 48;
+
   @override
-  Rect getClip(Size size) =>
-      Rect.fromLTRB(0, 0, size.width, size.height - bottom);
+  Rect getClip(Size size) => Rect.fromLTRB(
+    -_shadowReach,
+    -_shadowReach,
+    size.width + _shadowReach,
+    size.height - bottom,
+  );
 
   @override
   bool shouldReclip(_AboveSeamClipper old) => old.bottom != bottom;
@@ -622,17 +635,18 @@ class _AboveSeamClipper extends CustomClipper<Rect> {
 
 /// The one blur behind the docked strip and the bar under it.
 class _DockedPillBlur extends StatelessWidget {
-  const _DockedPillBlur({required this.filter});
+  const _DockedPillBlur({required this.style});
 
-  /// The blur; `null` when not docked or in a style without one.
-  final ImageFilter? filter;
+  /// The glass style; `null` when not docked.
+  final BarStyle? style;
 
   @override
   Widget build(BuildContext context) => ClipRRect(
     borderRadius: const BorderRadius.all(Radius.circular(dockedPillRadius)),
-    child: BackdropFilter.grouped(
-      enabled: filter != null,
-      filter: filter ?? ImageFilter.blur(),
+    child: GlassBackdrop(
+      style: style ?? BarStyle.solid,
+      grouped: true,
+      borderRadius: const BorderRadius.all(Radius.circular(dockedPillRadius)),
       child: const SizedBox.expand(),
     ),
   );
@@ -685,3 +699,70 @@ class _ShellBorderPainter extends CustomPainter {
   bool shouldRepaint(_ShellBorderPainter old) =>
       old.radius != radius || old.color != color || old.hairline != hairline;
 }
+
+/// [child], a sheet's scrolling content under its handle, with a hairline
+/// along its top while the content is scrolled away from its start: the
+/// rider sees there is more above. At the start the line fades away.
+///
+/// Only the content's own scrolling counts, the nearest vertical list in
+/// [child]; moving the sheet itself does not.
+class ScrolledUnderLine extends StatefulWidget {
+  /// Creates the line over [child].
+  const ScrolledUnderLine({required this.child, super.key});
+
+  /// The content.
+  final Widget child;
+
+  @override
+  State<ScrolledUnderLine> createState() => _ScrolledUnderLineState();
+}
+
+class _ScrolledUnderLineState extends State<ScrolledUnderLine> {
+  bool _scrolled = false;
+
+  void _follow(ScrollMetrics metrics, int depth) {
+    if (depth != 0 || metrics.axis != Axis.vertical) return;
+    final scrolled = metrics.pixels > metrics.minScrollExtent + 0.5;
+    if (scrolled != _scrolled) setState(() => _scrolled = scrolled);
+  }
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      NotificationListener<ScrollMetricsNotification>(
+        onNotification: (notification) {
+          _follow(notification.metrics, notification.depth);
+          return false;
+        },
+        child: NotificationListener<ScrollUpdateNotification>(
+          onNotification: (notification) {
+            _follow(notification.metrics, notification.depth);
+            return false;
+          },
+          child: widget.child,
+        ),
+      ),
+      Positioned(
+        key: scrolledUnderLineKey,
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 1,
+        child: IgnorePointer(
+          child: AnimatedOpacity(
+            opacity: _scrolled ? 1 : 0,
+            duration: const Duration(milliseconds: 150),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+/// The key of a [ScrolledUnderLine]'s line, for tests.
+const Key scrolledUnderLineKey = ValueKey<String>('scrolled-under-line');

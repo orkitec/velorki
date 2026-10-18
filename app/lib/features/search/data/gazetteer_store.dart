@@ -1,17 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:collection';
-import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:sqlite3/sqlite3.dart';
+import 'package:sqlite3/common.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki_io/io.dart';
 
+import '../../routing_tiles/application/tile_download_controller.dart';
 import '../../routing_tiles/data/brouter_storage.dart';
 import '../../routing_tiles/data/routing_tiles_repository.dart';
 import '../domain/fuzzy.dart';
@@ -21,6 +23,7 @@ import '../domain/search_result.dart';
 import '../domain/search_text.dart';
 import '../domain/street_numbers.dart';
 import '../domain/translit.dart';
+import 'gazetteer_sqlite/gazetteer_sqlite.dart';
 import 'photon_client.dart';
 
 part 'gazetteer_store.g.dart';
@@ -236,6 +239,10 @@ class GazetteerStore {
 
   /// Every place of [placeKinds] and every POI of [poiKinds] inside [box],
   /// at most [limit] of each per open file, in no particular order.
+  /// What the limit keeps is the nearest to [near] (the box's middle when
+  /// `null`), or with [ranked] the kinds taking turns, each kind's most
+  /// important first, then the first in the file: the same rows wherever
+  /// the map stands, and a numerous kind cannot crowd the others out.
   ///
   /// The raw rows a route is matched against: a place carries
   /// [SearchKind.place], a POI [SearchKind.poi], both with their kind in
@@ -248,6 +255,7 @@ class GazetteerStore {
     List<String> poiKinds = const <String>[],
     int limit = _kindFetchLimit,
     LatLng? near,
+    bool ranked = false,
   }) async {
     if (_closed || _open.isEmpty) return const <SearchResult>[];
     final worker = await _workerOrNull();
@@ -258,10 +266,11 @@ class GazetteerStore {
         poiKinds,
         limit,
         near,
+        ranked,
       ));
       if (answer case _Answered(:final List<SearchResult> value)) return value;
     }
-    return _inBoxHere(box, placeKinds, poiKinds, limit, near);
+    return _inBoxHere(box, placeKinds, poiKinds, limit, near, ranked);
   }
 
   List<SearchResult> _inBoxHere(
@@ -270,12 +279,22 @@ class GazetteerStore {
     List<String> poiKinds,
     int limit, [
     LatLng? near,
+    bool ranked = false,
   ]) {
     if (_closed || _open.isEmpty) return const <SearchResult>[];
     final found = <SearchResult>[];
     for (final file in _open.values) {
       try {
-        found.addAll(file.inBox(box, placeKinds, poiKinds, limit, near: near));
+        found.addAll(
+          file.inBox(
+            box,
+            placeKinds,
+            poiKinds,
+            limit,
+            near: near,
+            ranked: ranked,
+          ),
+        );
       } on Object catch (e) {
         debugPrint('velorki: gazetteer ${file.tile} has no position index: $e');
       }
@@ -1061,9 +1080,9 @@ class GazetteerStore {
   }
 
   _GazetteerFile? _openFile(String tile, String path) {
-    Database? db;
+    CommonDatabase? db;
     try {
-      db = sqlite3.open(path, mode: OpenMode.readOnly);
+      db = openGazetteerFile(path);
       final version = _metaValue(db, 'schema_version');
       if (version != gazetteerSchemaVersion) {
         debugPrint(
@@ -1081,7 +1100,7 @@ class GazetteerStore {
     }
   }
 
-  static String? _metaValue(Database db, String key) {
+  static String? _metaValue(CommonDatabase db, String key) {
     final rows = db.select('SELECT value FROM meta WHERE key = ?', <Object?>[
       key,
     ]);
@@ -1261,18 +1280,18 @@ class _GazetteerFile {
   /// The tile this file covers, e.g. `E5_N45`.
   final String tile;
 
-  final Database _db;
-  final PreparedStatement _match;
-  final PreparedStatement _place;
-  final PreparedStatement _places;
-  final PreparedStatement? _streets;
-  final PreparedStatement? _pois;
-  final PreparedStatement? _aliases;
-  final PreparedStatement? _houseNumbers;
-  final PreparedStatement? _streetNumbers;
+  final CommonDatabase _db;
+  final CommonPreparedStatement _match;
+  final CommonPreparedStatement _place;
+  final CommonPreparedStatement _places;
+  final CommonPreparedStatement? _streets;
+  final CommonPreparedStatement? _pois;
+  final CommonPreparedStatement? _aliases;
+  final CommonPreparedStatement? _houseNumbers;
+  final CommonPreparedStatement? _streetNumbers;
 
-  PreparedStatement? _vocabRange;
-  PreparedStatement? _vocabTerm;
+  CommonPreparedStatement? _vocabRange;
+  CommonPreparedStatement? _vocabTerm;
   bool _vocabAttempted = false;
 
   /// The words of a place and of the place above it, by place id.
@@ -1330,7 +1349,11 @@ class _GazetteerFile {
     return rows;
   }
 
-  List<_Row> _read(PreparedStatement? statement, Object? arg, _Table table) {
+  List<_Row> _read(
+    CommonPreparedStatement? statement,
+    Object? arg,
+    _Table table,
+  ) {
     if (statement == null) return const <_Row>[];
     return <_Row>[
       for (final row in statement.select(<Object?>[arg])) ?_row(row, table),
@@ -1564,7 +1587,9 @@ class _GazetteerFile {
 
   /// The rows of [placeKinds] in `places` and of [poiKinds] in `pois` inside
   /// [box], at most [limit] from each table, the nearest to [near] (the
-  /// box's middle when `null`) first.
+  /// box's middle when `null`) first, or with [ranked] the kinds taking
+  /// turns, each kind's most important first and then in the file's order,
+  /// which does not depend on where the map stands.
   ///
   /// The order is what the limit keeps: without it the position index hands
   /// the rows back south to north, and a full box kept its southern part —
@@ -1575,6 +1600,7 @@ class _GazetteerFile {
     List<String> poiKinds,
     int limit, {
     LatLng? near,
+    bool ranked = false,
   }) {
     final bounds = <Object?>[
       (box.south * 1e7).round(),
@@ -1582,18 +1608,37 @@ class _GazetteerFile {
       (box.west * 1e7).round(),
       (box.east * 1e7).round(),
     ];
-    final order = _nearestFirst(near ?? box.center);
+    final nearest = _nearestFirst(near ?? box.center);
     final found = <SearchResult>[];
     void query(String table, SearchKind kind, List<String> kinds) {
       if (kinds.isEmpty) return;
+      final order = ranked
+          ? (
+              sql: table == 'pois' ? _rankedPois : _rankedPlaces,
+              args: const <Object?>[],
+            )
+          : nearest;
       final placeholders = List<String>.filled(kinds.length, '?').join(', ');
       final osm = table == 'pois' ? _osmPois : _osmPlaces;
-      final rows = _db.select(
-        'SELECT name, kind, lat, lon, $osm FROM $table '
-        'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? '
-        'AND kind IN ($placeholders) ${order.sql} LIMIT ?',
-        <Object?>[...bounds, ...kinds, ...order.args, limit],
-      );
+      const where =
+          'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? AND kind IN ';
+      // Ranked, the kinds take turns: each one's first row, then each one's
+      // second and so on, so a kind with thousands of rows cannot crowd the
+      // others out of what the limit keeps.
+      final rows = ranked
+          ? _db.select(
+              'SELECT name, kind, lat, lon, $osm FROM ('
+              'SELECT *, ROW_NUMBER() OVER (PARTITION BY kind ${order.sql}) '
+              'AS turn FROM $table $where($placeholders)) '
+              'ORDER BY turn, ${order.sql.substring('ORDER BY '.length)} '
+              'LIMIT ?',
+              <Object?>[...bounds, ...kinds, limit],
+            )
+          : _db.select(
+              'SELECT name, kind, lat, lon, $osm FROM $table '
+              '$where($placeholders) ${order.sql} LIMIT ?',
+              <Object?>[...bounds, ...kinds, ...order.args, limit],
+            );
       for (final row in rows) {
         final position = _position(row);
         if (position == null) continue;
@@ -1888,7 +1933,7 @@ class _GazetteerFile {
 
   /// The `importance` column of [table], or a 0 in its place for a file
   /// built before it.
-  static String _fame(Database db, String table) {
+  static String _fame(CommonDatabase db, String table) {
     final columns = db.select('PRAGMA table_info($table)');
     return columns.any((c) => c['name'] == 'importance')
         ? 'importance'
@@ -1897,13 +1942,24 @@ class _GazetteerFile {
 
   /// The `osm_type` and `osm_id` columns of [table], or NULLs in their place
   /// for a file without them.
-  static String _osm(Database db, String table) {
+  static String _osm(CommonDatabase db, String table) {
     final columns = db.select('PRAGMA table_info($table)');
     bool has(String name) => columns.any((c) => c['name'] == name);
     return has('osm_type') && has('osm_id')
         ? 'osm_type, osm_id'
         : 'NULL AS osm_type, NULL AS osm_id';
   }
+
+  /// The `ORDER BY` of [table] that puts its most important rows first and
+  /// the rest in the file's order; the file's order alone in a file built
+  /// before the `importance` column.
+  static String _rankedOrder(CommonDatabase db, String table) =>
+      _fame(db, table) == 'importance'
+      ? 'ORDER BY importance DESC, id'
+      : 'ORDER BY id';
+
+  late final String _rankedPlaces = _rankedOrder(_db, 'places');
+  late final String _rankedPois = _rankedOrder(_db, 'pois');
 
   late final String _osmPlaces = _osm(_db, 'places');
   late final String _osmPois = _osm(_db, 'pois');
@@ -1917,7 +1973,10 @@ class _GazetteerFile {
   static int? _osmIdOf(Row row) =>
       _osmTypeOf(row) == null ? null : _asInt(row['osm_id']);
 
-  static PreparedStatement? _prepareOrNull(Database db, String sql) {
+  static CommonPreparedStatement? _prepareOrNull(
+    CommonDatabase db,
+    String sql,
+  ) {
     // A file from an older builder has no aliases and house_numbers instead
     // of street_numbers, a newer one the other way round: a table that is
     // simply not there is no news. One that is there and still cannot be
@@ -2487,9 +2546,16 @@ class _GazetteerWorker {
           keywords: keywords,
         );
       case _Ask.inBox:
-        final (box, placeKinds, poiKinds, limit, near) =
-            args! as (BoundingBox, List<String>, List<String>, int, LatLng?);
-        return store._inBoxHere(box, placeKinds, poiKinds, limit, near);
+        final (
+          box,
+          placeKinds,
+          poiKinds,
+          limit,
+          near,
+          ranked,
+        ) = args!
+            as (BoundingBox, List<String>, List<String>, int, LatLng?, bool);
+        return store._inBoxHere(box, placeKinds, poiKinds, limit, near, ranked);
       case _Ask.nearestSettlement:
         final (point, maxKm) = args! as (LatLng, double);
         return store._nearestSettlementHere(point, maxKm);
@@ -2502,7 +2568,9 @@ class _GazetteerWorker {
   }
 }
 
-/// The app's [GazetteerStore], re-scanned whenever the routing tiles change.
+/// The app's [GazetteerStore], re-scanned whenever the routing tiles change
+/// and whenever the download queue finishes a tile (a tile on the device that
+/// only fetched its missing gazetteer leaves its row as it was).
 @Riverpod(keepAlive: true)
 Future<GazetteerStore> gazetteerStore(Ref ref) async {
   Directory? directory;
@@ -2513,15 +2581,24 @@ Future<GazetteerStore> gazetteerStore(Ref ref) async {
     // down device): the rider simply searches online.
     debugPrint('velorki: no gazetteer directory: $e');
   }
-  final store = GazetteerStore(directory, background: true);
+  // In the browser SQLite is WebAssembly, fetched before the first file.
+  await prepareGazetteerSqlite();
+  // A browser has no isolates (and the worker could not see the files in
+  // the page's memory), so there the searches run on the page.
+  final store = GazetteerStore(directory, background: !kIsWeb);
   ref.onDispose(store.close);
   await store.refresh();
   if (directory != null) {
-    ref.listen(
-      routingTilesProvider,
-      (_, _) => unawaited(store.refresh()),
-      onError: (_, _) {},
-    );
+    ref
+      ..listen(
+        routingTilesProvider,
+        (_, _) => unawaited(store.refresh()),
+        onError: (_, _) {},
+      )
+      ..listen(
+        tileDownloadQueueProvider.select((queue) => queue.finished),
+        (_, _) => unawaited(store.refresh()),
+      );
   }
   return store;
 }

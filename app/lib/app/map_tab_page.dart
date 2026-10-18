@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../features/shared/presentation/wide_panel.dart';
+
 /// The page of a tab that is chrome over the shell's map: a material page
 /// whose route puts no barrier under its content.
 ///
@@ -33,7 +35,8 @@ class _MapTabRoute<T> extends PageRoute<T>
   MapTabPage<T> get _page => settings as MapTabPage<T>;
 
   @override
-  Widget buildContent(BuildContext context) => _page.child;
+  Widget buildContent(BuildContext context) =>
+      WidePanelPage(child: _page.child);
 
   @override
   bool get maintainState => true;

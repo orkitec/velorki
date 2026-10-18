@@ -16,15 +16,19 @@ defaults:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      # The image's default Xcode 16.4 cannot compile device_info_plus (an
-      # iOS 17 NSProcessInfo selector); the app is built with Xcode 26 on the
-      # Mac, so pick the newest 26 on the runner.
-      - name: Select Xcode 26
+      # The Xcode the app is built with (the Mac's too). The xcode-27 image
+      # also carries betas, whose builds the App Store refuses: name a
+      # release or release candidate. 27.1: the iPhone Duo's whole inner
+      # screen needs its SDK.
+      - name: Select Xcode
+        env:
+          XCODE_VERSION: "27.1"
         run: |
-          xcode="$(ls -d /Applications/Xcode_26.*.app | sort -V | tail -1)"
+          xcode="/Applications/Xcode_${XCODE_VERSION}.app"
+          [ -d "$xcode" ] || { echo "::error::no $xcode on the runner"; ls -d /Applications/Xcode*.app; exit 1; }
           sudo xcode-select -s "$xcode"
           xcodebuild -version
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2

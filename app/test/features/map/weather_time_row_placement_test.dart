@@ -11,18 +11,23 @@ import 'package:velorki/features/map/domain/weather_map.dart';
 import 'package:velorki/features/map/domain/wind_field.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/weather_time_row.dart';
+import 'package:velorki/features/planner/application/planner_controller.dart';
+import 'package:velorki/features/planner/domain/routing_options.dart';
+import 'package:velorki/features/planner/domain/waypoint.dart';
+import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
+import 'package:velorki/features/shared/presentation/floating_bar.dart';
+import 'package:velorki/features/weather/presentation/weather_keys.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/weather/application/route_colouring.dart';
 import 'package:velorki/features/weather/application/route_overlay.dart';
 import 'package:velorki/features/weather/application/route_weather_controller.dart';
-import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
+import '../planner/support/fakes.dart';
 import '../recording/support/pump.dart';
-import '../weather/support/weather_fixtures.dart';
 
 /// Never reaches the network: every service answers, with nothing.
 class _QuietFetcher implements WeatherFetcher {
@@ -149,8 +154,8 @@ void main() {
     expect(_row, findsNothing);
   });
 
-  testWidgets('Plan: with a route coloured by the wind, the time control '
-      'is its departure, shown with the map\'s rain and wind off', (
+  testWidgets('Plan: with a route the time control is its departure, shown '
+      'with the map\'s rain and wind off, whatever colours the route', (
     tester,
   ) async {
     const size = Size(402, 874);
@@ -166,29 +171,23 @@ void main() {
               for (var d = 0.0; d <= 10000; d += 500)
                 TrackPoint(destinationPoint(const LatLng(50, 8), 0, d)),
             ]),
-        dwdForecastClientProvider.overrideWithValue(FakeDwdClient()),
       ],
     );
     await tester.pumpAndSettle();
-    expect(_row, findsNothing);
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(MapControls)),
-    );
-    await container
-        .read(routeOverlayChoiceProvider.notifier)
-        .set(RouteOverlay.wind);
-    await tester.pumpAndSettle();
+    // The route's weather is shown for everyone: so is its departure.
     expect(_row, findsOneWidget);
     expect(
       tester.widget<Text>(find.byKey(weatherTimeLabelKey)).data,
       startsWith(l10n.mapWeatherLeaveNow),
     );
-    // Coloured by the gradient, with the layers off: no control.
-    await container
-        .read(routeOverlayChoiceProvider.notifier)
-        .set(RouteOverlay.gradient);
-    await tester.pumpAndSettle();
-    expect(_row, findsNothing);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MapControls)),
+    );
+    for (final overlay in [RouteOverlay.wind, RouteOverlay.gradient]) {
+      await container.read(routeOverlayChoiceProvider.notifier).set(overlay);
+      await tester.pumpAndSettle();
+      expect(_row, findsOneWidget);
+    }
     // The rain on: the control, still the departure.
     await _rain(tester, true);
     expect(_row, findsOneWidget);
@@ -199,6 +198,88 @@ void main() {
     // The free forecast's wait runs out.
     await tester.pump(weatherDebounce);
   });
+
+  // With a route the sheet runs: the figures, the actions and Save, the
+  // time control, the colour choice and its key, the profile, then the
+  // rest; at rest the figures, the actions, Save and the time control are
+  // in view above the bar, with the variants' chips too.
+  for (final size in [
+    const Size(402, 874),
+    const Size(375, 667),
+    const Size(360, 640),
+  ]) {
+    for (final variants in [false, true]) {
+      testWidgets('Plan with a route at $size'
+          '${variants ? ', with variants' : ''}: the sheet\'s order, and the '
+          'time control in view at rest', (tester) async {
+        await _screen(tester, size);
+        final h = await pumpRecordingApp(
+          tester,
+          initialLocation: plannerRoute,
+          surfaceSize: size,
+          extraOverrides: _quiet,
+        );
+        await tester.pumpAndSettle();
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MapControls)),
+        );
+        final route = syntheticRoute(lengthM: 10000);
+        h.planner.backend.byAlternative[1] = syntheticRoute(lengthM: 11000);
+        container
+            .read(plannerControllerProvider.notifier)
+            .loadComputedRoute(
+              result: route,
+              waypoints: [
+                Waypoint(pos: route.geometry.first.pos),
+                Waypoint(pos: route.geometry.last.pos),
+              ],
+              options: RoutingOptions(),
+            );
+        await tester.pumpAndSettle();
+        if (variants) {
+          await tester.tap(
+            find.widgetWithText(LabeledIconButton, l10n.plannerVariants),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.widgetWithText(ChoiceChip, l10n.plannerMainRoute),
+            findsOneWidget,
+          );
+        }
+        final save = find.widgetWithText(FilledButton, l10n.plannerSave);
+        final order = [
+          find.byType(StatRow).first,
+          find.widgetWithText(LabeledIconButton, l10n.plannerUndo),
+          save,
+          _row,
+          find.byType(SegmentedButton<RouteOverlay>),
+          find.byType(RouteColourKey),
+          find.byType(ElevationProfileChart),
+        ];
+        for (var i = 1; i < order.length; i++) {
+          expect(
+            tester.getRect(order[i]).top,
+            greaterThanOrEqualTo(tester.getRect(order[i - 1]).bottom),
+            reason: '${order[i]} under ${order[i - 1]}',
+          );
+        }
+        // The time control right under Save.
+        final control = find.ancestor(
+          of: _row,
+          matching: find.byType(WeatherTimeRow),
+        );
+        expect(
+          tester.getRect(control).top - tester.getRect(save).bottom,
+          lessThan(4),
+        );
+        // In view at rest: above the floating bar.
+        final bar = tester.getRect(find.byType(FloatingBarShell)).top;
+        expect(tester.getRect(_row).bottom, lessThanOrEqualTo(bar));
+        // The free forecast's wait runs out.
+        await tester.pump(weatherDebounce);
+      });
+    }
+  }
 
   testWidgets('Record: the time control on the idle card, and under the '
       'figures during a ride', (tester) async {

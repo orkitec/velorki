@@ -1,10 +1,9 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 import 'ai_mark.dart';
-import 'floating_bar.dart' show FloatingBarStyle, floatingBarFilter, glassTint;
+import 'floating_bar.dart' show FloatingBarStyle, glassTint;
+import 'glass_backdrop.dart';
 
 /// How big the figure of a [StatTile] is.
 enum StatSize {
@@ -297,7 +296,6 @@ class GlassPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).velorki;
     final style = FloatingBarStyle.of(context);
-    final filter = floatingBarFilter(style);
     final borderRadius = BorderRadius.circular(radius);
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -320,9 +318,10 @@ class GlassPanel extends StatelessWidget {
         // rounded clip; as under the bar at rest, the shadow around the
         // panel hides its square corners. The filter stays in the tree
         // whatever the style, so the content keeps its state on a change.
-        child: BackdropFilter.grouped(
-          enabled: filter != null,
-          filter: filter ?? ImageFilter.blur(),
+        child: GlassBackdrop(
+          style: style,
+          grouped: true,
+          borderRadius: borderRadius,
           // The colour lives on a Material, not a DecoratedBox: ListTiles
           // inside paint their ink on the nearest Material and would be
           // hidden otherwise.

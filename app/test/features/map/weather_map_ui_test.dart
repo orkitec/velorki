@@ -256,6 +256,68 @@ void main() {
       expect(find.byType(Slider), findsNothing);
     });
 
+    // The clock always leads; the drop with the rain on, the wind's sign
+    // with the wind on, in that order, each as large, a little apart.
+    for (final (name, prefs, icons)
+        in <(String, Map<String, Object>, List<IconData>)>[
+          ('neither', <String, Object>{}, [Icons.schedule]),
+          (
+            'the rain',
+            <String, Object>{'map.weather.radar': true},
+            [Icons.schedule, Icons.water_drop_outlined],
+          ),
+          (
+            'the wind',
+            <String, Object>{'map.weather.wind': true},
+            [Icons.schedule, Icons.air],
+          ),
+          (
+            'the rain and the wind',
+            <String, Object>{
+              'map.weather.radar': true,
+              'map.weather.wind': true,
+            },
+            [Icons.schedule, Icons.water_drop_outlined, Icons.air],
+          ),
+        ]) {
+      testWidgets('the leading icons with $name on', (tester) async {
+        final (_, container) = await _pump(
+          tester,
+          // Shown with both off too, as the Plan tab's departure.
+          const WeatherTimeRow(leave: true, shown: true),
+          prefs: prefs,
+        );
+        container.read(sharedWeatherMapStatusProvider.notifier).set(berlin);
+        await tester.pump();
+        final found = tester
+            .widgetList<Icon>(
+              find.descendant(
+                of: find.byType(WeatherTimeRow),
+                matching: find.byType(Icon),
+              ),
+            )
+            .toList();
+        expect(found.map((i) => i.icon), icons);
+        expect(found.map((i) => i.size), everyElement(18));
+        final rects = [
+          for (final icon in icons) tester.getRect(find.byIcon(icon)),
+        ];
+        for (var i = 1; i < rects.length; i++) {
+          expect(rects[i].left - rects[i - 1].right, moreOrLessEquals(4));
+          expect(rects[i].center.dy, moreOrLessEquals(rects[0].center.dy));
+        }
+        // The label after the last icon; the slider after it, or under it
+        // where the row stacks.
+        final text = tester.getRect(find.byKey(weatherTimeLabelKey));
+        expect(text.left, moreOrLessEquals(rects.last.right + 8, epsilon: 1));
+        final slider = tester.getRect(find.byType(Slider));
+        expect(
+          slider.left >= text.right - 1 || slider.top >= text.bottom - 1,
+          isTrue,
+        );
+      });
+    }
+
     testWidgets('with the wind alone too: its hour, a forecast ahead', (
       tester,
     ) async {
@@ -362,7 +424,8 @@ void main() {
         final labelWidth = measured(tester, container);
         final slider = tester.getRect(find.byType(Slider));
         final text = tester.getRect(find.byKey(weatherTimeLabelKey));
-        if (weatherTimeRowStacks(row, labelWidth)) {
+        // The clock and the drop lead it.
+        if (weatherTimeRowStacks(row, labelWidth, icons: 2)) {
           // The label on its own line, over a slider as wide as the row.
           expect(slider.width, moreOrLessEquals(row, epsilon: 0.5));
           expect(text.bottom, lessThanOrEqualTo(slider.top + 1));
@@ -396,12 +459,16 @@ void main() {
       const width = 1400.0;
       final container = await sheetRow(tester, width);
       final labelWidth = measured(tester, container);
-      expect(weatherTimeRowStacks(width - 40, labelWidth), isFalse);
+      expect(weatherTimeRowStacks(width - 40, labelWidth, icons: 2), isFalse);
       final slider = tester.getRect(find.byType(Slider));
       final text = tester.getRect(find.byKey(weatherTimeLabelKey));
       expect(text.right, lessThanOrEqualTo(slider.left + 1));
       expect((text.center.dy - slider.center.dy).abs(), lessThan(2));
-      expect(slider.left, moreOrLessEquals(20 + 26 + labelWidth, epsilon: 1));
+      // The clock and the drop, 18 each and 4 apart, and 8 before the label.
+      expect(
+        slider.left,
+        moreOrLessEquals(20 + 18 + 4 + 18 + 8 + labelWidth, epsilon: 1),
+      );
       expect(slider.right, moreOrLessEquals(width - 20, epsilon: 0.5));
       expect(
         tester.getSize(find.byType(WeatherTimeRow)).height,
@@ -549,6 +616,109 @@ void main() {
         '${l10n.mapWeatherLeaveAhead(l10n.mapWeatherHoursAhead(1))} · '
         '${clock(tester, at.add(const Duration(hours: 1)))}',
       );
+    });
+
+    group('loading', () {
+      Finder spinner() => find.byKey(weatherTimeLoadingKey);
+
+      testWidgets('while the step\'s weather is fetched: a spinner in the '
+          'clock\'s place after a moment, said to a screen reader, gone when '
+          'it is in; the drop stays and nothing moves', (tester) async {
+        final handle = tester.ensureSemantics();
+        final (_, container) = await _pump(
+          tester,
+          const WeatherTimeRow(),
+          prefs: <String, Object>{'map.weather.radar': true},
+        );
+        final status = container.read(sharedWeatherMapStatusProvider.notifier)
+          ..set(berlin);
+        await tester.pump();
+        final row = tester.getRect(find.byType(WeatherTimeRow));
+        final labelRect = tester.getRect(find.byKey(weatherTimeLabelKey));
+        final sliderRect = tester.getRect(find.byType(Slider));
+        final clockRect = tester.getRect(find.byIcon(Icons.schedule));
+        final dropRect = tester.getRect(find.byIcon(Icons.water_drop_outlined));
+        status.set(
+          WeatherMapStatus(centre: berlin.centre, at: at, loading: true),
+        );
+        await tester.pump();
+        await tester.pump(
+          weatherLoadingDelay - const Duration(milliseconds: 1),
+        );
+        expect(spinner(), findsNothing);
+        await tester.pump(const Duration(milliseconds: 1));
+        expect(spinner(), findsOneWidget);
+        expect(find.byIcon(Icons.schedule), findsNothing);
+        expect(find.bySemanticsLabel(l10n.mapWeatherLoading), findsOneWidget);
+        // In the clock's place, the drop where it was, the row as it was.
+        expect(
+          tester.getRect(spinner()).center,
+          offsetMoreOrLessEquals(clockRect.center),
+        );
+        expect(
+          tester.getRect(find.byIcon(Icons.water_drop_outlined)),
+          dropRect,
+        );
+        expect(tester.getRect(find.byType(WeatherTimeRow)), row);
+        expect(tester.getRect(find.byKey(weatherTimeLabelKey)), labelRect);
+        expect(tester.getRect(find.byType(Slider)), sliderRect);
+        status.set(berlin);
+        await tester.pump();
+        expect(spinner(), findsNothing);
+        expect(find.byIcon(Icons.schedule), findsOneWidget);
+        expect(find.byIcon(Icons.water_drop_outlined), findsOneWidget);
+        expect(tester.getRect(find.byType(WeatherTimeRow)), row);
+        handle.dispose();
+      });
+
+      testWidgets('a quick answer shows none', (tester) async {
+        final (_, container) = await _pump(
+          tester,
+          const WeatherTimeRow(),
+          prefs: <String, Object>{'map.weather.radar': true},
+        );
+        final status = container.read(sharedWeatherMapStatusProvider.notifier)
+          ..set(WeatherMapStatus(centre: berlin.centre, at: at, loading: true));
+        await tester.pump(const Duration(milliseconds: 100));
+        status.set(berlin);
+        await tester.pump(weatherLoadingDelay * 2);
+        expect(spinner(), findsNothing);
+      });
+
+      testWidgets('with the rain and the wind off, only the route\'s '
+          'forecast counts', (tester) async {
+        final (_, container) = await _pump(
+          tester,
+          const WeatherTimeRow(leave: true, shown: true),
+        );
+        // The clouds over the map have nothing to do with the departure.
+        container
+            .read(sharedWeatherMapStatusProvider.notifier)
+            .set(
+              WeatherMapStatus(centre: berlin.centre, at: at, loading: true),
+            );
+        await tester.pump(weatherLoadingDelay * 2);
+        expect(spinner(), findsNothing);
+        final row = tester.getRect(find.byType(WeatherTimeRow));
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: testApp(
+              home: const Scaffold(
+                body: WeatherTimeRow(
+                  leave: true,
+                  shown: true,
+                  forecastLoading: true,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump(weatherLoadingDelay);
+        expect(spinner(), findsOneWidget);
+        expect(find.byIcon(Icons.schedule), findsNothing);
+        expect(tester.getRect(find.byType(WeatherTimeRow)), row);
+      });
     });
 
     testWidgets('where the model stands in for the satellite, "Now" says it '

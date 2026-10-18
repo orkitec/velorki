@@ -1,13 +1,10 @@
 ---
 title: Conditions d'utilisation
 description: Les conditions d'utilisation de l'application et du site web Velorki, de l'abonnement Velorki Plus, des liens de partage et de l'assistant.
-draft: true
+draft: false
 ---
 
-> **Note sur la traduction.** Ceci est une traduction de la version anglaise.
-> En cas de divergence, la version anglaise prévaut.
-
-Date d'entrée en vigueur : 27 septembre 2026.
+Date d'entrée en vigueur : 13 octobre 2026.
 
 ## 1. Entre qui ces conditions s'appliquent
 
@@ -20,8 +17,7 @@ Allemagne — les informations complètes figurent dans les
 [mentions légales](./imprint). « Nous » désigne Orkitec ; « vous » désigne la
 personne qui utilise Velorki.
 
-En installant ou en utilisant Velorki, vous acceptez les présentes conditions.
-Si vous ne les acceptez pas, n'utilisez pas l'application.
+En installant ou en utilisant Velorki, vous acceptez les présentes conditions. Si vous ne les acceptez pas, n'utilisez pas l'application.
 
 Velorki n'a **aucun compte utilisateur**. Vous ne vous inscrivez pas, et nous
 n'avons aucun moyen de vous identifier. Tout ce qui suit se rattache donc à
@@ -86,11 +82,12 @@ a force obligatoire.
 Tout ce qui fonctionne sur votre téléphone est gratuit et le reste : la
 planification, les boucles intelligentes, les cartes hors ligne et le routage
 hors ligne, la recherche de lieux, la navigation guidée, l'enregistrement, les
-statistiques de sortie, ainsi que l'import et l'export GPX, FIT et TCX.
+statistiques de sortie, l'import et l'export GPX, FIT et TCX, ainsi que les
+connexions à Strava et à Ride with GPS.
 
 **Velorki Plus** est un abonnement facultatif pour les fonctions qui
-nécessitent nos serveurs ou un compte auprès d'un autre service : la connexion
-à Strava, la connexion à Ride with GPS, l'assistant et les liens de partage.
+nécessitent nos serveurs : l'assistant, les liens de partage, ainsi que la météo
+plus fine le long de l'itinéraire et le radar de pluie.
 
 ### 4.1 Comment il est acheté
 
@@ -116,7 +113,8 @@ expiration devient un abonnement payant.
 Vous résiliez via la boutique, et non auprès de nous : sur iOS, dans les
 réglages d'abonnement de votre compte Apple ; sur Android, dans Google Play
 sous Abonnements. Le bouton **Gérer** de l'application, dans **Réglages →
-Abonnement**, ouvre cette page pour vous. La résiliation empêche le
+Abonnement**, ouvre cette page pour vous.
+La résiliation empêche le
 renouvellement suivant ; Plus reste actif jusqu'à la fin de la période que vous
 avez déjà payée.
 
@@ -124,7 +122,8 @@ avez déjà payée.
 
 **Les remboursements sont traités par la boutique**, selon la politique de
 remboursement propre à Apple ou à Google. Nous ne pouvons pas rembourser un
-achat dont nous n'avons pas encaissé le paiement. Vos droits légaux en tant que
+achat dont nous n'avons pas encaissé le paiement.
+Vos droits légaux en tant que
 consommateur n'en sont pas affectés.
 
 ### 4.4 Restauration d'un achat
@@ -138,8 +137,7 @@ restauré sur l'autre.
 ### 4.5 Si une fonction Plus cesse de fonctionner
 
 Nous pouvons modifier, suspendre ou interrompre une fonction Plus, par exemple
-si l'API d'un partenaire ferme ou si un fournisseur d'IA devient indisponible.
-Si nous supprimons définitivement une partie substantielle de ce que propose
+si un service météo ou si un fournisseur d'IA devient indisponible. Si nous supprimons définitivement une partie substantielle de ce que propose
 Plus, vous pouvez résilier ; les règles de remboursement et de calcul au prorata
 de la boutique s'appliquent alors. Tout ce qui est gratuit continue de
 fonctionner dans tous les cas, y compris hors ligne, et vos itinéraires et vos
@@ -197,13 +195,13 @@ les envoyez vous-même quelque part.
 
 Lorsque vous créez un **lien de partage** (une fonction Plus), l'itinéraire ou
 la sortie que vous avez partagé, avec sa trace, son nom et ses statistiques, est
-copié sur notre serveur afin que le lien puisse être ouvert dans un navigateur.
-Vous nous accordez ainsi le droit limité de stocker et d'afficher ce contenu
+copié sur notre serveur afin que le lien puisse être ouvert dans un navigateur. Vous nous accordez ainsi le droit limité de stocker et d'afficher ce contenu
 aux fins de servir le lien, et à aucune autre fin.
 
 Un lien de partage est une **URL à capacité** (capability URL) : il ne comporte
 aucun mot de passe, et toute personne qui possède le lien peut voir le contenu,
-y compris l'endroit où la trace commence et se termine. Considérez un lien
+y compris l'endroit où la trace commence et se termine.
+Considérez un lien
 comme public. Ne partagez pas une sortie qui part de votre adresse personnelle,
 sauf si vous acceptez que cela soit visible.
 
@@ -232,8 +230,7 @@ l'itinéraire.
 L'assistant fonctionne grâce à un grand modèle de langage exploité par un
 tiers. Ses réponses peuvent être erronées, incomplètes ou absurdes, et il peut
 suggérer un lieu qui n'existe pas ou une distance qu'il ne peut pas tenir. Tout
-ce qu'il renvoie est une suggestion à vérifier, et non un conseil à suivre.
-L'itinéraire lui-même est calculé sur votre téléphone, et non par le modèle.
+ce qu'il renvoie est une suggestion à vérifier, et non un conseil à suivre. L'itinéraire lui-même est calculé sur votre téléphone, et non par le modèle.
 
 Un usage raisonnable s'applique : l'assistant est soumis à une limitation de
 débit, et un usage automatisé intensif peut être bloqué. Nous pouvons plafonner
@@ -251,18 +248,18 @@ leurs conditions et leurs politiques de confidentialité s'appliquent à cette
 partie du trafic, et nous ne sommes pas responsables de leur comportement ni de
 leur disponibilité dans la durée :
 
-| Service | Ce qu'il fait |
-|---|---|
-| [OpenStreetMap](https://www.openstreetmap.org/copyright) | les données cartographiques sur lesquelles tout repose (ODbL) |
-| [OpenFreeMap](https://openfreemap.org) | les tuiles vectorielles à partir desquelles la carte est dessinée |
-| [CyclOSM](https://www.cyclosm.org) | la surcouche vélo facultative |
-| [BRouter](https://brouter.de) | le moteur de routage et les données de routage |
-| [Photon](https://photon.komoot.io) | la recherche de lieux en ligne |
-| [Strava](https://www.strava.com/legal/terms) | l'envoi de sorties et l'import d'itinéraires, si vous le connectez |
-| [Ride with GPS](https://ridewithgps.com/terms) | les itinéraires et les parcours, si vous le connectez |
-| le fournisseur d'IA | le modèle derrière l'assistant (nommé dans la politique de confidentialité) |
-| Apple, Google | les boutiques, le paiement et la gestion des abonnements |
-| RevenueCat | la vérification qu'un abonnement est actif |
+| Service                                                  | Ce qu'il fait                                                                                  |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [OpenStreetMap](https://www.openstreetmap.org/copyright) | les données cartographiques sur lesquelles tout repose (ODbL)               |
+| [OpenFreeMap](https://openfreemap.org)                   | les tuiles vectorielles à partir desquelles la carte est dessinée                              |
+| [CyclOSM](https://www.cyclosm.org)                       | la surcouche vélo facultative                                                                  |
+| [BRouter](https://brouter.de)                            | le moteur de routage et les données de routage                                                 |
+| [Photon](https://photon.komoot.io)                       | la recherche de lieux en ligne                                                                 |
+| [Strava](https://www.strava.com/legal/terms)             | l'envoi de sorties et l'import d'itinéraires, si vous le connectez                             |
+| [Ride with GPS](https://ridewithgps.com/terms)           | les itinéraires et les parcours, si vous le connectez                                          |
+| le fournisseur d'IA                                      | le modèle derrière l'assistant (nommé dans la politique de confidentialité) |
+| Apple, Google                                            | les boutiques, le paiement et la gestion des abonnements                                       |
+| RevenueCat                                               | la vérification qu'un abonnement est actif                                                     |
 
 Connecter Strava ou Ride with GPS signifie aussi que vous respectez **leurs**
 conditions. Ce que vous y envoyez est régi par leurs politiques, et non par les
@@ -301,7 +298,8 @@ produits (Produkthaftungsgesetz), et lorsque nous avons donné une garantie.
 En cas de négligence légère, nous ne sommes responsables qu'en cas de
 manquement à une obligation dont l'exécution conditionne la bonne exécution
 même du présent contrat et au respect de laquelle vous pouvez légitimement vous
-fier (« obligation essentielle »). Dans ce cas, la responsabilité est limitée
+fier (« obligation essentielle »).
+Dans ce cas, la responsabilité est limitée
 au dommage typique pour ce type de contrat et prévisible au moment de sa
 conclusion.
 

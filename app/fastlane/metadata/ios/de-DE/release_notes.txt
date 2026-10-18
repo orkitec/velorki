@@ -1,6 +1,11 @@
-• Stopps auf der Karte: Trinkwasser, Cafés, Bäckereien, Toiletten, Fahrrad-Reparaturstationen und mehr. Herausgezoomt sammeln sie sich in Blasen mit einer Zahl; während der Fahrt siehst du die Stopps auf der Route vor dir und wie weit es bis zu jedem ist.
-• Tippe auf einen Ort für seine Ortskarte: was er ist, wie weit entfernt, und Route hierher, Hier starten, Als Stopp einfügen oder Als Ziel. Details zeigt Öffnungszeiten, Website und Telefon aus OpenStreetMap, und Öffnen in gibt den Ort an eine andere Karten-App weiter.
-• Die Suche findet offline viel mehr: Adressen mit Hausnummer, Tippfehler und Abkürzungen, Namen in einem anderen Alphabet, bekannte Orte in deiner Sprache sowie Restaurants, Eisdielen, Tankstellen und Luftpumpen.
-• Orte aus anderen Apps: Teile einen Ort oder einen Kartenlink mit Velorki oder füge Koordinaten in die Suche ein.
-• Die Rundensuche zeigt die bisher beste Runde und sagt, was sie noch prüft.
-• Fehlerbehebungen: Hochwischen zum App-Umschalter verschiebt kein Blatt mehr, beim Drehen des Handys blitzt nichts mehr grau auf, und die Pausiert-Anzeige passt auf kleine Handys.
+• Wetter auf der Karte, kostenlos: Regenradar, Wind und Wolken, mit einem Zeitschieber in die nächsten Stunden.
+• Das Wetter auf der Route: Wind und Regen für die Zeit, zu der du losfährst, ein Regler für die Abfahrt.
+• Färbe die Route nach Steigung, Belag, Wind oder Regen, auf der Karte und unter dem Höhenprofil.
+• Eine Radkarte offline: Radwege und Radstreifen, Einbahnstraßen, Treppen und Anstiege, aus den Routingdaten gezeichnet.
+• Stopps auf der Karte: Trinkwasser, Cafés, Bäckereien, Toiletten, Fahrrad-Reparaturstationen und mehr, dazu die Stopps auf deiner Route.
+• Tippe auf einen Ort für seine Ortskarte: Route hierher, Als Stopp einfügen, Öffnungszeiten und mehr.
+• Die Suche findet offline viel mehr: Hausnummern, Tippfehler, andere Alphabete, Restaurants und Tankstellen.
+• Auch importierte Routen bekommen Sprachansagen.
+• Die Verbindungen zu Routen- und Fahrtenplattformen sind jetzt kostenlos, und ein Teilen-Button vereint sie alle.
+• Velorki Plus: echtes Radar in ganz Europa und eine schärfere Vorhersage entlang der Route.
+• Velorki spricht jetzt Französisch, Spanisch, Italienisch und Niederländisch.

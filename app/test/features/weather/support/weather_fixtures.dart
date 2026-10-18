@@ -116,14 +116,16 @@ RouteWeatherState weatherAlong(
 
 /// The free forecast's service, answering every grid with the same values
 /// everywhere: a wind of [u] east and [v] north (from the north by
-/// default, a headwind on a route north) and [rain] mm, or nothing at all
-/// while [down].
+/// default, a headwind on a route north), [rain] mm (or [rainAt] the grid's
+/// hour) and [temp] °C, or nothing at all while [down].
 class FakeDwdClient implements DwdForecastClient {
   /// Creates the service.
   FakeDwdClient({
     this.u = 0,
     this.v = -5,
     this.rain = 0,
+    this.rainAt,
+    this.temp = 12,
     this.down = false,
     this.missing,
   });
@@ -131,6 +133,13 @@ class FakeDwdClient implements DwdForecastClient {
   final double u;
   final double v;
   final double rain;
+
+  /// ICON-EU's rain of the hour up to the time asked for, in place of
+  /// [rain].
+  final double Function(DateTime time)? rainAt;
+
+  /// The temperature 2 m up, °C.
+  final double temp;
   final bool down;
 
   /// The hours the service has nothing for, if any.
@@ -194,9 +203,11 @@ class FakeDwdClient implements DwdForecastClient {
     int bands,
   ) {
     // The global rain is a sum from the run's start: [rain] an hour.
-    final value = coverageId == dwdRainGlobalCoverage
-        ? rain * time.difference(run).inHours
-        : rain;
+    final value = switch (coverageId) {
+      dwdRainGlobalCoverage => rain * time.difference(run).inHours,
+      dwdTemperatureCoverage => temp,
+      _ => rainAt?.call(time) ?? rain,
+    };
     Float32List filled(double x) => Float32List(4)..fillRange(0, 4, x);
     return WcsGrid(
       lon0: box.west,

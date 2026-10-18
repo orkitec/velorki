@@ -3,7 +3,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart'
-    show Brightness, Color, IconData, ThemeData;
+    show Brightness, Color, IconData, Icons, ThemeData;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show EdgeInsets, Offset, Rect, Size;
 import 'package:flutter/services.dart'
@@ -24,6 +24,8 @@ import 'marker_glyph.dart';
 import 'marker_layers.dart';
 import 'geojson.dart';
 import 'heading_cone.dart';
+import 'local_file_url.dart';
+import 'map_image_ratio.dart';
 import 'heading_smoother.dart';
 import 'tile_template.dart';
 import 'weather_map_preferences.dart' show WeatherOpacity;
@@ -59,6 +61,16 @@ abstract final class MapLayerIds {
   static const String stopsLayer = 'velorki-stops-marker';
   static const String stopsLabelLayer = 'velorki-stops-label';
   static const String stopsClusterLayer = 'velorki-stops-cluster';
+
+  /// The source of the stops of [group] ([MapPoi.group]), clustered on its
+  /// own, and its layers: the single stops, the chosen one's name and the
+  /// group's bubbles.
+  static String stopGroupSource(String group) => 'velorki-stops-g-$group';
+  static String stopGroupLayer(String group) => 'velorki-stops-g-$group-marker';
+  static String stopGroupLabelLayer(String group) =>
+      'velorki-stops-g-$group-label';
+  static String stopGroupClusterLayer(String group) =>
+      'velorki-stops-g-$group-cluster';
   static const String turnsSource = 'velorki-turns';
   static const String turnsLayer = 'velorki-turns-dot';
   static const String routeWindSource = 'velorki-route-wind';
@@ -460,8 +472,11 @@ const double routeCursorRimPx = 2;
 const double stopsClusterRadiusPx = 50;
 
 /// The last zoom at which stops are gathered into bubbles; from the next
-/// zoom on every stop is its own pin.
-const double stopsClusterMaxZoom = 14;
+/// zoom on every stop is its own pin. MapLibre gathers them in the source's
+/// tiles of each whole zoom up to this one, so from 16.0 every stop is
+/// drawn on its own: with every stop of the chosen kinds loaded, a town
+/// centre at 14 or 15 was a heap of pins.
+const double stopsClusterMaxZoom = 15;
 
 /// How close to a tap, in logical pixels, the bubble tapped is looked for:
 /// as wide as the widest bubble.
@@ -469,6 +484,40 @@ const double stopsClusterHitPx = 24;
 
 /// A tap on a bubble of stops zooms in no further than this.
 const double stopsClusterTapMaxZoom = 16;
+
+/// The most groups of stops the map gathers each into bubbles of their own:
+/// a source and three layers each. The groups past the first
+/// [stopGroupsMax] - 1 share the last, [stopGroupMore].
+const int stopGroupsMax = 13;
+
+/// The group the stops of every group past the first [stopGroupsMax] - 1
+/// are gathered in.
+const String stopGroupMore = 'more';
+
+/// The groups the stops are gathered in on the map, bottom to top: [wanted]
+/// in its order, then any group of [stops] not among them by name, the
+/// ones past [stopGroupsMax] - 1 together as [stopGroupMore].
+@visibleForTesting
+List<String> stopGroupLayout(List<String> wanted, Iterable<MapPoi> stops) {
+  final order = <String>[];
+  for (final group in wanted) {
+    if (!order.contains(group)) order.add(group);
+  }
+  final extra = <String>{
+    for (final stop in stops)
+      if (stop.group case final group? when !order.contains(group)) group,
+  }.toList()..sort();
+  order.addAll(extra);
+  if (order.length <= stopGroupsMax) return order;
+  return <String>[...order.take(stopGroupsMax - 1), stopGroupMore];
+}
+
+/// The group of [layout] the stop of [group] is drawn in: its own, or
+/// [stopGroupMore] when it has none there; `null` for a stop of no group.
+String? _stopGroupIn(List<String> layout, String? group) {
+  if (group == null) return null;
+  return layout.contains(group) ? group : stopGroupMore;
+}
 
 /// A jump longer than this is not riding.
 ///
@@ -623,38 +672,94 @@ bool isStyleGoneError(PlatformException e) {
 /// [MapLibreStyleOps] forwarding one for one to a real plugin controller.
 ///
 /// Nothing but the forwarding lives here: every decision the adapter makes
-/// stays in the adapter, where a test can reach it. The one thing added is
-/// [tolerateMapGone] around every write, because those two platform answers
-/// are facts about the platform view, not about the adapter's state.
+/// stays in the adapter, where a test can reach it. Two things are added,
+/// both facts about the platform view rather than the adapter's state:
+/// [tolerateMapGone] around every write, and in a browser what the web
+/// plugin does not do as the phones do: the features' string ids carried
+/// as a promoted property ([withPromotedIds]), which maplibre-gl-js would
+/// otherwise drop, and image sources (which it does not implement) added as
+/// an image source over a blob: URL of the picture.
 class PluginMapLibreStyleOps implements MapLibreStyleOps {
   /// Wraps [map], the controller `MapLibreMap.onMapCreated` handed over.
-  const PluginMapLibreStyleOps(this.map);
+  /// [imagePixelRatio] is the density the images it is given are painted at.
+  PluginMapLibreStyleOps(this.map, {this.imagePixelRatio = 1.0});
 
   /// The wrapped plugin controller.
   final ml.MapLibreMapController map;
+
+  /// Pixels per logical pixel of every image [addImage] is given.
+  final double imagePixelRatio;
+
+  /// In a browser, the URL each image source loads its picture from, let
+  /// go when the source goes.
+  final Map<String, String> _imageUrls = <String, String>{};
 
   @override
   Future<void> addGeoJsonSource(
     String sourceId,
     Map<String, dynamic> geojson,
-  ) => tolerateMapGone(() => map.addGeoJsonSource(sourceId, geojson));
+  ) => tolerateMapGone(
+    () => kIsWeb
+        ? map.addGeoJsonSource(
+            sourceId,
+            withPromotedIds(geojson),
+            promoteId: promotedIdProperty,
+          )
+        : map.addGeoJsonSource(sourceId, geojson),
+  );
 
   @override
   Future<void> setGeoJsonSource(
     String sourceId,
     Map<String, dynamic> geojson,
-  ) => tolerateMapGone(() => map.setGeoJsonSource(sourceId, geojson));
+  ) => tolerateMapGone(
+    () => map.setGeoJsonSource(
+      sourceId,
+      kIsWeb ? withPromotedIds(geojson) : geojson,
+    ),
+  );
 
   @override
   Future<void> addSource(String sourceId, ml.SourceProperties properties) =>
-      tolerateMapGone(() => map.addSource(sourceId, properties));
+      tolerateMapGone(
+        () => map.addSource(
+          sourceId,
+          kIsWeb && properties is ml.GeojsonSourceProperties
+              ? properties.copyWith(
+                  data: switch (properties.data) {
+                    final Map<String, dynamic> geojson => withPromotedIds(
+                      geojson,
+                    ),
+                    final other => other,
+                  },
+                  promoteId: properties.promoteId ?? promotedIdProperty,
+                )
+              : properties,
+        ),
+      );
 
   @override
   Future<void> addImageSource(
     String sourceId,
     Uint8List bytes,
     ml.LatLngQuad corners,
-  ) => tolerateMapGone(() => map.addImageSource(sourceId, bytes, corners));
+  ) => tolerateMapGone(() {
+    if (!kIsWeb) return map.addImageSource(sourceId, bytes, corners);
+    final url = _imageUrls[sourceId] = pngBytesUrl(bytes);
+    List<double> corner(ml.LatLng at) => <double>[at.longitude, at.latitude];
+    return map.addSource(
+      sourceId,
+      ml.ImageSourceProperties(
+        url: url,
+        coordinates: <List<double>>[
+          corner(corners.topLeft),
+          corner(corners.topRight),
+          corner(corners.bottomRight),
+          corner(corners.bottomLeft),
+        ],
+      ),
+    );
+  });
 
   @override
   Future<void> addLayer(
@@ -687,8 +792,14 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       tolerateMapGone(() => map.removeLayer(layerId));
 
   @override
-  Future<void> removeSource(String sourceId) =>
-      tolerateMapGone(() => map.removeSource(sourceId));
+  Future<void> removeSource(String sourceId) => tolerateMapGone(() async {
+    try {
+      await map.removeSource(sourceId);
+    } finally {
+      final url = _imageUrls.remove(sourceId);
+      if (url != null) releaseLocalFileUrl(url);
+    }
+  });
 
   @override
   Future<void> setLayerProperties(
@@ -705,7 +816,13 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
 
   @override
   Future<void> addImage(String name, Uint8List bytes, {bool sdf = false}) =>
-      tolerateMapGone(() => map.addImage(name, bytes, sdf));
+      tolerateMapGone(
+        () => addImageAtRatio(
+          name,
+          imagePixelRatio,
+          () => map.addImage(name, bytes, sdf),
+        ),
+      );
 
   @override
   Future<void> animateCamera(ml.CameraUpdate update, {Duration? duration}) =>
@@ -771,7 +888,7 @@ class MaplibreMapControllerAdapter implements MapController {
     bool weatherDark = false,
     WeatherOpacity weatherOpacity = const WeatherOpacity(radar: 1, clouds: 1),
   }) : this.withOps(
-         PluginMapLibreStyleOps(map),
+         PluginMapLibreStyleOps(map, imagePixelRatio: devicePixelRatio),
          cyclosmTileUrl: cyclosmTileUrl,
          devicePixelRatio: devicePixelRatio,
          palette: palette,
@@ -816,7 +933,8 @@ class MaplibreMapControllerAdapter implements MapController {
   Size? viewSize;
   RasterTone _cyclosmTone;
 
-  /// Screen density the heading cone bitmap is rasterised at.
+  /// Screen density the style images (markers, stops, cycle map signs, wind
+  /// arrows, the heading cone) are rasterised at.
   final double devicePixelRatio;
 
   /// The colours the layers are drawn with.
@@ -850,6 +968,32 @@ class MaplibreMapControllerAdapter implements MapController {
   int _poisCall = 0;
   int _turnsCall = 0;
   int _stopsCall = 0;
+
+  /// The groups of the last [setStops].
+  List<String> _stopGroups = const <String>[];
+
+  /// The groups of stops whose source and layers the style holds, bottom to
+  /// top, each with the offset its bubbles stand off by.
+  final List<String> _stopGroupsInStyle = <String>[];
+  final Map<String, Offset> _stopGroupFans = <String, Offset>{};
+
+  /// What each group's source, and the source of the stops of no group
+  /// (under the key `''`), was last written with, so a write that leaves a
+  /// group as it was writes nothing to it.
+  final Map<String, List<MapPoi>> _stopsWritten = <String, List<MapPoi>>{};
+
+  /// For each source (by group, `''` for no group), the index in [_stops]
+  /// of the stop each of its features stands for, in feature order.
+  Map<String, List<int>> _stopIndices = const <String, List<int>>{};
+
+  /// The look of each group's bubbles, as registered with the style: the
+  /// colour and glyph of its first stop.
+  final Map<String, (MapPoiKind, IconData?)> _stopGroupLooks =
+      <String, (MapPoiKind, IconData?)>{};
+
+  /// Stop writes, one after another: a group's layers are added and
+  /// removed in order, never by two writes at once.
+  Future<void> _stopsQueue = Future<void>.value();
 
   @override
   void Function(int index)? onStopTapped;
@@ -894,6 +1038,8 @@ class MaplibreMapControllerAdapter implements MapController {
   String? _cycleMapPath;
   Set<CycleMapPart> _cycleMapParts = defaultCycleMapParts;
   final List<int> _cycleGenerations = <int>[];
+  // The URL each generation's source loads its file from.
+  final Map<int, String> _cycleUrls = <int, String>{};
   int _nextCycleGeneration = 0;
   Future<void> _cycleMapTurn = Future<void>.value();
   String? _cycleAnchor;
@@ -980,6 +1126,8 @@ class MaplibreMapControllerAdapter implements MapController {
     _routeLines.clear();
     // A fresh style holds no cycle map; the replay adds the last one.
     _cycleGenerations.clear();
+    _cycleUrls.values.forEach(releaseLocalFileUrl);
+    _cycleUrls.clear();
     _cycleAnchorKnown = false;
     _cycleImagesAdded = false;
     // Nor any weather; the replay adds what is wanted.
@@ -991,6 +1139,10 @@ class MaplibreMapControllerAdapter implements MapController {
     // ones the markers still need.
     _glyphImages.clear();
     _stopImages.clear();
+    _stopGroupLooks.clear();
+    _stopGroupsInStyle.clear();
+    _stopGroupFans.clear();
+    _stopsWritten.clear();
     // A fresh style draws the track in the plain colour until something asks
     // for the speed ramp again.
     _trackColoured = false;
@@ -1173,7 +1325,7 @@ class MaplibreMapControllerAdapter implements MapController {
     if (_waypoints.isNotEmpty) await setWaypoints(_waypoints);
     if (_pois.isNotEmpty) await setPois(_pois);
     if (_turns.isNotEmpty) await setTurnMarkers(_turns);
-    if (_stops.isNotEmpty) await setStops(_stops);
+    if (_stops.isNotEmpty) await setStops(_stops, groups: _stopGroups);
     if (_searchPin != null) {
       await setSearchPin(_searchPin, label: _searchPinLabel);
     }
@@ -1847,6 +1999,7 @@ class MaplibreMapControllerAdapter implements MapController {
     await _addHeadingConeImage();
     await _redrawMarkerGlyphs();
     await _redrawStopImages();
+    await _recolourStopGroups();
     await _recolourCycleMap();
     if (_windAdded) {
       await _ops.setLayerProperties(MapLayerIds.windLayer, _windProperties());
@@ -2083,8 +2236,12 @@ class MaplibreMapControllerAdapter implements MapController {
   }
 
   @override
-  Future<void> setStops(List<MapPoi> stops) async {
+  Future<void> setStops(
+    List<MapPoi> stops, {
+    List<String> groups = const <String>[],
+  }) async {
     _stops = List<MapPoi>.unmodifiable(stops);
+    _stopGroups = List<String>.unmodifiable(groups);
     final call = ++_stopsCall;
     if (!_attached) return;
     if (await _hasSource(MapLayerIds.stopsSource) == false) {
@@ -2092,12 +2249,219 @@ class MaplibreMapControllerAdapter implements MapController {
       return;
     }
     if (call != _stopsCall) return;
-    await _addStopImages(stops);
-    if (call != _stopsCall) return;
-    await _writeBaseSource(
-      MapLayerIds.stopsSource,
-      poisFeatureCollection(stops, featureId: stopFeatureId),
-    );
+    final write = _stopsQueue.then((_) => _writeStops(call));
+    _stopsQueue = write.catchError((Object _) {});
+    await write;
+  }
+
+  /// Draws the stops of the last [setStops], unless a newer call is queued
+  /// behind this one ([call]): each group into a clustered source of its
+  /// own, the stops of no group into the base stops source. Only a source
+  /// whose stops changed is written; a group no longer wanted loses its
+  /// source and layers, a new one gets them in its place in the order.
+  Future<void> _writeStops(int call) async {
+    if (call != _stopsCall || !_attached || _disposed) return;
+    final stops = _stops;
+    final layout = stopGroupLayout(_stopGroups, stops);
+    final byGroup = <String, List<MapPoi>>{
+      '': <MapPoi>[],
+      for (final group in layout) group: <MapPoi>[],
+    };
+    final indices = <String, List<int>>{
+      for (final group in byGroup.keys) group: <int>[],
+    };
+    for (var i = 0; i < stops.length; i++) {
+      final group = _stopGroupIn(layout, stops[i].group) ?? '';
+      byGroup[group]!.add(stops[i]);
+      indices[group]!.add(i);
+    }
+    try {
+      await _addStopImages(stops);
+      await _addStopGroupImages(byGroup);
+      if (call != _stopsCall) return;
+      await _layOutStopGroups(layout);
+      if (call != _stopsCall) return;
+      // From here the features and the taps on them agree.
+      _stopIndices = indices;
+      for (final entry in byGroup.entries) {
+        final written = _stopsWritten[entry.key];
+        if (written != null && listEquals(written, entry.value)) continue;
+        // An empty group that never had a write has nothing to clear.
+        if (written == null && entry.value.isEmpty && entry.key.isNotEmpty) {
+          _stopsWritten[entry.key] = entry.value;
+          continue;
+        }
+        await _writeBaseSource(
+          entry.key.isEmpty
+              ? MapLayerIds.stopsSource
+              : MapLayerIds.stopGroupSource(entry.key),
+          poisFeatureCollection(entry.value, featureId: stopFeatureId),
+        );
+        _stopsWritten[entry.key] = entry.value;
+      }
+    } on PlatformException catch (e) {
+      // The style went under the write; its successor's replay draws them.
+      if (!isStyleGoneError(e)) rethrow;
+    }
+  }
+
+  /// Gives the style a source and layers for each group of [layout], in
+  /// its order, under the stops of no group, and takes them away from a
+  /// group no longer in it. Each group's bubbles stand off in its own
+  /// direction ([MarkerLayers.groupFanOffset]), which moves when the number
+  /// of groups changes.
+  Future<void> _layOutStopGroups(List<String> layout) async {
+    for (final group in List<String>.of(_stopGroupsInStyle)) {
+      if (layout.contains(group)) continue;
+      _stopGroupsInStyle.remove(group);
+      _stopGroupFans.remove(group);
+      _stopsWritten.remove(group);
+      for (final layer in <String>[
+        MapLayerIds.stopGroupClusterLayer(group),
+        MapLayerIds.stopGroupLabelLayer(group),
+        MapLayerIds.stopGroupLayer(group),
+      ]) {
+        await tolerateMapGone(() => _ops.removeLayer(layer));
+      }
+      await tolerateMapGone(
+        () => _ops.removeSource(MapLayerIds.stopGroupSource(group)),
+      );
+    }
+    final markers = MarkerLayers(palette);
+    for (var i = 0; i < layout.length; i++) {
+      final group = layout[i];
+      final fan = MarkerLayers.groupFanOffset(i, layout.length);
+      if (_stopGroupsInStyle.contains(group)) {
+        if (_stopGroupFans[group] != fan) {
+          _stopGroupFans[group] = fan;
+          await _ops.setLayerProperties(
+            MapLayerIds.stopGroupClusterLayer(group),
+            markers.groupBubble(group, fan),
+          );
+        }
+        continue;
+      }
+      // Under the next group already drawn, or under the stops of no
+      // group: the order of [layout], the first lowest.
+      final next = layout
+          .skip(i + 1)
+          .where(_stopGroupsInStyle.contains)
+          .firstOrNull;
+      final below = next == null
+          ? MapLayerIds.stopsLayer
+          : MapLayerIds.stopGroupLayer(next);
+      final source = MapLayerIds.stopGroupSource(group);
+      await _ops.addSource(
+        source,
+        ml.GeojsonSourceProperties(
+          data: emptyFeatureCollection(),
+          cluster: true,
+          clusterRadius: stopsClusterRadiusPx,
+          clusterMaxZoom: stopsClusterMaxZoom,
+        ),
+      );
+      await _ops.addLayer(
+        source,
+        MapLayerIds.stopGroupLayer(group),
+        markers.stop(),
+        belowLayerId: below,
+        filter: MarkerLayers.isNotCluster,
+      );
+      await _ops.addLayer(
+        source,
+        MapLayerIds.stopGroupLabelLayer(group),
+        markers.name(field: 'name', chosenOnly: true),
+        belowLayerId: below,
+        enableInteraction: false,
+        filter: MarkerLayers.isNotCluster,
+      );
+      await _ops.addLayer(
+        source,
+        MapLayerIds.stopGroupClusterLayer(group),
+        markers.groupBubble(group, fan),
+        belowLayerId: below,
+        filter: MarkerLayers.isCluster,
+      );
+      _stopGroupFans[group] = fan;
+      final at = next == null
+          ? _stopGroupsInStyle.length
+          : _stopGroupsInStyle.indexOf(next);
+      _stopGroupsInStyle.insert(at, group);
+    }
+  }
+
+  /// Registers the bubbles of every group of [byGroup] with stops that the
+  /// style has not got yet: the disc and glyph of its first stop (a plain
+  /// "more" for [stopGroupMore]) with a pill for the count, one picture
+  /// per width of pill.
+  Future<void> _addStopGroupImages(Map<String, List<MapPoi>> byGroup) async {
+    for (final entry in byGroup.entries) {
+      if (entry.key.isEmpty || entry.value.isEmpty) continue;
+      if (_stopGroupLooks.containsKey(entry.key)) continue;
+      final first = entry.value.first;
+      final look = entry.key == stopGroupMore
+          ? (MapPoiKind.generic, Icons.more_horiz)
+          : (first.kind, first.icon);
+      _stopGroupLooks[entry.key] = look;
+      if (!await _drawStopGroupImages(entry.key, look)) {
+        _stopGroupLooks.remove(entry.key);
+      }
+    }
+  }
+
+  /// Draws the bubbles of [group] in [look] and the palette's colours;
+  /// `false` when they could not be drawn, to be tried again with the next
+  /// write.
+  Future<bool> _drawStopGroupImages(
+    String group,
+    (MapPoiKind, IconData?) look,
+  ) async {
+    try {
+      for (var characters = 1; characters <= 3; characters++) {
+        final bytes = await buildDiscMarkerImage(
+          icon: look.$2,
+          fill: colorFromMapHex(_poiColor(look.$1)),
+          stroke: colorFromMapHex(palette.waypointStroke),
+          radiusPx: MarkerLayers.groupDiscRadiusPx,
+          strokePx: MarkerLayers.stopStrokePx,
+          glyphPx: markerGlyphOnDiscSizePx * MarkerLayers.groupGlyphScale,
+          glyphBoldPx: markerDiscGlyphBoldPx * MarkerLayers.groupGlyphScale,
+          glyphColor: colorFromMapHex(palette.waypointStroke),
+          badge: MarkerLayers.groupBadge(characters),
+          badgeFill: colorFromMapHex(palette.stopCluster),
+          devicePixelRatio: devicePixelRatio,
+        );
+        if (_disposed) return true;
+        await _ops.addImage(
+          MarkerLayers.groupImageName(group, characters),
+          bytes,
+        );
+      }
+      return true;
+    } on Object catch (error) {
+      debugPrint('velorki: stop group bubble failed: $error');
+      return false;
+    }
+  }
+
+  /// Draws the groups' bubbles and layers again in the new palette.
+  Future<void> _recolourStopGroups() async {
+    final markers = MarkerLayers(palette);
+    for (final group in _stopGroupsInStyle) {
+      await _ops.setLayerProperties(
+        MapLayerIds.stopGroupLabelLayer(group),
+        markers.name(field: 'name', chosenOnly: true),
+      );
+      await _ops.setLayerProperties(
+        MapLayerIds.stopGroupClusterLayer(group),
+        markers.groupBubble(group, _stopGroupFans[group] ?? Offset.zero),
+      );
+    }
+    for (final entry in Map<String, (MapPoiKind, IconData?)>.of(
+      _stopGroupLooks,
+    ).entries) {
+      await _drawStopGroupImages(entry.key, entry.value);
+    }
   }
 
   /// Whether [attachToStyle] is running because a write found the style
@@ -2393,10 +2757,8 @@ class MaplibreMapControllerAdapter implements MapController {
     if (!_cycleImagesAdded) await _addCycleMapImages();
     final generation = _nextCycleGeneration++;
     final source = CycleMapLayers.sourceId(generation);
-    await _ops.addSource(
-      source,
-      ml.GeojsonSourceProperties(data: Uri.file(path).toString()),
-    );
+    final url = _cycleUrls[generation] = localFileUrl(path);
+    await _ops.addSource(source, ml.GeojsonSourceProperties(data: url));
     for (final layer in CycleMapLayers(palette.cycle).layers) {
       final id = CycleMapLayers.layerId(generation, layer);
       await _ops.addLayer(
@@ -2443,6 +2805,8 @@ class MaplibreMapControllerAdapter implements MapController {
         await _ops.removeLayer(CycleMapLayers.layerId(generation, layer));
       }
       await _ops.removeSource(CycleMapLayers.sourceId(generation));
+      final url = _cycleUrls.remove(generation);
+      if (url != null) releaseLocalFileUrl(url);
     }
   }
 
@@ -2603,14 +2967,16 @@ class MaplibreMapControllerAdapter implements MapController {
       // Never an image MapLibre cannot draw; setWeatherLayers left those
       // out already.
       assert(safeImageBox(box), 'unsafe weather image box $box');
+      // Kept off the antimeridian, where MapLibre smears it ([drawnImageBox]).
+      final at = drawnImageBox(box);
       await _ops.addImageSource(
         source,
         image,
         ml.LatLngQuad(
-          topLeft: ml.LatLng(box.north, box.west),
-          topRight: ml.LatLng(box.north, box.east),
-          bottomRight: ml.LatLng(box.south, box.east),
-          bottomLeft: ml.LatLng(box.south, box.west),
+          topLeft: ml.LatLng(at.north, at.west),
+          topRight: ml.LatLng(at.north, at.east),
+          bottomRight: ml.LatLng(at.south, at.east),
+          bottomLeft: ml.LatLng(at.south, at.west),
         ),
       );
     } else {
@@ -3154,12 +3520,39 @@ class MaplibreMapControllerAdapter implements MapController {
     }
     // A bubble of stops has no id of ours: it is known by its layer.
     if (layerId == MapLayerIds.stopsClusterLayer) {
-      unawaited(_zoomIntoStopCluster(_fromMl(coordinates)));
+      unawaited(
+        _zoomIntoStopCluster(
+          _fromMl(coordinates),
+          layerId: layerId,
+          sourceId: MapLayerIds.stopsSource,
+        ),
+      );
       return;
+    }
+    for (final group in _stopGroupsInStyle) {
+      if (layerId == MapLayerIds.stopGroupClusterLayer(group)) {
+        unawaited(
+          _zoomIntoStopCluster(
+            _fromMl(coordinates),
+            layerId: layerId,
+            sourceId: MapLayerIds.stopGroupSource(group),
+          ),
+        );
+        return;
+      }
     }
     final stop = stopIndexFromFeatureId(id);
     if (stop != null) {
-      onStopTapped?.call(stop);
+      // A stop's feature is counted within its own source.
+      final group = _stopGroupsInStyle
+          .where((g) => layerId == MapLayerIds.stopGroupLayer(g))
+          .firstOrNull;
+      final indices = _stopIndices[group ?? ''];
+      if (indices != null && stop < indices.length) {
+        onStopTapped?.call(indices[stop]);
+      } else if (indices == null) {
+        onStopTapped?.call(stop);
+      }
       return;
     }
     final turn = turnIndexFromFeatureId(id);
@@ -3169,7 +3562,11 @@ class MaplibreMapControllerAdapter implements MapController {
   /// Zooms in on the bubble of stops tapped at [tapped]: centred on the
   /// bubble, to the zoom where it splits, or two steps in when the map
   /// will not say, never past [stopsClusterTapMaxZoom].
-  Future<void> _zoomIntoStopCluster(LatLng tapped) async {
+  Future<void> _zoomIntoStopCluster(
+    LatLng tapped, {
+    required String layerId,
+    required String sourceId,
+  }) async {
     final zoom = _ops.cameraPosition?.zoom;
     if (zoom == null || _disposed) return;
     var center = tapped;
@@ -3178,7 +3575,7 @@ class MaplibreMapControllerAdapter implements MapController {
       final features = await _ops.renderedFeaturesNear(
         _toMl(tapped),
         stopsClusterHitPx,
-        const <String>[MapLayerIds.stopsClusterLayer],
+        <String>[layerId],
       );
       double? nearestM;
       int? clusterId;
@@ -3194,10 +3591,7 @@ class MaplibreMapControllerAdapter implements MapController {
         clusterId = id is num ? id.toInt() : null;
       }
       if (clusterId != null) {
-        final split = await _ops.clusterExpansionZoom(
-          MapLayerIds.stopsSource,
-          clusterId,
-        );
+        final split = await _ops.clusterExpansionZoom(sourceId, clusterId);
         if (split > zoom) target = split.toDouble();
       }
     } on Object catch (e) {

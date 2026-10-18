@@ -26,7 +26,7 @@ Las indicaciones son: **Gira a la izquierda**, **Gira a la derecha**, **Gira lig
 
 Cuando un segundo giro sigue muy de cerca al primero, una pequeña flecha gris para él aparece al final de la píldora.
 
-Una ruta importada con hoja de ruta muestra en su lugar las palabras del propio autor para un giro, "Gira a la izquierda por la calle Mayor", y la voz también las dice.
+Una ruta importada con hoja de ruta muestra en su lugar las palabras del propio autor para un giro, "Gira a la izquierda por la calle Mayor", y la voz también las dice. Para un track GPX sin instrucciones de giro, el teléfono puede crearlas a partir de los datos de enrutamiento, ver [importar y exportar](./import-and-export).
 
 Un punto de interés en la ruta, una fuente o una zona para bajarse de la bici de un archivo importado, ocupa el banner cuando está más cerca que el siguiente giro y a menos de 300 m: su icono, la distancia y su nombre, y un peligro como "Atención: …" en el color de aviso. La voz lo anuncia una vez, con la misma antelación que un giro, "En 100 metros, atención: empieza una zona para bajarse de la bici". Consulta [sensores y tu reloj](./sensors-and-watch) para saber qué llega al reloj, e [importar y exportar](./import-and-export) para saber de dónde vienen los puntos.
 

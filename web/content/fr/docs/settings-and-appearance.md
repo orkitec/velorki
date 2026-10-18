@@ -80,7 +80,7 @@ Dès qu'un interrupteur est activé, les champs apparaissent : **Poids** (kg, 
 
 ## Connexions
 
-Une ligne pour **Strava** et une pour **Ride with GPS**, chacune indiquant **Non connecté**, votre nom une fois connecté, ou **Non disponible dans cette version**. **Se connecter avec Strava** et **Se connecter à Ride with GPS** se trouvent sous les lignes non connectées, **Déconnecter** à côté des lignes connectées. Voir [Strava et Ride with GPS](./strava-and-ridewithgps).
+Une ligne pour **Strava** et une pour **Ride with GPS**, chacune indiquant **Non connecté**, votre nom une fois connecté, ou **Non disponible dans cette version**. **Se connecter avec Strava** et **Se connecter à Ride with GPS** se trouvent sous les lignes non connectées, **Déconnecter** à côté des lignes connectées. Les deux connexions sont gratuites. Voir [Strava et Ride with GPS](./strava-and-ridewithgps).
 
 ## Assistant IA
 

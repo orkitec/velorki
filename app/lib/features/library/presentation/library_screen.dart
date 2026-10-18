@@ -13,6 +13,7 @@ import '../../integrations/presentation/import_from_service_menu.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../map/presentation/visible_map_padding.dart';
 import '../../map/presentation/weather_time_row.dart';
+import '../../integrations/presentation/strava_brand.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/route_format.dart';
@@ -26,6 +27,7 @@ import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
 import '../../shared/application/nav_bar_docking.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
+import '../../shared/presentation/wide_panel.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/sheet_header.dart';
@@ -432,11 +434,23 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               if (highlight != null)
                 Positioned(
                   top: topInset + defaultMapControlsTop,
-                  left: 12,
-                  child: RideHighlightChip(
-                    range: highlight,
-                    onClear: () =>
-                        ref.read(rideHighlightProvider.notifier).set(null),
+                  // Clear of the controls at their edge, as the weather's
+                  // hints below.
+                  left: wideMapControlsAtLeft(context, geometry.layout)
+                      ? mapControlsWidth(context) + 8
+                      : 12,
+                  right:
+                      geometry.sideways ||
+                          wideMapControlsAtLeft(context, geometry.layout)
+                      ? 12
+                      : mapControlsWidth(context) + 8,
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: RideHighlightChip(
+                      range: highlight,
+                      onClear: () =>
+                          ref.read(rideHighlightProvider.notifier).set(null),
+                    ),
                   ),
                 ),
               // The rain's moment (this tab has no time control) and the
@@ -456,8 +470,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   child: BesideSheet(
                     child: Padding(
                       padding: EdgeInsets.only(
-                        left: 12,
-                        right: geometry.sideways
+                        // Clear of the controls at their edge.
+                        left: wideMapControlsAtLeft(context, geometry.layout)
+                            ? mapControlsWidth(context) + 8
+                            : 12,
+                        right:
+                            geometry.sideways ||
+                                wideMapControlsAtLeft(context, geometry.layout)
                             ? 12
                             : mapControlsWidth(context) + 8,
                       ),
@@ -695,21 +714,40 @@ class RouteRow extends ConsumerWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      subtitle: Text(
-        l10n.libraryRouteSubtitle(
-          formatDate(l10n, route.createdAt),
-          formatDistance(l10n, units, route.distanceM),
-          formatHeight(l10n, units, route.ascentM),
+      subtitle: _withStravaMark(
+        Text(
+          l10n.libraryRouteSubtitle(
+            formatDate(l10n, route.createdAt),
+            formatDistance(l10n, units, route.distanceM),
+            formatHeight(l10n, units, route.ascentM),
+          ),
+          style: theme.textTheme.bodySmall,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        style: theme.textTheme.bodySmall,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
       ),
       trailing: trailing,
       onTap: onTap,
     );
   }
+
+  /// A route from Strava, or edited from one, carries Strava's logo under
+  /// its figures, as Strava's terms ask wherever their data shows.
+  Widget _withStravaMark(Widget figures) => !route.fromStrava
+      ? figures
+      : Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            figures,
+            const SizedBox(height: 4),
+            const PoweredByStrava(height: libraryStravaMarkHeight),
+          ],
+        );
 }
+
+/// How tall Strava's logo is drawn in a route's row.
+const double libraryStravaMarkHeight = 10;
 
 class _RouteTile extends ConsumerWidget {
   const _RouteTile({required this.route});

@@ -14,7 +14,7 @@ Velorki puede dibujar en el mapa los lugares donde se para en una salida: agua p
 
 ## En la zona que miras
 
-Con **Paradas** activado, las paradas de la parte del mapa que ves aparecen a partir del zoom 11. Alejado, las paradas cercanas se agrupan en burbujas con un número; desde el zoom 15 se separan en paradas sueltas con sus iconos. Toca una burbuja para acercar hasta donde se separa.
+Con **Paradas** activado, las paradas de la parte del mapa que ves aparecen a partir del zoom 11. Alejado, las paradas cercanas se agrupan en burbujas con un número; desde el zoom 15 se separan en paradas sueltas con sus iconos. Toca una burbuja para acercar hasta donde se separa. Se cargan todas las paradas de los tipos elegidos que hay a la vista, no se deja ninguna fuera.
 
 Más alejado que eso, un chip dice **Acerca el mapa para ver paradas**; tócalo y el mapa se acerca hasta donde se muestran.
 

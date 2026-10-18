@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -10,6 +8,8 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki_io/io.dart';
+import 'package:velorki_io/worker.dart';
 
 import '../domain/weather_map.dart';
 import '../domain/wind_field.dart';
@@ -68,15 +68,11 @@ const Duration windTimeout = Duration(seconds: 15);
 const int weatherCacheBudget = 150 * 1024 * 1024;
 
 // The infrared images are bright where it is cold: high cloud tops are
-// white, the warm ground dark grey. A pixel's luminance between these two
-// is read as cloud, linearly, up to [cloudMaxAlpha]: darker is clear sky,
+// white, the warm ground dark grey. A pixel's luminance between a source's
+// clear and full-cloud luminance (`WeatherMapSource.cloudLuminance`) is
+// read as cloud, linearly, up to [cloudMaxAlpha]: darker is clear sky,
 // brighter is as cloudy as it gets. Low fog and stratus are almost as warm
 // as the ground under them, so they come out faint or not at all.
-/// Luminance (0..255) at and below which a pixel is clear.
-const double cloudLuminanceLow = 110;
-
-/// Luminance at and above which a pixel is full cloud.
-const double cloudLuminanceHigh = 220;
 
 /// How opaque the thickest cloud is drawn, 0..1: a sky wholly overcast
 /// stays a veil the map and the rain show through.
@@ -90,10 +86,14 @@ const int cloudColourSpread = 48;
 
 /// Turns the straight RGBA pixels of an infrared image into white cloud on
 /// a clear ground: every pixel white, its alpha from how cold (bright) it
-/// was; a pixel the service left transparent stays so.
-Uint8List whitenCloudPixels(Uint8List rgba) {
+/// was between [luminance]'s clear and full; a pixel the service left
+/// transparent stays so.
+Uint8List whitenCloudPixels(
+  Uint8List rgba, {
+  ({double clear, double full}) luminance = defaultCloudLuminance,
+}) {
   final out = Uint8List(rgba.length);
-  const span = cloudLuminanceHigh - cloudLuminanceLow;
+  final span = luminance.full - luminance.clear;
   const full = cloudMaxAlpha * 255;
   for (var i = 0; i + 3 < rgba.length; i += 4) {
     final a = rgba[i + 3];
@@ -113,7 +113,7 @@ Uint8List whitenCloudPixels(Uint8List rgba) {
       cloud = 1;
     } else {
       final v = 0.299 * r + 0.587 * g + 0.114 * b;
-      cloud = ((v - cloudLuminanceLow) / span).clamp(0.0, 1.0);
+      cloud = ((v - luminance.clear) / span).clamp(0.0, 1.0);
     }
     out[i + 3] = (cloud * full * a / 255).round();
   }
@@ -126,10 +126,17 @@ Uint8List whitenCloudPixels(Uint8List rgba) {
 @immutable
 class CloudImageJob {
   /// Creates the job.
-  const CloudImageJob({required this.box, this.fades = const <CloudFade>[]});
+  const CloudImageJob({
+    required this.box,
+    this.fades = const <CloudFade>[],
+    this.luminance = defaultCloudLuminance,
+  });
 
   final BoundingBox box;
   final List<CloudFade> fades;
+
+  /// The source's clear and full-cloud luminance, see `whitenCloudPixels`.
+  final ({double clear, double full}) luminance;
 }
 
 /// Multiplies the alpha of each column of [rgba] ([width] × [height], an
@@ -692,8 +699,8 @@ int _crc32(Uint8List bytes) {
 /// isolate.
 Future<Uint8List> processCloudImage(Uint8List png, CloudImageJob job) async {
   final (width, height, pixels) = await _decode(png);
-  return Isolate.run(() {
-    final out = whitenCloudPixels(pixels);
+  return runIsolated(() {
+    final out = whitenCloudPixels(pixels, luminance: job.luminance);
     fadeCloudPixels(width, height, out, job.box, job.fades);
     return encodePngRgba(width, height, out);
   });
@@ -705,7 +712,7 @@ Future<Uint8List> processCloudImage(Uint8List png, CloudImageJob job) async {
 Future<Uint8List> processRainImage(Uint8List png, RainImageJob job) async {
   if (!job.needed) return png;
   final (width, height, pixels) = await _decode(png);
-  return Isolate.run(() => prepareRainImage(width, height, pixels, job));
+  return runIsolated(() => prepareRainImage(width, height, pixels, job));
 }
 
 /// The rain image [rgba] ([width] × [height], straight RGBA, as the service
@@ -916,7 +923,7 @@ Future<(int, int, Uint8List)> _decode(Uint8List png) async {
 /// What tells the cloud images prepared now from those an older app left
 /// in the cache: raised with each change to the cloud sources' boxes or to
 /// how the images are prepared.
-const int cloudImageVersion = 2;
+const int cloudImageVersion = 3;
 
 /// What tells the rain images prepared now from those an older app left in
 /// the cache, which the age limit then clears: raised with each change to
@@ -1026,7 +1033,7 @@ abstract class WeatherFetcher {
 
 /// Reads a wind grid off the main isolate.
 Future<WindGrid?> parseWindGridInBackground(String text) =>
-    Isolate.run(() => parseWcsWindGrid(text));
+    runIsolated(() => parseWcsWindGrid(text));
 
 /// [WeatherFetcher] over HTTP, cloud images cached in [cacheDir].
 class HttpWeatherFetcher implements WeatherFetcher {
@@ -1159,7 +1166,11 @@ class HttpWeatherFetcher implements WeatherFetcher {
   }) {
     final prefix = '${source.id}_v${cloudImageVersion}_${region}_';
     final name = '$prefix${cloudImageStamp(frame, now)}${_fadesKey(fades)}.png';
-    final job = CloudImageJob(box: source.coverage[region], fades: fades);
+    final job = CloudImageJob(
+      box: source.coverage[region],
+      fades: fades,
+      luminance: source.cloudLuminance,
+    );
     return _cloud(
       source.regionImageUrl(frame, region),
       name,
@@ -1180,7 +1191,11 @@ class HttpWeatherFetcher implements WeatherFetcher {
     final prefix = '${source.id}_v${cloudImageVersion}_detail_';
     final stamp = '_${cloudImageStamp(frame, now)}${_fadesKey(fades)}.png';
     final name = '$prefix${cloudDetailKey(box)}$stamp';
-    final job = CloudImageJob(box: box, fades: fades);
+    final job = CloudImageJob(
+      box: box,
+      fades: fades,
+      luminance: source.cloudLuminance,
+    );
     return _cloud(
       source.detailImageUrl(frame, box),
       name,
@@ -1256,7 +1271,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
         return null;
       }
     }
-    return Isolate.run(
+    return runIsolated(
       () => encodePngRgba(
         mosaic.width,
         mosaic.height,

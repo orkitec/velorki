@@ -15,6 +15,7 @@ import 'package:velorki/features/routing_tiles/data/brouter_storage.dart';
 import 'package:velorki/features/routing_tiles/data/rd5_format_support.dart';
 import 'package:velorki/features/routing_tiles/data/segments_manifest_service.dart';
 import 'package:velorki/features/routing_tiles/domain/rd5_format.dart';
+import 'package:velorki/features/routing_tiles/domain/sha256.dart';
 import 'package:velorki/features/routing_tiles/presentation/routing_tiles_screen.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -27,13 +28,21 @@ final Uint8List _body = Uint8List.fromList(
   utf8.encode(List<String>.generate(16, (i) => 'rd5-$i;').join()),
 );
 
-Map<String, Object?> _manifest() => <String, Object?>{
+final Uint8List _gaz = Uint8List.fromList(utf8.encode('gazetteer-body'));
+
+Map<String, Object?> _manifest({bool gazetteer = false}) => <String, Object?>{
   'formatVersion': '11.2',
   'tiles': <Object?>[
     <String, Object?>{
       'tile': 'E10_N45',
       'bytes': _body.length,
       'updatedAt': '2026-09-12T01:03:00Z',
+      if (gazetteer)
+        'gazetteer': <String, Object?>{
+          'bytes': _gaz.length,
+          'sha256': (Sha256()..add(_gaz)).hexDigest(),
+          'updatedAt': '2026-10-02T18:53:15Z',
+        },
     },
     <String, Object?>{
       'tile': 'E5_N45',
@@ -46,9 +55,18 @@ Map<String, Object?> _manifest() => <String, Object?>{
 /// Everything the screen needs: an in-memory database, a temporary storage
 /// directory and a mirror that answers from memory.
 class TilesHarness {
-  /// Wires the fakes together.
-  TilesHarness()
-    : db = VelorkiDatabase.memory(),
+  /// Wires the fakes together; with [gazetteer] the mirror offers one for
+  /// `E10_N45`.
+  TilesHarness({bool gazetteer = false})
+    : adapter = FakeSegmentsAdapter((options) {
+        if (options.uri.path.endsWith('manifest.json')) {
+          return FakeSegmentsResponse.json(_manifest(gazetteer: gazetteer));
+        }
+        return FakeSegmentsResponse.bytes(
+          options.uri.path.endsWith('.gaz') ? _gaz : _body,
+        );
+      }),
+      db = VelorkiDatabase.memory(),
       storage = BrouterStorage(tempDir('velorki-screen')) {
     storage.segments.createSync(recursive: true);
     storage.profiles.createSync(recursive: true);
@@ -60,13 +78,8 @@ class TilesHarness {
   /// The temporary `<appSupport>/brouter` stand-in.
   final BrouterStorage storage;
 
-  /// The mirror, serving the manifest and one tile.
-  final FakeSegmentsAdapter adapter = FakeSegmentsAdapter((options) {
-    if (options.uri.path.endsWith('manifest.json')) {
-      return FakeSegmentsResponse.json(_manifest());
-    }
-    return FakeSegmentsResponse.bytes(_body);
-  });
+  /// The mirror, serving the manifest, one tile and its gazetteer.
+  final FakeSegmentsAdapter adapter;
 
   /// The overrides to hand to a `ProviderScope`.
   List<Override> get overrides => <Override>[
@@ -82,6 +95,10 @@ class TilesHarness {
   /// Where [tile] ends up on disk.
   File tileFile(TileName tile) =>
       File('${storage.segments.path}/${tile.fileName}');
+
+  /// Where [tile]'s gazetteer ends up on disk.
+  File gazetteerFile(TileName tile) =>
+      File('${storage.gazetteer.path}/${tile.gazetteerFileName}');
 
   /// Puts [tile] on the device as an earlier build than the manifest's.
   ///
@@ -108,8 +125,9 @@ Future<TilesHarness> pumpTiles(
   List<TileName> preselected = const <TileName>[],
   List<Override> extraOverrides = const <Override>[],
   Future<void> Function(TilesHarness harness)? seed,
+  bool gazetteer = false,
 }) async {
-  final harness = TilesHarness();
+  final harness = TilesHarness(gazetteer: gazetteer);
   addTearDown(harness.db.close);
   await seed?.call(harness);
   await tester.binding.setSurfaceSize(const Size(1080, 2000));
@@ -387,6 +405,93 @@ void main() {
       isEmpty,
     );
     expect(find.text(l10n.routingTilesUpdate), findsOneWidget);
+    await unmountTiles(tester);
+  });
+
+  testWidgets('the visible area fetches the gazetteer a tile there lacks', (
+    tester,
+  ) async {
+    final map = FakeMapController()
+      ..visibleBounds = const BoundingBox(
+        south: 46.0,
+        west: 10.5,
+        north: 47.0,
+        east: 11.5,
+      );
+    final harness = await pumpTiles(
+      tester,
+      map: map,
+      gazetteer: true,
+      seed: (harness) => harness.seedTile(
+        _tile,
+        body: 'the-current-build',
+        updatedAt: DateTime.utc(2026, 9, 12, 1, 3),
+      ),
+    );
+
+    await tester.tap(find.text(l10n.routingTilesVisibleArea));
+    await tester.pump();
+    await runDownloads(
+      tester,
+      until: () =>
+          harness.gazetteerFile(_tile).existsSync() &&
+          find
+              .textContaining(l10n.routingTilesStateReady)
+              .evaluate()
+              .isNotEmpty,
+    );
+
+    expect(
+      find.textContaining(l10n.routingTilesAllInView),
+      findsOneWidget,
+      reason: 'the tile is there; its search index needs no dialog',
+    );
+    expect(harness.gazetteerFile(_tile).readAsBytesSync(), _gaz);
+    expect(
+      harness.adapter.requests.where((r) => r.uri.path.endsWith('.rd5')),
+      isEmpty,
+    );
+    expect(harness.tileFile(_tile).readAsStringSync(), 'the-current-build');
+    expect(find.textContaining(l10n.routingTilesStateReady), findsOneWidget);
+    await unmountTiles(tester);
+  });
+
+  testWidgets('the visible area leaves a gazetteer that is there alone', (
+    tester,
+  ) async {
+    final map = FakeMapController()
+      ..visibleBounds = const BoundingBox(
+        south: 46.0,
+        west: 10.5,
+        north: 47.0,
+        east: 11.5,
+      );
+    final harness = await pumpTiles(
+      tester,
+      map: map,
+      gazetteer: true,
+      seed: (harness) async {
+        await harness.seedTile(
+          _tile,
+          updatedAt: DateTime.utc(2026, 9, 12, 1, 3),
+        );
+        harness.gazetteerFile(_tile)
+          ..parent.createSync(recursive: true)
+          ..writeAsBytesSync(_gaz);
+      },
+    );
+
+    await tester.tap(find.text(l10n.routingTilesVisibleArea));
+    await tester.pumpAndSettle();
+    await runDownloads(tester);
+
+    expect(find.textContaining(l10n.routingTilesAllInView), findsOneWidget);
+    expect(
+      harness.adapter.requests.where(
+        (r) => !r.uri.path.endsWith('manifest.json'),
+      ),
+      isEmpty,
+    );
     await unmountTiles(tester);
   });
 

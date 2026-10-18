@@ -8,6 +8,7 @@ import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/power/system_power_save.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
+import 'package:velorki/features/shared/application/glass_blur.dart';
 import 'package:velorki/features/shared/application/shown_bar_style.dart';
 import 'package:velorki/features/shared/presentation/floating_bar.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -110,6 +111,29 @@ void main() {
       final container = await containerWith(chosen: BarStyle.subtle);
       expect(container.read(shownBarStyleProvider), BarStyle.subtle);
     });
+
+    test(
+      'where the glass cannot blur the map (a browser without '
+      'backdrop-filter), Clear is drawn as Subtle; the rest as chosen',
+      () async {
+        for (final (chosen, shown) in [
+          (BarStyle.clear, BarStyle.subtle),
+          (BarStyle.subtle, BarStyle.subtle),
+          (BarStyle.transparent, BarStyle.transparent),
+          (BarStyle.solid, BarStyle.solid),
+        ]) {
+          final container = await containerWith(chosen: chosen);
+          expect(container.read(glassBlurProvider), isTrue);
+          expect(container.read(shownBarStyleProvider), chosen);
+          container.read(glassBlurProvider.notifier).unavailable();
+          expect(
+            container.read(shownBarStyleProvider),
+            shown,
+            reason: '$chosen',
+          );
+        }
+      },
+    );
 
     test('the phone saving power turns it solid, live', () async {
       final container = await containerWith();

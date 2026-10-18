@@ -60,6 +60,11 @@ IntegrationException integrationExceptionFor(RelayException e) =>
         (l10n) => l10n.integrationPlusNeeded,
         cause: e,
       ),
+      RelayErrorCode.authorizationRevoked => IntegrationException(
+        IntegrationFailure.revoked,
+        (l10n) => l10n.integrationAccessRevoked,
+        cause: e,
+      ),
       RelayErrorCode.rateLimited => IntegrationException(
         IntegrationFailure.rateLimited,
         (l10n) => relayErrorText(l10n, e.error),

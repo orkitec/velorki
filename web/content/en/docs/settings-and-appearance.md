@@ -80,7 +80,7 @@ With any switch on, the fields appear: **Weight** (kg, or lb on imperial units: 
 
 ## Connections
 
-One row for **Strava** and one for **Ride with GPS**, each showing **Not connected**, your name once connected, or **Not available in this build**. **Connect with Strava** and **Connect with Ride with GPS** sit under the unconnected ones, **Disconnect** beside the connected ones. See [Strava and Ride with GPS](./strava-and-ridewithgps).
+One row for **Strava** and one for **Ride with GPS**, each showing **Not connected**, your name once connected, or **Not available in this build**. **Connect with Strava** and **Connect with Ride with GPS** sit under the unconnected ones, **Disconnect** beside the connected ones. Both connections are free. See [Strava and Ride with GPS](./strava-and-ridewithgps).
 
 ## AI assistant
 

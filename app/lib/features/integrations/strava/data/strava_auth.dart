@@ -17,9 +17,14 @@ import '../../common/data/oauth_flow.dart';
 ///
 /// <https://developers.strava.com/docs/authentication/>
 abstract final class StravaAuth {
-  /// Everything Velorki needs: read the athlete, write activities, read the
-  /// athlete's own activities and routes.
-  static const String defaultScope = 'read,activity:write,activity:read';
+  /// Only what Velorki uses: `read` for the athlete's profile and their
+  /// routes, `activity:write` for the rides they upload. Nothing reads
+  /// activities, so `activity:read` is not asked for.
+  static const String defaultScope = 'read,$uploadScope';
+
+  /// The scope a ride upload needs. The rider can untick it on Strava's
+  /// page, and then the app offers no upload.
+  static const String uploadScope = 'activity:write';
 
   /// The path of the redirect, below the app's custom scheme.
   static const String redirectPath = 'oauth/strava';

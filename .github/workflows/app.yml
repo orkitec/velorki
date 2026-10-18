@@ -14,6 +14,7 @@ on:
       - "app/**"
       - "web/openapi.yaml"
       - "tools/gazetteer/**"
+      - "deploy/cloudflare/**"
       - "mise.toml"
       - ".github/workflows/app.yml"
   pull_request:
@@ -21,6 +22,7 @@ on:
       - "app/**"
       - "web/openapi.yaml"
       - "tools/gazetteer/**"
+      - "deploy/cloudflare/**"
       - "mise.toml"
       - ".github/workflows/app.yml"
 
@@ -116,6 +118,32 @@ jobs:
           name: velorki-debug-apk
           path: app/build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 7
+
+  # The web planner: a build for the browser is the cheap guard against an
+  # import that only the phones have (dart:ffi, a plugin without a web side)
+  # reaching the web path; the index page's device gate and the tile function
+  # have their own tests, run with Node's built-in runner.
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+      - name: Device gate and tile function tests
+        working-directory: .
+        run: node --test app/web_test/*.test.mjs deploy/cloudflare/test/*.test.mjs
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter gen-l10n
+      # The browser-only code (the file store in Cache Storage) in a real
+      # Chrome, which the runner image has; about half a minute.
+      - run: flutter test --platform chrome test/web/
+      - run: bash tool/web_assets.sh
+      - run: flutter build web --wasm --no-web-resources-cdn --dart-define-from-file=env/web.json
 
   # The gazetteer builder, which is Python and has nothing to do with the app
   # package -- hence the working-directory override. It builds the 3.5 MB

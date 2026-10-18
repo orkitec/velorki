@@ -281,32 +281,20 @@ class RouteWeatherController extends _$RouteWeatherController {
     unawaited(_fetch(generation));
   }
 
-  /// The step of the time control ([weatherRadarOffsets], minutes from the
-  /// earliest departure) with the least rain and headwind on the way (see
-  /// [bestDeparture]); `null` without a forecast, or when no step's ride
-  /// has weather for the whole route. Only the control's own steps are
-  /// scanned, so the answer is one the control can stand on.
+  /// The step of the time control with the least rain and headwind on the
+  /// way: [bestOffsetOf] the relay's forecast; `null` without one.
   int? suggestBestOffset() {
     final current = state.value;
     if (current == null) return null;
-    final start = current.samples.first.position;
-    final rideTime = current.samples.last.offset;
-    final from = current.earliestDeparture;
-    final best = bestDeparture(
-      current.forecast,
-      current.samples,
-      current.cells.sampleToCell,
-      from: from,
-      offsets: [for (final m in weatherRadarOffsets) Duration(minutes: m)],
-      current: current.departure,
-      // Only rides that start and end in daylight: the calmest hour is often
-      // the middle of the night, which is no advice for a rider.
-      usable: (departure) =>
-          inDaylight(departure, departure.add(rideTime), start.lat, start.lon),
+    return bestOffsetOf(
+      current,
+      (departure) => evaluate(
+        current.forecast,
+        current.samples,
+        current.cells.sampleToCell,
+        departure,
+      ),
     );
-    return best == null
-        ? null
-        : snapWeatherOffset(best.difference(from).inMinutes);
   }
 
   Future<void> _fetch(int generation) async {
@@ -423,4 +411,33 @@ class _CachedForecast {
 
   /// The sources the answer named.
   final List<WeatherSource> sources;
+}
+
+/// The step of the time control ([weatherRadarOffsets], minutes from
+/// [current]'s earliest departure) with the least rain and headwind on the
+/// way (see [bestDepartureOf]), from the weather [weatherAt] gives a ride
+/// leaving at a time; `null` when no step's ride has weather for the whole
+/// route. Only the control's own steps are scanned, so the answer is one
+/// the control can stand on; and only rides that start and end in
+/// daylight: the calmest hour is often the middle of the night, which is no
+/// advice for a rider.
+int? bestOffsetOf(
+  RouteWeatherState current,
+  RouteWeather? Function(DateTime departure) weatherAt,
+) {
+  if (current.samples.isEmpty) return null;
+  final start = current.samples.first.position;
+  final rideTime = current.samples.last.offset;
+  final from = current.earliestDeparture;
+  final best = bestDepartureOf(
+    weatherAt,
+    from: from,
+    offsets: [for (final m in weatherRadarOffsets) Duration(minutes: m)],
+    current: current.departure,
+    usable: (departure) =>
+        inDaylight(departure, departure.add(rideTime), start.lat, start.lon),
+  );
+  return best == null
+      ? null
+      : snapWeatherOffset(best.difference(from).inMinutes);
 }

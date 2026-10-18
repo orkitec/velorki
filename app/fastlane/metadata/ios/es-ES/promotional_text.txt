@@ -1,1 +1,1 @@
-Planifica rutas en bici, síguelas con indicaciones habladas y graba tus salidas, sin cuenta ni anuncios, sin conexión. Nuevo en Plus: describe una salida y obtén la ruta.
+Nuevo: radar de lluvia, viento y nubes en el mapa, el tiempo en tu ruta y rutas en color por pendiente, superficie, viento o lluvia. Avisos hablados en rutas importadas.

@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:io';
+
+import 'package:velorki_io/io.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_fit/velorki_fit.dart';
@@ -13,6 +13,7 @@ import 'package:velorki_tcx/velorki_tcx.dart';
 
 import '../../features/planner/domain/route_poi.dart';
 import '../../features/planner/domain/route_profile.dart';
+import 'app_directories.dart';
 import 'bike_type.dart';
 import 'course_points.dart';
 import 'track_exporter.dart';
@@ -86,7 +87,7 @@ class ShareTrackExporter implements TrackExporter {
     TemporaryDirectoryCallback? temporaryDirectory,
     this.creator = 'Velorki',
   }) : _shareFiles = shareFiles ?? _shareWithSharePlus,
-       _temporaryDirectory = temporaryDirectory ?? getTemporaryDirectory;
+       _temporaryDirectory = temporaryDirectory ?? appTemporaryDirectory;
 
   final ShareFilesCallback _shareFiles;
   final TemporaryDirectoryCallback _temporaryDirectory;

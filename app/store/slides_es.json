@@ -5,12 +5,20 @@
     "subline": "Planifica, calcula rutas y navega en tu iPhone, incluso sin conexión.",
     "android": {
       "subline": "Planifica, calcula rutas y navega en tu móvil, incluso sin conexión."
+    },
+    "ipad": {
+      "subline": "Planifica, calcula rutas y navega en tu iPad, incluso sin conexión."
     }
   },
   "variants": {
     "eyebrow": "Planificación de rutas",
     "headline": "Rutas hechas para **tu bici**",
     "subline": "Cicloturismo, carretera, gravel o MTB, con alternativas, altitud y superficies."
+  },
+  "weather": {
+    "eyebrow": "Tiempo",
+    "headline": "Mira la lluvia **antes de salir**",
+    "subline": "Radar de lluvia, viento y nubes en el mapa, y el tiempo a lo largo de tu ruta para cuando salgas."
   },
   "cyclemap": {
     "eyebrow": "Mapa ciclista",
@@ -38,9 +46,9 @@
     "subline": "Altitud, velocidad, pulso y parciales de cada salida."
   },
   "offline-themes": {
-    "eyebrow": "Sin conexión · Claro y oscuro",
-    "headline": "De día o de noche, **con red o sin ella**",
-    "subline": "Descarga una región una vez y el mapa, las rutas y la búsqueda funcionan en todas partes. Claro u oscuro, en tu color."
+    "eyebrow": "Paradas · Sin conexión · Claro y oscuro",
+    "headline": "Café y agua, **con red o sin ella**",
+    "subline": "Paradas a lo largo de tu ruta, de la región que descargaste. Claro u oscuro, en tu color."
   },
   "import": {
     "eyebrow": "Archivos",

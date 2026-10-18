@@ -1,9 +1,9 @@
 import 'dart:convert' show ascii;
-import 'dart:io' show zlib;
 import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/painting.dart';
+import 'package:velorki_io/io.dart' show zlib;
 
 /// The runtime-drawn heading cone of the position puck.
 ///

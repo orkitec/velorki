@@ -26,6 +26,7 @@ import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/domain/weather_map.dart';
 import 'package:velorki/features/map/domain/wind_field.dart';
 import 'package:velorki/features/recording/data/recording_gateways.dart';
+import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 /// A location permission that is simply granted, so nothing on the emulator
@@ -493,7 +494,10 @@ class RecordingMapController implements MapController {
       inner.removeCameraIdleListener(listener);
 
   @override
-  Future<void> setStops(List<MapPoi> stops) => inner.setStops(stops);
+  Future<void> setStops(
+    List<MapPoi> stops, {
+    List<String> groups = const <String>[],
+  }) => inner.setStops(stops, groups: groups);
 
   @override
   set onStopTapped(void Function(int index)? handler) =>
@@ -585,4 +589,36 @@ class RecordingMapController implements MapController {
 
   @override
   Future<void> setWindArrows(WindArrows? arrows) => inner.setWindArrows(arrows);
+}
+
+/// The free route forecast without the network: every question unanswered,
+/// so a route's weather shows as unavailable. The suite's flows are about
+/// routes, not DWD, and a request to it on a CI emulator could hang, then
+/// fail after the test ([pumpApp] puts it in by default).
+class OfflineDwdClient implements DwdForecastClient {
+  /// Creates the client.
+  const OfflineDwdClient();
+
+  @override
+  Future<DateTime?> newestRun(String coverageId) async => null;
+
+  @override
+  Future<WcsGrid?> grid(
+    String coverageId,
+    BoundingBox box,
+    DateTime time,
+    DateTime run, {
+    int bands = 1,
+  }) async => null;
+
+  @override
+  DateTime? knownRun(String coverageId) => null;
+
+  @override
+  WcsGrid? loadedGrid(
+    String coverageId,
+    BoundingBox box,
+    DateTime time,
+    DateTime run,
+  ) => null;
 }

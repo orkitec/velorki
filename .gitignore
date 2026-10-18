@@ -54,3 +54,8 @@ __pycache__/
 # Integration-test mirror scratch (app/tool/itest_mirror.sh)
 .itest-mirror/
 mirror.pid
+
+# Fetched by tool/web_assets.sh for the web build.
+app/web/sqlite3.wasm
+app/web/drift_worker.js
+app/web/maplibre-gl/

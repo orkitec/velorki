@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 /// The User-Agent every HTTP client of the app sends. Public services such
 /// as Photon reject Dart's default `Dart/x (dart:io)` agent, and the OSM
@@ -11,7 +12,8 @@ BaseOptions velorkiBaseOptions([BaseOptions? base]) {
   final options = base ?? BaseOptions();
   options.headers = <String, dynamic>{
     ...options.headers,
-    'User-Agent': velorkiUserAgent,
+    // A browser sends its own and refuses to let a page set one.
+    if (!kIsWeb) 'User-Agent': velorkiUserAgent,
   };
   return options;
 }

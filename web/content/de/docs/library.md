@@ -6,7 +6,7 @@ order: 10
 
 Der Tab Bibliothek enthält alles, was du behalten hast: die geplanten Routen und die aufgezeichneten Fahrten. Er ist ein Blatt über der Karte, wie die Tabs Planen und Aufnahme: Sein Inhalt scrollt in jeder Höhe, und der Griff oben bewegt es; gibt es nichts zu scrollen, bewegt es sich als Ganzes. Zieh es hoch für mehr Platz, zieh es ganz herunter, und das Blatt faltet sich in die Navigationsleiste und gibt die Karte frei. Geh hierher, um eine Route wieder zu öffnen, die Diagramme und Splits einer Fahrt zu lesen und Dateien hinein- und hinauszubekommen.
 
-Alles in der Bibliothek liegt auf dem Handy. Es gibt kein Konto, und nichts wird irgendwohin abgeglichen.
+Alles in der Bibliothek liegt auf dem Handy. Es gibt kein Konto. Auf einem iPhone oder iPad kann es zwischen deinen eigenen Geräten über iCloud abgeglichen werden, siehe unten [iCloud-Synchronisierung](#icloud-synchronisierung-iphone-und-ipad).
 
 ## Routen und Fahrten
 
@@ -40,6 +40,7 @@ Eine geöffnete Route wird auf die Karte gezeichnet, eingepasst in den Teil des 
 - eine Zeile **Beschreibung** und eine Zeile **Link**, je mit einem Stift: Die Beschreibung ist die der Datei, des Assistenten oder deine, der Link ist der `<link>` der Datei oder einer, den du eintippst, und ein Tipp darauf öffnet die Seite,
 - die Belagsverteilung: bei einer hier geplanten Route die Zahlen des Routers, bei einer aus einer Datei dieselbe Zuordnung wie bei einer Fahrt, siehe unten,
 - das Höhenprofil,
+- darunter dieselbe Einfärbung wie im Planer: Steigung, Belag, Wind oder Regen,
 - **Punkte von Interesse**: die Punkte der Route, die nicht auf ihrem Track liegen, je mit dem Symbol ihrer Art, ihrem Namen und ihrer Notiz — die, mit denen eine Datei abseits der Strecke kam, und die Orte, die du im Planer neben der Route markiert hast; die auf dem Track sind stattdessen Zeilen der Abbiegeliste,
 - bei einer Route, die mit Abbiegungen oder Punkten von Interesse importiert wurde oder deren Punkte du im Planer benannt oder mit einer Notiz versehen hast, die Abbiegeliste: jede Abbiegung und jeder Punkt mit der Entfernung vom Start, ein Tipp auf eine Zeile schwenkt die Karte in deinem Zoom dorthin und ein Tipp auf einen Marker scrollt das Blatt zu dieser Zeile.
 
@@ -47,8 +48,7 @@ Die Aktionen:
 
 - **Im Planer öffnen** lädt sie mit all ihren Punkten in den Tab Planen, Zwischenpunkte samt Namen, Art und Notizen eingeschlossen, wo du sie bearbeiten und erneut speichern kannst. Eine importierte statt geplante Route öffnet sich mit der genauen Linie der Datei und Punkten nur an ihren Enden und an den Punkten der Datei, die auf dem Track liegen, die mit Art und Notiz mitkommen; eine Änderung berechnet nur die Abschnitte daneben neu, überall sonst bleibt die Linie der Datei. Die Linie der Datei bleibt bei der Route über jede Änderung und jedes Speichern hinweg, sodass **Wiederherstellen** im Planer sie zurückholen kann. Die Punkte abseits des Tracks kommen als Orte neben der Route mit, wo sie sich wie jeder andere Punkt benennen, mit einer Art versehen, auf die Route stellen oder entfernen lassen. Das nächste Speichern schreibt beide Mengen zurück, ein im Planer gelöschter Ort ist also auch von der Karte weg.
 - **Export** bietet **GPX-Route** und **FIT-Strecke**, siehe [Import und Export](./import-and-export).
-- **Senden** bietet **An Ride with GPS senden** und **An Strava senden**, siehe [Strava und Ride with GPS](./strava-and-ridewithgps).
-- **Link teilen** macht einen Link daraus, siehe [Teilen](./sharing).
+- **Teilen** öffnet die Teilen-Karte: ein **Link** zur Route, **Ride with GPS** und **Strava**, siehe [Teilen](./sharing) und [Strava und Ride with GPS](./strava-and-ridewithgps).
 - **Diese Route beschreiben** lässt den Assistenten einen Absatz darüber schreiben, siehe [Assistent](./assistant).
 
 ## Das Blatt einer Fahrt
@@ -102,9 +102,8 @@ Unter den Anstiegen ein Balken **Belag** wie im Blatt einer Route: wie viel der 
 
 ### Aktionen einer Fahrt
 
-- Die Wolken-Schaltfläche rechts in der Kopfzeile des Blatts lädt die Fahrt zu einem verbundenen Dienst hoch.
-- Das Menü daneben: **GPX-Track exportieren**, **FIT-Aktivität exportieren**, **Fahrt fortsetzen**, **Umbenennen**, **Löschen**.
-- Ganz unten: dieselben zwei Exporte und **Link teilen**.
+- Das Menü rechts in der Kopfzeile des Blatts: **GPX-Track exportieren**, **FIT-Aktivität exportieren**, **Fahrt fortsetzen**, **Umbenennen**, **Löschen**.
+- Ganz unten: dieselben zwei Exporte und **Teilen**, das die Teilen-Karte mit **Link**, **Ride with GPS** und **Strava** öffnet, siehe [Teilen](./sharing).
 
 ## Dateien und Routen hereinbekommen
 
@@ -114,6 +113,14 @@ Die beiden Schaltflächen rechts in der Kopfzeile des Blatts:
 - Die Wolken-Schaltfläche bietet **Aus Strava importieren** und **Aus Ride with GPS importieren**, sofern diese Dienste eingerichtet sind.
 
 Beides steht unter [Import und Export](./import-and-export) und [Strava und Ride with GPS](./strava-and-ridewithgps).
+
+## iCloud-Synchronisierung (iPhone und iPad)
+
+Auf einem iPhone oder iPad mit iOS 17 oder neuer werden deine gespeicherten Routen und aufgezeichneten Fahrten, mit Track, Notizen und Kennzahlen jeder Fahrt, zwischen deinen eigenen Geräten abgeglichen, die mit demselben Apple Account angemeldet sind, über deine iCloud. Einige Einstellungen kommen mit: Design, Akzentfarbe, Kartenstil, Leistenstil, Spaltenseite, Einheiten sowie die Einstellungen für Abbiege- und Sprachansagen. Velorki betreibt dafür keinen Server und kann das Gespeicherte nicht lesen; siehe die [Datenschutzerklärung](/privacy).
+
+Die Synchronisierung ist standardmäßig an. **Mit iCloud synchronisieren** in den Einstellungen schaltet sie auf diesem Gerät aus; was schon in iCloud liegt, bleibt dort, bis du es in den iCloud-Einstellungen des Geräts löschst. Eine Statuszeile in den Einstellungen zeigt den Stand: **Gerade synchronisiert**, **Synchronisiere …**, **iCloud ist auf diesem Gerät aus** oder **iCloud-Speicher ist voll**.
+
+Aus Strava gelesene Routen und daraus bearbeitete Routen bleiben auf dem Handy, ebenso die Strava-Links von Fahrten; auch Links von Uploads zu Ride with GPS werden nicht abgeglichen. Heruntergeladene Karten und Routing-Kacheln werden nicht abgeglichen. Die Android-App synchronisiert nicht.
 
 ## Weiterlesen
 

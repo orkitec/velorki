@@ -4,7 +4,7 @@
 // records `format=geojson`); `Double.toString`/`Float.toString` conversions
 // go through jfloat like FormatJson.
 
-import 'dart:io';
+import 'package:velorki_io/io.dart';
 
 import '../jfloat.dart';
 import '../jvm.dart';

@@ -1,10 +1,11 @@
-import 'dart:ui' show Rect;
-
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui' show Rect;
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/map/application/map_stops_controller.dart';
+import 'package:velorki/features/map/domain/stops_tiles.dart';
 import 'package:velorki_brouter/velorki_brouter.dart' show TileName;
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
@@ -12,12 +13,12 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 /// One question the controller asked, held until the test answers it.
 class _Ask {
-  _Ask(this.box, this.kinds, this.limit, {this.near});
+  _Ask(this.box, this.kinds, this.limit, {required this.ranked});
 
   final BoundingBox box;
-  final LatLng? near;
   final List<String> kinds;
   final int limit;
+  final bool ranked;
   final Completer<List<SearchResult>> answer = Completer<List<SearchResult>>();
 }
 
@@ -29,11 +30,35 @@ class _FakeStore {
     BoundingBox box,
     List<String> kinds,
     int limit, {
-    LatLng? near,
+    bool ranked = false,
   }) {
-    final ask = _Ask(box, kinds, limit, near: near);
+    final ask = _Ask(box, kinds, limit, ranked: ranked);
     asks.add(ask);
     return ask.answer.future;
+  }
+
+  /// Answers every question still open from [world]: the stops inside each
+  /// box, in [world]'s order, at most the limit asked for.
+  void answerAll(List<SearchResult> world) => answer(asks, world);
+
+  /// Answers those of [asks] still open from [world], as [answerAll] does.
+  static void answer(Iterable<_Ask> asks, List<SearchResult> world) {
+    for (final ask in asks) {
+      if (ask.answer.isCompleted) continue;
+      final box = ask.box;
+      ask.answer.complete(
+        world
+            .where(
+              (s) =>
+                  s.position.lat >= box.south &&
+                  s.position.lat <= box.north &&
+                  s.position.lon >= box.west &&
+                  s.position.lon <= box.east,
+            )
+            .take(ask.limit)
+            .toList(),
+      );
+    }
   }
 }
 
@@ -55,7 +80,26 @@ const BoundingBox _view = BoundingBox(
 
 void main() {
   group('in the area on screen', () {
-    test('asks once the camera has rested, for the bounds it rests on', () {
+    /// The squares the stops of [view] are loaded by at [zoom].
+    Set<BoundingBox> squares(BoundingBox view, double zoom) => <BoundingBox>{
+      for (final tile in tilesCovering(
+        grownBox(view, stopsAreaMargin),
+        stopsTileZoom(zoom),
+      ))
+        tile.box,
+    };
+
+    /// [view] moved [dLat] north and [dLon] east.
+    BoundingBox moved(BoundingBox view, double dLat, double dLon) =>
+        BoundingBox(
+          south: view.south + dLat,
+          west: view.west + dLon,
+          north: view.north + dLat,
+          east: view.east + dLon,
+        );
+
+    test('asks once the camera has rested, for each square of the grid '
+        'around the bounds it rests on', () {
       fakeAsync((async) {
         final store = _FakeStore();
         final map = FakeMapController()
@@ -73,53 +117,292 @@ void main() {
         async.elapse(const Duration(milliseconds: 100));
         expect(store.asks, isEmpty);
         async.elapse(const Duration(milliseconds: 260));
-        expect(store.asks, hasLength(1));
-        expect(store.asks.single.box, grownBox(_view, stopsAreaMargin));
-        expect(store.asks.single.kinds, <String>['cafe', 'drinking_water']);
-        expect(store.asks.single.limit, stopsAreaLimit);
+        expect(store.asks.map((a) => a.box).toSet(), squares(_view, 14));
+        expect(store.asks, hasLength(squares(_view, 14).length));
+        for (final ask in store.asks) {
+          expect(ask.kinds, <String>['cafe', 'drinking_water']);
+          expect(ask.limit, stopsTileSafetyLimit);
+          expect(ask.ranked, isTrue);
+        }
 
-        store.asks.single.answer.complete([
+        store.answerAll([
           _stop('Tap', const LatLng(48.01, 11.014)),
           _stop('Café', const LatLng(48.01, 11.02), kind: 'cafe'),
         ]);
         async.flushMicrotasks();
         expect(map.stops, hasLength(2));
-        expect(map.stops.first.kind, MapPoiKind.water);
-        expect(map.stops.last.kind, MapPoiKind.food);
-        expect(stops.stops.map((s) => s.name), <String>['Tap', 'Café']);
+        expect(
+          map.stops.map((s) => s.kind),
+          containsAll(<MapPoiKind>[MapPoiKind.water, MapPoiKind.food]),
+        );
+        expect(
+          stops.stops.map((s) => s.name),
+          containsAll(<String>['Tap', 'Café']),
+        );
+        // Each kind its own group, in the order the app knows them in.
+        expect(map.stopGroups, <String>['drinking_water', 'cafe']);
+        expect(
+          map.stops.map((s) => s.group),
+          containsAll(<String>['drinking_water', 'cafe']),
+        );
         stops.dispose();
       });
     });
 
-    test('a busy area draws every stop, nearest the middle first, and a '
-        'limit drops the far ones', () {
+    test('a square draws every stop of the kinds shown, a numerous kind '
+        'beside a rare one', () {
       fakeAsync((async) {
         final store = _FakeStore();
         final map = FakeMapController()
-          ..zoom = 12
-          ..center = const LatLng(48.0, 11.0)
+          ..zoom = 14
           ..visibleBounds = _view;
         final stops = MapStopsController(find: store.find)
-          ..update(shown: true, kinds: const {'cafe'})
+          ..update(shown: true, kinds: const {'bicycle_parking', 'restaurant'})
           ..attach(map);
         async.elapse(stopsDebounce * 2);
-        // Furthest first, so the order of the answer is not what is kept;
-        // more than the limit, as several gazetteers together can answer.
-        store.asks.single.answer.complete([
-          for (var i = stopsAreaLimit + 40; i > 0; i--)
-            // Outward from the middle of what is visible.
-            _stop('Café $i', LatLng(48.01 + i * 1e-5, 11.015), kind: 'cafe'),
+        store.answerAll(<SearchResult>[
+          for (var i = 0; i < 1000; i++)
+            _stop(
+              'Rack $i',
+              LatLng(48.005 + (i % 40) * 0.0002, 11.005 + (i ~/ 40) * 0.0002),
+              kind: 'bicycle_parking',
+            ),
+          for (var i = 0; i < 20; i++)
+            _stop(
+              'Restaurant $i',
+              LatLng(48.01, 11.01 + i * 0.0002),
+              kind: 'restaurant',
+            ),
         ]);
         async.flushMicrotasks();
-        expect(map.stops, hasLength(stopsAreaLimit));
-        expect(stops.stops.first.name, 'Café 1');
-        expect(stops.stops.last.name, 'Café $stopsAreaLimit');
+
+        int drawn(String kind) =>
+            map.stops.where((s) => s.group == kind).length;
+        expect(drawn('bicycle_parking'), 1000);
+        expect(drawn('restaurant'), 20);
         stops.dispose();
       });
     });
 
-    test('the stops are asked for around the part of the map the rider '
-        'sees, with a margin, and ranked from its middle', () {
+    test('a pathological area draws no more than the bound, the squares '
+        'on screen first', () {
+      fakeAsync((async) {
+        final onScreen = tilesCovering(_view, stopsTileZoom(14));
+        final margin = tilesCovering(
+          grownBox(_view, stopsAreaMargin),
+          stopsTileZoom(14),
+        ).difference(onScreen).toList()..sort();
+        // A square of the margin that comes before the ones on screen.
+        final early = margin.first.box;
+        expect(margin.first.compareTo(onScreen.reduce(_first)), isNegative);
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = 14
+          ..visibleBounds = _view;
+        final stops = MapStopsController(find: store.find)
+          ..update(shown: true, kinds: const {'bicycle_parking', 'restaurant'})
+          ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        final dLat = (early.north - early.south) / 210;
+        final dLon = (early.east - early.west) / 110;
+        store.answerAll(<SearchResult>[
+          for (var i = 0; i < stopsDrawSafetyLimit + 100; i++)
+            _stop(
+              'Rack $i',
+              LatLng(
+                early.south + (1 + i % 200) * dLat,
+                early.west + (1 + i ~/ 200) * dLon,
+              ),
+              kind: 'bicycle_parking',
+            ),
+          for (var i = 0; i < 20; i++)
+            _stop(
+              'Restaurant $i',
+              LatLng(48.01, 11.01 + i * 0.0002),
+              kind: 'restaurant',
+            ),
+        ]);
+        async.flushMicrotasks();
+
+        expect(map.stops, hasLength(stopsDrawSafetyLimit));
+        expect(map.stops.where((s) => s.group == 'restaurant'), hasLength(20));
+        stops.dispose();
+      });
+    });
+
+    test('a square holds the same stops wherever the camera stands', () {
+      fakeAsync((async) {
+        final world = <SearchResult>[
+          for (var i = 0; i < 250; i++)
+            _stop(
+              'Café $i',
+              LatLng(48.0 + (i % 20) * 0.001, 11.0 + (i ~/ 20) * 0.001),
+              kind: 'cafe',
+            ),
+        ];
+        List<SearchResult> seenFrom(BoundingBox view) {
+          final store = _FakeStore();
+          final map = FakeMapController()
+            ..zoom = 14
+            ..visibleBounds = view;
+          final stops = MapStopsController(find: store.find)
+            ..update(shown: true, kinds: const {'cafe'})
+            ..attach(map);
+          async.elapse(stopsDebounce * 2);
+          store.answerAll(world);
+          async.flushMicrotasks();
+          final drawn = stops.stops;
+          stops.dispose();
+          return drawn;
+        }
+
+        final square = tilesCovering(
+          const BoundingBox(
+            south: 48.01,
+            west: 11.01,
+            north: 48.01,
+            east: 11.01,
+          ),
+          13,
+        ).single.box;
+        bool inSquare(SearchResult s) =>
+            s.position.lat >= square.south &&
+            s.position.lat <= square.north &&
+            s.position.lon >= square.west &&
+            s.position.lon <= square.east;
+        final here = seenFrom(_view).where(inSquare).toList();
+        final there = seenFrom(moved(_view, 0.006, -0.009)).where(inSquare);
+        expect(here, isNotEmpty);
+        expect(here, hasLength(world.where(inSquare).length));
+        expect(there.toList(), here);
+      });
+    });
+
+    test('a pan inside the squares loaded leaves the map\'s stops as they '
+        'are; one beyond them loads the new squares only', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = 14.5
+          ..visibleBounds = _view;
+        final stops = MapStopsController(find: store.find)
+          ..update(shown: true, kinds: const {'drinking_water'})
+          ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        final world = <SearchResult>[
+          for (var i = 0; i < 40; i++)
+            _stop('Tap $i', LatLng(47.95 + i * 0.003, 10.95 + i * 0.004)),
+        ];
+        store.answerAll(world);
+        async.flushMicrotasks();
+        final writes = map.stopCalls.length;
+        final asked = store.asks.length;
+
+        // Small steps, as a finger nudges the map.
+        for (var i = 1; i <= 4; i++) {
+          map.visibleBounds = moved(_view, 0.0005 * i, 0.0008 * i);
+          map.emitCameraIdle();
+          async.elapse(stopsDebounce * 2);
+        }
+        expect(store.asks, hasLength(asked));
+        expect(map.stopCalls, hasLength(writes));
+
+        // Far enough east for new squares: only those are asked for.
+        final east = moved(_view, 0, 0.06);
+        map.visibleBounds = east;
+        map.emitCameraIdle();
+        async.elapse(stopsDebounce * 2);
+        final fresh = store.asks.skip(asked).map((a) => a.box).toSet();
+        expect(fresh, isNotEmpty);
+        expect(fresh.intersection(squares(_view, 14.5)), isEmpty);
+        expect(fresh, squares(east, 14.5).difference(squares(_view, 14.5)));
+        store.answerAll(world);
+        async.flushMicrotasks();
+        expect(map.stopCalls, hasLength(writes + 1));
+        stops.dispose();
+      });
+    });
+
+    test('squares within reach are kept, and those beyond it dropped', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = 14
+          ..visibleBounds = _view;
+        final stops = MapStopsController(find: store.find)
+          ..update(shown: true, kinds: const {'drinking_water'})
+          ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        // A tap in the westernmost squares loaded.
+        final west = squares(_view, 14).map((b) => b.west).reduce(math.min);
+        final tap = _stop('Far west', LatLng(48.01, west + 1e-4));
+        store.answerAll([tap]);
+        async.flushMicrotasks();
+        expect(stops.stops, <SearchResult>[tap]);
+
+        // Out of the margin, but within reach: kept.
+        final nudged = moved(_view, 0, 0.008);
+        expect(
+          squares(nudged, 14).any((b) => b.west <= tap.position.lon),
+          isFalse,
+        );
+        expect(
+          tilesCovering(
+            grownBox(nudged, stopsKeepMargin),
+            13,
+          ).any((t) => t.box.west <= tap.position.lon),
+          isTrue,
+        );
+        map.visibleBounds = nudged;
+        map.emitCameraIdle();
+        async.elapse(stopsDebounce * 2);
+        store.answerAll(const <SearchResult>[]);
+        async.flushMicrotasks();
+        expect(stops.stops, <SearchResult>[tap]);
+
+        // Far beyond: gone.
+        map.visibleBounds = moved(_view, 0, 0.2);
+        map.emitCameraIdle();
+        async.elapse(stopsDebounce * 2);
+        store.answerAll(const <SearchResult>[]);
+        async.flushMicrotasks();
+        expect(stops.stops, isEmpty);
+        stops.dispose();
+      });
+    });
+
+    test('a zoom across a whole level loads the grid of that zoom', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = 14.2
+          ..visibleBounds = _view;
+        final stops = MapStopsController(find: store.find)
+          ..update(shown: true, kinds: const {'drinking_water'})
+          ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        store.answerAll(const <SearchResult>[]);
+        async.flushMicrotasks();
+        final asked = store.asks.length;
+
+        // Within the level: nothing new.
+        map.zoom = 14.8;
+        map.emitCameraIdle();
+        async.elapse(stopsDebounce * 2);
+        expect(store.asks, hasLength(asked));
+
+        map.zoom = 12.5;
+        map.emitCameraIdle();
+        async.elapse(stopsDebounce * 2);
+        final coarser = store.asks.skip(asked).toList();
+        expect(coarser.map((a) => a.box).toSet(), squares(_view, 12.5));
+        expect(coarser.first.limit, stopsTileSafetyLimit);
+        stops.dispose();
+      });
+    });
+
+    test('the stops are loaded around the part of the map the rider sees, '
+        'with a margin', () {
       fakeAsync((async) {
         final store = _FakeStore();
         final map = FakeMapController()
@@ -141,27 +424,12 @@ void main() {
           north: 48.02,
           east: 11.03,
         );
-        void same(BoundingBox actual, BoundingBox expected) {
-          expect(actual.south, closeTo(expected.south, 1e-9));
-          expect(actual.west, closeTo(expected.west, 1e-9));
-          expect(actual.north, closeTo(expected.north, 1e-9));
-          expect(actual.east, closeTo(expected.east, 1e-9));
-        }
-
-        same(visiblePart(_view, const Rect.fromLTRB(0, 0, 1, 0.5)), upper);
-        same(store.asks.single.box, grownBox(upper, stopsAreaMargin));
-        // The limit keeps what is nearest the visible middle.
-        expect(store.asks.single.near, upper.center);
-
-        store.asks.single.answer.complete([
-          _stop('Under the sheet', const LatLng(48.002, 11.015), kind: 'cafe'),
-          _stop('In view', const LatLng(48.015, 11.016), kind: 'cafe'),
-        ]);
-        async.flushMicrotasks();
-        expect(stops.stops.map((s) => s.name), <String>[
-          'In view',
-          'Under the sheet',
-        ]);
+        final part = visiblePart(_view, const Rect.fromLTRB(0, 0, 1, 0.5));
+        expect(part.south, closeTo(upper.south, 1e-9));
+        expect(part.west, closeTo(upper.west, 1e-9));
+        expect(part.north, closeTo(upper.north, 1e-9));
+        expect(part.east, closeTo(upper.east, 1e-9));
+        expect(store.asks.map((a) => a.box).toSet(), squares(part, 14));
         stops.dispose();
       });
     });
@@ -173,8 +441,13 @@ void main() {
         final map = FakeMapController()
           ..zoom = 14
           ..center = const LatLng(48.01, 11.015)
-          ..visibleBounds = _view;
-        var covered = 0.5;
+          ..visibleBounds = const BoundingBox(
+            south: 47.9,
+            west: 11,
+            north: 48.02,
+            east: 11.03,
+          );
+        var covered = 0.9;
         final stops =
             MapStopsController(
                 find: store.find,
@@ -183,18 +456,25 @@ void main() {
               ..update(shown: true, kinds: const {'cafe'})
               ..attach(map);
         async.elapse(stopsDebounce * 2);
-        store.asks.single.answer.complete(const <SearchResult>[]);
+        store.answerAll(const <SearchResult>[]);
         async.flushMicrotasks();
+        final asked = store.asks.length;
 
         // Dragged down in steps: one question once it rests.
-        for (final share in [0.4, 0.3, 0.2]) {
+        for (final share in [0.6, 0.3, 0.1]) {
           covered = share;
           stops.visibleAreaChanged();
           async.elapse(const Duration(milliseconds: 50));
         }
         async.elapse(stopsDebounce * 2);
-        expect(store.asks, hasLength(2));
-        expect(store.asks.last.near!.lat, closeTo(48.012, 1e-9));
+        final fresh = store.asks.skip(asked).toList();
+        expect(fresh, isNotEmpty);
+        // Squares further south, under the sheet before, among them.
+        final southmost = store.asks
+            .take(asked)
+            .map((a) => a.box.south)
+            .reduce(math.min);
+        expect(fresh.any((a) => a.box.south < southmost), isTrue);
         stops.dispose();
       });
     });
@@ -212,8 +492,7 @@ void main() {
           ..update(shown: true, kinds: const {'cafe'})
           ..attach(map);
         async.elapse(stopsDebounce * 2);
-        expect(stops.needsZoom, isFalse);
-        expect(store.asks, hasLength(1));
+        expect(store.asks, isNotEmpty);
         stops.dispose();
       });
     });
@@ -229,7 +508,7 @@ void main() {
           ..update(shown: true, kinds: const {'cafe', 'ice_cream'})
           ..attach(map);
         async.elapse(stopsDebounce * 2);
-        store.asks.single.answer.complete([
+        store.answerAll([
           _stop('Mil Sabores', const LatLng(48.011, 11.015), kind: 'cafe'),
           _stop('Mil Sabores', const LatLng(48.011, 11.015), kind: 'ice_cream'),
           // The same name elsewhere is another place.
@@ -255,18 +534,18 @@ void main() {
           ..attach(map);
         async.elapse(stopsDebounce * 2);
         expect(store.asks, isEmpty);
-        expect(stops.needsZoom, isTrue);
+        expect(map.stops, isEmpty);
 
         map.zoom = stopsMinZoom;
         map.emitCameraIdle();
         async.elapse(stopsDebounce * 2);
-        expect(store.asks, hasLength(1));
-        expect(stops.needsZoom, isFalse);
+        expect(store.asks, isNotEmpty);
         stops.dispose();
       });
     });
 
-    test('an answer overtaken by a newer question is dropped', () {
+    test('an answer for squares panned away from before it came is not '
+        'drawn', () {
       fakeAsync((async) {
         final store = _FakeStore();
         final map = FakeMapController()
@@ -276,29 +555,58 @@ void main() {
           ..update(shown: true, kinds: const {'drinking_water'})
           ..attach(map);
         async.elapse(stopsDebounce * 2);
-        expect(store.asks, hasLength(1));
+        final first = List<_Ask>.of(store.asks);
 
-        // The rider pans on before the first answer is in.
-        map.visibleBounds = const BoundingBox(
-          south: 48.1,
-          west: 11.1,
-          north: 48.12,
-          east: 11.13,
-        );
+        // The rider pans far on before the first answer is in.
+        map.visibleBounds = moved(_view, 0.1, 0.1);
         map.emitCameraIdle();
         async.elapse(stopsDebounce * 2);
-        expect(store.asks, hasLength(2));
+        final second = store.asks.skip(first.length).toList();
+        expect(second, isNotEmpty);
 
-        store.asks[1].answer.complete([
+        final world = [
           _stop('New', const LatLng(48.11, 11.11)),
-        ]);
-        async.flushMicrotasks();
-        store.asks[0].answer.complete([
           _stop('Old', const LatLng(48.01, 11.01)),
-        ]);
+        ];
+        _FakeStore.answer(second, world);
+        async.flushMicrotasks();
+        _FakeStore.answer(first, world);
         async.flushMicrotasks();
 
         expect(map.stops.map((s) => s.name), <String>['New']);
+        stops.dispose();
+      });
+    });
+
+    test('an answer for other kinds than are now wanted is dropped', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = 14
+          ..visibleBounds = _view;
+        final stops = MapStopsController(find: store.find)
+          ..update(shown: true, kinds: const {'drinking_water'})
+          ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        final first = List<_Ask>.of(store.asks);
+        stops.update(shown: true, kinds: const {'cafe'});
+        async.elapse(stopsDebounce * 2);
+        final second = store.asks.skip(first.length).toList();
+        expect(second.first.kinds, <String>['cafe']);
+
+        _FakeStore.answer(second, [
+          _stop('Café', const LatLng(48.01, 11.01), kind: 'cafe'),
+        ]);
+        async.flushMicrotasks();
+        _FakeStore.answer(first, [_stop('Tap', const LatLng(48.01, 11.02))]);
+        async.flushMicrotasks();
+        expect(map.stops.map((s) => s.name), <String>['Café']);
+
+        // Nor is it kept for the squares: a pan inside them changes nothing.
+        map.visibleBounds = moved(_view, 0.001, 0.001);
+        map.emitCameraIdle();
+        async.elapse(stopsDebounce * 2);
+        expect(map.stops.map((s) => s.name), <String>['Café']);
         stops.dispose();
       });
     });
@@ -314,17 +622,16 @@ void main() {
           ..update(shown: true, kinds: const {'drinking_water'})
           ..attach(map);
         async.elapse(stopsDebounce * 2);
-        store.asks.single.answer.complete([
-          _stop('Tap', const LatLng(48.01, 11.014)),
-        ]);
+        store.answerAll([_stop('Tap', const LatLng(48.01, 11.014))]);
         async.flushMicrotasks();
         expect(map.stops, hasLength(1));
+        final asked = store.asks.length;
 
         map.zoom = stopsMinZoom - 1;
         map.emitCameraIdle();
         async.elapse(stopsDebounce * 2);
 
-        expect(store.asks, hasLength(1));
+        expect(store.asks, hasLength(asked));
         expect(map.stops, isEmpty);
         stops.dispose();
       });
@@ -342,9 +649,7 @@ void main() {
         async.elapse(stopsDebounce * 2);
 
         stops.update(shown: false, kinds: const {'drinking_water'});
-        store.asks.single.answer.complete([
-          _stop('Tap', const LatLng(48.01, 11.014)),
-        ]);
+        store.answerAll([_stop('Tap', const LatLng(48.01, 11.014))]);
         async.flushMicrotasks();
 
         expect(map.stops, isEmpty);
@@ -364,11 +669,10 @@ void main() {
           ..update(shown: true, kinds: const {'drinking_water'})
           ..attach(map);
         async.elapse(stopsDebounce * 2);
-        store.asks.single.answer.complete([
-          _stop('Tap', const LatLng(48.01, 11.014)),
-        ]);
+        store.answerAll([_stop('Tap', const LatLng(48.01, 11.014))]);
         async.flushMicrotasks();
         expect(map.onStopTapped, isNotNull);
+        final asked = store.asks.length;
 
         stops.detach();
         async.flushMicrotasks();
@@ -378,7 +682,7 @@ void main() {
         expect(map.onStopTapped, isNull);
         map.emitCameraIdle();
         async.elapse(stopsDebounce * 2);
-        expect(store.asks, hasLength(1));
+        expect(store.asks, hasLength(asked));
         stops.dispose();
       });
     });
@@ -397,7 +701,7 @@ void main() {
           ..attach(map);
         async.elapse(stopsDebounce * 2);
         final tap = _stop('Tap', const LatLng(48.01, 11.01));
-        store.asks.single.answer.complete([tap]);
+        store.answerAll([tap]);
         async.flushMicrotasks();
 
         map.emitStopTapped(0);
@@ -489,6 +793,104 @@ void main() {
         expect(stops.stops.map((s) => s.name), <String>['Tap', 'Tap 2']);
         stops.dispose();
       });
+    });
+
+    test('a stretch asks for every stop of the kinds shown, the kinds '
+        'taking turns should it reach the bound', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final stops = MapStopsController(find: store.find)
+          ..update(
+            shown: true,
+            kinds: const {'cafe', 'bicycle_parking'},
+            routeKey: 'r1',
+            routeLine: line,
+          )
+          ..attach(FakeMapController());
+        async.flushMicrotasks();
+        expect(store.asks, isNotEmpty);
+        for (final ask in store.asks) {
+          expect(ask.limit, stopsChunkSafetyLimit);
+          expect(ask.ranked, isTrue);
+        }
+        stops.dispose();
+      });
+    });
+
+    test('a stretch with a thousand bike racks still shows its cafés', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController();
+        final stops = MapStopsController(find: store.find)
+          ..update(
+            shown: true,
+            kinds: const {'cafe', 'bicycle_parking'},
+            routeKey: 'r1',
+            routeLine: line,
+          )
+          ..attach(map);
+        async.flushMicrotasks();
+        // The racks come first in the file, so a capped answer would hold
+        // nothing else.
+        store.answerAll(<SearchResult>[
+          for (var i = 0; i < 1000; i++)
+            _stop('Rack $i', beside(1 + i * 0.002), kind: 'bicycle_parking'),
+          for (var i = 0; i < 20; i++)
+            _stop('Café $i', beside(1.5 + i * 0.1), kind: 'cafe'),
+        ]);
+        async.flushMicrotasks();
+
+        int drawn(String kind) =>
+            map.stops.where((s) => s.group == kind).length;
+        expect(drawn('cafe'), 20);
+        expect(drawn('bicycle_parking'), 1000);
+        expect(
+          stops.nextPerKind().map((s) => s.stop.detail),
+          containsAll(<String>['cafe', 'bicycle_parking']),
+        );
+        stops.dispose();
+      });
+    });
+
+    test('the same route and stops give the same stops, in whatever order '
+        'the stretches answer', () {
+      final world = <SearchResult>[
+        for (var i = 0; i < 300; i++)
+          _stop(
+            'Stop $i',
+            beside(0.5 + i * 0.15),
+            kind: i.isEven ? 'cafe' : 'drinking_water',
+          ),
+      ];
+      List<String> run({required bool reversed}) {
+        late List<String> names;
+        fakeAsync((async) {
+          final store = _FakeStore();
+          final stops = MapStopsController(find: store.find)
+            ..update(
+              shown: true,
+              kinds: const {'cafe', 'drinking_water'},
+              routeKey: 'r1',
+              routeLine: line,
+            )
+            ..attach(FakeMapController());
+          async.flushMicrotasks();
+          _FakeStore.answer(reversed ? store.asks.reversed : store.asks, world);
+          async.flushMicrotasks();
+          names = <String>[for (final s in stops.stops) s.name];
+          stops.dispose();
+        });
+        return names;
+      }
+
+      final first = run(reversed: false);
+      // Every stop within the fifty kilometres ahead, none capped away.
+      expect(
+        first,
+        hasLength(world.where((s) => s.position.lon <= beside(50).lon).length),
+      );
+      expect(run(reversed: true), first);
+      expect(run(reversed: false), first);
     });
 
     test('a new route asks again and drops the old route\'s answer', () {
@@ -586,7 +988,6 @@ void main() {
         expect(stops.needsDownload, isTrue);
         // The chip speaks of the tile under the middle.
         expect(stops.missingArea, const TileName(10, 45));
-        expect(stops.needsZoom, isFalse);
         final asked = store.asks.length;
 
         // The download finished and the store re-scanned.
@@ -596,7 +997,7 @@ void main() {
         expect(stops.missingArea, isNull);
         expect(told, greaterThan(0));
         async.elapse(stopsDebounce * 2);
-        expect(store.asks.length, asked + 1);
+        expect(store.asks.length, greaterThan(asked));
         stops.dispose();
       });
     });
@@ -636,8 +1037,8 @@ void main() {
       },
     );
 
-    test('zoomed out over an uncovered area, the download wins over the '
-        'zoom', () {
+    test('zoomed out over an uncovered area, the download is still '
+        'offered', () {
       fakeAsync((async) {
         final store = _FakeStore();
         final map = FakeMapController()
@@ -652,7 +1053,6 @@ void main() {
               ..update(shown: true, kinds: const {'cafe'})
               ..attach(map);
         async.elapse(stopsDebounce * 2);
-        expect(stops.needsZoom, isTrue);
         expect(stops.needsDownload, isTrue);
         stops.dispose();
       });
@@ -725,3 +1125,5 @@ void main() {
     });
   });
 }
+
+StopsTile _first(StopsTile a, StopsTile b) => a.compareTo(b) <= 0 ? a : b;

@@ -152,6 +152,7 @@ class WeatherMapSource {
     this.forecastMinutes = 0,
     this.opacity,
     this.nativeMetresPerPixel = 2000,
+    this.cloudLuminance = defaultCloudLuminance,
     this.imageUrlTemplate,
     this.enabled = true,
     this.role = RainRole.radar,
@@ -257,6 +258,12 @@ class WeatherMapSource {
   /// not the screen's, so the service sends what it has and the map
   /// smooths it, instead of the service blowing its pixels up into blocks.
   final double nativeMetresPerPixel;
+
+  /// For clouds, the luminance (0..255) of the service's grey at and below
+  /// which a pixel is clear, and at and above which it is full cloud. Each
+  /// satellite's service draws the same cold in its own grey, so each has
+  /// its own: the same cloud comes out the same on either side of a seam.
+  final ({double clear, double full}) cloudLuminance;
 
   /// A radar's request for one image of a box, for the soft look: like
   /// [urlTemplate], with `{bbox-epsg-3857}`, `{width}` and `{height}` to
@@ -560,6 +567,7 @@ class WeatherMapSource {
     String? attribution,
     double? opacity,
     double? nativeMetresPerPixel,
+    ({double clear, double full})? cloudLuminance,
     String? imageUrlTemplate,
     bool? enabled,
     RainRole? role,
@@ -581,6 +589,7 @@ class WeatherMapSource {
     attribution: attribution ?? this.attribution,
     opacity: opacity ?? this.opacity,
     nativeMetresPerPixel: nativeMetresPerPixel ?? this.nativeMetresPerPixel,
+    cloudLuminance: cloudLuminance ?? this.cloudLuminance,
     imageUrlTemplate: imageUrlTemplate ?? this.imageUrlTemplate,
     enabled: enabled ?? this.enabled,
     role: role ?? this.role,
@@ -608,6 +617,7 @@ class WeatherMapSource {
       other.attribution == attribution &&
       other.opacity == opacity &&
       other.nativeMetresPerPixel == nativeMetresPerPixel &&
+      other.cloudLuminance == cloudLuminance &&
       other.imageUrlTemplate == imageUrlTemplate &&
       other.enabled == enabled &&
       other.role == role &&
@@ -637,7 +647,12 @@ class WeatherMapSource {
     enabled,
     role,
     palette,
-    Object.hash(identityHashCode(reach), identityHashCode(extent), timesUrl),
+    Object.hash(
+      identityHashCode(reach),
+      identityHashCode(extent),
+      timesUrl,
+      cloudLuminance,
+    ),
   );
 
   @override
@@ -792,6 +807,13 @@ String tileBboxEpsg3857(int x, int y, int zoom) {
   String f(double v) => v.toStringAsFixed(6);
   return '${f(minX)},${f(maxY - size)},${f(minX + size)},${f(maxY)}';
 }
+
+/// The GOES images' clear and full-cloud luminance, every cloud source's
+/// unless it names its own ([WeatherMapSource.cloudLuminance]).
+const ({double clear, double full}) defaultCloudLuminance = (
+  clear: 110,
+  full: 220,
+);
 
 /// How many Web Mercator metres one pixel of a cloud image spans.
 const double cloudMetresPerPixel = 3000;
@@ -1161,6 +1183,33 @@ bool safeImageBox(BoundingBox b) {
   return width >= weatherImageMinSpan &&
       width <= weatherImageMaxLonSpan &&
       height >= weatherImageMinSpan;
+}
+
+// MapLibre also misdraws an image whose box ends on the antimeridian: with
+// a copy of the world beside the one in view (zoomed out further than the
+// map is wide, as sideways it can be), the image of 165° to 180° east was
+// smeared westward over the Pacific in streaks, each of its rows stretched
+// across tens of degrees. Pulled in from ±180° by a hair, it is drawn where
+// it belongs. The image itself is unchanged; the strip it loses is
+// [weatherImageAntimeridianInset] wide, about eleven metres at the equator,
+// far under a pixel at any zoom the image is drawn at.
+
+/// How far an image's box is pulled in from the antimeridian before it is
+/// drawn ([drawnImageBox]), in degrees.
+const double weatherImageAntimeridianInset = 1e-4;
+
+/// [b] as an image source is put on the map: a west edge on −180° or an
+/// east edge on +180° pulled in by [weatherImageAntimeridianInset] (see
+/// above), the rest as it is.
+BoundingBox drawnImageBox(BoundingBox b) {
+  const edge = 180 - weatherImageAntimeridianInset;
+  if (b.west > -edge && b.east < edge) return b;
+  return _box(
+    math.max(b.west, -edge),
+    b.south,
+    math.min(b.east, edge),
+    b.north,
+  );
 }
 
 /// The areas the rain's images of [view] at [zoom] are asked for: the
@@ -2998,6 +3047,12 @@ final WeatherMapSource eumetsatClouds = WeatherMapSource(
   // The high-resolution fast imagery samples its 10.5 µm channel every
   // kilometre.
   nativeMetresPerPixel: 1000,
+  // Meteosat's grey is far darker than GOES' for the same cold: matched
+  // pixel by pixel where the two overlap over the Atlantic, GOES' clear
+  // threshold (110) is about 30 here, and the cold at which GOES turns to
+  // its colour scale, full cloud there, about 128. With GOES' window the
+  // clouds over Europe came out a fraction of those over America.
+  cloudLuminance: (clear: 30, full: 128),
   attribution: 'Clouds: Contains modified EUMETSAT Meteosat data {year}',
   timesUrl: _eumetsatTimesUrl('mtg_fd', 'ir105_hrfi'),
 );

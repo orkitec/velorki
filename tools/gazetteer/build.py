@@ -47,6 +47,20 @@ from translit import SEARCH_SCRIPT, index_text  # noqa: E402
 
 SCHEMA_VERSION = 1
 
+
+def build_time() -> str:
+    """The `built_at` meta value: SOURCE_DATE_EPOCH when it is set, else now.
+
+    The file's bytes otherwise depend only on its inputs, so a fixed epoch makes
+    a rebuild of the same extracts byte-identical and a checksum means "changed".
+    """
+    epoch = os.environ.get("SOURCE_DATE_EPOCH")
+    moment = (
+        datetime.fromtimestamp(int(epoch), timezone.utc) if epoch else datetime.now(timezone.utc)
+    )
+    return moment.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 TILE_SIZE_DEG = 5
 
 # Coordinates are stored as integers in 1e-7 degrees: half the bytes of a
@@ -1380,7 +1394,7 @@ def main() -> int:
 
     started = time.monotonic()
     source = args.source or os.path.basename(args.pbf)
-    built_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    built_at = build_time()
     wanted = set(args.tiles.split(",")) if args.tiles else None
     os.makedirs(args.out, exist_ok=True)
 

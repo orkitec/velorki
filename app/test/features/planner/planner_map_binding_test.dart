@@ -250,6 +250,72 @@ void main() {
     expect(gated.lines, isEmpty, reason: 'nothing drawn after the detach');
   });
 
+  group('a sync held up at the map', () {
+    const plan = [
+      Waypoint(pos: _a, kind: WaypointKind.start),
+      Waypoint(pos: _b, kind: WaypointKind.end),
+    ];
+    final loaded = syntheticRoute(startLat: 47.0);
+    final variants = [
+      for (final i in [0, 1, 2]) syntheticRoute(startLat: 48.0 + i),
+    ];
+
+    test('does not undo the plan synced after it', () async {
+      final gated = _GatedMapController();
+      final owned = PlannerMapBinding(
+        map: gated,
+        planner: container.read(plannerControllerProvider.notifier),
+      )..attach();
+      await owned.sync(const PlannerState());
+
+      // The plan with its variants, the second chosen: its sync waits for
+      // the map...
+      gated.gate = Completer<void>();
+      final held = owned.sync(
+        PlannerState(
+          waypoints: plan,
+          route: AsyncData(variants[1]),
+          alternatives: variants,
+          options: const RoutingOptions(alternativeIdx: 1),
+        ),
+      );
+      final gate = gated.gate!;
+      gated.gate = null;
+      // ...while the plan is cleared and a saved route loaded.
+      await owned.sync(const PlannerState());
+      await owned.sync(PlannerState(waypoints: plan, route: AsyncData(loaded)));
+      expect(gated.lines.keys, [mainRouteLineId]);
+
+      gate.complete();
+      await held;
+      expect(gated.lines.keys, [mainRouteLineId]);
+      expect(gated.lines[mainRouteLineId], loaded.positions);
+    });
+
+    test('leaves the camera to the route loaded after it', () async {
+      final gated = _GatedMapController();
+      final owned = PlannerMapBinding(
+        map: gated,
+        planner: container.read(plannerControllerProvider.notifier),
+      )..attach();
+      await owned.sync(
+        PlannerState(waypoints: plan, route: AsyncData(variants[0])),
+      );
+
+      // The plan is cleared, its sync waiting for the map, and a saved
+      // route loaded: a route that appeared at once.
+      gated.gate = Completer<void>();
+      final held = owned.sync(const PlannerState());
+      final gate = gated.gate!;
+      gated.gate = null;
+      await owned.sync(PlannerState(waypoints: plan, route: AsyncData(loaded)));
+      gate.complete();
+      await held;
+
+      expect(gated.fittedBounds, BoundingBox.fromPoints(loaded.positions));
+    });
+  });
+
   testWidgets('the plan\'s places are drawn with their kind icon and go '
       'when the tab leaves the map', (tester) async {
     map.onTap!(_a);

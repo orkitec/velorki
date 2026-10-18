@@ -12,6 +12,7 @@ import '../../../features/navigation/domain/voice_option.dart';
 import '../../../features/navigation/presentation/voice_labels.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../navigation/presentation/navigation_toggles.dart';
+import '../../shared/presentation/wide_panel.dart';
 import 'voice_picker_screen.dart';
 
 /// Settings → Navigation: the turn directions, whether they are spoken, how
@@ -39,7 +40,7 @@ class NavigationSection extends ConsumerWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: settings.turns && settings.voice
               ? () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
+                  ColumnPageRoute<void>(
                     builder: (_) => const VoicePickerScreen(),
                   ),
                 )
