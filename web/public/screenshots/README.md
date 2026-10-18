@@ -53,15 +53,19 @@ language is only worth taking for the figures the phone sends it.
 ## The browser slot
 
 ```
-public/screenshots/web/planner-light.webp
+public/screenshots/web/planner-<mode>.webp
 ```
 
-One file, outside the grid and not written by the pipeline: the web planner
-(`app/web`, built with `flutter build web`) in a 1440 × 900 Chrome window at
-twice the density, light, with a route along Madeira's coast, as the landing
-page's web planner section shows it. Taken by hand from `app/build/web` served
-with `app/tool/web_serve.py`, resized to 1600 × 1000 and saved as WebP
-(quality 86). Shown only where `NEXT_PUBLIC_PLANNER_URL` is set.
+Two files, outside the grid and not written by the pipeline: the web planner
+in a 1440 × 900 Chrome window at twice the density, `light` and `dark` (the
+app's own theme, the map look on Automatic), with the same route along
+Madeira's coast (Funchal to Caniço, Touring, coloured by gradient) in the
+same framing, as the landing page's web planner section shows it. The section
+swaps them as the phone frames swap theirs (`WebPlannerShot`, through
+`useAppearance`). Taken by hand from https://app.velorki.com (or `app/build/web`
+served with `app/tool/web_serve.py`), both from the same build, resized to
+1600 × 1000 and saved as WebP (quality 86). Shown only where
+`NEXT_PUBLIC_PLANNER_URL` is set.
 
 ## Format
 

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -10,6 +9,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { PhoneFrame } from '@/components/PhoneFrame';
 import { StoreBadges } from '@/components/StoreBadges';
 import { WatchMock } from '@/components/WatchMock';
+import { WebPlannerShot } from '@/components/WebPlannerShot';
 import { routing } from '@/i18n/routing';
 import { GITHUB_URL, PLANNER_URL } from '@/site/config';
 import { faqJsonLd } from '@/site/jsonld';
@@ -98,9 +98,6 @@ const COMPARISON: ReadonlyArray<{ id: string; free: boolean }> = [
 const WEB_DOES = ['routing', 'elevation', 'maps', 'library'] as const;
 const WEB_DOESNT = ['ride', 'offline', 'connections'] as const;
 
-/** A capture of the planner in a 1440 × 900 browser window (light, Madeira), from app/build/web. */
-const WEB_SHOT = { src: '/screenshots/web/planner-light.webp', width: 1600, height: 1000 };
-
 const FAQ_IDS = ['account', 'offline', 'price', 'plus', 'data', 'osm', 'opensource', 'selfhost'] as const;
 
 export function generateStaticParams() {
@@ -164,10 +161,13 @@ function Hero({ locale }: { locale: string }) {
           </div>
           <StoreBadges className="mt-10" />
           {/* The web planner, where one is deployed: a quiet line under the
-              badges, not a third call to action beside them. */}
+              badges, not a third call to action beside them. It goes to the
+              section below, which says what the planner does and leaves the
+              opening of it to its own button; the scroll is the page's own
+              (smooth unless reduced motion is asked for, clear of the header). */}
           {PLANNER_URL ? (
             <p className="mt-5 text-sm">
-              <a href={PLANNER_URL} className="link-accent font-bold">
+              <a href="#web-planner" className="link-accent font-bold">
                 {t('browserLink')} →
               </a>
             </p>
@@ -548,14 +548,7 @@ function WebPlanner({ locale }: { locale: string }) {
           </p>
         </div>
         <div className="panel overflow-hidden p-0">
-          <Image
-            src={WEB_SHOT.src}
-            alt={t('alt')}
-            width={WEB_SHOT.width}
-            height={WEB_SHOT.height}
-            sizes="(min-width: 1024px) 600px, 100vw"
-            className="block h-auto w-full"
-          />
+          <WebPlannerShot alt={t('alt')} />
         </div>
       </div>
     </section>

@@ -11,7 +11,7 @@ environment:
 
 dependencies:
   # zlib in the browser, which has no dart:io one.
-  archive: ^4.2.0
+  archive: ^4.5.2
   path: ^1.9.0
 
 dev_dependencies:
