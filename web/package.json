@@ -22,14 +22,14 @@
     "locales": "node scripts/gen-locales.mjs"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^3.0.67",
+    "@ai-sdk/openai-compatible": "^3.0.68",
     "@orkify/cache": "^1.0.0",
     "@orkify/chat": "^1.0.0",
     "@orkify/next": "^1.0.0",
-    "ai": "^7.0.137",
+    "ai": "^7.0.140",
     "geotiff": "^3.0.5",
     "gray-matter": "^4.0.3",
-    "maplibre-gl": "^6.13.0",
+    "maplibre-gl": "^6.14.0",
     "next": "^16.3.8",
     "next-intl": "^4.14.9",
     "pino": "^10.4.0",
@@ -43,7 +43,7 @@
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
     "unified": "^11.0.5",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -55,11 +55,11 @@
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.8",
-    "postcss": "^8.5.29",
+    "postcss": "^8.5.30",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.71.1",
-    "vitest": "^5.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.4",
     "yaml": "^2.9.1"
   },
   "overrides": {
