@@ -66,10 +66,9 @@ void main() {
 
   test('on by default: the library waiting is handed over', () async {
     await db.routesDao.upsertRoute(fullRoute('r1'));
-    final container = await launch();
+    await launch();
     expect(bridge.started, isTrue);
     expect(bridge.pendingSaves, {'route_r1'});
-    expect(container.read(cloudSyncNoticeProvider), isTrue);
   });
 
   test('says what the engine says', () async {

@@ -170,4 +170,31 @@ void main() {
       await expectMarked('ride', 'ride2');
     });
   });
+
+  test('the count of waiting changes hears of every route and ride write, '
+      'though only the triggers write it', () async {
+    final counts = <int>[];
+    final sub = db.syncDao.watchDirtyCount().listen(counts.add);
+    addTearDown(sub.cancel);
+
+    Future<void> expectNewCount(Future<void> Function() write, int n) async {
+      await settle();
+      await pumpEventQueue();
+      counts.clear();
+      await write();
+      await pumpEventQueue();
+      expect(counts, isNotEmpty, reason: 'a write is heard of');
+      expect(counts.last, n);
+    }
+
+    await expectNewCount(() => db.routesDao.upsertRoute(fullRoute('r1')), 1);
+    await expectNewCount(() => routes.rename('r1', 'Renamed'), 1);
+    await expectNewCount(
+      () => db.ridesDao.upsertRide(fullRide('ride1', routeId: 'r1')),
+      1,
+    );
+    await expectNewCount(() => rides.rename('ride1', 'Renamed ride'), 1);
+    // The route's tombstone and the ride that lost its link.
+    await expectNewCount(() => routes.delete('r1'), 2);
+  });
 }

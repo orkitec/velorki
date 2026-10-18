@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:drift/drift.dart' show Value, driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/db/database.dart';
+import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/sync/application/library_sync.dart';
 import 'package:velorki/features/sync/data/record_codec.dart';
 
@@ -360,4 +361,38 @@ void main() {
     await pad.syncNow();
     expect((await pad.db.ridesDao.allRides()).length, 120);
   });
+
+  test(
+    'a local edit after start is sent without a restart, and once',
+    () async {
+      await phone.db.routesDao.upsertRoute(fullRoute('r1'));
+      await phone.syncNow();
+      expect(phone.bridge.pendingSaves, isEmpty);
+
+      phone.sync.start();
+      addTearDown(phone.sync.stop);
+      await pumpEventQueue();
+
+      await RouteRepository(phone.db.routesDao).rename('r1', 'Renamed');
+      // The push waits out a burst of writes (two seconds).
+      await _until(() => phone.bridge.pendingSaves.contains('route_r1'));
+
+      await phone.bridge.sync();
+      expect(cloud.fields('route_r1')!['name'], 'Renamed');
+      expect(await phone.db.syncDao.dirtyRecords(), isEmpty);
+
+      // What the send wrote to sync_records does not send it again.
+      await Future<void>.delayed(const Duration(milliseconds: 2500));
+      expect(phone.bridge.pendingSaves, isEmpty);
+    },
+  );
+}
+
+/// Waits up to five seconds for [done].
+Future<void> _until(bool Function() done) async {
+  final until = DateTime.now().add(const Duration(seconds: 5));
+  while (!done()) {
+    if (DateTime.now().isAfter(until)) fail('timed out');
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+  }
 }

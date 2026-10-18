@@ -1242,7 +1242,5 @@
   "cloudSyncQuota": "De iCloud-opslag is vol",
   "cloudSyncOffline": "Wacht op een verbinding",
   "cloudSyncFailed": "Synchroniseren mislukt, wordt opnieuw geprobeerd",
-  "cloudSyncHint": "Je routes, ritten en een paar instellingen op elke iPhone en iPad met je Apple Account. Routes van Strava blijven op dit apparaat",
-  "cloudSyncNotice": "Je routes en ritten worden nu via iCloud gesynchroniseerd tussen je iPhone en iPad",
-  "cloudSyncNoticeAction": "Instellingen"
+  "cloudSyncHint": "Je routes, ritten en een paar instellingen op elke iPhone en iPad met je Apple Account. Routes van Strava blijven op dit apparaat"
 }

@@ -19,7 +19,6 @@ import 'package:velorki/features/sync/presentation/cloud_sync_section.dart';
 import '../../support/app.dart';
 import '../planner/support/pump.dart';
 import 'support/fake_cloud.dart';
-import 'support/rows.dart';
 
 /// Lets the controller start the engine: its steps run partly in the
 /// test's fake time, partly on the database's real one.
@@ -234,67 +233,6 @@ void main() {
       );
       expect(find.text(l10n.cloudSyncTitle), findsOneWidget);
       await unmountApp(tester);
-    });
-  });
-
-  group('the one-time notice', () {
-    /// Switches sync off and lets it stop before the app goes.
-    Future<void> shutDown(WidgetTester tester) async {
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(Navigator).first),
-      );
-      await container
-          .read(cloudSyncEnabledProvider.notifier)
-          .set(enabled: false);
-      await settleSync(tester);
-      await unmountApp(tester);
-    }
-
-    Future<PlannerHarness> launch(
-      WidgetTester tester, {
-      required bool withLibrary,
-      PlannerHarness? harness,
-    }) async {
-      final h = harness ?? PlannerHarness();
-      if (withLibrary) await h.db.routesDao.upsertRoute(fullRoute('r1'));
-      await pumpApp(tester, harness: h, extraOverrides: syncOverrides());
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(Navigator).first),
-      );
-      // What bootstrap does at launch.
-      final listening = container.listen(
-        cloudSyncControllerProvider,
-        (_, _) {},
-      );
-      addTearDown(listening.close);
-      await settleSync(tester);
-      return h;
-    }
-
-    testWidgets('tells a rider with a library, and leads to Settings', (
-      tester,
-    ) async {
-      await launch(tester, withLibrary: true);
-      expect(bridge.started, isTrue);
-      expect(find.text(l10n.cloudSyncNotice), findsOneWidget);
-
-      await tester.pump(const Duration(seconds: 1));
-      await tester.tap(
-        find.descendant(
-          of: find.byType(SnackBarAction),
-          matching: find.text(l10n.cloudSyncNoticeAction),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(SettingsScreen), findsOneWidget);
-      await shutDown(tester);
-    });
-
-    testWidgets('says nothing to a rider who has nothing yet', (tester) async {
-      await launch(tester, withLibrary: false);
-      expect(bridge.started, isTrue);
-      expect(find.text(l10n.cloudSyncNotice), findsNothing);
-      await shutDown(tester);
     });
   });
 }

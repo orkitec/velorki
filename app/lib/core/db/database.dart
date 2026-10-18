@@ -39,6 +39,20 @@ class VelorkiDatabase extends _$VelorkiDatabase {
   @override
   int get schemaVersion => 11;
 
+  /// The generated rules, and that a write to `routes` or `rides` is a write
+  /// to `sync_records`: the triggers of [createSyncTriggers] keep it, out
+  /// of drift's sight, and without this a stream over it (the dirty count
+  /// the sync pushes on) would not hear of a local edit.
+  @override
+  late final StreamQueryUpdateRules streamUpdateRules = StreamQueryUpdateRules([
+    ...super.streamUpdateRules.rules,
+    for (final table in const ['routes', 'rides'])
+      WritePropagation(
+        on: TableUpdateQuery.onTableName(table),
+        result: const [TableUpdate('sync_records', kind: UpdateKind.update)],
+      ),
+  ]);
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {

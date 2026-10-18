@@ -6369,13 +6369,5 @@
   "cloudSyncHint": "Your routes, rides and a few settings on every iPhone and iPad signed in to your Apple Account. Routes from Strava stay on this device",
   "@cloudSyncHint": {
     "description": "Explanation below the iCloud switch"
-  },
-  "cloudSyncNotice": "Your routes and rides now sync across your iPhone and iPad through iCloud",
-  "@cloudSyncNotice": {
-    "description": "One-time snack bar after the update that brought iCloud sync, for riders who already had routes or rides"
-  },
-  "cloudSyncNoticeAction": "Settings",
-  "@cloudSyncNoticeAction": {
-    "description": "Action of the iCloud sync snack bar that opens Settings"
   }
 }

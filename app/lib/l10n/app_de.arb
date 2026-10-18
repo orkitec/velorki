@@ -1242,7 +1242,5 @@
   "cloudSyncQuota": "Der iCloud-Speicher ist voll",
   "cloudSyncOffline": "Wartet auf eine Verbindung",
   "cloudSyncFailed": "Synchronisierung fehlgeschlagen, wird erneut versucht",
-  "cloudSyncHint": "Deine Routen, Fahrten und einige Einstellungen auf jedem iPhone und iPad mit deinem Apple Account. Routen von Strava bleiben auf diesem Gerät",
-  "cloudSyncNotice": "Deine Routen und Fahrten werden jetzt über iCloud zwischen iPhone und iPad synchronisiert",
-  "cloudSyncNoticeAction": "Optionen"
+  "cloudSyncHint": "Deine Routen, Fahrten und einige Einstellungen auf jedem iPhone und iPad mit deinem Apple Account. Routen von Strava bleiben auf diesem Gerät"
 }

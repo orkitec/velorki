@@ -1242,7 +1242,5 @@
   "cloudSyncQuota": "Le stockage iCloud est plein",
   "cloudSyncOffline": "En attente d’une connexion",
   "cloudSyncFailed": "Échec de la synchronisation, nouvel essai plus tard",
-  "cloudSyncHint": "Tes itinéraires, sorties et quelques réglages sur chaque iPhone et iPad connecté à ton compte Apple. Les itinéraires venant de Strava restent sur cet appareil",
-  "cloudSyncNotice": "Tes itinéraires et sorties se synchronisent désormais entre ton iPhone et ton iPad via iCloud",
-  "cloudSyncNoticeAction": "Réglages"
+  "cloudSyncHint": "Tes itinéraires, sorties et quelques réglages sur chaque iPhone et iPad connecté à ton compte Apple. Les itinéraires venant de Strava restent sur cet appareil"
 }

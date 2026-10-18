@@ -24,7 +24,6 @@ part 'cloud_sync_controller.g.dart';
 final Logger _log = Logger('velorki.sync');
 
 const String _prefsEnabled = 'sync.icloud';
-const String _prefsNoticeDone = 'sync.icloud.notice_done';
 
 /// Whether this device can sync with iCloud at all: iOS 17 or later. The
 /// setting is not shown anywhere else.
@@ -51,19 +50,6 @@ class CloudSyncEnabled extends _$CloudSyncEnabled {
     state = enabled;
     await ref.read(sharedPreferencesProvider).setBool(_prefsEnabled, enabled);
   }
-}
-
-/// The one-time note for a rider whose library was there before sync
-/// came: true while it is to be shown.
-@Riverpod(keepAlive: true)
-class CloudSyncNotice extends _$CloudSyncNotice {
-  @override
-  bool build() => false;
-
-  /// Shown, never again.
-  void dismiss() => state = false;
-
-  void _show() => state = true;
 }
 
 /// Runs iCloud sync while it is supported and switched on, and says where
@@ -114,7 +100,6 @@ class CloudSyncController extends _$CloudSyncController
     bridge.setHandler(this);
     _status = bridge.status.listen((s) => state = s);
     await bridge.start();
-    await _maybeShowNotice(db);
     await settings.start();
     _listenToSettings();
     library.start();
@@ -139,18 +124,6 @@ class CloudSyncController extends _$CloudSyncController
     _settings = null;
     bridge.setHandler(null);
     await bridge.stop();
-  }
-
-  /// A rider who had routes or rides before this version is told once that
-  /// they sync now; a new rider simply finds it on.
-  Future<void> _maybeShowNotice(VelorkiDatabase db) async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    if (prefs.getBool(_prefsNoticeDone) ?? false) return;
-    await prefs.setBool(_prefsNoticeDone, true);
-    final routes = await db.routesDao.allRoutes();
-    final hasLibrary =
-        routes.isNotEmpty || (await db.ridesDao.allRides()).isNotEmpty;
-    if (hasLibrary) ref.read(cloudSyncNoticeProvider.notifier)._show();
   }
 
   void _listenToSettings() {
