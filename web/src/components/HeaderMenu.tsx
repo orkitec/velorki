@@ -11,11 +11,8 @@ import { CloseIcon, GitHubIcon, MenuIcon } from './Icons';
 export interface HeaderLink {
   href: string;
   label: string;
-  /** GitHub and the planner leave the site, so they are plain anchors rather
-      than router links. */
+  /** GitHub leaves the site, so it is a plain anchor rather than a router link. */
   external?: boolean;
-  /** GitHub wears its mark. */
-  github?: boolean;
 }
 
 /**
@@ -62,10 +59,10 @@ export function HeaderMenu({
                 <a
                   key={link.href}
                   href={link.href}
-                  rel={link.github ? 'noreferrer' : undefined}
+                  rel="noreferrer"
                   className="flex min-h-11 items-center gap-2 rounded-2xl px-3 text-base font-bold text-muted"
                 >
-                  {link.github ? <GitHubIcon width={16} height={16} /> : null}
+                  <GitHubIcon width={16} height={16} />
                   {link.label}
                 </a>
               ) : (

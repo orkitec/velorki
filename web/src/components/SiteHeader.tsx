@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { GITHUB_URL, PLANNER_URL } from '@/site/config';
+import { GITHUB_URL } from '@/site/config';
 import { localePath } from '@/site/paths';
 import { AppIcon } from './AppIcon';
 import { HeaderMenu, type HeaderLink } from './HeaderMenu';
@@ -9,10 +9,10 @@ import { GitHubIcon } from './Icons';
 import { LocaleSwitcher } from './LocaleSwitcher';
 import { ThemeSwitcher } from './ThemeSwitcher';
 
-/** Features, Docs and Plus, in that order, then the Planner (the app in the
-    browser, its own origin) and GitHub; Download is the call to action. The
-    web planner's own copy of this header (app/web/site_header.mjs) is held
-    to this list and to messages/*.json by app/web_test/site_header.test.mjs. */
+/** Features, Docs and Plus, in that order; "Get the app" (/download) is the
+    call to action. The web planner's copy of this header
+    (app/web/site_header.mjs) is held to this list and to messages/*.json by
+    app/web_test/site_header.test.mjs. */
 const NAV = [
   { key: 'features', href: '/#features' },
   { key: 'docs', href: '/docs' },
@@ -24,10 +24,9 @@ export function SiteHeader({ locale }: { locale: string }) {
   const home = localePath(locale, '/');
   const links: HeaderLink[] = [
     ...NAV.map((item) => ({ href: localePath(locale, item.href), label: t(item.key) })),
-    { href: PLANNER_URL, label: t('planner'), external: true },
-    { href: GITHUB_URL, label: t('github'), external: true, github: true },
+    { href: GITHUB_URL, label: t('github'), external: true },
   ];
-  const download: HeaderLink = { href: localePath(locale, '/download'), label: t('download') };
+  const download: HeaderLink = { href: localePath(locale, '/download'), label: t('getApp') };
   return (
     // The header is `sticky`, so it is a positioned element already and the
     // menu panel below hangs off it without a `relative` that would fight it.
@@ -44,7 +43,7 @@ export function SiteHeader({ locale }: { locale: string }) {
           </span>
         </Link>
 
-        <nav aria-label={t('primary')} className="ml-auto hidden items-center gap-0.5 md:flex lg:gap-1">
+        <nav aria-label={t('primary')} className="ml-auto hidden items-center gap-1 md:flex">
           {NAV.map((item) => (
             <Link
               key={item.key}
@@ -54,12 +53,6 @@ export function SiteHeader({ locale }: { locale: string }) {
               {t(item.key)}
             </Link>
           ))}
-          <a
-            href={PLANNER_URL}
-            className="rounded-full px-2 py-2 text-sm font-bold text-muted transition-colors hover:bg-accent/10 hover:text-fg lg:px-3"
-          >
-            {t('planner')}
-          </a>
           {/* The word only from `lg`: at 768 the German labels and the right
               cluster together are wider than the row, and the mark alone still
               says GitHub. `sr-only` rather than `hidden`, so the link keeps

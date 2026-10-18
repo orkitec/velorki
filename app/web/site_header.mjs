@@ -43,9 +43,8 @@ export const HEADER_STRINGS = {
     features: 'Features',
     docs: 'Docs',
     plus: 'Plus',
-    planner: 'Planner',
     github: 'GitHub',
-    download: 'Download',
+    getApp: 'Get the app',
     menu: 'Menu',
     theme: 'Theme',
     system: 'System',
@@ -60,9 +59,8 @@ export const HEADER_STRINGS = {
     features: 'Funktionen',
     docs: 'Doku',
     plus: 'Plus',
-    planner: 'Planer',
     github: 'GitHub',
-    download: 'Download',
+    getApp: 'App holen',
     menu: 'Menü',
     theme: 'Design',
     system: 'System',
@@ -77,9 +75,8 @@ export const HEADER_STRINGS = {
     features: 'Funciones',
     docs: 'Ayuda',
     plus: 'Plus',
-    planner: 'Planificador',
     github: 'GitHub',
-    download: 'Descargar',
+    getApp: 'Consigue la app',
     menu: 'Menú',
     theme: 'Tema',
     system: 'Sistema',
@@ -94,9 +91,8 @@ export const HEADER_STRINGS = {
     features: 'Fonctions',
     docs: 'Guide',
     plus: 'Plus',
-    planner: 'Planificateur',
     github: 'GitHub',
-    download: 'Télécharger',
+    getApp: 'Obtenir l’app',
     menu: 'Ouvrir le menu',
     theme: 'Thème',
     system: 'Système',
@@ -111,9 +107,8 @@ export const HEADER_STRINGS = {
     features: 'Funzionalità',
     docs: 'Guida',
     plus: 'Plus',
-    planner: 'Pianificatore',
     github: 'GitHub',
-    download: 'Download',
+    getApp: "Scarica l'app",
     menu: 'Menù',
     theme: 'Tema',
     system: 'Sistema',
@@ -128,9 +123,8 @@ export const HEADER_STRINGS = {
     features: 'Functies',
     docs: 'Handleiding',
     plus: 'Plus',
-    planner: 'Planner',
     github: 'GitHub',
-    download: 'Download',
+    getApp: 'Download de app',
     menu: 'Menu',
     theme: 'Thema',
     system: 'Systeem',
@@ -141,7 +135,7 @@ export const HEADER_STRINGS = {
   },
 };
 
-/** The site's NAV (SiteHeader.tsx), in its order; the planner follows it. */
+/** The site's NAV (SiteHeader.tsx), in its order. */
 export const NAV = [
   { key: 'features', href: '/#features' },
   { key: 'docs', href: '/docs' },
@@ -375,7 +369,6 @@ html,body{margin:0;background:var(--canvas)}
 .vh-nav{margin-left:auto;display:none;align-items:center;gap:.25rem}
 .vh-link{border-radius:999px;padding:.5rem;font-size:.875rem;line-height:1.25rem;font-weight:700;color:var(--muted);transition:color .15s,background-color .15s}
 .vh a.vh-link:hover{background:var(--accent-10);color:var(--fg)}
-.vh a.vh-link[aria-current=page],.vh-panel nav a[aria-current=page]{color:var(--fg)}
 .vh-gh{display:flex;align-items:center;gap:.375rem}
 .vh a.vh-gh:hover{background:none}
 .vh-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
@@ -411,19 +404,16 @@ html,body{margin:0;background:var(--canvas)}
 .vh-panel nav a{display:flex;min-height:2.75rem;align-items:center;gap:.5rem;border-radius:1rem;padding-inline:.75rem;font-size:1rem;line-height:1.5rem;font-weight:700;color:var(--muted)}
 .vh-panel .vh-btn{margin-top:.5rem;min-height:3rem;padding:0 1.5rem;font-size:.9375rem}
 @media (min-width:640px){.vh-word{font-size:1.5rem}}
-@media (min-width:768px){.vh-shell{padding-inline:max(2rem,env(safe-area-inset-left,0px)) max(2rem,env(safe-area-inset-right,0px))}.vh-bar{gap:.75rem}.vh-nav{display:flex;gap:.125rem}.vh-right{margin-left:0;gap:.5rem}.vh-menu{display:none!important}.vh-loc summary{height:auto;gap:.375rem;border-color:transparent;padding-block:.375rem}.vh-dl{display:block}}
-@media (min-width:1024px){.vh-nav{gap:.25rem}.vh-cycle{display:none!important}.vh-themes{display:flex}.vh-link{padding-inline:.75rem}.vh-gh .vh-sr{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;white-space:normal}.vh-loc .vh-code{display:none}.vh-loc .vh-name{display:inline}.vh-loc .vh-chev{display:block}}
+@media (min-width:768px){.vh-shell{padding-inline:max(2rem,env(safe-area-inset-left,0px)) max(2rem,env(safe-area-inset-right,0px))}.vh-bar{gap:.75rem}.vh-nav{display:flex}.vh-right{margin-left:0;gap:.5rem}.vh-cycle,.vh-menu{display:none!important}.vh-themes{display:flex}.vh-loc summary{height:auto;gap:.375rem;border-color:transparent;padding-block:.375rem}.vh-dl{display:block}}
+@media (min-width:1024px){.vh-link{padding-inline:.75rem}.vh-gh .vh-sr{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;white-space:normal}.vh-loc .vh-code{display:none}.vh-loc .vh-name{display:inline}.vh-loc .vh-chev{display:block}}
 `;
 
 /**
  * Builds the header for `lang` and returns it with a way to follow a theme or
  * a language set from elsewhere. `onTheme` and `onLanguage` run when the
  * reader picks one here, after it is shown and kept.
- *
- * `current` names the page the header is on ('planner'), which its link then
- * marks as the current page.
  */
-export function renderHeader(window, { lang, theme, current = null, onTheme, onLanguage }) {
+export function renderHeader(window, { lang, theme, onTheme, onLanguage }) {
   const { document } = window;
   const state = { lang, theme };
   const header = el(document, 'header', { class: 'vh', id: 'velorki-header' });
@@ -436,16 +426,10 @@ export function renderHeader(window, { lang, theme, current = null, onTheme, onL
 
   const build = () => {
     const t = HEADER_STRINGS[state.lang] ?? HEADER_STRINGS.en;
-    const links = [
-      ...NAV.map((item) => ({ href: siteUrl(state.lang, item.href), label: t[item.key], key: item.key })),
-      { href: './', label: t.planner, key: 'planner' },
-    ];
-    const navLink = (link, cls) =>
-      el(document, 'a', { href: link.href, class: cls, 'aria-current': link.key === current ? 'page' : undefined }, [
-        link.label,
-      ]);
+    const links = NAV.map((item) => ({ href: siteUrl(state.lang, item.href), label: t[item.key] }));
+    const navLink = (link, cls) => el(document, 'a', { href: link.href, class: cls }, [link.label]);
 
-    // The wide row: Features, Docs, Plus, Planner, GitHub.
+    // The wide row: Features, Docs, Plus, GitHub.
     const nav = el(document, 'nav', { class: 'vh-nav', 'aria-label': t.primary }, [
       ...links.map((link) => navLink(link, 'vh-link')),
       el(document, 'a', { href: GITHUB_URL, rel: 'noreferrer', class: 'vh-link vh-gh' }, [
@@ -454,7 +438,7 @@ export function renderHeader(window, { lang, theme, current = null, onTheme, onL
       ]),
     ]);
 
-    // System / Light / Dark: one cycling button below lg, three from lg.
+    // System / Light / Dark: one cycling button below md, three from md.
     const label = (name) => t[name];
     const next = nextTheme(state.theme);
     const cycle = el(
@@ -512,7 +496,7 @@ export function renderHeader(window, { lang, theme, current = null, onTheme, onL
       ]),
     ]);
 
-    // Below md the links and the Download pill live in the menu.
+    // Below md the links and the "Get the app" pill live in the menu.
     const download = siteUrl(state.lang, '/download');
     const menu = el(document, 'details', { class: 'vh-menu', 'data-header-menu': '' }, [
       el(document, 'summary', { class: 'vh-round', 'aria-label': t.menu }, [
@@ -525,7 +509,7 @@ export function renderHeader(window, { lang, theme, current = null, onTheme, onL
             ...links.map((link) => navLink(link)),
             el(document, 'a', { href: GITHUB_URL, rel: 'noreferrer' }, [glyph(document, 'github', 16), t.github]),
           ]),
-          el(document, 'a', { href: download, class: 'vh-btn' }, [t.download]),
+          el(document, 'a', { href: download, class: 'vh-btn' }, [t.getApp]),
         ]),
       ]),
     ]);
@@ -540,7 +524,7 @@ export function renderHeader(window, { lang, theme, current = null, onTheme, onL
         cycle,
         themes,
         localeMenu,
-        el(document, 'div', { class: 'vh-dl' }, [el(document, 'a', { href: download, class: 'vh-btn' }, [t.download])]),
+        el(document, 'div', { class: 'vh-dl' }, [el(document, 'a', { href: download, class: 'vh-btn' }, [t.getApp])]),
         menu,
       ]),
     ]);

@@ -45,7 +45,7 @@ test("the words are the website's", () => {
     const m = JSON.parse(read(`web/messages/${lang}.json`));
     const t = HEADER_STRINGS[lang];
     assert.deepEqual(Object.keys(t).sort(), Object.keys(HEADER_STRINGS.en).sort(), lang);
-    for (const key of ['home', 'primary', 'features', 'docs', 'plus', 'planner', 'github', 'download', 'menu']) {
+    for (const key of ['home', 'primary', 'features', 'docs', 'plus', 'github', 'getApp', 'menu']) {
       assert.equal(t[key], m.nav[key], `${lang}.nav.${key}`);
     }
     assert.equal(t.theme, m.theme.label, `${lang}.theme.label`);
@@ -59,8 +59,8 @@ test("the links are the website header's, in its order", () => {
   const block = header.slice(header.indexOf('const NAV = ['), header.indexOf('] as const'));
   const site = [...block.matchAll(/\{ key: '(\w+)', href: '([^']+)' \}/g)].map(([, key, href]) => ({ key, href }));
   assert.deepEqual(NAV, site);
-  // The planner after them, then GitHub, then Download, as the site has them.
-  const order = ['NAV.map', "t('planner')", "t('github')", "t('download')"].map((s) => header.indexOf(s));
+  // GitHub after them, then the call to action, as the site has them.
+  const order = ['NAV.map', "t('github')", "t('getApp')"].map((s) => header.indexOf(s));
   for (const i of order) assert.ok(i > 0);
   assert.deepEqual([...order].sort((a, b) => a - b), order);
   assert.ok(read('web/src/site/config.ts').includes(`GITHUB_URL = '${GITHUB_URL}'`));
@@ -167,9 +167,9 @@ function fakeWindow() {
   return { document };
 }
 
-test('the header links to the site in its language and marks the planner', () => {
+test('the header links to the site in its language', () => {
   const w = fakeWindow();
-  const header = renderHeader(w, { lang: 'de', theme: 'system', current: 'planner' });
+  const header = renderHeader(w, { lang: 'de', theme: 'system' });
   const hrefs = [...header.element.walk()].map((n) => n.attributes.href).filter(Boolean);
   for (const href of [
     'https://velorki.com/de',
@@ -181,9 +181,13 @@ test('the header links to the site in its language and marks the planner', () =>
   ]) {
     assert.ok(hrefs.includes(href), href);
   }
-  const planner = [...header.element.walk()].filter((n) => n.attributes['aria-current'] === 'page');
-  assert.ok(planner.length >= 1);
-  for (const link of planner) assert.equal(link.textContent, 'Planer');
+  // The call to action is the site's "Get the app", to the download page.
+  const pills = [...header.element.walk()].filter((n) => n.attributes.class === 'vh-btn');
+  assert.ok(pills.length >= 1);
+  for (const pill of pills) {
+    assert.equal(pill.textContent, 'App holen');
+    assert.equal(pill.attributes.href, 'https://velorki.com/de/download');
+  }
   assert.equal(w.document.documentElement.attributes.lang, 'de');
   assert.equal(w.document.documentElement.attributes['data-theme'], undefined);
 });

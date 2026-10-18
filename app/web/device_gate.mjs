@@ -228,7 +228,6 @@ export function boot(window) {
   const header = renderHeader(window, {
     lang: appLanguage(window),
     theme: storedTheme(storage),
-    current: mobile ? null : 'planner',
     onTheme: (theme) => {
       storeTheme(storage, theme);
       announce({ theme });

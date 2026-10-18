@@ -6,7 +6,7 @@ import { GitHubIcon } from '@/components/Icons';
 import { PhoneFrame } from '@/components/PhoneFrame';
 import { StoreBadges } from '@/components/StoreBadges';
 import { routing } from '@/i18n/routing';
-import { GITHUB_URL, MIN_ANDROID, MIN_IOS, RELEASES_URL } from '@/site/config';
+import { GITHUB_URL, MIN_ANDROID, MIN_IOS, PLANNER_URL, RELEASES_URL } from '@/site/config';
 import { pageMetadata } from '@/site/seo';
 
 export function generateStaticParams() {
@@ -38,6 +38,19 @@ function DownloadContent() {
             <p className="mt-5 text-xl text-muted">{t('lead')}</p>
             {/* StoreBadges says by itself that the stores are not live yet. */}
             <StoreBadges className="mt-8" />
+            {/* The web planner, where one is deployed (PLANNER_URL): the
+                same app in a browser, for planning on a computer. */}
+            {PLANNER_URL ? (
+              <div className="panel mt-8 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-2xl">{t('browserTitle')}</h2>
+                  <p className="mt-1 text-muted">{t('browserBody')}</p>
+                </div>
+                <a href={PLANNER_URL} className="btn btn-secondary shrink-0">
+                  {t('browserLink')}
+                </a>
+              </div>
+            ) : null}
           </div>
           <div className="flex justify-center lg:justify-end">
             <PhoneFrame screen="ride" priority />
