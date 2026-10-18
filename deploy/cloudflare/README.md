@@ -30,7 +30,7 @@ the origin and are not cached. Only `Range` is forwarded. Anything else under
 
 Tests (Node's built-in runner, no dependencies):
 
-    node --test deploy/cloudflare/test/
+    node --test deploy/cloudflare/test/*.test.mjs
 
 A `v*` release deploys it (`release.yml`, job `web`, after approval in the
 `release` environment). By hand, from `deploy/cloudflare/pages/`, after

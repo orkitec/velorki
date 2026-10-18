@@ -582,7 +582,7 @@ jobs:
       - run: flutter gen-l10n
       - name: The web page's and the tile function's own tests
         working-directory: .
-        run: node --test app/web_test/ deploy/cloudflare/test/
+        run: node --test app/web_test/*.test.mjs deploy/cloudflare/test/*.test.mjs
       - run: bash tool/web_assets.sh
       - name: Build for the web
         run: |
