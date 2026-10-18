@@ -7,7 +7,8 @@ name: web app
 # app/env/web.json. Without CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in
 # the `release` environment it builds and uploads nothing.
 #
-# Three ways in, all through the `release` environment's approval:
+# Three ways in, each only for a login in RELEASE_ACTORS and through the
+# `release` environment's approval (a required reviewer):
 # - a push to `production` that touches the app or the Pages project (main
 #   merged in, which is how the website is released too);
 # - by hand (Actions → web app → Run workflow) on any branch, building that
@@ -68,6 +69,20 @@ jobs:
       run:
         working-directory: app
     steps:
+      # The same gate as release.yml: whoever pushed, dispatched or re-ran
+      # this must be listed in RELEASE_ACTORS, before anything is checked out.
+      - name: Who may deploy
+        working-directory: .
+        env:
+          ACTOR: ${{ github.triggering_actor }}
+          RELEASE_ACTORS: ${{ vars.RELEASE_ACTORS }}
+        run: |
+          actor="$(echo "$ACTOR" | tr '[:upper:]' '[:lower:]')"
+          for a in $(echo "$RELEASE_ACTORS" | tr ',[:upper:]' ' [:lower:]'); do
+            [ "$a" = "$actor" ] && exit 0
+          done
+          echo "::error::'$ACTOR' started this run but is not in RELEASE_ACTORS; only those logins may deploy the web app."
+          exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ env.SHA }}
