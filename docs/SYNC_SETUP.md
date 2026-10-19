@@ -25,7 +25,8 @@ CloudKit web token are public and bound to our app ids and origins.
    - **iOS:** bundle id `com.orkitec.velorki`. Note the iOS client id and its
      reversed form (`com.googleusercontent.apps.…`), the app's URL scheme.
    - **Web application:** authorized JavaScript origins
-     `https://app.velorki.com` and `http://localhost:8080`; no redirect URIs.
+     `https://app.velorki.com`, `https://localhost:8443` and
+     `http://localhost:8080`; no redirect URIs.
 7. **Verification:** when the app is ready, **Publish app** under Audience and
    submit for verification (branding review; `drive.appdata` is not a
    restricted scope, so no security assessment). Until then only test users
@@ -42,8 +43,11 @@ id in the app).
    **Production** (switch the environment at the top):
    - Name `web planner`.
    - Sign in callback: **postMessage**.
-   - Allowed origins: `https://app.velorki.com`, `http://localhost:8080`.
-3. Hand over both tokens.
+   - Allowed origins: `https://app.velorki.com`, and in the Development
+     token also `https://localhost:8443` (the console takes https only; the
+     local server serves https there).
+3. Both go into `app/env/web.json` (`VELORKI_CLOUDKIT_TOKEN_DEVELOPMENT`,
+   `VELORKI_CLOUDKIT_TOKEN_PRODUCTION`); they are public, bound to the origins.
 
 The schema must be deployed to Production before the Production token is
 used (done 2026-10-18 for `Route` and `Ride`; redeploy after any schema
