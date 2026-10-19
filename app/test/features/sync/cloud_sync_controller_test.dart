@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:drift/drift.dart' show driftRuntimeOptions;
@@ -14,10 +15,14 @@ import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki/features/sync/application/cloud_sync_controller.dart';
 import 'package:velorki/features/sync/application/library_sync.dart';
 import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
+import 'package:velorki/features/sync/data/google_drive_sync.dart';
 import 'package:velorki/features/sync/data/record_codec.dart';
+import 'package:velorki/features/sync/data/sync_backend.dart';
 import 'package:velorki/features/sync/domain/cloud_sync_status.dart';
+import 'package:velorki/features/sync/domain/sync_service.dart';
 
 import 'support/fake_cloud.dart';
+import 'support/memory_cloud_store.dart';
 import 'support/rows.dart';
 
 void main() {
@@ -41,6 +46,8 @@ void main() {
 
   Future<ProviderContainer> launch({
     Map<String, Object> prefs = const <String, Object>{},
+    bool iCloud = true,
+    MemoryCloudStore? google,
   }) async {
     now = DateTime(2026, 10, 18, 12);
     SharedPreferences.setMockInitialValues(prefs);
@@ -49,9 +56,13 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(shared),
         velorkiDatabaseProvider.overrideWithValue(db),
-        cloudSyncBridgeProvider.overrideWithValue(bridge),
+        cloudSyncBridgeProvider.overrideWithValue(iCloud ? bridge : null),
         cloudSyncClockProvider.overrideWithValue(() => now),
         cloudSyncOutboxProvider.overrideWith((ref) async => dir),
+        cloudSyncInboxProvider.overrideWith(
+          (ref) async => Directory('${dir.path}/in'),
+        ),
+        if (google != null) googleDriveStoreProvider.overrideWithValue(google),
       ],
     );
     addTearDown(container.dispose);
@@ -82,6 +93,116 @@ void main() {
     expect(bridge.fetchRequests, 1, reason: 'fetched at launch');
   });
 
+  group('the choice of service', () {
+    test('the old switch carries over: on is iCloud, off is off', () async {
+      var container = await launch(prefs: {'sync.icloud': true});
+      expect(container.read(syncServiceChoiceProvider), SyncService.icloud);
+      container.dispose();
+      container = await launch(prefs: {'sync.icloud': false});
+      expect(container.read(syncServiceChoiceProvider), SyncService.off);
+      expect(container.read(cloudSyncActiveProvider), isFalse);
+    });
+
+    test('a choice made wins over the old switch, and replaces it', () async {
+      final container = await launch(
+        prefs: {'sync.icloud': true, 'sync.service': 'off'},
+      );
+      expect(container.read(syncServiceChoiceProvider), SyncService.off);
+      await container
+          .read(syncServiceChoiceProvider.notifier)
+          .select(SyncService.icloud);
+      final prefs = container.read(sharedPreferencesProvider);
+      expect(prefs.getString('sync.service'), 'icloud');
+      expect(prefs.getBool('sync.icloud'), isNull);
+    });
+
+    test('unset, it is iCloud on iOS and off without iCloud', () async {
+      var container = await launch();
+      expect(container.read(syncServiceChoiceProvider), SyncService.icloud);
+      container.dispose();
+      container = await launch(iCloud: false, google: MemoryCloudStore());
+      expect(container.read(syncServiceChoiceProvider), SyncService.off);
+      expect(container.read(offeredSyncServicesProvider), [SyncService.google]);
+    });
+
+    test('Google where it is not offered runs nothing', () async {
+      final container = await launch(prefs: {'sync.service': 'google'});
+      expect(container.read(activeSyncServiceProvider), SyncService.off);
+      expect(bridge.started, isFalse);
+    });
+
+    test(
+      'Google sends the library to the Drive store and fetches from it',
+      () async {
+        final store = MemoryCloudStore();
+        await db.routesDao.upsertRoute(fullRoute('r1'));
+        final container = await launch(
+          prefs: {'sync.service': 'google'},
+          google: store,
+        );
+        expect(container.read(activeSyncServiceProvider), SyncService.google);
+        expect(bridge.started, isFalse);
+        await _until(() => store.names.contains('route_r1'));
+        await _until(() async => (await db.syncDao.dirtyRecords()).isEmpty);
+        await _until(
+          () =>
+              container.read(cloudSyncControllerProvider).lastSyncedAt != null,
+        );
+        expect(
+          container.read(cloudSyncControllerProvider).account,
+          CloudAccount.available,
+        );
+      },
+    );
+
+    test('switching iCloud to Google and back sends the library as new to '
+        'each, deleting nothing', () async {
+      final store = MemoryCloudStore();
+      await db.routesDao.upsertRoute(fullRoute('r1'));
+      final container = await launch(google: store);
+      await bridge.sync();
+      expect(await db.syncDao.dirtyRecords(), isEmpty);
+      final choice = container.read(syncServiceChoiceProvider.notifier);
+
+      await choice.select(SyncService.google);
+      await settle();
+      expect(bridge.started, isFalse);
+      await _until(() => store.names.contains('route_r1'));
+      await _until(() async => (await db.syncDao.dirtyRecords()).isEmpty);
+      expect(
+        container
+            .read(sharedPreferencesProvider)
+            .getString('sync.records_service'),
+        'google',
+      );
+
+      bridge.pendingSaves.clear();
+      await choice.select(SyncService.icloud);
+      await settle();
+      expect(bridge.started, isTrue);
+      expect(bridge.pendingSaves, {'route_r1'});
+      expect(bridge.cloud.names, {'route_r1'});
+      expect(store.names, {'route_r1'});
+      expect((await db.routesDao.allRoutes()).length, 1);
+    });
+
+    test('iCloud as before there was a choice keeps its sync state', () async {
+      await db.routesDao.upsertRoute(fullRoute('r1'));
+      var container = await launch(prefs: {'sync.icloud': true});
+      await bridge.sync();
+      container.dispose();
+      bridge.pendingSaves.clear();
+      container = await launch(prefs: {'sync.icloud': true});
+      expect(bridge.pendingSaves, isEmpty, reason: 'nothing sent again');
+      expect(
+        container
+            .read(sharedPreferencesProvider)
+            .getString('sync.records_service'),
+        'icloud',
+      );
+    });
+  });
+
   test('says what the engine says', () async {
     final container = await launch();
     bridge.emit(const CloudSyncStatus(account: CloudAccount.noAccount));
@@ -105,10 +226,11 @@ void main() {
 
   test('switching off stops the engine, on again starts it', () async {
     final container = await launch();
-    await container.read(cloudSyncEnabledProvider.notifier).set(enabled: false);
+    final choice = container.read(syncServiceChoiceProvider.notifier);
+    await choice.select(SyncService.off);
     await settle();
     expect(bridge.started, isFalse);
-    await container.read(cloudSyncEnabledProvider.notifier).set(enabled: true);
+    await choice.select(SyncService.icloud);
     await settle();
     expect(bridge.started, isTrue);
   });
@@ -122,7 +244,7 @@ void main() {
     final phone = FakeCloudSyncBridge(bridge.cloud);
     final phoneSync = LibrarySync(
       db: phoneDb,
-      bridge: phone,
+      backend: phone,
       codec: RecordCodec(Directory('${dir.path}/phone')),
     );
     phone.setHandler(
@@ -140,15 +262,15 @@ void main() {
     await phone.fetch();
     expect((await phoneDb.routesDao.routeById('r1'))?.name, isNotNull);
 
-    final enabled = container.read(cloudSyncEnabledProvider.notifier);
-    await enabled.set(enabled: false);
+    final choice = container.read(syncServiceChoiceProvider.notifier);
+    await choice.select(SyncService.off);
     await settle();
 
     await RouteRepository(phoneDb.routesDao).rename('r1', 'Renamed');
     await phoneSync.push();
     await phone.send();
 
-    await enabled.set(enabled: true);
+    await choice.select(SyncService.icloud);
     await settle();
     expect((await db.routesDao.routeById('r1'))?.name, 'Renamed');
     expect(await db.syncDao.dirtyRecords(), isEmpty);
@@ -213,7 +335,7 @@ void main() {
         .zoneDeleted(ZoneDeletion.purged);
     await settle();
 
-    expect(container.read(cloudSyncEnabledProvider), isFalse);
+    expect(container.read(syncServiceChoiceProvider), SyncService.off);
     expect(bridge.started, isFalse);
     expect((await db.routesDao.allRoutes()).length, 1);
   });
@@ -228,7 +350,7 @@ void main() {
         .zoneDeleted(ZoneDeletion.encryptedDataReset);
 
     expect(bridge.pendingSaves, {'route_r1'});
-    expect(container.read(cloudSyncEnabledProvider), isTrue);
+    expect(container.read(syncServiceChoiceProvider), SyncService.icloud);
   });
 
   test('a setting changed on another device shows here', () async {
@@ -250,5 +372,14 @@ void main() {
 Future<void> settle() async {
   for (var i = 0; i < 10; i++) {
     await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
+}
+
+/// Waits up to five seconds for [done].
+Future<void> _until(FutureOr<bool> Function() done) async {
+  final until = DateTime.now().add(const Duration(seconds: 5));
+  while (!await done()) {
+    if (DateTime.now().isAfter(until)) fail('timed out');
+    await Future<void>.delayed(const Duration(milliseconds: 20));
   }
 }

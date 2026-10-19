@@ -13,12 +13,15 @@ import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/settings/presentation/settings_screen.dart';
 import 'package:velorki/features/sync/application/cloud_sync_controller.dart';
 import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
+import 'package:velorki/features/sync/data/google_drive_sync.dart';
 import 'package:velorki/features/sync/domain/cloud_sync_status.dart';
+import 'package:velorki/features/sync/domain/sync_service.dart';
 import 'package:velorki/features/sync/presentation/cloud_sync_section.dart';
 
 import '../../support/app.dart';
 import '../planner/support/pump.dart';
 import 'support/fake_cloud.dart';
+import 'support/memory_cloud_store.dart';
 
 /// Lets the controller start the engine: its steps run partly in the
 /// test's fake time, partly on the database's real one.
@@ -49,21 +52,24 @@ void main() {
   });
   tearDown(() => dir.deleteSync(recursive: true));
 
-  List<Override> syncOverrides() => [
-    cloudSyncBridgeProvider.overrideWithValue(bridge),
+  List<Override> syncOverrides({bool google = false, bool iCloud = true}) => [
+    cloudSyncBridgeProvider.overrideWithValue(iCloud ? bridge : null),
     cloudSyncOutboxProvider.overrideWith((ref) async => dir),
+    if (google) googleDriveStoreProvider.overrideWithValue(MemoryCloudStore()),
   ];
 
   group('the status line', () {
     setUpAll(() => initializeDateFormatting(l10n.localeName));
     final now = DateTime(2026, 10, 16, 12);
-    String line(CloudSyncStatus status, {bool enabled = true}) =>
-        cloudSyncStatusLine(l10n, status, enabled: enabled, now: now);
+    String line(
+      CloudSyncStatus status, {
+      SyncService service = SyncService.icloud,
+    }) => cloudSyncStatusLine(l10n, status, service: service, now: now);
 
     test('says what is wrong before when it last synced', () {
       final synced = now.subtract(const Duration(minutes: 2));
       expect(
-        line(CloudSyncStatus(lastSyncedAt: synced), enabled: false),
+        line(CloudSyncStatus(lastSyncedAt: synced), service: SyncService.off),
         l10n.cloudSyncOff,
       );
       expect(
@@ -106,6 +112,23 @@ void main() {
       expect(line(const CloudSyncStatus()), l10n.cloudSyncWaiting);
     });
 
+    test('names Google where Google is the service', () {
+      expect(
+        line(
+          const CloudSyncStatus(account: CloudAccount.noAccount),
+          service: SyncService.google,
+        ),
+        l10n.cloudSyncGoogleNoAccount,
+      );
+      expect(
+        line(
+          const CloudSyncStatus(error: CloudSyncError.quotaExceeded),
+          service: SyncService.google,
+        ),
+        l10n.cloudSyncGoogleQuota,
+      );
+    });
+
     test('says how long ago it synced', () {
       String ago(Duration d) => line(
         CloudSyncStatus(
@@ -125,8 +148,11 @@ void main() {
     });
   });
 
-  group('the switch', () {
-    Future<ProviderContainer> pumpSection(WidgetTester tester) async {
+  group('the choice', () {
+    Future<ProviderContainer> pumpSection(
+      WidgetTester tester, {
+      bool google = false,
+    }) async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final prefs = await SharedPreferences.getInstance();
       final db = VelorkiDatabase.memory();
@@ -134,7 +160,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           velorkiDatabaseProvider.overrideWithValue(db),
-          ...syncOverrides(),
+          ...syncOverrides(google: google),
         ],
       );
       addTearDown(() async {
@@ -156,12 +182,28 @@ void main() {
       return container;
     }
 
-    testWidgets('is on, and shows what the engine says', (tester) async {
+    Set<SyncService> segments(WidgetTester tester) => {
+      for (final s
+          in tester
+              .widget<SegmentedButton<SyncService>>(
+                find.byType(SegmentedButton<SyncService>),
+              )
+              .segments)
+        s.value,
+    };
+
+    Set<SyncService> selected(WidgetTester tester) => tester
+        .widget<SegmentedButton<SyncService>>(
+          find.byType(SegmentedButton<SyncService>),
+        )
+        .selected;
+
+    testWidgets('is iCloud, and shows what the engine says', (tester) async {
       await pumpSection(tester);
-      expect(
-        tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
-        isTrue,
-      );
+      expect(find.text(l10n.cloudSyncWith), findsOneWidget);
+      expect(segments(tester), {SyncService.icloud, SyncService.off});
+      expect(find.text(l10n.cloudSyncServiceGoogle), findsNothing);
+      expect(selected(tester), {SyncService.icloud});
       expect(find.text(l10n.cloudSyncWaiting), findsOneWidget);
       expect(find.text(l10n.cloudSyncHint), findsOneWidget);
 
@@ -175,27 +217,40 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1));
     });
 
-    testWidgets('switched off, says the library stays here', (tester) async {
+    testWidgets('off, says the library stays here', (tester) async {
       final container = await pumpSection(tester);
-      await tester.tap(find.byType(SwitchListTile));
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 50)),
-      );
-      await tester.pump();
+      await tester.tap(find.text(l10n.cloudSyncServiceOff));
+      await settleSync(tester);
       expect(find.text(l10n.cloudSyncOff), findsOneWidget);
-      expect(container.read(cloudSyncEnabledProvider), isFalse);
+      expect(selected(tester), {SyncService.off});
+      expect(container.read(syncServiceChoiceProvider), SyncService.off);
       expect(bridge.started, isFalse, reason: 'the engine stopped');
-      expect(
-        container.read(sharedPreferencesProvider).getBool('sync.icloud'),
-        isFalse,
-      );
+      final prefs = container.read(sharedPreferencesProvider);
+      expect(prefs.getString('sync.service'), 'off');
+      expect(prefs.getBool('sync.icloud'), isNull);
+      await tester.pump(const Duration(milliseconds: 1));
+    });
+
+    testWidgets('offers Google where there is a Drive store', (tester) async {
+      final container = await pumpSection(tester, google: true);
+      expect(segments(tester), {
+        SyncService.icloud,
+        SyncService.google,
+        SyncService.off,
+      });
+      await tester.tap(find.text(l10n.cloudSyncServiceGoogle));
+      await settleSync(tester);
+      expect(selected(tester), {SyncService.google});
+      expect(container.read(activeSyncServiceProvider), SyncService.google);
+      expect(bridge.started, isFalse, reason: 'one cloud at a time');
+      expect(find.text(l10n.cloudSyncGoogleHint), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 1));
     });
   });
 
   group('in Settings', () {
-    List<Override> idle() => [
-      ...syncOverrides(),
+    List<Override> idle({bool google = false, bool iCloud = true}) => [
+      ...syncOverrides(google: google, iCloud: iCloud),
       cloudSyncControllerProvider.overrideWith(_IdleSync.new),
     ];
 
@@ -231,7 +286,26 @@ void main() {
         300,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(find.text(l10n.cloudSyncTitle), findsOneWidget);
+      expect(find.text(l10n.cloudSyncWith), findsOneWidget);
+      await unmountApp(tester);
+    });
+
+    testWidgets('with Google only (Android), offers Google and off, and is '
+        'off until chosen', (tester) async {
+      await pumpApp(
+        tester,
+        initialLocation: settingsRoute,
+        extraOverrides: idle(google: true, iCloud: false),
+      );
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byType(CloudSyncSection),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(l10n.cloudSyncServiceGoogle), findsOneWidget);
+      expect(find.text(l10n.cloudSyncServiceICloud), findsNothing);
+      expect(find.text(l10n.cloudSyncOff), findsOneWidget);
       await unmountApp(tester);
     });
   });

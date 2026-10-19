@@ -25,7 +25,7 @@ class _Device {
   late LibrarySync sync;
 
   void _attach() {
-    sync = LibrarySync(db: db, bridge: bridge, codec: RecordCodec(_outbox));
+    sync = LibrarySync(db: db, backend: bridge, codec: RecordCodec(_outbox));
     bridge.setHandler(
       LibraryHandler(
         toSave: sync.recordsToSave,

@@ -21,7 +21,7 @@ void main() {
     SharedPreferences.setMockInitialValues(values);
     final prefs = await SharedPreferences.getInstance();
     return (
-      SettingsSync(prefs: prefs, bridge: bridge, onApplied: () => applied++),
+      SettingsSync(prefs: prefs, backend: bridge, onApplied: () => applied++),
       prefs,
     );
   }

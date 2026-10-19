@@ -1229,7 +1229,6 @@
   "integrationAccessRevoked": "De dienst accepteert de toegang van Velorki niet meer. Koppel opnieuw onder Instellingen → Koppelingen.",
   "stravaRoutesRemoved": "{count, plural, =1{Een route van Strava is verwijderd: hij bestaat niet meer op Strava, of kon 7 dagen niet worden gecontroleerd.} other{{count} routes van Strava zijn verwijderd: ze bestaan niet meer op Strava, of konden 7 dagen niet worden gecontroleerd.}}",
   "settingsSync": "iCloud",
-  "cloudSyncTitle": "Synchroniseren met iCloud",
   "cloudSyncOff": "Routes, ritten en instellingen blijven op dit apparaat",
   "cloudSyncSyncing": "Bezig met synchroniseren…",
   "cloudSyncJustNow": "Zojuist gesynchroniseerd",
@@ -1242,5 +1241,12 @@
   "cloudSyncQuota": "De iCloud-opslag is vol",
   "cloudSyncOffline": "Wacht op een verbinding",
   "cloudSyncFailed": "Synchroniseren mislukt, wordt opnieuw geprobeerd",
-  "cloudSyncHint": "Je routes, ritten en een paar instellingen op elke iPhone en iPad met je Apple Account. Routes van Strava blijven op dit apparaat"
+  "cloudSyncHint": "Je routes, ritten en een paar instellingen op elke iPhone en iPad met je Apple Account. Routes van Strava blijven op dit apparaat",
+  "cloudSyncWith": "Synchroniseren met",
+  "cloudSyncServiceICloud": "iCloud",
+  "cloudSyncServiceGoogle": "Google",
+  "cloudSyncServiceOff": "Uit",
+  "cloudSyncGoogleNoAccount": "Niet aangemeld bij Google",
+  "cloudSyncGoogleQuota": "De Google-opslag is vol",
+  "cloudSyncGoogleHint": "Je routes, ritten en een paar instellingen op elk apparaat met je Google-account, bewaard in je Google Drive. Routes van Strava blijven op dit apparaat"
 }

@@ -1229,7 +1229,6 @@
   "integrationAccessRevoked": "El servicio ya no acepta el acceso de Velorki. Vuelve a conectar en Ajustes → Conexiones.",
   "stravaRoutesRemoved": "{count, plural, =1{Se eliminó una ruta de Strava: ya no existe en Strava o no se pudo comprobar durante 7 días.} other{Se eliminaron {count} rutas de Strava: ya no existen en Strava o no se pudieron comprobar durante 7 días.}}",
   "settingsSync": "iCloud",
-  "cloudSyncTitle": "Sincronizar con iCloud",
   "cloudSyncOff": "Las rutas, salidas y ajustes se quedan en este dispositivo",
   "cloudSyncSyncing": "Sincronizando…",
   "cloudSyncJustNow": "Sincronizado hace un momento",
@@ -1242,5 +1241,12 @@
   "cloudSyncQuota": "El almacenamiento de iCloud está lleno",
   "cloudSyncOffline": "Esperando conexión",
   "cloudSyncFailed": "No se pudo sincronizar, se volverá a intentar",
-  "cloudSyncHint": "Tus rutas, salidas y algunos ajustes en cada iPhone y iPad con tu cuenta de Apple. Las rutas de Strava se quedan en este dispositivo"
+  "cloudSyncHint": "Tus rutas, salidas y algunos ajustes en cada iPhone y iPad con tu cuenta de Apple. Las rutas de Strava se quedan en este dispositivo",
+  "cloudSyncWith": "Sincronizar con",
+  "cloudSyncServiceICloud": "iCloud",
+  "cloudSyncServiceGoogle": "Google",
+  "cloudSyncServiceOff": "Desactivado",
+  "cloudSyncGoogleNoAccount": "Sin sesión iniciada en Google",
+  "cloudSyncGoogleQuota": "El almacenamiento de Google está lleno",
+  "cloudSyncGoogleHint": "Tus rutas, salidas y algunos ajustes en cada dispositivo con tu cuenta de Google, guardados en tu Google Drive. Las rutas de Strava se quedan en este dispositivo"
 }

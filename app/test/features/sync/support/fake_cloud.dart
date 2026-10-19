@@ -4,7 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
-import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
+import 'package:velorki/features/sync/data/sync_backend.dart';
 import 'package:velorki/features/sync/domain/cloud_record.dart';
 import 'package:velorki/features/sync/domain/cloud_sync_status.dart';
 
@@ -106,7 +106,7 @@ class FakeCloud {
 }
 
 /// One device's engine over a [FakeCloud].
-class FakeCloudSyncBridge implements CloudSyncBridge {
+class FakeCloudSyncBridge implements SyncBackend {
   /// Creates a device's engine.
   FakeCloudSyncBridge(this.cloud, {this.supported = true});
 

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../data/cloud_sync_bridge.dart';
+import '../data/sync_backend.dart';
 
 /// The settings that follow the rider from device to device: how the app
 /// looks, the units and how turns are announced. Their keys as the
@@ -42,17 +42,17 @@ class SettingsSync {
   /// iCloud were written, so the settings read them again.
   SettingsSync({
     required this._prefs,
-    required this._bridge,
+    required this._backend,
     required this._onApplied,
   });
 
   final SharedPreferences _prefs;
-  final CloudSyncBridge _bridge;
+  final SyncBackend _backend;
   final void Function() _onApplied;
 
   /// Merges this device's settings with iCloud's.
   Future<void> start() async {
-    final remote = await _bridge.readSettings(syncedSettingKeys);
+    final remote = await _backend.readSettings(syncedSettingKeys);
     // An iCloud store with none of the values last agreed has not been
     // reached (no account, a store not loaded yet), or was emptied: never
     // taken as every setting put back to its default on another device,
@@ -79,7 +79,7 @@ class SettingsSync {
         push[key] = l;
       }
     }
-    if (push.isNotEmpty) await _bridge.writeSettings(push);
+    if (push.isNotEmpty) await _backend.writeSettings(push);
     await _saveBase();
     if (applied) _onApplied();
   }
@@ -93,7 +93,7 @@ class SettingsSync {
         if (_prefs.get(key) != base[key]) key: _prefs.get(key),
     };
     if (push.isEmpty) return;
-    await _bridge.writeSettings(push);
+    await _backend.writeSettings(push);
     await _saveBase();
   }
 

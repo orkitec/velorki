@@ -1229,7 +1229,6 @@
   "integrationAccessRevoked": "Le service n’accepte plus l’accès de Velorki. Reconnectez-vous dans Réglages → Connexions.",
   "stravaRoutesRemoved": "{count, plural, =1{Un itinéraire venant de Strava a été supprimé : il n’existe plus sur Strava, ou n’a pas pu être vérifié pendant 7 jours.} other{{count} itinéraires venant de Strava ont été supprimés : ils n’existent plus sur Strava, ou n’ont pas pu être vérifiés pendant 7 jours.}}",
   "settingsSync": "iCloud",
-  "cloudSyncTitle": "Synchroniser avec iCloud",
   "cloudSyncOff": "Les itinéraires, sorties et réglages restent sur cet appareil",
   "cloudSyncSyncing": "Synchronisation…",
   "cloudSyncJustNow": "Synchronisé à l’instant",
@@ -1242,5 +1241,12 @@
   "cloudSyncQuota": "Le stockage iCloud est plein",
   "cloudSyncOffline": "En attente d’une connexion",
   "cloudSyncFailed": "Échec de la synchronisation, nouvel essai plus tard",
-  "cloudSyncHint": "Tes itinéraires, sorties et quelques réglages sur chaque iPhone et iPad connecté à ton compte Apple. Les itinéraires venant de Strava restent sur cet appareil"
+  "cloudSyncHint": "Tes itinéraires, sorties et quelques réglages sur chaque iPhone et iPad connecté à ton compte Apple. Les itinéraires venant de Strava restent sur cet appareil",
+  "cloudSyncWith": "Synchroniser avec",
+  "cloudSyncServiceICloud": "iCloud",
+  "cloudSyncServiceGoogle": "Google",
+  "cloudSyncServiceOff": "Désactivé",
+  "cloudSyncGoogleNoAccount": "Non connecté à Google",
+  "cloudSyncGoogleQuota": "Le stockage Google est plein",
+  "cloudSyncGoogleHint": "Tes itinéraires, sorties et quelques réglages sur chaque appareil connecté à ton compte Google, enregistrés dans ton Google Drive. Les itinéraires venant de Strava restent sur cet appareil"
 }

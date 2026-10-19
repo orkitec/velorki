@@ -160,6 +160,8 @@ const Map<String, String> sameAsEnglish = <String, String>{
   'mapAttributionOpenMapTiles': 'project name',
   'settingsSensorsAppleHealth': 'product name',
   'settingsSync': 'product name',
+  'cloudSyncServiceICloud': 'product name',
+  'cloudSyncServiceGoogle': 'brand',
   'settingsSensorsHealthConnect': 'product name',
   'settingsSensorsAppleWatch': 'product name',
   'accentVolt': 'name of a colour preset',

@@ -64,7 +64,8 @@ The phone holds the routes, the rides, the loop generator, file import and
 export, and the routing itself. The server side exists only for what an
 open-source app cannot do: a BRouter server as an alternative to downloading rd5
 tiles, the OAuth client secrets and the model API key, the hosted model behind
-them, and the store for share links. No accounts, no cloud database, no sync.
+them, and the store for share links. No accounts, no cloud database, no sync
+server: sync goes to the rider's own iCloud or Google Drive.
 
 ## Components
 
@@ -208,10 +209,10 @@ storage, not in the database.
 - **`offline_regions`** — the downloaded MapLibre offline map regions.
 - **`routing_tiles`** — the rd5 segment tiles downloaded for on-device routing:
   name, bytes, `updated_at`, `format_version`, state.
-- **`sync_records`** — the iCloud outbox, one row per route and ride, written
+- **`sync_records`** — the sync outbox, one row per route and ride, written
   by SQLite triggers on `routes` and `rides` (`core/db/sync_triggers.dart`):
-  last change time, a version, dirty and tombstone flags, the CloudKit system
-  fields, a ride's route link still waiting for its route.
+  last change time, a version, dirty and tombstone flags, the server's system
+  fields (CloudKit's, or a store's version), a ride's route link still waiting for its route.
 
 ## Key flows
 
@@ -392,8 +393,22 @@ AI descriptions are refused for `source == strava`. Strava's API cannot create
 routes, so sending one *to* Strava is "export GPX, then share"; Komoot and
 Garmin are file-based only.
 
-**iCloud sync.** iOS 17 and later, on by default (Settings → iCloud), nothing
-on Android. `ios/Runner/CloudSync.swift` runs CKSyncEngine on the private
+**Sync.** Each device syncs with one cloud, Settings → Sync with: iCloud
+(iOS 17 and later, the default there), Google (the Drive app data folder) or
+off (the default everywhere else); the old iCloud switch maps on to iCloud.
+Every service runs behind `SyncBackend` (`features/sync/data`), so
+`LibrarySync`, `SettingsSync` and `RecordCodec` are the same over all of
+them; switching service sends the library to the new one as new and deletes
+nothing (`sync.records_service`). Clouds without a sync engine of their own
+go through `StoreSyncBackend`, CKSyncEngine's part in Dart over a
+`CloudStore` (batch push over each record's version, pull from a cursor,
+full listing when it expires, account id): `sync_records` stays the outbox,
+the version rides in `system_fields`, the cursor and account in the
+preferences, transient failures back off with jitter. Google is offered
+only where `googleDriveStoreProvider` has a store, which no build has yet;
+the tests run it over `MemoryCloudStore`.
+
+**iCloud sync.** `ios/Runner/CloudSync.swift` runs CKSyncEngine on the private
 database's `Library` zone (container `iCloud.com.orkitec.velorki`) and keeps
 its state in Application Support; the rows stay in Drift, so the engine asks
 Dart for each record as it sends and hands every fetched change to Dart,

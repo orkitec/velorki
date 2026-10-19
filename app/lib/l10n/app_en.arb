@@ -6296,10 +6296,6 @@
   "@settingsSync": {
     "description": "Settings section header for iCloud sync; the brand name"
   },
-  "cloudSyncTitle": "Sync with iCloud",
-  "@cloudSyncTitle": {
-    "description": "Switch in Settings that syncs routes, rides and settings through iCloud"
-  },
   "cloudSyncOff": "Routes, rides and settings stay on this device",
   "@cloudSyncOff": {
     "description": "Second line of the iCloud switch while it is off"
@@ -6369,5 +6365,33 @@
   "cloudSyncHint": "Your routes, rides and a few settings on every iPhone and iPad signed in to your Apple Account. Routes from Strava stay on this device",
   "@cloudSyncHint": {
     "description": "Explanation below the iCloud switch"
+  },
+  "cloudSyncWith": "Sync with",
+  "@cloudSyncWith": {
+    "description": "Label above the choice in Settings of the cloud that routes, rides and settings sync with"
+  },
+  "cloudSyncServiceICloud": "iCloud",
+  "@cloudSyncServiceICloud": {
+    "description": "Choice in Settings → Sync with: Apple's iCloud; the brand name"
+  },
+  "cloudSyncServiceGoogle": "Google",
+  "@cloudSyncServiceGoogle": {
+    "description": "Choice in Settings → Sync with: the rider's Google Drive; the brand name"
+  },
+  "cloudSyncServiceOff": "Off",
+  "@cloudSyncServiceOff": {
+    "description": "Choice in Settings → Sync with: no sync, everything stays on the device"
+  },
+  "cloudSyncGoogleNoAccount": "Not signed in to Google",
+  "@cloudSyncGoogleNoAccount": {
+    "description": "Status line of Google sync when no Google account is signed in"
+  },
+  "cloudSyncGoogleQuota": "Google storage is full",
+  "@cloudSyncGoogleQuota": {
+    "description": "Status line of Google sync when the rider's Google storage is full"
+  },
+  "cloudSyncGoogleHint": "Your routes, rides and a few settings on every device signed in to your Google Account, kept in your Google Drive. Routes from Strava stay on this device",
+  "@cloudSyncGoogleHint": {
+    "description": "Explanation below the sync choice while Google is chosen"
   }
 }

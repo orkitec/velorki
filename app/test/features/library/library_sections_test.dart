@@ -15,6 +15,7 @@ import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/sync/application/cloud_sync_controller.dart';
+import 'package:velorki/features/sync/domain/sync_service.dart';
 import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -237,7 +238,9 @@ void _pullRefreshTests() {
       extraOverrides: [
         cloudSyncBridgeProvider.overrideWithValue(bridge),
         cloudSyncOutboxProvider.overrideWith((ref) async => dir),
-        cloudSyncEnabledProvider.overrideWith(() => _Enabled(syncOn)),
+        syncServiceChoiceProvider.overrideWith(
+          () => _Choice(syncOn ? SyncService.icloud : SyncService.off),
+        ),
       ],
     );
     ProviderScope.containerOf(
@@ -356,11 +359,11 @@ class _GatedBridge extends FakeCloudSyncBridge {
   }
 }
 
-class _Enabled extends CloudSyncEnabled {
-  _Enabled(this.value);
+class _Choice extends SyncServiceChoice {
+  _Choice(this.value);
 
-  final bool value;
+  final SyncService value;
 
   @override
-  bool build() => value;
+  SyncService build() => value;
 }

@@ -15,6 +15,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:velorki/features/settings/presentation/settings_screen.dart';
 import 'package:velorki/features/sync/application/cloud_sync_controller.dart';
 import 'package:velorki/features/sync/domain/cloud_sync_status.dart';
+import 'package:velorki/features/sync/domain/sync_service.dart';
 import 'package:velorki/features/sync/presentation/cloud_sync_section.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 
@@ -32,7 +33,9 @@ void main() {
     // What bootstrap does at launch.
     final sync = container.listen(cloudSyncControllerProvider, (_, _) {});
     addTearDown(sync.close);
-    await container.read(cloudSyncEnabledProvider.notifier).set(enabled: true);
+    await container
+        .read(syncServiceChoiceProvider.notifier)
+        .select(SyncService.icloud);
 
     final l10n = AppLocalizations.of(
       tester.element(find.byType(Navigator).first),
@@ -70,7 +73,7 @@ void main() {
     );
     final status = container.read(cloudSyncControllerProvider);
     debugPrint('VELORKI_ITEST iCloud account: ${status.account.name}');
-    expect(find.text(l10n.cloudSyncTitle), findsOneWidget);
+    expect(find.text(l10n.cloudSyncWith), findsOneWidget);
     if (status.account == CloudAccount.noAccount) {
       expect(find.text(l10n.cloudSyncNoAccount), findsOneWidget);
     }
@@ -79,10 +82,10 @@ void main() {
     }
 
     // Off and on again: the engine stops and starts without a hitch.
-    await tester.tap(find.byType(CloudSyncSection));
+    await tester.tap(find.text(l10n.cloudSyncServiceOff));
     await pumpFor(tester, const Duration(seconds: 1));
     expect(find.text(l10n.cloudSyncOff), findsOneWidget);
-    await container.read(cloudSyncEnabledProvider.notifier).set(enabled: true);
+    await tester.tap(find.text(l10n.cloudSyncServiceICloud));
     await pumpFor(tester, const Duration(seconds: 1));
     expect(find.text(l10n.cloudSyncOff), findsNothing);
 

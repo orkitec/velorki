@@ -7,9 +7,11 @@ import 'package:intl/intl.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../application/cloud_sync_controller.dart';
 import '../domain/cloud_sync_status.dart';
+import '../domain/sync_service.dart';
 
-/// Settings → iCloud: the switch, and a line saying where the sync stands.
-/// Shown only where [cloudSyncSupportedProvider] says the device can sync.
+/// Settings → Sync with: the services this device offers and off, and a
+/// line saying where the sync stands. Shown only where
+/// [offeredSyncServicesProvider] has a service.
 class CloudSyncSection extends ConsumerStatefulWidget {
   /// Creates the section.
   const CloudSyncSection({super.key});
@@ -39,54 +41,92 @@ class _CloudSyncSectionState extends ConsumerState<CloudSyncSection> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final enabled = ref.watch(cloudSyncEnabledProvider);
+    final offered = ref.watch(offeredSyncServicesProvider);
+    final active = ref.watch(activeSyncServiceProvider);
     final status = ref.watch(cloudSyncControllerProvider);
     final theme = Theme.of(context);
-    return SwitchListTile(
-      value: enabled,
-      title: Text(l10n.cloudSyncTitle),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    // Off, the hint is the first service's: what switching it on does.
+    final hinted = active == SyncService.off
+        ? (offered.firstOrNull ?? SyncService.off)
+        : active;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Text(l10n.cloudSyncWith, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 10),
+          SegmentedButton<SyncService>(
+            showSelectedIcon: false,
+            segments: [
+              for (final service in [...offered, SyncService.off])
+                ButtonSegment(
+                  value: service,
+                  label: Text(syncServiceLabel(l10n, service)),
+                ),
+            ],
+            selected: {active},
+            onSelectionChanged: (selection) => unawaited(
+              ref
+                  .read(syncServiceChoiceProvider.notifier)
+                  .select(selection.single),
+            ),
+          ),
+          const SizedBox(height: 12),
           Text(
             cloudSyncStatusLine(
               l10n,
               status,
-              enabled: enabled,
+              service: active,
               now: DateTime.now(),
             ),
-            style: TextStyle(color: theme.colorScheme.onSurface),
+            style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 4),
-          Text(l10n.cloudSyncHint),
+          Text(
+            hinted == SyncService.google
+                ? l10n.cloudSyncGoogleHint
+                : l10n.cloudSyncHint,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
-      ),
-      onChanged: (value) => unawaited(
-        ref.read(cloudSyncEnabledProvider.notifier).set(enabled: value),
       ),
     );
   }
 }
 
-/// The status line under the switch.
+/// The name of [service] on its segment.
+String syncServiceLabel(AppLocalizations l10n, SyncService service) =>
+    switch (service) {
+      SyncService.icloud => l10n.cloudSyncServiceICloud,
+      SyncService.google => l10n.cloudSyncServiceGoogle,
+      SyncService.off => l10n.cloudSyncServiceOff,
+    };
+
+/// The status line under the choice.
 String cloudSyncStatusLine(
   AppLocalizations l10n,
   CloudSyncStatus status, {
-  required bool enabled,
+  required SyncService service,
   required DateTime now,
 }) {
-  if (!enabled) return l10n.cloudSyncOff;
+  if (service == SyncService.off) return l10n.cloudSyncOff;
+  final google = service == SyncService.google;
   switch (status.account) {
     case CloudAccount.noAccount:
-      return l10n.cloudSyncNoAccount;
+      return google ? l10n.cloudSyncGoogleNoAccount : l10n.cloudSyncNoAccount;
     case CloudAccount.restricted:
-      return l10n.cloudSyncRestricted;
+      return google ? l10n.cloudSyncGoogleNoAccount : l10n.cloudSyncRestricted;
     case CloudAccount.available:
     case CloudAccount.temporarilyUnavailable:
     case CloudAccount.unknown:
       break;
   }
-  if (status.error == CloudSyncError.quotaExceeded) return l10n.cloudSyncQuota;
+  if (status.error == CloudSyncError.quotaExceeded) {
+    return google ? l10n.cloudSyncGoogleQuota : l10n.cloudSyncQuota;
+  }
   if (status.syncing) return l10n.cloudSyncSyncing;
   switch (status.error) {
     case CloudSyncError.network:

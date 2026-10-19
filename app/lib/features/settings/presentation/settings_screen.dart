@@ -64,8 +64,9 @@ class SettingsScreen extends ConsumerWidget {
             _SectionHeader.sensors(),
             SensorsSection(),
           ],
-          // iOS 17 and later only; hidden everywhere else.
-          if (ref.watch(cloudSyncSupportedProvider).value ?? false) ...const [
+          // Only where there is a service to sync with (iCloud: iOS 17 and
+          // later); hidden everywhere else.
+          if (ref.watch(offeredSyncServicesProvider).isNotEmpty) ...const [
             Divider(height: 32),
             _SectionHeader.sync(),
             CloudSyncSection(),

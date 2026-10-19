@@ -5,8 +5,8 @@ import 'package:logging/logging.dart';
 
 import '../../../core/db/database.dart';
 import '../../../core/db/daos/sync_dao.dart';
-import '../data/cloud_sync_bridge.dart';
 import '../data/record_codec.dart';
+import '../data/sync_backend.dart';
 import '../domain/cloud_record.dart';
 
 /// Logs record names and decisions only, never a route's or ride's
@@ -28,7 +28,8 @@ enum _Applied {
   unreadable,
 }
 
-/// Keeps the routes and rides in step with the rider's iCloud.
+/// Keeps the routes and rides in step with the rider's cloud through a
+/// [SyncBackend] ("iCloud" below stands for whichever one it is).
 ///
 /// Local changes are found in `sync_records` (the triggers write it) and
 /// handed to the engine by record name; the engine asks for the records
@@ -43,11 +44,15 @@ enum _Applied {
 /// was on iCloud before it became Strava's (which no path does today) is
 /// deleted there.
 class LibrarySync {
-  /// Creates the sync over [db], sending through [bridge].
-  LibrarySync({required this._db, required this._bridge, required this._codec});
+  /// Creates the sync over [db], sending through [backend].
+  LibrarySync({
+    required this._db,
+    required this._backend,
+    required this._codec,
+  });
 
   final VelorkiDatabase _db;
-  final CloudSyncBridge _bridge;
+  final SyncBackend _backend;
   final RecordCodec _codec;
 
   SyncDao get _sync => _db.syncDao;
@@ -123,7 +128,7 @@ class LibrarySync {
     if (saves.isNotEmpty || deletes.isNotEmpty) {
       _log.info('enqueue saves=$saves deletes=$deletes');
     }
-    await _bridge.enqueue(saves: saves, deletes: deletes);
+    await _backend.enqueue(saves: saves, deletes: deletes);
   }
 
   /// The records named [names], ready to be saved.
@@ -459,9 +464,9 @@ class LibrarySync {
     }
     if (again.isNotEmpty) {
       _log.info('enqueue again saves=$again');
-      await _bridge.enqueue(saves: again);
+      await _backend.enqueue(saves: again);
     }
-    if (fetch) await _bridge.fetchNow();
+    if (fetch) await _backend.fetchNow();
   }
 
   /// Starts over: everything here is sent as new, tombstones forgotten.
