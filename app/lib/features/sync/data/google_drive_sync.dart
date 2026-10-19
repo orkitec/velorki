@@ -1,12 +1,12 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki_io/io.dart';
 
 import '../../../app/app_config.dart';
+import '../../../core/files/app_directories.dart';
 import 'cloud_store.dart';
 import 'drive_cloud_store.dart';
 import 'google_account.dart';
@@ -40,7 +40,7 @@ CloudStore? googleDriveStore(Ref ref) {
 /// to read and delete.
 @Riverpod(keepAlive: true)
 Future<Directory> cloudSyncInbox(Ref ref) async =>
-    Directory(p.join((await getTemporaryDirectory()).path, 'cloud_sync_in'));
+    Directory(p.join((await appTemporaryDirectory()).path, 'cloud_sync_in'));
 
 /// The sync engine over [googleDriveStore], or null without one.
 @Riverpod(keepAlive: true)

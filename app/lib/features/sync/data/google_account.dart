@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show Widget;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
 import 'package:googleapis/drive/v3.dart' show DriveApi;
@@ -12,6 +13,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../app/app_config.dart';
 import 'cloud_store.dart';
 import 'drive_cloud_store.dart';
+import 'google_web_sign_in.dart';
 
 part 'google_account.g.dart';
 
@@ -72,6 +74,24 @@ abstract interface class GoogleSignInService {
   /// only they can grant one. [stale] is one Drive refused. Throws when it
   /// cannot be told now.
   Future<String?> accessToken(GoogleAccount account, {String? stale});
+}
+
+/// Google's sign-in in a browser (Google Identity Services), where only
+/// Google's own button signs in and only a click of the rider's grants a
+/// token: none outlives the page, and each lasts an hour. A token that
+/// cannot be had silently is no lost account there, only a sign-in to do
+/// again ([CloudStoreFailure.signInNeeded]).
+abstract interface class ButtonGoogleSignIn implements GoogleSignInService {
+  /// Google's sign-in button, [dark] or light.
+  Widget button({required bool dark});
+
+  /// The accounts signed in with [button], as they are.
+  Stream<GoogleAccount> get signIns;
+
+  /// Asks the rider for [driveAppDataScope] for [account] in Google's popup;
+  /// call from a click of theirs. The access token. Throws
+  /// [GoogleSignInFailure].
+  Future<String> authorize(GoogleAccount account);
 }
 
 /// [GoogleSignInService] over the `google_sign_in` plugin. iOS reads its
@@ -145,13 +165,15 @@ class PluginGoogleSignIn implements GoogleSignInService {
   }
 }
 
-/// Google's sign-in where this build offers Google sync (iOS, and Android
-/// with the web client's id configured), else null.
+/// Google's sign-in where this build offers Google sync (iOS, Android and
+/// the browser with the web client's id configured), else null.
 @Riverpod(keepAlive: true)
 GoogleSignInService? googleSignInService(Ref ref) {
-  if (kIsWeb) return null;
-  if (Platform.isIOS) return PluginGoogleSignIn();
   final webClientId = ref.watch(appConfigProvider).googleWebClientId;
+  if (kIsWeb) {
+    return webClientId.isEmpty ? null : createWebGoogleSignIn(webClientId);
+  }
+  if (Platform.isIOS) return PluginGoogleSignIn();
   if (Platform.isAndroid && webClientId.isNotEmpty) {
     return PluginGoogleSignIn(serverClientId: webClientId);
   }
@@ -164,6 +186,14 @@ GoogleSignInService? googleSignInService(Ref ref) {
 class GoogleAccountController extends _$GoogleAccountController {
   @override
   GoogleAccount? build() {
+    if (ref.watch(googleSignInServiceProvider)
+        case final ButtonGoogleSignIn web) {
+      final signIns = web.signIns.listen(
+        (account) => unawaited(_remember(account)),
+        onError: (Object e) => _log.info('button sign-in: $e'),
+      );
+      ref.onDispose(signIns.cancel);
+    }
     final json = ref.watch(sharedPreferencesProvider).getString(_prefsAccount);
     if (json == null) return null;
     try {
@@ -184,6 +214,11 @@ class GoogleAccountController extends _$GoogleAccountController {
       throw const GoogleSignInFailure(canceled: false);
     }
     final account = await service.signIn();
+    await _remember(account);
+    return account;
+  }
+
+  Future<void> _remember(GoogleAccount account) async {
     await ref
         .read(sharedPreferencesProvider)
         .setString(
@@ -191,7 +226,18 @@ class GoogleAccountController extends _$GoogleAccountController {
           jsonEncode({'id': account.id, 'email': account.email}),
         );
     state = account;
-    return account;
+  }
+
+  /// Asks the rider for Drive access in a browser ([ButtonGoogleSignIn]),
+  /// after a click of theirs; the access token. Throws
+  /// [GoogleSignInFailure].
+  Future<String> authorize() async {
+    final service = ref.read(googleSignInServiceProvider);
+    final account = state;
+    if (service is! ButtonGoogleSignIn || account == null) {
+      throw const GoogleSignInFailure(canceled: false);
+    }
+    return service.authorize(account);
   }
 
   /// Signs out on this device; what is in Drive stays there.
@@ -268,6 +314,14 @@ class GoogleDriveAuth implements DriveAuth {
       throw CloudStoreException(CloudStoreFailure.transient, '$e');
     }
     if (token == null) {
+      // In a browser only a click of the rider's gets a token: the account
+      // stays theirs meanwhile.
+      if (service is ButtonGoogleSignIn) {
+        throw const CloudStoreException(
+          CloudStoreFailure.signInNeeded,
+          'Google needs the rider to sign in again',
+        );
+      }
       await onLost();
       return null;
     }

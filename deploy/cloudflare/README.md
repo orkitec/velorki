@@ -9,9 +9,14 @@ tiles without CORS.
 - `pages/wrangler.toml`: the project config.
 - `pages/functions/tiles/[[path]].js`: the function on `/tiles/*`; the logic
   is in `pages/tiles_proxy.mjs`.
-- `app/web/_headers` ships with the build: cross-origin isolation
-  (COOP/COEP `credentialless`), the Content-Security-Policy (every host the
-  app loads from, named there), `nosniff`, referrer policy and cache rules
+- `app/web/_headers` ships with the build: cross-origin isolation by
+  `Document-Isolation-Policy: isolate-and-credentialless` with COOP
+  `same-origin-allow-popups` (COOP `same-origin` would cut the Google and
+  Apple sign-in popups off from the page they answer; Chrome stays isolated,
+  Firefox and Safari run without isolation), the Content-Security-Policy
+  (every host the app loads from, named there, Google Identity Services,
+  Drive, CloudKit JS and CloudKit's hosts among them; `app/web_test/headers.test.mjs`
+  holds it), `nosniff`, referrer policy and cache rules
   for the static files. The engine and maplibre-gl-js are served from the
   site itself, so a build with the CDN default is refused by that policy.
 
@@ -60,4 +65,8 @@ From `app/`: `flutter build web --wasm --no-web-resources-cdn --dart-define-from
 then `python3 tool/web_serve.py` and open http://localhost:8080 in Chrome. The
 script sends the build's `_headers` and stands in for the tiles function: the
 pointer comes from velorki-data, tiles are fetched from the GitHub releases and
-kept in `build/web_tile_cache`.
+kept in `build/web_tile_cache`. `python3 tool/web_serve.py --https` serves
+https://localhost:8443 instead, the origin the CloudKit Development token and
+the Google web client allow, so the iCloud and Google sign-ins work locally
+(mkcert's certificate when mkcert is installed, else a self-signed one Chrome
+warns about once).

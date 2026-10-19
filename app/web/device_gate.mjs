@@ -117,15 +117,42 @@ export function leaveOutStoreSdk(head) {
   };
 }
 
+/**
+ * google_sign_in's web plugin appends Google Identity Services' script to
+ * <head> as the engine starts. The planner asks nothing of Google until the
+ * rider picks Google in Settings → Sync with, so `head` holds that script
+ * back until the app calls `velorkiLoadGoogleSdk()` on `target` (the
+ * window); then it goes in as the plugin made it.
+ */
+export const GOOGLE_SDK = /^https:\/\/accounts\.google\.com\/gsi\/client/;
+
+export function holdBackGoogleSdk(head, target) {
+  const held = [];
+  let released = false;
+  const appendChild = head.appendChild;
+  head.appendChild = function (node) {
+    if (!released && GOOGLE_SDK.test(node?.src ?? '')) {
+      held.push(node);
+      return node;
+    }
+    return appendChild.call(this, node);
+  };
+  target.velorkiLoadGoogleSdk = () => {
+    released = true;
+    for (const node of held.splice(0)) appendChild.call(head, node);
+  };
+}
+
 /** The element the planner runs in, below the header; the engine is
     appended once, and only after it is there. */
-export function loadApp(document) {
+export function loadApp(document, window = globalThis) {
   if (document.getElementById('flutter-bootstrap')) return;
   if (!document.getElementById('velorki-app')) {
     document.body.setAttribute('class', 'vg-app');
     document.body.appendChild(document.createElement('div')).setAttribute('id', 'velorki-app');
   }
   leaveOutStoreSdk(document.head);
+  holdBackGoogleSdk(document.head, window);
   const script = document.createElement('script');
   script.id = 'flutter-bootstrap';
   script.src = 'flutter_bootstrap.js';
@@ -246,7 +273,7 @@ export function boot(window) {
   document.head.appendChild(el(document, 'style', { id: 'velorki-style' }, [HEADER_CSS + PAGE_CSS]));
   document.body.appendChild(header.element);
   if (!mobile) {
-    loadApp(document);
+    loadApp(document, window);
     return;
   }
   function showGate(lang) {
@@ -255,7 +282,7 @@ export function boot(window) {
     removeGate = renderDownloadPage(document, lang, () => {
       gate = null;
       header.set({});
-      loadApp(document);
+      loadApp(document, window);
     });
   }
   showGate(header.state.lang);

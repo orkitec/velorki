@@ -6300,9 +6300,9 @@
       }
     }
   },
-  "settingsSync": "iCloud",
+  "settingsSync": "Sync",
   "@settingsSync": {
-    "description": "Settings section header for iCloud sync; the brand name"
+    "description": "Settings section header for syncing routes, rides and settings with a cloud (iCloud or Google)"
   },
   "cloudSyncOff": "Routes, rides and settings stay on this device",
   "@cloudSyncOff": {
@@ -6417,5 +6417,21 @@
   "cloudSyncGoogleSignInFailed": "Couldn’t sign in to Google.",
   "@cloudSyncGoogleSignInFailed": {
     "description": "Message when the Google sign-in started from Settings → Sync with failed"
+  },
+  "cloudSyncSignInAgain": "Sign in again to sync",
+  "@cloudSyncSignInAgain": {
+    "description": "Status line of sync in the web planner when the cloud sign-in ran out and only the rider can sign in again"
+  },
+  "cloudSyncICloudSignedOut": "Not signed in to iCloud",
+  "@cloudSyncICloudSignedOut": {
+    "description": "Status line of iCloud sync in the web planner while no Apple Account is signed in"
+  },
+  "cloudSyncICloudSignedIn": "Signed in with your Apple Account",
+  "@cloudSyncICloudSignedIn": {
+    "description": "Line in Settings → Sync with in the web planner while signed in to iCloud, beside the Sign out button"
+  },
+  "cloudSyncICloudWebHint": "Your routes and rides, as on every iPhone and iPad signed in to your Apple Account. Settings stay in this browser",
+  "@cloudSyncICloudWebHint": {
+    "description": "Explanation below the sync choice in the web planner while iCloud is chosen: settings do not sync there"
   }
 }

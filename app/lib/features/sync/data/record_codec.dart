@@ -1,10 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
-import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:path/path.dart' as p;
+import 'package:velorki_io/io.dart';
+import 'package:velorki_io/worker.dart';
 
 import '../../../core/db/database.dart';
 import '../domain/cloud_record.dart';
@@ -252,8 +252,8 @@ class RecordCodec {
     await outbox.create(recursive: true);
     final path = p.join(outbox.path, '$name.json.gz');
     // A long track is megabytes of JSON: encoded and compressed off the
-    // UI isolate.
-    final bytes = await Isolate.run(
+    // UI isolate where there are isolates.
+    final bytes = await runIsolated(
       () => gzip.encode(utf8.encode(jsonEncode(body))),
     );
     await File(path).writeAsBytes(bytes, flush: true);
@@ -267,7 +267,7 @@ class RecordCodec {
     final file = File(path);
     try {
       final bytes = await file.readAsBytes();
-      final decoded = await Isolate.run(
+      final decoded = await runIsolated(
         () => jsonDecode(utf8.decode(gzip.decode(bytes))),
       );
       return decoded is Map<String, Object?> ? decoded : null;

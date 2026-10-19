@@ -1230,7 +1230,7 @@
   "stravaAccessLostBody": "Strava akzeptiert Velorkis Zugriff nicht mehr, deshalb hat Velorki die Verbindung getrennt. Deine Strava-Daten wurden von diesem Telefon gelöscht. Verbinde unter Einstellungen → Verbindungen neu, um Strava zu nutzen.",
   "integrationAccessRevoked": "Der Dienst akzeptiert Velorkis Zugriff nicht mehr. Unter Einstellungen → Verbindungen neu verbinden.",
   "stravaRoutesRemoved": "{count, plural, =1{Eine Route von Strava wurde entfernt: Es gibt sie auf Strava nicht mehr, oder sie konnte 7 Tage lang nicht geprüft werden.} other{{count} Routen von Strava wurden entfernt: Es gibt sie auf Strava nicht mehr, oder sie konnten 7 Tage lang nicht geprüft werden.}}",
-  "settingsSync": "iCloud",
+  "settingsSync": "Synchronisierung",
   "cloudSyncOff": "Routen, Fahrten und Einstellungen bleiben auf diesem Gerät",
   "cloudSyncSyncing": "Wird synchronisiert …",
   "cloudSyncJustNow": "Gerade synchronisiert",
@@ -1254,5 +1254,9 @@
   "cloudSyncGoogleSignIn": "Anmelden",
   "cloudSyncGoogleSignOut": "Abmelden",
   "cloudSyncGoogleSignInCancelled": "Die Anmeldung bei Google wurde abgebrochen.",
-  "cloudSyncGoogleSignInFailed": "Die Anmeldung bei Google ist fehlgeschlagen."
+  "cloudSyncGoogleSignInFailed": "Die Anmeldung bei Google ist fehlgeschlagen.",
+  "cloudSyncSignInAgain": "Zum Synchronisieren erneut anmelden",
+  "cloudSyncICloudSignedOut": "Nicht bei iCloud angemeldet",
+  "cloudSyncICloudSignedIn": "Mit deinem Apple Account angemeldet",
+  "cloudSyncICloudWebHint": "Deine Routen und Fahrten, wie auf jedem iPhone und iPad mit deinem Apple Account. Einstellungen bleiben in diesem Browser"
 }

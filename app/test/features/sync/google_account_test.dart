@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,6 +33,26 @@ class _Tokens implements GoogleSignInService {
       case 'none':
         return null;
     }
+    return 'token-${issued++}';
+  }
+}
+
+/// Google's sign-in as a browser has it: a token only after a click.
+class _ButtonTokens extends _Tokens implements ButtonGoogleSignIn {
+  final StreamController<GoogleAccount> clicks =
+      StreamController<GoogleAccount>.broadcast();
+  int authorizations = 0;
+
+  @override
+  Widget button({required bool dark}) => const SizedBox();
+
+  @override
+  Stream<GoogleAccount> get signIns => clicks.stream;
+
+  @override
+  Future<String> authorize(GoogleAccount account) async {
+    authorizations++;
+    next = null;
     return 'token-${issued++}';
   }
 }
@@ -121,5 +144,60 @@ void main() {
     await first.read(googleAccountControllerProvider.notifier).signOut();
     expect(first.read(googleAccountControllerProvider), isNull);
     expect(launch().read(googleAccountControllerProvider), isNull);
+  });
+
+  group('in a browser', () {
+    test('a token only a click gets is a sign-in to do again, and the '
+        'account stays', () async {
+      final tokens = _ButtonTokens()..next = 'none';
+      var lost = 0;
+      final auth = GoogleDriveAuth(
+        account: () => _account,
+        service: tokens,
+        onLost: () async => lost++,
+      );
+      await expectLater(
+        auth.accessToken(),
+        throwsA(
+          isA<CloudStoreException>().having(
+            (e) => e.failure,
+            'failure',
+            CloudStoreFailure.signInNeeded,
+          ),
+        ),
+      );
+      expect(lost, 0);
+      expect(auth.accountId, _account.id);
+    });
+
+    test("the account signed in with Google's button is kept, and a click "
+        'authorizes it', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final prefs = await SharedPreferences.getInstance();
+      final tokens = _ButtonTokens();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          googleSignInServiceProvider.overrideWithValue(tokens),
+        ],
+      );
+      addTearDown(container.dispose);
+      final accounts = <GoogleAccount?>[];
+      container.listen(
+        googleAccountControllerProvider,
+        (_, next) => accounts.add(next),
+        fireImmediately: true,
+      );
+      tokens.clicks.add(_account);
+      await pumpEventQueue();
+      expect(accounts, [null, _account]);
+      expect(prefs.getString('sync.google.user'), contains('g-1'));
+
+      final token = await container
+          .read(googleAccountControllerProvider.notifier)
+          .authorize();
+      expect(token, 'token-0');
+      expect(tokens.authorizations, 1);
+    });
   });
 }

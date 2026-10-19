@@ -140,6 +140,11 @@ enum CloudStoreFailure {
   /// The rider's storage is full.
   quotaExceeded,
 
+  /// The account is still the rider's, but only they can let the app in
+  /// again (a browser's Google token is gone after an hour or a reload, a
+  /// CloudKit web session ran out): what waits stays until they sign in.
+  signInNeeded,
+
   /// Anything else; tried again on the next launch or return to the app.
   other,
 }

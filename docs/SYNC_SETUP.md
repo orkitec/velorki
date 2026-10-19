@@ -53,6 +53,8 @@ goes anywhere.
      local server serves https there).
 3. Both go into `app/env/web.json` (`VELORKI_CLOUDKIT_TOKEN_DEVELOPMENT`,
    `VELORKI_CLOUDKIT_TOKEN_PRODUCTION`); they are public, bound to the origins.
+   The planner picks Development on localhost (`tool/web_serve.py --https`)
+   and Production everywhere else.
 
 The schema must be deployed to Production before the Production token is
 used (done 2026-10-18 for `Route` and `Ride`; redeploy after any schema

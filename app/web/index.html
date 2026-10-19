@@ -41,6 +41,12 @@
     /* The app draws its own attribution chip; the maplibre web plugin cannot
        move its button off screen as the phones do. */
     .maplibregl-ctrl-attrib { display: none !important; }
+    /* Google's sign-in button (Settings → Sync with) is a light frame of
+       its own: in a dark page the browser would paint it on white unless
+       the frame element says light too. */
+    iframe[src^="https://accounts.google.com/gsi/"] { color-scheme: light; }
+    /* ...and starts where the section's text does, not centred. */
+    div[id^="sign_in_button_"] { justify-content: flex-start !important; }
   </style>
 </head>
 <body>

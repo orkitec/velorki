@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
+import 'package:velorki_io/io.dart';
 
 import '../domain/cloud_record.dart';
 import '../domain/cloud_sync_status.dart';
@@ -55,8 +55,9 @@ Duration syncBackoff(int failures, math.Random random) {
 /// the versions they last had and reports what became of each, a refused
 /// save with the store's copy, which the library settles newer change
 /// wins. A name enqueued again while on its way stays waiting. Transient
-/// failures are tried again after [syncBackoff]; an expired cursor lists
-/// the whole store again. Another account than last time clears what was
+/// failures are tried again after [syncBackoff], and a store that needs
+/// the rider to sign in again keeps what waits until they have; an expired
+/// cursor lists the whole store again. Another account than last time clears what was
 /// kept for the old one and tells the handler, which resends the library
 /// as new and deletes nothing.
 class StoreSyncBackend implements SyncBackend {
@@ -64,12 +65,15 @@ class StoreSyncBackend implements SyncBackend {
   /// [inbox] for the codec, which deletes them. A run of transient
   /// failures waits [backoff] ([syncBackoff] unless given) before trying
   /// again. With [scheduling] off nothing is sent or retried by itself:
-  /// tests call [sendNow].
+  /// tests call [sendNow]. With [syncsSettings] off the settings stay on
+  /// the device (a store whose other devices keep theirs elsewhere, as
+  /// iCloud's apps keep them in its key-value store).
   StoreSyncBackend({
     required this._store,
     required this._state,
     required this._inbox,
     this.batchSize = 20,
+    this.syncsSettings = true,
     this.sendDelay = const Duration(milliseconds: 500),
     this.scheduling = true,
     Duration Function(int failures)? backoff,
@@ -92,6 +96,9 @@ class StoreSyncBackend implements SyncBackend {
 
   /// Whether sends and retries start by themselves.
   final bool scheduling;
+
+  /// Whether the settings go through the store's `settings` record.
+  final bool syncsSettings;
 
   CloudSyncHandler? _handler;
   bool _running = false;
@@ -251,7 +258,10 @@ class StoreSyncBackend implements SyncBackend {
         '${[for (final f in sent.failedSaves) '${f.name}:${f.failure.name}']}',
       );
       await handler.sent(sent);
-      if (error.contains(CloudSyncError.network)) break;
+      if (error.contains(CloudSyncError.network) ||
+          error.contains(CloudSyncError.signInNeeded)) {
+        break;
+      }
     }
     if (anySaved) _quotaFull = false;
     if (error.contains(CloudSyncError.quotaExceeded)) _quotaFull = true;
@@ -300,10 +310,9 @@ class StoreSyncBackend implements SyncBackend {
       final result = i < results.length
           ? results[i]
           : const StoreFailed(CloudStoreFailure.transient);
-      // Kept waiting only for a transient failure: tried again after the
-      // backoff, as CKSyncEngine does.
-      if (result is! StoreFailed ||
-          result.failure != CloudStoreFailure.transient) {
+      // Kept waiting only for a transient failure, tried again after the
+      // backoff as CKSyncEngine does, and until the rider signs in again.
+      if (result is! StoreFailed || !_keepsWaiting(result.failure)) {
         done(write.name);
       }
       if (write is StoreDelete) {
@@ -335,7 +344,8 @@ class StoreSyncBackend implements SyncBackend {
           error.add(_errorOf(failure));
           failedSaves.add(
             FailedSave(write.name, switch (failure) {
-              CloudStoreFailure.transient => SaveFailure.retrying,
+              CloudStoreFailure.transient ||
+              CloudStoreFailure.signInNeeded => SaveFailure.retrying,
               CloudStoreFailure.quotaExceeded => SaveFailure.quotaExceeded,
               CloudStoreFailure.other => SaveFailure.other,
             }),
@@ -393,7 +403,9 @@ class StoreSyncBackend implements SyncBackend {
           );
           await handler.applyRemote(modifications, deletions);
         }
-        if (settings != null) await _settingsArrived(settings);
+        if (settings != null && syncsSettings) {
+          await _settingsArrived(settings);
+        }
         cursor = changes.cursor;
         // A listing's own page tokens are not kept: one cut short starts
         // over.
@@ -434,6 +446,7 @@ class StoreSyncBackend implements SyncBackend {
 
   @override
   Future<Map<String, Object?>> readSettings(List<String> keys) async {
+    if (!syncsSettings) return const <String, Object?>{};
     try {
       final record = await _store.get(_settingsRecord);
       await _keepSettings(record?.fields ?? const {}, record?.version);
@@ -450,6 +463,7 @@ class StoreSyncBackend implements SyncBackend {
 
   @override
   Future<void> writeSettings(Map<String, Object?> values) async {
+    if (!syncsSettings) return;
     final out = {..._map(_Keys.settingsOut), ...values};
     await _state.write(_Keys.settingsOut, jsonEncode(out));
     if (_running && await _checkAccount()) await _flushSettings();
@@ -467,6 +481,7 @@ class StoreSyncBackend implements SyncBackend {
   /// Writes the settings changed here; a conflict takes the store's copy
   /// (its other changes reach the handler) and goes again.
   Future<void> _flushSettings() async {
+    if (!syncsSettings) return;
     for (var attempt = 0; attempt < 5; attempt++) {
       if (_map(_Keys.settingsOut).isEmpty) return;
       final merged = _merged();
@@ -614,8 +629,13 @@ class StoreSyncBackend implements SyncBackend {
       switch (failure) {
         CloudStoreFailure.transient => CloudSyncError.network,
         CloudStoreFailure.quotaExceeded => CloudSyncError.quotaExceeded,
+        CloudStoreFailure.signInNeeded => CloudSyncError.signInNeeded,
         CloudStoreFailure.other => CloudSyncError.other,
       };
+
+  static bool _keepsWaiting(CloudStoreFailure failure) =>
+      failure == CloudStoreFailure.transient ||
+      failure == CloudStoreFailure.signInNeeded;
 
   void _emit({
     CloudAccount? account,

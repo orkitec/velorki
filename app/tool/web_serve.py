@@ -3,8 +3,9 @@
 
     flutter build web --wasm --no-web-resources-cdn --dart-define-from-file=env/web.json
     python3 tool/web_serve.py [--port 8080] [--dir build/web] [--cache DIR]
+    python3 tool/web_serve.py --https [--port 8443]
 
-then open http://localhost:8080 in Chrome.
+then open http://localhost:8080 (or https://localhost:8443) in Chrome.
 
 - The build's own `_headers` (cross-origin isolation, CSP) are sent with
   every file, as Pages does.
@@ -14,6 +15,13 @@ then open http://localhost:8080 in Chrome.
   release asset from GitHub (following its redirect). Fetched tiles are kept
   in --cache (default build/web_tile_cache) so a restart does not fetch them
   again.
+- `--https` serves https on 8443, the origin the CloudKit Development token
+  and the Google web client allow (Apple's console takes https origins
+  only), so iCloud and Google sign-in can be tried locally. The certificate
+  is mkcert's for localhost when mkcert is installed (`brew install mkcert`,
+  `mkcert -install` once: Chrome then trusts it), else a self-signed one made
+  with openssl, which Chrome warns about once ("Proceed to localhost"). Both
+  are kept in --cert-dir (default build/web_cert).
 """
 import argparse
 import http.server
@@ -21,6 +29,8 @@ import json
 import os
 import re
 import shutil
+import ssl
+import subprocess
 import sys
 import threading
 import urllib.request
@@ -34,10 +44,15 @@ LOCKS_GUARD = threading.Lock()
 AGENT = {"User-Agent": "velorki-web-serve (+https://github.com/orkitec/velorki)"}
 
 args = argparse.ArgumentParser()
-args.add_argument("--port", type=int, default=8080)
+args.add_argument("--port", type=int)
 args.add_argument("--dir", default="build/web")
 args.add_argument("--cache", default="build/web_tile_cache")
+args.add_argument("--https", action="store_true", help="serve https (default port 8443)")
+args.add_argument("--cert-dir", default="build/web_cert")
 opts = args.parse_args()
+if opts.port is None:
+    opts.port = 8443 if opts.https else 8080
+SCHEME = "https" if opts.https else "http"
 os.makedirs(opts.cache, exist_ok=True)
 
 
@@ -98,7 +113,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def pointer(self):
         with urllib.request.urlopen(urllib.request.Request(POINTER, headers=AGENT)) as r:
             data = json.load(r)
-        origin = f"http://{self.headers.get('Host')}"
+        origin = f"{SCHEME}://{self.headers.get('Host')}"
 
         def rewrite(url):
             if isinstance(url, str) and url.startswith(RELEASES):
@@ -174,5 +189,39 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         sys.stderr.write("%s\n" % (fmt % a))
 
 
-print(f"Velorki web planner on http://localhost:{opts.port}  (Ctrl-C to stop)")
-http.server.ThreadingHTTPServer(("127.0.0.1", opts.port), Handler).serve_forever()
+def certificate():
+    """A certificate and key for localhost: mkcert's where it is installed,
+    else a self-signed one from openssl. Made once, then reused."""
+    os.makedirs(opts.cert_dir, exist_ok=True)
+    cert = os.path.join(opts.cert_dir, "localhost.pem")
+    key = os.path.join(opts.cert_dir, "localhost-key.pem")
+    if os.path.isfile(cert) and os.path.isfile(key):
+        return cert, key
+    if shutil.which("mkcert"):
+        subprocess.run(
+            ["mkcert", "-cert-file", cert, "-key-file", key, "localhost", "127.0.0.1", "::1"],
+            check=True,
+        )
+    else:
+        sys.stderr.write("mkcert not found: a self-signed certificate (Chrome warns once)\n")
+        subprocess.run(
+            [
+                "openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "825",
+                "-subj", "/CN=localhost",
+                "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:::1",
+                "-keyout", key, "-out", cert,
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    return cert, key
+
+
+server = http.server.ThreadingHTTPServer(("127.0.0.1", opts.port), Handler)
+if opts.https:
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(*certificate())
+    server.socket = context.wrap_socket(server.socket, server_side=True)
+print(f"Velorki web planner on {SCHEME}://localhost:{opts.port}  (Ctrl-C to stop)")
+server.serve_forever()

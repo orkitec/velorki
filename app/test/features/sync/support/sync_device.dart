@@ -28,14 +28,20 @@ class MapSyncState implements SyncEngineState {
 /// One phone or tablet: its own database, engine state and engine over the
 /// shared store, and a handler that does what the controller does.
 class SyncDevice implements CloudSyncHandler {
-  SyncDevice(this.store, Directory dir, String name, {this.batchSize = 20})
-    : db = VelorkiDatabase.memory(),
-      _dir = Directory('${dir.path}/$name');
+  SyncDevice(
+    this.store,
+    Directory dir,
+    String name, {
+    this.batchSize = 20,
+    this.syncsSettings = true,
+  }) : db = VelorkiDatabase.memory(),
+       _dir = Directory('${dir.path}/$name');
 
   final VelorkiDatabase db;
   final CloudStore store;
   final Directory _dir;
   final int batchSize;
+  final bool syncsSettings;
   final MapSyncState state = MapSyncState();
   late StoreSyncBackend engine;
   late LibrarySync sync;
@@ -52,6 +58,7 @@ class SyncDevice implements CloudSyncHandler {
       state: state,
       inbox: () async => Directory('${_dir.path}/in'),
       batchSize: batchSize,
+      syncsSettings: syncsSettings,
       scheduling: false,
     );
     sync = LibrarySync(

@@ -273,3 +273,22 @@ test("loading the app leaves RevenueCat's web SDK out of <head>, and only that",
   assert.equal(head.children.length, before + 1);
   assert.equal(head.children.at(-1), css);
 });
+
+test("Google's sign-in script waits in <head> until the app asks for it", () => {
+  const w = fakeWindow({ userAgent: UA.windowsChrome, maxTouchPoints: 0, platform: 'Win32', languages: ['en'] });
+  boot(w);
+  const head = w.document.head;
+  const gis = Object.assign(w.document.createElement('script'), { src: 'https://accounts.google.com/gsi/client' });
+  const other = Object.assign(w.document.createElement('script'), { src: 'assets/other.js' });
+  const before = head.children.length;
+  head.appendChild(gis);
+  head.appendChild(other);
+  assert.equal(head.children.length, before + 1);
+  assert.equal(head.children.at(-1), other);
+  w.velorkiLoadGoogleSdk();
+  assert.equal(head.children.at(-1), gis);
+  // Once let in, it is not held again.
+  const again = Object.assign(w.document.createElement('script'), { src: 'https://accounts.google.com/gsi/client' });
+  head.appendChild(again);
+  assert.equal(head.children.at(-1), again);
+});

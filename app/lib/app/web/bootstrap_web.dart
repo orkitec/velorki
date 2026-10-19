@@ -11,6 +11,7 @@ import '../../features/planner/presentation/planner_map_host.dart';
 import '../../features/routing_tiles/application/routing_tiles_startup.dart';
 import '../../features/subscription/application/subscription_controller.dart';
 import '../../features/subscription/data/subscription_service.dart';
+import '../../features/sync/application/web_cloud_plus.dart';
 import '../app.dart';
 import '../app_config.dart';
 import '../bootstrap.dart' show initLogging;
@@ -58,6 +59,8 @@ Future<void> bootstrap() async {
   WebGlassLayer.install(container);
   HeaderBridge.install(container);
   prepareOnDeviceRouting(container);
+  // Plus bought in the apps, through the cloud this browser signs in to.
+  container.listen(webCloudPlusProvider, (_, _) {});
 
   runApp(
     UncontrolledProviderScope(container: container, child: const VelorkiApp()),

@@ -1230,7 +1230,7 @@
   "stravaAccessLostBody": "Strava ya no acepta el acceso de Velorki, así que Velorki ha desconectado Strava. Tus datos de Strava se han borrado de este teléfono. Vuelve a conectar en Ajustes → Conexiones para usar Strava.",
   "integrationAccessRevoked": "El servicio ya no acepta el acceso de Velorki. Vuelve a conectar en Ajustes → Conexiones.",
   "stravaRoutesRemoved": "{count, plural, =1{Se eliminó una ruta de Strava: ya no existe en Strava o no se pudo comprobar durante 7 días.} other{Se eliminaron {count} rutas de Strava: ya no existen en Strava o no se pudieron comprobar durante 7 días.}}",
-  "settingsSync": "iCloud",
+  "settingsSync": "Sincronización",
   "cloudSyncOff": "Las rutas, salidas y ajustes se quedan en este dispositivo",
   "cloudSyncSyncing": "Sincronizando…",
   "cloudSyncJustNow": "Sincronizado hace un momento",
@@ -1254,5 +1254,9 @@
   "cloudSyncGoogleSignIn": "Iniciar sesión",
   "cloudSyncGoogleSignOut": "Cerrar sesión",
   "cloudSyncGoogleSignInCancelled": "Se canceló el inicio de sesión en Google.",
-  "cloudSyncGoogleSignInFailed": "No se pudo iniciar sesión en Google."
+  "cloudSyncGoogleSignInFailed": "No se pudo iniciar sesión en Google.",
+  "cloudSyncSignInAgain": "Vuelve a iniciar sesión para sincronizar",
+  "cloudSyncICloudSignedOut": "Sin sesión iniciada en iCloud",
+  "cloudSyncICloudSignedIn": "Sesión iniciada con tu cuenta de Apple",
+  "cloudSyncICloudWebHint": "Tus rutas y salidas, como en cada iPhone y iPad con tu cuenta de Apple. Los ajustes se quedan en este navegador"
 }

@@ -1,16 +1,19 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_api/velorki_api.dart';
 
 import '../../../core/plus/plus_gate.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
+import '../../sync/application/cloud_sync_controller.dart';
 
-/// Whether this browser build can sign into iCloud or Google, which is what
-/// lets the rider use Plus bought in a phone app here ([WebPlus]). False
-/// until the planner's cloud sign-in is in; the paywall says how to get
-/// Plus here once it is.
-final webCloudSignInProvider = Provider<bool>((ref) => false);
+/// Whether this browser build can sign into iCloud or Google (Settings →
+/// Sync with offers one), which is what lets the rider use Plus bought in a
+/// phone app here ([WebPlus]); the paywall then says how.
+final webCloudSignInProvider = Provider<bool>(
+  (ref) => kIsWeb && ref.watch(offeredSyncServicesProvider).isNotEmpty,
+);
 
 /// The Plus token this browser holds, in memory only: what `POST /plus/web`
 /// gave for the rider's cloud sign-in. While it holds one, the relay client

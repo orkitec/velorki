@@ -177,7 +177,8 @@ and the tiles a route needs are fetched as soon as it needs them,
 (`deploy/cloudflare/`), so the mirror needs no CORS. `tool/web_assets.sh`
 fetches `sqlite3.wasm`, `drift_worker.js` and maplibre-gl-js before a build
 (`--no-web-resources-cdn`): the page's code comes from no CDN (only the
-engine's fallback fonts do, from fonts.gstatic.com), and
+engine's fallback fonts do, from fonts.gstatic.com, and Google's or
+Apple's sign-in script once the rider picks that sync), and
 `web/_headers` holds the Content-Security-Policy naming every host it does
 talk to. The isolate work (cycle map, weather images) runs inline through
 `package:velorki_io/worker.dart`, zlib is package:archive's. Where the
@@ -458,6 +459,28 @@ routes and every upload link stay on the phone, partner ids too. Another
 account, a sign-out or a reset zone resends the library as new and never
 deletes it; data deleted from iCloud in Settings switches sync off. A few
 settings (`syncedSettingKeys`) go through the iCloud key-value store.
+
+**Sync in the browser.** The web planner offers iCloud and Google, both off
+until chosen, each signed in from Settings → Sync with by the provider's own
+button. Google is google_sign_in's web implementation (Google Identity
+Services, `ButtonGoogleSignIn`): its script is held back by
+`web/device_gate.mjs` until the rider picks Google; a token comes only from a
+click and lasts an hour and no reload, so a missing one is
+`CloudStoreFailure.signInNeeded` (the account stays, what waits stays queued,
+the section says "Sign in" and asks Google's popup again), never a lost
+account; `DriveCloudStore` is the phone's. iCloud is
+`CloudKitJsCloudStore` over CloudKit JS (`CloudKitWeb`,
+`cloudkit_web_js.dart`; loaded from Apple's CDN only once iCloud is chosen):
+the same `Library` zone, record types and fields CKSyncEngine writes (the
+codec's doubles sent as `DOUBLE`, the body as the `body` asset), the change
+tag as the version (`CONFLICT`/`EXISTS` looked up for the conflict), the
+zone's change feed with its sync token (a refused token lists the zone
+again), the zone made on the first save if no iPhone made it, the user
+record name as the account (kept while the session runs out, so nothing is
+resent). Its session token is kept in local storage. Settings stay in the
+browser (the iOS app keeps them in the key-value store, which CloudKit JS
+cannot reach). A sign-in also trades the cloud's token for Plus
+(`WebCloudPlus`), swapping in the CloudKit token the relay hands back.
 
 **Plus in the browser.** Beside the library, each app writes one record of
 its own into the cloud it syncs with, `plus_<device id>` (`PlusDevice`:

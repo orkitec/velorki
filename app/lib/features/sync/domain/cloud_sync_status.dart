@@ -30,6 +30,9 @@ enum CloudSyncError {
   /// No network; CloudKit tries again by itself.
   network,
 
+  /// Only the rider can let the app in again: Settings shows a sign-in.
+  signInNeeded,
+
   /// Anything else; tried again on the next launch or return to the app.
   other;
 

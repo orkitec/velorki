@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -15,6 +16,7 @@ import 'package:velorki/features/sync/application/cloud_sync_controller.dart';
 import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
 import 'package:velorki/features/sync/data/google_account.dart';
 import 'package:velorki/features/sync/data/google_drive_sync.dart';
+import 'package:velorki/features/sync/data/icloud_web_sync.dart';
 import 'package:velorki/features/sync/domain/cloud_sync_status.dart';
 import 'package:velorki/features/sync/domain/sync_service.dart';
 import 'package:velorki/features/sync/presentation/cloud_sync_section.dart';
@@ -22,6 +24,7 @@ import 'package:velorki/features/sync/presentation/cloud_sync_section.dart';
 import '../../support/app.dart';
 import '../planner/support/pump.dart';
 import 'support/fake_cloud.dart';
+import 'support/fake_cloudkit.dart';
 import 'support/memory_cloud_store.dart';
 
 /// Lets the controller start the engine: its steps run partly in the
@@ -41,6 +44,55 @@ Future<void> settleSync(WidgetTester tester) async {
 class _IdleSync extends CloudSyncController {
   @override
   CloudSyncStatus build() => const CloudSyncStatus();
+}
+
+/// The controller at a status the test sets, counting resumes.
+class _FixedSync extends CloudSyncController {
+  _FixedSync(this._status);
+
+  final CloudSyncStatus _status;
+  int resumes = 0;
+
+  @override
+  CloudSyncStatus build() => _status;
+
+  @override
+  Future<void> resume() async => resumes++;
+}
+
+/// Google's sign-in as a browser has it: Google's button, and a token only
+/// after a click.
+class _FakeButtonGoogle implements ButtonGoogleSignIn {
+  final StreamController<GoogleAccount> _signIns =
+      StreamController<GoogleAccount>.broadcast();
+  int authorizations = 0;
+  int signOuts = 0;
+
+  /// Signs [account] in, as a click on Google's button does.
+  void click(GoogleAccount account) => _signIns.add(account);
+
+  @override
+  Widget button({required bool dark}) => const SizedBox(key: Key('gis'));
+
+  @override
+  Stream<GoogleAccount> get signIns => _signIns.stream;
+
+  @override
+  Future<String> authorize(GoogleAccount account) async {
+    authorizations++;
+    return 'token-$authorizations';
+  }
+
+  @override
+  Future<GoogleAccount> signIn() =>
+      throw const GoogleSignInFailure(canceled: false);
+
+  @override
+  Future<void> signOut() async => signOuts++;
+
+  @override
+  Future<String?> accessToken(GoogleAccount account, {String? stale}) async =>
+      authorizations == 0 ? null : 'token-$authorizations';
 }
 
 /// Google's sign-in, answering as told.
@@ -155,6 +207,32 @@ void main() {
         ),
         l10n.cloudSyncGoogleQuota,
       );
+    });
+
+    test('in the browser, asks to sign in to iCloud, and again when the '
+        'sign-in ran out', () {
+      expect(
+        cloudSyncStatusLine(
+          l10n,
+          const CloudSyncStatus(account: CloudAccount.noAccount),
+          service: SyncService.icloud,
+          now: now,
+          browser: true,
+        ),
+        l10n.cloudSyncICloudSignedOut,
+      );
+      for (final service in [SyncService.icloud, SyncService.google]) {
+        expect(
+          line(
+            const CloudSyncStatus(
+              account: CloudAccount.available,
+              error: CloudSyncError.signInNeeded,
+            ),
+            service: service,
+          ),
+          l10n.cloudSyncSignInAgain,
+        );
+      }
     });
 
     test('says how long ago it synced', () {
@@ -408,6 +486,175 @@ void main() {
       expect(find.text(l10n.cloudSyncServiceICloud), findsNothing);
       expect(find.text(l10n.cloudSyncOff), findsOneWidget);
       await unmountApp(tester);
+    });
+  });
+
+  group('in the web planner', () {
+    Future<ProviderContainer> pumpWeb(
+      WidgetTester tester,
+      List<Override> overrides, {
+      Map<String, Object> prefs = const {},
+    }) async {
+      SharedPreferences.setMockInitialValues(prefs);
+      final shared = await SharedPreferences.getInstance();
+      final db = VelorkiDatabase.memory();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(shared),
+          velorkiDatabaseProvider.overrideWithValue(db),
+          cloudSyncBridgeProvider.overrideWithValue(null),
+          cloudSyncOutboxProvider.overrideWith((ref) async => dir),
+          cloudSyncInboxProvider.overrideWith((ref) async => dir),
+          ...overrides,
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await db.close();
+      });
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: testApp(
+            home: Scaffold(
+              body: ListView(children: const [CloudSyncSection()]),
+            ),
+          ),
+        ),
+      );
+      await settleSync(tester);
+      return container;
+    }
+
+    testWidgets("iCloud is off until chosen, then signs in with Apple's "
+        'button, and signs out to off', (tester) async {
+      final cloud = FakeCloudKit();
+      final browser = cloud.client(user: null);
+      final container = await pumpWeb(tester, [
+        cloudKitWebProvider.overrideWithValue(browser),
+      ]);
+      expect(find.text(l10n.cloudSyncServiceICloud), findsOneWidget);
+      expect(find.text(l10n.cloudSyncServiceGoogle), findsNothing);
+      expect(container.read(activeSyncServiceProvider), SyncService.off);
+      expect(find.text(l10n.cloudSyncICloudWebHint), findsOneWidget);
+
+      await tester.tap(find.text(l10n.cloudSyncServiceICloud));
+      await settleSync(tester);
+      expect(container.read(activeSyncServiceProvider), SyncService.icloud);
+      expect(find.text(l10n.cloudSyncICloudSignedOut), findsOneWidget);
+      expect(find.byKey(const Key('cloudSyncAppleButton')), findsOneWidget);
+      expectNoClippedText(tester);
+
+      await tester.runAsync(() async {
+        browser.signIn('user-a');
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      });
+      await settleSync(tester);
+      expect(find.byKey(const Key('cloudSyncAppleButton')), findsNothing);
+      expect(find.text(l10n.cloudSyncICloudSignedIn), findsOneWidget);
+      expect(find.text(l10n.cloudSyncICloudSignedOut), findsNothing);
+      expectNoClippedText(tester);
+
+      await tester.tap(find.text(l10n.cloudSyncGoogleSignOut));
+      await settleSync(tester);
+      expect(container.read(activeSyncServiceProvider), SyncService.off);
+      expect(browser.user, isNull);
+      expect(
+        await tester.runAsync(
+          () => container.read(iCloudWebStoreProvider)!.accountId(),
+        ),
+        isNull,
+      );
+      await tester.pump(const Duration(milliseconds: 1));
+    });
+
+    testWidgets('a sign-in to iCloud starts the sync at once', (tester) async {
+      final cloud = FakeCloudKit();
+      final browser = cloud.client(user: null);
+      final sync = _FixedSync(
+        const CloudSyncStatus(account: CloudAccount.noAccount),
+      );
+      await pumpWeb(
+        tester,
+        [
+          cloudKitWebProvider.overrideWithValue(browser),
+          cloudSyncControllerProvider.overrideWith(() => sync),
+        ],
+        prefs: {'sync.service': 'icloud'},
+      );
+      expect(sync.resumes, 0);
+      await tester.runAsync(() async {
+        browser.signIn('user-a');
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      });
+      await settleSync(tester);
+      expect(sync.resumes, 1);
+    });
+
+    testWidgets("Google is chosen at once and signs in with Google's button", (
+      tester,
+    ) async {
+      final google = _FakeButtonGoogle();
+      final sync = _FixedSync(
+        const CloudSyncStatus(account: CloudAccount.noAccount),
+      );
+      final container = await pumpWeb(tester, [
+        googleSignInServiceProvider.overrideWithValue(google),
+        googleDriveStoreProvider.overrideWithValue(MemoryCloudStore()),
+        cloudSyncControllerProvider.overrideWith(() => sync),
+      ]);
+      await tester.tap(find.text(l10n.cloudSyncServiceGoogle));
+      await settleSync(tester);
+      expect(container.read(activeSyncServiceProvider), SyncService.google);
+      expect(find.byKey(const Key('gis')), findsOneWidget);
+      expect(find.text(l10n.cloudSyncGoogleNoAccount), findsOneWidget);
+
+      await tester.runAsync(() async {
+        google.click(
+          const GoogleAccount(id: 'g-1', email: 'rider@example.com'),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      });
+      await settleSync(tester);
+      expect(find.byKey(const Key('gis')), findsNothing);
+      expect(find.text('rider@example.com'), findsOneWidget);
+      expect(sync.resumes, 1);
+      expect(
+        container.read(sharedPreferencesProvider).getString('sync.google.user'),
+        contains('g-1'),
+      );
+      await tester.pump(const Duration(milliseconds: 1));
+    });
+
+    testWidgets('a Google token gone (an hour, a reload): Sign in asks '
+        "Google's popup for another, and syncs", (tester) async {
+      final google = _FakeButtonGoogle();
+      final sync = _FixedSync(
+        const CloudSyncStatus(
+          account: CloudAccount.available,
+          error: CloudSyncError.signInNeeded,
+        ),
+      );
+      await pumpWeb(
+        tester,
+        [
+          googleSignInServiceProvider.overrideWithValue(google),
+          googleDriveStoreProvider.overrideWithValue(MemoryCloudStore()),
+          cloudSyncControllerProvider.overrideWith(() => sync),
+        ],
+        prefs: {
+          'sync.service': 'google',
+          'sync.google.user': '{"id":"g-1","email":"rider@example.com"}',
+        },
+      );
+      expect(find.text(l10n.cloudSyncSignInAgain), findsOneWidget);
+      expect(find.text('rider@example.com'), findsOneWidget);
+      expect(find.text(l10n.cloudSyncGoogleSignOut), findsNothing);
+      await tester.tap(find.text(l10n.cloudSyncGoogleSignIn));
+      await settleSync(tester);
+      expect(google.authorizations, 1);
+      expect(sync.resumes, 1);
+      await tester.pump(const Duration(milliseconds: 1));
     });
   });
 }

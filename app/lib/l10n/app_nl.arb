@@ -1230,7 +1230,7 @@
   "stravaAccessLostBody": "Strava accepteert de toegang van Velorki niet meer, dus heeft Velorki Strava ontkoppeld. Je Strava-gegevens zijn van deze telefoon gewist. Koppel opnieuw onder Instellingen → Koppelingen om Strava te gebruiken.",
   "integrationAccessRevoked": "De dienst accepteert de toegang van Velorki niet meer. Koppel opnieuw onder Instellingen → Koppelingen.",
   "stravaRoutesRemoved": "{count, plural, =1{Een route van Strava is verwijderd: hij bestaat niet meer op Strava, of kon 7 dagen niet worden gecontroleerd.} other{{count} routes van Strava zijn verwijderd: ze bestaan niet meer op Strava, of konden 7 dagen niet worden gecontroleerd.}}",
-  "settingsSync": "iCloud",
+  "settingsSync": "Synchronisatie",
   "cloudSyncOff": "Routes, ritten en instellingen blijven op dit apparaat",
   "cloudSyncSyncing": "Bezig met synchroniseren…",
   "cloudSyncJustNow": "Zojuist gesynchroniseerd",
@@ -1254,5 +1254,9 @@
   "cloudSyncGoogleSignIn": "Inloggen",
   "cloudSyncGoogleSignOut": "Uitloggen",
   "cloudSyncGoogleSignInCancelled": "Het inloggen bij Google is geannuleerd.",
-  "cloudSyncGoogleSignInFailed": "Inloggen bij Google is mislukt."
+  "cloudSyncGoogleSignInFailed": "Inloggen bij Google is mislukt.",
+  "cloudSyncSignInAgain": "Log opnieuw in om te synchroniseren",
+  "cloudSyncICloudSignedOut": "Niet aangemeld bij iCloud",
+  "cloudSyncICloudSignedIn": "Aangemeld met je Apple Account",
+  "cloudSyncICloudWebHint": "Je routes en ritten, zoals op elke iPhone en iPad met je Apple Account. Instellingen blijven in deze browser"
 }

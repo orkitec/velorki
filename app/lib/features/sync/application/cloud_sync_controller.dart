@@ -1,18 +1,18 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'
     show ProviderSubscription;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:velorki_io/io.dart';
 
 import '../../../app/app_config.dart';
 import '../../../app/router.dart';
 import '../../../core/db/database.dart';
+import '../../../core/files/app_directories.dart';
 import '../../../core/plus/app_user_id.dart';
 import '../../navigation/data/navigation_settings.dart';
 import '../../settings/data/appearance_controller.dart';
@@ -23,6 +23,7 @@ import '../../subscription/data/revenuecat_subscription_service.dart'
 import '../../subscription/data/subscription_service.dart';
 import '../data/cloud_sync_bridge.dart';
 import '../data/google_drive_sync.dart';
+import '../data/icloud_web_sync.dart';
 import '../data/record_codec.dart';
 import '../data/sync_backend.dart';
 import '../domain/cloud_record.dart';
@@ -54,9 +55,11 @@ const Duration _libraryFetchEvery = Duration(seconds: 30);
 @Riverpod(keepAlive: true)
 DateTime Function() cloudSyncClock(Ref ref) => DateTime.now;
 
-/// Whether this device can sync with iCloud at all: iOS 17 or later.
+/// Whether this device can sync with iCloud at all: iOS 17 or later, or the
+/// web planner with a CloudKit web token.
 @Riverpod(keepAlive: true)
 Future<bool> cloudSyncSupported(Ref ref) async {
+  if (ref.watch(iCloudWebSyncBackendProvider) != null) return true;
   final bridge = ref.watch(cloudSyncBridgeProvider);
   return bridge != null && await bridge.isSupported();
 }
@@ -72,7 +75,7 @@ List<SyncService> offeredSyncServices(Ref ref) => [
 /// Where the body files of records to be sent are written.
 @Riverpod(keepAlive: true)
 Future<Directory> cloudSyncOutbox(Ref ref) async =>
-    Directory(p.join((await getTemporaryDirectory()).path, 'cloud_sync_out'));
+    Directory(p.join((await appTemporaryDirectory()).path, 'cloud_sync_out'));
 
 /// The store identity this device writes into its cloud for the web
 /// planner ([PlusIdSync]), or null where there is none to write: the
@@ -130,7 +133,9 @@ SyncService activeSyncService(Ref ref) {
 @Riverpod(keepAlive: true)
 SyncBackend? activeSyncBackend(Ref ref) =>
     switch (ref.watch(activeSyncServiceProvider)) {
-      SyncService.icloud => ref.watch(cloudSyncBridgeProvider),
+      SyncService.icloud =>
+        ref.watch(cloudSyncBridgeProvider) ??
+            ref.watch(iCloudWebSyncBackendProvider),
       SyncService.google => ref.watch(googleSyncBackendProvider),
       SyncService.off => null,
     };
@@ -245,6 +250,18 @@ class CloudSyncController extends _$CloudSyncController
         unawaited(_plus?.refresh());
       },
     );
+  }
+
+  /// Fetches what changed in the cloud and sends what waits, now: the rider
+  /// signed in again (the web planner's sign-ins). Does nothing while sync
+  /// is not running.
+  Future<void> resume() async {
+    final backend = _backend;
+    if (backend == null || !_running) return;
+    // The fetch looks at the account first: another one gets the library
+    // as new, not the old one's versions.
+    await backend.fetchNow();
+    await _library?.push();
   }
 
   /// Fetches what changed in the cloud now (a pull to refresh), with no
