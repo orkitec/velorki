@@ -186,13 +186,6 @@ abstract interface class CloudKitWeb {
   /// Signs out in this browser; nothing in iCloud changes.
   Future<void> signOut();
 
-  /// The web auth token of the session, or null while signed out.
-  String? get sessionToken;
-
-  /// Swaps in the token CloudKit handed out for the session elsewhere (the
-  /// relay used it and got a new one).
-  set sessionToken(String? token);
-
   /// Applies [writes] in the zone, one result per write in their order.
   Future<List<CkResult>> modify(List<CkWrite> writes);
 

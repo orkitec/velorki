@@ -2,7 +2,6 @@
 import type { Config } from '@/config';
 import { ApiError, type ErrorCode } from './errors';
 import type { Counters } from './counters';
-import { isPlusToken, verifyPlusToken } from '@/plus/token';
 
 /** Positive answers are cached for 10 minutes, negative ones for 1. */
 const POSITIVE_TTL_S = 600;
@@ -76,19 +75,6 @@ export class EntitlementService {
     this.#fetch = fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
   }
 
-  /**
-   * The rate-limit key of a valid Plus token from `POST /plus/web`, or null
-   * for one that is forged, expired or cannot be checked here (no
-   * `PLUS_TOKEN_SECRET`). A fork in stub mode lets everything through,
-   * Plus tokens too.
-   */
-  plusTokenSubject(token: string): string | null {
-    const secret = this.#config.PLUS_TOKEN_SECRET;
-    if (secret === undefined) return this.#config.REVENUECAT_MODE === 'stub' ? token : null;
-    const subject = verifyPlusToken(secret, token);
-    return subject === null ? null : `plus:${subject}`;
-  }
-
   async isEntitled(
     appUserId: string,
     log?: { warn: (obj: object, msg: string) => void },
@@ -148,8 +134,7 @@ export class EntitlementService {
 
 /**
  * The gate every authenticated route runs first. Returns the app_user_id so
- * the handler can use it as a rate-limit key; for a Plus token, the token's
- * subject (`plus:<hash>`).
+ * the handler can use it as a rate-limit key.
  */
 export async function requireEntitlement(
   service: EntitlementService,
@@ -157,14 +142,6 @@ export async function requireEntitlement(
   log?: { warn: (obj: object, msg: string) => void },
 ): Promise<string> {
   const id = parseBearer(headers);
-  // The browser's proof from POST /plus/web; the apps send their RevenueCat id.
-  if (isPlusToken(id)) {
-    const subject = service.plusTokenSubject(id);
-    if (subject === null) {
-      throw new ApiError('not_entitled', 'The Plus token is invalid or has expired.');
-    }
-    return subject;
-  }
   const entitled = await service.isEntitled(id, log);
   if (!entitled) {
     throw new ApiError('not_entitled', 'An active Velorki subscription is required.');

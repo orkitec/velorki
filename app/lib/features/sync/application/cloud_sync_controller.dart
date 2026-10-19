@@ -32,6 +32,7 @@ import '../domain/sync_service.dart';
 import 'library_sync.dart';
 import 'plus_id_sync.dart';
 import 'settings_sync.dart';
+import 'web_plus_devices.dart';
 
 part 'cloud_sync_controller.g.dart';
 
@@ -110,6 +111,10 @@ class SyncServiceChoice extends _$SyncServiceChoice {
 
   /// Syncs this device with [service] from now on.
   Future<void> select(SyncService service) async {
+    // The browser's Plus came from the account it leaves.
+    if (service != state) {
+      await ref.read(webPlusDevicesProvider.notifier).clear();
+    }
     state = service;
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(_prefsService, service.name);
@@ -161,6 +166,7 @@ class CloudSyncController extends _$CloudSyncController
   StreamSubscription<CloudSyncStatus>? _status;
   AppLifecycleListener? _lifecycle;
   ProviderSubscription<String>? _tabs;
+  ProviderSubscription<Object?>? _entitled;
   DateTime? _lastLibraryFetch;
   SyncBackend? _backend;
   bool _running = false;
@@ -208,6 +214,7 @@ class CloudSyncController extends _$CloudSyncController
             backend: backend,
             service: service,
             identity: identity,
+            entitled: () => ref.read(plusCustomerInfoProvider).value?.entitled,
             clock: ref.read(cloudSyncClockProvider),
           );
     // What `sync_records` knows of a server is the service's it was last
@@ -219,6 +226,7 @@ class CloudSyncController extends _$CloudSyncController
       _log.info('sync service ${recordsService ?? 'none'} -> ${service.name}');
       await library.reset();
       await settings.forget();
+      await ref.read(webPlusDevicesProvider.notifier).clear();
     }
     await prefs.setString(_prefsRecordsService, service.name);
     if (!current()) return;
@@ -230,6 +238,10 @@ class CloudSyncController extends _$CloudSyncController
     library.start();
     await library.push();
     await plus?.start();
+    // Plus came or went: the record says so at once.
+    _entitled = ref.listen(plusCustomerInfoProvider, (_, _) {
+      unawaited(_plus?.refresh());
+    });
     // The engine fetches by itself only when a push notification tells it
     // to: at launch it is asked, as on every return to the app.
     unawaited(backend.fetchNow());
@@ -292,6 +304,8 @@ class CloudSyncController extends _$CloudSyncController
     _lifecycle = null;
     _tabs?.close();
     _tabs = null;
+    _entitled?.close();
+    _entitled = null;
     _lastLibraryFetch = null;
     await status?.cancel();
     await library?.stop();
@@ -334,7 +348,16 @@ class CloudSyncController extends _$CloudSyncController
   Future<void> applyRemote(
     List<CloudRecord> modifications,
     List<String> deletions,
-  ) async => _library?.applyRemote(modifications, deletions);
+  ) async {
+    // The browser keeps the apps' Plus records; the library passes over
+    // names it does not know.
+    if (ref.read(keepsPlusDevicesProvider)) {
+      await ref
+          .read(webPlusDevicesProvider.notifier)
+          .applyRemote(modifications, deletions);
+    }
+    await _library?.applyRemote(modifications, deletions);
+  }
 
   @override
   Future<void> sent(SentChanges changes) async {
@@ -359,6 +382,7 @@ class CloudSyncController extends _$CloudSyncController
     await _library?.reset();
     await _settings?.forget();
     await _plus?.accountChanged(change);
+    await ref.read(webPlusDevicesProvider.notifier).clear();
     if (change != AccountChange.signOut) {
       await _settings?.start();
       await _library?.push();
@@ -370,6 +394,7 @@ class CloudSyncController extends _$CloudSyncController
     _log.info('iCloud zone deleted: ${reason.name}');
     await _library?.reset();
     await _plus?.zoneDeleted();
+    await ref.read(webPlusDevicesProvider.notifier).clear();
     if (reason == ZoneDeletion.purged) {
       // The rider deleted Velorki's data from iCloud: it is not put back
       // there behind their back. The library here stays as it is.

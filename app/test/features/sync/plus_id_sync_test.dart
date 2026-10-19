@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/db/database.dart';
+import 'package:velorki/features/subscription/data/subscription_service.dart';
+import 'package:velorki/features/subscription/domain/plus_subscription.dart';
 import 'package:velorki/features/sync/application/cloud_sync_controller.dart';
 import 'package:velorki/features/sync/application/plus_id_sync.dart';
 import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
@@ -13,6 +15,7 @@ import 'package:velorki/features/sync/data/google_drive_sync.dart';
 import 'package:velorki/features/sync/data/sync_backend.dart';
 import 'package:velorki/features/sync/domain/sync_service.dart';
 
+import '../subscription/support/fake_subscription_service.dart';
 import 'support/fake_cloud.dart';
 import 'support/memory_cloud_store.dart';
 import 'support/rows.dart';
@@ -24,8 +27,10 @@ void main() {
   late FakeCloudSyncBridge bridge;
   late VelorkiDatabase db;
   late DateTime now;
+  late FakeSubscriptionService subscriptions;
 
   setUp(() {
+    subscriptions = FakeSubscriptionService();
     dir = Directory.systemTemp.createTempSync('plus_id_sync');
     bridge = FakeCloudSyncBridge(FakeCloud(dir));
     db = VelorkiDatabase.memory();
@@ -57,6 +62,7 @@ void main() {
           (ref) async => Directory('${dir.path}/in'),
         ),
         plusDeviceIdentityProvider.overrideWithValue(id),
+        subscriptionServiceProvider.overrideWithValue(subscriptions),
         if (google != null) googleDriveStoreProvider.overrideWithValue(google),
       ],
     );
@@ -79,11 +85,32 @@ void main() {
     final fields = bridge.cloud.fields(name)!;
     expect(fields['appUserId'], 'anon-phone');
     expect(fields['platform'], 'ios');
+    expect(fields['entitled'], 0);
     expect(fields['lastSeen'], now.millisecondsSinceEpoch);
     expect(
       container.read(sharedPreferencesProvider).getString('sync.plus.target'),
       'icloud',
     );
+  });
+
+  test('says whether Plus is active, at once when that changes', () async {
+    final container = await launch(prefs: {});
+    await bridge.sync();
+    final name = plusNames(bridge.cloud.names).single;
+    expect(bridge.cloud.fields(name)!['entitled'], 0);
+
+    now = now.add(const Duration(minutes: 1));
+    subscriptions.emit(const PlusCustomerInfo(entitled: true));
+    await _settle();
+    expect(plusNames(bridge.pendingSaves), {name}, reason: 'not six hours');
+    await bridge.sync();
+    expect(bridge.cloud.fields(name)!['entitled'], 1);
+    container.dispose();
+
+    // At the next launch the store has not answered yet: nothing changed.
+    subscriptions = _SilentStore();
+    await launch();
+    expect(plusNames(bridge.pendingSaves), isEmpty);
   });
 
   test('a browser or a build without a store writes nothing', () async {
@@ -255,4 +282,10 @@ Future<void> _until(FutureOr<bool> Function() done) async {
     if (DateTime.now().isAfter(until)) fail('timed out');
     await Future<void>.delayed(const Duration(milliseconds: 20));
   }
+}
+
+/// A store that has not answered yet.
+class _SilentStore extends FakeSubscriptionService {
+  @override
+  Stream<PlusCustomerInfo> get customerInfo => const Stream.empty();
 }

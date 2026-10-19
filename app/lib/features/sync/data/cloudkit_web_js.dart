@@ -90,8 +90,7 @@ class _CloudKitJs implements CloudKitWeb {
 
   /// The session token, kept in local storage (CloudKit JS would keep it in
   /// a cookie): signed in once, a later visit is too until it runs out.
-  @override
-  String? get sessionToken {
+  String? get _session {
     try {
       return web.window.localStorage.getItem(_sessionKey);
     } on Object {
@@ -99,8 +98,7 @@ class _CloudKitJs implements CloudKitWeb {
     }
   }
 
-  @override
-  set sessionToken(String? token) {
+  set _session(String? token) {
     _memorySession = token;
     try {
       if (token == null) {
@@ -140,10 +138,10 @@ class _CloudKitJs implements CloudKitWeb {
     }
     final cloudKit = globalContext['CloudKit']! as JSObject;
     final store = JSObject()
-      ..['getToken'] = ((JSString _) => sessionToken?.toJS).toJS
+      ..['getToken'] = ((JSString _) => _session?.toJS).toJS
       ..['putToken'] = ((JSString _, JSAny? token) {
         final value = token.dartify();
-        sessionToken = value is String ? value : null;
+        _session = value is String ? value : null;
       }).toJS;
     final dark = web.window.matchMedia('(prefers-color-scheme: dark)').matches;
     final config =
@@ -247,7 +245,7 @@ class _CloudKitJs implements CloudKitWeb {
   Future<void> signOut() async {
     final container = await _ready();
     container.callMethod('signOut'.toJS);
-    sessionToken = null;
+    _session = null;
     _user = null;
   }
 

@@ -134,10 +134,9 @@ class RelayClient {
     bool json = true,
     String? overrideAppUserId,
     bool consent = false,
-    bool auth = true,
     String accept = 'application/json',
   }) {
-    final user = auth ? overrideAppUserId ?? appUserId : null;
+    final user = overrideAppUserId ?? appUserId;
     return <String, String>{
       clientHeader: clientId,
       'Accept': accept,
@@ -321,24 +320,6 @@ class RelayClient {
     }, timeout: weatherTimeout),
   );
 
-  /* ---------------------------------------------------------- plus on web */
-
-  /// Trades the browser's sign-in to [service] for a Plus token, with
-  /// `POST /plus/web`. [token] is the cloud's own (CloudKit's web auth
-  /// token, or a Google access token with `drive.appdata`); the relay reads
-  /// the Plus records the rider's apps wrote there itself. No bearer is
-  /// sent. A refusal is a [RelayException] with code `not_entitled` and a
-  /// [RelayError.reason]: `cloud_auth`, `no_devices` or `not_subscribed`.
-  Future<PlusWebToken> plusWeb({
-    required PlusWebService service,
-    required String token,
-  }) async => PlusWebToken.fromJson(
-    await _postJson('/plus/web', <String, Object?>{
-      'service': service.json,
-      'token': token,
-    }, auth: false),
-  );
-
   /* ------------------------------------------------------------- plumbing */
 
   /// POSTs [body] as JSON and returns the decoded response object.
@@ -349,13 +330,12 @@ class RelayClient {
     String path,
     Map<String, Object?> body, {
     Duration? timeout,
-    bool auth = true,
   }) async {
     final http.Response response;
     try {
       final sent = _client.post(
         uriFor(path),
-        headers: _headers(auth: auth),
+        headers: _headers(),
         body: jsonEncode(body),
       );
       response = await (timeout == null ? sent : sent.timeout(timeout));
@@ -433,7 +413,6 @@ class RelayClient {
             code: parsed.code,
             message: parsed.message,
             retryAfterS: retryAfter,
-            reason: parsed.reason,
           );
     return RelayException(error, statusCode: status);
   }

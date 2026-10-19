@@ -1,174 +1,292 @@
-import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
-import 'package:velorki/core/plus/app_user_id.dart';
+import 'package:velorki/core/db/database.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/subscription/application/web_plus.dart';
+import 'package:velorki/features/sync/application/cloud_sync_controller.dart';
+import 'package:velorki/features/sync/application/plus_id_sync.dart';
+import 'package:velorki/features/sync/application/web_plus_devices.dart';
+import 'package:velorki/features/sync/data/cloud_store.dart';
+import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
+import 'package:velorki/features/sync/data/google_drive_sync.dart';
+import 'package:velorki/features/sync/domain/sync_service.dart';
 import 'package:velorki_api/velorki_api.dart';
 
+import '../../support/mock_relay.dart';
 import '../../support/openapi_schema.dart';
-
-/// `POST /plus/web` as the yaml documents it: the named examples of each
-/// status, answered in turn.
-Map<String, Object?> _examples(OpenApi spec, String status) {
-  final op =
-      ((spec.document['paths']! as Map)['/plus/web']! as Map)['post']! as Map;
-  final content =
-      ((op['responses']! as Map)[status]! as Map)['content']! as Map;
-  return ((content['application/json']! as Map)['examples']! as Map)
-      .cast<String, Object?>();
-}
-
-Object? _value(Map<String, Object?> examples, String name) =>
-    (examples[name]! as Map)['value'];
+import '../sync/support/memory_cloud_store.dart';
 
 void main() {
-  final spec = OpenApi.load();
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-  /// A relay answering [body] with [status], recording the requests.
-  ({RelayClient client, List<http.Request> requests}) relay(
-    int status,
-    Object? body,
-  ) {
-    final requests = <http.Request>[];
-    final client = RelayClient(
-      'https://api.velorki.test',
-      appUserId: 'anon-browser',
-      client: MockClient((request) async {
-        requests.add(request);
-        expect(
-          spec.check(
-            'PlusWebRequest',
-            jsonDecode(request.body) as Map<String, Object?>,
-          ),
-          isEmpty,
-        );
-        return http.Response(
-          jsonEncode(body),
-          status,
-          headers: {'content-type': 'application/json'},
-        );
-      }),
-    );
-    return (client: client, requests: requests);
-  }
+  final now = DateTime(2026, 10, 19, 12);
 
-  ProviderContainer container(RelayClient client) {
-    final c = ProviderContainer(
-      overrides: [relayClientProvider.overrideWithValue(client)],
-    );
-    addTearDown(c.dispose);
-    return c;
-  }
-
-  /// The yaml's 200 example, with an expiry an hour from now.
-  Map<String, Object?> granted() => {
-    ...(_value(_examples(spec, '200'), 'granted')! as Map)
-        .cast<String, Object?>(),
-    'expires_at':
-        DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/
-        1000,
-  };
-
-  test('the documented answers parse in the client and fit the schemas', () {
-    for (final MapEntry(:key, :value) in _examples(spec, '200').entries) {
-      final body = ((value! as Map)['value']! as Map).cast<String, Object?>();
-      expect(spec.check('PlusWebToken', body), isEmpty, reason: key);
-      final token = PlusWebToken.fromJson(body);
-      expect(token.token, startsWith('vpt1.'));
-    }
-    for (final MapEntry(:key, :value) in _examples(spec, '403').entries) {
-      final body = (value! as Map)['value'];
-      expect(spec.check('PlusWebRefusal', body), isEmpty, reason: key);
-      expect(RelayError.fromBody(body).reason, isNotNull, reason: key);
-    }
-  });
-
-  test(
-    'a sign-in with Plus holds the token in memory and opens Plus',
-    () async {
-      final r = relay(200, granted());
-      final c = container(r.client);
-      expect(c.read(plusEntitledProvider), isFalse);
-
-      final plus = await c
-          .read(webPlusProvider.notifier)
-          .signIn(PlusWebService.google, 'ya29.cloud');
-
-      expect(c.read(webPlusProvider), same(plus));
-      expect(c.read(plusEntitledProvider), isTrue);
-      final sent = r.requests.single;
-      expect(sent.url.path, '/plus/web');
-      expect(jsonDecode(sent.body), {
-        'service': 'google',
-        'token': 'ya29.cloud',
-      });
-      expect(sent.headers['Authorization'], isNull, reason: 'no id of its own');
-
-      c.read(webPlusProvider.notifier).forget();
-      expect(c.read(webPlusProvider), isNull);
-      expect(c.read(plusEntitledProvider), isFalse);
-    },
+  PlusDeviceSeen device(
+    String id, {
+    required Duration ago,
+    bool entitled = true,
+  }) => PlusDeviceSeen(
+    appUserId: id,
+    platform: 'ios',
+    entitled: entitled,
+    lastSeen: now.subtract(ago),
   );
 
-  test('a refusal says why and holds nothing', () async {
-    final r = relay(403, _value(_examples(spec, '403'), 'noDevices'));
-    final c = container(r.client);
-    await expectLater(
-      c
-          .read(webPlusProvider.notifier)
-          .signIn(PlusWebService.icloud, 'ck-token'),
-      throwsA(
-        isA<RelayException>().having(
-          (e) => e.error.reason,
-          'reason',
-          'no_devices',
-        ),
-      ),
-    );
-    expect(c.read(webPlusProvider), isNull);
-    expect(c.read(plusEntitledProvider), isFalse);
+  group('pickPlusDevice', () {
+    test('the freshest of the records seen within 30 days', () {
+      final picked = pickPlusDevice([
+        device('anon-old', ago: const Duration(days: 3)),
+        device('anon-new', ago: const Duration(hours: 2)),
+      ], now);
+      expect(picked?.appUserId, 'anon-new');
+    });
+
+    test('ignores records not seen for more than 30 days', () {
+      expect(
+        pickPlusDevice([
+          device('anon-stale', ago: const Duration(days: 31)),
+        ], now),
+        isNull,
+      );
+      expect(
+        pickPlusDevice([
+          device('anon-stale', ago: const Duration(days: 31)),
+          device('anon-fresh', ago: const Duration(days: 29)),
+        ], now)?.appUserId,
+        'anon-fresh',
+      );
+    });
+
+    test('prefers a device with Plus over a fresher one without', () {
+      final picked = pickPlusDevice([
+        device('anon-free', ago: const Duration(hours: 1), entitled: false),
+        device('anon-plus', ago: const Duration(days: 2)),
+      ], now);
+      expect(picked?.appUserId, 'anon-plus');
+      expect(
+        pickPlusDevice([
+          device('anon-free', ago: const Duration(hours: 1), entitled: false),
+        ], now)?.entitled,
+        isFalse,
+      );
+    });
   });
 
-  test('a token already expired is not held', () async {
-    final r = relay(200, {...granted(), 'expires_at': 1000});
-    final c = container(r.client);
-    await c
-        .read(webPlusProvider.notifier)
-        .signIn(PlusWebService.google, 'ya29.cloud');
-    expect(c.read(webPlusProvider), isNull);
-    expect(c.read(plusEntitledProvider), isFalse);
-  });
+  group('in the browser', () {
+    late Directory dir;
+    late VelorkiDatabase db;
+    late MemoryCloudStore store;
+    late MockRelay relay;
 
-  test('the relay client sends the Plus token held, else the app id', () async {
-    SharedPreferences.setMockInitialValues({appUserIdPrefsKey: 'anon-web'});
-    final prefs = await SharedPreferences.getInstance();
-    final c = ProviderContainer(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        effectiveConfigProvider.overrideWithValue(
-          const AppConfig(apiUrl: 'https://api.velorki.test'),
+    setUp(() {
+      dir = Directory.systemTemp.createTempSync('web_plus');
+      db = VelorkiDatabase.memory();
+      store = MemoryCloudStore();
+      relay = MockRelay(schemas: OpenApi.load().check);
+    });
+    tearDown(() async {
+      await db.close();
+      dir.deleteSync(recursive: true);
+    });
+
+    /// A phone's record, as [PlusIdSync] writes it.
+    Future<void> phoneWrote(
+      String device,
+      String appUserId, {
+      required Duration ago,
+      bool entitled = true,
+    }) async {
+      final seen = now.subtract(ago).millisecondsSinceEpoch;
+      await store.push([
+        StoreSave(
+          '$plusRecordPrefix$device',
+          type: plusRecordType,
+          fields: {
+            'schemaVersion': 1,
+            'modifiedAt': seen,
+            'appUserId': appUserId,
+            'platform': 'ios',
+            'entitled': entitled ? 1 : 0,
+            'lastSeen': seen,
+          },
+          body: null,
+          ifVersion: null,
         ),
-        webPlusProvider.overrideWith(_Held.new),
-      ],
-    );
-    addTearDown(c.dispose);
-    expect(c.read(relayClientProvider)!.appUserId, 'vpt1.held.mac');
-    c.read(webPlusProvider.notifier).forget();
-    expect(c.read(relayClientProvider)!.appUserId, 'anon-web');
+      ]);
+    }
+
+    /// The web planner syncing with Google: no store, no record of its own.
+    Future<ProviderContainer> launch({Map<String, Object>? prefs}) async {
+      if (prefs != null) SharedPreferences.setMockInitialValues(prefs);
+      final shared = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(shared),
+          appConfigProvider.overrideWithValue(
+            const AppConfig(apiUrl: MockRelay.baseUrl),
+          ),
+          relayHttpClientProvider.overrideWithValue(relay.httpClient),
+          velorkiDatabaseProvider.overrideWithValue(db),
+          cloudSyncBridgeProvider.overrideWithValue(null),
+          cloudSyncClockProvider.overrideWithValue(() => now),
+          cloudSyncOutboxProvider.overrideWith((ref) async => dir),
+          cloudSyncInboxProvider.overrideWith(
+            (ref) async => Directory('${dir.path}/in'),
+          ),
+          plusDeviceIdentityProvider.overrideWithValue(null),
+          keepsPlusDevicesProvider.overrideWithValue(true),
+          googleDriveStoreProvider.overrideWithValue(store),
+        ],
+      );
+      addTearDown(container.dispose);
+      startWebPlus(container);
+      container.listen(cloudSyncControllerProvider, (_, _) {});
+      return container;
+    }
+
+    test('uses the freshest phone id with Plus towards the relay, and '
+        'writes no record of its own', () async {
+      await phoneWrote('old', 'anon-old', ago: const Duration(days: 40));
+      await phoneWrote('ipad', 'anon-ipad', ago: const Duration(days: 4));
+      await phoneWrote('phone', 'anon-phone', ago: const Duration(hours: 3));
+      final container = await launch(prefs: {'sync.service': 'google'});
+      expect(container.read(plusEntitledProvider), isFalse);
+
+      await _until(() => container.read(webPlusDeviceProvider) != null);
+      expect(container.read(webPlusDeviceProvider)?.appUserId, 'anon-phone');
+      expect(container.read(plusEntitledProvider), isTrue);
+      expect(container.read(relayClientProvider)?.appUserId, 'anon-phone');
+
+      await container
+          .read(relayClientProvider)!
+          .routeWeather(
+            from: now.toUtc(),
+            hours: 3,
+            cells: const [WeatherRequestCell(lat: 32.65, lon: -16.9)],
+          );
+      expect(
+        relay.weatherRequests.single.headers['authorization'],
+        'Bearer anon-phone',
+      );
+
+      await _settle();
+      expect(store.names.where(PlusIdSync.isPlusRecord), {
+        'plus_old',
+        'plus_ipad',
+        'plus_phone',
+      }, reason: 'the browser writes none');
+      expect(
+        container.read(sharedPreferencesProvider).getString('sync.plus.device'),
+        isNull,
+      );
+    });
+
+    test('keeps the ids it saw across a reload', () async {
+      await phoneWrote('phone', 'anon-phone', ago: const Duration(hours: 3));
+      var container = await launch(prefs: {'sync.service': 'google'});
+      await _until(() => container.read(webPlusDeviceProvider) != null);
+      await _settle();
+      container.dispose();
+
+      // The cursor is kept too: the next fetch brings nothing new.
+      container = await launch();
+      expect(container.read(webPlusDeviceProvider)?.appUserId, 'anon-phone');
+      expect(container.read(plusEntitledProvider), isTrue);
+      await _settle();
+      expect(container.read(webPlusDeviceProvider)?.appUserId, 'anon-phone');
+    });
+
+    test('a phone without Plus: its id, and Plus stays closed', () async {
+      await phoneWrote(
+        'phone',
+        'anon-free',
+        ago: const Duration(hours: 1),
+        entitled: false,
+      );
+      final container = await launch(prefs: {'sync.service': 'google'});
+      await _until(() => container.read(webPlusDeviceProvider) != null);
+      expect(container.read(relayClientProvider)?.appUserId, 'anon-free');
+      expect(container.read(plusEntitledProvider), isFalse);
+    });
+
+    test('only stale records: no id, Plus stays closed', () async {
+      await phoneWrote('phone', 'anon-stale', ago: const Duration(days: 31));
+      final container = await launch(prefs: {'sync.service': 'google'});
+      await _until(
+        () => container.read(webPlusDevicesProvider).containsKey('plus_phone'),
+      );
+      expect(container.read(webPlusDeviceProvider), isNull);
+      expect(container.read(plusEntitledProvider), isFalse);
+      expect(
+        container.read(relayClientProvider)?.appUserId,
+        isNot('anon-stale'),
+      );
+    });
+
+    test('switched off, the ids are forgotten and Plus closes', () async {
+      await phoneWrote('phone', 'anon-phone', ago: const Duration(hours: 3));
+      final container = await launch(prefs: {'sync.service': 'google'});
+      await _until(() => container.read(plusEntitledProvider));
+
+      await container
+          .read(syncServiceChoiceProvider.notifier)
+          .select(SyncService.off);
+      expect(container.read(webPlusDeviceProvider), isNull);
+      expect(container.read(plusEntitledProvider), isFalse);
+      expect(
+        container
+            .read(sharedPreferencesProvider)
+            .getString('sync.plus.web_devices'),
+        isNull,
+      );
+    });
+
+    test('a phone build keeps no other device\'s record', () async {
+      await phoneWrote('phone', 'anon-phone', ago: const Duration(hours: 3));
+      SharedPreferences.setMockInitialValues({'sync.service': 'google'});
+      final shared = await SharedPreferences.getInstance();
+      final phone = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(shared),
+          velorkiDatabaseProvider.overrideWithValue(db),
+          cloudSyncBridgeProvider.overrideWithValue(null),
+          cloudSyncClockProvider.overrideWithValue(() => now),
+          cloudSyncOutboxProvider.overrideWith((ref) async => dir),
+          cloudSyncInboxProvider.overrideWith(
+            (ref) async => Directory('${dir.path}/in'),
+          ),
+          plusDeviceIdentityProvider.overrideWithValue(null),
+          googleDriveStoreProvider.overrideWithValue(store),
+        ],
+      );
+      addTearDown(phone.dispose);
+      phone.listen(cloudSyncControllerProvider, (_, _) {});
+      await _until(() => store.fullLists > 0);
+      await _settle();
+      expect(phone.read(webPlusDevicesProvider), isEmpty);
+      expect(phone.read(webPlusDeviceProvider), isNull);
+    });
   });
 }
 
-class _Held extends WebPlus {
-  @override
-  PlusWebToken? build() => PlusWebToken(
-    token: 'vpt1.held.mac',
-    expiresAt: DateTime.now().add(const Duration(hours: 1)),
-  );
+/// Lets the controller's steps run: microtasks, the database, the engine.
+Future<void> _settle() async {
+  for (var i = 0; i < 10; i++) {
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
+}
+
+/// Waits up to five seconds for [done].
+Future<void> _until(FutureOr<bool> Function() done) async {
+  final until = DateTime.now().add(const Duration(seconds: 5));
+  while (!await done()) {
+    if (DateTime.now().isAfter(until)) fail('timed out');
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+  }
 }

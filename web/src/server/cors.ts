@@ -23,7 +23,6 @@ const CORS_ROUTES: readonly CorsRoute[] = [
   { path: '/weather/radar/dpc/', methods: ['GET'] },
   { path: '/ai/plan', methods: ['POST'] },
   { path: '/share', methods: ['POST'] },
-  { path: '/plus/web', methods: ['POST'] },
 ];
 
 /** What the app sends to these routes (relay_client.dart). */

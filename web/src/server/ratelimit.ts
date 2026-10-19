@@ -96,13 +96,6 @@ export const LIMITS = {
   dpcRadarPerMin: { name: 'radar_dpc_min', limit: 60, windowS: 60 },
   dpcRadarPerDay: { name: 'radar_dpc_day', limit: 3_000, windowS: 86_400 },
   dpcRadarPerIpHour: { name: 'radar_dpc_ip_hour', limit: 1_200, windowS: 3_600 },
-  /**
-   * `POST /plus/web`: a browser asks once per sign-in and again about every
-   * hour as its Plus token runs out. Per IP before anything upstream is
-   * asked; per cloud token so one sign-in cannot spin.
-   */
-  plusWebPerIpHour: { name: 'plus_web_ip_hour', limit: 60, windowS: 3_600 },
-  plusWebPerTokenHour: { name: 'plus_web_token_hour', limit: 10, windowS: 3_600 },
 } as const satisfies Record<string, LimitSpec>;
 
 /** The counter key of one window. Exported so tests can assert the shape. */

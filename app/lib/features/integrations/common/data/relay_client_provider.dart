@@ -2,13 +2,14 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:velorki_api/velorki_api.dart';
 
 import '../../../../app/app_config.dart';
 import '../../../../core/l10n/relay_error_text.dart';
 import '../../../../core/plus/app_user_id.dart';
 import '../../../settings/data/package_info_provider.dart';
-import '../../../subscription/application/web_plus.dart';
+import '../../../sync/application/web_plus_devices.dart';
 import '../domain/integration_exception.dart';
 
 /// The `X-Velorki-Client` value, `<platform>/<version>`.
@@ -18,6 +19,10 @@ String velorkiClientId({required String version}) {
       : Platform.operatingSystem; // android, ios, linux, macos, windows
   return '$platform/$version';
 }
+
+/// The HTTP client the relay client sends through; null, its own. Tests
+/// put a mock relay here.
+final relayHttpClientProvider = Provider<http.Client?>((ref) => null);
 
 /// The relay client, or `null` when this build has no relay.
 ///
@@ -35,10 +40,12 @@ final relayClientProvider = Provider<RelayClient?>((ref) {
     clientId: velorkiClientId(
       version: info == null ? 'dev' : '${info.version}+${info.buildNumber}',
     ),
-    // A browser holding a Plus token from its cloud sign-in sends that
-    // instead; the apps always send their RevenueCat id.
+    // A browser sends the RevenueCat id of a phone app syncing with the
+    // same cloud; the apps send their own.
     appUserId:
-        ref.watch(webPlusProvider)?.token ?? ref.watch(appUserIdProvider),
+        ref.watch(webPlusDeviceProvider)?.appUserId ??
+        ref.watch(appUserIdProvider),
+    client: ref.watch(relayHttpClientProvider),
   );
   ref.onDispose(client.close);
   return client;

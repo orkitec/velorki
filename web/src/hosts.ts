@@ -104,7 +104,6 @@ export const API_ROUTES: readonly ({ method: string } & ({ path: string } | { pr
     { method: 'POST', prefix: '/proxy/rwgps/' },
     { method: 'POST', path: '/ai/plan' },
     { method: 'POST', path: '/share' },
-    { method: 'POST', path: '/plus/web' },
     { method: 'POST', path: '/weather' },
     { method: 'GET', path: '/weather/radar/opera/frames' },
     { method: 'GET', path: '/weather/radar/opera/image' },

@@ -210,14 +210,10 @@ class FakeCloudKitWeb implements CloudKitWeb {
   /// How often the sign-in button was asked for.
   int signInsShown = 0;
 
-  @override
-  String? sessionToken;
-
   /// [user] signs in with Apple's button.
   void signIn(String user) {
     _user = user;
     expired = false;
-    sessionToken = 'session-$user';
     _users.add(user);
   }
 
@@ -233,7 +229,6 @@ class FakeCloudKitWeb implements CloudKitWeb {
   @override
   Future<void> signOut() async {
     _user = null;
-    sessionToken = null;
     _users.add(null);
   }
 

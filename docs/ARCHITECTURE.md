@@ -408,8 +408,8 @@ the version rides in `system_fields`, the cursor and account in the
 preferences, transient failures back off with jitter.
 
 **Google sync.** `DriveCloudStore` is the `CloudStore` over the Drive v3
-app data folder (scope `drive.appdata` only). The layout, which the relay
-and the web planner read too (`driveRecordFile`, `readDriveRecord`):
+app data folder (scope `drive.appdata` only). The layout, which the web
+planner reads too (`driveRecordFile`, `readDriveRecord`):
 
 - One file per record in `appDataFolder`, its `name` the record name
   exactly, no extension: `route_<id>`, `ride_<id>`, `settings`,
@@ -479,20 +479,23 @@ again), the zone made on the first save if no iPhone made it, the user
 record name as the account (kept while the session runs out, so nothing is
 resent). Its session token is kept in local storage. Settings stay in the
 browser (the iOS app keeps them in the key-value store, which CloudKit JS
-cannot reach). A sign-in also trades the cloud's token for Plus
-(`WebCloudPlus`), swapping in the CloudKit token the relay hands back.
+cannot reach).
 
 **Plus in the browser.** Beside the library, each app writes one record of
 its own into the cloud it syncs with, `plus_<device id>` (`PlusDevice`:
-its RevenueCat app user id, platform, `lastSeen`, rewritten at most every
-six hours; `PlusIdSync`). It goes only into the account sync first ran
+its RevenueCat app user id, platform, `entitled` (what its store says),
+`lastSeen`; rewritten every six hours and whenever the store's answer
+changes; `PlusIdSync`). It goes only into the account sync first ran
 with, or one the rider picks in Settings → Sync with: an account change, a
 sign-out or sync off forgets locally where it went and stops writing, and
-deletes nothing. The browser signs into iCloud or Google and trades that
-token at the relay (`POST /plus/web`), which reads the records itself,
-ignores those older than 30 days, asks RevenueCat and answers an hour-long
-signed Plus token; the browser holds it in memory (`WebPlus`) and sends it
-as its bearer. The browser never makes a RevenueCat id.
+deletes nothing. The browser, signed into the same iCloud or Google, keeps
+the records it fetches in its preferences (`WebPlusDevices`; cleared on an
+account or service change) and uses the freshest seen within 30 days,
+preferring one with Plus (`pickPlusDevice`): its id is the relay client's
+bearer, exactly as on the phone, and its `entitled` opens the Plus
+features (`startWebPlus`). The relay checks the id with RevenueCat on every
+call as for the apps; it has no endpoint of its own for the browser. The
+browser never writes a record or makes a RevenueCat id.
 
 **Smart loops.** `velorki_loops` is a pure algorithm, no model involved. From a
 `LoopRequest` three strategies generate candidates: `RoundtripStrategy` (BRouter

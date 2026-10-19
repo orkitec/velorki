@@ -3,11 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:velorki_api/velorki_api.dart' show PlusWebService;
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../application/cloud_sync_controller.dart';
-import '../application/web_cloud_plus.dart';
 import '../data/cloudkit_web.dart';
 import '../data/google_account.dart';
 import '../data/icloud_web_sync.dart';
@@ -87,19 +85,14 @@ class _CloudSyncSectionState extends ConsumerState<CloudSyncSection> {
   }
 
   /// In a browser: asks Google for Drive access again (the token ran out,
-  /// or the page was reloaded), then syncs and asks the relay for Plus.
+  /// or the page was reloaded), then syncs.
   Future<void> _authorize() async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _signingIn = true);
     try {
-      final token = await ref
-          .read(googleAccountControllerProvider.notifier)
-          .authorize();
+      await ref.read(googleAccountControllerProvider.notifier).authorize();
       _resume();
-      unawaited(
-        ref.read(webCloudPlusProvider).trade(PlusWebService.google, token),
-      );
     } on GoogleSignInFailure catch (e) {
       _failed(messenger, l10n, e);
     } finally {

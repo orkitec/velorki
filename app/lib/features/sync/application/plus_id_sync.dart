@@ -20,8 +20,11 @@ const String plusRecordPrefix = 'plus_';
 const String plusRecordType = 'PlusDevice';
 
 /// How often the record's `lastSeen` is written again while sync runs. The
-/// relay ignores records older than 30 days.
+/// web planner ignores records older than [plusRecordFreshFor].
 const Duration plusRefreshEvery = Duration(hours: 6);
+
+/// How long after its `lastSeen` the web planner still uses a record.
+const Duration plusRecordFreshFor = Duration(days: 30);
 
 /// The store identity this device writes into its cloud, so the web
 /// planner signed into the same cloud can use the Plus bought here.
@@ -53,20 +56,24 @@ abstract final class _Keys {
   /// saved into the account it is bound to.
   static const String savedAt = 'sync.plus.saved_at';
 
+  /// Whether the record last saved said Plus was active.
+  static const String savedEntitled = 'sync.plus.saved_entitled';
+
   static const String _held = 'held';
 }
 
 /// Writes this device's own Plus record — its RevenueCat app user id, its
-/// platform and when it was last seen — into the cloud it syncs with, as
-/// one record of its own per device (`plus_<device id>`), so devices never
-/// write over each other. Only the relay reads these records; this device
-/// never reads, changes or deletes another device's.
+/// platform, whether the store says Plus is active and when it was last
+/// seen — into the cloud it syncs with, as one record of its own per device
+/// (`plus_<device id>`), so devices never write over each other. Only the
+/// web planner reads these records (`WebPlusDevices`); this device never
+/// reads, changes or deletes another device's.
 ///
 /// It goes only into the account sync ran with when the record was first
 /// written, or into one the rider picks in Settings → Sync with: an
 /// account change, a sign-out or sync switched off forgets locally where
 /// it went and stops writing, deleting nothing; the record left behind
-/// ages out at the relay. Writing starts again only when the rider picks a
+/// ages out in the browser. Writing starts again only when the rider picks a
 /// service ([chosen]).
 class PlusIdSync {
   /// Creates the sync of [identity] over [backend], for [service].
@@ -75,6 +82,7 @@ class PlusIdSync {
     required this._backend,
     required this._service,
     required this._identity,
+    required this._entitled,
     this._clock = DateTime.now,
   });
 
@@ -82,6 +90,12 @@ class PlusIdSync {
   final SyncBackend _backend;
   final SyncService _service;
   final PlusDeviceIdentity _identity;
+
+  /// What the store says of Plus; null until it has answered.
+  final bool? Function() _entitled;
+
+  /// What the record about to be saved says of Plus.
+  bool? _sending;
   final DateTime Function() _clock;
 
   /// The rider picked [service] in Settings: this device may write its
@@ -133,12 +147,15 @@ class PlusIdSync {
   }
 
   /// Writes the record again when it was not saved in the last
-  /// [plusRefreshEvery].
+  /// [plusRefreshEvery], or Plus came or went since.
   Future<void> refresh() async {
     if (!_allowed) return;
     final savedAt = _prefs.getInt(_Keys.savedAt);
     final now = _clock().millisecondsSinceEpoch;
-    if (savedAt != null && now - savedAt < plusRefreshEvery.inMilliseconds) {
+    final entitled = _entitled();
+    if (savedAt != null &&
+        now - savedAt < plusRefreshEvery.inMilliseconds &&
+        (entitled == null || _prefs.getBool(_Keys.savedEntitled) == entitled)) {
       return;
     }
     await _backend.enqueue(saves: [recordName]);
@@ -150,6 +167,8 @@ class PlusIdSync {
     if (name != recordName || !_allowed) return null;
     final now = _clock().millisecondsSinceEpoch;
     final systemFields = _prefs.getString(_Keys.systemFields);
+    final entitled = _sending =
+        _entitled() ?? _prefs.getBool(_Keys.savedEntitled) ?? false;
     return CloudRecord(
       name: name,
       type: plusRecordType,
@@ -159,6 +178,7 @@ class PlusIdSync {
         'modifiedAt': now,
         'appUserId': _identity.appUserId,
         'platform': _identity.platform,
+        'entitled': entitled ? 1 : 0,
         'lastSeen': now,
       },
     );
@@ -170,6 +190,7 @@ class PlusIdSync {
     if (!_allowed) return;
     await _prefs.setString(_Keys.systemFields, base64Encode(systemFields));
     await _prefs.setInt(_Keys.savedAt, _clock().millisecondsSinceEpoch);
+    await _prefs.setBool(_Keys.savedEntitled, _sending ?? false);
     _log.info('saved');
   }
 
@@ -222,5 +243,6 @@ class PlusIdSync {
   static Future<void> _forget(SharedPreferences prefs) async {
     await prefs.remove(_Keys.systemFields);
     await prefs.remove(_Keys.savedAt);
+    await prefs.remove(_Keys.savedEntitled);
   }
 }

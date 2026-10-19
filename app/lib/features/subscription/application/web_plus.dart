@@ -1,65 +1,33 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:velorki_api/velorki_api.dart';
 
+import '../../../app/app_config.dart';
 import '../../../core/plus/plus_gate.dart';
-import '../../integrations/common/data/relay_client_provider.dart';
 import '../../sync/application/cloud_sync_controller.dart';
+import '../../sync/application/web_plus_devices.dart';
+import 'subscription_controller.dart';
 
 /// Whether this browser build can sign into iCloud or Google (Settings →
 /// Sync with offers one), which is what lets the rider use Plus bought in a
-/// phone app here ([WebPlus]); the paywall then says how.
+/// phone app here; the paywall then says how.
 final webCloudSignInProvider = Provider<bool>(
   (ref) => kIsWeb && ref.watch(offeredSyncServicesProvider).isNotEmpty,
 );
 
-/// The Plus token this browser holds, in memory only: what `POST /plus/web`
-/// gave for the rider's cloud sign-in. While it holds one, the relay client
-/// sends it in place of the app user id and Plus counts as active; it lets
-/// go at expiry, and the sign-in asks again.
+/// Starts Plus in the browser, which has no store: the RevenueCat id of a
+/// phone app syncing with the same cloud ([webPlusDeviceProvider]) is what
+/// the relay client sends, and Plus is active while that app's store last
+/// said so. The relay checks the id on every call, as for the apps.
 ///
-/// The browser never makes a RevenueCat id of its own: the relay finds the
-/// ids the rider's apps wrote into that cloud.
-class WebPlus extends Notifier<PlusWebToken?> {
-  Timer? _expiry;
-
-  @override
-  PlusWebToken? build() {
-    ref.onDispose(() => _expiry?.cancel());
-    return null;
+/// Called once from `bootstrap_web.dart` in place of [startSubscriptions],
+/// which still runs for a build with [AppConfig.stubsPlus].
+void startWebPlus(ProviderContainer container) {
+  if (container.read(appConfigProvider).stubsPlus) {
+    startSubscriptions(container);
+    return;
   }
-
-  /// Trades the cloud's [cloudToken] for a Plus token and holds it. Throws
-  /// [RelayException]: `not_entitled` with a reason (`cloud_auth`,
-  /// `no_devices`, `not_subscribed`) when there is no Plus to be had, and
-  /// leaves what it held as it was; an `IntegrationException` in a build
-  /// without a relay.
-  Future<PlusWebToken> signIn(PlusWebService service, String cloudToken) async {
-    final relay = requireRelay(ref);
-    final plus = await relay.plusWeb(service: service, token: cloudToken);
-    _expiry?.cancel();
-    final left = plus.expiresAt.difference(DateTime.now());
-    if (left <= Duration.zero) {
-      forget();
-      return plus;
-    }
-    _expiry = Timer(left, forget);
-    state = plus;
-    ref.read(plusEntitledProvider.notifier).value = true;
-    return plus;
-  }
-
-  /// Lets go of the token: signed out, or expired.
-  void forget() {
-    _expiry?.cancel();
-    _expiry = null;
-    if (state == null) return;
-    state = null;
-    ref.read(plusEntitledProvider.notifier).value = false;
-  }
+  container.listen<PlusDeviceSeen?>(webPlusDeviceProvider, (_, device) {
+    container.read(plusEntitledProvider.notifier).value =
+        device?.entitled ?? false;
+  }, fireImmediately: true);
 }
-
-/// [WebPlus].
-final webPlusProvider = NotifierProvider<WebPlus, PlusWebToken?>(WebPlus.new);

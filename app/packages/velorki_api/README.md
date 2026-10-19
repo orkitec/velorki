@@ -17,11 +17,9 @@ runtime dependency is `package:http`.
 | `POST /share` | `createShare` |
 | `POST /ai/plan` (SSE) | `planStream` |
 | `POST /weather` | `routeWeather` |
-| `POST /plus/web` | `plusWeb` |
 
 Every request carries `X-Velorki-Client: <platform>/<version>`; every
-entitlement-gated call carries `Authorization: Bearer <revenuecat app user id>`
-(in a browser, the Plus token `plusWeb` returned, passed as `appUserId`);
+entitlement-gated call carries `Authorization: Bearer <revenuecat app user id>`;
 `/ai/plan` additionally carries `X-AI-Consent: 1`.
 
 ## Public API
@@ -52,8 +50,6 @@ class RelayClient {
   Future<WeatherForecast> routeWeather({required DateTime from,
                                         required int hours,
                                         required List<WeatherRequestCell> cells});
-  Future<PlusWebToken> plusWeb({required PlusWebService service,
-                                required String token}); // no bearer sent
   void close();
 }
 
