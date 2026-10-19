@@ -1,4 +1,5 @@
 import CloudKit
+import os
 import Flutter
 import Foundation
 
@@ -74,9 +75,15 @@ final class CloudSync: NSObject, FlutterStreamHandler, @unchecked Sendable {
       result(nil)
     case "fetchNow":
       if #available(iOS 17.0, *), let engine = engine as? CloudSyncEngine {
-        engine.fetchNow()
+        // Answers when the fetch is done, so a pull to refresh spins as
+        // long as it runs.
+        Task {
+          await engine.fetchNow()
+          result(nil)
+        }
+      } else {
+        result(nil)
       }
-      result(nil)
     case "readSettings":
       result(readSettings(args["keys"] as? [String] ?? []))
     case "writeSettings":
@@ -235,8 +242,11 @@ final class CloudSync: NSObject, FlutterStreamHandler, @unchecked Sendable {
 
 /// One line in the device log (`idevicesyslog -p Runner | grep velorki`):
 /// record names and outcomes only, never what a record holds.
+private let syncLogger = Logger(subsystem: "com.orkitec.velorki", category: "sync")
+
+/// Record names and outcomes only, never a route's name or content.
 private func syncLog(_ message: String) {
-  NSLog("velorki: iCloud %@", message)
+  syncLogger.notice("velorki: iCloud \(message, privacy: .public)")
 }
 
 /// CKSyncEngine over the private database's `Library` zone.
@@ -338,16 +348,18 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
     }
   }
 
-  func fetchNow() {
+  /// Asks the server for this zone's changes. A plain fetchChanges() trusts
+  /// the database subscription's pushes and, without one, asks nothing; the
+  /// zone named here is always asked.
+  func fetchNow() async {
     guard let engine else { return }
-    Task {
-      do {
-        try await engine.fetchChanges()
-      } catch {
-        syncLog("fetch failed: \(error)")
-        if let error = error as? CKError {
-          self.sync?.update(error: .some(Self.errorKind(error)))
-        }
+    do {
+      try await engine.fetchChanges(.init(scope: .zoneIDs([Self.zoneID])))
+      syncLog("fetch done")
+    } catch {
+      syncLog("fetch failed: \(error)")
+      if let error = error as? CKError {
+        self.sync?.update(error: .some(Self.errorKind(error)))
       }
     }
   }

@@ -67,7 +67,7 @@ class RoutesDao extends DatabaseAccessor<VelorkiDatabase>
       t.externalIdsJson.like('%"strava_route_id"%');
 
   SimpleSelectStatement<$RoutesTable, RouteRow> _ordered() =>
-      select(routes)..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
+      select(routes)..orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
 }
 
 /// What the Strava route check needs of one row.

@@ -39,6 +39,7 @@ RoutesCompanion _route(
   String id, {
   String name = 'Route',
   DateTime? updatedAt,
+  DateTime? createdAt,
   RouteSource source = RouteSource.planned,
 }) {
   final now = updatedAt ?? DateTime.utc(2026, 9, 12, 10);
@@ -47,7 +48,7 @@ RoutesCompanion _route(
     name: name,
     source: source,
     profile: 'trekking',
-    createdAt: now,
+    createdAt: createdAt ?? now,
     updatedAt: now,
     distanceM: 42000,
     ascentM: 310,
@@ -425,7 +426,8 @@ void main() {
       expect((await db.routesDao.allRoutes()).single.name, 'Second');
     });
 
-    test('watchRoutes emits newest updated_at first', () async {
+    test('watchRoutes lists the newest created first; an edit does not move '
+        'a route', () async {
       final stream = db.routesDao.watchRoutes();
       final emissions = <List<String>>[];
       final sub = stream.listen((rows) {
@@ -434,10 +436,19 @@ void main() {
       await pumpEventQueue();
 
       await db.routesDao.upsertRoute(
-        _route('old', updatedAt: DateTime.utc(2026, 1, 1)),
+        _route(
+          'old',
+          createdAt: DateTime.utc(2026, 1, 1),
+          // Renamed long after it was made.
+          updatedAt: DateTime.utc(2026, 9, 1),
+        ),
       );
       await db.routesDao.upsertRoute(
-        _route('new', updatedAt: DateTime.utc(2026, 6, 1)),
+        _route(
+          'new',
+          createdAt: DateTime.utc(2026, 6, 1),
+          updatedAt: DateTime.utc(2026, 6, 1),
+        ),
       );
       await pumpEventQueue();
 
