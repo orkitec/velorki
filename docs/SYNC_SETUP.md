@@ -32,8 +32,13 @@ CloudKit web token are public and bound to our app ids and origins.
    restricted scope, so no security assessment). Until then only test users
    can sign in and Google shows an "unverified app" notice.
 
-Hand over: the iOS client id, the web client id (the Android clients need no
-id in the app).
+In the app: the iOS client id is `GIDClientID` in `ios/Runner/Info.plist`,
+its reversed form a URL scheme there. The Android clients need no id in the
+app, but Android's sign-in (Credential Manager) needs the web client id as
+its server client id: `VELORKI_GOOGLE_WEB_CLIENT_ID` in `env/web.json`,
+`env/prod.json` (the `APP_ENV_PROD_JSON` secret), `env/phone.json` and
+`env/local.json`. Empty, Android offers no Google sync. No client secret
+goes anywhere.
 
 ## CloudKit web token
 

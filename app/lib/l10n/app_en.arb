@@ -6393,5 +6393,21 @@
   "cloudSyncGoogleHint": "Your routes, rides and a few settings on every device signed in to your Google Account, kept in your Google Drive. Routes from Strava stay on this device",
   "@cloudSyncGoogleHint": {
     "description": "Explanation below the sync choice while Google is chosen"
+  },
+  "cloudSyncGoogleSignIn": "Sign in",
+  "@cloudSyncGoogleSignIn": {
+    "description": "Button in Settings → Sync with while Google is chosen and no Google account is signed in"
+  },
+  "cloudSyncGoogleSignOut": "Sign out",
+  "@cloudSyncGoogleSignOut": {
+    "description": "Button in Settings → Sync with beside the Google account synced with: signs out on this device and turns sync off; nothing in Google Drive is deleted"
+  },
+  "cloudSyncGoogleSignInCancelled": "The Google sign-in was cancelled.",
+  "@cloudSyncGoogleSignInCancelled": {
+    "description": "Message after the rider closed the Google sign-in started by choosing Google in Settings → Sync with"
+  },
+  "cloudSyncGoogleSignInFailed": "Couldn’t sign in to Google.",
+  "@cloudSyncGoogleSignInFailed": {
+    "description": "Message when the Google sign-in started from Settings → Sync with failed"
   }
 }

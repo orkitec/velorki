@@ -13,6 +13,7 @@ import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/settings/presentation/settings_screen.dart';
 import 'package:velorki/features/sync/application/cloud_sync_controller.dart';
 import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
+import 'package:velorki/features/sync/data/google_account.dart';
 import 'package:velorki/features/sync/data/google_drive_sync.dart';
 import 'package:velorki/features/sync/domain/cloud_sync_status.dart';
 import 'package:velorki/features/sync/domain/sync_service.dart';
@@ -42,20 +43,47 @@ class _IdleSync extends CloudSyncController {
   CloudSyncStatus build() => const CloudSyncStatus();
 }
 
+/// Google's sign-in, answering as told.
+class _FakeGoogleSignIn implements GoogleSignInService {
+  /// What the next sign-in does: null signs in, else it fails so.
+  GoogleSignInFailure? failure;
+  int signIns = 0;
+  int signOuts = 0;
+
+  @override
+  Future<GoogleAccount> signIn() async {
+    signIns++;
+    if (failure case final failure?) throw failure;
+    return const GoogleAccount(id: 'g-1', email: 'rider@example.com');
+  }
+
+  @override
+  Future<void> signOut() async => signOuts++;
+
+  @override
+  Future<String?> accessToken(GoogleAccount account, {String? stale}) async =>
+      'token';
+}
+
 void main() {
   late Directory dir;
   late FakeCloudSyncBridge bridge;
+  late _FakeGoogleSignIn googleSignIn;
 
   setUp(() {
     dir = Directory.systemTemp.createTempSync('cloud_sync_section');
     bridge = FakeCloudSyncBridge(FakeCloud(dir));
+    googleSignIn = _FakeGoogleSignIn();
   });
   tearDown(() => dir.deleteSync(recursive: true));
 
   List<Override> syncOverrides({bool google = false, bool iCloud = true}) => [
     cloudSyncBridgeProvider.overrideWithValue(iCloud ? bridge : null),
     cloudSyncOutboxProvider.overrideWith((ref) async => dir),
-    if (google) googleDriveStoreProvider.overrideWithValue(MemoryCloudStore()),
+    if (google) ...[
+      googleDriveStoreProvider.overrideWithValue(MemoryCloudStore()),
+      googleSignInServiceProvider.overrideWithValue(googleSignIn),
+    ],
   ];
 
   group('the status line', () {
@@ -231,7 +259,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1));
     });
 
-    testWidgets('offers Google where there is a Drive store', (tester) async {
+    testWidgets('offers Google where there is a Drive store, and signs in '
+        'when it is chosen', (tester) async {
       final container = await pumpSection(tester, google: true);
       expect(segments(tester), {
         SyncService.icloud,
@@ -240,10 +269,82 @@ void main() {
       });
       await tester.tap(find.text(l10n.cloudSyncServiceGoogle));
       await settleSync(tester);
+      expect(googleSignIn.signIns, 1);
       expect(selected(tester), {SyncService.google});
       expect(container.read(activeSyncServiceProvider), SyncService.google);
       expect(bridge.started, isFalse, reason: 'one cloud at a time');
       expect(find.text(l10n.cloudSyncGoogleHint), findsOneWidget);
+      expect(find.text('rider@example.com'), findsOneWidget);
+      expect(find.text(l10n.cloudSyncGoogleSignOut), findsOneWidget);
+      expectNoClippedText(tester);
+      await tester.pump(const Duration(milliseconds: 1));
+    });
+
+    for (final canceled in [true, false]) {
+      testWidgets(
+        canceled
+            ? 'a sign-in closed keeps the choice, and says so'
+            : 'a sign-in failed keeps the choice, and says so',
+        (tester) async {
+          googleSignIn.failure = GoogleSignInFailure(canceled: canceled);
+          final container = await pumpSection(tester, google: true);
+          await tester.tap(find.text(l10n.cloudSyncServiceGoogle));
+          await settleSync(tester);
+          expect(selected(tester), {SyncService.icloud});
+          expect(container.read(syncServiceChoiceProvider), SyncService.icloud);
+          expect(container.read(googleAccountControllerProvider), isNull);
+          expect(
+            find.text(
+              canceled
+                  ? l10n.cloudSyncGoogleSignInCancelled
+                  : l10n.cloudSyncGoogleSignInFailed,
+            ),
+            findsOneWidget,
+          );
+          expect(bridge.started, isTrue);
+          await tester.pump(const Duration(milliseconds: 1));
+        },
+      );
+    }
+
+    testWidgets('signing out turns sync off and forgets the account', (
+      tester,
+    ) async {
+      final container = await pumpSection(tester, google: true);
+      await tester.tap(find.text(l10n.cloudSyncServiceGoogle));
+      await settleSync(tester);
+      await tester.tap(find.text(l10n.cloudSyncGoogleSignOut));
+      await settleSync(tester);
+
+      expect(googleSignIn.signOuts, 1);
+      expect(selected(tester), {SyncService.off});
+      expect(container.read(googleAccountControllerProvider), isNull);
+      expect(find.text('rider@example.com'), findsNothing);
+      expect(find.text(l10n.cloudSyncOff), findsOneWidget);
+      final prefs = container.read(sharedPreferencesProvider);
+      expect(prefs.getString('sync.google.user'), isNull);
+
+      // Chosen again, Google asks to sign in again.
+      await tester.tap(find.text(l10n.cloudSyncServiceGoogle));
+      await settleSync(tester);
+      expect(googleSignIn.signIns, 2);
+      expect(selected(tester), {SyncService.google});
+      await tester.pump(const Duration(milliseconds: 1));
+    });
+
+    testWidgets('Google without an account offers to sign in again', (
+      tester,
+    ) async {
+      final container = await pumpSection(tester, google: true);
+      await container
+          .read(syncServiceChoiceProvider.notifier)
+          .select(SyncService.google);
+      await settleSync(tester);
+      expect(find.text(l10n.cloudSyncGoogleSignOut), findsNothing);
+      await tester.tap(find.text(l10n.cloudSyncGoogleSignIn));
+      await settleSync(tester);
+      expect(googleSignIn.signIns, 1);
+      expect(find.text('rider@example.com'), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 1));
     });
   });

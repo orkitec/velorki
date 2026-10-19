@@ -1248,5 +1248,9 @@
   "cloudSyncServiceOff": "Uit",
   "cloudSyncGoogleNoAccount": "Niet aangemeld bij Google",
   "cloudSyncGoogleQuota": "De Google-opslag is vol",
-  "cloudSyncGoogleHint": "Je routes, ritten en een paar instellingen op elk apparaat met je Google-account, bewaard in je Google Drive. Routes van Strava blijven op dit apparaat"
+  "cloudSyncGoogleHint": "Je routes, ritten en een paar instellingen op elk apparaat met je Google-account, bewaard in je Google Drive. Routes van Strava blijven op dit apparaat",
+  "cloudSyncGoogleSignIn": "Inloggen",
+  "cloudSyncGoogleSignOut": "Uitloggen",
+  "cloudSyncGoogleSignInCancelled": "Het inloggen bij Google is geannuleerd.",
+  "cloudSyncGoogleSignInFailed": "Inloggen bij Google is mislukt."
 }

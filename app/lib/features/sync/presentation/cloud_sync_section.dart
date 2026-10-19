@@ -6,12 +6,15 @@ import 'package:intl/intl.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../application/cloud_sync_controller.dart';
+import '../data/google_account.dart';
 import '../domain/cloud_sync_status.dart';
 import '../domain/sync_service.dart';
 
 /// Settings → Sync with: the services this device offers and off, and a
 /// line saying where the sync stands. Shown only where
-/// [offeredSyncServicesProvider] has a service.
+/// [offeredSyncServicesProvider] has a service. Choosing Google signs in
+/// first; while Google is the service, the account and a way to sign out
+/// (or in again) are under the line.
 class CloudSyncSection extends ConsumerStatefulWidget {
   /// Creates the section.
   const CloudSyncSection({super.key});
@@ -23,6 +26,9 @@ class CloudSyncSection extends ConsumerStatefulWidget {
 class _CloudSyncSectionState extends ConsumerState<CloudSyncSection> {
   /// "2 min ago" moves on while the page is open.
   Timer? _tick;
+
+  /// Whether a Google sign-in is open.
+  bool _signingIn = false;
 
   @override
   void initState() {
@@ -38,12 +44,61 @@ class _CloudSyncSectionState extends ConsumerState<CloudSyncSection> {
     super.dispose();
   }
 
+  void _choose(SyncService service) {
+    if (_signingIn) return;
+    if (service == SyncService.google &&
+        ref.read(googleAccountControllerProvider) == null) {
+      unawaited(_signIn(thenSelect: true));
+      return;
+    }
+    unawaited(ref.read(syncServiceChoiceProvider.notifier).select(service));
+  }
+
+  /// Signs in to Google; the choice stays as it was unless it goes
+  /// through.
+  Future<void> _signIn({required bool thenSelect}) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _signingIn = true);
+    try {
+      await ref.read(googleAccountControllerProvider.notifier).signIn();
+      if (thenSelect) {
+        await ref
+            .read(syncServiceChoiceProvider.notifier)
+            .select(SyncService.google);
+      } else {
+        unawaited(ref.read(cloudSyncControllerProvider.notifier).refresh());
+      }
+    } on GoogleSignInFailure catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            e.canceled
+                ? l10n.cloudSyncGoogleSignInCancelled
+                : l10n.cloudSyncGoogleSignInFailed,
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _signingIn = false);
+    }
+  }
+
+  /// Signs out of Google here and turns sync off; Drive keeps everything.
+  Future<void> _signOut() async {
+    await ref.read(syncServiceChoiceProvider.notifier).select(SyncService.off);
+    await ref.read(googleAccountControllerProvider.notifier).signOut();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final offered = ref.watch(offeredSyncServicesProvider);
     final active = ref.watch(activeSyncServiceProvider);
     final status = ref.watch(cloudSyncControllerProvider);
+    final account = active == SyncService.google
+        ? ref.watch(googleAccountControllerProvider)
+        : null;
     final theme = Theme.of(context);
     // Off, the hint is the first service's: what switching it on does.
     final hinted = active == SyncService.off
@@ -66,11 +121,7 @@ class _CloudSyncSectionState extends ConsumerState<CloudSyncSection> {
                 ),
             ],
             selected: {active},
-            onSelectionChanged: (selection) => unawaited(
-              ref
-                  .read(syncServiceChoiceProvider.notifier)
-                  .select(selection.single),
-            ),
+            onSelectionChanged: (selection) => _choose(selection.single),
           ),
           const SizedBox(height: 12),
           Text(
@@ -82,6 +133,32 @@ class _CloudSyncSectionState extends ConsumerState<CloudSyncSection> {
             ),
             style: theme.textTheme.bodyMedium,
           ),
+          if (active == SyncService.google)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    account?.email ?? '',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                TextButton(
+                  onPressed: _signingIn
+                      ? null
+                      : account == null
+                      ? () => unawaited(_signIn(thenSelect: false))
+                      : () => unawaited(_signOut()),
+                  child: Text(
+                    account == null
+                        ? l10n.cloudSyncGoogleSignIn
+                        : l10n.cloudSyncGoogleSignOut,
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 4),
           Text(
             hinted == SyncService.google

@@ -8,19 +8,33 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/app_config.dart';
 import 'cloud_store.dart';
+import 'drive_cloud_store.dart';
+import 'google_account.dart';
 import 'store_sync_backend.dart';
 import 'sync_backend.dart';
 
 part 'google_drive_sync.g.dart';
 
 /// The hidden app data folder of the rider's Google Drive as a
-/// [CloudStore], or null where Google sync is not offered. Null everywhere
-/// until the Drive store lands: Settings offers Google only where this is
-/// there, so nothing unfinished ships, while the choice, the engine and
-/// the controller's path for it are in place (and tested with an
-/// in-memory store).
+/// [CloudStore], or null where Google sync is not offered (no sign-in on
+/// the platform). The store outlives the account: signed out, its
+/// account id is null and the engine syncs nothing.
 @Riverpod(keepAlive: true)
-CloudStore? googleDriveStore(Ref ref) => null;
+CloudStore? googleDriveStore(Ref ref) {
+  final service = ref.watch(googleSignInServiceProvider);
+  if (service == null) return null;
+  return DriveCloudStore(
+    auth: GoogleDriveAuth(
+      account: () => ref.read(googleAccountControllerProvider),
+      service: service,
+      onLost: () => ref.read(googleAccountControllerProvider.notifier).lost(),
+    ),
+    state: PrefsSyncEngineState(
+      ref.watch(sharedPreferencesProvider),
+      prefix: 'sync.google.drive.',
+    ),
+  );
+}
 
 /// Where a [StoreSyncBackend] writes the bodies it fetched, for the codec
 /// to read and delete.

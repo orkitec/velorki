@@ -1248,5 +1248,9 @@
   "cloudSyncServiceOff": "Désactivé",
   "cloudSyncGoogleNoAccount": "Non connecté à Google",
   "cloudSyncGoogleQuota": "Le stockage Google est plein",
-  "cloudSyncGoogleHint": "Tes itinéraires, sorties et quelques réglages sur chaque appareil connecté à ton compte Google, enregistrés dans ton Google Drive. Les itinéraires venant de Strava restent sur cet appareil"
+  "cloudSyncGoogleHint": "Tes itinéraires, sorties et quelques réglages sur chaque appareil connecté à ton compte Google, enregistrés dans ton Google Drive. Les itinéraires venant de Strava restent sur cet appareil",
+  "cloudSyncGoogleSignIn": "Se connecter",
+  "cloudSyncGoogleSignOut": "Se déconnecter",
+  "cloudSyncGoogleSignInCancelled": "La connexion à Google a été annulée.",
+  "cloudSyncGoogleSignInFailed": "Impossible de se connecter à Google."
 }

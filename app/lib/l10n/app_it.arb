@@ -1248,5 +1248,9 @@
   "cloudSyncServiceOff": "Disattivato",
   "cloudSyncGoogleNoAccount": "Accesso a Google non effettuato",
   "cloudSyncGoogleQuota": "Lo spazio di Google è pieno",
-  "cloudSyncGoogleHint": "I tuoi percorsi, giri e alcune impostazioni su ogni dispositivo con il tuo Account Google, salvati nel tuo Google Drive. I percorsi da Strava restano su questo dispositivo"
+  "cloudSyncGoogleHint": "I tuoi percorsi, giri e alcune impostazioni su ogni dispositivo con il tuo Account Google, salvati nel tuo Google Drive. I percorsi da Strava restano su questo dispositivo",
+  "cloudSyncGoogleSignIn": "Accedi",
+  "cloudSyncGoogleSignOut": "Esci",
+  "cloudSyncGoogleSignInCancelled": "L'accesso a Google è stato annullato.",
+  "cloudSyncGoogleSignInFailed": "Impossibile accedere a Google."
 }

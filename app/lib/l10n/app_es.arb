@@ -1248,5 +1248,9 @@
   "cloudSyncServiceOff": "Desactivado",
   "cloudSyncGoogleNoAccount": "Sin sesión iniciada en Google",
   "cloudSyncGoogleQuota": "El almacenamiento de Google está lleno",
-  "cloudSyncGoogleHint": "Tus rutas, salidas y algunos ajustes en cada dispositivo con tu cuenta de Google, guardados en tu Google Drive. Las rutas de Strava se quedan en este dispositivo"
+  "cloudSyncGoogleHint": "Tus rutas, salidas y algunos ajustes en cada dispositivo con tu cuenta de Google, guardados en tu Google Drive. Las rutas de Strava se quedan en este dispositivo",
+  "cloudSyncGoogleSignIn": "Iniciar sesión",
+  "cloudSyncGoogleSignOut": "Cerrar sesión",
+  "cloudSyncGoogleSignInCancelled": "Se canceló el inicio de sesión en Google.",
+  "cloudSyncGoogleSignInFailed": "No se pudo iniciar sesión en Google."
 }

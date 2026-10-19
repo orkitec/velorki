@@ -404,9 +404,41 @@ go through `StoreSyncBackend`, CKSyncEngine's part in Dart over a
 `CloudStore` (batch push over each record's version, pull from a cursor,
 full listing when it expires, account id): `sync_records` stays the outbox,
 the version rides in `system_fields`, the cursor and account in the
-preferences, transient failures back off with jitter. Google is offered
-only where `googleDriveStoreProvider` has a store, which no build has yet;
-the tests run it over `MemoryCloudStore`.
+preferences, transient failures back off with jitter.
+
+**Google sync.** `DriveCloudStore` is the `CloudStore` over the Drive v3
+app data folder (scope `drive.appdata` only). The layout, which the relay
+and the web planner read too (`driveRecordFile`, `readDriveRecord`):
+
+- One file per record in `appDataFolder`, its `name` the record name
+  exactly, no extension: `route_<id>`, `ride_<id>`, `settings`,
+  `plus_<deviceId>`.
+- `appProperties`: `kind` (the record type: `Route`, `Ride`, `Settings`,
+  `PlusDevice`), `modifiedAt` (ms since the epoch) and `codec` (the
+  codec's schema version) where the record has them, all strings.
+- A record of short text fields alone (each key and value at most 124
+  bytes together, as `PlusDevice`) keeps them in `appProperties` too and
+  has empty content.
+- Any other record's content is one UTF-8 JSON line,
+  `{"v":1,"type":…,"fields":{…},"body":true|false}`, a newline, and then
+  the codec's gzip JSON body bytes unchanged (routes and rides; settings
+  have no body). Fields keep their types there. `v` is the header's
+  version: a reader skips a file whose `v` is newer than it knows.
+
+A version is the file id and Drive's `version`; a save
+over one reads the file first (one `files.list` per batch of names) and
+compares, the race accepted; of two files with one name the older counts.
+Changes come from `changes.list` (deleted files' ids resolved through a
+map kept in the preferences), a refused page token lists the folder
+again, 403 `storageQuotaExceeded` is quota, 429 and 5xx are transient.
+Sign-in is `google_sign_in` behind `GoogleSignInService`: choosing Google
+in Settings signs in and authorises the scope first; the account (id,
+email) is kept in the preferences and is the store's account id. Tokens
+come silently, once more after a 401; one only the rider can grant again
+signs the account out. Sign out turns sync off and deletes nothing.
+Offered on iOS (`GIDClientID` in Info.plist) and on Android when
+`VELORKI_GOOGLE_WEB_CLIENT_ID` is set (Credential Manager's
+`serverClientId`). Tests run over `FakeDrive`, Drive at the HTTP layer.
 
 **iCloud sync.** `ios/Runner/CloudSync.swift` runs CKSyncEngine on the private
 database's `Library` zone (container `iCloud.com.orkitec.velorki`) and keeps

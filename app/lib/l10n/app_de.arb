@@ -1248,5 +1248,9 @@
   "cloudSyncServiceOff": "Aus",
   "cloudSyncGoogleNoAccount": "Nicht bei Google angemeldet",
   "cloudSyncGoogleQuota": "Der Google-Speicher ist voll",
-  "cloudSyncGoogleHint": "Deine Routen, Fahrten und einige Einstellungen auf jedem Gerät mit deinem Google-Konto, gespeichert in deinem Google Drive. Routen von Strava bleiben auf diesem Gerät"
+  "cloudSyncGoogleHint": "Deine Routen, Fahrten und einige Einstellungen auf jedem Gerät mit deinem Google-Konto, gespeichert in deinem Google Drive. Routen von Strava bleiben auf diesem Gerät",
+  "cloudSyncGoogleSignIn": "Anmelden",
+  "cloudSyncGoogleSignOut": "Abmelden",
+  "cloudSyncGoogleSignInCancelled": "Die Anmeldung bei Google wurde abgebrochen.",
+  "cloudSyncGoogleSignInFailed": "Die Anmeldung bei Google ist fehlgeschlagen."
 }
