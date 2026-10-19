@@ -31,10 +31,10 @@ Los datos de rutas y el índice de búsqueda se replican para ti sin coste.
 
 Tres funciones, tal como aparecen en la página de la suscripción:
 
-| Función | Qué es |
-|---|---|
-| **Asistente de IA** | «Describe la salida que quieres; Velorki la convierte en una ruta y la planifica en tu teléfono.» |
-| **Compartir enlaces** | «Convierte una ruta o una salida en un enlace que cualquiera puede abrir en un navegador.» |
+| Función                                                | Qué es                                                                                                                                                                         |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Asistente de IA**                                    | «Describe la salida que quieres; Velorki la convierte en una ruta y la planifica en tu teléfono.»                                                              |
+| **Compartir enlaces**                                  | «Convierte una ruta o una salida en un enlace que cualquiera puede abrir en un navegador.»                                                                     |
 | **El tiempo en la ruta más preciso y radar de lluvia** | «El tiempo a lo largo de la ruta más preciso de servicios meteorológicos locales, con rachas y probabilidad de lluvia, y radar de lluvia real en toda Europa.» |
 
 Cada una de ellas necesita un servidor que pagamos nosotros.
