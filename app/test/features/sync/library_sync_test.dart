@@ -94,6 +94,33 @@ void main() {
     dir.deleteSync(recursive: true);
   });
 
+  test('a change whose push was missed comes with the manual fetch, and '
+      'the engine fetching it again later writes nothing', () async {
+    await phone.db.routesDao.upsertRoute(fullRoute('r1'));
+    await phone.db.routesDao.upsertRoute(fullRoute('r2'));
+    await phone.syncNow();
+    await pad.syncNow();
+    expect(await pad.routeNames(), hasLength(2));
+
+    await phone.renameRoute('r1', 'Renamed');
+    await phone.db.routesDao.deleteRoute('r2');
+    await phone.syncNow();
+
+    // No push reached the pad: only the manual fetch asks the server.
+    await pad.bridge.fetchNow();
+    expect(await pad.routeName('r1'), 'Renamed');
+    expect(await pad.db.routesDao.routeById('r2'), isNull);
+
+    // The engine gets to the same changes later, from its own token.
+    await pad.bridge.fetch();
+    expect(await pad.routeNames(), ['Renamed']);
+    expect(await pad.db.syncDao.dirtyRecords(), isEmpty);
+    expect(await pad.db.syncDao.record('route', 'r2'), isNull);
+    await pad.sync.push();
+    expect(pad.bridge.pendingSaves, isEmpty);
+    expect(pad.bridge.pendingDeletes, isEmpty);
+  });
+
   test('the library there was is sent once, then nothing waits', () async {
     await phone.db.routesDao.upsertRoute(fullRoute('r1'));
     await phone.db.routesDao.upsertRoute(fullRoute('r2'));

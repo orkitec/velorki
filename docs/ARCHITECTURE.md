@@ -398,6 +398,11 @@ database's `Library` zone (container `iCloud.com.orkitec.velorki`) and keeps
 its state in Application Support; the rows stay in Drift, so the engine asks
 Dart for each record as it sends and hands every fetched change to Dart,
 waiting for it to be written (`features/sync`, channel `velorki/cloud_sync`).
+The engine fetches only what a push told it of; a manual fetch (launch,
+switching sync on, the Library tab, a pull, a return to the app) asks for the
+zone's changes itself, since its own change token beside the engine's state,
+and the engine's later fetch of the same changes is dropped natively or is a
+no-op in Dart.
 The triggers mark every write, whatever path made it; the record format is
 `RecordCodec` (versioned fields, the track and other large columns as one
 gzip JSON asset). The newer change wins per record, the server's copy on a

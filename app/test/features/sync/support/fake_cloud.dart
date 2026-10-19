@@ -119,7 +119,13 @@ class FakeCloudSyncBridge implements CloudSyncBridge {
   CloudSyncHandler? _handler;
   final Set<String> pendingSaves = <String>{};
   final Set<String> pendingDeletes = <String>{};
-  int _cursor = 0;
+
+  /// Where the engine's own fetches ([fetch], a push's) and the manual ones
+  /// ([fetchNow], with the native side's own change token) stand in the
+  /// change log: apart, so each fetches what the other already handed
+  /// over, as on the phone.
+  int _engineCursor = 0;
+  int _manualCursor = 0;
 
   /// Whether [start] was called and [stop] not since.
   bool started = false;
@@ -164,10 +170,15 @@ class FakeCloudSyncBridge implements CloudSyncBridge {
   /// How often [fetchNow] was asked for.
   int fetchRequests = 0;
 
+  /// The manual fetch: asks the server for what changed since its own
+  /// token, whether a push came or not (the engine's fetch, asked without
+  /// one, asks nothing).
   @override
-  Future<void> fetchNow() {
+  Future<void> fetchNow() async {
     fetchRequests++;
-    return fetch();
+    final from = _manualCursor;
+    _manualCursor = cloud._log.length;
+    await _fetchFrom(from);
   }
 
   @override
@@ -243,10 +254,17 @@ class FakeCloudSyncBridge implements CloudSyncBridge {
     );
   }
 
-  /// Fetches what changed since this device last fetched.
+  /// The engine's fetch, as a push sets off: what changed since the
+  /// engine last fetched.
   Future<void> fetch() async {
-    final log = cloud._log.sublist(_cursor);
-    _cursor = cloud._log.length;
+    final from = _engineCursor;
+    _engineCursor = cloud._log.length;
+    await _fetchFrom(from);
+  }
+
+  /// Hands the library what changed since [cursor].
+  Future<void> _fetchFrom(int cursor) async {
+    final log = cloud._log.sublist(cursor);
     if (log.isEmpty) return;
     final touched = <String>{for (final (name, _) in log) name};
     final modifications = <CloudRecord>[];

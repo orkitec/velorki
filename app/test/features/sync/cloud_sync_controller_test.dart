@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,9 +9,12 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/settings/data/appearance_controller.dart';
+import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki/features/sync/application/cloud_sync_controller.dart';
+import 'package:velorki/features/sync/application/library_sync.dart';
 import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
+import 'package:velorki/features/sync/data/record_codec.dart';
 import 'package:velorki/features/sync/domain/cloud_sync_status.dart';
 
 import 'support/fake_cloud.dart';
@@ -107,6 +111,47 @@ void main() {
     await container.read(cloudSyncEnabledProvider.notifier).set(enabled: true);
     await settle();
     expect(bridge.started, isTrue);
+  });
+
+  test('a change made elsewhere while sync was off here arrives when it '
+      'is switched on, with no push', () async {
+    // The phone: another device on the same iCloud.
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+    final phoneDb = VelorkiDatabase.memory();
+    addTearDown(phoneDb.close);
+    final phone = FakeCloudSyncBridge(bridge.cloud);
+    final phoneSync = LibrarySync(
+      db: phoneDb,
+      bridge: phone,
+      codec: RecordCodec(Directory('${dir.path}/phone')),
+    );
+    phone.setHandler(
+      LibraryHandler(
+        toSave: phoneSync.recordsToSave,
+        apply: phoneSync.applyRemote,
+        onSent: phoneSync.sent,
+      ),
+    );
+    addTearDown(phoneSync.stop);
+
+    await db.routesDao.upsertRoute(fullRoute('r1'));
+    final container = await launch();
+    await bridge.sync();
+    await phone.fetch();
+    expect((await phoneDb.routesDao.routeById('r1'))?.name, isNotNull);
+
+    final enabled = container.read(cloudSyncEnabledProvider.notifier);
+    await enabled.set(enabled: false);
+    await settle();
+
+    await RouteRepository(phoneDb.routesDao).rename('r1', 'Renamed');
+    await phoneSync.push();
+    await phone.send();
+
+    await enabled.set(enabled: true);
+    await settle();
+    expect((await db.routesDao.routeById('r1'))?.name, 'Renamed');
+    expect(await db.syncDao.dirtyRecords(), isEmpty);
   });
 
   test('opening the Library fetches, at most every 30 seconds', () async {
