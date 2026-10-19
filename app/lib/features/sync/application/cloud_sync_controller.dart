@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
@@ -12,10 +13,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../app/app_config.dart';
 import '../../../app/router.dart';
 import '../../../core/db/database.dart';
+import '../../../core/plus/app_user_id.dart';
 import '../../navigation/data/navigation_settings.dart';
 import '../../settings/data/appearance_controller.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
+import '../../subscription/data/revenuecat_subscription_service.dart'
+    show currentStorePlatform;
+import '../../subscription/data/subscription_service.dart';
 import '../data/cloud_sync_bridge.dart';
 import '../data/google_drive_sync.dart';
 import '../data/record_codec.dart';
@@ -24,6 +29,7 @@ import '../domain/cloud_record.dart';
 import '../domain/cloud_sync_status.dart';
 import '../domain/sync_service.dart';
 import 'library_sync.dart';
+import 'plus_id_sync.dart';
 import 'settings_sync.dart';
 
 part 'cloud_sync_controller.g.dart';
@@ -68,6 +74,20 @@ List<SyncService> offeredSyncServices(Ref ref) => [
 Future<Directory> cloudSyncOutbox(Ref ref) async =>
     Directory(p.join((await getTemporaryDirectory()).path, 'cloud_sync_out'));
 
+/// The store identity this device writes into its cloud for the web
+/// planner ([PlusIdSync]), or null where there is none to write: the
+/// browser, which never makes one, and a build without a store.
+@Riverpod(keepAlive: true)
+PlusDeviceIdentity? plusDeviceIdentity(Ref ref) {
+  if (kIsWeb || !ref.watch(subscriptionServiceProvider).isAvailable) {
+    return null;
+  }
+  return PlusDeviceIdentity(
+    appUserId: ref.watch(appUserIdProvider),
+    platform: currentStorePlatform(),
+  );
+}
+
 /// Settings → Sync with, as the rider chose it. Unset, it is iCloud where
 /// the platform has it (iOS) and off everywhere else; before there was a
 /// choice it was a switch, whose on is iCloud.
@@ -91,6 +111,8 @@ class SyncServiceChoice extends _$SyncServiceChoice {
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(_prefsService, service.name);
     await prefs.remove(_prefsLegacyEnabled);
+    // A pick of the rider's own: the device's Plus record may go there.
+    await PlusIdSync.chosen(prefs, service);
   }
 }
 
@@ -130,6 +152,7 @@ class CloudSyncController extends _$CloudSyncController
     implements CloudSyncHandler {
   LibrarySync? _library;
   SettingsSync? _settings;
+  PlusIdSync? _plus;
   StreamSubscription<CloudSyncStatus>? _status;
   AppLifecycleListener? _lifecycle;
   ProviderSubscription<String>? _tabs;
@@ -172,6 +195,16 @@ class CloudSyncController extends _$CloudSyncController
       backend: backend,
       onApplied: _rereadSettings,
     );
+    final identity = ref.read(plusDeviceIdentityProvider);
+    final plus = _plus = identity == null
+        ? null
+        : PlusIdSync(
+            prefs: prefs,
+            backend: backend,
+            service: service,
+            identity: identity,
+            clock: ref.read(cloudSyncClockProvider),
+          );
     // What `sync_records` knows of a server is the service's it was last
     // synced with (iCloud's, from before there was a choice): another one
     // gets the library as new, and the settings merge as on a first start.
@@ -191,6 +224,7 @@ class CloudSyncController extends _$CloudSyncController
     _listenToSettings();
     library.start();
     await library.push();
+    await plus?.start();
     // The engine fetches by itself only when a push notification tells it
     // to: at launch it is asked, as on every return to the app.
     unawaited(backend.fetchNow());
@@ -208,6 +242,7 @@ class CloudSyncController extends _$CloudSyncController
       onResume: () {
         unawaited(backend.fetchNow());
         unawaited(_library?.push());
+        unawaited(_plus?.refresh());
       },
     );
   }
@@ -235,6 +270,7 @@ class CloudSyncController extends _$CloudSyncController
     _status = null;
     _library = null;
     _settings = null;
+    _plus = null;
     _lifecycle?.dispose();
     _lifecycle = null;
     _tabs?.close();
@@ -262,8 +298,20 @@ class CloudSyncController extends _$CloudSyncController
   }
 
   @override
-  Future<List<CloudRecord>> recordsToSave(List<String> names) async =>
-      await _library?.recordsToSave(names) ?? const <CloudRecord>[];
+  Future<List<CloudRecord>> recordsToSave(List<String> names) async {
+    final plus = [
+      for (final name in names)
+        if (PlusIdSync.isPlusRecord(name)) ?_plus?.recordToSave(name),
+    ];
+    final rest = [
+      for (final name in names)
+        if (!PlusIdSync.isPlusRecord(name)) name,
+    ];
+    final library = rest.isEmpty
+        ? const <CloudRecord>[]
+        : await _library?.recordsToSave(rest) ?? const <CloudRecord>[];
+    return [...library, ...plus];
+  }
 
   @override
   Future<void> applyRemote(
@@ -272,7 +320,19 @@ class CloudSyncController extends _$CloudSyncController
   ) async => _library?.applyRemote(modifications, deletions);
 
   @override
-  Future<void> sent(SentChanges changes) async => _library?.sent(changes);
+  Future<void> sent(SentChanges changes) async {
+    final plus = _plus;
+    if (plus != null) {
+      for (final MapEntry(:key, :value) in changes.saved.entries) {
+        if (PlusIdSync.isPlusRecord(key)) await plus.saved(key, value);
+      }
+      for (final failed in changes.failedSaves) {
+        if (PlusIdSync.isPlusRecord(failed.name)) await plus.failed(failed);
+      }
+    }
+    // The library passes over names it does not know.
+    await _library?.sent(changes);
+  }
 
   @override
   Future<void> accountChanged(AccountChange change) async {
@@ -281,6 +341,7 @@ class CloudSyncController extends _$CloudSyncController
     // now as new; it is never deleted for an account change.
     await _library?.reset();
     await _settings?.forget();
+    await _plus?.accountChanged(change);
     if (change != AccountChange.signOut) {
       await _settings?.start();
       await _library?.push();
@@ -291,6 +352,7 @@ class CloudSyncController extends _$CloudSyncController
   Future<void> zoneDeleted(ZoneDeletion reason) async {
     _log.info('iCloud zone deleted: ${reason.name}');
     await _library?.reset();
+    await _plus?.zoneDeleted();
     if (reason == ZoneDeletion.purged) {
       // The rider deleted Velorki's data from iCloud: it is not put back
       // there behind their back. The library here stays as it is.
@@ -300,6 +362,7 @@ class CloudSyncController extends _$CloudSyncController
       return;
     }
     await _library?.push();
+    await _plus?.refresh();
   }
 
   @override

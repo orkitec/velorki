@@ -156,6 +156,7 @@ describe('host gate', () => {
         ['POST', '/proxy/rwgps/api/v1/trips.json'],
         ['POST', '/ai/plan'],
         ['POST', '/share'],
+        ['POST', '/plus/web'],
       ];
       for (const [method, path] of routes) {
         const res = await proxy(request(`${API}${path}`, { method }));

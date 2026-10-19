@@ -94,6 +94,19 @@ describe('proxy CORS', () => {
     });
   });
 
+  it('answers the planner\'s preflight for POST /plus/web', async () => {
+    await withEnv({}, async () => {
+      const res = await proxy(
+        req(`${API}/plus/web`, 'OPTIONS', {
+          origin: APP,
+          'access-control-request-method': 'POST',
+        }),
+      );
+      expect(res.status).toBe(204);
+      expect(res.headers.get('access-control-allow-methods')).toBe('POST, OPTIONS');
+    });
+  });
+
   it('gives a disallowed or missing origin no preflight answer', async () => {
     await withEnv({}, async () => {
       for (const headers of [{ origin: 'https://evil.test' }, {}] as Record<string, string>[]) {

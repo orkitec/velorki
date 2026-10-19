@@ -459,6 +459,18 @@ account, a sign-out or a reset zone resends the library as new and never
 deletes it; data deleted from iCloud in Settings switches sync off. A few
 settings (`syncedSettingKeys`) go through the iCloud key-value store.
 
+**Plus in the browser.** Beside the library, each app writes one record of
+its own into the cloud it syncs with, `plus_<device id>` (`PlusDevice`:
+its RevenueCat app user id, platform, `lastSeen`, rewritten at most every
+six hours; `PlusIdSync`). It goes only into the account sync first ran
+with, or one the rider picks in Settings → Sync with: an account change, a
+sign-out or sync off forgets locally where it went and stops writing, and
+deletes nothing. The browser signs into iCloud or Google and trades that
+token at the relay (`POST /plus/web`), which reads the records itself,
+ignores those older than 30 days, asks RevenueCat and answers an hour-long
+signed Plus token; the browser holds it in memory (`WebPlus`) and sends it
+as its bearer. The browser never makes a RevenueCat id.
+
 **Smart loops.** `velorki_loops` is a pure algorithm, no model involved. From a
 `LoopRequest` three strategies generate candidates: `RoundtripStrategy` (BRouter
 `engineMode=4`, an explicit `direction`) in 8 directions, `ViaOutAndBackStrategy`

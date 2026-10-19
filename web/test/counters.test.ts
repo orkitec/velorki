@@ -146,6 +146,8 @@ describe('fixed-window rate limits', () => {
       dpcRadarPerMin: { name: 'radar_dpc_min', limit: 60, windowS: 60 },
       dpcRadarPerDay: { name: 'radar_dpc_day', limit: 3_000, windowS: 86_400 },
       dpcRadarPerIpHour: { name: 'radar_dpc_ip_hour', limit: 1_200, windowS: 3_600 },
+      plusWebPerIpHour: { name: 'plus_web_ip_hour', limit: 60, windowS: 3_600 },
+      plusWebPerTokenHour: { name: 'plus_web_token_hour', limit: 10, windowS: 3_600 },
     });
   });
 });

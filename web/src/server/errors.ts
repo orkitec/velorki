@@ -27,6 +27,8 @@ export interface ErrorBody {
     code: ErrorCode;
     message: string;
     retry_after_s?: number;
+    /** Why, in a word, where a client acts on the difference (`POST /plus/web`). */
+    reason?: string;
   };
 }
 
@@ -35,17 +37,19 @@ export class ApiError extends Error {
   readonly code: ErrorCode;
   readonly statusOverride?: number;
   readonly retryAfterS?: number;
+  readonly reason?: string;
 
   constructor(
     code: ErrorCode,
     message: string,
-    opts: { retryAfterS?: number; status?: number } = {},
+    opts: { retryAfterS?: number; status?: number; reason?: string } = {},
   ) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     if (opts.retryAfterS !== undefined) this.retryAfterS = opts.retryAfterS;
     if (opts.status !== undefined) this.statusOverride = opts.status;
+    if (opts.reason !== undefined) this.reason = opts.reason;
   }
 
   get status(): number {
@@ -55,6 +59,7 @@ export class ApiError extends Error {
   toBody(): ErrorBody {
     const body: ErrorBody = { error: { code: this.code, message: this.message } };
     if (this.retryAfterS !== undefined) body.error.retry_after_s = this.retryAfterS;
+    if (this.reason !== undefined) body.error.reason = this.reason;
     return body;
   }
 }

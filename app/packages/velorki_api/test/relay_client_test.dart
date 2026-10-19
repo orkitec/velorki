@@ -208,6 +208,65 @@ void main() {
     });
   });
 
+  group('plusWeb', () {
+    test('posts the cloud and its token, without a bearer', () async {
+      final captured = Captured();
+      final client = RelayClient(
+        base,
+        client: captured.answering(
+          json(const <String, Object?>{
+            'token': 'vpt1.abc.def',
+            'expires_at': 1760886000,
+            'ck_web_auth_token': 'next',
+          }),
+        ),
+        appUserId: 'anon-web',
+      );
+      addTearDown(client.close);
+
+      final plus = await client.plusWeb(
+        service: PlusWebService.icloud,
+        token: 'ck+token',
+      );
+
+      final request = captured.request!;
+      expect(request.url.toString(), '$base/plus/web');
+      expect(request.headers.containsKey('Authorization'), isFalse);
+      expect(captured.body, <String, Object?>{
+        'service': 'icloud',
+        'token': 'ck+token',
+      });
+      expect(plus.token, 'vpt1.abc.def');
+      expect(plus.expiresAt, DateTime.utc(2025, 10, 19, 15));
+      expect(plus.ckWebAuthToken, 'next');
+    });
+
+    test('a refusal carries its reason', () async {
+      final client = RelayClient(
+        base,
+        client: MockClient(
+          (_) async => json(const <String, Object?>{
+            'error': <String, Object?>{
+              'code': 'not_entitled',
+              'message': 'No Velorki app has synced with this cloud.',
+              'reason': 'no_devices',
+            },
+          }, status: 403),
+        ),
+      );
+      addTearDown(client.close);
+      await expectLater(
+        client.plusWeb(service: PlusWebService.google, token: 't'),
+        throwsA(
+          isA<RelayException>()
+              .having((e) => e.statusCode, 'status', 403)
+              .having((e) => e.error.code, 'code', 'not_entitled')
+              .having((e) => e.error.reason, 'reason', 'no_devices'),
+        ),
+      );
+    });
+  });
+
   group('createShare', () {
     const gpx = '<?xml version="1.0"?><gpx version="1.1"><trk/></gpx>';
 

@@ -8,6 +8,7 @@ import '../../../../app/app_config.dart';
 import '../../../../core/l10n/relay_error_text.dart';
 import '../../../../core/plus/app_user_id.dart';
 import '../../../settings/data/package_info_provider.dart';
+import '../../../subscription/application/web_plus.dart';
 import '../domain/integration_exception.dart';
 
 /// The `X-Velorki-Client` value, `<platform>/<version>`.
@@ -34,7 +35,10 @@ final relayClientProvider = Provider<RelayClient?>((ref) {
     clientId: velorkiClientId(
       version: info == null ? 'dev' : '${info.version}+${info.buildNumber}',
     ),
-    appUserId: ref.watch(appUserIdProvider),
+    // A browser holding a Plus token from its cloud sign-in sends that
+    // instead; the apps always send their RevenueCat id.
+    appUserId:
+        ref.watch(webPlusProvider)?.token ?? ref.watch(appUserIdProvider),
   );
   ref.onDispose(client.close);
   return client;

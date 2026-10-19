@@ -2278,6 +2278,14 @@
   "@plusUnavailableWebBody": {
     "description": "Paywall body in the web app, where no store sells Plus yet: Plus is the phone apps' for now, said first"
   },
+  "plusWebSignInTitle": "Sign in with iCloud or Google to use your Plus",
+  "@plusWebSignInTitle": {
+    "description": "Paywall heading in the web app once it can sign into iCloud or Google: Plus bought in a phone app works here after signing in"
+  },
+  "plusWebSignInBody": "Bought Velorki Plus in the iPhone or Android app? Sign in here to the iCloud or Google account the app syncs with, and Plus works in the browser too. It cannot be bought in the browser.",
+  "@plusWebSignInBody": {
+    "description": "Paywall body in the web app once it can sign into iCloud or Google; Plus is still bought only in the phone apps"
+  },
   "plusGetTheApp": "Get the app",
   "@plusGetTheApp": {
     "description": "Button on the web app's paywall that opens the website's download page in a new tab"

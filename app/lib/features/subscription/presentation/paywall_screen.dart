@@ -12,6 +12,7 @@ import '../../shared/presentation/error_text.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/offered_plus_features.dart';
 import '../application/subscription_controller.dart';
+import '../application/web_plus.dart';
 import '../data/subscription_service.dart';
 import '../domain/plus_subscription.dart';
 import 'plus_strings.dart';
@@ -294,6 +295,9 @@ class _UnavailableCard extends ConsumerWidget {
     // one. In the browser, Plus is the phone apps', and the card says so
     // first and sends the rider to them.
     final web = !ref.watch(platformFeaturesProvider).storePurchases;
+    // Once the browser can sign into the rider's cloud, the Plus of the
+    // phone apps works here after signing in.
+    final signIn = web && ref.watch(webCloudSignInProvider);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -301,12 +305,20 @@ class _UnavailableCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              web ? l10n.plusUnavailableWebTitle : l10n.plusUnavailableTitle,
+              signIn
+                  ? l10n.plusWebSignInTitle
+                  : web
+                  ? l10n.plusUnavailableWebTitle
+                  : l10n.plusUnavailableTitle,
               style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 6),
             Text(
-              web ? l10n.plusUnavailableWebBody : l10n.plusUnavailableBody,
+              signIn
+                  ? l10n.plusWebSignInBody
+                  : web
+                  ? l10n.plusUnavailableWebBody
+                  : l10n.plusUnavailableBody,
               style: theme.textTheme.bodySmall,
             ),
             if (web) ...[

@@ -57,3 +57,24 @@ goes anywhere.
 The schema must be deployed to Production before the Production token is
 used (done 2026-10-18 for `Route` and `Ride`; redeploy after any schema
 change).
+
+## Plus on the web
+
+Each app writes one `PlusDevice` record into the `Library` zone
+(`plus_<device id>`: `appUserId` String, `platform` String, `lastSeen` and
+`modifiedAt` Int(64), `schemaVersion` Int(64)); a Development build creates
+the type on its first save. The relay queries it with a filter on
+`lastSeen`, so before Plus works in a browser:
+
+1. CloudKit Database → Development → Schema → Indexes → `PlusDevice`: add
+   `lastSeen` **Queryable** (and `recordName` Queryable, which the console
+   asks for on any type that is queried).
+2. **Deploy Schema Changes…** to Production.
+3. The relay's environment: `CLOUDKIT_API_TOKEN` (the Production web token
+   above), `CLOUDKIT_ENVIRONMENT=production`, and `PLUS_TOKEN_SECRET` (32
+   random bytes, base64). `CORS_ORIGINS` names every planner origin
+   (`https://app.velorki.com`, and for local work `https://localhost:8443`
+   and `http://localhost:8080` on a non-production relay).
+
+Google needs nothing more: the Drive store writes a file per record with the
+fields in `appProperties`.

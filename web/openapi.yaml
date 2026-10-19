@@ -33,7 +33,8 @@ info:
     buckets; the numbers are unchanged, the refill behaviour is not.)
 
     Browsers: the origins in `CORS_ORIGINS` (default `https://app.velorki.com`)
-    may call `/health`, `/weather*`, `/ai/plan` and `POST /share` cross-origin.
+    may call `/health`, `/weather*`, `/ai/plan`, `POST /share` and
+    `POST /plus/web` cross-origin.
     The `OPTIONS` preflight answers 204; every answer, errors included, then
     carries `Access-Control-Allow-Origin` (that one origin, never `*`, no
     credentials) and exposes `Retry-After` and `X-Request-Id`. `/oauth/*` and
@@ -102,6 +103,15 @@ tags:
     description: |
       Public share links for routes and rides. `POST /share` is on the API
       host; the two public paths below are served by `velorki.com`.
+  - name: plus
+    description: |
+      Velorki Plus in the browser, with no account of ours. The rider's apps
+      each write one `PlusDevice` record into the cloud they sync with (iCloud
+      private database, zone `Library`; or the Google Drive app data folder),
+      named `plus_<device id>`, holding the install's RevenueCat app user id,
+      its platform and `lastSeen`. The browser signs into that cloud and
+      trades the cloud's token here for a short-lived Plus token, which it
+      then sends as `Authorization: Bearer vpt1.…` to the Plus routes.
   - name: weather
     description: |
       Hourly forecasts along a route, from public weather services: the US
@@ -692,6 +702,111 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimited'
 
+  /plus/web:
+    post:
+      tags: [plus]
+      operationId: plusWeb
+      security: []
+      summary: Trade a cloud sign-in for a Plus token.
+      description: |
+        The relay reads the `PlusDevice` records from the rider's cloud itself,
+        with the token given: for `google` an OAuth access token with the
+        `drive.appdata` scope (Drive v3 `files.list` over `appDataFolder`); for
+        `icloud` the CloudKit JS web auth token (CloudKit Web Services
+        `records/query` on the private database, with the server's web API
+        token). No id the client sends is ever used. Records whose `lastSeen`
+        is older than 30 days are ignored; each remaining RevenueCat id (at
+        most 10, newest first) is checked like the bearer of any Plus route,
+        with the same cache. The first with an active entitlement yields a
+        token good for one hour: `vpt1.<payload>.<mac>`, HMAC-signed under
+        `PLUS_TOKEN_SECRET`, carrying a keyed hash of the id, never the id.
+
+        CloudKit documents its web auth token as single-use: when its answer
+        carries a new one, it comes back here as `ck_web_auth_token` (on the
+        200 and on a 403) and the browser must use it from then on.
+
+        Rate limits: 60 per hour per IP, charged before the body is read, then
+        10 per hour per cloud token. Errors: 401 `not_entitled` with reason
+        `cloud_auth` when the cloud refused the token; 403 `not_entitled` with
+        reason `no_devices` (no app synced there in 30 days) or
+        `not_subscribed` (none of them has Plus); 503 when
+        `PLUS_TOKEN_SECRET` (or, for iCloud, `CLOUDKIT_API_TOKEN`) is unset.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlusWebRequest'
+            examples:
+              google:
+                value:
+                  service: google
+                  token: ya29.a0AfB_byC-example
+              icloud:
+                value:
+                  service: icloud
+                  token: 159__54__AbCdEf+gHiJ/kLm=
+      responses:
+        '200':
+          description: A Plus token.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlusWebToken'
+              examples:
+                granted:
+                  value:
+                    token: vpt1.eyJzIjoiN2dHb0ZQd1lSWHJ0S2M4R3hPRW5LUSIsImUiOjE3NjA4ODYwMDB9.Jm0r0Uu2jY5k3vS9kq1x6c8wX0f2b4n7a9d1e3g5h7I
+                    expires_at: 1760886000
+                rotated:
+                  value:
+                    token: vpt1.eyJzIjoiN2dHb0ZQd1lSWHJ0S2M4R3hPRW5LUSIsImUiOjE3NjA4ODYwMDB9.Jm0r0Uu2jY5k3vS9kq1x6c8wX0f2b4n7a9d1e3g5h7I
+                    expires_at: 1760886000
+                    ck_web_auth_token: 159__54__ZyXwVu+tSrQ/pOn=
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          description: The cloud did not accept the token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                cloudAuth:
+                  value:
+                    error:
+                      code: not_entitled
+                      message: Google did not accept the sign-in.
+                      reason: cloud_auth
+        '403':
+          description: No fresh device, or none of them with Plus.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlusWebRefusal'
+              examples:
+                noDevices:
+                  value:
+                    error:
+                      code: not_entitled
+                      message: No Velorki app has synced with this cloud in the last 30 days.
+                      reason: no_devices
+                notSubscribed:
+                  value:
+                    error:
+                      code: not_entitled
+                      message: No Velorki app syncing with this cloud has an active Velorki Plus.
+                      reason: not_subscribed
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
   /weather:
     post:
       tags: [weather]
@@ -1168,6 +1283,11 @@ components:
         forks and local development. A missing or malformed header is 401
         `not_entitled`.
 
+        In a browser the bearer is instead a Plus token from
+        `POST /plus/web` (`vpt1.…`), checked against `PLUS_TOKEN_SECRET`
+        alone; an expired or forged one is 401 `not_entitled`. The per-rider
+        rate limits then count per entitled subscriber.
+
   headers:
     XRequestId:
       description: Echo of the request's X-Request-Id, or a generated one.
@@ -1240,6 +1360,54 @@ components:
               type: number
               minimum: 0
               description: Present on 429 responses.
+            reason:
+              type: string
+              description: |
+                Why, where a client acts on the difference: `POST /plus/web`
+                says `cloud_auth`, `no_devices` or `not_subscribed`.
+
+    PlusWebRequest:
+      type: object
+      required: [service, token]
+      additionalProperties: false
+      properties:
+        service:
+          type: string
+          enum: [icloud, google]
+        token:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: |
+            `google`: an OAuth access token with the `drive.appdata` scope.
+            `icloud`: the CloudKit JS web auth token (`ckWebAuthToken`).
+
+    PlusWebToken:
+      type: object
+      required: [token, expires_at]
+      additionalProperties: false
+      properties:
+        token:
+          type: string
+          pattern: '^vpt1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'
+          maxLength: 256
+          description: 'Sent as `Authorization: Bearer <token>` to the Plus routes.'
+        expires_at:
+          type: integer
+          description: Unix seconds; about an hour ahead.
+        ck_web_auth_token:
+          type: string
+          description: The CloudKit web auth token to use from now on, when CloudKit handed out a new one.
+
+    PlusWebRefusal:
+      type: object
+      required: [error]
+      additionalProperties: false
+      properties:
+        error:
+          $ref: '#/components/schemas/Error/properties/error'
+        ck_web_auth_token:
+          type: string
 
     OAuthCodeRequest:
       type: object

@@ -36,7 +36,7 @@ Host separation is strict and enforced before any handler runs, in
 - An unknown `(method, path)` on the API host answers the Fastify-shaped JSON
   404 `No route for GET /nope?a=1.`
 - CORS: `CORS_ORIGINS` (default `https://app.velorki.com`) may call `/health`,
-  `/weather*`, `/ai/plan` and `POST /share` from a browser; the preflight is
+  `/weather*`, `/ai/plan`, `POST /share` and `POST /plus/web` from a browser; the preflight is
   answered in `proxy.ts` (`src/server/cors.ts`), `/oauth/*` and `/proxy/*`
   never get it. No credentials, never `*`.
 - `api.velorki.com/s/<id>` answers 308 to the site host: links handed out before
@@ -53,6 +53,7 @@ Host separation is strict and enforced before any handler runs, in
 
 | Route | Purpose |
 | --- | --- |
+| `POST /plus/web` | Plus in the browser: trades the rider's iCloud (CloudKit JS web auth token) or Google (`drive.appdata` access token) sign-in for an hour-long Plus token. The relay reads the `PlusDevice` records the apps wrote into that cloud itself, ignores those not seen for 30 days and asks RevenueCat about the rest (`src/plus/`). |
 | `GET`/`HEAD` `/health` | Liveness, build version, BRouter reachability, LLM configuration. No auth. |
 | `POST /oauth/strava/token` · `/refresh` | Adds the Strava client secret to the token exchange and passes Strava's answer through with the tokens wrapped (below). `/refresh` takes the wrapped refresh token. |
 | `POST /oauth/rwgps/token` | Same for Ride with GPS. `/oauth/rwgps/refresh` answers 501: RwGPS tokens do not expire. |
@@ -65,7 +66,10 @@ Host separation is strict and enforced before any handler runs, in
 | `GET /s/<id>` · `/s/<id>.gpx` | The public share page and the raw GPX, on `velorki.com`. No auth. |
 
 Everything under `/ai/*`, `/weather/*`, `POST /share` and `POST /weather` requires
-`Authorization: Bearer <revenuecat_app_user_id>` and an active entitlement.
+`Authorization: Bearer <revenuecat_app_user_id>` and an active entitlement, or
+in a browser `Authorization: Bearer vpt1.…`, a Plus token from `POST /plus/web`
+(HMAC under `PLUS_TOKEN_SECRET`; no RevenueCat call, rate-limited per
+subscriber by a keyed hash of the id).
 `/oauth/*` and `/proxy/*` are free, since Strava's API Policy does not allow
 charging for its functionality (Ride with GPS is treated the same): the token
 routes are limited per IP, and `/proxy/*` takes the app's install id as the
@@ -138,6 +142,9 @@ These are deliberate, and worth keeping that way in a fork:
 - `POST /weather` refuses a coordinate finer than three decimals (the app
   sends a 0.025° grid), sends weather services nothing but grid points and our
   User-Agent, and logs counts only, never a cell.
+- `POST /plus/web` keeps nothing: the cloud token is used for the one lookup
+  (a hash of it is a rate-limit key), the RevenueCat ids it finds never reach
+  the browser, and the Plus token carries a keyed hash of the id, not the id.
 - Share rows carry no link to the rider who created them. The 10-character id
   is the only capability, and rows expire after 365 days.
 - The share page is `noindex`, carries no third-party script source at all
@@ -166,6 +173,8 @@ Missing integrations degrade rather than crash the app:
 | `LLM_BASE_URL` / `LLM_MODEL` | `/ai/plan` → 503, `/health` reports `llm: "unconfigured"` |
 | `BROUTER_URL` | `/health` reports `brouter: "unconfigured"` |
 | `REVENUECAT_SECRET_KEY` (in live mode) | every authenticated route → 503 `unavailable` |
+| `PLUS_TOKEN_SECRET` | `POST /plus/web` → 503, no Plus token accepted |
+| `CLOUDKIT_API_TOKEN` | `POST /plus/web` with `service: icloud` → 503 |
 | `APPLE_TEAM_ID` | `/.well-known/apple-app-site-association` → 404 |
 | `ANDROID_CERT_SHA256` | `/.well-known/assetlinks.json` → 404 |
 

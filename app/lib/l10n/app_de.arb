@@ -432,6 +432,8 @@
   "plusUnavailableBody": "In diesem Velorki-Build ist kein Store konfiguriert, deshalb lässt sich Velorki Plus hier nicht kaufen. Alles, was auf dem Handy läuft, funktioniert wie gewohnt.",
   "plusUnavailableWebTitle": "Vorerst nur in den Apps für iPhone und Android",
   "plusUnavailableWebBody": "Velorki Plus gibt es vorerst nur in den Apps für iPhone und Android; im Browser lässt es sich nicht kaufen. Planen, Suche und Bibliothek funktionieren hier wie in der App.",
+  "plusWebSignInTitle": "Mit iCloud oder Google anmelden, um dein Plus zu nutzen",
+  "plusWebSignInBody": "Velorki Plus in der App für iPhone oder Android gekauft? Melde dich hier mit dem iCloud- oder Google-Konto an, mit dem die App synchronisiert, dann gilt Plus auch im Browser. Kaufen lässt es sich im Browser nicht.",
   "plusGetTheApp": "App holen",
   "plusLoadingPrices": "Preise werden beim Store abgefragt…",
   "plusPricesFailed": "Der Store ist nicht erreichbar: {message}",

@@ -137,6 +137,32 @@ const envSchema = z
       .optional()
       .transform((v) => v ?? 'live'),
 
+    /* --------------------------------------------------- Plus on the web */
+
+    /**
+     * Signs the short-lived Plus tokens `POST /plus/web` hands a browser
+     * (base64, at least 32 bytes). Unset, that route answers 503 and no
+     * Plus token is accepted anywhere.
+     */
+    PLUS_TOKEN_SECRET: optionalStr.refine(
+      (v) => v === undefined || Buffer.from(v, 'base64').length >= 32,
+      { message: 'must be at least 32 bytes, base64' },
+    ),
+    /** The CloudKit container the apps sync with. */
+    CLOUDKIT_CONTAINER: optionalStr.transform((v) => v ?? 'iCloud.com.orkitec.velorki'),
+    /** `production` or `development`: must match the token the browser signed in with. */
+    CLOUDKIT_ENVIRONMENT: z
+      .enum(['production', 'development'])
+      .optional()
+      .transform((v) => v ?? 'production'),
+    /**
+     * The CloudKit web API token of that environment (public, bound to the
+     * planner's origins; `app/env/web.json`). Unset, `service: icloud` is 503.
+     */
+    CLOUDKIT_API_TOKEN: optionalStr,
+    /** The Origin sent to CloudKit Web Services: one the API token allows. */
+    CLOUDKIT_ORIGIN: optionalStr.transform((v) => (v ?? 'https://app.velorki.com').replace(/\/+$/, '')),
+
     LLM_BASE_URL: optionalUrl,
     LLM_API_KEY: optionalStr,
     LLM_MODEL: optionalStr,

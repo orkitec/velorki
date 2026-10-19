@@ -44,6 +44,7 @@ class RelayError {
     required this.code,
     required this.message,
     this.retryAfterS,
+    this.reason,
   });
 
   /// Machine-readable code; one of the constants on [RelayErrorCode], though
@@ -59,6 +60,10 @@ class RelayError {
   /// Only `rate_limited` and some `unavailable` responses carry this.
   final int? retryAfterS;
 
+  /// Why, in a word, where the relay tells cases apart for the client:
+  /// `POST /plus/web` says `cloud_auth`, `no_devices` or `not_subscribed`.
+  final String? reason;
+
   /// Parses the inner `{code, message, retry_after_s}` object.
   ///
   /// Throws [RelayFormatException] when [json] is not shaped like an error.
@@ -69,10 +74,12 @@ class RelayError {
       throw const RelayFormatException('error.code is missing or not a string');
     }
     final retry = json['retry_after_s'];
+    final reason = json['reason'];
     return RelayError(
       code: code,
       message: message is String ? message : '',
       retryAfterS: retry is num ? retry.toInt() : null,
+      reason: reason is String ? reason : null,
     );
   }
 
@@ -101,6 +108,7 @@ class RelayError {
     'code': code,
     'message': message,
     if (retryAfterS != null) 'retry_after_s': retryAfterS,
+    if (reason != null) 'reason': reason,
   };
 
   /// Serialises the full uniform error body, wrapped in `{"error": ...}`.
@@ -111,10 +119,11 @@ class RelayError {
       other is RelayError &&
       other.code == code &&
       other.message == message &&
-      other.retryAfterS == retryAfterS;
+      other.retryAfterS == retryAfterS &&
+      other.reason == reason;
 
   @override
-  int get hashCode => Object.hash(code, message, retryAfterS);
+  int get hashCode => Object.hash(code, message, retryAfterS, reason);
 
   @override
   String toString() =>
