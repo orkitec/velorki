@@ -14,9 +14,6 @@ part 'photon_client.g.dart';
 
 /// Why an online search failed.
 enum SearchFailure {
-  /// This build has no search server.
-  unconfigured,
-
   /// The server did not answer.
   unreachable,
 
@@ -44,7 +41,6 @@ class SearchException implements LocalizedException {
 
   @override
   String describe(AppLocalizations l10n) => switch (failure) {
-    SearchFailure.unconfigured => l10n.searchUnavailable,
     SearchFailure.unreachable => l10n.searchErrorUnreachable,
     SearchFailure.unreadable => l10n.searchErrorUnreadable,
   };

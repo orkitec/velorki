@@ -200,9 +200,17 @@
   "@plannerOnePointHint": {
     "description": "Hint shown once a start point is set but no destination"
   },
-  "plannerNoRoutingServer": "No routing server configured, set one in Settings → Advanced.",
-  "@plannerNoRoutingServer": {
-    "description": "Banner shown when the BRouter URL is empty so no route can be computed"
+  "plannerRoutingCouldNotStart": "Routing could not start on this device.",
+  "@plannerRoutingCouldNotStart": {
+    "description": "Banner shown when on-device routing failed to start (the reason is in the log)"
+  },
+  "plannerRoutingUnavailable": "Routing isn't available right now.",
+  "@plannerRoutingUnavailable": {
+    "description": "Why a route or a loop search did not start: nothing can route yet (on-device routing still starting, failed, or no map data); the planner banner says which"
+  },
+  "plannerNoRoutingData": "This build of Velorki has no map data for routing.",
+  "@plannerNoRoutingData": {
+    "description": "Banner shown in a build with no routing server, no tile mirror and no downloaded map data, so nothing can route"
   },
   "plannerRoutingFailed": "Routing failed: {message}",
   "@plannerRoutingFailed": {
@@ -656,9 +664,9 @@
   "@searchFailed": {
     "description": "Shown when the geocoder could not be reached"
   },
-  "searchUnavailable": "No search server configured, set one in Settings → Advanced.",
-  "@searchUnavailable": {
-    "description": "Shown when the Photon URL is empty so no search is possible"
+  "searchNoMapData": "This build of Velorki has no map data for searching.",
+  "@searchNoMapData": {
+    "description": "Search field hint in a build with no online search, no tile mirror and no downloaded map data"
   },
   "searchOnlineFor": "Search online for “{query}”",
   "@searchOnlineFor": {

@@ -1,12 +1,16 @@
+import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
-import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/sync/data/cloud_store.dart';
 import 'package:velorki/features/sync/data/cloudkit_js_cloud_store.dart';
 import 'package:velorki/features/sync/data/cloudkit_web.dart';
+import 'package:velorki/features/sync/data/record_codec.dart';
 import 'package:velorki/features/sync/data/sync_backend.dart';
+import 'package:velorki/features/sync/domain/cloud_record.dart';
 import 'package:velorki/features/sync/domain/cloud_sync_status.dart';
 
 import 'support/fake_cloudkit.dart';
@@ -168,6 +172,28 @@ void main() {
       }
     });
 
+    test('a throttled download says how long to wait, and names the '
+        'record', () async {
+      await otherStore.push([_save('route_1')]);
+      browser.downloadFailure = const CkError(
+        'THROTTLED',
+        reason: 'asset HTTP 429',
+        retryAfter: Duration(seconds: 30),
+      );
+      await expectLater(
+        store.pull(''),
+        throwsA(
+          isA<CloudStoreException>()
+              .having((e) => e.failure, 'failure', CloudStoreFailure.transient)
+              .having(
+                (e) => e.retryAfter,
+                'retryAfter',
+                const Duration(seconds: 30),
+              ),
+        ),
+      );
+    });
+
     test('a session run out keeps the account, and every call wants the '
         'rider to sign in again', () async {
       expect(await store.accountId(), 'user-a');
@@ -184,6 +210,34 @@ void main() {
         ),
       );
       browser.signIn('user-a');
+      await pumpEventQueue();
+      expect((await store.push([_save('route_1')])).single, isA<StoreDone>());
+    });
+
+    test('a session CloudKit refuses (HTTP 421) is asked nothing more until '
+        'the rider signs in again', () async {
+      expect(await store.accountId(), 'user-a');
+      browser.expired = true;
+      final signOuts = <String?>[];
+      final sub = browser.users.listen(signOuts.add);
+      addTearDown(sub.cancel);
+      Matcher signInNeeded() => throwsA(
+        isA<CloudStoreException>().having(
+          (e) => e.failure,
+          'failure',
+          CloudStoreFailure.signInNeeded,
+        ),
+      );
+      await expectLater(store.pull(''), signInNeeded());
+      await pumpEventQueue();
+      expect(signOuts, [null], reason: 'signed out in the browser');
+      final asked = browser.requests;
+      await expectLater(store.push([_save('route_1')]), signInNeeded());
+      await expectLater(store.get('route_1'), signInNeeded());
+      expect(browser.requests, asked);
+
+      browser.signIn('user-a');
+      expect(await store.accountId(), 'user-a');
       expect((await store.push([_save('route_1')])).single, isA<StoreDone>());
     });
 
@@ -382,6 +436,42 @@ void main() {
       expect(await pad.routeName('r1'), 'Offline');
     });
 
+    test('a session refused mid-sync signs out here and stops: no retries, '
+        'what waits kept, and sent once signed in again', () async {
+      await web.db.routesDao.upsertRoute(fullRoute('r1'));
+      await web.syncNow();
+      final users = <String?>[];
+      final sub = browser.users.listen(users.add);
+      addTearDown(sub.cancel);
+      browser.expired = true;
+      await tick();
+      await web.renameRoute('r1', 'Offline');
+      await web.sync.push();
+      await web.engine.sendNow();
+      final status = await web.statusNow();
+      expect(status.error, CloudSyncError.signInNeeded);
+      expect(status.syncing, isFalse);
+      expect(users, [null]);
+      expect(await web.db.syncDao.dirtyRecords(), isNotEmpty);
+
+      final asked = browser.requests;
+      final writes = cloud.writes.length;
+      await web.syncNow();
+      await web.syncNow();
+      expect(browser.requests, asked, reason: 'nothing sent with it again');
+      expect((await web.statusNow()).error, CloudSyncError.signInNeeded);
+      expect(await web.db.syncDao.dirtyRecords(), isNotEmpty);
+
+      browser.signIn('user-a');
+      // As the controller's resume: the account looked at first.
+      await web.engine.fetchNow();
+      await web.syncNow();
+      expect(cloud.writes.sublist(writes), ['replace route_r1']);
+      expect((await web.statusNow()).error, isNull);
+      expect(await web.db.syncDao.dirtyRecords(), isEmpty);
+      expect(web.accountChanges, isEmpty);
+    });
+
     test('another Apple Account: the library goes to it as new', () async {
       await web.db.routesDao.upsertRoute(fullRoute('r1'));
       await web.syncNow();
@@ -401,4 +491,162 @@ void main() {
       expect(await web.engine.readSettings(['units.system']), isEmpty);
     });
   });
+
+  group('records as the iPhone saves them', () {
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+    late Directory dir;
+
+    setUp(() => dir = Directory.systemTemp.createTempSync('cloudkit_ios'));
+    tearDown(() => dir.deleteSync(recursive: true));
+
+    /// What CKSyncEngine saves for [record] (`CloudSync.swift`'s
+    /// `makeRecord`): its fields as NSNumber and String, typed as the
+    /// schema has them, and its body file as the `body` asset.
+    CkSave asSaved(CloudRecord record) => CkSave(
+      record.name,
+      type: record.type,
+      fields: {
+        for (final MapEntry(:key, :value) in record.fields.entries)
+          if (value != null)
+            key: switch (value) {
+              final String s => CkValue(s, 'STRING'),
+              final num n when cloudKitDoubleFields.contains(key) => CkValue(
+                n.toDouble(),
+                'DOUBLE',
+              ),
+              final num n => CkValue(n, 'INT64'),
+              _ => throw ArgumentError(value),
+            },
+      },
+      body: File(record.assetPath!).readAsBytesSync(),
+      changeTag: null,
+    );
+
+    /// The iPhone's library in [other]'s zone: [routes] routes and
+    /// [rides] rides, the first rides following the first routes, and a
+    /// Plus record beside them.
+    Future<void> iPhoneLibrary({int routes = 3, int rides = 4}) async {
+      final db = VelorkiDatabase.memory();
+      addTearDown(db.close);
+      final codec = RecordCodec(Directory('${dir.path}/phone'));
+      final saves = <CkWrite>[];
+      for (var i = 1; i <= routes; i++) {
+        await db.routesDao.upsertRoute(fullRoute('r$i', points: 3000));
+        final row = (await db.routesDao.routeById('r$i'))!;
+        saves.add(asSaved(await codec.encodeRoute(row, changedAtMs: 1000 + i)));
+      }
+      for (var i = 1; i <= rides; i++) {
+        await db.ridesDao.upsertRide(fullRide('d$i', points: 3000));
+        final row = (await db.ridesDao.rideById('d$i'))!;
+        saves.add(
+          asSaved(
+            await codec.encodeRide(
+              row,
+              changedAtMs: 2000 + i,
+              routeId: i <= routes ? 'r$i' : null,
+            ),
+          ),
+        );
+      }
+      saves.add(
+        CkSave(
+          'plus_ios',
+          type: 'PlusId',
+          fields: {
+            'appUserId': const CkValue(r'$RCAnonymousID:1', 'STRING'),
+            'platform': const CkValue('ios', 'STRING'),
+            'entitled': const CkValue(1, 'INT64'),
+            'lastSeen': const CkValue(1760000000000, 'INT64'),
+          },
+          body: null,
+          changeTag: null,
+        ),
+      );
+      final results = await other.modify(saves);
+      expect(results.where((r) => r.error != null), isEmpty);
+    }
+
+    test('reach the browser\'s library whole, rides on their routes, and '
+        'the round ends synced', () async {
+      await iPhoneLibrary();
+      final web = SyncDevice(store, dir, 'web', syncsSettings: false);
+      await web.open();
+      addTearDown(() async {
+        await web.close();
+        await web.db.close();
+      });
+
+      await web.syncNow();
+
+      expect(await web.routeNames(), ['Route r1', 'Route r2', 'Route r3']);
+      expect(await web.rideNames(), [
+        'Ride d1',
+        'Ride d2',
+        'Ride d3',
+        'Ride d4',
+      ]);
+      expect((await web.db.ridesDao.rideById('d2'))?.routeId, 'r2');
+      final route = (await web.db.routesDao.routeById('r1'))!;
+      expect(route.geometry, isNotEmpty);
+      expect(route.distanceM, 42000.5);
+      expect(route.ascentM, 310, reason: 'a whole Double comes back');
+      expect(await web.db.syncDao.dirtyRecords(), isEmpty);
+      final status = await web.statusNow();
+      expect(status.syncing, isFalse);
+      expect(status.error, isNull);
+      expect(status.lastSyncedAt, isNotNull);
+    });
+
+    test('a record the database does not write in time ends the round with '
+        'an error, never left syncing, and the next round brings it '
+        'again', () async {
+      await iPhoneLibrary(routes: 2, rides: 0);
+      final gate = _Gate();
+      final web = SyncDevice(
+        store,
+        dir,
+        'web',
+        syncsSettings: false,
+        recordTimeout: const Duration(milliseconds: 200),
+        db: VelorkiDatabase(NativeDatabase.memory().interceptWith(gate)),
+      );
+      await web.open();
+      addTearDown(() async {
+        await web.close();
+        await web.db.close();
+      });
+
+      gate.closed = Completer<void>();
+      await web.syncNow();
+      final stalled = await web.statusNow();
+      expect(stalled.syncing, isFalse);
+      expect(stalled.error, CloudSyncError.other);
+      expect(web.state.values['cursor'], isNull, reason: 'nothing skipped');
+
+      gate.closed!.complete();
+      gate.closed = null;
+      await web.syncNow();
+      expect(await web.routeNames(), ['Route r1', 'Route r2']);
+      final synced = await web.statusNow();
+      expect(synced.error, isNull);
+      expect(synced.syncing, isFalse);
+    });
+  });
+}
+
+/// Holds every write to `routes` while [closed] is pending: a database that
+/// does not answer.
+class _Gate extends QueryInterceptor {
+  Completer<void>? closed;
+
+  @override
+  Future<int> runInsert(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    if (statement.contains('"routes"')) await closed?.future;
+    return executor.runInsert(statement, args);
+  }
 }

@@ -74,6 +74,30 @@ void main() {
     expect(await pad.db.syncDao.dirtyRecords(), isEmpty);
   });
 
+  test('an error that is not the store\'s ends the round with an error, '
+      'never left syncing, and the next round brings the changes '
+      'again', () async {
+    await phone.db.routesDao.upsertRoute(fullRoute('r1'));
+    await phone.syncNow();
+    final broken = _BrokenDevice(store, dir, 'broken');
+    await broken.open();
+    addTearDown(() async {
+      await broken.close();
+      await broken.db.close();
+    });
+
+    await broken.syncNow();
+    final status = await broken.statusNow();
+    expect(status.syncing, isFalse);
+    expect(status.error, CloudSyncError.other);
+    expect(broken.state.values['cursor'], isNull);
+
+    broken.fails = false;
+    await broken.syncNow();
+    expect(await broken.routeNames(), ['Route r1']);
+    expect((await broken.statusNow()).error, isNull);
+  });
+
   test('a rename reaches the other device, and one back again', () async {
     await phone.db.routesDao.upsertRoute(fullRoute('r1'));
     await phone.syncNow();
@@ -451,4 +475,20 @@ class _OneRecord implements CloudSyncHandler {
 
   @override
   Future<void> settingsChanged(Map<String, Object?> values) async {}
+}
+
+/// A device whose library throws on what arrives while [fails].
+class _BrokenDevice extends SyncDevice {
+  _BrokenDevice(super.store, super.dir, super.name);
+
+  bool fails = true;
+
+  @override
+  Future<void> applyRemote(
+    List<CloudRecord> modifications,
+    List<String> deletions,
+  ) async {
+    if (fails) throw StateError('broken');
+    return super.applyRemote(modifications, deletions);
+  }
 }

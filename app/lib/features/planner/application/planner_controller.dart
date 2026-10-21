@@ -33,16 +33,17 @@ const Duration plannerDebounce = Duration(milliseconds: 300);
 /// What [PlannerState.error] carries when there is no router at all.
 const NoRoutingBackendError noRoutingBackendError = NoRoutingBackendError();
 
-/// No routing server is set and on-device routing is not available.
+/// Nothing can route: on-device routing is still starting or could not
+/// start, or the build has no map data and no server.
 class NoRoutingBackendError implements LocalizedException {
   /// The one instance is [noRoutingBackendError].
   const NoRoutingBackendError();
 
   @override
-  String describe(AppLocalizations l10n) => l10n.plannerNoRoutingServer;
+  String describe(AppLocalizations l10n) => l10n.plannerRoutingUnavailable;
 
   @override
-  String toString() => 'no routing server configured';
+  String toString() => 'no routing backend';
 }
 
 /// Where the profile the rider picked last is kept, by [RouteProfile.name],

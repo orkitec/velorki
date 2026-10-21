@@ -368,8 +368,10 @@ void main() {
     final state = container.read(placeSearchProvider).value!;
     expect(state.source, SearchSource.local);
     expect(state.canSearchOnline, isFalse);
+    // Asked anyway: nothing online, and no error about a server.
     await container.read(placeSearchProvider.notifier).searchOnline();
-    expect(container.read(placeSearchProvider).hasError, isTrue);
+    expect(container.read(placeSearchProvider).hasError, isFalse);
+    expect(container.read(placeSearchProvider).value!.results, isEmpty);
   });
 
   test('without a gazetteer, Photon answers once picked', () async {
@@ -471,7 +473,8 @@ void main() {
     expect(container.read(placeSearchProvider).hasError, isTrue);
   });
 
-  test('with no geocoder and nothing downloaded the field says so', () async {
+  test('with no geocoder and nothing downloaded the list is empty, as for '
+      'an area not downloaded, and claims no missing server', () async {
     final container = await containerFor(
       withGazetteer: false,
       withGeocoder: false,
@@ -481,10 +484,9 @@ void main() {
     await settle(container);
 
     final value = container.read(placeSearchProvider);
-    expect(value.hasError, isTrue);
-    expect(
-      (value.error! as SearchException).failure,
-      SearchFailure.unconfigured,
-    );
+    expect(value.hasError, isFalse);
+    expect(value.value!.results, isEmpty);
+    expect(value.value!.source, SearchSource.local);
+    expect(value.value!.offlineAvailableHere, isFalse);
   });
 }

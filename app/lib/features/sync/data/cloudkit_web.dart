@@ -101,7 +101,7 @@ class CkValue {
 @immutable
 class CkError {
   /// Creates the error.
-  const CkError(this.code, {this.recordName, this.reason});
+  const CkError(this.code, {this.recordName, this.reason, this.retryAfter});
 
   /// CloudKit's `serverErrorCode` (or CloudKit JS's own `ckErrorCode`):
   /// `CONFLICT`, `NOT_FOUND`, `AUTHENTICATION_REQUIRED`, ...
@@ -113,11 +113,21 @@ class CkError {
   /// What CloudKit said, for the log.
   final String? reason;
 
+  /// How long CloudKit asked to be left alone (`retryAfter`, of a
+  /// `THROTTLED` or `TRY_AGAIN_LATER`), or null.
+  final Duration? retryAfter;
+
   @override
   String toString() =>
       'CkError($code${recordName == null ? '' : ' $recordName'}'
-      '${reason == null ? '' : ': $reason'})';
+      '${reason == null ? '' : ': $reason'}'
+      '${retryAfter == null ? '' : ', retry after ${retryAfter!.inSeconds} s'})';
 }
+
+/// Whether [code] is CloudKit refusing the session (HTTP 421 and the
+/// like): the rider has to sign in again before anything else goes.
+bool isCloudKitAuthError(String code) =>
+    code == 'AUTHENTICATION_REQUIRED' || code == 'AUTHENTICATION_FAILED';
 
 /// A request CloudKit refused as a whole.
 class CloudKitException implements Exception {
@@ -176,7 +186,8 @@ abstract interface class CloudKitWeb {
   Future<String?> userRecordName();
 
   /// The user record name each time someone signs in, and null each time
-  /// they sign out.
+  /// they sign out, or CloudKit refuses the session: a data call that
+  /// fails with an [isCloudKitAuthError] has signed out here.
   Stream<String?> get users;
 
   /// Draws Apple's sign-in button into the element [cloudKitSignInButtonId]

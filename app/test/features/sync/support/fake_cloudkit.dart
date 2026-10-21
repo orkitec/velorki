@@ -207,21 +207,41 @@ class FakeCloudKitWeb implements CloudKitWeb {
   /// While set, every data call fails with it.
   CkError? failure;
 
+  /// While set, every download fails with it.
+  CkError? downloadFailure;
+
   /// How often the sign-in button was asked for.
   int signInsShown = 0;
+
+  /// The data calls that reached the server, refused ones too.
+  int requests = 0;
+
+  bool _refusedHere = false;
 
   /// [user] signs in with Apple's button.
   void signIn(String user) {
     _user = user;
     expired = false;
+    _refusedHere = false;
     _users.add(user);
+  }
+
+  /// As CloudKit JS's binding: a session refused is signed out here.
+  void _refused() {
+    if (_user == null || _refusedHere) return;
+    _refusedHere = true;
+    _users.add(null);
   }
 
   @override
   Stream<String?> get users => _users.stream;
 
   @override
-  Future<String?> userRecordName() async => expired ? null : _user;
+  Future<String?> userRecordName() async {
+    if (!expired) return _user;
+    _refused();
+    return null;
+  }
 
   @override
   Future<void> showSignIn() async => signInsShown++;
@@ -233,9 +253,11 @@ class FakeCloudKitWeb implements CloudKitWeb {
   }
 
   String _caller() {
+    requests++;
     if (failure case final failure?) throw CloudKitException(failure);
     final user = _user;
     if (user == null || expired) {
+      _refused();
       throw const CloudKitException(CkError('AUTHENTICATION_REQUIRED'));
     }
     return user;
@@ -259,6 +281,9 @@ class FakeCloudKitWeb implements CloudKitWeb {
   @override
   Future<Uint8List> download(String url) async {
     _caller();
+    if (downloadFailure case final failure?) {
+      throw CloudKitException(failure);
+    }
     server.downloads.add(url);
     final bytes = server._assets[url];
     if (bytes == null) throw const CloudKitException(CkError('NOT_FOUND'));

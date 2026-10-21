@@ -16,6 +16,7 @@ import 'package:velorki/features/planner/presentation/waypoint_edit_sheet.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
+import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
@@ -191,16 +192,33 @@ void main() {
     );
   });
 
-  testWidgets('without a routing server the planner points at Settings', (
-    tester,
-  ) async {
-    await pumpScreen(
-      tester,
-      const PlannerScreen(),
-      harness: PlannerHarness(withRoutingBackend: false),
-    );
+  group('when it cannot route the planner says why, never that a server '
+      'is missing', () {
+    Future<void> pumpWith(WidgetTester tester, RoutingAvailability state) =>
+        pumpScreen(
+          tester,
+          const PlannerScreen(),
+          harness: PlannerHarness(
+            withRoutingBackend: false,
+            routingAvailability: state,
+          ),
+        );
 
-    expect(find.text(l10n.plannerNoRoutingServer), findsOneWidget);
+    testWidgets('nothing while on-device routing starts', (tester) async {
+      await pumpWith(tester, RoutingAvailability.loading);
+      expect(find.text(l10n.plannerRoutingCouldNotStart), findsNothing);
+      expect(find.text(l10n.plannerNoRoutingData), findsNothing);
+    });
+
+    testWidgets('that it could not start', (tester) async {
+      await pumpWith(tester, RoutingAvailability.failed);
+      expect(find.text(l10n.plannerRoutingCouldNotStart), findsOneWidget);
+    });
+
+    testWidgets('that the build has no map data to route on', (tester) async {
+      await pumpWith(tester, RoutingAvailability.noData);
+      expect(find.text(l10n.plannerNoRoutingData), findsOneWidget);
+    });
   });
 
   testWidgets('undo, reverse and clear drive the plan', (tester) async {

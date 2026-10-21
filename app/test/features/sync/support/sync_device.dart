@@ -34,7 +34,9 @@ class SyncDevice implements CloudSyncHandler {
     String name, {
     this.batchSize = 20,
     this.syncsSettings = true,
-  }) : db = VelorkiDatabase.memory(),
+    this.recordTimeout = const Duration(seconds: 60),
+    VelorkiDatabase? db,
+  }) : db = db ?? VelorkiDatabase.memory(),
        _dir = Directory('${dir.path}/$name');
 
   final VelorkiDatabase db;
@@ -42,6 +44,7 @@ class SyncDevice implements CloudSyncHandler {
   final Directory _dir;
   final int batchSize;
   final bool syncsSettings;
+  final Duration recordTimeout;
   final MapSyncState state = MapSyncState();
   late StoreSyncBackend engine;
   late LibrarySync sync;
@@ -65,6 +68,7 @@ class SyncDevice implements CloudSyncHandler {
       db: db,
       backend: engine,
       codec: RecordCodec(Directory('${_dir.path}/out')),
+      recordTimeout: recordTimeout,
     );
     engine.setHandler(this);
     _statusSub = engine.status.listen((s) => status = s);

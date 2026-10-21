@@ -38,7 +38,9 @@ const Set<String> cloudKitDoubleFields = {
 /// the zone again. A zone not there yet is made on the first save. The
 /// account is the user record name; while the session has run out it stays
 /// the one kept in [state] (nothing is resent), and every call fails as
-/// [CloudStoreFailure.signInNeeded] until the rider signs in again.
+/// [CloudStoreFailure.signInNeeded] until the rider signs in again,
+/// without asking CloudKit: a refused session (HTTP 421) is not tried
+/// again, as the retries after a transient failure would.
 ///
 /// No settings: the iOS app keeps them in iCloud's key-value store, which
 /// CloudKit JS cannot reach (`StoreSyncBackend.syncsSettings` off).
@@ -48,7 +50,12 @@ class CloudKitJsCloudStore implements CloudStore {
     required this.api,
     required this.state,
     this.parallel = 4,
-  });
+  }) {
+    // A sign-in ends the wait for one: the next call goes to CloudKit.
+    api.users.listen((user) {
+      if (user != null) _signInNeeded = false;
+    });
+  }
 
   /// CloudKit JS.
   final CloudKitWeb api;
@@ -65,6 +72,10 @@ class CloudKitJsCloudStore implements CloudStore {
 
   static const String _userKey = 'user';
 
+  /// Whether the session ran out (CloudKit refused it, or the browser has
+  /// none for the account kept): calls fail at once until a sign-in.
+  bool _signInNeeded = false;
+
   @override
   Future<String?> accountId() async {
     final String? user;
@@ -74,16 +85,22 @@ class CloudKitJsCloudStore implements CloudStore {
       throw _exceptionOf(e.error);
     }
     if (user != null) {
+      _signInNeeded = false;
       if (user != state.read(_userKey)) await state.write(_userKey, user);
       return user;
     }
     // Signed out by the session running out, not by the rider: still
     // theirs, until they sign in again or out for good ([signedOut]).
-    return state.read(_userKey);
+    final kept = state.read(_userKey);
+    if (kept != null) _signInNeeded = true;
+    return kept;
   }
 
   /// The rider signed out here: no account until someone signs in.
-  Future<void> signedOut() => state.write(_userKey, null);
+  Future<void> signedOut() {
+    _signInNeeded = false;
+    return state.write(_userKey, null);
+  }
 
   @override
   Future<StoredRecord?> get(String name) => _call(() async {
@@ -271,11 +288,14 @@ class CloudKitJsCloudStore implements CloudStore {
   Future<StoredRecord> _download(CkRecord record) async {
     Uint8List? body;
     if (record.bodyUrl case final url?) {
+      _log.info('download ${record.name}');
       try {
         body = await api.download(url);
       } on CloudKitException catch (e) {
+        _log.info('download ${record.name} failed: ${e.error}');
         throw _exceptionOf(e.error);
       }
+      _log.info('downloaded ${record.name}: ${body.length} bytes');
     }
     return StoredRecord(
       name: record.name,
@@ -296,16 +316,24 @@ class CloudKitJsCloudStore implements CloudStore {
   // --- Failures --------------------------------------------------------------
 
   Future<T> _call<T>(Future<T> Function() call) async {
+    if (_signInNeeded) {
+      throw const CloudStoreException(
+        CloudStoreFailure.signInNeeded,
+        'signed out: waiting for a sign-in',
+      );
+    }
     try {
       return await call();
     } on CloudKitException catch (e) {
-      _log.info('$e');
+      _log.info('request failed: ${e.error}');
       throw _exceptionOf(e.error);
     }
   }
 
-  static CloudStoreException _exceptionOf(CkError error) =>
-      CloudStoreException(_failureOf(error), '$error');
+  CloudStoreException _exceptionOf(CkError error) {
+    if (isCloudKitAuthError(error.code)) _signInNeeded = true;
+    return CloudStoreException(_failureOf(error), '$error', error.retryAfter);
+  }
 
   static CloudStoreFailure _failureOf(CkError error) => switch (error.code) {
     'NETWORK_ERROR' ||
@@ -316,8 +344,7 @@ class CloudKitJsCloudStore implements CloudStore {
     'INTERNAL_ERROR' ||
     'UNEXPECTED_SERVER_RESPONSE' => CloudStoreFailure.transient,
     'QUOTA_EXCEEDED' => CloudStoreFailure.quotaExceeded,
-    'AUTHENTICATION_REQUIRED' ||
-    'AUTHENTICATION_FAILED' => CloudStoreFailure.signInNeeded,
+    final code when isCloudKitAuthError(code) => CloudStoreFailure.signInNeeded,
     _ => CloudStoreFailure.other,
   };
 }

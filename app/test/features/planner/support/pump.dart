@@ -132,7 +132,13 @@ class PlannerHarness {
     String photonBody = photonFixture,
     this.withRoutingBackend = true,
     this.withGeocoder = true,
-  }) : backend = backend ?? FakeRoutingBackend(),
+    RoutingAvailability? routingAvailability,
+  }) : routingAvailability =
+           routingAvailability ??
+           (withRoutingBackend
+               ? RoutingAvailability.ready
+               : RoutingAvailability.noData),
+       backend = backend ?? FakeRoutingBackend(),
        photonAdapter = FakeHttpAdapter(body: photonBody),
        db = VelorkiDatabase.memory(),
        map = TestMapController();
@@ -141,8 +147,12 @@ class PlannerHarness {
   final FakeRoutingBackend backend;
 
   /// Whether [routingBackendProvider] answers with [backend] or with `null`,
-  /// which is the "no BRouter URL configured" case.
+  /// which is the case of nothing to route with.
   final bool withRoutingBackend;
+
+  /// What the planner hears of routing: ready with a backend, else no map
+  /// data, unless a test says otherwise.
+  final RoutingAvailability routingAvailability;
 
   /// Whether [photonClientProvider] answers with a client or with `null`,
   /// which is the "no Photon URL configured" case.
@@ -178,6 +188,7 @@ class PlannerHarness {
     routingBackendProvider.overrideWithValue(
       withRoutingBackend ? backend : null,
     ),
+    routingAvailabilityProvider.overrideWithValue(routingAvailability),
     photonClientProvider.overrideWithValue(
       withGeocoder
           ? PhotonClient('https://photon.test', dio: fakeDio(photonAdapter))

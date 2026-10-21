@@ -152,13 +152,17 @@ enum CloudStoreFailure {
 /// A store call that failed as a whole.
 class CloudStoreException implements Exception {
   /// Creates the failure.
-  const CloudStoreException(this.failure, [this.message]);
+  const CloudStoreException(this.failure, [this.message, this.retryAfter]);
 
   /// Why.
   final CloudStoreFailure failure;
 
   /// What the store said, for the log.
   final String? message;
+
+  /// How long the store asked to be left alone (a throttled CloudKit's
+  /// `retryAfter`), or null: a retry waits at least this long.
+  final Duration? retryAfter;
 
   @override
   String toString() => 'CloudStoreException(${failure.name}: $message)';

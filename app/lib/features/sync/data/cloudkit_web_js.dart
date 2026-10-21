@@ -84,34 +84,23 @@ class _CloudKitJs implements CloudKitWeb {
   Future<String?>? _firstUser;
   String? _user;
 
-  String get _sessionKey => 'velorki.cloudkit.session.$_environment';
+  /// Where an earlier build kept the session token itself, in local
+  /// storage. CloudKit JS keeps it now (`persist`, in a cookie it rotates
+  /// on every response); what is left there is stale and only removed.
+  static const List<String> _oldSessionKeys = [
+    'velorki.cloudkit.session.development',
+    'velorki.cloudkit.session.production',
+  ];
 
-  // --- Session --------------------------------------------------------------
-
-  /// The session token, kept in local storage (CloudKit JS would keep it in
-  /// a cookie): signed in once, a later visit is too until it runs out.
-  String? get _session {
+  static void _forgetOldSessions() {
     try {
-      return web.window.localStorage.getItem(_sessionKey);
-    } on Object {
-      return _memorySession;
-    }
-  }
-
-  set _session(String? token) {
-    _memorySession = token;
-    try {
-      if (token == null) {
-        web.window.localStorage.removeItem(_sessionKey);
-      } else {
-        web.window.localStorage.setItem(_sessionKey, token);
+      for (final key in _oldSessionKeys) {
+        web.window.localStorage.removeItem(key);
       }
     } on Object {
-      // No storage (a private window): the session lasts this visit.
+      // No storage: nothing kept there either.
     }
   }
-
-  String? _memorySession;
 
   // --- Loading --------------------------------------------------------------
 
@@ -136,13 +125,8 @@ class _CloudKitJs implements CloudKitWeb {
       web.document.head!.append(script);
       await loaded.future;
     }
+    _forgetOldSessions();
     final cloudKit = globalContext['CloudKit']! as JSObject;
-    final store = JSObject()
-      ..['getToken'] = ((JSString _) => _session?.toJS).toJS
-      ..['putToken'] = ((JSString _, JSAny? token) {
-        final value = token.dartify();
-        _session = value is String ? value : null;
-      }).toJS;
     final dark = web.window.matchMedia('(prefers-color-scheme: dark)').matches;
     final config =
         <String, Object?>{
@@ -163,7 +147,6 @@ class _CloudKitJs implements CloudKitWeb {
               ],
             }.jsify()!
             as JSObject;
-    config['services'] = JSObject()..['authTokenStore'] = store;
     cloudKit.callMethod('configure'.toJS, config);
     final container =
         cloudKit.callMethod('getDefaultContainer'.toJS)! as JSObject;
@@ -179,7 +162,7 @@ class _CloudKitJs implements CloudKitWeb {
             await (container.callMethod('whenUserSignsIn'.toJS)!
                     as JSPromise<JSObject?>)
                 .toDart;
-        _signedIn(_recordNameOf(identity));
+        if (_recordNameOf(identity) case final user?) _signedIn(user);
       } on Object catch (e) {
         // A sign-in popup that failed or was closed: CloudKit JS draws its
         // button again, and waits for the next.
@@ -198,8 +181,9 @@ class _CloudKitJs implements CloudKitWeb {
     }
   }
 
+  /// Who is signed in now; null when a sign-in found the session gone.
   void _signedIn(String? user) {
-    if (user == null || user == _user) return;
+    if (user == _user) return;
     _user = user;
     _users.add(user);
   }
@@ -245,8 +229,16 @@ class _CloudKitJs implements CloudKitWeb {
   Future<void> signOut() async {
     final container = await _ready();
     container.callMethod('signOut'.toJS);
-    _session = null;
     _user = null;
+  }
+
+  /// CloudKit refused the session (HTTP 421, `AUTHENTICATION_REQUIRED`):
+  /// it is dropped here as a sign-out would, so the sign-in button shows
+  /// again, and nothing more goes with it.
+  void _sessionLost(JSObject container) {
+    _log.info('session refused: signed out');
+    container.callMethod('signOut'.toJS);
+    _signedIn(null);
   }
 
   // --- Records --------------------------------------------------------------
@@ -338,7 +330,13 @@ class _CloudKitJs implements CloudKitWeb {
       throw const CloudKitException(CkError('UNEXPECTED_SERVER_RESPONSE'));
     }
     if (zone['serverErrorCode'] case final String code) {
-      throw CloudKitException(CkError(code, reason: zone['reason'] as String?));
+      throw CloudKitException(
+        CkError(
+          code,
+          reason: zone['reason'] as String?,
+          retryAfter: _seconds(zone['retryAfter']),
+        ),
+      );
     }
     return CkZoneChanges(
       records: [
@@ -371,13 +369,37 @@ class _CloudKitJs implements CloudKitWeb {
   Future<Uint8List> download(String url) async {
     // CloudKit's asset URL has a placeholder for the file name.
     final href = url.replaceAll(r'${f}', 'body.json.gz');
+    // The link is signed: no cookies go with it. A download that hangs is
+    // given up after [_timeout], as a network failure.
+    final abort = web.AbortController();
+    final timer = Timer(_timeout, () => abort.abort());
     try {
-      final response = await web.window.fetch(href.toJS).toDart;
+      final response = await web.window
+          .fetch(
+            href.toJS,
+            web.RequestInit(
+              mode: 'cors',
+              credentials: 'omit',
+              signal: abort.signal,
+            ),
+          )
+          .toDart;
       if (!response.ok) {
+        final status = response.status;
+        final retryAfter = int.tryParse(
+          response.headers.get('retry-after') ?? '',
+        );
         throw CloudKitException(
           CkError(
-            response.status >= 500 ? 'SERVICE_UNAVAILABLE' : 'NOT_FOUND',
-            reason: 'asset ${response.status}',
+            switch (status) {
+              429 => 'THROTTLED',
+              >= 500 => 'SERVICE_UNAVAILABLE',
+              // A link that ran out: the next round fetches a new one.
+              401 || 403 || 410 => 'TRY_AGAIN_LATER',
+              _ => 'NOT_FOUND',
+            },
+            reason: 'asset HTTP $status',
+            retryAfter: _seconds(retryAfter),
           ),
         );
       }
@@ -385,20 +407,43 @@ class _CloudKitJs implements CloudKitWeb {
     } on CloudKitException {
       rethrow;
     } on Object catch (e) {
-      throw CloudKitException(CkError('NETWORK_ERROR', reason: '$e'));
+      throw CloudKitException(
+        CkError(
+          'NETWORK_ERROR',
+          reason: abort.signal.aborted ? 'asset download timed out' : '$e',
+        ),
+      );
+    } finally {
+      timer.cancel();
     }
   }
+
+  /// The longest a request to CloudKit or a download may take before it
+  /// counts as a network failure: one that never answers must not hold the
+  /// sync for good.
+  static const Duration _timeout = Duration(seconds: 90);
 
   // --- Plumbing ---------------------------------------------------------------
 
   /// The server's answer as JSON, in the order of the request; a rejected
   /// call as [CloudKitException].
-  static Future<Map<String, Object?>> _body(JSPromise promise) async {
+  Future<Map<String, Object?>> _body(JSPromise promise) async {
     final JSAny? response;
     try {
-      response = await promise.toDart;
+      response = await promise.toDart.timeout(
+        _timeout,
+        onTimeout: () => throw const CloudKitException(
+          CkError('NETWORK_ERROR', reason: 'CloudKit did not answer'),
+        ),
+      );
+    } on CloudKitException {
+      rethrow;
     } on Object catch (e) {
-      throw CloudKitException(_errorOf(e));
+      final error = _errorOf(e);
+      if (isCloudKitAuthError(error.code)) {
+        if (_container case final container?) _sessionLost(await container);
+      }
+      throw CloudKitException(error);
     }
     final http = (response as JSObject?)?['httpResponse'] as JSObject?;
     final body = http?['body'];
@@ -422,6 +467,7 @@ class _CloudKitJs implements CloudKitWeb {
                 r['serverErrorCode']! as String,
                 recordName: name,
                 reason: r['reason'] as String?,
+                retryAfter: _seconds(r['retryAfter']),
               ),
             )
           : CkResult(record: _recordOf(r));
@@ -457,6 +503,11 @@ class _CloudKitJs implements CloudKitWeb {
     );
   }
 
+  /// CloudKit's `retryAfter`, in seconds, as a wait; null without one.
+  static Duration? _seconds(Object? value) => value is num && value > 0
+      ? Duration(milliseconds: (value * 1000).round())
+      : null;
+
   static CkError _errorOf(Object error) {
     try {
       final json = jsonDecode(_stringify(error as JSAny));
@@ -469,6 +520,7 @@ class _CloudKitJs implements CloudKitWeb {
           code,
           recordName: json['recordName'] as String?,
           reason: json['reason'] as String?,
+          retryAfter: _seconds(json['retryAfter']),
         );
       }
     } on Object {

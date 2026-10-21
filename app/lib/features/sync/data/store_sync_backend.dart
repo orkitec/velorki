@@ -125,6 +125,9 @@ class StoreSyncBackend implements SyncBackend {
   final List<int> _failures = [0, 0];
   final List<Timer?> _retries = [null, null];
 
+  /// How long the store last asked to be left alone, for the next retry.
+  Duration? _retryAfter;
+
   CloudSyncStatus _now = const CloudSyncStatus();
   final StreamController<CloudSyncStatus> _status =
       StreamController<CloudSyncStatus>.broadcast();
@@ -212,8 +215,29 @@ class StoreSyncBackend implements SyncBackend {
 
   Future<void> _send() async {
     if (!_running || _handler == null || !await _checkAccount()) return;
-    await _flushSettings();
     final error = <CloudSyncError>{};
+    var anySaved = false;
+    try {
+      await _flushSettings();
+      anySaved = await _sendRounds(error);
+    } on Object catch (e, st) {
+      // As for a fetch: the round ends with an error, never left syncing.
+      _log.warning('send failed: $e', e, st);
+      error.add(CloudSyncError.other);
+    }
+    if (anySaved) _quotaFull = false;
+    if (error.contains(CloudSyncError.quotaExceeded)) _quotaFull = true;
+    _finish(
+      error.contains(CloudSyncError.quotaExceeded)
+          ? CloudSyncError.quotaExceeded
+          : error.firstOrNull,
+      sending: true,
+    );
+  }
+
+  /// Sends what waits, a batch at a time; returns whether anything was
+  /// saved, and puts what went wrong into [error].
+  Future<bool> _sendRounds(Set<CloudSyncError> error) async {
     var anySaved = false;
     for (var round = 0; round < 100; round++) {
       final handler = _handler;
@@ -246,6 +270,7 @@ class StoreSyncBackend implements SyncBackend {
         results = writes.isEmpty ? const [] : await _store.push(writes);
       } on CloudStoreException catch (e) {
         _log.info('push failed: $e');
+        _retryAfter = e.retryAfter;
         results = [for (final _ in writes) StoreFailed(e.failure)];
       }
       for (final r in records) {
@@ -263,14 +288,7 @@ class StoreSyncBackend implements SyncBackend {
         break;
       }
     }
-    if (anySaved) _quotaFull = false;
-    if (error.contains(CloudSyncError.quotaExceeded)) _quotaFull = true;
-    _finish(
-      error.contains(CloudSyncError.quotaExceeded)
-          ? CloudSyncError.quotaExceeded
-          : error.firstOrNull,
-      sending: true,
-    );
+    return anySaved;
   }
 
   Future<StoreSave> _saveOf(CloudRecord record) async {
@@ -366,6 +384,7 @@ class StoreSyncBackend implements SyncBackend {
     if (!_running || _handler == null) return;
     if (!await _checkAccount(force: true)) return;
     CloudSyncError? error;
+    var failed = false;
     _emit(syncing: true);
     try {
       var cursor = _state.read(_Keys.cursor);
@@ -402,6 +421,10 @@ class StoreSyncBackend implements SyncBackend {
             'deleted $deletions',
           );
           await handler.applyRemote(modifications, deletions);
+          _log.info(
+            'applied ${modifications.length} changes and '
+            '${deletions.length} deletions',
+          );
         }
         if (settings != null && syncsSettings) {
           await _settingsArrived(settings);
@@ -418,10 +441,21 @@ class StoreSyncBackend implements SyncBackend {
     } on CloudStoreException catch (e) {
       _log.info('fetch failed: $e');
       error = _errorOf(e.failure);
+      _retryAfter = e.retryAfter;
+    } on Object catch (e, st) {
+      // Whatever it was, the round ends here and says so: nothing may
+      // leave the status at syncing. The cursor stays where it was, so the
+      // next round brings the same changes again.
+      _log.warning('fetch failed: $e', e, st);
+      error = CloudSyncError.other;
+      failed = true;
     } finally {
       _emit(syncing: false);
     }
     _finish(error);
+    // Tried again after the backoff too: a database slow to open the
+    // first time catches up by itself.
+    if (failed) _retryLater(sending: false);
   }
 
   /// [record] as the library reads it: its body in a file of its own.
@@ -618,7 +652,15 @@ class StoreSyncBackend implements SyncBackend {
     if (!scheduling || !_running) return;
     final i = sending ? 0 : 1;
     _retries[i]?.cancel();
-    _retries[i] = Timer(_backoff(++_failures[i]), () async {
+    var wait = _backoff(++_failures[i]);
+    // A throttled store said how long to leave it alone.
+    if (_retryAfter case final asked? when asked > wait) wait = asked;
+    _retryAfter = null;
+    _log.info(
+      '${sending ? 'send' : 'fetch'} again in ${wait.inSeconds} s '
+      '(failure ${_failures[i]} in a row)',
+    );
+    _retries[i] = Timer(wait, () async {
       _retries[i] = null;
       if (!sending) await fetchNow();
       await sendNow();

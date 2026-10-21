@@ -591,6 +591,36 @@ void main() {
       expect(sync.resumes, 1);
     });
 
+    testWidgets('a session iCloud refuses shows the Apple button again with '
+        'sign in again, and a sign-in syncs on', (tester) async {
+      final cloud = FakeCloudKit();
+      final browser = cloud.client();
+      final container = await pumpWeb(
+        tester,
+        [cloudKitWebProvider.overrideWithValue(browser)],
+        prefs: {'sync.service': 'icloud'},
+      );
+      expect(find.text(l10n.cloudSyncICloudSignedIn), findsOneWidget);
+
+      browser.expired = true;
+      await tester.runAsync(
+        () => container.read(cloudSyncControllerProvider.notifier).refresh(),
+      );
+      await settleSync(tester);
+      expect(find.text(l10n.cloudSyncSignInAgain), findsOneWidget);
+      expect(find.text(l10n.cloudSyncSyncing), findsNothing);
+      expect(find.byKey(const Key('cloudSyncAppleButton')), findsOneWidget);
+
+      await tester.runAsync(() async {
+        browser.signIn('user-a');
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      });
+      await settleSync(tester);
+      expect(find.byKey(const Key('cloudSyncAppleButton')), findsNothing);
+      expect(find.text(l10n.cloudSyncSignInAgain), findsNothing);
+      await tester.pump(const Duration(milliseconds: 1));
+    });
+
     testWidgets("Google is chosen at once and signs in with Google's button", (
       tester,
     ) async {

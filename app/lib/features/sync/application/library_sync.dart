@@ -49,7 +49,20 @@ class LibrarySync {
     required this._db,
     required this._backend,
     required this._codec,
+    this.recordTimeout = const Duration(seconds: 60),
+    this.openTimeout = const Duration(minutes: 3),
   });
+
+  /// The longest the database may take to answer at all before the first
+  /// record: a browser's first visit creates it in the origin private file
+  /// system, which on a busy machine took over a minute.
+  final Duration openTimeout;
+
+  /// The longest one record from the cloud may take to be read and
+  /// written. One that takes longer (a database that does not answer)
+  /// ends the round with [RemoteApplyStalled]: the engine says so, and the
+  /// next round brings what was left again.
+  final Duration recordTimeout;
 
   final VelorkiDatabase _db;
   final SyncBackend _backend;
@@ -211,13 +224,34 @@ class LibrarySync {
     final rides = modifications.where(
       (r) => parseRecordName(r.name)?.$1 == SyncKind.ride,
     );
+    final open = Stopwatch()..start();
+    try {
+      await _sync.record('', '').timeout(openTimeout);
+    } on TimeoutException {
+      _log.warning(
+        'the database did not answer in ${openTimeout.inSeconds} s: '
+        'nothing applied, the round stops',
+      );
+      throw const RemoteApplyStalled('database');
+    }
+    if (open.elapsed > const Duration(seconds: 2)) {
+      _log.info('the database answered after ${open.elapsed.inSeconds} s');
+    }
     for (final record in [...routes, ...rides]) {
+      final _Applied applied;
       try {
-        final applied = await _applyRecord(record);
-        _log.info('remote ${record.name}: ${applied.name}');
+        applied = await _applyRecord(record).timeout(recordTimeout);
+      } on TimeoutException {
+        _log.warning(
+          'could not apply ${record.name}: no answer after '
+          '${recordTimeout.inSeconds} s, the round stops',
+        );
+        throw RemoteApplyStalled(record.name);
       } on Object catch (e, st) {
-        _log.warning('could not apply ${record.name}', e, st);
+        _log.warning('could not apply ${record.name}: $e', e, st);
+        continue;
       }
+      _log.info('remote ${record.name}: ${applied.name}');
     }
     for (final name in deletions) {
       try {
@@ -261,8 +295,10 @@ class LibrarySync {
     }
     switch (kind) {
       case SyncKind.route:
+        _log.info('apply ${record.name}: decoding');
         final decoded = await _codec.decodeRoute(record);
         if (decoded == null) return _Applied.unreadable;
+        _log.info('apply ${record.name}: writing');
         await _db.transaction(() async {
           await _writeRoute(decoded.row);
           await _sync.markApplied(
@@ -274,8 +310,10 @@ class LibrarySync {
           await _linkWaitingRides(id);
         });
       case SyncKind.ride:
+        _log.info('apply ${record.name}: decoding');
         final decoded = await _codec.decodeRide(record);
         if (decoded == null) return _Applied.unreadable;
+        _log.info('apply ${record.name}: writing');
         await _db.transaction(() async {
           final pending = await _writeRide(decoded.row);
           await _sync.markApplied(
@@ -476,6 +514,20 @@ class LibrarySync {
     _handedOut.clear();
     await _sync.resetAll();
   }
+}
+
+/// A record from the cloud that was not written in
+/// [LibrarySync.recordTimeout], or a database that did not answer in
+/// [LibrarySync.openTimeout].
+class RemoteApplyStalled implements Exception {
+  /// Creates the failure.
+  const RemoteApplyStalled(this.name);
+
+  /// The record's name, or `database`.
+  final String name;
+
+  @override
+  String toString() => 'RemoteApplyStalled($name)';
 }
 
 bool _sameBytes(List<int> a, List<int> b) {
