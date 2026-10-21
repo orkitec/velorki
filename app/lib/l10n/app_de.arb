@@ -204,6 +204,7 @@
   "libraryRides": "Fahrten",
   "libraryRidesCount": "{count, plural, =1{1 Fahrt} other{{count} Fahrten}}",
   "libraryEmpty": "Noch keine gespeicherten Routen.",
+  "librarySlowToOpen": "Die Bibliothek braucht ungewöhnlich lange zum Öffnen. Sie erscheint hier, sobald sie bereit ist.",
   "libraryEmptyDetail": "Im Tab Planen eine Route planen und speichern.",
   "libraryRouteSubtitle": "{date} · {distance} · ↑{ascent}",
   "libraryRouteDeleted": "{name} gelöscht",

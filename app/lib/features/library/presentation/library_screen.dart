@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
+import '../../../core/db/database_stalled.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../import_export/presentation/import_file_action.dart';
 import '../../integrations/presentation/import_from_service_menu.dart';
@@ -633,9 +634,14 @@ class _RoutesSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final routes = ref.watch(savedRoutesProvider);
     return routes.when(
-      loading: () => const SliverFillRemaining(
+      loading: () => SliverFillRemaining(
         hasScrollBody: false,
-        child: Center(child: CircularProgressIndicator()),
+        child: ref.watch(databaseStalledProvider)
+            ? PlaceholderBody(
+                icon: Icons.hourglass_empty,
+                message: l10n.librarySlowToOpen,
+              )
+            : const Center(child: CircularProgressIndicator()),
       ),
       error: (error, _) => SliverFillRemaining(
         hasScrollBody: false,

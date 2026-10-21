@@ -204,6 +204,7 @@
   "libraryRides": "Salidas",
   "libraryRidesCount": "{count, plural, =1{1 salida} other{{count} salidas}}",
   "libraryEmpty": "Aún no hay rutas guardadas.",
+  "librarySlowToOpen": "La biblioteca está tardando más de lo normal en abrirse. Aparecerá aquí en cuanto esté lista.",
   "libraryEmptyDetail": "Planifica una ruta en la pestaña Planificar y guárdala.",
   "libraryRouteSubtitle": "{date} · {distance} · ↑{ascent}",
   "libraryRouteDeleted": "{name} eliminada",

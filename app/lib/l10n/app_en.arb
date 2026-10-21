@@ -996,6 +996,10 @@
   "@libraryEmpty": {
     "description": "Empty state of the library list"
   },
+  "librarySlowToOpen": "The library is taking unusually long to open. It appears here as soon as it is ready.",
+  "@librarySlowToOpen": {
+    "description": "Shown instead of the spinner when the library has not loaded after a long wait (a stuck browser database); the list replaces it once it loads"
+  },
   "libraryEmptyDetail": "Plan a route in the Plan tab and save it.",
   "@libraryEmptyDetail": {
     "description": "Second line of the library empty state"

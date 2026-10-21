@@ -204,6 +204,7 @@
   "libraryRides": "Ritten",
   "libraryRidesCount": "{count, plural, =1{1 rit} other{{count} ritten}}",
   "libraryEmpty": "Nog geen opgeslagen routes.",
+  "librarySlowToOpen": "Het openen van de bibliotheek duurt ongewoon lang. Ze verschijnt hier zodra ze klaar is.",
   "libraryEmptyDetail": "Plan een route op het tabblad Plannen en sla hem op.",
   "libraryRouteSubtitle": "{date} · {distance} · ↑{ascent}",
   "libraryRouteDeleted": "{name} verwijderd",

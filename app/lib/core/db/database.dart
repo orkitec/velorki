@@ -118,6 +118,9 @@ class VelorkiDatabase extends _$VelorkiDatabase {
     beforeOpen: (_) async {
       // SQLite needs this per connection for the rides → routes foreign key.
       await customStatement('PRAGMA foreign_keys = ON');
+      for (final pragma in connectionPragmas) {
+        await customStatement(pragma);
+      }
     },
   );
 }

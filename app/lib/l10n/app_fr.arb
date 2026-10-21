@@ -204,6 +204,7 @@
   "libraryRides": "Sorties",
   "libraryRidesCount": "{count, plural, =1{1 sortie} other{{count} sorties}}",
   "libraryEmpty": "Aucun itinéraire enregistré.",
+  "librarySlowToOpen": "La bibliothèque met inhabituellement longtemps à s’ouvrir. Elle apparaîtra ici dès qu’elle sera prête.",
   "libraryEmptyDetail": "Planifiez un itinéraire dans l’onglet Planifier et enregistrez-le.",
   "libraryRouteSubtitle": "{date} · {distance} · ↑{ascent}",
   "libraryRouteDeleted": "{name} supprimé",

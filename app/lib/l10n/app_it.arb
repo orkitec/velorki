@@ -204,6 +204,7 @@
   "libraryRides": "Giri",
   "libraryRidesCount": "{count, plural, =1{1 giro} other{{count} giri}}",
   "libraryEmpty": "Ancora nessun percorso salvato.",
+  "librarySlowToOpen": "La libreria impiega più del solito ad aprirsi. Comparirà qui appena sarà pronta.",
   "libraryEmptyDetail": "Pianifica un percorso nella scheda Pianifica e salvalo.",
   "libraryRouteSubtitle": "{date} · {distance} · ↑{ascent}",
   "libraryRouteDeleted": "{name} eliminato",

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
+import '../../../core/db/database_stalled.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
@@ -25,10 +26,17 @@ class RidesList extends ConsumerWidget {
     final theme = Theme.of(context);
     final rides = ref.watch(ridesProvider);
     return rides.when(
-      loading: () => const SliverToBoxAdapter(
+      loading: () => SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(child: CircularProgressIndicator()),
+          padding: const EdgeInsets.all(24),
+          child: ref.watch(databaseStalledProvider)
+              ? Text(
+                  l10n.librarySlowToOpen,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                )
+              : const Center(child: CircularProgressIndicator()),
         ),
       ),
       error: (error, _) => SliverToBoxAdapter(
