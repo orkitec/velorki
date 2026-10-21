@@ -616,6 +616,8 @@
   "offlineMapsSummary": "{count, plural, =0{Nessuna area scaricata} =1{1 area, {size}} other{{count} aree, {size}}}",
   "offlineMapsRefreshHint": "{count, plural, =1{1 area ha più di due mesi e può essere aggiornata} other{{count} aree hanno più di due mesi e possono essere aggiornate}}",
   "offlineDownloadVisible": "Scarica l'area visibile",
+  "offlineAreaDownloaded": "Quest'area è scaricata",
+  "offlineAreaUpdates": "Aggiornamenti per quest'area",
   "offlineNeedsMap": "Apri questa schermata dalla mappa per scaricare l'area che stai guardando.",
   "offlineDialogTitle": "Scarica l'area visibile",
   "offlineDialogMap": "Mappa dell'area visibile · dimensione nota dopo il download",

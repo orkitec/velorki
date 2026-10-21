@@ -616,6 +616,8 @@
   "offlineMapsSummary": "{count, plural, =0{No hay zonas descargadas} =1{1 zona, {size}} other{{count} zonas, {size}}}",
   "offlineMapsRefreshHint": "{count, plural, =1{1 zona tiene más de dos meses y se puede actualizar} other{{count} zonas tienen más de dos meses y se pueden actualizar}}",
   "offlineDownloadVisible": "Descargar la zona visible",
+  "offlineAreaDownloaded": "Esta zona está descargada",
+  "offlineAreaUpdates": "Actualizaciones para esta zona",
   "offlineNeedsMap": "Abre esta pantalla desde el mapa para descargar la zona que estás viendo.",
   "offlineDialogTitle": "Descargar la zona visible",
   "offlineDialogMap": "Mapa de la zona visible · tamaño conocido tras la descarga",

@@ -3176,6 +3176,14 @@
   "@offlineDownloadVisible": {
     "description": "Button that downloads map and routing data for the area the map shows"
   },
+  "offlineAreaDownloaded": "This area is downloaded",
+  "@offlineAreaDownloaded": {
+    "description": "Tooltip of the map's download button, and the message its tap shows, when everything the visible area needs offline is already on the device"
+  },
+  "offlineAreaUpdates": "Updates for this area",
+  "@offlineAreaUpdates": {
+    "description": "Tooltip of the map's download button when the visible area is downloaded but the mirror has newer routing data for it; a tap offers the update"
+  },
   "offlineNeedsMap": "Open this screen from the map to download the area you are looking at.",
   "@offlineNeedsMap": {
     "description": "Note when the offline screen was opened without a map"

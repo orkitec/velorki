@@ -616,6 +616,8 @@
   "offlineMapsSummary": "{count, plural, =0{Keine Gebiete heruntergeladen} =1{1 Gebiet, {size}} other{{count} Gebiete, {size}}}",
   "offlineMapsRefreshHint": "{count, plural, =1{1 Gebiet ist älter als zwei Monate und kann aktualisiert werden} other{{count} Gebiete sind älter als zwei Monate und können aktualisiert werden}}",
   "offlineDownloadVisible": "Sichtbares Gebiet herunterladen",
+  "offlineAreaDownloaded": "Dieses Gebiet ist heruntergeladen",
+  "offlineAreaUpdates": "Updates für dieses Gebiet",
   "offlineNeedsMap": "Öffne diesen Bildschirm von der Karte aus, um das sichtbare Gebiet herunterzuladen.",
   "offlineDialogTitle": "Sichtbares Gebiet herunterladen",
   "offlineDialogMap": "Karte des sichtbaren Gebiets · Größe erst nach dem Download bekannt",

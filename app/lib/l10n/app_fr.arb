@@ -616,6 +616,8 @@
   "offlineMapsSummary": "{count, plural, =0{Aucune zone téléchargée} =1{1 zone, {size}} other{{count} zones, {size}}}",
   "offlineMapsRefreshHint": "{count, plural, =1{1 zone date de plus de deux mois et peut être actualisée} other{{count} zones datent de plus de deux mois et peuvent être actualisées}}",
   "offlineDownloadVisible": "Télécharger la zone visible",
+  "offlineAreaDownloaded": "Cette zone est téléchargée",
+  "offlineAreaUpdates": "Mises à jour pour cette zone",
   "offlineNeedsMap": "Ouvrez cet écran depuis la carte pour télécharger la zone que vous regardez.",
   "offlineDialogTitle": "Télécharger la zone visible",
   "offlineDialogMap": "Carte de la zone visible · taille connue après le téléchargement",

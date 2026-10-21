@@ -616,6 +616,8 @@
   "offlineMapsSummary": "{count, plural, =0{Geen gebieden gedownload} =1{1 gebied, {size}} other{{count} gebieden, {size}}}",
   "offlineMapsRefreshHint": "{count, plural, =1{1 gebied is ouder dan twee maanden en kan worden vernieuwd} other{{count} gebieden zijn ouder dan twee maanden en kunnen worden vernieuwd}}",
   "offlineDownloadVisible": "Zichtbaar gebied downloaden",
+  "offlineAreaDownloaded": "Dit gebied is gedownload",
+  "offlineAreaUpdates": "Updates voor dit gebied",
   "offlineNeedsMap": "Open dit scherm vanaf de kaart om het gebied te downloaden waar je naar kijkt.",
   "offlineDialogTitle": "Zichtbaar gebied downloaden",
   "offlineDialogMap": "Kaart van het zichtbare gebied · grootte pas bekend na het downloaden",
