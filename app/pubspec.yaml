@@ -69,6 +69,12 @@ dependencies:
   google_sign_in_platform_interface: ^3.1.0
   googleapis: ^17.0.0
   http: ^1.6.0
+  # The system's rating dialog (StoreKit, Play In-App Review), the Play
+  # in-app update API, and the App Store version lookup; pinned to releases
+  # at least two weeks old.
+  in_app_review: 2.0.12
+  in_app_update: 5.0.0
+  upgrader: 13.7.0
 
 dev_dependencies:
   build_runner: ^2.16.1

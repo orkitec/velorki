@@ -1258,5 +1258,12 @@
   "cloudSyncSignInAgain": "Reconnecte-toi pour synchroniser",
   "cloudSyncICloudSignedOut": "Non connecté à iCloud",
   "cloudSyncICloudSignedIn": "Connecté avec ton compte Apple",
-  "cloudSyncICloudWebHint": "Tes itinéraires et sorties, comme sur chaque iPhone et iPad connecté à ton compte Apple. Les réglages restent dans ce navigateur"
+  "cloudSyncICloudWebHint": "Tes itinéraires et sorties, comme sur chaque iPhone et iPad connecté à ton compte Apple. Les réglages restent dans ce navigateur",
+  "storeUpdateTitle": "Mise à jour disponible",
+  "storeUpdateBody": "Une nouvelle version de Velorki est sortie, avec les dernières corrections et améliorations.",
+  "storeUpdateAction": "Mettre à jour",
+  "storeUpdateLater": "Plus tard",
+  "storeUpdateReadyTitle": "Mise à jour téléchargée",
+  "storeUpdateReadyBody": "Redémarrez Velorki pour terminer l’installation de la nouvelle version.",
+  "storeUpdateRestart": "Redémarrer"
 }

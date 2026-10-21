@@ -25,6 +25,7 @@ class PlatformFeatures {
     this.cloudSync = true,
     this.routingServer = true,
     this.mouseDrags = false,
+    this.storeListing = true,
   });
 
   /// A phone or a tablet.
@@ -39,6 +40,7 @@ class PlatformFeatures {
     cloudSync: false,
     routingServer: false,
     mouseDrags: true,
+    storeListing: false,
   );
 
   /// The Record tab, ride recording and turn-by-turn navigation with their
@@ -67,6 +69,10 @@ class PlatformFeatures {
   /// ([PointerDragScrollBehavior]): in a browser they are how the page is
   /// used, where Flutter's default lets them only click and wheel.
   final bool mouseDrags;
+
+  /// An app installed from a store listing: the store's rating dialog and
+  /// the notice that the store has a newer version.
+  final bool storeListing;
 }
 
 /// The app's scroll behaviour where [PlatformFeatures.mouseDrags]: a drag

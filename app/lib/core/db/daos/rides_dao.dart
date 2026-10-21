@@ -66,6 +66,16 @@ class RidesDao extends DatabaseAccessor<VelorkiDatabase> with _$RidesDaoMixin {
   Future<int> deleteRide(String id) =>
       (delete(rides)..where((t) => t.id.equals(id))).go();
 
+  /// How many rides were recorded here (imported files not counted), as a
+  /// stream that follows the table.
+  Stream<int> watchRecordedRideCount() {
+    final count = rides.id.count();
+    final query = selectOnly(rides)
+      ..addColumns([count])
+      ..where(rides.sourceFormat.isNull());
+    return query.map((row) => row.read(count) ?? 0).watchSingle();
+  }
+
   SimpleSelectStatement<$RidesTable, RideRow> _ordered() =>
       select(rides)..orderBy([(t) => OrderingTerm.desc(t.startedAt)]);
 }

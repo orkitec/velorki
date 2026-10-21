@@ -1258,5 +1258,12 @@
   "cloudSyncSignInAgain": "Log opnieuw in om te synchroniseren",
   "cloudSyncICloudSignedOut": "Niet aangemeld bij iCloud",
   "cloudSyncICloudSignedIn": "Aangemeld met je Apple Account",
-  "cloudSyncICloudWebHint": "Je routes en ritten, zoals op elke iPhone en iPad met je Apple Account. Instellingen blijven in deze browser"
+  "cloudSyncICloudWebHint": "Je routes en ritten, zoals op elke iPhone en iPad met je Apple Account. Instellingen blijven in deze browser",
+  "storeUpdateTitle": "Update beschikbaar",
+  "storeUpdateBody": "Er is een nieuwe versie van Velorki, met de nieuwste oplossingen en verbeteringen.",
+  "storeUpdateAction": "Bijwerken",
+  "storeUpdateLater": "Niet nu",
+  "storeUpdateReadyTitle": "Update gedownload",
+  "storeUpdateReadyBody": "Start Velorki opnieuw om de installatie van de nieuwe versie af te ronden.",
+  "storeUpdateRestart": "Opnieuw starten"
 }

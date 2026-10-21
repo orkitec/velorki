@@ -6433,5 +6433,33 @@
   "cloudSyncICloudWebHint": "Your routes and rides, as on every iPhone and iPad signed in to your Apple Account. Settings stay in this browser",
   "@cloudSyncICloudWebHint": {
     "description": "Explanation below the sync choice in the web planner while iCloud is chosen: settings do not sync there"
+  },
+  "storeUpdateTitle": "Update available",
+  "@storeUpdateTitle": {
+    "description": "Title of the dialog shown when the App Store or Google Play has a newer version of the app than the one installed"
+  },
+  "storeUpdateBody": "A new version of Velorki is out, with the latest fixes and improvements.",
+  "@storeUpdateBody": {
+    "description": "Body of the update dialog: a newer version of the app is in the store"
+  },
+  "storeUpdateAction": "Update",
+  "@storeUpdateAction": {
+    "description": "Button in the update dialog that opens the app's page in the App Store or Google Play"
+  },
+  "storeUpdateLater": "Later",
+  "@storeUpdateLater": {
+    "description": "Button in the update and restart dialogs that closes them without updating"
+  },
+  "storeUpdateReadyTitle": "Update downloaded",
+  "@storeUpdateReadyTitle": {
+    "description": "Title of the dialog shown on Android once Google Play has downloaded an update in the background"
+  },
+  "storeUpdateReadyBody": "Restart Velorki to finish installing the new version.",
+  "@storeUpdateReadyBody": {
+    "description": "Body of the dialog shown once an update is downloaded: the app restarts to install it"
+  },
+  "storeUpdateRestart": "Restart",
+  "@storeUpdateRestart": {
+    "description": "Button in the update-downloaded dialog that restarts the app to install the update"
   }
 }
