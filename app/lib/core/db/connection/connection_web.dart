@@ -11,43 +11,132 @@ import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
 
 /// The browser's database: drift's WebAssembly SQLite in `drift_worker.js`,
-/// kept in the origin private file system, or in IndexedDB where the browser
-/// gives a worker no OPFS. `sqlite3.wasm` and `drift_worker.js` are served
-/// from `web/`, next to `index.html` (`tool/web_assets.sh`).
+/// served with `sqlite3.wasm` from `web/`, next to `index.html`
+/// (`tool/web_assets.sh`).
+///
+/// Where a shared worker can hold it, the database lives in that worker and
+/// is kept in IndexedDB: one copy for every tab, each statement one message
+/// away. Drift would pick OPFS in Chrome (`opfsLocks`), but there each
+/// statement takes a Web Lock and every file operation is a synchronous
+/// round trip between two more workers; on a busy page the first open took
+/// three times as long and held the lock all the while, so the Library and
+/// the sync waited behind it. A database an earlier build kept in OPFS is
+/// copied over on the first open, and stays in OPFS should the copy fail.
 ///
 /// An open or a statement that takes seconds is logged with the Web Locks
-/// the page sees: drift on OPFS takes one lock per statement for every tab
-/// of the origin, so a tab that holds it stalls every other.
+/// the page sees, so a stall names what holds it.
 QueryExecutor openVelorkiDatabase() => DatabaseConnection.delayed(
   Future(() async {
+    if (++_opens > 1) {
+      // One connection per page: a second would queue behind the first's
+      // locks, or keep its own copy of the database.
+      debugPrint(
+        'velorki: database opened again ($_opens times in this page) '
+        'from ${StackTrace.current}',
+      );
+    }
     final clock = Stopwatch()..start();
     final slow = Timer.periodic(_slow, (_) {
       unawaited(_logLocks('still opening after ${clock.elapsed.inSeconds} s'));
     });
     try {
-      final result = await WasmDatabase.open(
-        databaseName: 'velorki',
+      final probed = await WasmDatabase.probe(
         sqlite3Uri: Uri.parse('sqlite3.wasm'),
         driftWorkerUri: Uri.parse('drift_worker.js'),
+        databaseName: _name,
       );
-      final missing = result.missingFeatures.map((f) => f.name).join(', ');
+      final (storage, initial) = await _choose(probed);
+      final connection = await probed.open(
+        storage,
+        _name,
+        initializeDatabase: initial == null ? null : () => initial,
+      );
+      final missing = probed.missingFeatures.map((f) => f.name).join(', ');
       debugPrint(
-        'velorki: database in ${result.chosenImplementation.name} '
+        'velorki: database in ${storage.name} '
+        '${initial == null ? '' : '(copied from OPFS) '}'
         'after ${clock.elapsedMilliseconds} ms'
         '${missing.isEmpty ? '' : ' (missing: $missing)'}',
       );
-      return result.resolvedExecutor.interceptWith(_SlowStatements());
+      return connection.interceptWith(_SlowStatements());
     } finally {
       slow.cancel();
     }
   }),
 );
 
-/// Run on every connection before anything else. Each transaction in OPFS
-/// otherwise creates and deletes its journal file and flushes it to disk
-/// three times; on a busy disk every flush takes milliseconds. A persisted
-/// journal is kept and zeroed instead, and NORMAL flushes once per commit:
-/// a power cut may lose the last commit, never the file.
+const String _name = 'velorki';
+
+var _opens = 0;
+
+/// The implementations in the order they are wanted.
+const List<WasmStorageImplementation> _preferred = [
+  WasmStorageImplementation.opfsShared,
+  WasmStorageImplementation.sharedIndexedDb,
+  WasmStorageImplementation.opfsLocks,
+  WasmStorageImplementation.unsafeIndexedDb,
+];
+
+/// Which storage to open, and the bytes of an OPFS database to start an
+/// IndexedDB one from.
+Future<(WasmStorageImplementation, Uint8List?)> _choose(
+  WasmProbeResult probed,
+) async {
+  final available = probed.availableStorages;
+  final storage = _preferred.firstWhere(
+    available.contains,
+    orElse: () => WasmStorageImplementation.inMemory,
+  );
+  bool exists(WebStorageApi api) =>
+      probed.existingDatabases.any((e) => e.$1 == api && e.$2 == _name);
+  if (storage.storageApi != WebStorageApi.indexedDb ||
+      exists(WebStorageApi.indexedDb) ||
+      !exists(WebStorageApi.opfs)) {
+    return (storage, null);
+  }
+  final copy = await _readOpfsDatabase();
+  if (copy != null) return (storage, copy);
+  // Unreadable, or mid-transaction when it was last closed: it stays where
+  // it is, and SQLite there rolls the transaction back.
+  const fallback = WasmStorageImplementation.opfsLocks;
+  return (available.contains(fallback) ? fallback : storage, null);
+}
+
+/// The file of the OPFS database drift keeps at `drift_db/velorki`, or null
+/// when it cannot be read or its journal holds a transaction to roll back.
+Future<Uint8List?> _readOpfsDatabase() async {
+  try {
+    final root = await web.window.navigator.storage.getDirectory().toDart;
+    final dir = await (await root.getDirectoryHandle('drift_db').toDart)
+        .getDirectoryHandle(_name)
+        .toDart;
+    Future<Uint8List?> read(String file) async {
+      try {
+        final handle = await dir.getFileHandle(file).toDart;
+        final blob = await handle.getFile().toDart;
+        return (await blob.arrayBuffer().toDart).toDart.asUint8List();
+      } on Object {
+        return null;
+      }
+    }
+
+    // A persisted journal is zeroed at every commit; a header that is not
+    // zero is a transaction that did not finish.
+    final journal = await read('database-journal');
+    if (journal != null && journal.take(28).any((b) => b != 0)) return null;
+    final database = await read('database');
+    return database == null || database.isEmpty ? null : database;
+  } on Object catch (e) {
+    debugPrint('velorki: the OPFS database could not be read: $e');
+    return null;
+  }
+}
+
+/// Run on every connection before anything else. Each transaction
+/// otherwise creates and deletes its journal file and flushes it three
+/// times, each a trip to the browser's storage. A persisted journal is kept
+/// and zeroed instead, and NORMAL flushes once per commit: a power cut may
+/// lose the last commit, never the file.
 const List<String> connectionPragmas = [
   'PRAGMA journal_mode = PERSIST',
   'PRAGMA synchronous = NORMAL',

@@ -55,7 +55,7 @@ class VelorkiDatabase extends _$VelorkiDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onUpgrade: (m, from, to) async {
+    onUpgrade: (m, from, to) => _migrate(() async {
       // 2 added the turn instructions of a saved route; older rows keep null
       // and come back with an empty list.
       if (from < 2) await m.addColumn(routes, routes.turnsJson);
@@ -110,19 +110,33 @@ class VelorkiDatabase extends _$VelorkiDatabase {
         await createSyncTriggers(this);
         await markLibraryUnsynced(this);
       }
-    },
-    onCreate: (m) async {
+    }),
+    onCreate: (m) => _migrate(() async {
       await m.createAll();
       await createSyncTriggers(this);
-    },
+    }),
     beforeOpen: (_) async {
       // SQLite needs this per connection for the rides → routes foreign key.
       await customStatement('PRAGMA foreign_keys = ON');
-      for (final pragma in connectionPragmas) {
-        await customStatement(pragma);
-      }
+      await _setConnectionPragmas();
     },
   );
+
+  /// Creates or upgrades the schema as one transaction: one commit instead
+  /// of one per table and trigger, which in a browser is a journal written,
+  /// flushed and deleted each time, while every other query waits for the
+  /// open. The connection's pragmas go first, since a transaction cannot
+  /// change the journal mode.
+  Future<void> _migrate(Future<void> Function() steps) async {
+    await _setConnectionPragmas();
+    await transaction(steps);
+  }
+
+  Future<void> _setConnectionPragmas() async {
+    for (final pragma in connectionPragmas) {
+      await customStatement(pragma);
+    }
+  }
 }
 
 @Riverpod(keepAlive: true)
