@@ -81,12 +81,17 @@ class LibrarySync {
 
   /// Starts watching for local changes, and sends what is waiting.
   void start() {
-    _dirtyWatch ??= _sync.watchDirtyCount().listen((count) {
-      if (count == 0) return;
-      // A burst of writes (an import, a save with its legs) is sent once.
-      _debounce?.cancel();
-      _debounce = Timer(const Duration(seconds: 2), () => unawaited(push()));
-    });
+    _dirtyWatch ??= _sync.watchDirtyCount().listen(
+      (count) {
+        if (count == 0) return;
+        // A burst of writes (an import, a save with its legs) is sent once.
+        _debounce?.cancel();
+        _debounce = Timer(const Duration(seconds: 2), () => _pushQuietly());
+      },
+      onError: (Object e, StackTrace st) {
+        _log.warning('no watch on the changes here: $e', e, st);
+      },
+    );
   }
 
   /// Stops watching. What is waiting stays marked for the next [start].
@@ -108,10 +113,18 @@ class LibrarySync {
       _pushing = null;
       if (_pushAgain) {
         _pushAgain = false;
-        unawaited(push());
+        _pushQuietly();
       }
     });
   }
+
+  /// [push] on its own: a failure (a database that does not answer) is
+  /// logged, and what waits goes with the next push.
+  void _pushQuietly() => unawaited(
+    push().catchError((Object e, StackTrace st) {
+      _log.warning('push failed: $e', e, st);
+    }),
+  );
 
   Future<void> _push() async {
     final dirty = await _sync.dirtyRecords();

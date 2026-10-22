@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
@@ -15,12 +16,15 @@ import 'package:velorki/features/sync/application/web_plus_devices.dart';
 import 'package:velorki/features/sync/data/cloud_store.dart';
 import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
 import 'package:velorki/features/sync/data/google_drive_sync.dart';
+import 'package:velorki/features/sync/data/record_codec.dart';
+import 'package:velorki/features/sync/domain/cloud_record.dart';
 import 'package:velorki/features/sync/domain/sync_service.dart';
 import 'package:velorki_api/velorki_api.dart';
 
 import '../../support/mock_relay.dart';
 import '../../support/openapi_schema.dart';
 import '../sync/support/memory_cloud_store.dart';
+import '../sync/support/rows.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -122,7 +126,10 @@ void main() {
     }
 
     /// The web planner syncing with Google: no store, no record of its own.
-    Future<ProviderContainer> launch({Map<String, Object>? prefs}) async {
+    Future<ProviderContainer> launch({
+      Map<String, Object>? prefs,
+      List<Override> overrides = const [],
+    }) async {
       if (prefs != null) SharedPreferences.setMockInitialValues(prefs);
       final shared = await SharedPreferences.getInstance();
       final container = ProviderContainer(
@@ -142,6 +149,7 @@ void main() {
           plusDeviceIdentityProvider.overrideWithValue(null),
           keepsPlusDevicesProvider.overrideWithValue(true),
           googleDriveStoreProvider.overrideWithValue(store),
+          ...overrides,
         ],
       );
       addTearDown(container.dispose);
@@ -185,6 +193,47 @@ void main() {
         container.read(sharedPreferencesProvider).getString('sync.plus.device'),
         isNull,
       );
+    });
+
+    test('Plus records that cannot be taken fail no round: the library '
+        'arrives, and nothing is fetched again', () async {
+      await phoneWrote('phone', 'anon-phone', ago: const Duration(hours: 3));
+      final other = VelorkiDatabase.memory();
+      addTearDown(other.close);
+      await other.routesDao.upsertRoute(fullRoute('r1'));
+      final route = await RecordCodec(
+        Directory('${dir.path}/enc'),
+      ).encodeRoute((await other.routesDao.routeById('r1'))!, changedAtMs: 1);
+      await store.push([
+        StoreSave(
+          route.name,
+          type: route.type,
+          fields: {
+            for (final MapEntry(:key, :value) in route.fields.entries)
+              key: ?value,
+          },
+          body: await File(route.assetPath!).readAsBytes(),
+          ifVersion: null,
+        ),
+      ]);
+
+      final container = await launch(
+        prefs: {'sync.service': 'google'},
+        overrides: [
+          webPlusDevicesProvider.overrideWith(_BrokenPlusDevices.new),
+        ],
+      );
+      await _until(() async => await db.routesDao.routeById('r1') != null);
+      await _settle();
+      final status = container.read(cloudSyncControllerProvider);
+      expect(status.error, isNull);
+      expect(status.lastSyncedAt, isNotNull);
+      expect(container.read(plusEntitledProvider), isFalse);
+
+      final lists = store.fullLists;
+      await container.read(cloudSyncControllerProvider.notifier).refresh();
+      expect(store.fullLists, lists, reason: 'the cursor moved on');
+      expect(container.read(cloudSyncControllerProvider).error, isNull);
     });
 
     test('keeps the ids it saw across a reload', () async {
@@ -273,6 +322,16 @@ void main() {
       expect(phone.read(webPlusDeviceProvider), isNull);
     });
   });
+}
+
+/// Plus records that throw on what arrives, as a relay or a storage
+/// failure behind them would.
+class _BrokenPlusDevices extends WebPlusDevices {
+  @override
+  Future<void> applyRemote(
+    List<CloudRecord> modifications,
+    List<String> deletions,
+  ) async => throw StateError('Plus broken');
 }
 
 /// Lets the controller's steps run: microtasks, the database, the engine.

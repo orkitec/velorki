@@ -98,6 +98,61 @@ void main() {
     expect((await broken.statusNow()).error, isNull);
   });
 
+  test('a round that failed after the download hands the same page over '
+      'again, without asking the store for it', () async {
+    await phone.db.routesDao.upsertRoute(fullRoute('r1'));
+    await phone.db.routesDao.upsertRoute(fullRoute('r2'));
+    await phone.syncNow();
+    final broken = _BrokenDevice(store, dir, 'broken');
+    await broken.open();
+    addTearDown(() async {
+      await broken.close();
+      await broken.db.close();
+    });
+
+    await broken.syncNow();
+    expect((await broken.statusNow()).error, CloudSyncError.other);
+    final lists = store.fullLists;
+    final pulls = store.pulls;
+
+    broken.fails = false;
+    await broken.syncNow();
+    expect(store.fullLists, lists, reason: 'nothing downloaded again');
+    expect(store.pulls, pulls);
+    expect(await broken.routeNames(), ['Route r1', 'Route r2']);
+    expect((await broken.statusNow()).error, isNull);
+    expect(broken.state.values['cursor'], isNotNull);
+  });
+
+  test('a listing cut short goes on from the page that failed', () async {
+    for (final id in ['r1', 'r2', 'r3']) {
+      await phone.db.routesDao.upsertRoute(fullRoute(id));
+    }
+    await phone.syncNow();
+    store.pageSize = 1;
+    final broken = _BrokenDevice(store, dir, 'broken', takes: 1);
+    await broken.open();
+    addTearDown(() async {
+      await broken.close();
+      await broken.db.close();
+    });
+    final lists = store.fullLists;
+
+    await broken.syncNow();
+    expect(store.fullLists, lists + 2, reason: 'the first page taken');
+    expect(await broken.routeNames(), hasLength(1));
+
+    broken.fails = false;
+    await broken.syncNow();
+    expect(
+      store.fullLists,
+      lists + 3,
+      reason: 'the second page again from memory, then the third',
+    );
+    expect(await broken.routeNames(), ['Route r1', 'Route r2', 'Route r3']);
+    expect((await broken.statusNow()).error, isNull);
+  });
+
   test('a rename reaches the other device, and one back again', () async {
     await phone.db.routesDao.upsertRoute(fullRoute('r1'));
     await phone.syncNow();
@@ -479,16 +534,19 @@ class _OneRecord implements CloudSyncHandler {
 
 /// A device whose library throws on what arrives while [fails].
 class _BrokenDevice extends SyncDevice {
-  _BrokenDevice(super.store, super.dir, super.name);
+  _BrokenDevice(super.store, super.dir, super.name, {this.takes = 0});
 
   bool fails = true;
+
+  /// How many pages are taken before it breaks.
+  int takes;
 
   @override
   Future<void> applyRemote(
     List<CloudRecord> modifications,
     List<String> deletions,
   ) async {
-    if (fails) throw StateError('broken');
+    if (fails && takes-- <= 0) throw StateError('broken');
     return super.applyRemote(modifications, deletions);
   }
 }

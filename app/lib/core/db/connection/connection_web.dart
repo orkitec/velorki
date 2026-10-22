@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 
 import 'package:drift/drift.dart';
 import 'package:drift/wasm.dart';
@@ -23,6 +24,15 @@ import 'package:web/web.dart' as web;
 /// the sync waited behind it. A database an earlier build kept in OPFS is
 /// copied over on the first open, and stays in OPFS should the copy fail.
 ///
+/// A shared worker gets no network where the page got it only by the
+/// rider passing a certificate warning (`tool/web_serve.py --https` with
+/// its self-signed certificate): it could not load `sqlite3.wasm`, and every
+/// statement would fail with "Failed to fetch". A small shared worker of
+/// our own asks first, beside the probe; where it cannot reach the site,
+/// the database opens in the page itself (`unsafeIndexedDb`, the same
+/// IndexedDB files, without the shared worker's guard against a second
+/// tab): `opfsLocks` hung there, its own workers stuck as well.
+///
 /// An open or a statement that takes seconds is logged with the Web Locks
 /// the page sees, so a stall names what holds it.
 QueryExecutor openVelorkiDatabase() => DatabaseConnection.delayed(
@@ -40,12 +50,16 @@ QueryExecutor openVelorkiDatabase() => DatabaseConnection.delayed(
       unawaited(_logLocks('still opening after ${clock.elapsed.inSeconds} s'));
     });
     try {
+      final sharedReach = _sharedWorkerReaches(Uri.parse('sqlite3.wasm'));
       final probed = await WasmDatabase.probe(
         sqlite3Uri: Uri.parse('sqlite3.wasm'),
         driftWorkerUri: Uri.parse('drift_worker.js'),
         databaseName: _name,
       );
-      final (storage, initial) = await _choose(probed);
+      final (storage, initial) = await _choose(
+        probed,
+        sharedWorkersReach: await sharedReach,
+      );
       final connection = await probed.open(
         storage,
         _name,
@@ -80,9 +94,14 @@ const List<WasmStorageImplementation> _preferred = [
 /// Which storage to open, and the bytes of an OPFS database to start an
 /// IndexedDB one from.
 Future<(WasmStorageImplementation, Uint8List?)> _choose(
-  WasmProbeResult probed,
-) async {
-  final available = probed.availableStorages;
+  WasmProbeResult probed, {
+  required bool sharedWorkersReach,
+}) async {
+  final available = [
+    for (final s in probed.availableStorages)
+      if (sharedWorkersReach || s == WasmStorageImplementation.unsafeIndexedDb)
+        s,
+  ];
   final storage = _preferred.firstWhere(
     available.contains,
     orElse: () => WasmStorageImplementation.inMemory,
@@ -101,6 +120,57 @@ Future<(WasmStorageImplementation, Uint8List?)> _choose(
   const fallback = WasmStorageImplementation.opfsLocks;
   return (available.contains(fallback) ? fallback : storage, null);
 }
+
+/// Whether a shared worker of this page can fetch [file] from the site;
+/// true when there are no shared workers to ask, or no answer comes in
+/// [_reachWait] (a slow page is no reason to give the shared worker up).
+Future<bool> _sharedWorkerReaches(Uri file) async {
+  if (!globalContext.has('SharedWorker')) return true;
+  final url = Uri.parse(web.document.baseURI).resolveUri(file).toString();
+  final script = web.URL.createObjectURL(
+    web.Blob(
+      [_reachScript.toJS].toJS,
+      web.BlobPropertyBag(type: 'text/javascript'),
+    ),
+  );
+  final answer = Completer<String>();
+  try {
+    final worker = web.SharedWorker(script.toJS);
+    worker.port.onmessage = ((web.MessageEvent e) {
+      if (!answer.isCompleted) answer.complete('${e.data.dartify()}');
+    }).toJS;
+    worker.port.postMessage(url.toJS);
+    final result = await answer.future.timeout(
+      _reachWait,
+      onTimeout: () => 'no answer',
+    );
+    worker.port.close();
+    if (result == 'ok' || result == 'no answer') return true;
+    debugPrint(
+      'velorki: a shared worker cannot reach the site ($result): the '
+      'database opens in the page',
+    );
+    return false;
+  } on Object catch (e) {
+    debugPrint('velorki: no shared worker to ask ($e)');
+    return true;
+  } finally {
+    web.URL.revokeObjectURL(script);
+  }
+}
+
+/// The shared worker [_sharedWorkerReaches] starts: it fetches the URL
+/// posted to it and answers `ok` for any answer of the server, or the
+/// error.
+const String _reachScript = """
+onconnect = (e) => {
+  const port = e.ports[0];
+  port.onmessage = (m) => fetch(m.data, { method: 'HEAD', cache: 'no-store' })
+    .then(() => port.postMessage('ok'), (err) => port.postMessage(String(err)));
+};
+""";
+
+const Duration _reachWait = Duration(seconds: 5);
 
 /// The file of the OPFS database drift keeps at `drift_db/velorki`, or null
 /// when it cannot be read or its journal holds a transaction to roll back.

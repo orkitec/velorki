@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:drift/backends.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -203,6 +204,16 @@ void main() {
     });
   });
 
+  test('a database that fails at launch is logged, never uncaught, and the '
+      'fetch still runs', () async {
+    // As the browser's database whose worker cannot load SQLite.
+    await db.close();
+    db = VelorkiDatabase(DelegatedDatabase(_NoSqlite()));
+    await launch();
+    expect(bridge.started, isTrue);
+    expect(bridge.fetchRequests, 1);
+  });
+
   test('says what the engine says', () async {
     final container = await launch();
     bridge.emit(const CloudSyncStatus(account: CloudAccount.noAccount));
@@ -382,4 +393,35 @@ Future<void> _until(FutureOr<bool> Function() done) async {
     if (DateTime.now().isAfter(until)) fail('timed out');
     await Future<void>.delayed(const Duration(milliseconds: 20));
   }
+}
+
+/// A database whose SQLite never loads, as in a browser whose worker
+/// cannot fetch it: every statement fails.
+class _NoSqlite extends DatabaseDelegate {
+  static Never _fail() => throw StateError('TypeError: Failed to fetch');
+
+  @override
+  bool get isOpen => false;
+
+  @override
+  Future<void> open(QueryExecutorUser db) async => _fail();
+
+  @override
+  DbVersionDelegate get versionDelegate => const NoVersionDelegate();
+
+  @override
+  TransactionDelegate get transactionDelegate => const NoTransactionDelegate();
+
+  @override
+  Future<QueryResult> runSelect(String statement, List<Object?> args) async =>
+      _fail();
+
+  @override
+  Future<int> runUpdate(String statement, List<Object?> args) async => _fail();
+
+  @override
+  Future<int> runInsert(String statement, List<Object?> args) async => _fail();
+
+  @override
+  Future<void> runCustom(String statement, List<Object?> args) async => _fail();
 }

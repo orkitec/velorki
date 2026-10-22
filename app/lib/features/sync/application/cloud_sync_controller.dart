@@ -179,9 +179,18 @@ class CloudSyncController extends _$CloudSyncController
     ref.onDispose(() => _stopping = _stop());
     if (backend != null) {
       // After the first frame of this build: start reads state.
-      Future.microtask(() => _start(backend, service));
+      _quietly(Future.microtask(() => _start(backend, service)), 'start');
     }
     return const CloudSyncStatus();
+  }
+
+  /// Runs [work] on its own: a failure is logged, never left uncaught.
+  static void _quietly(Future<void>? work, String what) {
+    unawaited(
+      work?.catchError((Object e, StackTrace st) {
+        _log.warning('$what failed: $e', e, st);
+      }),
+    );
   }
 
   Future<void> _start(SyncBackend backend, SyncService service) async {
@@ -236,15 +245,21 @@ class CloudSyncController extends _$CloudSyncController
     await settings.start();
     _listenToSettings();
     library.start();
-    await library.push();
+    // A database that fails here fails the push, not the start: the fetch
+    // below still runs, and what waits goes with the next push.
+    try {
+      await library.push();
+    } on Object catch (e, st) {
+      _log.warning('push failed: $e', e, st);
+    }
     await plus?.start();
     // Plus came or went: the record says so at once.
     _entitled = ref.listen(plusCustomerInfoProvider, (_, _) {
-      unawaited(_plus?.refresh());
+      _quietly(_plus?.refresh(), 'Plus record');
     });
     // The engine fetches by itself only when a push notification tells it
     // to: at launch it is asked, as on every return to the app.
-    unawaited(backend.fetchNow());
+    _quietly(backend.fetchNow(), 'fetch');
     // Opening the Library tab asks for what changed elsewhere, at most
     // every 30 seconds.
     _tabs = ref.listen(activeTabProvider, (_, tab) {
@@ -253,13 +268,13 @@ class CloudSyncController extends _$CloudSyncController
       final last = _lastLibraryFetch;
       if (last != null && now.difference(last) < _libraryFetchEvery) return;
       _lastLibraryFetch = now;
-      unawaited(backend.fetchNow());
+      _quietly(backend.fetchNow(), 'fetch');
     });
     _lifecycle = AppLifecycleListener(
       onResume: () {
-        unawaited(backend.fetchNow());
-        unawaited(_library?.push());
-        unawaited(_plus?.refresh());
+        _quietly(backend.fetchNow(), 'fetch');
+        _quietly(_library?.push(), 'push');
+        _quietly(_plus?.refresh(), 'Plus record');
       },
     );
   }
@@ -314,7 +329,7 @@ class CloudSyncController extends _$CloudSyncController
   }
 
   void _listenToSettings() {
-    void changed() => unawaited(_settings?.localChanged());
+    void changed() => _quietly(_settings?.localChanged(), 'settings');
     ref
       ..listen(appearanceSettingProvider, (_, _) => changed())
       ..listen(unitSystemProvider, (_, _) => changed())
@@ -349,14 +364,22 @@ class CloudSyncController extends _$CloudSyncController
     List<CloudRecord> modifications,
     List<String> deletions,
   ) async {
-    // The browser keeps the apps' Plus records; the library passes over
-    // names it does not know.
-    if (ref.read(keepsPlusDevicesProvider)) {
-      await ref
-          .read(webPlusDevicesProvider.notifier)
-          .applyRemote(modifications, deletions);
-    }
+    // The library passes over names it does not know, and only what it
+    // could not write fails the round: the cloud then hands the same
+    // changes over again.
     await _library?.applyRemote(modifications, deletions);
+    // The browser keeps the apps' Plus records. Whatever follows from them
+    // (Plus opening, the relay) is no part of the sync: a failure there is
+    // logged and never fails the round, which would fetch it all again.
+    if (ref.read(keepsPlusDevicesProvider)) {
+      try {
+        await ref
+            .read(webPlusDevicesProvider.notifier)
+            .applyRemote(modifications, deletions);
+      } on Object catch (e, st) {
+        _log.warning('Plus records not taken: $e', e, st);
+      }
+    }
   }
 
   @override

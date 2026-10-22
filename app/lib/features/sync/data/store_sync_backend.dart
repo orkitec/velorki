@@ -128,6 +128,14 @@ class StoreSyncBackend implements SyncBackend {
   /// How long the store last asked to be left alone, for the next retry.
   Duration? _retryAfter;
 
+  /// Where a full listing cut short in this run goes on.
+  String? _listingCursor;
+
+  /// The last page fetched and not yet handed over, with where it was
+  /// fetched from: a round that failed after the download hands it over
+  /// again without downloading it again.
+  ({String? from, bool listing, StoreChanges changes})? _undelivered;
+
   CloudSyncStatus _now = const CloudSyncStatus();
   final StreamController<CloudSyncStatus> _status =
       StreamController<CloudSyncStatus>.broadcast();
@@ -389,14 +397,11 @@ class StoreSyncBackend implements SyncBackend {
     try {
       var cursor = _state.read(_Keys.cursor);
       var listing = cursor == null;
+      // A listing cut short earlier in this run goes on from its page.
+      if (listing) cursor = _listingCursor;
       for (var page = 0; page < 10000; page++) {
-        StoreChanges changes;
-        try {
-          changes = listing
-              ? await _store.fullList(cursor)
-              : await _store.pull(cursor!);
-        } on StoreCursorExpired {
-          _log.info('cursor expired: everything again');
+        final changes = await _page(cursor, listing: listing);
+        if (changes == null) {
           (cursor, listing) = (null, true);
           continue;
         }
@@ -420,7 +425,14 @@ class StoreSyncBackend implements SyncBackend {
             'fetched ${[for (final r in modifications) r.name]} '
             'deleted $deletions',
           );
-          await handler.applyRemote(modifications, deletions);
+          try {
+            await handler.applyRemote(modifications, deletions);
+          } on Object catch (e) {
+            // The page stays kept: the next round hands it over again
+            // without downloading it again.
+            _log.info('the fetched changes were not taken: $e');
+            rethrow;
+          }
           _log.info(
             'applied ${modifications.length} changes and '
             '${deletions.length} deletions',
@@ -429,11 +441,15 @@ class StoreSyncBackend implements SyncBackend {
         if (settings != null && syncsSettings) {
           await _settingsArrived(settings);
         }
+        _undelivered = null;
         cursor = changes.cursor;
-        // A listing's own page tokens are not kept: one cut short starts
-        // over.
-        if (!listing || !changes.more) {
+        if (listing && changes.more) {
+          // A listing's own page tokens are kept for this run only: one
+          // cut short goes on from here, a restart lists again.
+          _listingCursor = cursor;
+        } else {
           await _state.write(_Keys.cursor, cursor);
+          _listingCursor = null;
           listing = false;
         }
         if (!changes.more) break;
@@ -442,10 +458,11 @@ class StoreSyncBackend implements SyncBackend {
       _log.info('fetch failed: $e');
       error = _errorOf(e.failure);
       _retryAfter = e.retryAfter;
+      if (e.failure != CloudStoreFailure.transient) _forgetProgress();
     } on Object catch (e, st) {
       // Whatever it was, the round ends here and says so: nothing may
       // leave the status at syncing. The cursor stays where it was, so the
-      // next round brings the same changes again.
+      // next round brings the same changes again, from the page kept.
       _log.warning('fetch failed: $e', e, st);
       error = CloudSyncError.other;
       failed = true;
@@ -456,6 +473,36 @@ class StoreSyncBackend implements SyncBackend {
     // Tried again after the backoff too: a database slow to open the
     // first time catches up by itself.
     if (failed) _retryLater(sending: false);
+  }
+
+  /// The page of changes from [cursor]: the one fetched before and not
+  /// handed over when it is the same, else the store's. Null when the
+  /// cursor ran out and everything is to be listed again.
+  Future<StoreChanges?> _page(String? cursor, {required bool listing}) async {
+    final kept = _undelivered;
+    if (kept != null && kept.listing == listing && kept.from == cursor) {
+      _log.info('the page fetched before again, not downloaded again');
+      return kept.changes;
+    }
+    _undelivered = null;
+    final StoreChanges changes;
+    try {
+      changes = listing
+          ? await _store.fullList(cursor)
+          : await _store.pull(cursor!);
+    } on StoreCursorExpired {
+      _log.info('cursor expired: everything again');
+      _forgetProgress();
+      return null;
+    }
+    _undelivered = (from: cursor, listing: listing, changes: changes);
+    return changes;
+  }
+
+  /// Forgets the listing under way and the page kept.
+  void _forgetProgress() {
+    _listingCursor = null;
+    _undelivered = null;
   }
 
   /// [record] as the library reads it: its body in a file of its own.
@@ -627,6 +674,7 @@ class StoreSyncBackend implements SyncBackend {
     }
     _saves.clear();
     _deletes.clear();
+    _forgetProgress();
     _log.info('account: ${change.name}');
     await _handler?.accountChanged(change);
     return id != null;

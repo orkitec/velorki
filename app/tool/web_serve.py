@@ -21,7 +21,17 @@ then open http://localhost:8080 (or https://localhost:8443) in Chrome.
   is mkcert's for localhost when mkcert is installed (`brew install mkcert`,
   `mkcert -install` once: Chrome then trusts it), else a self-signed one made
   with openssl, which Chrome warns about once ("Proceed to localhost"). Both
-  are kept in --cert-dir (default build/web_cert).
+  are kept in --cert-dir (default build/web_cert). Past that warning the
+  page may fetch, but a shared worker may not, so the database opens in
+  the page rather than in drift's shared worker (`connection_web.dart`
+  says so in the console); with mkcert's certificate it runs as on
+  app.velorki.com.
+- The relay at api.velorki.com answers CORS for https://app.velorki.com
+  only (production's `CORS_ORIGINS`): from here AI, route weather and
+  share links fail; sync and the rest do not need the relay. To try them,
+  build against a relay of your own over https (`docs/SELF_HOSTING.md`)
+  whose `CORS_ORIGINS` names https://localhost:8443, with its host in
+  `web/_headers`' connect-src.
 """
 import argparse
 import http.server

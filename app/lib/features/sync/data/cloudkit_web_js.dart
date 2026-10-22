@@ -174,8 +174,14 @@ class _CloudKitJs implements CloudKitWeb {
 
   Future<void> _watchSignOuts(JSObject container) async {
     while (true) {
-      await (container.callMethod('whenUserSignsOut'.toJS)! as JSPromise)
-          .toDart;
+      try {
+        await (container.callMethod('whenUserSignsOut'.toJS)! as JSPromise)
+            .toDart;
+      } on Object catch (e) {
+        _log.info('sign-out watch failed: ${_errorOf(e)}');
+        await Future<void>.delayed(const Duration(seconds: 1));
+        continue;
+      }
       _user = null;
       _users.add(null);
     }
