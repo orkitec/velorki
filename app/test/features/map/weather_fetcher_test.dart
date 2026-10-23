@@ -139,6 +139,7 @@ void main() {
         dio: Dio()..httpClientAdapter = adapter,
         cacheDir: () async => Directory.systemTemp,
         probeTimeout: const Duration(milliseconds: 200),
+        radarTimeout: const Duration(milliseconds: 200),
       );
     });
 
@@ -782,6 +783,7 @@ void main() {
         dio: Dio()..httpClientAdapter = adapter,
         cacheDir: () async => dir,
         probeTimeout: const Duration(milliseconds: 200),
+        radarTimeout: const Duration(milliseconds: 200),
         process: (png, _) async => throw StateError('not the clouds'),
         processRadar: (png, job) async {
           processed++;
@@ -914,6 +916,7 @@ void main() {
         dio: Dio()..httpClientAdapter = adapter,
         cacheDir: () async => dir,
         probeTimeout: const Duration(milliseconds: 200),
+        radarTimeout: const Duration(milliseconds: 200),
         processRadar: (png, job) async {
           processed++;
           jobs.add(job);
@@ -965,6 +968,7 @@ void main() {
         dio: Dio()..httpClientAdapter = adapter,
         cacheDir: () async => dir,
         probeTimeout: const Duration(milliseconds: 200),
+        radarTimeout: const Duration(milliseconds: 200),
         cacheBudget: 12,
         processRadar: (png, job) async => Uint8List.fromList(<int>[8, ...png]),
       );
@@ -1044,6 +1048,7 @@ void main() {
             dio: Dio()..httpClientAdapter = adapter,
             cacheDir: () async => dir,
             probeTimeout: const Duration(milliseconds: 200),
+            radarTimeout: const Duration(milliseconds: 200),
             processRadar: (png, job) async => png,
           );
           await f.radarImage(dwdRadar, boxAt(0), frame, DateTime.now());
