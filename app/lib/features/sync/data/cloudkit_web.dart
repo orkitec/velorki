@@ -13,6 +13,26 @@ const String cloudKitZone = 'Library';
 /// The element Apple's sign-in button is drawn into.
 const String cloudKitSignInButtonId = 'apple-sign-in-button';
 
+final RegExp _uploadHost = RegExp(
+  r'^(cws\.icloud-content\.com|p\d+-contentws\.icloud\.com)$',
+);
+
+/// Whether [url] is one of the one-time URLs CloudKit hands out for an
+/// asset upload (`https://cws.icloud-content.com/<id>/singleFileUpload?tk=...`).
+/// The same rule as `deploy/cloudflare/pages/cloudkit_upload.mjs`, which
+/// forwards the upload for the browser.
+bool isCloudKitUploadUrl(String url) {
+  final uri = Uri.tryParse(url);
+  return uri != null &&
+      uri.scheme == 'https' &&
+      _uploadHost.hasMatch(uri.host) &&
+      !uri.hasPort &&
+      uri.userInfo.isEmpty &&
+      !uri.hasFragment &&
+      uri.path.endsWith('/singleFileUpload') &&
+      uri.queryParameters.containsKey('tk');
+}
+
 /// A record as CloudKit Web Services hands it over.
 @immutable
 class CkRecord {
@@ -63,6 +83,7 @@ class CkSave extends CkWrite {
     required this.fields,
     required this.body,
     required this.changeTag,
+    this.keepBody = false,
   });
 
   /// The record type.
@@ -76,6 +97,11 @@ class CkSave extends CkWrite {
 
   /// The tag the record must be at, or null for a new one.
   final String? changeTag;
+
+  /// With a [changeTag] and no [body]: the server has the body already, so
+  /// only the [fields] go up (an `update`, which leaves the `body` asset
+  /// alone) instead of the record whole (a `replace`, which drops it).
+  final bool keepBody;
 }
 
 /// Deletes a record, whatever its tag.

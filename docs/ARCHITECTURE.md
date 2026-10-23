@@ -422,7 +422,7 @@ planner reads too (`driveRecordFile`, `readDriveRecord`):
   has empty content.
 - Any other record's content is one UTF-8 JSON line,
   `{"v":1,"type":…,"fields":{…},"body":true|false}`, a newline, and then
-  the codec's gzip JSON body bytes unchanged (routes and rides; settings
+  the codec's gzip body bytes unchanged (routes and rides; settings
   have no body). Fields keep their types there. `v` is the header's
   version: a reader skips a file whose `v` is newer than it knows.
 
@@ -453,7 +453,9 @@ and the engine's later fetch of the same changes is dropped natively or is a
 no-op in Dart.
 The triggers mark every write, whatever path made it; the record format is
 `RecordCodec` (versioned fields, the track and other large columns as one
-gzip JSON asset). The newer change wins per record, the server's copy on a
+gzip asset: JSON text plus the tracks column-wise as quantized delta
+varints, `CompactTrack` in `velorki_geo`; the first build's gzip JSON
+with base64 tracks is still read). The newer change wins per record, the server's copy on a
 tie; a delete from elsewhere loses to a local change not yet sent. Strava
 routes and every upload link stay on the phone, partner ids too. Another
 account, a sign-out or a reset zone resends the library as new and never
@@ -477,7 +479,11 @@ tag as the version (`CONFLICT`/`EXISTS` looked up for the conflict), the
 zone's change feed with its sync token (a refused token lists the zone
 again), the zone made on the first save if no iPhone made it, the user
 record name as the account (kept while the session runs out, so nothing is
-resent). Its session token is kept in local storage. Settings stay in the
+resent). The version also carries a digest of the body's content, so a save
+whose body is unchanged sends the fields alone (`update`). CloudKit's upload
+host allows no CORS for our origin, so a wrapper around `fetch` sends the
+asset upload through `/cloudkit/upload`, a Pages Function (`deploy/cloudflare`)
+that forwards it and stores nothing. Its session token is kept in local storage. Settings stay in the
 browser (the iOS app keeps them in the key-value store, which CloudKit JS
 cannot reach).
 

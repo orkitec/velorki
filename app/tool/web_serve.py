@@ -15,6 +15,10 @@ then open http://localhost:8080 (or https://localhost:8443) in Chrome.
   release asset from GitHub (following its redirect). Fetched tiles are kept
   in --cache (default build/web_tile_cache) so a restart does not fetch them
   again.
+- `POST /cloudkit/upload?url=...` stands in for the Pages Function of the
+  same name (CloudKit's upload host allows no CORS for our origin): the
+  body goes to Apple's upload URL, and Apple's JSON comes back. Same
+  checks as deploy/cloudflare/pages/cloudkit_upload.mjs.
 - `--https` serves https on 8443, the origin the CloudKit Development token
   and the Google web client allow (Apple's console takes https origins
   only), so iCloud and Google sign-in can be tried locally. The certificate
@@ -43,12 +47,16 @@ import ssl
 import subprocess
 import sys
 import threading
+import urllib.error
+import urllib.parse
 import urllib.request
 
 POINTER = "https://raw.githubusercontent.com/orkitec/velorki-data/main/latest.json"
 RELEASES = "https://github.com/orkitec/velorki-data/releases/download/"
 TAG = re.compile(r"^tiles-\d{8}(-s\d+)?$")
 FILE = re.compile(r"^[EW]\d{1,3}_[NS]\d{1,2}\.(rd5|gaz)$|^manifest\.json$")
+UPLOAD_HOST = re.compile(r"^(cws\.icloud-content\.com|p\d+-contentws\.icloud\.com)$")
+MAX_UPLOAD = 16 * 1024 * 1024
 LOCKS = {}
 LOCKS_GUARD = threading.Lock()
 AGENT = {"User-Agent": "velorki-web-serve (+https://github.com/orkitec/velorki)"}
@@ -119,6 +127,54 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if m:
             return self.tile(m.group(1), m.group(2))
         return super().do_GET()
+
+    def do_POST(self):
+        parts = urllib.parse.urlsplit(self.path)
+        if parts.path != "/cloudkit/upload":
+            self.send_error(404)
+            return
+        target = urllib.parse.parse_qs(parts.query).get("url", [""])[0]
+        u = urllib.parse.urlsplit(target)
+        try:
+            ok = (
+                u.scheme == "https"
+                and UPLOAD_HOST.match(u.hostname or "")
+                and u.port in (None, 443)
+                and not u.username
+                and not u.password
+                and not u.fragment
+                and u.path.endswith("/singleFileUpload")
+                and "tk" in urllib.parse.parse_qs(u.query)
+            )
+        except ValueError:
+            ok = False
+        if not ok:
+            self.send_error(400, "not a CloudKit upload URL")
+            return
+        length = int(self.headers.get("Content-Length") or 0)
+        if length > MAX_UPLOAD:
+            self.send_error(413)
+            return
+        data = self.rfile.read(length)
+        headers = {}
+        if self.headers.get("Content-Type"):
+            headers["Content-Type"] = self.headers["Content-Type"]
+        try:
+            with urllib.request.urlopen(
+                urllib.request.Request(target, data=data, headers=headers, method="POST"),
+                timeout=30,
+            ) as r:
+                status, answer = r.status, r.read(64 * 1024)
+        except urllib.error.HTTPError as e:
+            status, answer = e.code, e.read(64 * 1024)
+        except OSError:
+            self.send_error(502)
+            return
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(answer)))
+        self.end_headers()
+        self.wfile.write(answer)
 
     def pointer(self):
         with urllib.request.urlopen(urllib.request.Request(POINTER, headers=AGENT)) as r:

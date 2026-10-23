@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
+import 'package:velorki_io/io.dart' show gzip;
+import 'package:velorki_io/worker.dart' show runIsolated;
 
+import '../../routing_tiles/domain/sha256.dart';
 import 'cloud_store.dart';
 import 'cloudkit_web.dart';
 import 'store_sync_backend.dart';
@@ -117,7 +121,8 @@ class CloudKitJsCloudStore implements CloudStore {
 
   @override
   Future<List<StoreResult>> push(List<StoreWrite> writes) => _call(() async {
-    final ck = [for (final write in writes) _writeOf(write)];
+    final prepared = [for (final write in writes) await _prepare(write)];
+    final ck = [for (final p in prepared) p.write];
     List<CkResult> results;
     try {
       results = await api.modify(ck);
@@ -144,24 +149,42 @@ class CloudKitJsCloudStore implements CloudStore {
           };
     final out = <StoreResult>[];
     for (var i = 0; i < writes.length; i++) {
-      out.add(await _resultOf(writes[i], results[i], servers));
+      out.add(await _resultOf(writes[i], results[i], servers, prepared[i]));
     }
     return out;
   });
 
-  CkWrite _writeOf(StoreWrite write) => switch (write) {
-    StoreDelete(:final name) => CkDelete(name),
-    StoreSave(:final name, :final type, :final fields, :final body) => CkSave(
-      name,
-      type: type,
-      fields: {
-        for (final MapEntry(:key, :value) in fields.entries)
-          key: ?_valueOf(key, value),
-      },
-      body: body,
-      changeTag: write.ifVersion,
-    ),
-  };
+  /// The CloudKit write for [write]; a save whose body is the one the
+  /// server has at the version it names goes without it ([CkSave.keepBody]).
+  Future<_Prepared> _prepare(StoreWrite write) async {
+    if (write is! StoreSave) return _Prepared(CkDelete(write.name));
+    final fields = <String, CkValue>{
+      for (final MapEntry(:key, :value) in write.fields.entries)
+        key: ?_valueOf(key, value),
+    };
+    final known = _Version.parse(write.ifVersion);
+    final body = write.body;
+    final digest = body == null ? null : await _digestOf(body);
+    // Only an update of a record that is there, whose server fields are
+    // exactly these: `update` would leave a field the save left out.
+    final unchanged =
+        known != null &&
+        digest != null &&
+        digest == known.body &&
+        _keysDigest(fields.keys) == known.keys;
+    if (unchanged) _log.info('${write.name}: body unchanged, fields only');
+    return _Prepared(
+      CkSave(
+        write.name,
+        type: write.type,
+        fields: fields,
+        body: unchanged ? null : body,
+        changeTag: known?.tag,
+        keepBody: unchanged,
+      ),
+      body: digest,
+    );
+  }
 
   static CkValue? _valueOf(String key, Object? value) => switch (value) {
     final String s => CkValue(s, 'STRING'),
@@ -188,12 +211,22 @@ class CloudKitJsCloudStore implements CloudStore {
     StoreWrite write,
     CkResult result,
     Map<String, CkResult> servers,
+    _Prepared prepared,
   ) async {
     final error = result.error;
     if (error == null) {
-      final tag = result.record?.changeTag;
+      final record = result.record;
+      final tag = record?.changeTag;
       if (tag != null) _keep(write.name, tag);
-      return StoreDone(write is StoreDelete ? null : tag);
+      if (write is StoreDelete || tag == null) return StoreDone(tag);
+      // The body is the one sent, or the one the server kept.
+      return StoreDone(
+        _Version(
+          tag,
+          body: prepared.body,
+          keys: _keysDigest(record!.fields.keys),
+        ).encode(),
+      );
     }
     if (write is StoreDelete) {
       return error.code == 'NOT_FOUND'
@@ -297,6 +330,7 @@ class CloudKitJsCloudStore implements CloudStore {
       }
       _log.info('downloaded ${record.name}: ${body.length} bytes');
     }
+    final digest = body == null ? null : await _digestOf(body);
     return StoredRecord(
       name: record.name,
       type: record.type ?? '',
@@ -309,7 +343,13 @@ class CloudKitJsCloudStore implements CloudStore {
               : value,
       },
       body: body,
-      version: record.changeTag ?? '',
+      version: record.changeTag == null
+          ? ''
+          : _Version(
+              record.changeTag!,
+              body: digest,
+              keys: _keysDigest(record.fields.keys),
+            ).encode(),
     );
   }
 
@@ -347,4 +387,63 @@ class CloudKitJsCloudStore implements CloudStore {
     final code when isCloudKitAuthError(code) => CloudStoreFailure.signInNeeded,
     _ => CloudStoreFailure.other,
   };
+}
+
+/// A write ready to send, and the digest of the body it carries (or of the
+/// one the server keeps).
+class _Prepared {
+  _Prepared(this.write, {this.body});
+
+  final CkWrite write;
+  final String? body;
+}
+
+/// The store's version of a record: the change tag, and what the browser
+/// knows of the record at that tag so that a save can leave out what has not
+/// changed. It rides in the opaque version `StoreSyncBackend` keeps beside
+/// the record (`tag#<body digest>.<field names digest>`); a version without
+/// the two parts (an older build's, or a body that did not unpack) just
+/// sends everything.
+class _Version {
+  _Version(this.tag, {this.body, this.keys});
+
+  final String tag;
+
+  /// SHA-256 of the decompressed body, so that another compressor's bytes
+  /// for the same content are the same; null when unknown.
+  final String? body;
+
+  /// A digest of the names of the fields the server has.
+  final String? keys;
+
+  static _Version? parse(String? version) {
+    if (version == null) return null;
+    final hash = version.indexOf('#');
+    if (hash < 0) return _Version(version);
+    final parts = version.substring(hash + 1).split('.');
+    return _Version(
+      version.substring(0, hash),
+      body: parts[0].isEmpty ? null : parts[0],
+      keys: parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null,
+    );
+  }
+
+  String encode() => body == null ? tag : '$tag#$body.${keys ?? ''}';
+}
+
+/// The digest of a gzip body's content; null when it does not unpack.
+Future<String?> _digestOf(Uint8List gzipped) async {
+  try {
+    return await runIsolated(() {
+      final sha = Sha256()..add(gzip.decode(gzipped));
+      return sha.hexDigest();
+    });
+  } on Object {
+    return null;
+  }
+}
+
+String _keysDigest(Iterable<String> names) {
+  final sha = Sha256()..add(utf8.encode((names.toList()..sort()).join(',')));
+  return sha.hexDigest().substring(0, 16);
 }

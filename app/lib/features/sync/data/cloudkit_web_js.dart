@@ -21,6 +21,64 @@ final Logger _log = Logger('velorki.sync.cloudkit');
 /// bundled), and only once the rider picks iCloud.
 const String _script = 'https://cdn.apple-cloudkit.com/ck/2/cloudkit.js';
 
+/// Whether CloudKit JS's asset uploads go through the app's own origin
+/// (`/cloudkit/upload`, a Pages Function) rather than straight to Apple's
+/// upload host, which answers CORS for a fixed list of origins that does not
+/// have ours. Off once Apple allows it.
+const bool _uploadsViaPages = true;
+const String _uploadPath = '/cloudkit/upload';
+bool _uploadsRouted = false;
+
+/// Wraps `XMLHttpRequest.open` once, which CloudKit JS uploads with: a POST
+/// to an upload URL ([isCloudKitUploadUrl]) opens [_uploadPath] with the URL
+/// in `url` instead; the body, headers and everything else are unchanged.
+void _routeUploads() {
+  if (!_uploadsViaPages || _uploadsRouted) return;
+  _uploadsRouted = true;
+  final prototype =
+      (globalContext['XMLHttpRequest']! as JSObject)['prototype']! as JSObject;
+  final open = prototype['open']! as JSFunction;
+  prototype['open'] =
+      ((
+            JSObject request,
+            JSString method,
+            JSAny? url, [
+            JSAny? async,
+            JSAny? user,
+            JSAny? password,
+          ]) {
+            final target = method.toDart.toUpperCase() == 'POST'
+                ? _uploadTarget(url)
+                : null;
+            final to = target == null
+                ? url
+                : '$_uploadPath?url=${Uri.encodeComponent(target)}'.toJS;
+            // An `async` passed as undefined would make the request
+            // synchronous, so the two-argument form stays two arguments.
+            return async == null
+                ? open.callAsFunction(request, method, to)
+                : open.callMethod(
+                    'apply'.toJS,
+                    request,
+                    <JSAny?>[method, to, async, user, password].toJS,
+                  );
+          })
+          .toJSCaptureThis;
+}
+
+/// [url] when it is a CloudKit upload URL, else null.
+String? _uploadTarget(JSAny? url) {
+  final String href;
+  if (url.isA<JSString>()) {
+    href = (url! as JSString).toDart;
+  } else if (url.isA<web.URL>()) {
+    href = (url! as web.URL).href;
+  } else {
+    return null;
+  }
+  return isCloudKitUploadUrl(href) ? href : null;
+}
+
 /// The element CloudKit JS would draw its sign-out button into; the app
 /// draws its own, so the element is never on the page.
 const String _signOutButtonId = 'velorki-apple-sign-out-button';
@@ -110,6 +168,7 @@ class _CloudKitJs implements CloudKitWeb {
   });
 
   Future<JSObject> _load() async {
+    _routeUploads();
     if (!globalContext.has('CloudKit')) {
       final script = web.HTMLScriptElement()
         ..src = _script
@@ -272,6 +331,7 @@ class _CloudKitJs implements CloudKitWeb {
             ].jsify(),
           );
         case CkSave(:final name, :final type, :final changeTag):
+          final update = write.keepBody && changeTag != null;
           final record =
               {
                     'recordName': name,
@@ -293,7 +353,12 @@ class _CloudKitJs implements CloudKitWeb {
               ..['value'] = blob;
           }
           batch.callMethod(
-            (changeTag == null ? 'create' : 'replace').toJS,
+            (changeTag == null
+                    ? 'create'
+                    : update
+                    ? 'update'
+                    : 'replace')
+                .toJS,
             [record].toJS,
           );
       }

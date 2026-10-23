@@ -56,6 +56,11 @@ goes anywhere.
    The planner picks Development on localhost (`tool/web_serve.py --https`)
    and Production everywhere else.
 
+Asset uploads (a record's `body`) go through `/cloudkit/upload` on the
+app's own origin (`deploy/cloudflare/README.md`), because Apple's upload host
+allows no CORS for it. If Apple ever allowlists our origins, switch off
+`_uploadsViaPages` in `cloudkit_web_js.dart`.
+
 The schema must be deployed to Production before the Production token is
 used (done 2026-10-18 for `Route` and `Ride`; redeploy after any schema
 change).

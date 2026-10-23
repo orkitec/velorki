@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:drift/drift.dart' show Value, driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,7 @@ import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/sync/application/library_sync.dart';
 import 'package:velorki/features/sync/data/record_codec.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/fake_cloud.dart';
 import 'support/rows.dart';
@@ -150,11 +152,19 @@ void main() {
 
     final route = await pad.db.routesDao.routeById('r1');
     final ride = await pad.db.ridesDao.rideById('ride1');
+    // Tracks cross the wire quantized.
+    Uint8List quantized(Uint8List packed) =>
+        CompactTrack.decode(CompactTrack.encode(packed));
+    final sentRoute = (await phone.db.routesDao.routeById('r1'))!;
     expect(
       route!.copyWith(externalIdsJson: const Value(null)),
-      (await phone.db.routesDao.routeById('r1'))!,
+      sentRoute.copyWith(
+        geometry: quantized(sentRoute.geometry),
+        originalGeometry: Value(quantized(sentRoute.originalGeometry!)),
+      ),
     );
-    expect(ride, (await phone.db.ridesDao.rideById('ride1'))!);
+    final sentRide = (await phone.db.ridesDao.rideById('ride1'))!;
+    expect(ride, sentRide.copyWith(geometry: quantized(sentRide.geometry)));
     expect(ride!.routeId, 'r1');
     expect(
       await pad.db.syncDao.dirtyRecords(),

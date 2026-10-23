@@ -33,6 +33,19 @@ only works on the custom domain, not on `*.pages.dev`); `Range` requests go to
 the origin and are not cached. Only `Range` is forwarded. Anything else under
 `/tiles/` is a 404; methods other than GET, HEAD and OPTIONS a 405.
 
+## /cloudkit/upload
+
+`POST /cloudkit/upload?url=<encoded upload URL>`: CloudKit JS saves a
+record's `body` asset by POSTing it to a one-time `cws.icloud-content.com`
+URL that allows CORS for a fixed list of origins, ours not among them. The
+app's XMLHttpRequest wrapper (`cloudkit_web_js.dart`) sends that POST here instead;
+`pages/cloudkit_upload.mjs` checks the URL (https, `cws.icloud-content.com`
+or `pNN-contentws.icloud.com`, no port or credentials, path ending
+`/singleFileUpload`, a `tk`), reads the body (16 MB at most, else 413),
+forwards it with its Content-Type alone and returns Apple's status and JSON
+receipt. Nothing is stored or logged; `tk` is a credential for fifteen
+minutes. Other methods are a 405, other URLs a 400.
+
 Tests (Node's built-in runner, no dependencies):
 
     node --test deploy/cloudflare/test/*.test.mjs
@@ -65,7 +78,7 @@ From `app/`: `flutter build web --wasm --no-web-resources-cdn --dart-define-from
 then `python3 tool/web_serve.py` and open http://localhost:8080 in Chrome. The
 script sends the build's `_headers` and stands in for the tiles function: the
 pointer comes from velorki-data, tiles are fetched from the GitHub releases and
-kept in `build/web_tile_cache`. `python3 tool/web_serve.py --https` serves
+kept in `build/web_tile_cache`; `/cloudkit/upload` is forwarded the same way. `python3 tool/web_serve.py --https` serves
 https://localhost:8443 instead, the origin the CloudKit Development token and
 the Google web client allow, so the iCloud and Google sign-ins work locally
 (mkcert's certificate when mkcert is installed, else a self-signed one Chrome

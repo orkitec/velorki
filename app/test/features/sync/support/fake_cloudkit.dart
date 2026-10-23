@@ -120,8 +120,15 @@ class FakeCloudKit {
         db.records.remove(name);
         db.log.add(name);
         return CkResult(record: CkRecord(name: name, deleted: true));
-      case CkSave(:final name, :final changeTag):
-        writes.add('${changeTag == null ? 'create' : 'replace'} $name');
+      case CkSave(:final name, :final changeTag, :final keepBody):
+        final update = keepBody && changeTag != null;
+        writes.add(
+          '${changeTag == null
+              ? 'create'
+              : update
+              ? 'update'
+              : 'replace'} $name',
+        );
         if (changeTag == null && current != null) {
           return CkResult(error: CkError('EXISTS', recordName: name));
         }
@@ -134,8 +141,8 @@ class FakeCloudKit {
         final stored = _Stored(
           name,
           write.type,
-          Map.of(write.fields),
-          write.body,
+          update ? {...current!.fields, ...write.fields} : Map.of(write.fields),
+          update ? current!.body : write.body,
           't${++_tags}',
         );
         db.records[name] = stored;

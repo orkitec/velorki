@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart' hide isNotNull, isNull;
@@ -35,6 +36,9 @@ StoreSave _save(
   ifVersion: ifVersion,
 );
 
+List<int> _gz(String content, {int level = 6}) =>
+    ZLibCodec(gzip: true, level: level).encode(utf8.encode(content));
+
 String _versionOf(StoreResult result) => (result as StoreDone).version!;
 
 void main() {
@@ -50,6 +54,120 @@ void main() {
     other = cloud.client();
     store = CloudKitJsCloudStore(api: browser, state: MapSyncState());
     otherStore = CloudKitJsCloudStore(api: other, state: MapSyncState());
+  });
+
+  test('only CloudKit upload URLs are routed to the relay', () {
+    const ok = 'https://cws.icloud-content.com/B/a/singleFileUpload?tk=t';
+    expect(isCloudKitUploadUrl(ok), isTrue);
+    expect(
+      isCloudKitUploadUrl(
+        'https://p57-contentws.icloud.com/a/singleFileUpload?tk=t',
+      ),
+      isTrue,
+    );
+    for (final bad in [
+      'http://cws.icloud-content.com/B/a/singleFileUpload?tk=t',
+      'https://cws.icloud-content.com.evil.example/a/singleFileUpload?tk=t',
+      'https://cws.icloud-content.com:8443/a/singleFileUpload?tk=t',
+      'https://u:p@cws.icloud-content.com/a/singleFileUpload?tk=t',
+      'https://cws.icloud-content.com/a/other?tk=t',
+      'https://cws.icloud-content.com/a/singleFileUpload',
+      'https://cvws.icloud-content.com/a/singleFileUpload?tk=t',
+      'https://api.apple-cloudkit.com/database/1/x',
+    ]) {
+      expect(isCloudKitUploadUrl(bad), isFalse, reason: bad);
+    }
+  });
+
+  group('an unchanged body', () {
+    final track = 'x' * 4000;
+
+    test('is not uploaded again: a rename sends the fields alone', () async {
+      final [first] = await store.push([_save('route_1', body: _gz(track))]);
+      final [renamed] = await store.push([
+        _save(
+          'route_1',
+          ifVersion: _versionOf(first),
+          fields: const {
+            'name': 'B',
+            'modifiedAt': 2,
+            'distanceM': 42000.0,
+            'ascentM': 310.5,
+          },
+          // Another compressor, the same content.
+          body: _gz(track, level: 1),
+        ),
+      ]);
+      expect(renamed, isA<StoreDone>());
+      expect(cloud.writes, ['create route_1', 'update route_1']);
+
+      final read = (await otherStore.get('route_1'))!;
+      expect(read.fields['name'], 'B');
+      expect(read.body, _gz(track), reason: 'the body on the server is kept');
+      expect(read.version, _versionOf(renamed));
+
+      // And the next save after it is an update again.
+      final [again] = await store.push([
+        _save(
+          'route_1',
+          ifVersion: _versionOf(renamed),
+          fields: const {
+            'name': 'C',
+            'modifiedAt': 3,
+            'distanceM': 42000.0,
+            'ascentM': 310.5,
+          },
+          body: _gz(track),
+        ),
+      ]);
+      expect(again, isA<StoreDone>());
+      expect(cloud.writes.last, 'update route_1');
+    });
+
+    test('is known from what was downloaded, too', () async {
+      await otherStore.push([_save('route_1', body: _gz(track))]);
+      final read = (await store.get('route_1'))!;
+      final [saved] = await store.push([
+        _save('route_1', ifVersion: read.version, body: _gz(track)),
+      ]);
+      expect(saved, isA<StoreDone>());
+      expect(cloud.writes.last, 'update route_1');
+    });
+
+    test('a changed track is replaced, body and all', () async {
+      final [first] = await store.push([_save('route_1', body: _gz(track))]);
+      final [second] = await store.push([
+        _save('route_1', ifVersion: _versionOf(first), body: _gz('${track}y')),
+      ]);
+      expect(cloud.writes, ['create route_1', 'replace route_1']);
+      expect((await otherStore.get('route_1'))!.body, _gz('${track}y'));
+      // The new body is the one known now.
+      await store.push([
+        _save('route_1', ifVersion: _versionOf(second), body: _gz('${track}y')),
+      ]);
+      expect(cloud.writes.last, 'update route_1');
+    });
+
+    test('with no digest known the body goes up as before', () async {
+      final [first] = await store.push([_save('route_1', body: _gz(track))]);
+      final tag = _versionOf(first).split('#').first;
+      await store.push([_save('route_1', ifVersion: tag, body: _gz(track))]);
+      expect(cloud.writes, ['create route_1', 'replace route_1']);
+    });
+
+    test('a changed set of fields is replaced, not updated', () async {
+      final [first] = await store.push([_save('route_1', body: _gz(track))]);
+      await store.push([
+        _save(
+          'route_1',
+          ifVersion: _versionOf(first),
+          fields: const {'name': 'A', 'modifiedAt': 1},
+          body: _gz(track),
+        ),
+      ]);
+      expect(cloud.writes.last, 'replace route_1');
+      expect(cloud.fieldsOf('user-a', 'route_1')!.keys, {'name', 'modifiedAt'});
+    });
   });
 
   group('a record', () {
@@ -430,7 +548,7 @@ void main() {
       final writes = cloud.writes.length;
       browser.signIn('user-a');
       await web.syncNow();
-      expect(cloud.writes.sublist(writes), ['replace route_r1']);
+      expect(cloud.writes.sublist(writes), ['update route_r1']);
       expect((await web.statusNow()).error, isNull);
       await pad.syncNow();
       expect(await pad.routeName('r1'), 'Offline');
@@ -466,7 +584,7 @@ void main() {
       // As the controller's resume: the account looked at first.
       await web.engine.fetchNow();
       await web.syncNow();
-      expect(cloud.writes.sublist(writes), ['replace route_r1']);
+      expect(cloud.writes.sublist(writes), ['update route_r1']);
       expect((await web.statusNow()).error, isNull);
       expect(await web.db.syncDao.dirtyRecords(), isEmpty);
       expect(web.accountChanges, isEmpty);

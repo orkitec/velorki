@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value;
 import 'package:path/path.dart' as p;
 import 'package:velorki_io/io.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_io/worker.dart';
 
 import '../../../core/db/database.dart';
@@ -36,8 +37,16 @@ class DecodedRecord<T> {
 ///
 /// Small values are record fields; the track and everything else that can
 /// grow (waypoints, turns, points of interest, the original file's line)
-/// goes into one gzip-compressed JSON file sent as the `body` asset, so no
-/// record comes near CloudKit's 1 MB limit for fields.
+/// goes into one gzip-compressed file sent as the `body` asset, so no record
+/// comes near CloudKit's 1 MB limit for fields.
+///
+/// The body, once decompressed: the bytes `00 'V' 'B' 02`, a u32 (little
+/// endian) length and that many bytes of UTF-8 JSON (the text values, and
+/// under `blobs` the name and kind of each binary value in order), then per
+/// blob a u32 length and its bytes. Kind `track` is a [CompactTrack], `series`
+/// a [CompactSeries], `raw` the column's bytes as they are (anything either
+/// could not hold). A body from before this format is gzip JSON starting
+/// with `{` where the blobs are base64 strings; it is still read.
 ///
 /// Never in a record: a route's partner ids and the time it was read from
 /// its service (Ride with GPS ids stay on the phone that imported it; Strava
@@ -61,7 +70,7 @@ class RecordCodec {
   }) async {
     final name = recordNameOf(SyncKind.route, row.id);
     final body = <String, Object?>{
-      'geometry': base64Encode(row.geometry),
+      'geometry': _Blob.track(row.geometry),
       'waypoints': row.waypointsJson,
       'routingOptions': row.routingOptionsJson,
       'surfaceStats': row.surfaceStatsJson,
@@ -69,7 +78,7 @@ class RecordCodec {
       'pois': row.poisJson,
       'original': row.originalJson,
       if (row.originalGeometry != null)
-        'originalGeometry': base64Encode(row.originalGeometry!),
+        'originalGeometry': _Blob.track(row.originalGeometry!),
     };
     return CloudRecord(
       name: name,
@@ -162,13 +171,13 @@ class RecordCodec {
   }) async {
     final name = recordNameOf(SyncKind.ride, row.id);
     final body = <String, Object?>{
-      'geometry': base64Encode(row.geometry),
+      'geometry': _Blob.track(row.geometry),
       'pauses': row.pausesJson,
       'surfaceStats': row.surfaceStatsJson,
       'laps': row.lapsJson,
       'deviceTotals': row.deviceTotalsJson,
       if (row.temperatures != null)
-        'temperatures': base64Encode(row.temperatures!),
+        'temperatures': _Blob.series(row.temperatures!),
     };
     return CloudRecord(
       name: name,
@@ -251,13 +260,86 @@ class RecordCodec {
   Future<String> _writeBody(String name, Map<String, Object?> body) async {
     await outbox.create(recursive: true);
     final path = p.join(outbox.path, '$name.json.gz');
-    // A long track is megabytes of JSON: encoded and compressed off the
-    // UI isolate where there are isolates.
-    final bytes = await runIsolated(
-      () => gzip.encode(utf8.encode(jsonEncode(body))),
-    );
+    // A long track is megabytes: compacted and compressed off the UI
+    // isolate where there are isolates.
+    final bytes = await runIsolated(() => gzip.encode(_container(body)));
     await File(path).writeAsBytes(bytes, flush: true);
     return path;
+  }
+
+  static const List<int> _magic = <int>[0, 0x56, 0x42, 2];
+
+  /// The same body always gives the same bytes: keys keep the order they
+  /// were put in, and nothing in the container depends on the clock.
+  static Uint8List _container(Map<String, Object?> body) {
+    final text = <String, Object?>{};
+    final blobs = <(String, int, Uint8List)>[];
+    for (final MapEntry(:key, :value) in body.entries) {
+      if (value is _Blob) {
+        final (kind, data) = value.compact();
+        blobs.add((key, kind, data));
+      } else {
+        text[key] = value;
+      }
+    }
+    text['blobs'] = [
+      for (final (name, kind, _) in blobs)
+        {'name': name, 'kind': _Blob.kindNames[kind]},
+    ];
+    final json = utf8.encode(jsonEncode(text));
+    final out = BytesBuilder(copy: false)..add(_magic);
+    void length(int n) => out.add(
+      (ByteData(4)..setUint32(0, n, Endian.little)).buffer.asUint8List(),
+    );
+    length(json.length);
+    out.add(json);
+    for (final (_, _, data) in blobs) {
+      length(data.length);
+      out.add(data);
+    }
+    return out.takeBytes();
+  }
+
+  /// The body as a map of text values and, for blobs, [Uint8List]s in the
+  /// form the database holds (old bodies keep theirs as base64 strings,
+  /// which [_bytes] reads). Null when it is neither format.
+  static Map<String, Object?>? _parseBody(Uint8List raw) {
+    if (raw.isEmpty) return null;
+    if (raw[0] == 0x7B) {
+      final decoded = jsonDecode(utf8.decode(raw));
+      return decoded is Map<String, Object?> ? decoded : null;
+    }
+    for (var i = 0; i < _magic.length; i++) {
+      if (raw.length <= i || raw[i] != _magic[i]) return null;
+    }
+    final data = ByteData.sublistView(raw);
+    var at = _magic.length;
+    int length() {
+      final n = data.getUint32(at, Endian.little);
+      at += 4;
+      if (n > raw.length - at) throw const FormatException('truncated body');
+      return n;
+    }
+
+    final jsonLength = length();
+    final decoded = jsonDecode(
+      utf8.decode(Uint8List.sublistView(raw, at, at + jsonLength)),
+    );
+    at += jsonLength;
+    if (decoded is! Map<String, Object?>) return null;
+    final blobs = decoded.remove('blobs');
+    if (blobs is List) {
+      for (final blob in blobs) {
+        if (blob is! Map) continue;
+        final n = length();
+        decoded[blob['name'] as String] = _Blob.expand(
+          _Blob.kindNames.indexOf(blob['kind'] as String),
+          Uint8List.sublistView(raw, at, at + n),
+        );
+        at += n;
+      }
+    }
+    return decoded;
   }
 
   /// Reads a body file and deletes it: an incoming file is the codec's to
@@ -267,10 +349,9 @@ class RecordCodec {
     final file = File(path);
     try {
       final bytes = await file.readAsBytes();
-      final decoded = await runIsolated(
-        () => jsonDecode(utf8.decode(gzip.decode(bytes))),
+      return await runIsolated(
+        () => _parseBody(Uint8List.fromList(gzip.decode(bytes))),
       );
-      return decoded is Map<String, Object?> ? decoded : null;
     } on Object {
       return null;
     } finally {
@@ -295,6 +376,7 @@ class RecordCodec {
       value is num ? DateTime.fromMillisecondsSinceEpoch(value.toInt()) : null;
 
   static Uint8List? _bytes(Object? value) {
+    if (value is Uint8List) return value;
     if (value is! String) return null;
     try {
       return base64Decode(value);
@@ -302,4 +384,35 @@ class RecordCodec {
       return null;
     }
   }
+}
+
+/// A binary column on its way into a body: how to compact it, and back.
+class _Blob {
+  const _Blob.track(this.bytes) : _kind = 1;
+  const _Blob.series(this.bytes) : _kind = 2;
+
+  /// Kind names as the body's JSON spells them, by kind number; 0 is raw.
+  static const List<String> kindNames = <String>['raw', 'track', 'series'];
+
+  final Uint8List bytes;
+  final int _kind;
+
+  /// The kind written and the bytes: the column as it is when it cannot be
+  /// compacted (a blob some other build wrote, an odd length).
+  (int, Uint8List) compact() {
+    try {
+      return switch (_kind) {
+        1 => (1, CompactTrack.encode(bytes)),
+        _ => (2, CompactSeries.encode(bytes)),
+      };
+    } on FormatException {
+      return (0, bytes);
+    }
+  }
+
+  static Uint8List expand(int kind, Uint8List data) => switch (kind) {
+    1 => CompactTrack.decode(data),
+    2 => CompactSeries.decode(data),
+    _ => Uint8List.fromList(data),
+  };
 }
