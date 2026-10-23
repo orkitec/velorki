@@ -30,6 +30,7 @@ import 'heading_smoother.dart';
 import 'tile_template.dart';
 import 'weather_map_preferences.dart' show WeatherOpacity;
 import 'weather_paint.dart';
+import 'town_dot_image.dart';
 import 'wind_arrow_image.dart';
 
 /// Source and layer ids. Everything Velorki adds to the style is prefixed so
@@ -1157,6 +1158,16 @@ class MaplibreMapControllerAdapter implements MapController {
     _ops.onFeatureTapped.add(_handleFeatureTapped);
 
     await _addCyclosmLayer();
+    // A fix for the base style, not ours: nothing else reads it, and a style
+    // that has the image already only keeps its own.
+    try {
+      await _ops.addImage(
+        townDotImage,
+        buildTownDotImage(devicePixelRatio: devicePixelRatio),
+      );
+    } on Object {
+      // Without it the base map only misses its town dots.
+    }
 
     final layers = _baseLayerProperties();
     Future<void> add(

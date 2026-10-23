@@ -198,7 +198,10 @@ class MapControls extends ConsumerWidget {
     String message, {
     SnackBarAction? action,
   }) {
-    messenger?.showSnackBar(SnackBar(content: Text(message), action: action));
+    messenger?.showSnackBar(
+      // With an action Flutter keeps a snack bar until it is closed.
+      SnackBar(content: Text(message), action: action, persist: false),
+    );
   }
 }
 

@@ -112,6 +112,7 @@ class RideTile extends ConsumerWidget {
     messenger.showSnackBar(
       SnackBar(
         content: Text(l10n.rideDeleted(ride.name)),
+        persist: false,
         action: SnackBarAction(
           label: l10n.commonUndo,
           onPressed: () => unawaited(repository.save(ride)),

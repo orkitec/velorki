@@ -806,6 +806,7 @@ class _RouteTile extends ConsumerWidget {
     messenger.showSnackBar(
       SnackBar(
         content: Text(l10n.libraryRouteDeleted(route.name)),
+        persist: false,
         action: SnackBarAction(
           label: l10n.commonUndo,
           onPressed: () => unawaited(repository.restore(route)),
