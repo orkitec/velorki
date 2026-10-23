@@ -9,7 +9,6 @@
   "plannerPlaceholder": "La planification d’itinéraires arrive avec l’étape « carte ».",
   "recordingPlaceholder": "L’enregistrement des sorties arrive avec l’étape « enregistrement ».",
   "libraryPlaceholder": "Les itinéraires et sorties enregistrés apparaîtront ici.",
-  "settingsAdvanced": "Avancé",
   "settingsServerUrls": "URL des serveurs",
   "settingsServerUrlsHint": "Laissez un champ vide pour utiliser l’adresse fournie avec cette version.",
   "settingsBrouterUrl": "URL BRouter",
@@ -512,7 +511,6 @@
   "accentBerry": "Baie",
   "accentForest": "Forêt",
   "plannerVariants": "Variantes",
-  "settingsSubscription": "Abonnement",
   "assistantAction": "Demander",
   "assistantTitle": "Demander un itinéraire",
   "assistantIntro": "Décrivez la sortie que vous avez en tête. Velorki en fait une demande et calcule l’itinéraire sur cet appareil.",
@@ -987,7 +985,6 @@
   "rideHeartRateZones": "Zones de FC · max {max}",
   "rideHeartRateZoneLabel": "Z{zone} · {low}–{high} %",
   "rideHeartRateZoneShare": "{percent} %",
-  "settingsRider": "Cycliste",
   "settingsRiderCalories": "Estimer les calories",
   "settingsRiderCaloriesHint": "D’après votre capteur de puissance si vous en avez un, sinon d’après votre fréquence cardiaque, sinon d’après votre vitesse. Nécessite votre poids ; la fréquence cardiaque nécessite aussi votre année de naissance et votre sexe",
   "settingsRiderZones": "Zones de FC",
@@ -1270,5 +1267,10 @@
   "storeUpdateLater": "Plus tard",
   "storeUpdateReadyTitle": "Mise à jour téléchargée",
   "storeUpdateReadyBody": "Redémarrez Velorki pour terminer l’installation de la nouvelle version.",
-  "storeUpdateRestart": "Redémarrer"
+  "storeUpdateRestart": "Redémarrer",
+  "settingsGroupSyncPlus": "Synchronisation et Plus",
+  "settingsGroupRiding": "À vélo",
+  "settingsGroupApp": "Application",
+  "settingsRiderAndBike": "Cycliste et vélo",
+  "settingsMapsData": "Cartes et données"
 }

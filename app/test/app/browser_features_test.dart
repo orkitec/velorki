@@ -12,10 +12,12 @@ import 'package:velorki/app/router.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/offline/presentation/offline_entry.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
+import 'package:velorki/features/settings/presentation/settings_screen.dart';
 import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
 import 'package:velorki/features/sync/presentation/cloud_sync_section.dart';
 
 import '../support/app.dart';
+import '../support/settings.dart';
 
 /// The app as a browser gets it: [PlatformFeatures.browser] and the router
 /// built without the Record tab, on a tall window so the settings fit.
@@ -104,7 +106,7 @@ void main() {
       find.widgetWithText(NavigationDestination, l10n.tabSettings),
     );
     await tester.pumpAndSettle();
-    expect(find.text(l10n.settingsAppearance.toUpperCase()), findsOneWidget);
+    expect(find.byType(SettingsScreen), findsOneWidget);
     await tester.tap(
       find.widgetWithText(NavigationDestination, l10n.tabLibrary),
     );
@@ -136,21 +138,22 @@ void main() {
     await tester.pumpAndSettle();
 
     for (final kept in [
-      l10n.settingsAppearance,
-      l10n.settingsRider,
-      l10n.settingsSubscription,
-      l10n.settingsAdvanced,
+      SettingsTopic.plus,
+      SettingsTopic.rider,
+      SettingsTopic.appearance,
+      SettingsTopic.mapsData,
     ]) {
-      expect(find.text(kept.toUpperCase()), findsOneWidget, reason: kept);
+      expect(settingsRow(kept), findsOneWidget, reason: '$kept');
     }
     for (final gone in [
-      l10n.settingsNavigation,
-      l10n.settingsRecording,
-      l10n.settingsSensors,
-      l10n.settingsConnections,
+      SettingsTopic.navigation,
+      SettingsTopic.recording,
+      SettingsTopic.sensors,
+      SettingsTopic.connections,
     ]) {
-      expect(find.text(gone.toUpperCase()), findsNothing, reason: gone);
+      expect(settingsRow(gone), findsNothing, reason: '$gone');
     }
+    await openSettingsTopic(tester, SettingsTopic.mapsData);
     expect(find.byType(OfflineEntry), findsNothing);
     // It routes on its own: no choice of where, no routing server's address.
     expect(find.text(l10n.settingsRouting), findsNothing);
@@ -172,7 +175,7 @@ void main() {
       find.widgetWithText(NavigationDestination, l10n.tabSettings),
     );
     await tester.pumpAndSettle();
-    expect(find.text(l10n.settingsSync.toUpperCase()), findsNothing);
+    expect(settingsRow(SettingsTopic.sync), findsNothing);
     expect(find.byType(CloudSyncSection), findsNothing);
     debugDefaultTargetPlatformOverride = null;
     await _unmount(tester);

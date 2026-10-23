@@ -36,10 +36,6 @@
   "@libraryPlaceholder": {
     "description": "Placeholder body of the empty Library tab"
   },
-  "settingsAdvanced": "Advanced",
-  "@settingsAdvanced": {
-    "description": "Settings section header for expert options"
-  },
   "settingsServerUrls": "Server URLs",
   "@settingsServerUrls": {
     "description": "Settings subsection for overriding the built-in server addresses"
@@ -2664,10 +2660,6 @@
   "@plannerVariants": {
     "description": "Short label under the alternative-routes icon button in the planner toolbar"
   },
-  "settingsSubscription": "Subscription",
-  "@settingsSubscription": {
-    "description": "Settings section header above the Plus tile"
-  },
   "assistantAction": "Ask",
   "@assistantAction": {
     "description": "Planner button that opens the assistant sheet"
@@ -5034,10 +5026,6 @@
       }
     }
   },
-  "settingsRider": "Rider",
-  "@settingsRider": {
-    "description": "Settings section header for what the rider tells the app about themselves"
-  },
   "settingsRiderCalories": "Estimate calories",
   "@settingsRiderCalories": {
     "description": "Switch that shows a calorie estimate on each ride"
@@ -6481,5 +6469,25 @@
   "storeUpdateRestart": "Restart",
   "@storeUpdateRestart": {
     "description": "Button in the update-downloaded dialog that restarts the app to install the update"
+  },
+  "settingsGroupSyncPlus": "Sync & Plus",
+  "@settingsGroupSyncPlus": {
+    "description": "Caption over the Settings overview group with Sync, Velorki Plus and Connections"
+  },
+  "settingsGroupRiding": "Riding",
+  "@settingsGroupRiding": {
+    "description": "Caption over the Settings overview group with Navigation, Recording, Rider & bike and Sensors"
+  },
+  "settingsGroupApp": "App",
+  "@settingsGroupApp": {
+    "description": "Caption over the Settings overview group with Appearance, AI assistant, Maps & data and About"
+  },
+  "settingsRiderAndBike": "Rider & bike",
+  "@settingsRiderAndBike": {
+    "description": "Settings row and page title: weight, age, heart rate and power of the rider, and their bike"
+  },
+  "settingsMapsData": "Maps & data",
+  "@settingsMapsData": {
+    "description": "Settings row and page title: offline map areas, search, where routes are computed and the server URLs"
   }
 }

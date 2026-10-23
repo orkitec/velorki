@@ -58,9 +58,12 @@ import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import 'package:velorki/features/settings/presentation/settings_screen.dart';
+
 import '../../support/app.dart';
 import '../../support/chart_cursor.dart';
 import '../../support/format.dart';
+import '../../support/settings.dart';
 import '../search/support/gazetteer_fixture.dart';
 import '../planner/support/fakes.dart' show MapCall, syntheticRoute;
 import 'support/pump.dart';
@@ -1642,6 +1645,7 @@ void main() {
       go(tester, settingsRoute);
       await tester.pumpAndSettle();
       expect(h.screenWake.enabled, isFalse, reason: 'Record is away');
+      await openSettingsTopic(tester, SettingsTopic.recording);
       // To the middle: at the bottom edge the floating bar would take the tap.
       unawaited(
         Scrollable.ensureVisible(tester.element(keepOn), alignment: 0.5),

@@ -9,7 +9,6 @@
   "plannerPlaceholder": "La pianificazione dei percorsi arriva con la tappa della mappa.",
   "recordingPlaceholder": "La registrazione dei giri arriva con la tappa della registrazione.",
   "libraryPlaceholder": "Qui compariranno i percorsi e i giri salvati.",
-  "settingsAdvanced": "Avanzate",
   "settingsServerUrls": "URL dei server",
   "settingsServerUrlsHint": "Lascia un campo vuoto per usare l'indirizzo incluso in questa versione.",
   "settingsBrouterUrl": "URL di BRouter",
@@ -512,7 +511,6 @@
   "accentBerry": "Lampone",
   "accentForest": "Foresta",
   "plannerVariants": "Varianti",
-  "settingsSubscription": "Abbonamento",
   "assistantAction": "Chiedi",
   "assistantTitle": "Chiedi un percorso",
   "assistantIntro": "Descrivi il giro che hai in mente. Velorki lo trasforma in una richiesta e pianifica il percorso su questo dispositivo.",
@@ -987,7 +985,6 @@
   "rideHeartRateZones": "Zone FC · max {max}",
   "rideHeartRateZoneLabel": "Z{zone} · {low}–{high} %",
   "rideHeartRateZoneShare": "{percent} %",
-  "settingsRider": "Ciclista",
   "settingsRiderCalories": "Stima calorie",
   "settingsRiderCaloriesHint": "Dal misuratore di potenza se ne hai uno, altrimenti dalla frequenza cardiaca, altrimenti dalla velocità. Serve il tuo peso; la frequenza cardiaca richiede anche anno di nascita e sesso",
   "settingsRiderZones": "Zone di frequenza cardiaca",
@@ -1270,5 +1267,10 @@
   "storeUpdateLater": "Più tardi",
   "storeUpdateReadyTitle": "Aggiornamento scaricato",
   "storeUpdateReadyBody": "Riavvia Velorki per completare l'installazione della nuova versione.",
-  "storeUpdateRestart": "Riavvia"
+  "storeUpdateRestart": "Riavvia",
+  "settingsGroupSyncPlus": "Sincronizzazione e Plus",
+  "settingsGroupRiding": "In bici",
+  "settingsGroupApp": "App",
+  "settingsRiderAndBike": "Ciclista e bici",
+  "settingsMapsData": "Mappe e dati"
 }

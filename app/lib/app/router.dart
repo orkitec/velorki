@@ -48,6 +48,9 @@ const String recordingRoute = '/record';
 const String libraryRoute = '/library';
 const String settingsRoute = '/settings';
 
+/// Settings → Connections, over the settings overview.
+const String settingsConnectionsRoute = '$settingsRoute/connections';
+
 /// The import preview, outside the tab shell so it covers whichever tab is
 /// showing when a file arrives. The [ImportCandidate] travels in `extra`.
 const String importRoute = '/import';
@@ -236,6 +239,16 @@ GoRouter createRouter({
                   name: state.name ?? state.path,
                   child: const SettingsScreen(),
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'connections',
+                    pageBuilder: (context, state) => ColumnPage<void>(
+                      key: state.pageKey,
+                      name: state.name ?? state.path,
+                      child: const SettingsTopicPage(SettingsTopic.connections),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

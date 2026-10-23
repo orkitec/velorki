@@ -9,7 +9,6 @@
   "plannerPlaceholder": "Routeplanning komt met de kaartmijlpaal.",
   "recordingPlaceholder": "Ritten opnemen komt met de opnamemijlpaal.",
   "libraryPlaceholder": "Opgeslagen routes en ritten verschijnen hier.",
-  "settingsAdvanced": "Geavanceerd",
   "settingsServerUrls": "Server-URL's",
   "settingsServerUrlsHint": "Laat een veld leeg om het adres te gebruiken dat met deze build meekomt.",
   "settingsBrouterUrl": "BRouter-URL",
@@ -512,7 +511,6 @@
   "accentBerry": "Bes",
   "accentForest": "Bos",
   "plannerVariants": "Varianten",
-  "settingsSubscription": "Abonnement",
   "assistantAction": "Vragen",
   "assistantTitle": "Vraag om een route",
   "assistantIntro": "Beschrijf de rit die je in gedachten hebt. Velorki maakt er een verzoek van en plant de route op dit apparaat.",
@@ -987,7 +985,6 @@
   "rideHeartRateZones": "Hartslagzones · max {max}",
   "rideHeartRateZoneLabel": "Z{zone} · {low}–{high} %",
   "rideHeartRateZoneShare": "{percent} %",
-  "settingsRider": "Fietser",
   "settingsRiderCalories": "Calorieën schatten",
   "settingsRiderCaloriesHint": "Uit je vermogensmeter als je die hebt, anders uit je hartslag, anders uit je snelheid. Heeft je gewicht nodig; hartslag heeft ook je geboortejaar en geslacht nodig",
   "settingsRiderZones": "Hartslagzones",
@@ -1270,5 +1267,10 @@
   "storeUpdateLater": "Niet nu",
   "storeUpdateReadyTitle": "Update gedownload",
   "storeUpdateReadyBody": "Start Velorki opnieuw om de installatie van de nieuwe versie af te ronden.",
-  "storeUpdateRestart": "Opnieuw starten"
+  "storeUpdateRestart": "Opnieuw starten",
+  "settingsGroupSyncPlus": "Synchronisatie en Plus",
+  "settingsGroupRiding": "Onderweg",
+  "settingsGroupApp": "App",
+  "settingsRiderAndBike": "Fietser en fiets",
+  "settingsMapsData": "Kaarten en gegevens"
 }

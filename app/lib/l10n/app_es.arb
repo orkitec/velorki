@@ -9,7 +9,6 @@
   "plannerPlaceholder": "La planificación de rutas llega con el hito del mapa.",
   "recordingPlaceholder": "La grabación de salidas llega con el hito de grabación.",
   "libraryPlaceholder": "Aquí aparecerán tus rutas y salidas guardadas.",
-  "settingsAdvanced": "Avanzado",
   "settingsServerUrls": "URL de los servidores",
   "settingsServerUrlsHint": "Deja un campo vacío para usar la dirección incluida en esta versión.",
   "settingsBrouterUrl": "URL de BRouter",
@@ -512,7 +511,6 @@
   "accentBerry": "Baya",
   "accentForest": "Bosque",
   "plannerVariants": "Variantes",
-  "settingsSubscription": "Suscripción",
   "assistantAction": "Preguntar",
   "assistantTitle": "Pide una ruta",
   "assistantIntro": "Describe la salida que tienes en mente. Velorki la convierte en una petición y planifica la ruta en este dispositivo.",
@@ -987,7 +985,6 @@
   "rideHeartRateZones": "Zonas de pulso · máx. {max}",
   "rideHeartRateZoneLabel": "Z{zone} · {low}–{high} %",
   "rideHeartRateZoneShare": "{percent} %",
-  "settingsRider": "Ciclista",
   "settingsRiderCalories": "Estimar calorías",
   "settingsRiderCaloriesHint": "Según tu potenciómetro si tienes uno; si no, según tu pulso; si no, según tu velocidad. Necesita tu peso; el pulso también necesita tu año de nacimiento y tu sexo",
   "settingsRiderZones": "Zonas de pulso",
@@ -1270,5 +1267,10 @@
   "storeUpdateLater": "Más tarde",
   "storeUpdateReadyTitle": "Actualización descargada",
   "storeUpdateReadyBody": "Reinicia Velorki para terminar de instalar la nueva versión.",
-  "storeUpdateRestart": "Reiniciar"
+  "storeUpdateRestart": "Reiniciar",
+  "settingsGroupSyncPlus": "Sincronización y Plus",
+  "settingsGroupRiding": "En bici",
+  "settingsGroupApp": "App",
+  "settingsRiderAndBike": "Ciclista y bici",
+  "settingsMapsData": "Mapas y datos"
 }

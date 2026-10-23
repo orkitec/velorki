@@ -36,6 +36,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../features/recording/support/pump.dart';
 import '../support/app.dart';
+import '../support/settings.dart';
 
 // The wide layout is a phone placed in a column over a full-window map:
 // what is in the column runs the phone's own code, which the rest of the
@@ -733,6 +734,11 @@ void main() {
         final column = wide ? _column(size) : Offset.zero & size;
         expect(page.left, closeTo(column.left, 1));
         expect(page.width, closeTo(column.width, 1));
+        // Appearance's page in the column too.
+        await openSettingsTopic(tester, SettingsTopic.appearance);
+        final topic = _rect(tester, find.byType(SettingsTopicPage));
+        expect(topic.left, closeTo(column.left, 1));
+        expect(topic.width, closeTo(column.width, 1));
         await tester.scrollUntilVisible(
           find.text(l10n.appearanceRadarStyle),
           200,

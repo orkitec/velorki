@@ -58,11 +58,10 @@ void main() {
       await unmountApp(tester);
       return;
     }
-    await tester.scrollUntilVisible(
-      find.byType(CloudSyncSection),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
+    // Sync is the overview's first row.
+    await tester.tap(find.byKey(const ValueKey(SettingsTopic.sync)));
+    await pumpFor(tester, const Duration(seconds: 1));
+    expect(find.byType(CloudSyncSection), findsOneWidget);
     await waitUntil(
       tester,
       () =>

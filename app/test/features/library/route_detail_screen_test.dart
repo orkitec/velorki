@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:velorki/features/integrations/common/data/connected_accounts_repository.dart';
 import 'package:velorki/features/integrations/common/data/secure_key_value_store.dart';
 import 'package:velorki/features/integrations/common/domain/connected_account.dart';
+import 'package:velorki/features/integrations/presentation/connections_section.dart';
 import 'package:velorki/features/integrations/presentation/strava_brand.dart';
 import 'package:velorki/features/integrations/testing/in_memory_secure_key_value_store.dart';
 import 'package:velorki/core/db/tables/routes.dart';
@@ -491,7 +492,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(l10n.shareRouteTitle), findsNothing);
+      // On Settings → Connections, the overview under it.
+      expect(find.byType(ConnectionsSection), findsOneWidget);
+      await tapBack(tester);
       expect(find.byType(SettingsScreen), findsOneWidget);
+      expect(find.byType(ConnectionsSection), findsNothing);
       await unmountApp(tester);
     });
 

@@ -22,6 +22,7 @@ import 'package:velorki/features/sync/domain/sync_service.dart';
 import 'package:velorki/features/sync/presentation/cloud_sync_section.dart';
 
 import '../../support/app.dart';
+import '../../support/settings.dart';
 import '../planner/support/pump.dart';
 import 'support/fake_cloud.dart';
 import 'support/fake_cloudkit.dart';
@@ -442,6 +443,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(SettingsScreen), findsOneWidget);
+      expect(settingsRow(SettingsTopic.sync), findsNothing);
       expect(find.byType(CloudSyncSection), findsNothing);
       await unmountApp(tester);
     });
@@ -449,6 +451,7 @@ void main() {
     testWidgets('is not there without an engine (Android)', (tester) async {
       await pumpApp(tester, initialLocation: settingsRoute);
       await tester.pumpAndSettle();
+      expect(settingsRow(SettingsTopic.sync), findsNothing);
       expect(find.byType(CloudSyncSection), findsNothing);
       await unmountApp(tester);
     });
@@ -460,11 +463,7 @@ void main() {
         extraOverrides: idle(),
       );
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.byType(CloudSyncSection),
-        300,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await openSettingsTopic(tester, SettingsTopic.sync);
       expect(find.text(l10n.cloudSyncWith), findsOneWidget);
       await unmountApp(tester);
     });
@@ -477,11 +476,7 @@ void main() {
         extraOverrides: idle(google: true, iCloud: false),
       );
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.byType(CloudSyncSection),
-        300,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await openSettingsTopic(tester, SettingsTopic.sync);
       expect(find.text(l10n.cloudSyncServiceGoogle), findsOneWidget);
       expect(find.text(l10n.cloudSyncServiceICloud), findsNothing);
       expect(find.text(l10n.cloudSyncOff), findsOneWidget);

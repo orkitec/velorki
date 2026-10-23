@@ -170,6 +170,7 @@ const Map<String, String> sameAsEnglish = <String, String>{
   // Words the target languages borrowed.
   'commonOk': 'the same word in most languages',
   'shareLinkRowTitle': 'a borrowed word (link)',
+  'settingsGroupApp': 'a borrowed word (app)',
   'importFormatFit': 'file format',
   'importFormatTcx': 'file format',
   // Units and their symbols.

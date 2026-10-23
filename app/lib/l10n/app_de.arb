@@ -9,7 +9,6 @@
   "plannerPlaceholder": "Routenplanung kommt mit dem Karten-Meilenstein.",
   "recordingPlaceholder": "Fahrtenaufzeichnung kommt mit dem Aufnahme-Meilenstein.",
   "libraryPlaceholder": "Gespeicherte Routen und Fahrten erscheinen hier.",
-  "settingsAdvanced": "Erweitert",
   "settingsServerUrls": "Server-URLs",
   "settingsServerUrlsHint": "Feld leer lassen, um die mitgelieferte Adresse zu nutzen.",
   "settingsBrouterUrl": "BRouter-URL",
@@ -512,7 +511,6 @@
   "accentBerry": "Beere",
   "accentForest": "Wald",
   "plannerVariants": "Varianten",
-  "settingsSubscription": "Abo",
   "assistantAction": "Fragen",
   "assistantTitle": "Nach einer Route fragen",
   "assistantIntro": "Beschreibe die geplante Fahrt. Velorki macht daraus eine Anfrage und plant die Route auf diesem Gerät.",
@@ -987,7 +985,6 @@
   "rideHeartRateZones": "Pulszonen · max {max}",
   "rideHeartRateZoneLabel": "Z{zone} · {low}–{high} %",
   "rideHeartRateZoneShare": "{percent} %",
-  "settingsRider": "Fahrer",
   "settingsRiderCalories": "Kalorien schätzen",
   "settingsRiderCaloriesHint": "Aus deinem Leistungsmesser, wenn du einen hast, sonst aus deinem Puls, sonst aus deinem Tempo. Braucht dein Gewicht; der Puls braucht außerdem dein Geburtsjahr und dein Geschlecht",
   "settingsRiderZones": "Pulszonen",
@@ -1270,5 +1267,10 @@
   "storeUpdateLater": "Später",
   "storeUpdateReadyTitle": "Update heruntergeladen",
   "storeUpdateReadyBody": "Starte Velorki neu, um die neue Version fertig zu installieren.",
-  "storeUpdateRestart": "Neu starten"
+  "storeUpdateRestart": "Neu starten",
+  "settingsGroupSyncPlus": "Synchronisierung & Plus",
+  "settingsGroupRiding": "Unterwegs",
+  "settingsGroupApp": "App",
+  "settingsRiderAndBike": "Fahrer & Rad",
+  "settingsMapsData": "Karten & Daten"
 }
