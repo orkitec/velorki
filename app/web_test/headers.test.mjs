@@ -54,6 +54,10 @@ test('scripts come from the site, Google Identity Services and CloudKit JS only'
   assert.ok(csp['style-src'].includes('https://accounts.google.com/gsi/style'));
 });
 
+test("a place's details come from the OpenStreetMap API", () => {
+  assert.ok(csp['connect-src'].includes('https://api.openstreetmap.org'));
+});
+
 test('sync talks to Google Drive, CloudKit and their sign-in services', () => {
   for (const host of [
     'https://accounts.google.com/gsi/',
