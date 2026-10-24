@@ -39,12 +39,16 @@ double mapAttributionBottom(BuildContext context, {double gap = 6}) =>
 /// higher by [attributionBandHeight] ([floatingBarBottomGapFor]) and the
 /// chip goes on the safe area's edge, under the bar, clear of Android's
 /// navigation buttons. Turned sideways the bar is a rail at the side and
-/// the band along the bottom is the map's, so nothing changes there.
+/// the band along the bottom is the map's, so nothing changes there. In a
+/// wide window the chip is centred on the map beside the column, where the
+/// home indicator or Android's gesture handle crosses it, so it stands on
+/// the safe area's edge there.
 double? shellAttributionFloor(
   MediaQueryData screen,
   ShellLayout layout,
   TargetPlatform platform,
 ) {
+  if (layout.widePanel) return screen.viewPadding.bottom;
   if (layout.sideRail || !barRaisedForAttribution(screen, platform)) {
     return null;
   }

@@ -2458,7 +2458,8 @@ class MaplibreMapControllerAdapter implements MapController {
   /// Draws the groups' bubbles and layers again in the new palette.
   Future<void> _recolourStopGroups() async {
     final markers = MarkerLayers(palette);
-    for (final group in _stopGroupsInStyle) {
+    // A copy: a style change during the awaits below changes the groups.
+    for (final group in List<String>.of(_stopGroupsInStyle)) {
       await _ops.setLayerProperties(
         MapLayerIds.stopGroupLabelLayer(group),
         markers.name(field: 'name', chosenOnly: true),
