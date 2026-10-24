@@ -17,9 +17,9 @@ Everything you make and everything you download:
 - the access tokens for Strava and Ride with GPS if you connect them, which go into the phone's secure storage in a form only the Velorki relay can open, and are left out of backups.
 - what you take from Strava: your Strava name, the list of your Strava routes for at most 48 hours, the routes you import and the links from uploaded rides to their Strava activities. Disconnecting deletes all of it.
 
-None of it is uploaded anywhere unless you ask for it. The one exception is iCloud sync on an iPhone or iPad (iOS 17 or later): your routes, rides and a few settings go to your own iCloud, never to us, and Strava data stays on the phone. It is on by default and switched off in Settings, see [the library](./library#syncing-with-icloud-iphone-and-ipad).
+None of it is uploaded anywhere unless you ask for it. The one exception is cloud sync: your routes, rides and a few settings go to your own iCloud or your own Google Drive, never to us, and Strava data stays on the phone. On an iPhone or iPad iCloud is on by default; on Android sync is off until you choose a cloud. **Settings → Sync with** picks the cloud or turns sync off, see [the library](./library#syncing-with-icloud-or-google-drive).
 
-On Android, Velorki is deliberately left out of Google's cloud backup and out of device-to-device transfer, so your rides do not get copied off the phone by the system either. Moving to a new phone means exporting what you want to keep as GPX, FIT or TCX files, see [import and export](./import-and-export).
+On Android, Velorki is deliberately left out of Google's cloud backup and out of device-to-device transfer, so your rides do not get copied off the phone by the system either. To move to a new phone, turn on sync with Google, or export what you want to keep as GPX, FIT or TCX files, see [import and export](./import-and-export).
 
 ## What leaves the phone, and when
 
@@ -67,7 +67,7 @@ That route or ride, with its track, its name and its figures, is copied to our s
 
 ### When you buy Velorki Plus
 
-The store handles the payment and we never see your card. The subscription is checked against an anonymous random id that is not linked to a name, an email address or a device identifier.
+The store handles the payment and we never see your card. The subscription is checked against an anonymous random id that is not linked to a name, an email address or a device identifier. With sync on, the app also puts that id into your own cloud, so the planner in the browser, signed in to the same account, can use your Plus.
 
 ## What Velorki never does
 
@@ -81,7 +81,7 @@ The store handles the payment and we never see your card. The subscription is ch
 
 | What | How |
 |---|---|
-| A route or a ride | delete it in the [library](./library) |
+| A route or a ride | delete it in the [library](./library); with sync on, it goes from your cloud and your other devices too |
 | Offline map areas and routing tiles | delete them in [offline data](./offline-maps-and-routing) |
 | A Strava or Ride with GPS token, and everything from Strava | **Disconnect** in Settings → Connections |
 | Everything the app stored | uninstall the app |

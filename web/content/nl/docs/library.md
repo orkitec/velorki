@@ -6,7 +6,7 @@ order: 10
 
 Het tabblad Bibliotheek bevat alles wat je hebt bewaard: de routes die je hebt gepland en de ritten die je hebt opgenomen. Het is een kaart boven de landkaart, net als de tabbladen Plannen en Opnemen: de inhoud scrolt op elke hoogte, en de greep bovenaan verschuift hem; als er niets te scrollen is, verschuift de hele kaart. Trek hem omhoog voor meer ruimte, trek hem helemaal naar beneden en de kaart klapt in tot in de navigatiebalk, zodat de landkaart overblijft. Hier open je een route opnieuw, lees je de grafieken en splits van een rit, en haal je bestanden binnen en zet je ze naar buiten.
 
-Alles in de bibliotheek staat op de telefoon. Er is geen account. Op een iPhone of iPad kan het via iCloud tussen je eigen apparaten worden gesynchroniseerd, zie hieronder [iCloud-synchronisatie](#icloud-synchronisatie-iphone-en-ipad).
+Alles in de bibliotheek staat op de telefoon. Er is geen account. Het kan via je eigen iCloud of Google Drive tussen je eigen apparaten worden gesynchroniseerd, zie hieronder [synchroniseren met iCloud of Google Drive](#synchroniseren-met-icloud-of-google-drive).
 
 ## Routes en Ritten
 
@@ -114,13 +114,15 @@ De twee knoppen rechts in de kop van de kaart:
 
 Beide worden behandeld in [importeren en exporteren](./import-and-export) en [Strava en Ride with GPS](./strava-and-ridewithgps).
 
-## iCloud-synchronisatie (iPhone en iPad)
+## Synchroniseren met iCloud of Google Drive
 
-Op een iPhone of iPad met iOS 17 of nieuwer worden je opgeslagen routes en opgenomen ritten, met de track, de notities en de cijfers van elke rit, via je iCloud gesynchroniseerd tussen je eigen apparaten die met hetzelfde Apple-account zijn aangemeld. Een paar instellingen gaan mee: thema, accentkleur, kaartstijl, balkstijl, kant van de kolom, eenheden en de instellingen voor afslag- en spraakmeldingen. Velorki heeft hiervoor geen server en kan niet lezen wat er is opgeslagen; zie de [privacyverklaring](/privacy).
+Je opgeslagen routes en opgenomen ritten, met de track, de notities, de cijfers, de ronden en de sensorwaarden van elke rit, kunnen via je eigen cloud tussen je eigen apparaten worden gesynchroniseerd. **Instellingen → Synchroniseren met** kiest er per apparaat één: **iCloud** (iPhone en iPad met iOS 17 of nieuwer, en de planner in de browser), **Google** (iPhone, iPad, Android en de browser) of **Uit**. Op een iPhone of iPad staat iCloud standaard aan; op Android en in de browser staat synchronisatie uit totdat je een cloud kiest. Google bewaart de gegevens in een verborgen Velorki-map in je Google Drive; Velorki kan die map openen en verder niets in je Drive.
 
-Het staat standaard aan. **Synchroniseren met iCloud** in Instellingen zet het op dat apparaat uit; wat al in iCloud staat, blijft daar totdat je het verwijdert in de iCloud-instellingen van het apparaat. Een statusregel in Instellingen laat zien hoe het ervoor staat: **Zojuist gesynchroniseerd**, **Synchroniseren…**, **iCloud staat uit op dit apparaat** of **iCloud-opslag is vol**.
+Een paar instellingen gaan mee: thema, accentkleur, kaartstijl, de stijl van de regenradar, balkstijl, kant van de kolom, eenheden, en de instellingen voor afslagen, spraak en herberekenen. In de browser met iCloud blijven de instellingen in de browser. Velorki heeft hiervoor geen server en kan niet lezen wat er is opgeslagen; zie de [privacyverklaring](/privacy).
 
-Routes die uit Strava zijn gelezen en routes die daaruit zijn bewerkt, blijven op de telefoon, net als de Strava-links van ritten; ook de links van uploads naar Ride with GPS worden niet gesynchroniseerd. Gedownloade kaarten en routeringstegels worden niet gesynchroniseerd. De Android-app synchroniseert niet.
+Een route of een rit verwijderen verwijdert hem ook op je andere apparaten. **Uit** kiezen, afmelden of overstappen naar de andere cloud verwijdert niets: wat al in iCloud staat, blijft daar totdat je het verwijdert in de iCloud-instellingen op een Apple-apparaat, en wat in Google Drive staat, blijft daar totdat je het verwijdert in Google Drive op het web, onder Instellingen → Apps beheren → Velorki → Opties → Verborgen app-gegevens verwijderen. Een statusregel in Instellingen laat zien hoe het ervoor staat, bijvoorbeeld **Zojuist gesynchroniseerd**, **Bezig met synchroniseren…**, **De iCloud-opslag is vol** of **Niet aangemeld bij Google**.
+
+Routes die uit Strava zijn gelezen en routes die daaruit zijn bewerkt, blijven op de telefoon, net als de Strava-links van ritten; ook de links van uploads naar Ride with GPS worden niet gesynchroniseerd. Gedownloade kaarten en routeringstegels worden niet gesynchroniseerd.
 
 ## Zie ook
 

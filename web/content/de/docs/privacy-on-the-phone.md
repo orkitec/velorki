@@ -17,9 +17,9 @@ Alles, was du machst, und alles, was du herunterlädst:
 - die Zugriffstoken für Strava und Ride with GPS, falls du sie verbindest, die in den sicheren Speicher des Handys wandern, in einer Form, die nur der Velorki-Relay öffnen kann, und von Sicherungen ausgenommen sind.
 - was du von Strava übernimmst: dein Strava-Name, die Liste deiner Strava-Routen für höchstens 48 Stunden, die Routen, die du importierst, und die Links von hochgeladenen Fahrten zu ihren Strava-Aktivitäten. Das Trennen löscht all das.
 
-Nichts davon geht irgendwohin hoch, außer du forderst es an. Die eine Ausnahme ist die iCloud-Synchronisierung auf iPhone oder iPad (ab iOS 17): Deine Routen, Fahrten und einige Einstellungen gehen in deine eigene iCloud, nie zu uns, und Strava-Daten bleiben auf dem Handy. Sie ist standardmäßig an und lässt sich in den Einstellungen ausschalten, siehe [die Bibliothek](./library).
+Nichts davon geht irgendwohin hoch, außer du forderst es an. Die eine Ausnahme ist die Cloud-Synchronisierung: Deine Routen, Fahrten und einige Einstellungen gehen in deine eigene iCloud oder dein eigenes Google Drive, nie zu uns, und Strava-Daten bleiben auf dem Handy. Auf einem iPhone oder iPad ist iCloud standardmäßig an; unter Android ist die Synchronisierung aus, bis du eine Cloud wählst. **Einstellungen → Synchronisieren mit** wählt die Cloud oder schaltet die Synchronisierung aus, siehe [die Bibliothek](./library#synchronisierung-mit-icloud-oder-google-drive).
 
-Unter Android ist Velorki bewusst aus Googles Cloud-Sicherung und aus der Übertragung von Gerät zu Gerät ausgenommen, deine Fahrten werden also auch vom System nicht vom Handy kopiert. Der Umzug auf ein neues Handy heißt, das Gewünschte als GPX-, FIT- oder TCX-Datei zu exportieren, siehe [Import und Export](./import-and-export).
+Unter Android ist Velorki bewusst aus Googles Cloud-Sicherung und aus der Übertragung von Gerät zu Gerät ausgenommen, deine Fahrten werden also auch vom System nicht vom Handy kopiert. Für den Umzug auf ein neues Handy schaltest du die Synchronisierung mit Google ein oder exportierst das Gewünschte als GPX-, FIT- oder TCX-Datei, siehe [Import und Export](./import-and-export).
 
 ## Was das Handy verlässt und wann
 
@@ -67,7 +67,7 @@ Diese Route oder Fahrt wird mit ihrem Track, ihrem Namen und ihren Zahlen auf un
 
 ### Wenn du Velorki Plus kaufst
 
-Der Store wickelt die Zahlung ab, und wir sehen deine Karte nie. Das Abo wird gegen eine anonyme Zufalls-ID geprüft, die weder mit einem Namen noch mit einer E-Mail-Adresse noch mit einer Gerätekennung verknüpft ist.
+Der Store wickelt die Zahlung ab, und wir sehen deine Karte nie. Das Abo wird gegen eine anonyme Zufalls-ID geprüft, die weder mit einem Namen noch mit einer E-Mail-Adresse noch mit einer Gerätekennung verknüpft ist. Bei eingeschalteter Synchronisierung legt die App diese ID außerdem in deine eigene Cloud, damit der Planer im Browser, angemeldet beim selben Konto, dein Plus nutzen kann.
 
 ## Was Velorki nie tut
 
@@ -81,7 +81,7 @@ Der Store wickelt die Zahlung ab, und wir sehen deine Karte nie. Das Abo wird ge
 
 | Was | Wie |
 |---|---|
-| Eine Route oder eine Fahrt | in der [Bibliothek](./library) löschen |
+| Eine Route oder eine Fahrt | in der [Bibliothek](./library) löschen; bei eingeschalteter Synchronisierung verschwindet sie auch aus deiner Cloud und von deinen anderen Geräten |
 | Offline-Kartengebiete und Routing-Kacheln | unter [Offline-Daten](./offline-maps-and-routing) löschen |
 | Ein Token von Strava oder Ride with GPS und alles von Strava | **Trennen** unter Einstellungen → Verbindungen |
 | Alles, was die App gespeichert hat | die App deinstallieren |

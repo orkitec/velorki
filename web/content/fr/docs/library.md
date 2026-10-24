@@ -6,7 +6,7 @@ order: 10
 
 L’onglet Bibliothèque contient tout ce que vous avez gardé : les itinéraires que vous avez planifiés et les sorties que vous avez enregistrées. C’est une fiche posée sur la carte, comme les onglets Planifier et Enregistrer : son contenu défile à n’importe quelle hauteur et la poignée en haut la déplace ; quand il n’y a rien à faire défiler, c’est toute la fiche qui bouge. Tirez-la vers le haut pour plus de place, tirez-la tout en bas et elle se replie dans la barre de navigation en laissant la carte. C’est ici que vous rouvrez un itinéraire, lisez les graphiques et les tronçons d’une sortie, et faites entrer et sortir des fichiers.
 
-Tout ce qui est dans la bibliothèque est sur le téléphone. Il n’y a pas de compte. Sur un iPhone ou un iPad, elle peut être synchronisée entre vos propres appareils par iCloud, voir plus bas [la synchronisation iCloud](#synchronisation-icloud-iphone-et-ipad).
+Tout ce qui est dans la bibliothèque est sur le téléphone. Il n’y a pas de compte. Elle peut être synchronisée entre vos propres appareils par votre propre iCloud ou Google Drive, voir plus bas [la synchronisation avec iCloud ou Google Drive](#synchronisation-avec-icloud-ou-google-drive).
 
 ## Itinéraires et Sorties
 
@@ -114,13 +114,15 @@ Les deux boutons à droite de l’en-tête de la fiche :
 
 Les deux sont décrits dans [importer et exporter](./import-and-export) et [Strava et Ride with GPS](./strava-and-ridewithgps).
 
-## Synchronisation iCloud (iPhone et iPad)
+## Synchronisation avec iCloud ou Google Drive
 
-Sur un iPhone ou un iPad sous iOS 17 ou plus récent, vos itinéraires enregistrés et vos sorties enregistrées, avec la trace, les notes et les chiffres de chaque sortie, sont synchronisés entre vos propres appareils connectés au même compte Apple, par votre iCloud. Quelques réglages suivent : thème, couleur d’accent, aspect de la carte, style de la barre, côté de la colonne, unités, ainsi que les réglages des annonces de virage et des annonces vocales. Velorki n’exploite aucun serveur pour cela et ne peut pas lire ce qui est stocké ; voir la [politique de confidentialité](/privacy).
+Vos itinéraires enregistrés et vos sorties enregistrées, avec la trace, les notes, les chiffres, les tours et les mesures des capteurs de chaque sortie, peuvent être synchronisés entre vos propres appareils par votre propre cloud. **Réglages → Synchroniser avec** en choisit un par appareil : **iCloud** (iPhone et iPad sous iOS 17 ou plus récent, et le planificateur dans le navigateur), **Google** (iPhone, iPad, Android et le navigateur) ou **Désactivé**. Sur un iPhone ou un iPad, iCloud est activé par défaut ; sur Android et dans le navigateur, la synchronisation est désactivée tant que vous ne choisissez pas de cloud. Google conserve les données dans un dossier Velorki masqué de votre Google Drive ; Velorki peut ouvrir ce dossier et rien d’autre dans votre Drive.
 
-Elle est activée par défaut. **Synchroniser avec iCloud** dans les Réglages la désactive sur cet appareil ; ce qui est déjà dans iCloud y reste jusqu’à ce que vous le supprimiez dans les réglages iCloud de l’appareil. Une ligne d’état dans les Réglages indique où elle en est : **Synchronisé à l’instant**, **Synchronisation…**, **iCloud est désactivé sur cet appareil** ou **Le stockage iCloud est plein**.
+Quelques réglages suivent : thème, couleur d’accent, aspect de la carte, aspect du radar de pluie, style de la barre, côté de la colonne, unités, ainsi que les réglages des virages, de la voix et du recalcul d’itinéraire. Dans le navigateur avec iCloud, les réglages restent dans le navigateur. Velorki n’exploite aucun serveur pour cela et ne peut pas lire ce qui est stocké ; voir la [politique de confidentialité](/privacy).
 
-Les itinéraires lus depuis Strava et les itinéraires modifiés à partir d’eux restent sur le téléphone, tout comme les liens Strava des sorties ; les liens des envois vers Ride with GPS ne sont pas synchronisés non plus. Les cartes téléchargées et les tuiles de routage ne sont pas synchronisées. L’application Android ne synchronise pas.
+Supprimer un itinéraire ou une sortie le supprime aussi sur vos autres appareils. Choisir **Désactivé**, se déconnecter ou passer à l’autre cloud ne supprime rien : ce qui est déjà dans iCloud y reste jusqu’à ce que vous le supprimiez dans les réglages iCloud d’un appareil Apple, et ce qui est dans Google Drive y reste jusqu’à ce que vous le supprimiez dans Google Drive sur le web, sous Paramètres → Gérer les applications → Velorki → Options → Supprimer les données d’application masquées. Une ligne d’état dans les Réglages indique où elle en est, par exemple **Synchronisé à l’instant**, **Synchronisation…**, **Le stockage iCloud est plein** ou **Non connecté à Google**.
+
+Les itinéraires lus depuis Strava et les itinéraires modifiés à partir d’eux restent sur le téléphone, tout comme les liens Strava des sorties ; les liens des envois vers Ride with GPS ne sont pas synchronisés non plus. Les cartes téléchargées et les tuiles de routage ne sont pas synchronisées.
 
 ## Voir aussi
 
