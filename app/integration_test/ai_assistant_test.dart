@@ -34,6 +34,7 @@ import 'package:velorki/features/assistant/presentation/assistant_sheet.dart';
 import 'package:velorki/features/assistant/presentation/describe_route_sheet.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
+import 'package:velorki/features/map/data/weather_map_preferences.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
@@ -113,6 +114,12 @@ Future<ProviderContainer> _boot(WidgetTester tester, MockRelay relay) async {
   await (await c.read(gazetteerStoreProvider.future)).refresh();
   c.read(plusEntitledProvider.notifier).value = true;
   await c.read(aiConsentControllerProvider.notifier).set(AiConsent.textOnly);
+  // No weather layers: a radar that fails and recovers mid-test puts its
+  // chip over the map and takes it away, and the card rests below it.
+  final weather = c.read(weatherMapPreferencesProvider.notifier);
+  await weather.setRadar(false);
+  await weather.setClouds(false);
+  await weather.setWind(false);
   c.read(plannerControllerProvider.notifier).clear();
   await pumpFor(tester, const Duration(milliseconds: 300));
   return c;
