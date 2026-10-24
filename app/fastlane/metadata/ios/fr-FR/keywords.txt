@@ -1,1 +1,1 @@
-vélo,cyclisme,itinéraire vélo,gpx,gps,navigation,cartes hors ligne,boucle,gravel,vtt,vélo de route
+cyclisme,balade,gpx,gps,navigation,cartes,boucle,gravel,vtt,vélo de route,enregistrer,privée

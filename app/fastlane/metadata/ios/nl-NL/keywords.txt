@@ -1,1 +1,1 @@
-fietsen,fiets,fietsroute,gpx,navigatie,fietsnavigatie,offline kaart,rondje,gravel,mtb,racefiets
+fietsen,fietsroute,gpx,navigatie,fietsnavigatie,kaart,rondje,gravel,mtb,racefiets,plannen,opnemen
