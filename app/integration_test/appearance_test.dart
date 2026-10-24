@@ -25,6 +25,7 @@ import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/application/planner_map_binding.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/settings/data/appearance_controller.dart';
+import 'package:velorki/features/settings/presentation/settings_screen.dart';
 
 import 'support/fakes.dart';
 import 'support/harness.dart';
@@ -96,6 +97,19 @@ void main() {
 
     // ------------------------------------------------------- theme to Dark
     await tapAndPump(tester, find.text('Settings'));
+    // The overview's Appearance row opens the theme and map look.
+    final appearanceRow = find.byKey(const ValueKey(SettingsTopic.appearance));
+    await tester.scrollUntilVisible(
+      appearanceRow,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(SettingsScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tapAndPump(tester, appearanceRow);
     // "Light" is both a theme and a map look, so scope the theme labels.
     await waitForWidget(tester, find.byType(SegmentedButton<ThemeMode>));
     await tapAndPump(
