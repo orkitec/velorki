@@ -27,10 +27,12 @@ CloudKit web token are public and bound to our app ids and origins.
    - **Web application:** authorized JavaScript origins
      `https://app.velorki.com`, `https://localhost:8443` and
      `http://localhost:8080`; no redirect URIs.
-7. **Verification:** when the app is ready, **Publish app** under Audience and
-   submit for verification (branding review; `drive.appdata` is not a
-   restricted scope, so no security assessment). Until then only test users
-   can sign in and Google shows an "unverified app" notice.
+7. **Verification:** once the privacy policy describing Drive is live,
+   **Publish app** under Audience. `drive.appdata` is non-sensitive, so data
+   access needs no verification and anyone can sign in; only the branding
+   (name and logo on the consent screen) is verified. Branding offers
+   **Verify branding** only once a billing account is linked to the project.
+   Until published, only test users can sign in.
 
 In the app: the iOS client id is `GIDClientID` in `ios/Runner/Info.plist`,
 its reversed form a URL scheme there. The Android clients need no id in the
