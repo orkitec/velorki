@@ -613,7 +613,11 @@ void main() {
     await pumpFor(tester, const Duration(seconds: 2));
     expect(find.byType(AssistantSheet), findsOneWidget);
 
-    // Back closes it, onto the planner's card as it was.
+    // Back closes it, onto the planner's card as it was. Measured again
+    // here: chrome above the map (a chip that came or went while the AI's
+    // card was up) may have moved it since the start, which is not the
+    // AI card's doing.
+    final under = tester.getRect(find.byType(DockingSheetShell));
     await _pose(tester, 'ai-slide-out');
     await tester.binding.handlePopRoute();
     await pumpFor(tester, _hold);
@@ -621,7 +625,7 @@ void main() {
     expect(find.byType(AssistantSheet), findsNothing);
     expect(
       tester.getRect(find.byType(DockingSheetShell)).top,
-      closeTo(card.top, 1),
+      closeTo(under.top, 1),
     );
     c.read(plannerControllerProvider.notifier).clear();
     await unmountApp(tester);
