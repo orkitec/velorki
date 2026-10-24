@@ -16,10 +16,24 @@ void registerVelorkiLicenses() {
 }
 
 Stream<LicenseEntry> _velorkiLicenses() async* {
-  for (final entry in _entries) {
+  for (final entry in velorkiLicenseEntries(web: kIsWeb)) {
     yield LicenseEntryWithLineBreaks(<String>[entry.package], entry.text);
   }
 }
+
+/// The entries registered, as (name, notice): every one of [_entries],
+/// MapLibre Native's only on the phone ([web] false), since the web build
+/// draws with MapLibre GL JS, whose licence its bundle carries.
+@visibleForTesting
+List<({String package, String text})> velorkiLicenseEntries({
+  required bool web,
+}) => <({String package, String text})>[
+  for (final entry in _entries)
+    if (!(web && entry.package == _mapLibreNative))
+      (package: entry.package, text: entry.text),
+];
+
+const String _mapLibreNative = 'MapLibre Native';
 
 /// One third party whose licence is not carried by a pub package.
 @immutable
@@ -33,6 +47,10 @@ class _DataLicense {
   final String text;
 }
 
+// TODO(credits): name the elevation source of brouter.de's routing tiles
+// once it is confirmed. BRouter's build docs name CGIAR's SRTM 90 m data for
+// the official segments, its changelog also lidar heights for northern
+// Europe; which the current builds use is not stated anywhere.
 const List<_DataLicense> _entries = <_DataLicense>[
   _DataLicense('OpenStreetMap', '''
 Map data © OpenStreetMap contributors.
@@ -45,6 +63,10 @@ Commons Attribution-ShareAlike 2.0 licence (CC BY-SA 2.0).
 You are free to copy, distribute, transmit and adapt the data, as long as you
 credit OpenStreetMap and its contributors, and distribute any adapted database
 under the same licence.
+
+The routing tiles come from brouter.de's segment builds, mirrored on GitHub;
+they are derived from OpenStreetMap and offered under the ODbL, as is the
+offline search index, built from Geofabrik's OpenStreetMap extracts.
 
 https://www.openstreetmap.org/copyright
 https://opendatacommons.org/licenses/odbl/1-0/'''),
@@ -89,20 +111,21 @@ https://openmaptiles.org/
 https://github.com/openmaptiles/openmaptiles/blob/master/LICENSE.md'''),
   _DataLicense('CyclOSM', '''
 The optional cycling overlay is rendered by CyclOSM, a cycle-oriented map
-style for OpenStreetMap, published under the CC BY-SA 4.0 licence and served
-by the OpenStreetMap Foundation's tile servers.
+style for OpenStreetMap, and served by OpenStreetMap France
+(tile-cyclosm.openstreetmap.fr). Tiles are fetched only for what is on
+screen, and are never bulk downloaded or pre-cached.
 
-The style may be shared and adapted with attribution, under the same licence.
-Velorki follows the OSMF tile usage policy: tiles are fetched only for what is
-on screen, and are never bulk downloaded or pre-cached.
+The style is published under the BSD 3-Clause licence, with some of its
+colours under the Apache License 2.0 and some of its icons under CC BY 4.0
+or CC0. The map data in the tiles is © OpenStreetMap contributors, ODbL 1.0.
 
 https://www.cyclosm.org/
-https://github.com/cyclosm/cyclosm-cartocss-style
-https://operations.osmfoundation.org/policies/tiles/'''),
-  _DataLicense('Weather map: rain radar and clouds', '''
-The optional rain radar and clouds layers are loaded by the phone straight
-from the public services that make them; those services see the map area
-requested.
+https://github.com/cyclosm/cyclosm-cartocss-style/blob/master/LICENSE.md
+https://www.openstreetmap.fr/'''),
+  _DataLicense('Weather map: rain radar, clouds and wind', '''
+The optional rain radar, clouds and wind layers are loaded by the phone
+straight from the public services that make them; those services see the map
+area requested.
 
 Rain radar and its two-hour nowcast over Germany: Deutscher Wetterdienst
 (DWD), CC BY 4.0.
@@ -127,8 +150,11 @@ Rain forecast: the ICON-EU and ICON models of the Deutscher Wetterdienst
 (DWD), CC BY 4.0.
 Rain forecast over the contiguous US: NOAA's HRRR model via the Iowa
 Environmental Mesonet (Iowa State University), public domain.
+Wind: the global ICON model of the Deutscher Wetterdienst (DWD), CC BY 4.0.
 Clouds over the Americas: NOAA GOES imagery via NASA GIBS (Global Imagery
-Browse Services), public domain.
+Browse Services), public domain. We acknowledge the use of imagery provided
+by services from NASA's Global Imagery Browse Services (GIBS), part of
+NASA's Earth Science Data and Information System (ESDIS).
 Clouds over Europe and Africa: contains modified EUMETSAT Meteosat data,
 CC BY 4.0 under the EUMETSAT Data Policy. Only the hourly images that policy
 makes freely available are used.
@@ -136,11 +162,29 @@ makes freely available are used.
 https://www.dwd.de/
 https://www.knmi.nl/
 https://en.ilmatieteenlaitos.fi/open-data
+https://www.eumetnet.eu/
+https://radar.protezionecivile.it/
 https://www.weather.gov/
 https://mesonet.agron.iastate.edu/
 https://www.earthdata.nasa.gov/gibs
 https://www.eumetsat.int/
 https://hsaf.meteoam.it/'''),
+  _DataLicense('Route weather', '''
+The weather along a route comes from public forecasts.
+
+Without Velorki Plus the phone asks the Deutscher Wetterdienst (DWD) itself,
+for its ICON and ICON-EU model forecasts, CC BY 4.0.
+With Velorki Plus the Velorki relay asks, for the places along the route:
+the NOAA National Weather Service (api.weather.gov) in the US, public domain,
+not endorsed by NOAA; the DWD's MOSMIX forecast via Bright Sky in and around
+Germany, CC BY 4.0; and MET Norway's Locationforecast everywhere else,
+CC BY 4.0 and NLOD 2.0, which ask for MET Norway to be credited.
+
+https://opendata.dwd.de/
+https://brightsky.dev/
+https://www.weather.gov/documentation/services-web-api
+https://api.met.no/weatherapi/locationforecast/2.0/documentation
+https://api.met.no/doc/License'''),
   _DataLicense('Photon', '''
 Place search by Photon, © komoot GmbH and contributors, Apache License 2.0.
 
@@ -161,6 +205,46 @@ the License.
 
 https://photon.komoot.io/
 https://github.com/komoot/photon'''),
+  _DataLicense(_mapLibreNative, '''
+The maps in the app are drawn by MapLibre Native, on Android and on iOS.
+
+BSD 2-Clause License
+
+Copyright (c) 2021 MapLibre contributors
+
+Copyright (c) 2018-2021 MapTiler.com
+
+Copyright (c) 2014-2020 Mapbox
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+* Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in
+  the documentation and/or other materials provided with the
+  distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+https://github.com/maplibre/maplibre-native'''),
+  _DataLicense('Voice catalogue', '''
+Which spoken voice is which (its gender and quality) comes from the Web
+Speech Recommended Voices catalogue by Hadrien Gardeur, CC0 1.0.
+
+https://github.com/HadrienGardeur/web-speech-recommended-voices'''),
   _DataLicense('Manrope (font)', '''
 Copyright 2018 The Manrope Project Authors (https://github.com/sharanda/manrope)
 
