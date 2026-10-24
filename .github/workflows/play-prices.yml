@@ -1,0 +1,68 @@
+name: play prices
+
+# Sets the Google Play prices of Velorki Plus to the App Store's, country by
+# country (web/scripts/prices-match-play.mjs): where the App Store charges in
+# the same currency as a Play region, that base plan's price there becomes
+# Apple's; every other region is left alone. By hand only, a dry run unless
+# `apply` is ticked; the table lands in the run's summary either way.
+#
+# Two gates, as in release.yml: whoever starts or re-runs it must be listed in
+# the repository variable RELEASE_ACTORS, and the job runs in the `release`
+# environment (its required reviewer approves, and it holds ASC_* and
+# PLAY_SERVICE_ACCOUNT_JSON). A new price applies to new subscribers only;
+# nothing here migrates existing ones.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Set the prices on Google Play (unticked: dry run, the table only)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: play-prices
+  cancel-in-progress: false
+
+jobs:
+  match:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: read
+    steps:
+      - name: Who may change prices
+        env:
+          ACTOR: ${{ github.triggering_actor }}
+          RELEASE_ACTORS: ${{ vars.RELEASE_ACTORS }}
+        run: |
+          actor="$(echo "$ACTOR" | tr '[:upper:]' '[:lower:]')"
+          for a in $(echo "$RELEASE_ACTORS" | tr ',[:upper:]' ' [:lower:]'); do
+            [ "$a" = "$actor" ] && exit 0
+          done
+          echo "::error::'$ACTOR' started this run but is not in RELEASE_ACTORS; only those logins may change store prices."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      # Node built-ins only: no npm ci. The script writes its table to
+      # $GITHUB_STEP_SUMMARY itself.
+      - name: Match Play to the App Store
+        working-directory: web
+        env:
+          APPLY: ${{ inputs.apply }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ "$APPLY" = true ]; then
+            node scripts/prices-match-play.mjs --apply
+          else
+            node scripts/prices-match-play.mjs
+          fi
