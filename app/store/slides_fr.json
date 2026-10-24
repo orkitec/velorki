@@ -8,6 +8,9 @@
     },
     "ipad": {
       "subline": "Planifiez et naviguez sur votre iPad, même hors ligne."
+    },
+    "tablet": {
+      "subline": "Planifiez et naviguez sur votre tablette, même hors ligne."
     }
   },
   "variants": {

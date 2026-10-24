@@ -8,6 +8,9 @@
     },
     "ipad": {
       "subline": "Planen, routen und navigieren auf dem iPad, auch offline."
+    },
+    "tablet": {
+      "subline": "Planen, routen und navigieren auf dem Tablet, auch offline."
     }
   },
   "variants": {

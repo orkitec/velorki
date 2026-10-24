@@ -4,6 +4,7 @@
     tool/store_slides.py [--locales en,de] [--sizes 6.9,6.5]
                          [--shots same|light|dark] [--watch DIR]
     tool/store_slides.py --platform android [--locales en,de]
+    tool/store_slides.py --platform android-tablet [--locales en,de]
     tool/store_slides.py --platform ipad [--locales en,de]
     tool/store_slides.py --platform duo [--locales en,de]
 
@@ -52,6 +53,18 @@ Output: build/store_screenshots/android/slides/<style>/android/<locale>/<slide>.
         build/store_screenshots/android/slides/set/contact-<locale>.png
         build/store_screenshots/android/slides/set/icon-512.png
 
+--platform android-tablet makes Google Play's tablet set from the captures on
+a tablet emulator (2560x1600, the app in its wide layout), at 2560x1440
+(Play wants 16:9 landscape and at least 1080 px for tablets): the iPad's set
+(store/slide_set_ipad.json) laid out as the Duo's, the copy centred above
+the screenshot, which sits whole in a tablet's frame; a slide's `tablet`
+object in slides_<locale>.json overrides its copy. The same images go up as
+7-inch and 10-inch tablet screenshots.
+Input:  build/store_screenshots/android-tablet/raw/<theme>/<locale>/<screen>.png
+Output: build/store_screenshots/android-tablet/slides/<style>/tablet/<locale>/<slide>.png
+        build/store_screenshots/android-tablet/slides/set/tablet/<locale>/NN-<slide>.png
+        build/store_screenshots/android-tablet/slides/set/tablet/contact-<locale>.png
+
 --platform ipad makes the 13" iPad set from the iPad captures, at 2064x2752:
 the set is store/slide_set_ipad.json, a slide's `ipad` object in
 slides_<locale>.json overrides its copy, the copy is scaled to the squarer
@@ -97,6 +110,7 @@ SIZES = {"6.9": (1320, 2868), "6.5": (1284, 2778)}
 ANDROID_SIZES = {"android": (1242, 2208)}
 IPAD_SIZES = {"13": (2064, 2752)}
 DUO_SIZES = {"duo": (2853, 2007)}
+TABLET_SIZES = {"tablet": (2560, 1440)}
 
 # The website's tokens (web/src/app/globals.css), per style.
 STYLES = {
@@ -201,6 +215,20 @@ p.sub { font-size: 1.85vw; margin: 1.1vw auto 0; max-width: 70vw; }
 .stage { margin-top: 2.4vw; height: 80vw; }
 .phone { padding: 0.75vw; border-radius: 2.4vw; }
 .screen { border-radius: 1.7vw; }
+"""
+
+# Play's tablets: the Duo's layout on a wider 16:9 canvas, the copy smaller
+# so the screenshot keeps most of the height.
+TABLET_CSS = DUO_CSS + """
+.copy { padding-top: 2.2vw; }
+.chip { gap: 0.65vw; padding: 0.55vw 1.3vw; font-size: 1.2vw; }
+.chip i { width: 0.7vw; height: 0.7vw; }
+.brand { gap: 0.9vw; margin-bottom: 1.1vw; }
+.brand img { width: 2.2vw; height: 2.2vw; }
+.brand span { font-size: 2.2vw; }
+h1 { font-size: 3.8vw; margin-top: 1.1vw; }
+p.sub { font-size: 1.5vw; margin-top: 0.8vw; }
+.stage { margin-top: 1.8vw; }
 """
 
 # The Lock Screen, in fractions of the screen width (cqw): the wallpaper,
@@ -459,9 +487,9 @@ def layer(style: str, text: dict, stage: str, extra_class: str = "", clip: str =
 
 def page(w: int, h: int, body: str, shots: list[str] = (), tablet: str = "") -> str:
     """The page around [body]; the phone's screen takes the shape of the
-    first of [shots] there is, the iPhone's when none is. [tablet] ("ipad" or
+    first of [shots] there is, the iPhone's when none is. [tablet] ("ipad", "tablet" or
     "duo") scales the copy to that canvas and draws that device's frame."""
-    extra = {"": "", "ipad": IPAD_CSS, "duo": DUO_CSS}[tablet]
+    extra = {"": "", "ipad": IPAD_CSS, "duo": DUO_CSS, "tablet": TABLET_CSS}[tablet]
     css = (CSS + LOCK_CSS + extra).replace("FONTS", "file://" + FONTS) \
         .replace("Wpx", f"{w}px").replace("Hpx", f"{h}px")
     size = next((png_size(shot) for shot in shots if png_size(shot)), None)
@@ -474,6 +502,9 @@ def page(w: int, h: int, body: str, shots: list[str] = (), tablet: str = "") -> 
     elif tablet == "duo":
         js = js.replace("HEAD_FLOOR = 0.09, SUB_FLOOR = 0.036, HEAD_LINES = 3, GAP = 0.05",
                         "HEAD_FLOOR = 0.032, SUB_FLOOR = 0.0125, HEAD_LINES = 2, GAP = 0.025")
+    elif tablet == "tablet":
+        js = js.replace("HEAD_FLOOR = 0.09, SUB_FLOOR = 0.036, HEAD_LINES = 3, GAP = 0.05",
+                        "HEAD_FLOOR = 0.026, SUB_FLOOR = 0.01, HEAD_LINES = 2, GAP = 0.02")
     return (f'<!doctype html><html><head><meta charset="utf-8"><style>{css}</style></head>'
             f"<body>{body}<script>{js}</script></body></html>")
 
@@ -678,7 +709,8 @@ def check_play_png(path: str, w: int, h: int) -> list[str]:
 def main() -> int:
     global TOPO
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--platform", default="ios", choices=["ios", "android", "ipad", "duo"])
+    parser.add_argument("--platform", default="ios",
+                        choices=["ios", "android", "android-tablet", "ipad", "duo"])
     parser.add_argument("--locales", help="comma-separated; default: every slides_*.json")
     parser.add_argument("--sizes", help="default: every size of the platform")
     parser.add_argument("--shots", default="same", choices=["same", "light", "dark"],
@@ -689,11 +721,16 @@ def main() -> int:
     parser.add_argument("--out")
     args = parser.parse_args()
     android = args.platform == "android"
-    tablet = args.platform if args.platform in ("ipad", "duo") else ""
+    # Play's tablets take the Duo's wide layout, and the Play checks.
+    play = args.platform.startswith("android")
+    tablet = {"ipad": "ipad", "duo": "duo", "android-tablet": "tablet"}.get(args.platform, "")
+    # The key of a slide's copy override in slides_<locale>.json.
+    override = {"android-tablet": "tablet"}.get(args.platform, args.platform)
     build = BUILD if args.platform == "ios" else os.path.join(BUILD, args.platform)
     raw = args.raw or os.path.join(build, "raw")
     out = args.out or os.path.join(build, "slides")
-    known = {"ios": SIZES, "android": ANDROID_SIZES, "ipad": IPAD_SIZES, "duo": DUO_SIZES}[args.platform]
+    known = {"ios": SIZES, "android": ANDROID_SIZES, "android-tablet": TABLET_SIZES,
+             "ipad": IPAD_SIZES, "duo": DUO_SIZES}[args.platform]
 
     if not os.access(CHROME, os.X_OK):
         print(f"store_slides: no Chrome at {CHROME}; install Google Chrome or set CHROME "
@@ -721,11 +758,12 @@ def main() -> int:
     def copy_of(copy: dict, slide: str):
         text = copy.get(slide)
         if text is not None and args.platform != "ios":
-            text = {**text, **text.get(args.platform, {})}
+            text = {**text, **text.get(override, {})}
         return text
 
     english = load_json(os.path.join(STORE, "slides_en.json"))
     chosen = load_json(os.path.join(STORE, {"ios": "slide_set.json", "android": "slide_set_android.json",
+                                            "android-tablet": "slide_set_ipad.json",
                                             "ipad": "slide_set_ipad.json",
                                             "duo": "slide_set_ipad.json"}[args.platform]))
     if tablet and any(entry["layout"] not in ("whole", "split") for entry in chosen):
@@ -757,7 +795,7 @@ def main() -> int:
                             continue
                         target = os.path.join(out, style, size, locale, f"{slide}.png")
                         render(markup, target, w, h, work)
-                        if android:
+                        if play:
                             problems += check_play_png(target, w, h)
                         made += 1
 
@@ -785,7 +823,10 @@ def main() -> int:
                 f"<body>{images}</body></html>"
             )
             count = len(shots)
-            render(sheet, os.path.join(out, "set", f"contact-{locale}.png"),
+            # Play's tablet set keeps its sheet beside it, apart from the phone's.
+            sheet_dir = os.path.join(out, "set", "tablet") if args.platform == "android-tablet" \
+                else os.path.join(out, "set")
+            render(sheet, os.path.join(sheet_dir, f"contact-{locale}.png"),
                    48 + count * thumb + max(0, count - 1) * 16, 48 + round(thumb * h / w), work)
 
             if android:

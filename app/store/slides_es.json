@@ -8,6 +8,9 @@
     },
     "ipad": {
       "subline": "Planifica, calcula rutas y navega en tu iPad, incluso sin conexión."
+    },
+    "tablet": {
+      "subline": "Planifica, calcula rutas y navega en tu tableta, incluso sin conexión."
     }
   },
   "variants": {

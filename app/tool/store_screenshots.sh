@@ -13,6 +13,7 @@
 #   tool/store_screenshots.sh --platform ipad          # the iPad set; see below
 #   tool/store_screenshots.sh --platform duo           # the iPhone Duo set; see below
 #   tool/store_screenshots.sh --platform android       # the Google Play set; see below
+#   tool/store_screenshots.sh --platform android-tablet  # Google Play's tablet set; see below
 #
 # Output, under app/build/store_screenshots/ (git-ignored):
 #   raw/<theme>/<locale>/<screen>.png          the simulator's screen, 1320x2868
@@ -69,6 +70,11 @@
 # under android/: raw/<theme>/<locale>/<screen>.png and slides/ (see
 # tool/store_slides.py --platform android).
 #
+# --platform android-tablet does the same on a tablet emulator (a Pixel
+# Tablet profile, 2560x1600 landscape, where the app takes its wide layout),
+# without the phone's hole-punch, for the slides of store/slide_set_ipad.json.
+# Output under android-tablet/.
+#
 # VELORKI_STORE_MONITOR=<seconds> logs memory, disk, the busiest processes and
 # the booted simulators that often (the workflow sets it).
 #
@@ -110,6 +116,8 @@ done
 say() { printf '==> %s\n' "$*"; }
 die() { printf 'store_screenshots: %s\n' "$*" >&2; exit 1; }
 
+ANDROID=0
+case "$PLATFORM" in android*) ANDROID=1 ;; esac
 case "$PLATFORM" in
   ios) ;;
   ipad)
@@ -124,11 +132,11 @@ case "$PLATFORM" in
     SIM_NAME="Velorki Shots Duo"
     SIM_TYPE=com.apple.CoreSimulator.SimDeviceType.iPhone-Duo
     ;;
-  android)
+  android | android-tablet)
     [ "$PREVIEW" = 0 ] || die "the preview is recorded on iOS only"
-    OUT="$OUT/android"
+    OUT="$OUT/$PLATFORM"
     ;;
-  *) die "unknown platform $PLATFORM (ios, ipad, duo or android)" ;;
+  *) die "unknown platform $PLATFORM (ios, ipad, duo, android or android-tablet)" ;;
 esac
 
 # The App Store's region for each language the app ships.
@@ -269,22 +277,25 @@ android_boot() {  # android_boot <serial> <language-tag>
       say "no adb root on $serial; the status bar keeps the language $current"
     fi
   fi
-  # A Pixel's hole-punch and gesture bar, whatever the image defaults to:
-  # both decide where the app's chrome sits.
-  adb -s "$serial" shell cmd overlay enable-exclusive --category \
-    com.android.internal.display.cutout.emulation.hole > /dev/null 2>&1 || true
+  # A Pixel's gesture bar and, on the phone, its hole-punch, whatever the
+  # image defaults to: both decide where the app's chrome sits. The Pixel
+  # Tablet's camera is in its bezel.
+  local cutout=com.android.internal.display.cutout.emulation.hole
+  if [ "$PLATFORM" = android ]; then
+    adb -s "$serial" shell cmd overlay enable-exclusive --category "$cutout" > /dev/null 2>&1 || true
+  fi
   adb -s "$serial" shell cmd overlay enable-exclusive --category \
     com.android.internal.systemui.navbar.gestural > /dev/null 2>&1 || true
   # A moment for SystemUI to settle before the bar is set.
   sleep 10
   # Then the cutout off and on again: after a reboot the status bar is now and
   # then laid out for no cutout, its top row cut off, until it changes.
-  adb -s "$serial" shell cmd overlay disable \
-    com.android.internal.display.cutout.emulation.hole > /dev/null 2>&1 || true
-  sleep 3
-  adb -s "$serial" shell cmd overlay enable-exclusive --category \
-    com.android.internal.display.cutout.emulation.hole > /dev/null 2>&1 || true
-  sleep 5
+  if [ "$PLATFORM" = android ]; then
+    adb -s "$serial" shell cmd overlay disable "$cutout" > /dev/null 2>&1 || true
+    sleep 3
+    adb -s "$serial" shell cmd overlay enable-exclusive --category "$cutout" > /dev/null 2>&1 || true
+    sleep 5
+  fi
   adb -s "$serial" shell settings put global sysui_demo_allowed 1
   python3 "$APP/tool/store_shutter.py" --android-status-bar "$serial"
 }
@@ -443,7 +454,7 @@ if [ "$CAPTURE" = 1 ]; then
   if ! command -v flutter > /dev/null; then
     eval "$(mise env -s bash)" || die "flutter is not on PATH and mise could not provide it"
   fi
-  if [ "$PLATFORM" = android ]; then
+  if [ "$ANDROID" = 1 ]; then
     # The first SDK that has one; mise.toml names the Linux place.
     for sdk in "${ANDROID_HOME:-}" "${ANDROID_SDK_ROOT:-}" "$HOME/Library/Android/sdk" "$HOME/Android/Sdk"; do
       if [ -n "$sdk" ] && [ -x "$sdk/platform-tools/adb" ]; then
@@ -498,7 +509,7 @@ PY
   IFS=, read -r -a locales <<< "$LOCALES"
   for locale in "${locales[@]}"; do
     region="$(region_of "$locale")"
-    if [ "$PLATFORM" = android ]; then
+    if [ "$ANDROID" = 1 ]; then
       android_boot "$DEVICE" "${region/_/-}"
       DEMO_SERIAL="$DEVICE"
       python3 "$APP/tool/store_shutter.py" --android "$DEVICE" "$OUT/raw" &
