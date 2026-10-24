@@ -118,9 +118,13 @@ class PluginGoogleSignIn implements GoogleSignInService {
       final account = await GoogleSignIn.instance.authenticate(
         scopeHint: const [driveAppDataScope],
       );
-      await account.authorizationClient.authorizeScopes(const [
-        driveAppDataScope,
-      ]);
+      // Where the sign-in already granted the scope (iOS honours the hint),
+      // asking again would show Google's screen a second time.
+      final client = account.authorizationClient;
+      if (await client.authorizationForScopes(const [driveAppDataScope]) ==
+          null) {
+        await client.authorizeScopes(const [driveAppDataScope]);
+      }
       return GoogleAccount(id: account.id, email: account.email);
     } on GoogleSignInException catch (e) {
       _log.info('sign-in: ${e.code.name} ${e.description}');
