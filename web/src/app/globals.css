@@ -417,11 +417,15 @@ h4 {
 /* The aspect ratio belongs to the screen, not to the shell: with
    `box-sizing: border-box` the bezel's padding would come out of the ratio and
    the screen would be ~3 % shorter than the screenshot, which `object-fit:
-   cover` then crops. Here the shell is exactly the screen plus its bezel. */
+   cover` then crops. Here the shell is exactly the screen plus its bezel.
+   The width is definite and capped by the container, not `100%` capped at
+   19rem: in the heroes the frame sits in an `auto` grid column, which a
+   percentage cannot size, so the column took the screenshot's intrinsic width -
+   none until the image had loaded - and the hero grew under the reader. */
 .phone {
   position: relative;
-  width: 100%;
-  max-width: 19rem;
+  width: 19rem;
+  max-width: 100%;
   padding: 0.55rem;
   border-radius: 2.6rem;
   background: linear-gradient(160deg, #2a3039, #0e1115 45%, #1b1f26);
