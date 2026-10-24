@@ -1,11 +1,9 @@
-• El tiempo en el mapa, gratis: radar de lluvia, viento y nubes, con un deslizador de tiempo hacia las próximas horas.
-• El tiempo a lo largo de tu ruta: viento y lluvia para la hora de salida, un deslizador para elegirla.
-• Colorea la ruta según la pendiente, la superficie, el viento o la lluvia, en el mapa y bajo el perfil de altitud.
-• Un mapa ciclista sin conexión: carriles bici y sendas, calles de sentido único, escaleras y subidas, dibujado con los datos de rutas.
-• Paradas en el mapa: agua, cafeterías, panaderías, aseos, talleres de bicis y más, y las de tu ruta.
-• Toca un lugar para ver su ficha: Ruta hasta aquí, Añadir como parada, horario y más.
-• La búsqueda sin conexión encuentra mucho más: números de portal, erratas, otros alfabetos, restaurantes y gasolineras.
-• Las rutas importadas también tienen avisos hablados.
-• Las conexiones con plataformas de rutas y salidas ahora son gratis, y un solo botón de compartir las reúne todas.
-• Velorki Plus: radar real en toda Europa y una previsión más precisa a lo largo de la ruta.
-• Velorki ahora habla francés, español, italiano y neerlandés.
+• Sincroniza tus rutas, salidas y ajustes con tu propio iCloud o Google Drive, entre iPhone, iPad y el planificador web en app.velorki.com. Tus rutas y salidas se quedan contigo.
+• Planifica en el navegador en app.velorki.com: inicia sesión con la misma cuenta de iCloud o Google y ahí está tu biblioteca. Plus también funciona allí, en cuanto la app con Plus sincroniza con la misma cuenta.
+• Velorki en el iPad: el mapa en toda la pantalla y la app en una columna al lado, en el lado que elijas.
+• Los ajustes son ahora un resumen, con cada grupo en su propia página.
+• El botón de descarga indica si la zona a la vista ya está descargada.
+• Mapa del tiempo: una capa solo aparece como no disponible tras varios intentos, y el aviso desaparece solo cuando el servicio vuelve.
+• Los estilos de mapa oscuros vuelven a mostrar los puntos de las localidades.
+• Un aviso cuando hay una nueva versión de Velorki en el App Store.
+• Pequeñas correcciones: los mensajes de «Deshacer» se cierran solos, y el inicio de sesión de Google solo lo pide una vez.

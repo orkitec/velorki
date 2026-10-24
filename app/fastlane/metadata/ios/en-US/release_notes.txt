@@ -1,11 +1,9 @@
-• Weather on the map, free: rain radar, wind and clouds, with a time slider into the next hours.
-• The weather along your route: wind and rain for the time you leave, one slider for the departure.
-• Colour the route by gradient, surface, wind or rain, on the map and under the elevation profile.
-• An offline cycle map: bike paths and lanes, one-way streets, steps and climbs, drawn from the routing data.
-• Stops on the map: water, cafés, bakeries, toilets, bike repair and more, and the ones along your route.
-• Tap a place for its card: Route here, Add as a stop, opening hours and more.
-• Search finds much more offline: house numbers, typos, other alphabets, restaurants and petrol stations.
-• Imported routes get spoken turns too.
-• The connections to route and ride platforms are now free, and one Share button holds them all.
-• Velorki Plus: real radar across Europe and a sharper forecast along the route.
-• Velorki now speaks French, Spanish, Italian and Dutch.
+• Sync your routes, rides and settings through your own iCloud or Google Drive, between iPhone, iPad and the web planner at app.velorki.com. Your routes and rides stay with you.
+• Plan in the browser at app.velorki.com: sign in with the same iCloud or Google account and your library is there. Plus works there too, once the app with Plus syncs to the same account.
+• Velorki on iPad: the map across the whole screen, the app in a column beside it, on the side you choose.
+• Settings are now an overview, each group on its own page.
+• The download button shows whether the area in view is already downloaded.
+• Weather map: a layer only shows as unavailable after several tries, and the warning clears by itself once the service is back.
+• Dark map styles show town dots again.
+• A notice when a new version of Velorki is in the App Store.
+• Small fixes: "Undo" messages close by themselves, and Google sign-in asks only once.

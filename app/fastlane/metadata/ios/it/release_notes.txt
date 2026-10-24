@@ -1,11 +1,9 @@
-• Il meteo sulla mappa, gratis: radar pioggia, vento e nuvole, con un cursore temporale verso le prossime ore.
-• Il meteo lungo il percorso: vento e pioggia per l'orario di partenza, un cursore per sceglierlo.
-• Colora il percorso in base a pendenza, fondo, vento o pioggia, sulla mappa e sotto il profilo altimetrico.
-• Una mappa ciclabile offline: piste e corsie ciclabili, sensi unici, scale e salite, disegnata con i dati di routing.
-• Soste sulla mappa: acqua, bar, panetterie, bagni, riparazione bici e altro, e quelle lungo il tuo percorso.
-• Tocca un luogo per la sua scheda: Percorso fin qui, Aggiungi come sosta, orari di apertura e altro.
-• La ricerca offline trova molto di più: numeri civici, refusi, altri alfabeti, ristoranti e distributori.
-• Anche i percorsi importati hanno gli annunci vocali.
-• I collegamenti alle piattaforme di percorsi e giri ora sono gratis, e un solo pulsante Condividi li riunisce.
-• Velorki Plus: radar vero su tutta l'Europa e una previsione più accurata lungo il percorso.
-• Velorki ora parla francese, spagnolo, italiano e olandese.
+• Sincronizza percorsi, giri e impostazioni con il tuo iCloud o Google Drive, tra iPhone, iPad e il planner web su app.velorki.com. I tuoi percorsi e giri restano con te.
+• Pianifica nel browser su app.velorki.com: accedi con lo stesso account iCloud o Google e trovi la tua libreria. Anche Plus funziona lì, appena l'app con Plus si sincronizza con lo stesso account.
+• Velorki su iPad: la mappa su tutto lo schermo, l'app in una colonna accanto, dal lato che preferisci.
+• Le impostazioni ora sono una panoramica, ogni gruppo nella sua pagina.
+• Il pulsante di download indica se la zona visibile è già scaricata.
+• Mappa meteo: un livello risulta non disponibile solo dopo più tentativi, e l'avviso sparisce da solo quando il servizio torna.
+• Gli stili di mappa scuri mostrano di nuovo i punti delle località.
+• Un avviso quando c'è una nuova versione di Velorki sull'App Store.
+• Piccole correzioni: i messaggi «Annulla» si chiudono da soli, e l'accesso con Google lo chiede una volta sola.
