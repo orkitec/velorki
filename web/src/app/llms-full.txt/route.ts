@@ -1,19 +1,25 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // The whole English user guide as one Markdown file, for anything that would
 // rather read once than crawl. Same source as /docs, same order as the sidebar.
-import { GITHUB_URL, SITE_URL } from '@/site/config';
+import { GITHUB_URL, PLANNER_URL, SITE_URL } from '@/site/config';
 import { listDocs, loadDoc, loadDocsIndex } from '@/site/content';
+import { SYNC_LINES, plannerLines } from '@/site/llms';
 import { localeUrl } from '@/site/paths';
 
 function body(): string {
   const parts: string[] = [
     '# Velorki — full documentation',
     '',
-    '> Velorki is a free, open-source bike route planner and ride recorder for Android and iOS.',
+    '> Velorki is a free, private bike route planner and ride recorder for Android and iOS.',
     '> Planning, loops, offline maps, offline place search, turn-by-turn navigation, recording and',
-    '> GPX/FIT files all run on the phone, on OpenStreetMap data, with no account.',
+    '> GPX/FIT/TCX files all run on the phone, with no account. Your routes and rides stay with you:',
+    '> on the phone, or in your own iCloud or Google Drive if you sync them, and they export any time.',
+    '> The code is open source, so anyone can check that.',
     '',
-    `Source: ${GITHUB_URL} · Website: ${SITE_URL} · Licence: AGPL-3.0-only.`,
+    ...SYNC_LINES,
+    '',
+    ...(PLANNER_URL ? [...plannerLines(), ''] : []),
+    `Source: ${GITHUB_URL} · Website: ${SITE_URL}${PLANNER_URL ? ` · Web planner: ${PLANNER_URL}` : ''} · Licence: AGPL-3.0-only.`,
     '',
   ];
 

@@ -35,11 +35,12 @@ export function localeUrl(locale: string, path = '/'): string {
 
 /**
  * `alternates.languages` for a page: one entry per locale plus `x-default`,
- * which points at the English version.
+ * which points at the English version. `locales` narrows it to the languages
+ * the page is written in (see `translatedLocales`).
  */
-export function languageAlternates(path = '/'): Record<string, string> {
+export function languageAlternates(path = '/', locales: readonly string[] = LOCALES): Record<string, string> {
   const languages: Record<string, string> = {};
-  for (const locale of LOCALES) languages[locale] = localeUrl(locale, path);
+  for (const locale of locales) languages[locale] = localeUrl(locale, path);
   languages['x-default'] = localeUrl(routing.defaultLocale, path);
   return languages;
 }

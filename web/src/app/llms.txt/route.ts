@@ -2,14 +2,17 @@
 // https://llmstxt.org/ — an H1, a blockquote summary, optional prose, then
 // sections of links with a short description each. Everything here is the
 // English source; llms-full.txt carries the whole guide inline.
-import { GITHUB_URL, MIN_ANDROID, MIN_IOS, SITE_URL } from '@/site/config';
+import { GITHUB_URL, MIN_ANDROID, MIN_IOS, PLANNER_URL, SITE_URL } from '@/site/config';
 import { listDocs, publishedLegalDocs } from '@/site/content';
+import { SYNC_LINES, plannerLines, priceLines } from '@/site/llms';
 import { localeUrl } from '@/site/paths';
 
 const SUMMARY =
-  'Velorki is a free, open-source bike route planner and ride recorder for Android and iOS. ' +
+  'Velorki is a free, private bike route planner and ride recorder for Android and iOS. ' +
   'Planning, loops, offline maps, offline place search, turn-by-turn navigation, recording and ' +
-  'GPX/FIT files all run on the phone, on OpenStreetMap data, with no account and no connection.';
+  'GPX/FIT/TCX files all run on the phone, with no account and no connection. Your routes and ' +
+  'rides stay with you: on the phone, or in your own iCloud or Google Drive if you sync them, ' +
+  'and they export any time. The code is open source, so anyone can check that.';
 
 const LEGAL_DESCRIPTIONS: Record<string, string> = {
   privacy: 'What is stored on the device, what leaves it and what never does.',
@@ -27,11 +30,16 @@ function body(): string {
     '',
     'Everything that runs on the phone is free, for everyone, for good: planning, loops, offline',
     'maps and routing, place search, turn-by-turn navigation with spoken cues, ride recording,',
-    'ride statistics, GPX and FIT import and export, and the connections to Strava and Ride with',
-    'GPS. Velorki Plus is a small subscription only for the parts that need our servers: the AI',
-    'assistant, share links, finer weather along the route and rain radar across Europe. The price',
-    'is shown in the app by the store, and is deliberately not quoted on the website.',
+    'ride statistics, GPX, FIT and TCX import and export, sync through your own iCloud or Google',
+    'Drive, and the connections to Strava and Ride with GPS. Velorki Plus is a small subscription',
+    'only for the parts that need our servers: the AI assistant, share links, finer weather along',
+    'the route and rain radar across Europe.',
     '',
+    ...priceLines(),
+    '',
+    ...SYNC_LINES,
+    '',
+    ...(PLANNER_URL ? [...plannerLines(), ''] : []),
     `The app, the relay and this website are AGPL-3.0-only. Requires Android ${MIN_ANDROID}+ or iOS ${MIN_IOS}+.`,
     'Map data © OpenStreetMap contributors (ODbL). Every project, service and font behind the app,',
     `with its licence, is on ${localeUrl('en', '/credits')}.`,
@@ -40,6 +48,9 @@ function body(): string {
     '',
     `- [Velorki](${localeUrl('en', '/')}): what the app does, the feature tour, Free vs Plus, and the FAQ.`,
     `- [Download](${localeUrl('en', '/download')}): the stores, the APK from GitHub Releases, and the minimum system versions.`,
+    ...(PLANNER_URL
+      ? [`- [Web planner](${PLANNER_URL}): the planner in the browser, with the library synced through your own iCloud or Google Drive.`]
+      : []),
     `- [Velorki Plus](${localeUrl('en', '/plus')}): what the subscription includes, how to restore it and how to cancel it.`,
     `- [Credits](${localeUrl('en', '/credits')}): the open data, open source projects and fonts Velorki is built on, with their licences.`,
     '',

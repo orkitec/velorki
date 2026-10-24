@@ -4,7 +4,7 @@ description: Instala Velorki, conoce las cuatro pestañas, mira qué permisos pi
 order: 1
 ---
 
-Velorki es un planificador de rutas en bici y grabador de salidas gratuito y de código abierto para iPhone y Android, basado en datos de OpenStreetMap. Esta página trata los primeros diez minutos: instalarlo, qué te pide, cómo está organizada la app y el ajuste que la mayoría de ciclistas quiere cambiar enseguida.
+Velorki es un planificador de rutas en bici y grabador de salidas gratuito para iPhone y Android, basado en datos de OpenStreetMap. Funciona en tu teléfono sin cuenta, guarda tus rutas y salidas contigo o en tu propia nube, y su código es abierto, así que cualquiera puede comprobarlo. Esta página trata los primeros diez minutos: instalarlo, qué te pide, cómo está organizada la app y el ajuste que la mayoría de ciclistas quiere cambiar enseguida.
 
 ## Lo que necesitas
 

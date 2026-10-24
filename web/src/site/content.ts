@@ -57,6 +57,21 @@ function resolveFile(locale: string, kind: 'docs' | 'legal', slug: string): { fi
   return null;
 }
 
+/**
+ * The locales that have their own text of a page, English (the source) among
+ * them. Any other locale serves the English text with a notice, which is not a
+ * page of its own for a crawler: the sitemap and the hreflang links leave it out.
+ */
+export function translatedLocales(kind: 'docs' | 'legal', slug: string): string[] {
+  return routing.locales.filter((locale) => resolveFile(locale, kind, slug)?.translated === true);
+}
+
+/** The file a page's text comes from, relative to web/, e.g. `content/de/docs/library.md`. */
+export function contentFile(locale: string, kind: 'docs' | 'legal', slug: string): string | null {
+  const resolved = resolveFile(locale, kind, slug);
+  return resolved ? path.relative(process.cwd(), resolved.file).split(path.sep).join('/') : null;
+}
+
 /** Every docs slug, from the English source directory, in sidebar order. */
 export function docSlugs(): string[] {
   return listDocs(SOURCE_LOCALE).map((doc) => doc.slug);

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// Writes web/build-info.json: the commit the release artifact was packed from.
+// Writes web/build-info.json: the commit the release artifact was packed from,
+// and when each content file last changed (the sitemap's lastmod).
 //
 // `orkify deploy upload` packs the working tree and excludes `.git`
 // (@orkify/cli, deploy/tarball.js ALWAYS_EXCLUDE), so the box that builds the
@@ -36,10 +37,37 @@ if (!commit) {
   process.exit(1);
 }
 
+/**
+ * When each file under content/ and messages/ last changed, for the sitemap's
+ * lastmod (src/site/lastmod.ts parses the same output). Needs the history:
+ * the deploy workflow checks out with `fetch-depth: 0`; in a shallow clone
+ * every file would carry the one commit's date.
+ */
+function contentDates() {
+  try {
+    const output = execFileSync('git', ['log', '--format=%x00%cI', '--name-only', '--relative', '--', 'content', 'messages'], {
+      cwd: webDir,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    const dates = {};
+    let current = null;
+    for (const line of output.split('\n')) {
+      if (line.startsWith('\0')) current = line.slice(1).trim();
+      else if (current && line.trim() && !(line.trim() in dates)) dates[line.trim()] = current;
+    }
+    return dates;
+  } catch {
+    return {};
+  }
+}
+
 const info = {
   commit,
   branch: resolve('GITHUB_REF_NAME', 'rev-parse', '--abbrev-ref', 'HEAD'),
   packedAt: new Date().toISOString(),
+  contentDates: contentDates(),
 };
 
 const target = join(webDir, 'build-info.json');

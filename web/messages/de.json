@@ -1,8 +1,9 @@
 {
   "site": {
     "name": "Velorki",
-    "tagline": "Plane die Tour, finde das Café, folge den Abbiegehinweisen, und das alles dort, wo der Empfang endet. Kostenlos, quelloffen, auf OpenStreetMap gebaut.",
-    "description": "Velorki plant Radrouten, baut Runden und zeichnet deine Fahrten auf, auf dem Handy, offline, mit OpenStreetMap-Daten. Kostenlos und quelloffen."
+    "tagline": "Plane die Tour, finde das Café, folge den Abbiegehinweisen, und das alles dort, wo der Empfang endet. Kostenlos, ohne Konto, und deine Routen und Fahrten bleiben bei dir.",
+    "description": "Velorki plant Radrouten, baut Runden und zeichnet deine Fahrten auf, auf dem Handy, offline, kostenlos und ohne Konto. Deine Routen und Fahrten bleiben bei dir, auf deinem Handy oder in deiner eigenen Cloud, jederzeit exportierbar, und der Code ist offen, damit jeder das nachprüfen kann.",
+    "plannerDescription": "Der Velorki-Radroutenplaner im Browser: Plane Routen und Runden am Computer mit demselben Routing wie die App, kostenlos und ohne Konto. Deine Routen und Fahrten werden über deine eigene iCloud oder dein Google Drive abgeglichen."
   },
   "nav": {
     "home": "Velorki Startseite",
@@ -64,14 +65,14 @@
   },
   "home": {
     "meta": {
-      "title": "Velorki: Radroutenplaner und Fahrtenaufzeichnung, offline und quelloffen",
-      "description": "Plane Radrouten, erzeuge Runden, such nach Orten und folge gesprochenen Abbiegehinweisen, alles auf dem Handy, ganz ohne Verbindung. Kostenlos, quelloffen, auf OpenStreetMap gebaut."
+      "title": "Velorki: Radroutenplaner und Fahrtenaufzeichnung, offline und privat",
+      "description": "Plane Radrouten, erzeuge Runden, such nach Orten und folge gesprochenen Abbiegehinweisen, alles auf dem Handy, ohne Verbindung und ohne Konto. Kostenlos und privat, mit offenem Code, den jeder nachprüfen kann."
     },
     "hero": {
-      "eyebrow": "Kostenlos und quelloffen",
+      "eyebrow": "Kostenlos, privat, ohne Konto",
       "title": "Fahr dort, wo der Empfang endet",
-      "lead": "Plane die Tour, finde das Café, folge den Abbiegehinweisen, und das alles dort, wo der Empfang endet. Kostenlos, quelloffen, auf OpenStreetMap gebaut.",
-      "body": "Lade eine Region einmal herunter und die ganze App läuft ohne Netz: die Karte, das Routing, die Ortssuche und die gesprochenen Abbiegehinweise. Kein Konto, keine Werbung, keine Bezahlschranke vor der Fahrt selbst, und kein Server dazwischen, außer du willst einen.",
+      "lead": "Plane die Tour, finde das Café, folge den Abbiegehinweisen, und das alles dort, wo der Empfang endet. Kostenlos, ohne Konto, und deine Routen und Fahrten bleiben bei dir.",
+      "body": "Lade eine Region einmal herunter und die ganze App läuft ohne Netz: die Karte, das Routing, die Ortssuche und die gesprochenen Abbiegehinweise. Kein Konto, keine Werbung, keine Bezahlschranke vor der Fahrt selbst. Deine Routen und Fahrten bleiben bei dir: auf deinem Handy, oder in deiner eigenen iCloud oder deinem Google Drive, wenn du sie synchronisierst, und jederzeit als GPX, FIT oder TCX exportierbar. Kein Server von uns ist dazwischen, außer du willst einen.",
       "primaryCta": "Velorki holen",
       "secondaryCta": "Doku lesen",
       "stores": "App holen",
@@ -83,7 +84,7 @@
     },
     "free": {
       "title": "Alles auf dem Handy ist kostenlos",
-      "body": "Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Sensoren und Apple Watch, Fahrtstatistik, die Wetterkarte und das Wetter entlang der Route, GPX-, FIT- und TCX-Dateien und die Verbindungen zu Strava und Ride with GPS, für alle, für immer. Die Routing-Daten und den Suchindex spiegeln wir kostenlos für dich.",
+      "body": "Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Sensoren und Apple Watch, Fahrtstatistik, die Wetterkarte und das Wetter entlang der Route, GPX-, FIT- und TCX-Dateien, die Synchronisierung über deine eigene iCloud oder dein Google Drive und die Verbindungen zu Strava und Ride with GPS, für alle, für immer. Die Routing-Daten und den Suchindex spiegeln wir kostenlos für dich.",
       "items": {
         "routing": "Routing auf dem Handy",
         "loops": "Runden",
@@ -93,6 +94,7 @@
         "recording": "Aufnahme",
         "sensors": "Sensoren und Uhr",
         "files": "GPX, FIT und TCX",
+        "sync": "Synchronisierung mit deiner Cloud",
         "weather": "Wetterkarte und Routenwetter",
         "connections": "Kompatibel mit Strava und Ride with GPS"
       }
@@ -245,7 +247,7 @@
         }
       },
       "privacy": "Der Assistent fragt, bevor er etwas sendet: was du tippst und, nur wenn du es erlaubst, deine Position auf etwa einen Kilometer gerundet. Kein Konto, kein Routenverlauf.",
-      "price": "Monatlich oder jährlich über den App Store oder Google Play, mit kostenloser Testphase. Den aktuellen Preis in deiner Währung zeigt die App.",
+      "price": "Monatlich oder jährlich über den App Store oder Google Play, mit kostenloser Testphase. Den Preis in deinem Land findest du auf der Plus-Seite.",
       "moreLink": "Was Plus enthält →",
       "docsLink": "So funktioniert der Assistent →"
     },
@@ -268,6 +270,7 @@
         "recording": "Fahrtenaufzeichnung, Statistik, Splits, Anstiege, Belag, Kalorien und Zonen",
         "sensors": "Puls, Trittfrequenz und Leistung von Sensoren, Uhr und Health-App",
         "library": "Bibliothek mit Routen und Fahrten",
+        "sync": "Synchronisierung zwischen deinen Geräten über deine eigene iCloud oder dein Google Drive",
         "files": "GPX-, FIT- und TCX-Import und -Export",
         "weatherMap": "Wetterkarte: Regenradar, Wolken und Wind, mit Zeitregler",
         "routeColours": "Wetter entlang der Route aus einer gröberen öffentlichen Vorhersage: Wind, Regen, Temperatur, eine Zusammenfassung und die beste Abfahrtszeit, und die Route nach Steigung, Belag, Wind oder Regen eingefärbt",
@@ -282,8 +285,8 @@
       "plusLink": "Velorki Plus →"
     },
     "openSource": {
-      "title": "Open Source, offene Daten",
-      "body": "Velorki ist Open Source unter der AGPL: die App, der Relay und diese Website. Alles, was die App zeichnet, routet und durchsucht, kommt von OpenStreetMap, der Karte, die jeder bearbeiten kann. So kann jeder den Code lesen, nachprüfen, was er tut, und ihn verbessern.",
+      "title": "Privat, und jeder kann es prüfen",
+      "body": "Alles läuft auf deinem Handy, und es gibt kein Konto. Deine Routen und Fahrten bleiben bei dir oder in deiner eigenen iCloud oder deinem Google Drive, und du nimmst sie jederzeit als GPX, FIT oder TCX mit. Der Code ist öffentlich, also kann jeder das nachprüfen und verbessern: Die App, der Relay und diese Website sind Open Source unter der AGPL. Alles, was die App zeichnet, routet und durchsucht, kommt von OpenStreetMap, der Karte, die jeder bearbeiten kann.",
       "githubLink": "Quellcode auf GitHub lesen",
       "creditsLink": "Danksagung und Lizenzen"
     },
@@ -296,17 +299,17 @@
         "routing": "Routen mit den Profilen Trekking, Rennrad, Gravel und MTB, Varianten und Runden",
         "elevation": "Distanz, Anstieg und Höhenprofil, eingefärbt nach Steigung oder Belag",
         "maps": "Ortssuche, die Radkarte, Stopps unterwegs und die Wetterkarte",
-        "library": "Eine Bibliothek deiner Routen und GPX-Dateien zum Herunterladen"
+        "library": "Eine Bibliothek deiner Routen und Fahrten, abgeglichen über deine eigene iCloud oder dein Google Drive, und GPX-Dateien zum Herunterladen"
       },
       "doesntTitle": "Was der App bleibt",
       "doesnt": {
         "ride": "Fahrten aufzeichnen und Navigation mit Abbiegehinweisen",
         "offline": "Kartengebiete für Fahrten ohne Netz",
-        "connections": "Strava, Ride with GPS und die iCloud-Synchronisierung"
+        "connections": "Strava und Ride with GPS"
       },
       "ride": "Zum Fahren ist die App da: Sie zeichnet auf, navigiert und funktioniert unterwegs offline.",
       "open": "Planer öffnen",
-      "plus": "Velorki Plus gibt es vorerst nur in den Apps für iPhone und Android.",
+      "plus": "Velorki Plus kaufst du in der App für iPhone oder Android; angemeldet beim iCloud- oder Google-Konto, mit dem die App synchronisiert, gilt es auch im Browser.",
       "plusLink": "App holen",
       "alt": "Der Velorki-Planer in einem Browserfenster: eine Route an der Küste Madeiras von Funchal nach Caniço, mit Distanz, Anstieg und der Route nach Steigung eingefärbt."
     },
@@ -316,15 +319,15 @@
       "items": {
         "account": {
           "q": "Brauche ich ein Konto?",
-          "a": "Nein. Es gibt kein Konto und keine Anmeldung, nicht einmal für Velorki Plus: ein Abo wird über den Store wiederhergestellt, in dem du es gekauft hast, ganz ohne Konto bei uns."
+          "a": "Nein. Es gibt kein Konto und keine Anmeldung, nicht einmal für Velorki Plus: ein Abo wird über den Store wiederhergestellt, in dem du es gekauft hast, ganz ohne Konto bei uns. Die Synchronisierung läuft, wenn du sie willst, über dein eigenes iCloud- oder Google-Konto."
         },
         "offline": {
           "q": "Funktioniert das wirklich ohne Verbindung?",
-          "a": "Ja. Lade eine Region einmal herunter und die Karte, das Routing, die Ortssuche und die gesprochenen Abbiegehinweise laufen alle auf dem Handy. Nur das Wetter, der Assistent, die Verbindungen zu Strava und Ride with GPS und die Teilen-Links brauchen Netz."
+          "a": "Ja. Lade eine Region einmal herunter und die Karte, das Routing, die Ortssuche und die gesprochenen Abbiegehinweise laufen alle auf dem Handy. Nur das Wetter, der Assistent, die Synchronisierung, die Verbindungen zu Strava und Ride with GPS und die Teilen-Links brauchen Netz."
         },
         "price": {
           "q": "Was kostet Velorki?",
-          "a": "Alles, was auf dem Handy läuft, ist kostenlos: Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Puls, Trittfrequenz und Leistung von deinen Sensoren, Fahrtstatistik, die Wetterkarte, das Wetter entlang der Route aus einer öffentlichen Vorhersage, GPX-, FIT- und TCX-Dateien sowie die Verbindungen zu Strava und Ride with GPS. Velorki Plus ist ein Abo für die serverseitigen Funktionen; den aktuellen Preis zeigt dir der Store in der App, in deiner Währung."
+          "a": "Alles, was auf dem Handy läuft, ist kostenlos: Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Puls, Trittfrequenz und Leistung von deinen Sensoren, Fahrtstatistik, die Wetterkarte, das Wetter entlang der Route aus einer öffentlichen Vorhersage, GPX-, FIT- und TCX-Dateien, die Synchronisierung über deine eigene iCloud oder dein Google Drive sowie die Verbindungen zu Strava und Ride with GPS. Velorki Plus ist ein Abo für die serverseitigen Funktionen; den Monats- und Jahrespreis pro Land, wie App Store und Google Play ihn zeigen, findest du auf der Plus-Seite."
         },
         "plus": {
           "q": "Was ist Velorki Plus?",
@@ -332,7 +335,7 @@
         },
         "data": {
           "q": "Was verlässt mein Handy?",
-          "a": "Nichts, außer du verlangst es. Routen, Fahrten und Einstellungen liegen auf dem Gerät. Der Assistent fragt um Zustimmung, bevor Text das Gerät verlässt, und rundet die Position, die er sendet, auf etwa einen Kilometer. Kartenkacheln und die Online-Suche werden nur geholt, wenn du gerade keine heruntergeladenen Daten nutzt."
+          "a": "Nichts, außer du verlangst es. Routen, Fahrten und Einstellungen liegen auf dem Gerät; synchronisierst du sie, gehen sie in deine eigene iCloud oder dein Google Drive, nie zu uns. Der Assistent fragt um Zustimmung, bevor Text das Gerät verlässt, und rundet die Position, die er sendet, auf etwa einen Kilometer. Kartenkacheln und die Online-Suche werden nur geholt, wenn du gerade keine heruntergeladenen Daten nutzt."
         },
         "osm": {
           "q": "Woher kommen die Kartendaten?",
@@ -340,7 +343,7 @@
         },
         "opensource": {
           "q": "Ist Velorki wirklich quelloffen?",
-          "a": "Ja. Die App, ihre reinen Dart-Pakete, der Relay und diese Website stehen unter AGPL-3.0-only; alles davon liegt auf GitHub. Name, Logo und Icon sind vorbehalten, ein Fork muss sich also umbenennen, bevor er in einem Store veröffentlicht wird."
+          "a": "Ja, damit jeder nachprüfen kann, was sie mit deinen Daten macht. Die App, ihre reinen Dart-Pakete, der Relay und diese Website stehen unter AGPL-3.0-only; alles davon liegt auf GitHub. Name, Logo und Icon sind vorbehalten, ein Fork muss sich also umbenennen, bevor er in einem Store veröffentlicht wird."
         },
         "selfhost": {
           "q": "Kann ich die Server-Teile selbst betreiben?",
@@ -351,7 +354,7 @@
     },
     "cta": {
       "title": "Hol dir die App und fahr los",
-      "body": "Kostenlos in beiden Stores, und der Quellcode liegt auf GitHub. Kein Konto, keine Werbung, keine Testphase für die Teile, die auf deinem Handy laufen.",
+      "body": "Kostenlos in beiden Stores. Kein Konto, keine Werbung, keine Testphase für die Teile, die auf deinem Handy laufen, und der Quellcode liegt zum Nachprüfen auf GitHub.",
       "action": "Velorki herunterladen"
     }
   },
@@ -385,7 +388,15 @@
     "freeTitle": "Was kostenlos bleibt",
     "freeBody": "Planen, Runden, Offline-Karten und -Routing, Suche, Abbiegenavigation, Aufnahme, Fahrtstatistik, die Wetterkarte, das Wetter entlang der Route aus einer gröberen öffentlichen Vorhersage (Wind, Regen, Temperatur, die beste Abfahrtszeit) mit der nach Steigung, Belag, Wind oder Regen eingefärbten Route, GPX-, FIT- und TCX-Dateien sowie die Verbindungen zu Strava und Ride with GPS bleiben kostenlos, mit oder ohne Plus.",
     "priceTitle": "Was es kostet",
-    "priceBody": "Den Preis siehst du in der App. Der Store zeigt den aktuellen Monats- und Jahrespreis in deiner eigenen Währung, mit kostenloser Testphase, und hier steht er nie, damit er nicht veralten kann.",
+    "priceBody": "Monatlich oder jährlich, gekauft im App Store oder bei Google Play, mit kostenloser Testphase. Das sind die Preise, die die Stores in jedem Land zeigen:",
+    "prices": {
+      "country": "Land",
+      "monthly": "Monatlich",
+      "yearly": "Jährlich",
+      "asOf": "Stand: {date}",
+      "tax": "Preise, wie die Stores sie zeigen, mit Steuern, wo der Store sie einrechnet; vor dem Kauf zeigt dir der Store den Preis, der für dich gilt.",
+      "missing": "Für dieses Land ist hier kein Preis der Stores hinterlegt. Den aktuellen Monats- und Jahrespreis zeigt dir der Store in der App, in deiner eigenen Währung, mit kostenloser Testphase."
+    },
     "restoreTitle": "Ein Abo wiederherstellen",
     "restoreBody": "Schon abonniert? Unter Einstellungen → Velorki Plus die Käufe wiederherstellen. Das klappt ohne Konto: der Store, in dem du gekauft hast, ist der einzige Nachweis.",
     "cancelTitle": "Kündigen",
@@ -398,7 +409,7 @@
   "download": {
     "meta": {
       "title": "Velorki herunterladen",
-      "description": "Velorki für Android und iOS: die Stores, die APK aus den GitHub Releases und die minimalen Systemversionen."
+      "description": "Velorki für Android und iOS, und der Planer im Browser: die Stores, die APK aus den GitHub Releases und die minimalen Systemversionen."
     },
     "eyebrow": "Download",
     "title": "Velorki holen",
@@ -410,7 +421,7 @@
     "iosRequirement": "iOS {version} oder neuer",
     "storage": "Etwa 60 MB für die App, dazu alles, was du an Karten- und Routing-Regionen herunterlädst.",
     "browserTitle": "Oder im Browser",
-    "browserBody": "Plane Routen am Computer mit dem Planer im Web: dieselben Karten, dasselbe Routing, dieselbe Bibliothek, ohne Installation.",
+    "browserBody": "Plane Routen am Computer mit dem Planer im Web: dieselben Karten, dasselbe Routing, dieselbe Bibliothek, abgeglichen über deine eigene iCloud oder dein Google Drive, ohne Installation.",
     "browserLink": "Planer öffnen",
     "apkTitle": "APK und Builds aus dem Quellcode",
     "apkBody": "Jedes Release ist auf GitHub getaggt und hat seine APK angehängt, für alle, die lieber keinen Store nutzen. Updates laufen bei dieser Installation von Hand.",

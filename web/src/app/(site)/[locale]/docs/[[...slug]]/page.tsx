@@ -9,7 +9,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { Prose } from '@/components/Prose';
 import { TocSpy } from '@/components/TocSpy';
 import { routing } from '@/i18n/routing';
-import { type DocEntry, docSlugs, listDocs, loadDoc, loadDocsIndex } from '@/site/content';
+import { type DocEntry, docSlugs, listDocs, loadDoc, loadDocsIndex, translatedLocales } from '@/site/content';
 import { breadcrumbJsonLd, techArticleJsonLd } from '@/site/jsonld';
 import type { Heading } from '@/site/markdown';
 import { localePath } from '@/site/paths';
@@ -51,8 +51,10 @@ export async function generateMetadata({ params }: { params: Promise<DocsParams>
     path: docPath(slug),
     title: page.frontMatter.title,
     description: page.frontMatter.description || t('lead'),
-    // An unreviewed text is served, but it is not offered to a crawler.
-    noIndex: page.frontMatter.draft,
+    // An unreviewed text is served, but it is not offered to a crawler; nor is
+    // the English text served under another language's address.
+    noIndex: page.frontMatter.draft || !page.translated,
+    locales: translatedLocales('docs', page.slug),
   });
 }
 

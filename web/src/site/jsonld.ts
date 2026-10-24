@@ -74,6 +74,42 @@ export function mobileApplicationJsonLd(description: string): JsonLdObject {
   };
 }
 
+/**
+ * The web planner (`PLANNER_URL`): the same app built for a browser, on its
+ * own host. `WebApplication` with "Web browser" as its operating system is
+ * how schema.org describes that; `TravelApplication` leads here because the
+ * browser plans and does not record. It is free, like the app: Plus is not
+ * sold there, it comes from an app that syncs to the same cloud account.
+ */
+export function webApplicationJsonLd(description: string, url: string): JsonLdObject {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    '@id': `${SITE_URL}/#planner`,
+    name: 'Velorki Planner',
+    url,
+    description,
+    operatingSystem: 'Web browser',
+    browserRequirements: 'Requires JavaScript.',
+    applicationCategory: 'TravelApplication',
+    isAccessibleForFree: true,
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'EUR',
+      availability: 'https://schema.org/InStock',
+    },
+    author: { '@id': ORGANIZATION_ID },
+    publisher: { '@id': ORGANIZATION_ID },
+    license: LICENSE_URL,
+    codeRepository: GITHUB_URL,
+    isBasedOn: 'https://www.openstreetmap.org/',
+    softwareHelp: `${SITE_URL}/docs`,
+    privacyPolicy: `${SITE_URL}/privacy`,
+    termsOfService: `${SITE_URL}/terms`,
+  };
+}
+
 export interface FaqEntry {
   question: string;
   answer: string;

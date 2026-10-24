@@ -13,8 +13,8 @@ import { SupportChat } from '@/components/SupportChat';
 import { SiteHeader } from '@/components/SiteHeader';
 import { ThemeScript } from '@/components/ThemeScript';
 import { routing } from '@/i18n/routing';
-import { ORG_NAME, ORG_URL } from '@/site/config';
-import { mobileApplicationJsonLd, organizationJsonLd, webSiteJsonLd } from '@/site/jsonld';
+import { ORG_NAME, ORG_URL, PLANNER_URL } from '@/site/config';
+import { mobileApplicationJsonLd, organizationJsonLd, webApplicationJsonLd, webSiteJsonLd } from '@/site/jsonld';
 import { languageAlternates, localePath } from '@/site/paths';
 import { METADATA_BASE } from '@/site/seo';
 import '../../globals.css';
@@ -122,7 +122,15 @@ export default async function SiteLayout({
   // The cookie notice takes its strings as props: it is a client component, but
   // this keeps its catalogue on the server with the rest.
   const cookies = await getTranslations({ locale, namespace: 'cookies' });
-  const description = (await getTranslations({ locale, namespace: 'site' }))('description');
+  const site = await getTranslations({ locale, namespace: 'site' });
+  const description = site('description');
+  // The web planner is described only where one is deployed (PLANNER_URL).
+  const structuredData = [
+    organizationJsonLd(),
+    webSiteJsonLd(locale),
+    mobileApplicationJsonLd(description),
+    ...(PLANNER_URL ? [webApplicationJsonLd(site('plannerDescription'), PLANNER_URL)] : []),
+  ];
 
   // Only the namespaces the three client components need cross to the browser;
   // the rest of the catalogue stays on the server.
@@ -157,7 +165,7 @@ export default async function SiteLayout({
           <SiteHeader locale={locale} />
           <main id="main">{children}</main>
           <SiteFooter locale={locale} />
-          <JsonLd data={[organizationJsonLd(), webSiteJsonLd(locale), mobileApplicationJsonLd(description)]} />
+          <JsonLd data={structuredData} />
         </NextIntlClientProvider>
         {/* Last in the body, outside the intl provider: it brings its own UI
             and its own strings. Renders nothing without a widget key. */}

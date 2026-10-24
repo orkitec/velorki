@@ -42,6 +42,8 @@ export interface PageSeo {
   absoluteTitle?: boolean;
   /** Share pages and the like; the site itself is fully indexable. */
   noIndex?: boolean;
+  /** The locales the page is written in, for hreflang; every locale when omitted. */
+  locales?: readonly string[];
 }
 
 /**
@@ -49,12 +51,12 @@ export interface PageSeo {
  * x-default, Open Graph and Twitter. The image is named explicitly rather than
  * left to Next's file-convention merge; see `ogImage` for why.
  */
-export function pageMetadata({ locale, path, title, description, absoluteTitle, noIndex }: PageSeo): Metadata {
+export function pageMetadata({ locale, path, title, description, absoluteTitle, noIndex, locales }: PageSeo): Metadata {
   const url = localeUrl(locale, path);
   return {
     title: absoluteTitle ? { absolute: title } : title,
     description,
-    alternates: { canonical: url, languages: languageAlternates(path) },
+    alternates: { canonical: url, languages: languageAlternates(path, locales) },
     openGraph: {
       type: 'website',
       url,

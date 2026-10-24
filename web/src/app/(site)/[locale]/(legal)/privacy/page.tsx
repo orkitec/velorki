@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { LegalPage } from '@/components/LegalPage';
 import { routing } from '@/i18n/routing';
-import { loadLegal } from '@/site/content';
+import { loadLegal, translatedLocales } from '@/site/content';
 import { pageMetadata } from '@/site/seo';
 
 const DOC = 'privacy' as const;
@@ -21,8 +21,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     path: `/${DOC}`,
     title: page?.frontMatter.title ?? t('title'),
     description: page?.frontMatter.description || t('description'),
-    // An unreviewed text is served, but it is not offered to a crawler.
-    noIndex: page?.frontMatter.draft ?? true,
+    // An unreviewed text is served, but it is not offered to a crawler; nor is
+    // the English text served under another language's address.
+    noIndex: (page?.frontMatter.draft ?? true) || !page?.translated,
+    locales: translatedLocales('legal', DOC),
   });
 }
 

@@ -4,7 +4,7 @@ description: Installeer Velorki, leer de vier tabbladen kennen, zie welke toeste
 order: 1
 ---
 
-Velorki is een gratis, open-source fietsrouteplanner en ritrecorder voor iPhone en Android, gebouwd op gegevens van OpenStreetMap. Deze pagina gaat over de eerste tien minuten: de installatie, wat de app vraagt, hoe hij is ingedeeld, en de ene instelling die de meeste fietsers meteen willen aanpassen.
+Velorki is een gratis fietsrouteplanner en ritrecorder voor iPhone en Android, gebouwd op gegevens van OpenStreetMap. Hij draait op je telefoon zonder account, houdt je routes en ritten bij jou of in je eigen cloud, en de code is open, zodat iedereen dat kan controleren. Deze pagina gaat over de eerste tien minuten: de installatie, wat de app vraagt, hoe hij is ingedeeld, en de ene instelling die de meeste fietsers meteen willen aanpassen.
 
 ## Wat je nodig hebt
 
