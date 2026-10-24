@@ -1,17 +1,18 @@
 ---
 title: Politique de confidentialité
-description: "Ce que Velorki fait de vos données : aucun compte, vos itinéraires et vos sorties restent sur votre téléphone, et la liste exacte de ce qui quitte l'appareil et à quel moment."
+description: "Ce que Velorki fait de vos données : aucun compte, vos itinéraires et vos sorties restent sur votre téléphone ou dans votre navigateur, sauf si vous les synchronisez avec votre propre iCloud ou Google Drive, et la liste exacte de ce qui quitte l'appareil et à quel moment."
 draft: true
 ---
 
 > **Note sur la traduction.** Ceci est une traduction de la version anglaise.
 > En cas de divergence, la version anglaise prévaut.
 
-Date d'entrée en vigueur : 16 octobre 2026.
+Date d'entrée en vigueur : 23 octobre 2026.
 
 Velorki est une application de planification d'itinéraires vélo et
-d'enregistrement de sorties, développée par Orkitec. Cette page explique ce
-qu'il advient de vos données.
+d'enregistrement de sorties, développée par Orkitec, pour iPhone, iPad et
+Android, ainsi qu'un planificateur web sur app.velorki.com. Cette page explique
+ce qu'il advient de vos données.
 
 **Qui est responsable.** Le responsable du traitement pour tout ce qui est
 décrit ici est Steffen Roemer, exerçant sous le nom « Orkitec », Straße der
@@ -24,15 +25,19 @@ sur le prestataire figurent dans les [mentions légales](./imprint).
 
 - Il n'y a **aucun compte**. Vous ne vous inscrivez pas, et nous ne savons pas
   qui vous êtes.
-- Vos itinéraires, vos sorties et vos réglages restent **sur votre téléphone**.
-  Sur un iPhone ou un iPad, ils sont aussi synchronisés entre vos propres
-  appareils par votre iCloud, et non par nous.
+- Vos itinéraires, vos sorties et vos réglages restent **sur votre téléphone**,
+  ou dans votre navigateur pour le planificateur web. Si vous activez la
+  synchronisation, ils vont dans votre propre iCloud ou votre propre Google
+  Drive, jamais chez nous.
 - Certaines choses nécessitent un serveur : les tuiles de carte, le routage en
   dehors des zones que vous avez téléchargées, la recherche lorsque vous la
   demandez et, si vous les utilisez, l'assistant IA, les connexions à Strava et
   à RideWithGPS (gratuites), et les liens de partage. Chacun est décrit ci-dessous.
 - Ce **site web** n'a ni outil d'analyse d'audience, ni publicité, ni pistage :
   le court avis affiché en bas de page ne vous demande donc rien.
+- Le **planificateur web** sur app.velorki.com fonctionne de la même façon :
+  aucun compte, aucun outil d'analyse d'audience, votre bibliothèque conservée
+  dans votre navigateur.
 - Nous ne vendons pas vos données et ne les utilisons ni à des fins
   publicitaires ni pour du profilage.
 
@@ -42,9 +47,10 @@ Les itinéraires planifiés, les sorties enregistrées, leurs traces GPS, vos
 réglages, les régions de cartes hors ligne téléchargées, les tuiles de routage
 téléchargées et les index de recherche de lieux qui les accompagnent sont
 conservés dans le stockage propre de l'application, sur votre téléphone. Ils ne
-sont envoyés nulle part, sauf si vous le demandez ; la seule exception est la
-synchronisation iCloud sur un iPhone ou un iPad, décrite plus bas, qui va vers
-votre propre iCloud et non vers nous.
+sont envoyés nulle part, sauf si vous le demandez ; la seule exception est la
+synchronisation dans le cloud, décrite plus bas, qui va vers votre propre iCloud
+ou Google Drive et non vers nous. Ce que le planificateur web conserve dans
+votre navigateur est décrit sous Le planificateur web.
 
 La fréquence cardiaque, la cadence et la puissance provenant d'une Apple Watch,
 d'un capteur Bluetooth ou de votre application de santé sont enregistrées avec
@@ -54,7 +60,8 @@ depuis Apple Health ou Health Connect et y inscrit vos sorties terminées en tan
 qu'entraînements de cyclisme ; cet échange a lieu sur votre téléphone et rien
 ne nous en parvient. Les valeurs des capteurs ne voyagent avec une sortie que
 là où la sortie elle-même va : dans un fichier GPX, FIT ou TCX que vous
-exportez, ou dans un envoi vers Strava ou RideWithGPS que vous lancez.
+exportez, dans un envoi vers Strava ou RideWithGPS que vous lancez, ou vers
+votre propre cloud tant que la synchronisation est activée.
 
 Si vous connectez Strava ou RideWithGPS, les jetons d'accès à ces comptes sont
 conservés dans le stockage sécurisé du téléphone (Keychain sur iOS, Keystore
@@ -65,8 +72,9 @@ Strava et à RideWithGPS ci-dessous.
 Sur Android, l'application est exclue de la sauvegarde dans le cloud de Google
 et du transfert d'appareil à appareil : vos sorties et vos jetons d'accès ne
 sont donc pas non plus copiés hors du téléphone par le système. Pour passer à
-un nouveau téléphone, exportez ce que vous souhaitez conserver sous forme de
-fichiers GPX, FIT ou TCX.
+un nouveau téléphone, activez la synchronisation avec Google (décrite plus
+bas) ou exportez ce que vous souhaitez conserver sous forme de fichiers GPX,
+FIT ou TCX.
 
 ## Ce qui quitte votre appareil, et quand
 
@@ -79,6 +87,13 @@ coordonnées de vos points de passage à un serveur de routage (BRouter, exploit
 par nous), qui renvoie l'itinéraire. Il a besoin des points de passage pour
 calculer l'itinéraire ; il ne reçoit ni votre identité, ni vos autres
 itinéraires, ni vos sorties.
+
+Les tuiles de routage et les index de recherche qui les accompagnent sont
+téléchargés depuis notre miroir de tuiles sur GitHub (`raw.githubusercontent.com`
+et les téléchargements de versions sur `github.com`). GitHub apprend quelles
+tuiles de 5° vous téléchargez et votre adresse IP, comme pour toute requête web.
+Le planificateur web les récupère plutôt via app.velorki.com : GitHub voit alors
+Cloudflare, et non vous.
 
 ### Recherche
 
@@ -279,39 +294,83 @@ Un élément partagé est conservé **un an**, puis supprimé automatiquement. P
 le faire supprimer plus tôt, envoyez le lien à l'adresse de contact ci-dessous
 et nous le supprimons. Consulter un lien partagé ne nécessite aucun compte.
 
-### Synchronisation iCloud (iPhone et iPad)
+### Synchronisation dans le cloud (iCloud ou Google Drive)
 
-Sur un iPhone ou un iPad sous iOS 17 ou plus récent, vos itinéraires enregistrés
-et vos sorties enregistrées, avec la trace, les notes et les statistiques de
-chaque sortie, sont synchronisés entre vos propres appareils Apple connectés au
-même compte Apple. Quelques réglages le sont aussi : thème, couleur d'accent,
-aspect de la carte, style de la barre, côté de la colonne, unités, ainsi que les
-réglages des annonces de virage et des annonces vocales. Elle est activée par
-défaut, et l'interrupteur **Synchroniser avec iCloud** dans les Réglages la
-désactive sur cet appareil.
+Chaque appareil se synchronise avec un seul cloud au plus, choisi sous
+**Réglages → Synchroniser avec** : iCloud (iPhone et iPad sous iOS 17 ou plus
+récent, et le planificateur web), Google (l'iPhone, l'iPad, Android et le
+planificateur web) ou désactivé. Sur un iPhone ou un iPad, iCloud est activé par
+défaut ; sur Android et dans le navigateur, la synchronisation est désactivée
+tant que vous ne choisissez pas de cloud.
 
-Les données passent par CloudKit d'Apple et sont conservées dans votre propre
-base de données privée iCloud. Apple les stocke et les transfère, et elles
-comptent dans votre stockage iCloud. Orkitec n'exploite aucun serveur pour cela
-et ne peut ni les lire, ni y accéder, ni les supprimer ; il n'y a pas de compte
-Velorki. Apple chiffre les données en transit et sur ses serveurs ; avec la
-protection avancée des données activée, elles sont chiffrées de bout en bout,
-comme le décrit l'[aperçu de la sécurité des données iCloud d'Apple](https://support.apple.com/en-us/102651).
+**Ce qui est synchronisé.** Vos itinéraires enregistrés, et vos sorties
+enregistrées avec la trace, les notes, les statistiques et les tours de chaque
+sortie, ainsi que la fréquence cardiaque, la cadence, la puissance et la
+température enregistrées avec elle. Quelques réglages le sont aussi : thème,
+couleur d'accent, aspect de la carte, aspect du radar de pluie, style de la
+barre, côté de la colonne, unités, ainsi que les réglages des virages, de la
+voix et du recalcul d'itinéraire. Dans le navigateur avec iCloud, les réglages
+restent dans le navigateur. Chaque application inscrit aussi un petit
+enregistrement Plus dans le même cloud, décrit sous Abonnements.
 
-Certaines choses ne sont jamais synchronisées. Les itinéraires lus depuis Strava
-et les itinéraires modifiés à partir d'eux, ainsi que les liens Strava des
-sorties que vous avez envoyées vers Strava, restent sur ce seul téléphone,
+**Certaines choses ne sont jamais synchronisées.** Les itinéraires lus depuis
+Strava et les itinéraires modifiés à partir d'eux, ainsi que les liens Strava
+des sorties que vous avez envoyées vers Strava, restent sur ce seul téléphone,
 comme décrit plus haut à la section Strava. Les liens des envois vers Ride with
-GPS ne sont pas synchronisés non plus ; un itinéraire que vous importez depuis
+GPS ne sont pas synchronisés non plus ; un itinéraire que vous importez depuis
 Ride with GPS est synchronisé comme votre propre itinéraire, sans son
 identifiant Ride with GPS. Les régions de carte téléchargées et les tuiles de
-routage, les autorisations, les capteurs associés, les comptes connectés et
-l'état de l'abonnement n'en font pas partie. L'application Android ne
-synchronise pas.
+routage, les autorisations, les capteurs associés, la voix, la langue, les
+comptes connectés et l'abonnement lui-même n'en font pas partie.
 
-Désactiver l'interrupteur arrête la synchronisation sur cet appareil. Ce qui est
-déjà dans iCloud y reste jusqu'à ce que vous le supprimiez, dans les réglages
-iCloud de l'appareil.
+**iCloud.** Les données passent par CloudKit d'Apple vers votre propre base de
+données privée iCloud. Apple les stocke et les transfère, et elles comptent dans
+votre stockage iCloud. Apple les chiffre en transit et sur ses serveurs ; avec
+la protection avancée des données activée, elles sont chiffrées de bout en bout,
+comme le décrit l'[aperçu de la sécurité des données iCloud d'Apple](https://support.apple.com/en-us/102651).
+Dans le navigateur, vous vous connectez avec le bouton d'Apple, dans une fenêtre
+d'Apple ; le script CloudKit JS d'Apple n'est chargé depuis Apple qu'une fois
+que vous avez choisi iCloud, et il conserve votre connexion Apple dans un cookie
+sur le site du planificateur jusqu'à ce que vous vous déconnectiez (effacer les
+données du site dans le navigateur le supprime aussi).
+
+Le serveur d'envoi d'Apple n'accepte pas les envois faits directement depuis
+notre site. Lorsque le planificateur web enregistre un itinéraire ou une sortie
+dans iCloud, le fichier de l'enregistrement (la trace et les détails de
+l'itinéraire ou de la sortie) est donc envoyé à app.velorki.com/cloudkit/upload,
+une petite fonction Cloudflare qui le transmet tel quel à l'adresse d'envoi à
+usage unique qu'Apple a fournie pour lui et renvoie l'accusé de réception
+d'Apple. Elle ne conserve rien, et nous n'en tenons aucun journal. Les autres
+champs de l'enregistrement vont directement à Apple.
+
+**Google Drive.** Vous vous connectez avec votre compte Google, et Velorki ne
+demande qu'une seule autorisation : son propre dossier d'application masqué dans
+votre Drive (`drive.appdata`). Il ne peut ni voir ni modifier aucun autre
+fichier de votre Drive, et le dossier n'apparaît pas parmi vos fichiers. Google
+stocke les données et elles comptent dans votre stockage Google ; Google les
+chiffre en transit et sur ses serveurs, mais pas de bout en bout. Le téléphone
+conserve l'identifiant et l'adresse e-mail de votre compte Google pour afficher
+qui est connecté. Dans le navigateur, vous vous connectez avec le bouton de
+Google ; le script de connexion de Google n'est chargé qu'une fois que vous avez
+choisi Google, et son jeton d'accès ne vit que le temps de la page, une heure au
+plus.
+
+**Ce que voit Orkitec.** Rien. Orkitec n'exploite aucun serveur pour la
+synchronisation et ne peut ni lire, ni consulter, ni supprimer ce qui se trouve
+dans votre iCloud ou votre Drive ; il n'y a pas de compte Velorki. Apple et
+Google agissent en vertu de votre propre contrat avec eux.
+
+**Supprimer, désactiver.** Tant que la synchronisation est activée, supprimer un
+itinéraire ou une sortie sur un appareil le supprime aussi dans votre cloud et
+sur vos autres appareils. Choisir **Désactivé**, se déconnecter ou passer à
+l'autre cloud arrête la synchronisation sur cet appareil et ne supprime rien ;
+changer de cloud envoie votre bibliothèque vers le nouveau et laisse l'ancienne
+copie où elle était. Ce qui est déjà dans iCloud y reste jusqu'à ce que vous le
+supprimiez dans les réglages iCloud d'un appareil Apple. Ce qui est dans Google
+Drive y reste jusqu'à ce que vous le supprimiez : dans Google Drive sur le web,
+Paramètres → Gérer les applications → Velorki → Options → Supprimer les données
+d'application masquées ; retirer l'accès de Velorki sur
+myaccount.google.com/permissions l'empêche d'atteindre le dossier.
 
 ### Abonnements
 
@@ -325,6 +384,47 @@ abonnement est actif, et à rien d'autre.
 
 Nous ne voyons jamais vos données de paiement ; elles restent chez Apple ou
 Google.
+
+**Plus dans le navigateur.** Plus ne peut pas être acheté dans le planificateur
+web. Pour y utiliser un Plus acheté dans une application pour téléphone, chaque
+application qui se synchronise inscrit son propre enregistrement dans le cloud
+avec lequel elle se synchronise : son identifiant d'utilisateur RevenueCat de
+l'application, s'il s'agit d'une application iPhone ou Android, si sa boutique a
+indiqué en dernier lieu que Plus est actif, et la date de sa dernière écriture,
+sous un identifiant aléatoire propre à l'appareil. Elle le réinscrit toutes les
+six heures et lorsque Plus commence ou prend fin. Le planificateur web, connecté
+au même compte iCloud ou Google, lit ces enregistrements, les conserve dans le
+navigateur et envoie l'identifiant du plus récent à notre relais avec chaque
+requête Plus, exactement comme le ferait l'application. Le relais vérifie cet
+identifiant auprès de RevenueCat comme il le fait pour les applications ; le
+navigateur ne contacte pas RevenueCat, ne crée aucun identifiant propre pour
+Plus et n'inscrit jamais d'enregistrement Plus.
+
+L'enregistrement ne va que dans le compte avec lequel la synchronisation a
+d'abord fonctionné, ou dans un compte que vous choisissez ensuite sous Réglages →
+Synchroniser avec : après une déconnexion, un changement de compte ou la
+désactivation de la synchronisation, l'application cesse de l'inscrire et ne le
+copie jamais d'elle-même dans un second compte. Il n'est pas supprimé du cloud ;
+le planificateur web ignore un enregistrement qui n'a pas été inscrit depuis
+30 jours, et oublie les enregistrements qu'il a conservés lorsque vous vous
+déconnectez ou changez de compte ou de cloud.
+
+### Avis de mise à jour et évaluations
+
+Quelques secondes après le lancement, puis de nouveau après une journée en
+arrière-plan, l'application demande à sa boutique si une version plus récente
+existe. Sur iOS, elle interroge le service public de recherche de l'App Store
+d'Apple (`itunes.apple.com`) avec l'identifiant de bundle de Velorki et les
+codes de pays et de langue de votre téléphone ; sur Android, elle interroge le
+service de mise à jour intégrée de Google Play sur le téléphone, qui ne répond
+que pour une installation depuis Play. Chacune implique votre adresse IP, comme
+toute requête web, et rien d'autre vous concernant.
+
+De temps à autre, l'application demande au système d'afficher sa propre fenêtre
+d'évaluation. Apple ou Google décident si elle apparaît et à quelle fréquence ;
+une note ou un avis que vous y donnez leur parvient sous votre compte de
+boutique, et l'application ne sait pas si vous avez noté ni ce que vous avez
+noté. Le planificateur web ne fait ni l'un ni l'autre.
 
 ### Rapports de plantage et analyse d'audience
 
@@ -412,25 +512,64 @@ pas. L'entrée 🍪 Cookies du pied de page le fait réapparaître.
   du chat d'assistance, il n'y a aucun script tiers, aucun CDN pour nos propres
   ressources et aucun service de polices.
 
+## Le planificateur web (app.velorki.com)
+
+app.velorki.com est la même application, qui tourne dans votre navigateur : elle
+planifie, cherche et tient une bibliothèque, mais n'enregistre pas et ne guide
+pas. Il n'y a aucun compte, aucun outil d'analyse d'audience et aucune
+publicité. Sur un téléphone ou une tablette, l'adresse affiche la page de
+téléchargement de l'application et ne charge rien d'autre.
+
+- **Conservé dans votre navigateur.** Vos itinéraires, vos sorties et vos
+  réglages sont conservés dans une base de données du stockage propre du
+  navigateur (IndexedDB, ou l'Origin Private File System dans certains
+  navigateurs), les tuiles de routage et les index de recherche que vous avez
+  téléchargés dans son Cache Storage, et les réglages, le compte cloud auquel
+  vous vous êtes connecté et un identifiant anonyme semblable à celui de
+  l'application dans son stockage local. Ils restent dans ce navigateur, sur cet
+  ordinateur, jusqu'à ce que vous les supprimiez dans le planificateur ou que
+  vous effaciez les données du site dans le navigateur. Ce stockage est la
+  raison d'être du planificateur : il ne requiert donc aucun consentement au
+  titre de l'article 25, paragraphe 2, du TTDSG.
+- **Ce qu'il contacte.** Les mêmes services que l'application, selon les mêmes
+  règles que ci-dessus : les tuiles de carte d'OpenFreeMap (et de CyclOSM si
+  vous l'activez), Photon pour une recherche en ligne, les services
+  météorologiques publics pour les couches météo, et notre relais pour
+  l'assistant IA, la météo Plus et les liens de partage. Il n'utilise jamais le
+  serveur de routage : les itinéraires sont calculés dans le navigateur. Les
+  tuiles de routage passent par app.velorki.com. Lorsqu'un texte exige une
+  écriture que les polices propres de l'application ne couvrent pas, le
+  navigateur charge une police de secours depuis Google Fonts
+  (`fonts.gstatic.com`), qui voit votre adresse IP. La synchronisation dans le
+  cloud contacte Apple ou Google, uniquement une fois que vous en avez choisi un.
+- **Cloudflare.** Le planificateur est servi par Cloudflare Pages. Deux petites
+  fonctions y répondent à `/tiles/` (qui récupère les tuiles depuis notre miroir
+  GitHub) et à `/cloudkit/upload` (voir Synchronisation dans le cloud). Comme
+  tout serveur, elles voient votre adresse IP et la requête ; elles ne
+  conservent rien, et nous n'en tenons aucun journal.
+
 ## Conservation et suppression
 
 | Données | Conservation | Comment les supprimer |
 |---|---|---|
-| Itinéraires, sorties, réglages, données hors ligne | sur votre téléphone, jusqu'à ce que vous les supprimiez | supprimez-les dans l'application, ou désinstallez l'application |
+| Itinéraires, sorties, réglages, données hors ligne | sur votre téléphone, jusqu'à ce que vous les supprimiez | supprimez-les dans l'application, ou désinstallez l'application (si la synchronisation est activée, supprimer un itinéraire ou une sortie le supprime aussi dans votre cloud) |
 | Jetons Strava / RideWithGPS | sur votre téléphone, chiffrés de sorte que seul notre relais puisse les ouvrir, jusqu'à ce que vous vous déconnectiez ; jamais conservés de notre côté | déconnectez-vous dans l'application, ou désinstallez-la |
 | Données Strava : votre nom, les liens d'activité | sur votre téléphone, jusqu'à ce que vous vous déconnectiez ; jamais conservées de notre côté | déconnectez Strava dans l'application, ou désinstallez-la ; questions à ride@velorki.com |
 | Itinéraires importés depuis Strava, et itinéraires modifiés à partir d'eux | sur votre téléphone, uniquement tant que l'itinéraire existe encore sur Strava : revérifié toutes les 48 heures, supprimé s'il y a été supprimé ou n'a pas pu être vérifié pendant 7 jours ; jamais conservés de notre côté | supprimez-le dans l'application, déconnectez Strava, ou désinstallez l'application |
 | La liste en cache de vos itinéraires Strava | sur votre téléphone, 48 heures au plus | déconnectez Strava, ou désinstallez l'application |
 | Compteurs de limitation de débit (identifiant d'installation anonyme, adresse IP) | sur notre serveur, pendant la fenêtre de comptage, un jour au plus | sans objet |
 | Liens de partage | un an, puis supprimés automatiquement | supprimez-les depuis l'application |
-| Itinéraires, sorties et réglages synchronisés par iCloud (iPhone et iPad) | dans votre propre iCloud, jusqu'à ce que vous les y supprimiez ; jamais conservés de notre côté | supprimez-les dans les réglages iCloud de l'appareil |
+| Itinéraires, sorties et réglages synchronisés par iCloud | dans votre propre iCloud, jusqu'à ce que vous les y supprimiez ; jamais conservés de notre côté | supprimez-les dans les réglages iCloud d'un appareil Apple |
+| Itinéraires, sorties et réglages synchronisés par Google Drive | dans le dossier Velorki masqué de votre Drive, jusqu'à ce que vous le supprimiez ; jamais conservés de notre côté | dans Google Drive sur le web : Paramètres → Gérer les applications → Velorki → Options → Supprimer les données d'application masquées |
+| Enregistrements Plus (identifiant RevenueCat, plateforme, Plus actif, dernière écriture) | dans le cloud avec lequel vous vous synchronisez, jusqu'à ce que vous y supprimiez les données de l'application ; ignorés par le planificateur web au bout de 30 jours | comme les itinéraires synchronisés ci-dessus |
+| La bibliothèque, les tuiles et les réglages du planificateur web | dans votre navigateur, jusqu'à ce que vous les supprimiez | supprimez-les dans le planificateur, ou effacez les données du site dans le navigateur |
 | Requêtes à l'IA | non conservées par nous au-delà de ce que contiennent les journaux ci-dessus | sans objet |
 | Données RevenueCat | selon la politique propre de RevenueCat | contactez-nous et nous transmettrons la demande |
 | Conversations du chat d'assistance | dans notre canal Discord jusqu'à ce que nous les supprimions | demandez-le à ride@velorki.com |
 
 La désinstallation de l'application supprime tout ce que l'application a stocké
-sur l'appareil. Ce que la synchronisation iCloud a placé dans votre iCloud y
-reste ; voir la synchronisation iCloud plus haut. Elle ne supprime pas les liens de partage que vous avez créés
+sur l'appareil. Ce que la synchronisation a placé dans votre iCloud ou votre
+Google Drive y reste ; voir Synchronisation dans le cloud plus haut. Elle ne supprime pas les liens de partage que vous avez créés
 (ils expirent au bout d'un an, ou sur demande), ni rien de ce que vous avez
 envoyé vers Strava ou RideWithGPS.
 
@@ -447,7 +586,9 @@ sens de l'article 6, paragraphe 1, du RGPD sont les suivantes :
 | Velorki Plus : la météo plus fine le long de l'itinéraire et le radar de pluie | b) exécution du contrat |
 | Strava et RideWithGPS : connexion d'un compte, chaque transfert que vous déclenchez et les données Strava conservées sur votre téléphone | b) exécution du service que vous avez demandé, ainsi que a) consentement, donné en connectant le compte et retiré en le déconnectant |
 | Liens de partage que vous créez | b) exécution du contrat |
-| Synchronisation iCloud (iPhone et iPad), tant que l'interrupteur est activé | b) exécution du service que vous avez demandé ; Apple agit en vertu de votre propre contrat iCloud avec Apple |
+| Synchronisation dans le cloud avec iCloud ou Google Drive, tant qu'elle est activée, y compris les enregistrements Plus et l'envoi du planificateur web via `/cloudkit/upload` | b) exécution du service que vous avez demandé ; Apple et Google agissent en vertu de votre propre contrat avec eux |
+| Le planificateur web : le servir, conserver votre bibliothèque dans votre navigateur, récupérer les tuiles via app.velorki.com | b) exécution du service que vous avez demandé, et f) pour l'adresse IP et la requête strictement nécessaires pour répondre |
+| Avis de mise à jour | f) intérêt légitime à vous informer d'une version plus récente ; seuls l'identifiant de bundle, le pays et la langue sont envoyés |
 | L'assistant IA | a) consentement, demandé séparément dans l'application et révocable dans les réglages |
 | Vous répondre dans le chat d'assistance | b) lorsque cela concerne un abonnement, sinon f) intérêt légitime à répondre à la personne qui nous a écrit |
 | Conservation des pièces fiscalement pertinentes relatives à un abonnement | c) obligation légale — et ce sont Apple et Google, et non nous, qui détiennent les données de facturation |
@@ -468,8 +609,10 @@ sous-traitance**
   le relais, les liens de partage et ce site web. Les données restent en
   Allemagne.
 - **Cloudflare, Inc.**, San Francisco, États-Unis — DNS, CDN et protection
-  contre les attaques pour velorki.com et api.velorki.com. Adresses IP et
-  métadonnées des requêtes.
+  contre les attaques pour velorki.com et api.velorki.com, et hébergement du
+  planificateur web sur app.velorki.com avec ses fonctions `/tiles/` et
+  `/cloudkit/upload`. Adresses IP et métadonnées des requêtes, et l'envoi
+  iCloud qu'il transmet sans le lire.
 - **RevenueCat, Inc.**, San Francisco, États-Unis — la vérification de
   l'abonnement. L'identifiant d'utilisateur anonyme de l'application et le reçu
   de la boutique, sans nom ni adresse e-mail.
@@ -505,12 +648,24 @@ sous-traitance**
   itinéraire que vous avez demandé, une heure et votre adresse IP, uniquement
   lorsqu'une couche météo ou les prévisions gratuites de l'itinéraire sont
   activées.
-- **Apple Inc.** (iCloud) — les itinéraires, sorties et réglages de la
-  synchronisation iCloud, dans votre propre iCloud et uniquement tant que
-  l'interrupteur est activé. Nous ne les recevons pas ; Apple agit en vertu de
-  votre propre contrat iCloud avec Apple.
-- **Apple Inc.** et **Google Ireland Ltd** — la vente de Velorki Plus. Ce sont
-  eux les vendeurs ; nous ne voyons jamais vos données de paiement.
+- **Apple Inc.** (iCloud) — les itinéraires, sorties, réglages et
+  enregistrements Plus de la synchronisation iCloud, dans votre propre iCloud
+  et uniquement tant que vous vous synchronisez avec iCloud. Nous ne les
+  recevons pas ; Apple agit en vertu de votre propre contrat iCloud avec Apple.
+- **Google Ireland Ltd**, Dublin (Google LLC, États-Unis, hors de l'EEE et de
+  la Suisse) — les itinéraires, sorties, réglages et enregistrements Plus de la
+  synchronisation Google, dans le dossier d'application masqué de votre propre
+  Drive, et uniquement tant que vous vous synchronisez avec Google. Nous ne les
+  recevons pas ; Google agit en vertu de votre propre contrat avec Google.
+  Google sert aussi les polices de secours du planificateur web
+  (`fonts.gstatic.com`) et la vérification des mises à jour de Google Play sur
+  Android.
+- **GitHub, Inc.**, San Francisco, États-Unis — notre miroir de tuiles, depuis
+  lequel l'application télécharge les tuiles de routage et les index de
+  recherche ; les noms des tuiles et votre adresse IP.
+- **Apple Inc.** et **Google Ireland Ltd** — la vente de Velorki Plus, la
+  vérification des mises à jour et la fenêtre d'évaluation. Ce sont eux les
+  vendeurs ; nous ne voyons jamais vos données de paiement.
 - **Strava, Inc.** et **Ride with GPS** — uniquement après que vous avez
   connecté le compte et uniquement pour un transfert que vous déclenchez. Ce
   qu'ils en font est régi par leurs propres politiques.
@@ -521,7 +676,7 @@ lorsque la loi l'exige.
 ## Transferts hors de l'UE
 
 Cloudflare, RevenueCat, OpenRouter et le fournisseur de modèle auquel il fait
-appel, Discord, Klipy, Strava, Ride with GPS, Apple et Google sont établis aux
+appel, Discord, Klipy, Strava, Ride with GPS, GitHub, Apple et Google sont établis aux
 États-Unis ou y transfèrent des données. Ces transferts reposent sur les
 clauses contractuelles types de la Commission européenne ou, lorsque le
 fournisseur en dispose, sur sa certification au titre du cadre de protection
@@ -529,7 +684,9 @@ des données UE–États-Unis (EU–US Data Privacy Framework), complétées par
 garanties techniques propres au fournisseur. Hetzner, komoot et les services de
 tuiles de carte auxquels nous faisons appel sont établis dans l'UE,
 OpenStreetMap au Royaume-Uni. Tout ce que l'application stocke pour vous reste
-sur votre téléphone et n'est transféré nulle part.
+sur votre téléphone, ou dans votre navigateur, et n'est transféré nulle part,
+sauf si vous activez la synchronisation, qui va vers votre propre iCloud ou
+Google Drive.
 
 ## Sécurité
 
@@ -557,8 +714,8 @@ nous nous fondons sur votre consentement — l'assistant —, vous pouvez le
 retirer à tout moment, sans que cela remette en cause la licéité du traitement
 effectué avant ce retrait (article 7, paragraphe 3). Vous pouvez exercer
 vous-même la plupart de ces droits, car les données se trouvent sur votre
-téléphone et peuvent être exportées sous forme de fichiers GPX, FIT ou TCX
-quand vous le souhaitez.
+téléphone, dans votre navigateur ou dans votre propre cloud, et peuvent être
+exportées sous forme de fichiers GPX, FIT ou TCX quand vous le souhaitez.
 
 Pour tout ce qui est détenu de notre côté (liens de partage, entrées de
 journal, enregistrement RevenueCat), écrivez à **ride@velorki.com**. Nous
@@ -585,10 +742,10 @@ entre utilisateurs et aucune publicité.
 
 ## Modifications
 
-Si la présente politique change d'une manière qui affecte ce qui quitte votre
-appareil, l'application vous en informera la prochaine fois que vous l'ouvrirez,
-et la date indiquée en haut de cette page changera. Les anciennes versions
-restent disponibles dans l'historique git du dépôt.
+Les modifications de la présente politique sont publiées sur cette page, et la
+date indiquée en haut change ; les modifications importantes sont aussi
+annoncées sur le site web. Les anciennes versions restent disponibles dans
+l'historique git du dépôt.
 
 ## Contact
 

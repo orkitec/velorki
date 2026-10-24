@@ -4,7 +4,7 @@ description: Installa Velorki, capisci le quattro schede, scopri quali permessi 
 order: 1
 ---
 
-Velorki è un pianificatore di percorsi in bici e registratore di giri gratuito e open source per iPhone e Android, costruito sui dati di OpenStreetMap. Questa pagina copre i primi dieci minuti: installarlo, cosa chiede, com'è organizzata l'app e l'unica impostazione che la maggior parte dei ciclisti vuole cambiare subito.
+Velorki è un pianificatore di percorsi in bici e registratore di giri gratuito per iPhone e Android, costruito sui dati di OpenStreetMap. Gira sul tuo telefono senza account, tiene i tuoi percorsi e giri con te o nel tuo cloud, e il suo codice è aperto, così chiunque può verificarlo. Questa pagina copre i primi dieci minuti: installarlo, cosa chiede, com'è organizzata l'app e l'unica impostazione che la maggior parte dei ciclisti vuole cambiare subito.
 
 ## Cosa ti serve
 

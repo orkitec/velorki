@@ -1519,6 +1519,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(l10n.recordingLocationServiceOff),
+          persist: false,
           action: SnackBarAction(
             label: l10n.recordingOpenSettings,
             onPressed: () => unawaited(permission.openLocationSettings()),
@@ -1531,6 +1532,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(l10n.recordingLocationDenied),
+          persist: false,
           action: SnackBarAction(
             label: l10n.recordingOpenSettings,
             onPressed: () => unawaited(permission.openAppSettings()),

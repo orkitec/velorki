@@ -13,5 +13,9 @@ QueryExecutor openVelorkiDatabase() => LazyDatabase(() async {
   );
 });
 
+/// Run on every connection before anything else; the phone's defaults
+/// suit it.
+const List<String> connectionPragmas = [];
+
 /// A database that lives as long as the executor, for tests.
 QueryExecutor inMemoryDatabase() => NativeDatabase.memory();

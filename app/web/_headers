@@ -5,10 +5,15 @@
 # Responses from the /tiles/ Pages Function set their own headers.
 
 # Cross-origin isolation (SharedArrayBuffer: the multi-threaded renderer and
-# drift on OPFS). credentialless rather than require-corp, because map tiles,
-# fonts and weather images come from other origins that send no CORP header.
-# Safari has no credentialless; there the page simply runs without
-# isolation: single-threaded renderer, drift on IndexedDB.
+# drift on OPFS) comes from Document-Isolation-Policy, not from COOP
+# same-origin + COEP: the Google and Apple sign-in popups (Settings → Sync
+# with) post their answer back to this page, which COOP same-origin cuts off
+# (the popup loses its opener). So COOP is same-origin-allow-popups and
+# Chrome isolates the page by Document-Isolation-Policy
+# (isolate-and-credentialless: other origins' map tiles, fonts and weather
+# images load without credentials, as COEP credentialless did). A browser
+# without it (Firefox, Safari) runs the page without isolation:
+# single-threaded renderer, drift on IndexedDB.
 #
 # The Content-Security-Policy names exactly what the app loads. Its own
 # origin: the page, the engine (built with --no-web-resources-cdn),
@@ -21,12 +26,23 @@
 # (fonts.gstatic.com). blob: for maplibre's worker and the cycle map's
 # GeoJSON, data: for the images maplibre decodes; 'wasm-unsafe-eval' to
 # compile the app and SQLite. A new host the app talks to goes in here too.
+#
+# Sync (lib/features/sync): Google Identity Services, the hosts Google
+# documents for it (accounts.google.com/gsi/: the script, its button's
+# iframe, its stylesheet and its status calls), and Drive v3 on
+# www.googleapis.com; CloudKit JS from Apple's CDN (cdn.apple-cloudkit.com,
+# which Apple's licence requires it be loaded from), CloudKit Web Services
+# (api.apple-cloudkit.com) and the asset hosts records' bodies go up to and
+# come down from (*.icloud-content.com, *.icloud.com). The sign-in pages
+# themselves (accounts.google.com, idmsa.apple.com) open in popups, which
+# this policy does not govern. CloudKit JS's error statistics
+# (feedbackws.*) stay blocked.
 /*
-  Cross-Origin-Opener-Policy: same-origin
-  Cross-Origin-Embedder-Policy: credentialless
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Document-Isolation-Policy: isolate-and-credentialless
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.openfreemap.org https://*.tile-cyclosm.openstreetmap.fr; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' data: blob: https://tiles.openfreemap.org https://photon.komoot.io https://api.velorki.com https://*.tile-cyclosm.openstreetmap.fr https://fonts.gstatic.com https://maps.dwd.de https://geoservices.knmi.nl https://openwms.fmi.fi https://mapservices.weather.noaa.gov https://view.eumetsat.int https://mesonet.agron.iastate.edu https://gibs.earthdata.nasa.gov; manifest-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client https://cdn.apple-cloudkit.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob: https://tiles.openfreemap.org https://*.tile-cyclosm.openstreetmap.fr; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' data: blob: https://tiles.openfreemap.org https://photon.komoot.io https://api.openstreetmap.org https://api.velorki.com https://*.tile-cyclosm.openstreetmap.fr https://fonts.gstatic.com https://maps.dwd.de https://geoservices.knmi.nl https://openwms.fmi.fi https://mapservices.weather.noaa.gov https://view.eumetsat.int https://mesonet.agron.iastate.edu https://gibs.earthdata.nasa.gov https://accounts.google.com/gsi/ https://www.googleapis.com https://api.apple-cloudkit.com https://*.icloud-content.com https://*.icloud.com; manifest-src 'self'; object-src 'none'; frame-src https://accounts.google.com/gsi/; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
 
 # Entry points: always revalidated, so a deploy is picked up on the next load.
 /

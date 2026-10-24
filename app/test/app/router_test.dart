@@ -36,6 +36,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../features/planner/support/fakes.dart';
 import '../features/planner/support/pump.dart' as planner;
 import '../support/app.dart';
+import '../support/settings.dart';
 
 /// Stands in for the maplibre view: it hands out its own controller once,
 /// on the default view, the way the real map opens on the stored camera,
@@ -1380,21 +1381,18 @@ void main() {
     expect(find.textContaining(l10n.libraryEmpty), findsOneWidget);
 
     await _tapTab(tester, l10n.tabSettings);
-    // Advanced sits below the fold as the settings list grows.
+    await openSettingsTopic(tester, SettingsTopic.mapsData);
     await tester.scrollUntilVisible(
       find.text(l10n.settingsServerUrls),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text(l10n.settingsServerUrls), findsOneWidget);
-    // The About section sits below it again, the version at its top and the
-    // attribution under it — far enough apart that one scroll per line is
-    // what it takes as the list grows.
-    await tester.scrollUntilVisible(
-      find.text(l10n.settingsVersion('0.1.0+1')),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tapBack(tester);
+    // The version is on the About row and at the top of its page, the
+    // attribution under it.
+    expect(find.text(l10n.settingsVersion('0.1.0+1')), findsOneWidget);
+    await openSettingsTopic(tester, SettingsTopic.about);
     expect(find.text(l10n.settingsVersion('0.1.0+1')), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text(l10n.osmAttribution),
@@ -1417,7 +1415,7 @@ void main() {
   ) async {
     await _pumpShell(tester);
     await _tapTab(tester, l10n.tabSettings);
-    // Advanced sits below the fold as the settings list grows.
+    await openSettingsTopic(tester, SettingsTopic.mapsData);
     await tester.scrollUntilVisible(
       find.widgetWithText(TextField, l10n.settingsBrouterUrl),
       200,

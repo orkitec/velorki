@@ -4,7 +4,7 @@ description: Velorki installieren, die vier Tabs verstehen, die Berechtigungen u
 order: 1
 ---
 
-Velorki ist ein kostenloser Open-Source-Routenplaner und Fahrtenschreiber fürs Rad, für iPhone und Android, auf Basis von OpenStreetMap-Daten. Diese Seite deckt die ersten zehn Minuten ab: installieren, was die App wofür fragt, wie sie aufgebaut ist, und die eine Einstellung, die die meisten sofort ändern wollen.
+Velorki ist ein kostenloser Routenplaner und Fahrtenschreiber fürs Rad, für iPhone und Android, auf Basis von OpenStreetMap-Daten. Er läuft ohne Konto auf deinem Handy, behält deine Routen und Fahrten bei dir oder in deiner eigenen Cloud, und sein Code ist offen, sodass jeder das nachprüfen kann. Diese Seite deckt die ersten zehn Minuten ab: installieren, was die App wofür fragt, wie sie aufgebaut ist, und die eine Einstellung, die die meisten sofort ändern wollen.
 
 ## Was du brauchst
 

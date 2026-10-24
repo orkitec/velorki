@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../app/app_config.dart';
 import '../../../app/shell_layout.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart' as format;
@@ -255,8 +256,13 @@ class SearchFieldState extends ConsumerState<SearchField> {
     // The field works with a geocoder, with a downloaded gazetteer, or both;
     // only a device with neither has nothing to search.
     final store = ref.watch(gazetteerStoreProvider).value;
+    // A build with a tile mirror can download what is searched, so the
+    // field takes text before anything is downloaded and the list offers
+    // the download.
     final canSearch =
-        ref.watch(photonClientProvider) != null || (store?.hasTiles ?? false);
+        ref.watch(photonClientProvider) != null ||
+        (store?.hasTiles ?? false) ||
+        ref.watch(effectiveConfigProvider).segmentsUrl.isNotEmpty;
     // Whether this list says the area is not downloaded and offers it: there
     // is a map centre, it is not in a downloaded tile, and the screen knows
     // where to send the rider. Read here rather than out of the state,
@@ -382,13 +388,13 @@ class SearchFieldState extends ConsumerState<SearchField> {
       style: Theme.of(context).textTheme.bodyLarge,
       decoration: InputDecoration(
         hintText: !canSearch
-            ? l10n.searchUnavailable
+            ? l10n.searchNoMapData
             : narrow
             ? l10n.searchHintShort
             : l10n.searchHint,
-        // The "no server configured" hint is a sentence, and in
-        // German a longer one than the field is wide: let it wrap
-        // rather than end in an ellipsis.
+        // The "no map data" hint is a sentence, and in German a longer
+        // one than the field is wide: let it wrap rather than end in an
+        // ellipsis.
         hintMaxLines: canSearch ? 1 : 2,
         prefixIcon: magnifier ? const Icon(Icons.search_rounded) : null,
         filled: false,
@@ -489,16 +495,9 @@ class _ResultsCardState extends State<_ResultsCard> {
               context,
               ListTile(
                 leading: const Icon(Icons.error_outline),
-                title: Text(
-                  error is SearchException &&
-                          error.failure == SearchFailure.unconfigured
-                      ? l10n.searchUnavailable
-                      : l10n.searchFailed,
-                ),
+                title: Text(l10n.searchFailed),
                 // The reason, so a failure is diagnosable from the screen.
-                subtitle:
-                    error is SearchException &&
-                        error.failure != SearchFailure.unconfigured
+                subtitle: error is SearchException
                     ? Text(
                         error.describe(l10n),
                         maxLines: 2,

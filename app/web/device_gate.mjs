@@ -37,7 +37,7 @@ export const STRINGS = {
   en: {
     heading: 'Get the app',
     description:
-      'Velorki plans bike routes, builds loops and records your rides — on the phone, offline, on OpenStreetMap data. Free and open source.',
+      'Velorki plans bike routes, builds loops and records your rides — on the phone, offline, free and with no account. Your routes and rides stay with you, on your phone or in your own cloud, ready to export any time, and the code is open for anyone to check.',
     storeIos: 'Download on the App Store',
     storeAndroid: 'Get it on Google Play',
     continue: 'Continue in the browser',
@@ -45,7 +45,7 @@ export const STRINGS = {
   de: {
     heading: 'App holen',
     description:
-      'Velorki plant Radrouten, baut Runden und zeichnet deine Fahrten auf, auf dem Handy, offline, mit OpenStreetMap-Daten. Kostenlos und quelloffen.',
+      'Velorki plant Radrouten, baut Runden und zeichnet deine Fahrten auf, auf dem Handy, offline, kostenlos und ohne Konto. Deine Routen und Fahrten bleiben bei dir, auf deinem Handy oder in deiner eigenen Cloud, jederzeit exportierbar, und der Code ist offen, damit jeder das nachprüfen kann.',
     storeIos: 'Laden im App Store',
     storeAndroid: 'Jetzt bei Google Play',
     continue: 'Im Browser weiter',
@@ -53,7 +53,7 @@ export const STRINGS = {
   es: {
     heading: 'Consigue la app',
     description:
-      'Velorki planifica rutas en bici, crea rutas circulares y graba tus salidas: en el teléfono, sin conexión, con datos de OpenStreetMap. Gratis y de código abierto.',
+      'Velorki planifica rutas en bici, crea rutas circulares y graba tus salidas: en el teléfono, sin conexión, gratis y sin cuenta. Tus rutas y salidas se quedan contigo, en tu teléfono o en tu propia nube, listas para exportar cuando quieras, y el código es abierto para que cualquiera lo compruebe.',
     storeIos: 'Descárgalo en el App Store',
     storeAndroid: 'Disponible en Google Play',
     continue: 'Continuar en el navegador',
@@ -61,7 +61,7 @@ export const STRINGS = {
   fr: {
     heading: 'Obtenir l’application',
     description:
-      'Velorki planifie vos itinéraires vélo, crée des boucles et enregistre vos sorties — sur le téléphone, hors ligne, avec les données OpenStreetMap. Gratuit et open source.',
+      'Velorki planifie vos itinéraires vélo, crée des boucles et enregistre vos sorties — sur le téléphone, hors ligne, gratuitement et sans compte. Vos itinéraires et vos sorties restent chez vous, sur votre téléphone ou dans votre propre cloud, exportables à tout moment, et le code est ouvert pour que chacun puisse le vérifier.',
     storeIos: 'Télécharger dans l’App Store',
     storeAndroid: 'Disponible sur Google Play',
     continue: 'Continuer dans le navigateur',
@@ -69,7 +69,7 @@ export const STRINGS = {
   it: {
     heading: "Scarica l'app",
     description:
-      'Velorki pianifica percorsi in bici, crea anelli e registra i tuoi giri: sul telefono, offline, con i dati di OpenStreetMap. Gratis e open source.',
+      'Velorki pianifica percorsi in bici, crea anelli e registra i tuoi giri: sul telefono, offline, gratis e senza account. I tuoi percorsi e giri restano con te, sul telefono o nel tuo cloud, esportabili quando vuoi, e il codice è aperto perché chiunque possa verificarlo.',
     storeIos: 'Scarica su App Store',
     storeAndroid: 'Disponibile su Google Play',
     continue: 'Continua nel browser',
@@ -77,7 +77,7 @@ export const STRINGS = {
   nl: {
     heading: 'Download de app',
     description:
-      'Velorki plant fietsroutes, maakt rondjes en neemt je ritten op — op de telefoon, offline, met OpenStreetMap-gegevens. Gratis en open source.',
+      'Velorki plant fietsroutes, maakt rondjes en neemt je ritten op — op de telefoon, offline, gratis en zonder account. Je routes en ritten blijven bij jou, op je telefoon of in je eigen cloud, altijd te exporteren, en de code is open zodat iedereen dat kan controleren.',
     storeIos: 'Download in de App Store',
     storeAndroid: 'Ontdek het op Google Play',
     continue: 'Verder in de browser',
@@ -117,15 +117,42 @@ export function leaveOutStoreSdk(head) {
   };
 }
 
+/**
+ * google_sign_in's web plugin appends Google Identity Services' script to
+ * <head> as the engine starts. The planner asks nothing of Google until the
+ * rider picks Google in Settings → Sync with, so `head` holds that script
+ * back until the app calls `velorkiLoadGoogleSdk()` on `target` (the
+ * window); then it goes in as the plugin made it.
+ */
+export const GOOGLE_SDK = /^https:\/\/accounts\.google\.com\/gsi\/client/;
+
+export function holdBackGoogleSdk(head, target) {
+  const held = [];
+  let released = false;
+  const appendChild = head.appendChild;
+  head.appendChild = function (node) {
+    if (!released && GOOGLE_SDK.test(node?.src ?? '')) {
+      held.push(node);
+      return node;
+    }
+    return appendChild.call(this, node);
+  };
+  target.velorkiLoadGoogleSdk = () => {
+    released = true;
+    for (const node of held.splice(0)) appendChild.call(head, node);
+  };
+}
+
 /** The element the planner runs in, below the header; the engine is
     appended once, and only after it is there. */
-export function loadApp(document) {
+export function loadApp(document, window = globalThis) {
   if (document.getElementById('flutter-bootstrap')) return;
   if (!document.getElementById('velorki-app')) {
     document.body.setAttribute('class', 'vg-app');
     document.body.appendChild(document.createElement('div')).setAttribute('id', 'velorki-app');
   }
   leaveOutStoreSdk(document.head);
+  holdBackGoogleSdk(document.head, window);
   const script = document.createElement('script');
   script.id = 'flutter-bootstrap';
   script.src = 'flutter_bootstrap.js';
@@ -246,7 +273,7 @@ export function boot(window) {
   document.head.appendChild(el(document, 'style', { id: 'velorki-style' }, [HEADER_CSS + PAGE_CSS]));
   document.body.appendChild(header.element);
   if (!mobile) {
-    loadApp(document);
+    loadApp(document, window);
     return;
   }
   function showGate(lang) {
@@ -255,7 +282,7 @@ export function boot(window) {
     removeGate = renderDownloadPage(document, lang, () => {
       gate = null;
       header.set({});
-      loadApp(document);
+      loadApp(document, window);
     });
   }
   showGate(header.state.lang);

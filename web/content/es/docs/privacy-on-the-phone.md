@@ -17,9 +17,9 @@ Todo lo que creas y todo lo que descargas:
 - los tokens de acceso de Strava y Ride with GPS si los conectas, que van al almacenamiento seguro del teléfono en una forma que solo el relay de Velorki puede abrir, y se dejan fuera de las copias de seguridad.
 - lo que tomas de Strava: tu nombre en Strava, la lista de tus rutas de Strava durante 48 horas como máximo, las rutas que importas y los enlaces de las salidas subidas a sus actividades de Strava. Desconectar lo elimina todo.
 
-Nada de ello se sube a ninguna parte si no lo pides. La única excepción es la sincronización con iCloud en un iPhone o iPad (iOS 17 o posterior): tus rutas, salidas y algunos ajustes van a tu propio iCloud, nunca a nosotros, y los datos de Strava se quedan en el teléfono. Está activada por defecto y se desactiva en Ajustes, mira [la biblioteca](./library).
+Nada de ello se sube a ninguna parte si no lo pides. La única excepción es la sincronización en la nube: tus rutas, salidas y algunos ajustes van a tu propio iCloud o a tu propio Google Drive, nunca a nosotros, y los datos de Strava se quedan en el teléfono. En un iPhone o iPad, iCloud está activado por defecto; en Android la sincronización está desactivada hasta que eliges una nube. **Ajustes → Sincronizar con** elige la nube o desactiva la sincronización, mira [la biblioteca](./library#sincronización-con-icloud-o-google-drive).
 
-En Android, Velorki queda excluida a propósito de la copia de seguridad en la nube de Google y de la transferencia entre dispositivos, así que el sistema tampoco copia tus salidas fuera del teléfono. Pasar a un teléfono nuevo significa exportar lo que quieras conservar como archivos GPX, FIT o TCX; consulta [importar y exportar](./import-and-export).
+En Android, Velorki queda excluida a propósito de la copia de seguridad en la nube de Google y de la transferencia entre dispositivos, así que el sistema tampoco copia tus salidas fuera del teléfono. Para pasar a un teléfono nuevo, activa la sincronización con Google o exporta lo que quieras conservar como archivos GPX, FIT o TCX; consulta [importar y exportar](./import-and-export).
 
 ## Qué sale del teléfono, y cuándo
 
@@ -67,7 +67,7 @@ Esa ruta o salida, con su track, su nombre y sus cifras, se copia a nuestro serv
 
 ### Cuando compras Velorki Plus
 
-La tienda gestiona el pago y nunca vemos tu tarjeta. La suscripción se comprueba con un identificador aleatorio anónimo que no está vinculado a un nombre, a una dirección de correo ni a un identificador del dispositivo.
+La tienda gestiona el pago y nunca vemos tu tarjeta. La suscripción se comprueba con un identificador aleatorio anónimo que no está vinculado a un nombre, a una dirección de correo ni a un identificador del dispositivo. Con la sincronización activada, la app también guarda ese identificador en tu propia nube, para que el planificador en el navegador, con sesión iniciada en la misma cuenta, pueda usar tu Plus.
 
 ## Lo que Velorki nunca hace
 
@@ -81,7 +81,7 @@ La tienda gestiona el pago y nunca vemos tu tarjeta. La suscripción se comprueb
 
 | Qué | Cómo |
 |---|---|
-| Una ruta o una salida | bórrala en la [biblioteca](./library) |
+| Una ruta o una salida | bórrala en la [biblioteca](./library); con la sincronización activada, desaparece también de tu nube y de tus otros dispositivos |
 | Zonas de mapa sin conexión y teselas de rutas | bórralas en [datos sin conexión](./offline-maps-and-routing) |
 | Un token de Strava o Ride with GPS, y todo lo que viene de Strava | **Desconectar** en Ajustes → Conexiones |
 | Todo lo que guardó la app | desinstala la app |

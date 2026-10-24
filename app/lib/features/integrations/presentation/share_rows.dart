@@ -20,11 +20,11 @@ import '../strava/data/strava_auth.dart';
 import 'integration_labels.dart';
 import 'strava_brand.dart';
 
-/// Closes the share card and goes to Settings, where Connections is.
+/// Closes the share card and goes to Settings → Connections.
 void _goToConnections(BuildContext context) {
   final router = GoRouter.of(context);
   Navigator.of(context).pop();
-  router.go(settingsRoute);
+  router.go(settingsConnectionsRoute);
 }
 
 IconData _serviceIcon(IntegrationService service) => switch (service) {

@@ -36,10 +36,6 @@
   "@libraryPlaceholder": {
     "description": "Placeholder body of the empty Library tab"
   },
-  "settingsAdvanced": "Advanced",
-  "@settingsAdvanced": {
-    "description": "Settings section header for expert options"
-  },
   "settingsServerUrls": "Server URLs",
   "@settingsServerUrls": {
     "description": "Settings subsection for overriding the built-in server addresses"
@@ -200,9 +196,17 @@
   "@plannerOnePointHint": {
     "description": "Hint shown once a start point is set but no destination"
   },
-  "plannerNoRoutingServer": "No routing server configured, set one in Settings → Advanced.",
-  "@plannerNoRoutingServer": {
-    "description": "Banner shown when the BRouter URL is empty so no route can be computed"
+  "plannerRoutingCouldNotStart": "Routing could not start on this device.",
+  "@plannerRoutingCouldNotStart": {
+    "description": "Banner shown when on-device routing failed to start (the reason is in the log)"
+  },
+  "plannerRoutingUnavailable": "Routing isn't available right now.",
+  "@plannerRoutingUnavailable": {
+    "description": "Why a route or a loop search did not start: nothing can route yet (on-device routing still starting, failed, or no map data); the planner banner says which"
+  },
+  "plannerNoRoutingData": "This build of Velorki has no map data for routing.",
+  "@plannerNoRoutingData": {
+    "description": "Banner shown in a build with no routing server, no tile mirror and no downloaded map data, so nothing can route"
   },
   "plannerRoutingFailed": "Routing failed: {message}",
   "@plannerRoutingFailed": {
@@ -656,9 +660,9 @@
   "@searchFailed": {
     "description": "Shown when the geocoder could not be reached"
   },
-  "searchUnavailable": "No search server configured, set one in Settings → Advanced.",
-  "@searchUnavailable": {
-    "description": "Shown when the Photon URL is empty so no search is possible"
+  "searchNoMapData": "This build of Velorki has no map data for searching.",
+  "@searchNoMapData": {
+    "description": "Search field hint in a build with no online search, no tile mirror and no downloaded map data"
   },
   "searchOnlineFor": "Search online for “{query}”",
   "@searchOnlineFor": {
@@ -987,6 +991,10 @@
   "libraryEmpty": "No saved routes yet.",
   "@libraryEmpty": {
     "description": "Empty state of the library list"
+  },
+  "librarySlowToOpen": "The library is taking unusually long to open. It appears here as soon as it is ready.",
+  "@librarySlowToOpen": {
+    "description": "Shown instead of the spinner when the library has not loaded after a long wait (a stuck browser database); the list replaces it once it loads"
   },
   "libraryEmptyDetail": "Plan a route in the Plan tab and save it.",
   "@libraryEmptyDetail": {
@@ -2278,6 +2286,14 @@
   "@plusUnavailableWebBody": {
     "description": "Paywall body in the web app, where no store sells Plus yet: Plus is the phone apps' for now, said first"
   },
+  "plusWebSignInTitle": "Sign in with iCloud or Google to use your Plus",
+  "@plusWebSignInTitle": {
+    "description": "Paywall heading in the web app once it can sign into iCloud or Google: Plus bought in a phone app works here after signing in"
+  },
+  "plusWebSignInBody": "Bought Velorki Plus in the iPhone or Android app? Sign in here to the iCloud or Google account the app syncs with, and Plus works in the browser too. It cannot be bought in the browser.",
+  "@plusWebSignInBody": {
+    "description": "Paywall body in the web app once it can sign into iCloud or Google; Plus is still bought only in the phone apps"
+  },
   "plusGetTheApp": "Get the app",
   "@plusGetTheApp": {
     "description": "Button on the web app's paywall that opens the website's download page in a new tab"
@@ -2643,10 +2659,6 @@
   "plannerVariants": "Variants",
   "@plannerVariants": {
     "description": "Short label under the alternative-routes icon button in the planner toolbar"
-  },
-  "settingsSubscription": "Subscription",
-  "@settingsSubscription": {
-    "description": "Settings section header above the Plus tile"
   },
   "assistantAction": "Ask",
   "@assistantAction": {
@@ -3159,6 +3171,14 @@
   "offlineDownloadVisible": "Download the visible area",
   "@offlineDownloadVisible": {
     "description": "Button that downloads map and routing data for the area the map shows"
+  },
+  "offlineAreaDownloaded": "This area is downloaded",
+  "@offlineAreaDownloaded": {
+    "description": "Tooltip of the map's download button, and the message its tap shows, when everything the visible area needs offline is already on the device"
+  },
+  "offlineAreaUpdates": "Updates for this area",
+  "@offlineAreaUpdates": {
+    "description": "Tooltip of the map's download button when the visible area is downloaded but the mirror has newer routing data for it; a tap offers the update"
   },
   "offlineNeedsMap": "Open this screen from the map to download the area you are looking at.",
   "@offlineNeedsMap": {
@@ -5006,10 +5026,6 @@
       }
     }
   },
-  "settingsRider": "Rider",
-  "@settingsRider": {
-    "description": "Settings section header for what the rider tells the app about themselves"
-  },
   "settingsRiderCalories": "Estimate calories",
   "@settingsRiderCalories": {
     "description": "Switch that shows a calorie estimate on each ride"
@@ -6292,29 +6308,25 @@
       }
     }
   },
-  "settingsSync": "iCloud",
+  "settingsSync": "Sync",
   "@settingsSync": {
-    "description": "Settings section header for iCloud sync; the brand name"
-  },
-  "cloudSyncTitle": "Sync with iCloud",
-  "@cloudSyncTitle": {
-    "description": "Switch in Settings that syncs routes, rides and settings through iCloud"
+    "description": "Settings section header for syncing routes, rides and settings with a cloud (iCloud or Google)"
   },
   "cloudSyncOff": "Routes, rides and settings stay on this device",
   "@cloudSyncOff": {
-    "description": "Second line of the iCloud switch while it is off"
+    "description": "Status line of cloud sync while it is off"
   },
   "cloudSyncSyncing": "Syncing…",
   "@cloudSyncSyncing": {
-    "description": "Status line of the iCloud switch while changes are being sent or fetched"
+    "description": "Status line of cloud sync while changes are being sent or fetched"
   },
   "cloudSyncJustNow": "Synced just now",
   "@cloudSyncJustNow": {
-    "description": "Status line of the iCloud switch: the last sync was less than a minute ago"
+    "description": "Status line of cloud sync: the last sync was less than a minute ago"
   },
   "cloudSyncMinutesAgo": "{minutes, plural, =1{Synced 1 min ago} other{Synced {minutes} min ago}}",
   "@cloudSyncMinutesAgo": {
-    "description": "Status line of the iCloud switch: minutes since the last sync",
+    "description": "Status line of cloud sync: minutes since the last sync",
     "placeholders": {
       "minutes": {
         "type": "int",
@@ -6324,7 +6336,7 @@
   },
   "cloudSyncHoursAgo": "{hours, plural, =1{Synced 1 hour ago} other{Synced {hours} hours ago}}",
   "@cloudSyncHoursAgo": {
-    "description": "Status line of the iCloud switch: hours since the last sync",
+    "description": "Status line of cloud sync: hours since the last sync",
     "placeholders": {
       "hours": {
         "type": "int",
@@ -6334,7 +6346,7 @@
   },
   "cloudSyncOnDate": "Synced on {date}",
   "@cloudSyncOnDate": {
-    "description": "Status line of the iCloud switch: the day of the last sync, more than a day ago",
+    "description": "Status line of cloud sync: the day of the last sync, more than a day ago",
     "placeholders": {
       "date": {
         "type": "String",
@@ -6344,38 +6356,138 @@
   },
   "cloudSyncWaiting": "Waiting to sync",
   "@cloudSyncWaiting": {
-    "description": "Status line of the iCloud switch before the first sync went through"
+    "description": "Status line of cloud sync before the first sync went through"
   },
   "cloudSyncNoAccount": "iCloud is off on this device",
   "@cloudSyncNoAccount": {
-    "description": "Status line of the iCloud switch when the device is signed out of iCloud or iCloud is off for the app"
+    "description": "Status line of iCloud sync when the device is signed out of iCloud or iCloud is off for the app"
   },
   "cloudSyncRestricted": "iCloud is restricted on this device",
   "@cloudSyncRestricted": {
-    "description": "Status line of the iCloud switch when parental controls or a device profile block iCloud"
+    "description": "Status line of iCloud sync when parental controls or a device profile block iCloud"
   },
   "cloudSyncQuota": "iCloud storage is full",
   "@cloudSyncQuota": {
-    "description": "Status line of the iCloud switch when the rider's iCloud storage is full"
+    "description": "Status line of iCloud sync when the rider's iCloud storage is full"
   },
   "cloudSyncOffline": "Waiting for a connection",
   "@cloudSyncOffline": {
-    "description": "Status line of the iCloud switch while there is no network"
+    "description": "Status line of cloud sync while there is no network"
   },
   "cloudSyncFailed": "Couldn’t sync, will try again",
   "@cloudSyncFailed": {
-    "description": "Status line of the iCloud switch after a sync failed for another reason"
+    "description": "Status line of cloud sync after a sync failed for another reason"
   },
   "cloudSyncHint": "Your routes, rides and a few settings on every iPhone and iPad signed in to your Apple Account. Routes from Strava stay on this device",
   "@cloudSyncHint": {
-    "description": "Explanation below the iCloud switch"
+    "description": "Explanation below the sync choice while iCloud is chosen"
   },
-  "cloudSyncNotice": "Your routes and rides now sync across your iPhone and iPad through iCloud",
-  "@cloudSyncNotice": {
-    "description": "One-time snack bar after the update that brought iCloud sync, for riders who already had routes or rides"
+  "cloudSyncWith": "Sync with",
+  "@cloudSyncWith": {
+    "description": "Label above the choice in Settings of the cloud that routes, rides and settings sync with"
   },
-  "cloudSyncNoticeAction": "Settings",
-  "@cloudSyncNoticeAction": {
-    "description": "Action of the iCloud sync snack bar that opens Settings"
+  "cloudSyncServiceICloud": "iCloud",
+  "@cloudSyncServiceICloud": {
+    "description": "Choice in Settings → Sync with: Apple's iCloud; the brand name"
+  },
+  "cloudSyncServiceGoogle": "Google",
+  "@cloudSyncServiceGoogle": {
+    "description": "Choice in Settings → Sync with: the rider's Google Drive; the brand name"
+  },
+  "cloudSyncServiceOff": "Off",
+  "@cloudSyncServiceOff": {
+    "description": "Choice in Settings → Sync with: no sync, everything stays on the device"
+  },
+  "cloudSyncGoogleNoAccount": "Not signed in to Google",
+  "@cloudSyncGoogleNoAccount": {
+    "description": "Status line of Google sync when no Google account is signed in"
+  },
+  "cloudSyncGoogleQuota": "Google storage is full",
+  "@cloudSyncGoogleQuota": {
+    "description": "Status line of Google sync when the rider's Google storage is full"
+  },
+  "cloudSyncGoogleHint": "Your routes, rides and a few settings on every device signed in to your Google Account, kept in your Google Drive. Routes from Strava stay on this device",
+  "@cloudSyncGoogleHint": {
+    "description": "Explanation below the sync choice while Google is chosen"
+  },
+  "cloudSyncGoogleSignIn": "Sign in",
+  "@cloudSyncGoogleSignIn": {
+    "description": "Button in Settings → Sync with while Google is chosen and no Google account is signed in"
+  },
+  "cloudSyncGoogleSignOut": "Sign out",
+  "@cloudSyncGoogleSignOut": {
+    "description": "Button in Settings → Sync with beside the Google account synced with: signs out on this device and turns sync off; nothing in Google Drive is deleted"
+  },
+  "cloudSyncGoogleSignInCancelled": "The Google sign-in was cancelled.",
+  "@cloudSyncGoogleSignInCancelled": {
+    "description": "Message after the rider closed the Google sign-in started by choosing Google in Settings → Sync with"
+  },
+  "cloudSyncGoogleSignInFailed": "Couldn’t sign in to Google.",
+  "@cloudSyncGoogleSignInFailed": {
+    "description": "Message when the Google sign-in started from Settings → Sync with failed"
+  },
+  "cloudSyncSignInAgain": "Sign in again to sync",
+  "@cloudSyncSignInAgain": {
+    "description": "Status line of sync in the web planner when the cloud sign-in ran out and only the rider can sign in again"
+  },
+  "cloudSyncICloudSignedOut": "Not signed in to iCloud",
+  "@cloudSyncICloudSignedOut": {
+    "description": "Status line of iCloud sync in the web planner while no Apple Account is signed in"
+  },
+  "cloudSyncICloudSignedIn": "Signed in with your Apple Account",
+  "@cloudSyncICloudSignedIn": {
+    "description": "Line in Settings → Sync with in the web planner while signed in to iCloud, beside the Sign out button"
+  },
+  "cloudSyncICloudWebHint": "Your routes and rides, as on every iPhone and iPad signed in to your Apple Account. Settings stay in this browser",
+  "@cloudSyncICloudWebHint": {
+    "description": "Explanation below the sync choice in the web planner while iCloud is chosen: settings do not sync there"
+  },
+  "storeUpdateTitle": "Update available",
+  "@storeUpdateTitle": {
+    "description": "Title of the dialog shown when the App Store or Google Play has a newer version of the app than the one installed"
+  },
+  "storeUpdateBody": "A new version of Velorki is out, with the latest fixes and improvements.",
+  "@storeUpdateBody": {
+    "description": "Body of the update dialog: a newer version of the app is in the store"
+  },
+  "storeUpdateAction": "Update",
+  "@storeUpdateAction": {
+    "description": "Button in the update dialog that opens the app's page in the App Store or Google Play"
+  },
+  "storeUpdateLater": "Later",
+  "@storeUpdateLater": {
+    "description": "Button in the update and restart dialogs that closes them without updating"
+  },
+  "storeUpdateReadyTitle": "Update downloaded",
+  "@storeUpdateReadyTitle": {
+    "description": "Title of the dialog shown on Android once Google Play has downloaded an update in the background"
+  },
+  "storeUpdateReadyBody": "Restart Velorki to finish installing the new version.",
+  "@storeUpdateReadyBody": {
+    "description": "Body of the dialog shown once an update is downloaded: the app restarts to install it"
+  },
+  "storeUpdateRestart": "Restart",
+  "@storeUpdateRestart": {
+    "description": "Button in the update-downloaded dialog that restarts the app to install the update"
+  },
+  "settingsGroupSyncPlus": "Sync & Plus",
+  "@settingsGroupSyncPlus": {
+    "description": "Caption over the Settings overview group with Sync, Velorki Plus and Connections"
+  },
+  "settingsGroupRiding": "Riding",
+  "@settingsGroupRiding": {
+    "description": "Caption over the Settings overview group with Navigation, Recording, Rider & bike and Sensors"
+  },
+  "settingsGroupApp": "App",
+  "@settingsGroupApp": {
+    "description": "Caption over the Settings overview group with Appearance, AI assistant, Maps & data and About"
+  },
+  "settingsRiderAndBike": "Rider & bike",
+  "@settingsRiderAndBike": {
+    "description": "Settings row and page title: weight, age, heart rate and power of the rider, and their bike"
+  },
+  "settingsMapsData": "Maps & data",
+  "@settingsMapsData": {
+    "description": "Settings row and page title: offline map areas, search, where routes are computed and the server URLs"
   }
 }

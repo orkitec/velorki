@@ -1,4 +1,6 @@
-Velorki plant Radrouten, führt dich darauf entlang und zeichnet deine Fahrten auf. Das Routing ist für Räder gemacht und läuft auf deinem Handy, auch offline, und die ganze App ist Open Source. Jede Route ist für dich gemacht: für dein Rad, deine Strecke und den Ort, an dem du gerade stehst.
+Velorki plant Radrouten, führt dich darauf entlang und zeichnet deine Fahrten auf, alles auf deinem Handy und auch offline: Planen, Routing, Suche, Navigation und Aufzeichnen. Kein Konto, keine Anmeldung.
+
+Deine Routen und Fahrten bleiben bei dir: auf deinem Handy oder synchronisiert über dein eigenes Google Drive, nie über unsere Server. Der Code ist öffentlich, so kann jeder das nachprüfen. Exportieren kannst du sie jederzeit als GPX, FIT oder TCX.
 
 PLANEN
 • Tippe Wegpunkte auf die Karte und bekomme eine Route für dein Rad: Tour, Rennrad, Gravel, Mountainbike oder der direkte Weg.
@@ -6,6 +8,7 @@ PLANEN
 • Alternativrouten, ein Höhenprofil und die Beläge, über die du fährst.
 • Route nach Steigung, Belag, Wind oder Regen einfärben.
 • Orte offline suchen, Routen in der Bibliothek speichern, eine Region einmal laden und dort ohne Verbindung planen, suchen und navigieren.
+• Im Browser planen auf app.velorki.com, angemeldet mit demselben Google-Konto: Deine Bibliothek ist da, und Plus, wenn du es hast.
 
 KARTE UND WETTER
 • Eine Radkarte aus den Routingdaten, offline: Radwege, Radstreifen, Einbahnstraßen, Treppen, Anstiege.
@@ -24,11 +27,11 @@ AUFZEICHNEN
 • Jede Fahrt bekommt eine Seite mit Karte, Diagrammen und Splits.
 
 DATEIEN UND VERBINDUNGEN
-• GPX-, FIT- und TCX-Dateien aus der Dateien-App, aus Mails, aus dem Browser oder über das Teilen-Menü öffnen; Routen und Fahrten als GPX oder FIT exportieren.
+• GPX-, FIT- und TCX-Dateien aus der Dateien-App, aus Mails, aus dem Browser oder über das Teilen-Menü öffnen; Routen und Fahrten als GPX, FIT oder TCX exportieren.
 • Zwei beliebte Plattformen für Routen und Fahrten verbinden: Fahrten hochladen, Routen holen. Kostenlos.
 
 KOSTENLOS, UND VELORKI PLUS
-Alles, was das Handy allein kann, ist kostenlos: Planen, Rundtouren, Navigation, Aufzeichnen, Wetterkarte, Wetter auf der Route, Offline-Regionen, Sensoren, Dateien, Verbindungen.
+Alles, was das Handy allein kann, ist kostenlos, die Synchronisierung auch.
 
 Velorki Plus ist ein Abo für das, was unsere Server braucht:
 • Genaueres Wetter: Radar für ganz Europa von nationalen Wetterdiensten, schärfere Vorhersage auf der Route.
@@ -39,7 +42,7 @@ Velorki Plus gibt es mit einer kostenlosen Testphase beim Jahresabo und verläng
 Nutzungsbedingungen: https://velorki.com/de/terms
 
 DATENSCHUTZ
-Kein Konto, keine Anmeldung. Routen, Fahrten und Einstellungen bleiben auf deinem Handy. Nichts geht an eine andere Plattform, bevor du das Konto verbindest und es ausdrücklich willst. Der Assistent fragt nach deiner Zustimmung, bevor ein Text das Gerät verlässt, und die Position, die er sendet, ist auf etwa einen Kilometer gerundet.
+Keine Werbung, keine Analyse. Nichts geht an eine andere Plattform, bevor du das Konto verbindest und es ausdrücklich willst. Der Assistent fragt nach deiner Zustimmung, bevor ein Text das Gerät verlässt, und die Position, die er sendet, ist auf etwa einen Kilometer gerundet.
 Datenschutzerklärung: https://velorki.com/de/privacy
 
 Kartendaten © OpenStreetMap-Mitwirkende.

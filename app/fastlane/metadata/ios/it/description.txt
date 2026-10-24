@@ -1,15 +1,17 @@
-Velorki pianifica percorsi in bici, ti guida lungo il tragitto e registra i tuoi giri. Il calcolo dei percorsi è pensato per la bici e gira sul tuo iPhone, anche offline, e tutta l'app è open source. Ogni percorso è fatto per te: per la tua bici, la tua distanza e dove ti trovi adesso.
+Velorki pianifica percorsi in bici, ti guida lungo il tragitto e registra i tuoi giri, tutto sul tuo iPhone e anche offline: pianificazione, calcolo dei percorsi, ricerca, navigazione e registrazione. Non serve nessun account.
+
+I tuoi percorsi e giri restano con te: sul tuo iPhone, oppure sincronizzati tramite il tuo iCloud o Google Drive, mai attraverso i nostri server. Il codice è pubblico, quindi chiunque può verificarlo. Esportali in GPX, FIT o TCX quando vuoi.
 
 PIANIFICAZIONE
 • Tocca i punti sulla mappa e ottieni un percorso per la bici che usi: trekking, corsa, gravel, mountain bike o la via più diretta.
 • Anelli da casa tua: di' quanto vuoi pedalare e, se vuoi, un luogo da cui passare, e Velorki ti propone giri che tornano al punto di partenza.
-• Percorsi alternativi, profilo altimetrico e dettaglio dei fondi su cui pedalerai.
-• Colora il percorso in base a pendenza, fondo, vento o pioggia.
-• Cerca luoghi offline, salva i percorsi nella tua libreria e scarica una regione per pianificare, cercare e navigare lì senza connessione.
+• Percorsi alternativi, profilo altimetrico e fondi; percorso colorato per pendenza, fondo, vento o pioggia.
+• Cerca luoghi, salva i percorsi nella tua libreria e scarica una regione per usare tutto senza connessione.
+• Pianifica nel browser su app.velorki.com con lo stesso account iCloud o Google: trovi la tua libreria, e Plus se ce l'hai.
 
 MAPPA E METEO
 • Una mappa ciclabile disegnata con i dati di routing, offline: piste e corsie ciclabili, sensi unici, scale, salite.
-• Soste sulla mappa: acqua, bar, panetterie, bagni, riparazione bici e altro, anche lungo il percorso davanti a te.
+• Soste sulla mappa: acqua, bar, bagni, riparazione bici e altro, anche lungo il percorso davanti a te.
 • Radar pioggia, vento e nuvole sulla mappa, con un cursore temporale verso le prossime ore.
 • Vento e pioggia lungo il percorso per l'orario di partenza.
 
@@ -19,17 +21,17 @@ NAVIGAZIONE
 
 REGISTRAZIONE
 • Registra a schermo spento, con pausa automatica, e mostra il giro sulla schermata di blocco e nella Dynamic Island.
-• Scegli i dati mentre pedali: distanza, velocità, tempo, dislivello, frequenza cardiaca, cadenza, potenza, quanto resta del percorso.
+• Scegli i dati mentre pedali, da velocità e frequenza cardiaca a potenza e quanto resta del percorso.
 • Frequenza cardiaca da Apple Watch, sensori Bluetooth e Apple Health; anche sensori di velocità, cadenza e potenza.
 • L'app Velorki su Apple Watch avvia, mette in pausa e termina il giro dal polso.
 • Ogni giro ha una pagina con mappa, grafici e parziali.
 
 FILE E COLLEGAMENTI
-• Apri file GPX, FIT e TCX da File, Mail, Safari o dal menu di condivisione; esporta percorsi e giri in GPX o FIT.
+• Apri ed esporta file GPX, FIT e TCX.
 • Collega due note piattaforme di percorsi e giri: carica i tuoi giri, importa i tuoi percorsi. Gratis.
 
 GRATIS, E VELORKI PLUS
-Tutto ciò che il telefono sa fare da solo è gratis: pianificazione, anelli, navigazione, registrazione, mappa meteo, meteo sul percorso, regioni offline, sensori, file e collegamenti.
+Tutto ciò che il telefono sa fare da solo è gratis, e anche la sincronizzazione.
 
 Velorki Plus è un abbonamento per ciò che ha bisogno dei nostri server:
 • Meteo più preciso: radar su tutta l'Europa dai servizi meteo nazionali e previsione più accurata lungo il percorso.
@@ -42,7 +44,7 @@ Condizioni d'uso: https://velorki.com/terms
 Informativa sulla privacy: https://velorki.com/privacy
 
 PRIVACY
-Nessun account, nessuna registrazione. Percorsi, giri e impostazioni restano sul tuo iPhone. L'assistente chiede il tuo consenso prima che un testo lasci il dispositivo, e la posizione che invia è arrotondata a circa un chilometro.
+Niente pubblicità, niente analisi. L'assistente chiede il tuo consenso prima che un testo lasci il dispositivo, e la posizione che invia è arrotondata a circa un chilometro.
 
 USO CONTINUO DEL GPS
 L'uso continuo del GPS in background può ridurre notevolmente la durata della batteria. Velorki tiene acceso il GPS solo mentre un giro viene registrato o navigato.

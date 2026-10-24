@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
@@ -183,15 +184,36 @@ void main() {
     );
   });
 
-  testWidgets('without a geocoder the field is disabled', (tester) async {
+  testWidgets('without a geocoder, a tile mirror or downloaded data the '
+      'field says the build has no map data, not that a server is '
+      'missing', (tester) async {
     await pumpScreen(
       tester,
       Scaffold(body: SearchField(onSelected: (_) {})),
       harness: PlannerHarness(withGeocoder: false),
+      extraOverrides: [appConfigProvider.overrideWithValue(const AppConfig())],
     );
 
-    expect(find.text(l10n.searchUnavailable), findsOneWidget);
+    expect(find.text(l10n.searchNoMapData), findsOneWidget);
     expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
+  });
+
+  testWidgets('without a geocoder but with a tile mirror the field takes '
+      'text with its usual hint: the downloaded areas answer', (tester) async {
+    await pumpScreen(
+      tester,
+      Scaffold(body: SearchField(onSelected: (_) {})),
+      harness: PlannerHarness(withGeocoder: false),
+      extraOverrides: [
+        appConfigProvider.overrideWithValue(
+          const AppConfig(segmentsUrl: 'https://mirror.test/latest.json'),
+        ),
+      ],
+    );
+
+    expect(find.text(l10n.searchNoMapData), findsNothing);
+    expect(find.text(l10n.searchHint), findsOneWidget);
+    expect(tester.widget<TextField>(find.byType(TextField)).enabled, isTrue);
   });
 
   group('with a gazetteer on the device', () {

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
@@ -8,6 +9,8 @@ import 'rd5_format_support.dart';
 import 'routing_tiles_repository.dart';
 
 part 'on_device_routing.g.dart';
+
+final Logger _log = Logger('velorki.routing');
 
 /// Everything `LocalRoutingBackend` needs, once the profiles are copied and
 /// the tile table has been read.
@@ -43,6 +46,16 @@ class OnDeviceRouting {
 /// The on-device routing setup, rebuilt whenever a tile is added or removed.
 @Riverpod(keepAlive: true)
 Future<OnDeviceRouting> onDeviceRouting(Ref ref) async {
+  try {
+    return await _onDeviceRouting(ref);
+  } on Object catch (e, st) {
+    // The planner says routing could not start; the why is here.
+    _log.severe('on-device routing could not start: $e', e, st);
+    rethrow;
+  }
+}
+
+Future<OnDeviceRouting> _onDeviceRouting(Ref ref) async {
   final profiles = await ref.watch(brouterProfilesProvider.future);
   final repository = await ref.watch(routingTilesRepositoryProvider.future);
   final tiles = await ref.watch(routingTilesProvider.future);

@@ -209,6 +209,12 @@ Uint8List _dwdFrame(BoundingBox box, bool Function(double lon) measures) {
 }
 
 final BoundingBox berlin = _view(13.4, 52.5);
+
+/// How long the retries of a request that failed take, all of them.
+final Duration retried = weatherRetryDelays.fold(
+  Duration.zero,
+  (sum, delay) => sum + delay,
+);
 final BoundingBox newYork = _view(-74, 40.7);
 
 void main() {
@@ -404,21 +410,47 @@ void main() {
     });
   });
 
-  test('a radar that does not answer is reported until it does again', () {
+  test('a radar that does not answer is reported once its retries failed, '
+      'and asked again until it does', () {
     fakeAsync((async) {
       fetcher.radarUp = false;
       configure(radar: true);
       driver.attach(map);
       async.flushMicrotasks();
+      // A hiccup is asked again first: nothing to report yet.
+      expect(driver.status.value.failed, isEmpty);
+      async.elapse(retried);
+      expect(fetcher.probes, hasLength(weatherRetryDelays.length + 1));
       expect(driver.status.value.failed, <WeatherKind>{WeatherKind.radar});
       // Still drawn: the tiles may come back by themselves.
       expect(drawn(), <String>['radar_dwd']);
+      // Asked again by itself, without a move of the map.
       fetcher.radarUp = true;
+      async.elapse(weatherRecoveryInterval);
+      expect(fetcher.probes, hasLength(weatherRetryDelays.length + 2));
+      expect(driver.status.value.failed, isEmpty);
+      // And no more once it answers.
+      async.elapse(weatherRecoveryInterval * 3);
+      expect(fetcher.probes, hasLength(weatherRetryDelays.length + 2));
       now = now.add(radarRefreshInterval);
       async.elapse(radarRefreshInterval);
-      expect(fetcher.probes, hasLength(2));
-      expect(driver.status.value.failed, isEmpty);
       expect(shown().single.tiles, contains('time=2026-10-10T14:40:00.000Z'));
+      driver.dispose();
+    });
+  });
+
+  test('a probe that fails once and then answers is never reported', () {
+    fakeAsync((async) {
+      final reported = <Set<WeatherKind>>[];
+      driver.status.addListener(() => reported.add(driver.status.value.failed));
+      fetcher.radarUp = false;
+      configure(radar: true);
+      driver.attach(map);
+      async.flushMicrotasks();
+      fetcher.radarUp = true;
+      async.elapse(weatherRetryDelays.first);
+      expect(fetcher.probes, hasLength(2));
+      expect(reported.every((failed) => failed.isEmpty), isTrue);
       driver.dispose();
     });
   });
@@ -463,21 +495,25 @@ void main() {
     });
   });
 
-  test('clouds that do not come are reported; the next refresh recovers', () {
+  test('clouds that do not come are reported after their retries; asked '
+      'again, they recover', () {
     fakeAsync((async) {
       fetcher.cloudsUp = false;
       configure(clouds: true);
       driver.attach(map);
       async.flushMicrotasks();
       expect(shown(), isEmpty);
+      expect(driver.status.value.failed, isEmpty);
+      async.elapse(retried);
+      expect(fetcher.images, hasLength(weatherRetryDelays.length + 1));
       expect(driver.status.value.failed, <WeatherKind>{WeatherKind.clouds});
       // Not asked again with every move of the map.
       map.emitCameraIdle();
       async.flushMicrotasks();
-      expect(fetcher.images, hasLength(1));
+      expect(fetcher.images, hasLength(weatherRetryDelays.length + 1));
       fetcher.cloudsUp = true;
-      async.elapse(cloudsRefreshInterval);
-      expect(fetcher.images, hasLength(2));
+      async.elapse(weatherRecoveryInterval);
+      expect(fetcher.images, hasLength(weatherRetryDelays.length + 2));
       expect(driver.status.value.failed, isEmpty);
       expect(drawn(), <String>['clouds_eumetsat.0']);
       driver.dispose();
@@ -489,7 +525,7 @@ void main() {
       fetcher.radarUp = false;
       configure(radar: true);
       driver.attach(map);
-      async.flushMicrotasks();
+      async.elapse(retried);
       expect(driver.status.value.failed, isNotEmpty);
       map.visibleBounds = _view(100, 10);
       map.emitCameraIdle();
@@ -664,8 +700,8 @@ void main() {
       });
     });
 
-    test('a detail that does not come is reported, not asked again '
-        'until the refresh', () {
+    test('a detail that does not come is reported after its retries, not '
+        'asked again with each rest, but until it comes', () {
       fakeAsync((async) {
         map.zoom = 8;
         configure(clouds: true);
@@ -673,13 +709,15 @@ void main() {
         async.flushMicrotasks();
         fetcher.cloudsUp = false;
         async.elapse(cloudDetailDebounce);
+        expect(driver.status.value.failed, isEmpty);
+        async.elapse(retried);
         expect(driver.status.value.failed, <WeatherKind>{WeatherKind.clouds});
         rest(async, berlin, 8);
         async.elapse(cloudDetailDebounce);
-        expect(fetcher.details, hasLength(1));
+        expect(fetcher.details, hasLength(weatherRetryDelays.length + 1));
         fetcher.cloudsUp = true;
-        async.elapse(cloudsRefreshInterval);
-        expect(fetcher.details, hasLength(2));
+        async.elapse(weatherRecoveryInterval);
+        expect(fetcher.details, hasLength(weatherRetryDelays.length + 2));
         expect(driver.status.value.failed, isEmpty);
         expect(detailLayer(), isNotNull);
         driver.dispose();
@@ -831,6 +869,8 @@ void main() {
         expect(drawn(), contains('rain_hsaf'));
         expect(drawn(), isNot(contains('rain_icon_eu')));
         expect(driver.status.value.missing, isEmpty);
+        // Back from the background: nothing left to report.
+        expect(driver.status.value.failedRain, isEmpty);
       }
 
       test('its image failed, its newest not known: the model, until an '
@@ -839,13 +879,16 @@ void main() {
           hsafUp = false;
           configure(radar: true);
           driver.attach(map);
-          async.flushMicrotasks();
+          async.elapse(retried);
           expectModel();
           // Asked again in the background with the refresh; in, it is back.
           hsafUp = true;
           now = now.add(radarRefreshInterval);
           async.elapse(radarRefreshInterval);
-          expect(satelliteTimes(), <DateTime>[at(14, 40), at(14, 50)]);
+          expect(satelliteTimes(), <DateTime>[
+            for (var i = 0; i <= weatherRetryDelays.length; i++) at(14, 40),
+            at(14, 50),
+          ]);
           expectSatellite();
           driver.dispose();
         });
@@ -862,11 +905,12 @@ void main() {
             async.flushMicrotasks();
             // Its newest asked for again at once, in vain.
             expect(fetcher.newestAsked, <String>['rain_hsaf', 'rain_hsaf']);
+            async.elapse(retried);
             expectModel();
             // Not asked again before the refresh.
             map.emitCameraIdle();
             async.elapse(radarImageDebounce);
-            expect(satelliteTimes(), hasLength(1));
+            expect(satelliteTimes(), hasLength(weatherRetryDelays.length + 1));
             driver.dispose();
           });
         },
@@ -1022,12 +1066,13 @@ void main() {
         map.visibleBounds = newYork;
         configure(radar: true, offset: 30, radarStyle: RadarStyle.soft);
         driver.attach(map);
-        async.flushMicrotasks();
+        async.elapse(retried);
         // Before the run is known the global model alone; then the HRRR,
-        // which fails, and the global model again, not left to it.
+        // which fails each time, and the global model again, not left to
+        // it.
         expect(fetcher.radarImages.map((i) => i.$1), <String>[
           'rain_icon',
-          'rain_hrrr',
+          for (var i = 0; i <= weatherRetryDelays.length; i++) 'rain_hrrr',
           'rain_icon',
         ]);
         expect(drawn(), <String>['rain_icon']);
@@ -1169,9 +1214,9 @@ void main() {
               source.id == 'radar_dwd' ? null : Uint8List.fromList(<int>[5]);
           soft();
           driver.attach(map);
-          async.flushMicrotasks();
+          async.elapse(retried);
           expect(fetcher.radarImages.map((r) => r.$1), <String>[
-            'radar_dwd',
+            for (var i = 0; i <= weatherRetryDelays.length; i++) 'radar_dwd',
             'rain_hsaf',
           ]);
           expect(fetcher.radarJobs.last.$2, '-radar_dwd');
@@ -1307,24 +1352,112 @@ void main() {
       });
     });
 
-    test('an image that does not come is reported; the refresh recovers', () {
+    test('an image that does not come is reported after its retries; asked '
+        'again by itself, it recovers', () {
       fakeAsync((async) {
         map.zoom = 8;
         fetcher.radarImagesUp = false;
         soft();
         driver.attach(map);
         async.flushMicrotasks();
+        expect(driver.status.value.failed, isEmpty);
+        async.elapse(retried);
+        expect(fetcher.radarImages, hasLength(weatherRetryDelays.length + 1));
         expect(driver.status.value.failed, {WeatherKind.radar});
+        expect(driver.status.value.failedRain, {RainRole.radar});
         expect(shown(), isEmpty);
-        // Not asked again for the same view before the refresh.
+        // Not asked again for the same view with each rest.
         map.emitCameraIdle();
         async.elapse(radarImageDebounce);
-        expect(fetcher.radarImages, hasLength(1));
+        expect(fetcher.radarImages, hasLength(weatherRetryDelays.length + 1));
+        // Still down at the next check: still reported.
+        async.elapse(weatherRecoveryInterval);
+        expect(fetcher.radarImages, hasLength(weatherRetryDelays.length + 2));
+        expect(driver.status.value.failedRain, {RainRole.radar});
         fetcher.radarImagesUp = true;
-        async.elapse(radarRefreshInterval);
-        expect(fetcher.radarImages, hasLength(2));
+        async.elapse(weatherRecoveryInterval);
+        expect(fetcher.radarImages, hasLength(weatherRetryDelays.length + 3));
         expect(driver.status.value.failed, isEmpty);
         expect(shown().single.image, <int>[7, 8, 9]);
+        driver.dispose();
+      });
+    });
+
+    test('an image that fails once and then comes is never reported', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        final reported = <Set<RainRole>>[];
+        driver.status.addListener(
+          () => reported.add(driver.status.value.failedRain),
+        );
+        var answers = 0;
+        fetcher.radarAnswer = (source, box) =>
+            answers++ == 0 ? null : Uint8List.fromList(<int>[7, 8, 9]);
+        soft();
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(shown(), isEmpty);
+        async.elapse(weatherRetryDelays.first);
+        expect(fetcher.radarImages, hasLength(2));
+        expect(shown().single.image, <int>[7, 8, 9]);
+        expect(reported, isNotEmpty);
+        expect(reported.every((failed) => failed.isEmpty), isTrue);
+        // Nothing failed: nothing asked again.
+        async.elapse(weatherRecoveryInterval * 2);
+        expect(fetcher.radarImages, hasLength(2));
+        driver.dispose();
+      });
+    });
+
+    test('the newer frame of a refresh failing, the one shown stands in '
+        'and nothing is reported; too old, it goes and the radar is', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        soft();
+        driver.attach(map);
+        async.flushMicrotasks();
+        expect(shown().single.image, <int>[7, 8, 9]);
+        fetcher.radarImagesUp = false;
+        now = now.add(radarRefreshInterval);
+        async.elapse(radarRefreshInterval + retried);
+        expect(fetcher.radarImages.last.$3, DateTime.utc(2026, 10, 10, 14, 40));
+        // The 14:35 frame still shows: the rain of five minutes ago.
+        expect(shown().single.image, <int>[7, 8, 9]);
+        expect(driver.status.value.failed, isEmpty);
+        // Asked again meanwhile, by itself.
+        final asked = fetcher.radarImages.length;
+        async.elapse(weatherRecoveryInterval);
+        expect(fetcher.radarImages, hasLength(asked + 1));
+        // Half an hour on, the old frame no longer stands for "Now".
+        now = now.add(const Duration(minutes: 25));
+        async.elapse(radarRefreshInterval + retried);
+        expect(shown(), isEmpty);
+        expect(driver.status.value.failedRain, {RainRole.radar});
+        // It comes back: the report goes.
+        fetcher.radarImagesUp = true;
+        async.elapse(weatherRecoveryInterval);
+        expect(shown().single.image, <int>[7, 8, 9]);
+        expect(driver.status.value.failed, isEmpty);
+        driver.dispose();
+      });
+    });
+
+    test('another step whose image fails is reported: the frame of the '
+        'step before does not stand in for it', () {
+      fakeAsync((async) {
+        map.zoom = 8;
+        soft();
+        driver.attach(map);
+        async.flushMicrotasks();
+        fetcher.radarImagesUp = false;
+        soft(offset: 60);
+        async.flushMicrotasks();
+        // While it is asked again, the one shown stays, nothing reported.
+        expect(shown(), hasLength(1));
+        expect(driver.status.value.failed, isEmpty);
+        async.elapse(retried);
+        expect(shown(), isEmpty);
+        expect(driver.status.value.failedRain, {RainRole.radar});
         driver.dispose();
       });
     });
@@ -1355,7 +1488,7 @@ void main() {
         fetcher.radarImagesUp = false;
         soft(offset: 60);
         driver.attach(map);
-        async.flushMicrotasks();
+        async.elapse(retried);
         expect(driver.status.value.failedRain, <RainRole>{RainRole.model});
         expect(driver.status.value.failed, <WeatherKind>{WeatherKind.radar});
         driver.dispose();
@@ -1498,27 +1631,28 @@ void main() {
     });
 
     test('a failed image is not asked again for the same view and step '
-        'until the refresh, another step asks', () {
+        'with each rest, another step asks', () {
       fakeAsync((async) {
         map.zoom = 8;
         fetcher.radarImagesUp = false;
         soft();
         driver.attach(map);
-        async.flushMicrotasks();
-        expect(fetcher.radarImages, hasLength(1));
+        async.elapse(retried);
+        final tries = weatherRetryDelays.length + 1;
+        expect(fetcher.radarImages, hasLength(tries));
         map.emitCameraIdle();
         async.elapse(radarImageDebounce);
-        expect(fetcher.radarImages, hasLength(1));
+        expect(fetcher.radarImages, hasLength(tries));
         // Another step is asked for, and back at Now so is Now again.
         soft(offset: 60);
         async.flushMicrotasks();
-        expect(fetcher.radarImages, hasLength(2));
+        expect(fetcher.radarImages, hasLength(tries + 1));
         soft();
         async.flushMicrotasks();
-        expect(fetcher.radarImages, hasLength(3));
+        expect(fetcher.radarImages, hasLength(tries + 2));
         map.emitCameraIdle();
         async.elapse(radarImageDebounce);
-        expect(fetcher.radarImages, hasLength(3));
+        expect(fetcher.radarImages, hasLength(tries + 2));
         driver.dispose();
       });
     });
@@ -2182,17 +2316,17 @@ void main() {
         fetcher.windUp = false;
         configure(wind: true);
         driver.attach(map);
-        async.flushMicrotasks();
+        async.elapse(retried);
         expect(driver.status.value.failed, <WeatherKind>{WeatherKind.wind});
         expect(map.windArrows, isNull);
         // Not asked again on every rest.
         rest(async, _view(13.45, 52.52), 9);
         async.elapse(windDebounce);
-        expect(fetcher.winds, hasLength(1));
-        // The refresh asks again, and it answers.
+        expect(fetcher.winds, hasLength(weatherRetryDelays.length + 1));
+        // Asked again by itself, and it answers.
         fetcher.windUp = true;
         async.elapse(windRefreshInterval);
-        expect(fetcher.winds, hasLength(2));
+        expect(fetcher.winds, hasLength(weatherRetryDelays.length + 2));
         expect(driver.status.value.failed, isEmpty);
         expect(map.windArrows!.arrows, isNotEmpty);
         driver.dispose();

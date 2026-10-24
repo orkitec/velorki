@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -205,6 +206,67 @@ void main() {
 
     expect(container.read(routingBackendProvider), isNull);
     expect(container.read(onDeviceRoutingActiveProvider), isFalse);
+    expect(
+      container.read(routingAvailabilityProvider),
+      RoutingAvailability.noData,
+    );
+  });
+
+  test('"server only" without a server routes on the device', () async {
+    final container = await containerFor(
+      brouterUrl: '',
+      segmentsUrl: 'https://mirror.test/latest.json',
+      preference: RoutingPreference.serverOnly,
+    );
+
+    final composite =
+        container.read(routingBackendProvider)! as CompositeRoutingBackend;
+    expect(composite.remote, isNull);
+    expect(composite.local, isNotNull);
+    expect(
+      container.read(routingAvailabilityProvider),
+      RoutingAvailability.ready,
+    );
+  });
+
+  group('while nothing routes, the planner hears why', () {
+    ProviderContainer containerWith(Override onDevice) {
+      final container = ProviderContainer(
+        overrides: <Override>[
+          routingBackendProvider.overrideWithValue(null),
+          onDevice,
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(routingAvailabilityProvider, (_, _) {});
+      return container;
+    }
+
+    test('on-device routing still starting: loading', () async {
+      final container = containerWith(
+        onDeviceRoutingProvider.overrideWith(
+          (ref) => Completer<OnDeviceRouting>().future,
+        ),
+      );
+      await pumpEventQueue();
+      expect(
+        container.read(routingAvailabilityProvider),
+        RoutingAvailability.loading,
+      );
+    });
+
+    test('on-device routing that could not start: failed', () async {
+      final container = containerWith(
+        onDeviceRoutingProvider.overrideWith(
+          (ref) async => throw const FileSystemException('no profiles'),
+        ),
+      );
+      await pumpEventQueue();
+      expect(
+        container.read(routingAvailabilityProvider),
+        RoutingAvailability.failed,
+      );
+    });
   });
 
   test('a fork without a server routes on its downloaded tiles', () async {

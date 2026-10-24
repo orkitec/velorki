@@ -26,11 +26,18 @@ fetch() {
   mv "$file.part" "$file"
 }
 
-# sqlite3 3.7.0 and drift 2.35.0, as in pubspec.lock.
-fetch https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-3.7.0/sqlite3.wasm \
-  sqlite3.wasm fbcd2e8214f9231ea961e1b7706a22dd1194cfbfe6f26f13841b5aa7a0be1a1f
-fetch https://github.com/simolus3/drift/releases/download/drift-2.35.0/drift_worker.js \
-  drift_worker.js df0066e75363a9bed59a14eedbbded421c1f5910f8379812df164716aa2e6eed
+# sqlite3 3.7.1 and drift 2.35.2, as in pubspec.lock. The page itself loads
+# sqlite3.wasm too (the gazetteer search, through package:sqlite3), so it
+# follows pubspec's sqlite3. drift's release worker carries the Dart side of
+# the sqlite3 version drift was built with (3.7.0 for 2.35.2), whose bindings
+# are the same as 3.7.1's; when a bump changes sqlite3's lib/src/wasm, compile
+# the worker against pubspec.lock instead:
+#   dart compile js -O2 -o web/drift_worker.js <file calling
+#   WasmDatabase.workerMainForOpen()>
+fetch https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-3.7.1/sqlite3.wasm \
+  sqlite3.wasm 87c1869b533ea4b6daa1f4dc6aa7e9cf3dae6e6ea53f8ed57080c08eb5f64303
+fetch https://github.com/simolus3/drift/releases/download/drift-2.35.2/drift_worker.js \
+  drift_worker.js 191fc9db018d2bbecb1723e81118fcf2c5c094df8644c2fcba2ed51df061e90a
 
 # maplibre-gl-js 6.4.1 for maplibre_gl 0.27.1. The library finds its worker
 # beside its own URL, so the dist files stay together in maplibre-gl/.

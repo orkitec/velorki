@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
+import '../../../core/db/database_stalled.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../import_export/presentation/import_file_action.dart';
 import '../../integrations/presentation/import_from_service_menu.dart';
@@ -33,6 +36,7 @@ import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/sheet_header.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
+import '../../sync/application/cloud_sync_controller.dart';
 import '../application/library_card.dart';
 import '../data/library_section.dart';
 import 'rename_route_dialog.dart';
@@ -536,42 +540,54 @@ class _LibraryList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final section = ref.watch(librarySectionProvider);
+    // Pulling the list fetches what changed in iCloud; with sync off the
+    // list has no pull at all. The pull opens between the switch and the
+    // first row, both staying put, and holds open while the fetch runs, as
+    // a list on iOS does. It bounces however short the list: a list that
+    // fits then takes a drag on it, and the card moves by its handle.
+    final pulls = ref.watch(cloudSyncActiveProvider);
+    final switchRow = Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+      child: SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<LibrarySection>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(
+              value: LibrarySection.routes,
+              icon: const Icon(Icons.route_rounded, size: 18),
+              label: Text(l10n.libraryRoutes),
+            ),
+            ButtonSegment(
+              value: LibrarySection.rides,
+              icon: const Icon(Icons.directions_bike_rounded, size: 18),
+              label: Text(l10n.libraryRides),
+            ),
+          ],
+          selected: {section},
+          onSelectionChanged: (selection) => unawaited(
+            ref.read(librarySectionProvider.notifier).select(selection.first),
+          ),
+        ),
+      ),
+    );
     return CustomScrollView(
       controller: SheetContentScroll.maybeOf(context),
+      physics: pulls
+          ? const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics())
+          : null,
       slivers: [
         SliverSheetHeader(
           title: l10n.tabLibrary,
           actions: const [ImportFromServiceButton(), ImportFileButton()],
         ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-            child: SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<LibrarySection>(
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(
-                    value: LibrarySection.routes,
-                    icon: const Icon(Icons.route_rounded, size: 18),
-                    label: Text(l10n.libraryRoutes),
-                  ),
-                  ButtonSegment(
-                    value: LibrarySection.rides,
-                    icon: const Icon(Icons.directions_bike_rounded, size: 18),
-                    label: Text(l10n.libraryRides),
-                  ),
-                ],
-                selected: {section},
-                onSelectionChanged: (selection) => unawaited(
-                  ref
-                      .read(librarySectionProvider.notifier)
-                      .select(selection.first),
-                ),
-              ),
-            ),
+        if (pulls) ...[
+          _SliverStaysOnPull(child: switchRow),
+          CupertinoSliverRefreshControl(
+            onRefresh: ref.read(cloudSyncControllerProvider.notifier).refresh,
           ),
-        ),
+        ] else
+          SliverToBoxAdapter(child: switchRow),
         switch (section) {
           LibrarySection.routes => const _RoutesSection(),
           LibrarySection.rides => const _RidesSection(),
@@ -586,6 +602,29 @@ class _LibraryList extends ConsumerWidget {
   }
 }
 
+/// [child] as a box sliver that stays where it is while the list is pulled
+/// past its start, as the pinned header above it does, so the pull opens
+/// below it; scrolled the other way it goes with the list.
+class _SliverStaysOnPull extends SingleChildRenderObjectWidget {
+  const _SliverStaysOnPull({required Widget super.child});
+
+  @override
+  RenderSliverToBoxAdapter createRenderObject(BuildContext context) =>
+      _RenderSliverStaysOnPull();
+}
+
+class _RenderSliverStaysOnPull extends RenderSliverToBoxAdapter {
+  @override
+  void performLayout() {
+    super.performLayout();
+    // Pulled past the start, the viewport hands the slivers a negative
+    // overlap, the pull's depth; painting that much higher keeps the box
+    // still.
+    final pull = math.min(constraints.overlap, 0.0);
+    if (pull < 0) geometry = geometry!.copyWith(paintOrigin: pull);
+  }
+}
+
 /// Every saved route, newest first, as a sliver.
 class _RoutesSection extends ConsumerWidget {
   const _RoutesSection();
@@ -595,9 +634,14 @@ class _RoutesSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final routes = ref.watch(savedRoutesProvider);
     return routes.when(
-      loading: () => const SliverFillRemaining(
+      loading: () => SliverFillRemaining(
         hasScrollBody: false,
-        child: Center(child: CircularProgressIndicator()),
+        child: ref.watch(databaseStalledProvider)
+            ? PlaceholderBody(
+                icon: Icons.hourglass_empty,
+                message: l10n.librarySlowToOpen,
+              )
+            : const Center(child: CircularProgressIndicator()),
       ),
       error: (error, _) => SliverFillRemaining(
         hasScrollBody: false,
@@ -762,6 +806,7 @@ class _RouteTile extends ConsumerWidget {
     messenger.showSnackBar(
       SnackBar(
         content: Text(l10n.libraryRouteDeleted(route.name)),
+        persist: false,
         action: SnackBarAction(
           label: l10n.commonUndo,
           onPressed: () => unawaited(repository.restore(route)),

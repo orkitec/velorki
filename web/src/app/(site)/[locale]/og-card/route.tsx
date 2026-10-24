@@ -50,7 +50,7 @@ export async function GET(
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div style={{ fontSize: 44, lineHeight: 1.2, maxWidth: 960 }}>{t('tagline')}</div>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            {['Offline', 'OpenStreetMap', 'Open source', 'No account'].map((chip) => (
+            {['Private', 'No account', 'Offline', 'Open source'].map((chip) => (
               <div
                 key={chip}
                 style={{

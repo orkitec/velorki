@@ -159,7 +159,8 @@ const Map<String, String> sameAsEnglish = <String, String>{
   'mapAttributionCyclosm': 'project name',
   'mapAttributionOpenMapTiles': 'project name',
   'settingsSensorsAppleHealth': 'product name',
-  'settingsSync': 'product name',
+  'cloudSyncServiceICloud': 'product name',
+  'cloudSyncServiceGoogle': 'brand',
   'settingsSensorsHealthConnect': 'product name',
   'settingsSensorsAppleWatch': 'product name',
   'accentVolt': 'name of a colour preset',
@@ -169,6 +170,7 @@ const Map<String, String> sameAsEnglish = <String, String>{
   // Words the target languages borrowed.
   'commonOk': 'the same word in most languages',
   'shareLinkRowTitle': 'a borrowed word (link)',
+  'settingsGroupApp': 'a borrowed word (app)',
   'importFormatFit': 'file format',
   'importFormatTcx': 'file format',
   // Units and their symbols.

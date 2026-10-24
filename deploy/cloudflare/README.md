@@ -9,9 +9,14 @@ tiles without CORS.
 - `pages/wrangler.toml`: the project config.
 - `pages/functions/tiles/[[path]].js`: the function on `/tiles/*`; the logic
   is in `pages/tiles_proxy.mjs`.
-- `app/web/_headers` ships with the build: cross-origin isolation
-  (COOP/COEP `credentialless`), the Content-Security-Policy (every host the
-  app loads from, named there), `nosniff`, referrer policy and cache rules
+- `app/web/_headers` ships with the build: cross-origin isolation by
+  `Document-Isolation-Policy: isolate-and-credentialless` with COOP
+  `same-origin-allow-popups` (COOP `same-origin` would cut the Google and
+  Apple sign-in popups off from the page they answer; Chrome stays isolated,
+  Firefox and Safari run without isolation), the Content-Security-Policy
+  (every host the app loads from, named there, Google Identity Services,
+  Drive, CloudKit JS and CloudKit's hosts among them; `app/web_test/headers.test.mjs`
+  holds it), `nosniff`, referrer policy and cache rules
   for the static files. The engine and maplibre-gl-js are served from the
   site itself, so a build with the CDN default is refused by that policy.
 
@@ -27,6 +32,19 @@ tiles without CORS.
 only works on the custom domain, not on `*.pages.dev`); `Range` requests go to
 the origin and are not cached. Only `Range` is forwarded. Anything else under
 `/tiles/` is a 404; methods other than GET, HEAD and OPTIONS a 405.
+
+## /cloudkit/upload
+
+`POST /cloudkit/upload?url=<encoded upload URL>`: CloudKit JS saves a
+record's `body` asset by POSTing it to a one-time `cws.icloud-content.com`
+URL that allows CORS for a fixed list of origins, ours not among them. The
+app's XMLHttpRequest wrapper (`cloudkit_web_js.dart`) sends that POST here instead;
+`pages/cloudkit_upload.mjs` checks the URL (https, `cws.icloud-content.com`
+or `pNN-contentws.icloud.com`, no port or credentials, path ending
+`/singleFileUpload`, a `tk`), reads the body (16 MB at most, else 413),
+forwards it with its Content-Type alone and returns Apple's status and JSON
+receipt. Nothing is stored or logged; `tk` is a credential for fifteen
+minutes. Other methods are a 405, other URLs a 400.
 
 Tests (Node's built-in runner, no dependencies):
 
@@ -60,4 +78,8 @@ From `app/`: `flutter build web --wasm --no-web-resources-cdn --dart-define-from
 then `python3 tool/web_serve.py` and open http://localhost:8080 in Chrome. The
 script sends the build's `_headers` and stands in for the tiles function: the
 pointer comes from velorki-data, tiles are fetched from the GitHub releases and
-kept in `build/web_tile_cache`.
+kept in `build/web_tile_cache`; `/cloudkit/upload` is forwarded the same way. `python3 tool/web_serve.py --https` serves
+https://localhost:8443 instead, the origin the CloudKit Development token and
+the Google web client allow, so the iCloud and Google sign-ins work locally
+(mkcert's certificate when mkcert is installed, else a self-signed one Chrome
+warns about once).

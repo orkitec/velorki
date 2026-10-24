@@ -1,4 +1,6 @@
-Velorki pianifica percorsi in bici, ti guida lungo il tragitto e registra i tuoi giri. Il calcolo dei percorsi è pensato per la bici e gira sul tuo telefono, anche offline, e tutta l'app è open source. Ogni percorso è fatto per te: per la tua bici, la tua distanza e il posto in cui ti trovi adesso.
+Velorki pianifica percorsi in bici, ti guida lungo il tragitto e registra i tuoi giri, tutto sul tuo telefono e anche offline: pianificazione, calcolo dei percorsi, ricerca, navigazione e registrazione. Non serve nessun account.
+
+I tuoi percorsi e giri restano con te: sul tuo telefono, oppure sincronizzati tramite il tuo Google Drive, mai attraverso i nostri server. Il codice è pubblico, quindi chiunque può verificarlo. Esportali in GPX, FIT o TCX quando vuoi.
 
 PIANIFICAZIONE
 • Tocca i punti sulla mappa e ottieni un percorso per la bici che usi: trekking, corsa, gravel, mountain bike o la via più diretta.
@@ -6,6 +8,7 @@ PIANIFICAZIONE
 • Percorsi alternativi, profilo altimetrico e dettaglio dei fondi su cui pedalerai.
 • Colora il percorso in base a pendenza, fondo, vento o pioggia.
 • Cerca luoghi offline, salva i percorsi nella tua libreria e scarica una regione per pianificare, cercare e navigare lì senza connessione.
+• Pianifica nel browser su app.velorki.com con lo stesso account Google: trovi la tua libreria, e Plus se ce l'hai.
 
 MAPPA E METEO
 • Una mappa ciclabile disegnata con i dati di routing, offline: piste e corsie ciclabili, sensi unici, scale, salite.
@@ -24,11 +27,11 @@ REGISTRAZIONE
 • Ogni giro ha una pagina con mappa, grafici e parziali.
 
 FILE E COLLEGAMENTI
-• Apri file GPX, FIT e TCX dall'app dei file, dalla posta, da un browser o dal menu di condivisione; esporta percorsi e giri in GPX o FIT.
+• Apri file GPX, FIT e TCX dall'app dei file, dalla posta, da un browser o dal menu di condivisione; esporta percorsi e giri in GPX, FIT o TCX.
 • Collega due note piattaforme di percorsi e giri: carica i tuoi giri, importa i tuoi percorsi. Gratis.
 
 GRATIS, E VELORKI PLUS
-Tutto ciò che il telefono sa fare da solo è gratis: pianificazione, anelli, navigazione, registrazione, mappa meteo, meteo sul percorso, regioni offline, sensori, file e collegamenti.
+Tutto ciò che il telefono sa fare da solo è gratis, e anche la sincronizzazione.
 
 Velorki Plus è un abbonamento per ciò che ha bisogno dei nostri server:
 • Meteo più preciso: radar su tutta l'Europa dai servizi meteo nazionali e previsione più accurata lungo il percorso.
@@ -39,7 +42,7 @@ Velorki Plus è offerto con una prova gratuita sul piano annuale e si rinnova fi
 Condizioni: https://velorki.com/terms
 
 PRIVACY
-Nessun account, nessuna registrazione. Percorsi, giri e impostazioni restano sul tuo telefono. Niente va a un'altra piattaforma finché non colleghi l'account e lo chiedi tu. L'assistente chiede il tuo consenso prima che un testo lasci il dispositivo, e la posizione che invia è arrotondata a circa un chilometro.
+Niente pubblicità, niente analisi. Niente va a un'altra piattaforma finché non colleghi l'account e lo chiedi tu. L'assistente chiede il tuo consenso prima che un testo lasci il dispositivo, e la posizione che invia è arrotondata a circa un chilometro.
 Informativa sulla privacy: https://velorki.com/privacy
 
 Dati cartografici © collaboratori di OpenStreetMap.

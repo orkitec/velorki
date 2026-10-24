@@ -29,6 +29,17 @@ abstract class AppConfig with _$AppConfig {
     @Default('') String storeUrlIos,
     @Default(false) bool plusStub,
 
+    /// The Google Cloud web client's id: Android's sign-in (Credential
+    /// Manager) needs it, and the web planner signs in with it. Empty, a
+    /// build offers Google sync on iOS only.
+    @Default('') String googleWebClientId,
+
+    /// CloudKit web API tokens for the web planner's iCloud sign-in, one
+    /// per CloudKit environment (docs/SYNC_SETUP.md). Public: Apple binds
+    /// each to the origins it allows. Empty, the browser offers no iCloud.
+    @Default('') String cloudKitTokenDevelopment,
+    @Default('') String cloudKitTokenProduction,
+
     /// Whether the routing server at [brouterUrl] carries Velorki's own
     /// profile variants (`velorki-*.brf`, deployed with `brouter/profiles`).
     /// Without it the server is asked for the upstream profiles it has
@@ -59,6 +70,13 @@ abstract class AppConfig with _$AppConfig {
       defaultValue: 'velorki',
     ),
     plusStub: String.fromEnvironment('VELORKI_PLUS_STUB') == '1',
+    googleWebClientId: String.fromEnvironment('VELORKI_GOOGLE_WEB_CLIENT_ID'),
+    cloudKitTokenDevelopment: String.fromEnvironment(
+      'VELORKI_CLOUDKIT_TOKEN_DEVELOPMENT',
+    ),
+    cloudKitTokenProduction: String.fromEnvironment(
+      'VELORKI_CLOUDKIT_TOKEN_PRODUCTION',
+    ),
     brouterVariants: String.fromEnvironment('VELORKI_BROUTER_VARIANTS') == '1',
   );
 

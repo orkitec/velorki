@@ -1,15 +1,17 @@
-Velorki planifica rutas en bici, te guía por ellas y graba tus salidas. Su cálculo de rutas está pensado para la bici y funciona en tu iPhone, también sin conexión, y toda la app es de código abierto. Cada ruta está hecha para ti: para tu bici, tu distancia y dónde estás ahora.
+Velorki planifica rutas en bici, te guía por ellas y graba tus salidas, todo en tu iPhone y también sin conexión: planificar, calcular rutas, buscar, navegar y grabar. Sin cuenta ni registro.
+
+Tus rutas y salidas se quedan contigo: en tu iPhone o sincronizadas con tu propio iCloud o Google Drive, nunca a través de nuestros servidores. El código es público, así que cualquiera puede comprobarlo. Expórtalas como GPX, FIT o TCX cuando quieras.
 
 PLANIFICAR
 • Toca puntos de paso en el mapa y obtén una ruta para tu bici: cicloturismo, carretera, gravel, bici de montaña o el camino directo.
 • Rutas circulares desde tu puerta: di cuánto quieres pedalear y, si quieres, un lugar por el que pasar, y Velorki propone recorridos que vuelven al inicio.
-• Rutas alternativas, un perfil de altitud y las superficies por las que vas a rodar.
-• Colorea la ruta según la pendiente, la superficie, el viento o la lluvia.
-• Busca lugares sin conexión, guarda rutas en tu biblioteca y descarga una región para planificar, buscar y navegar allí sin red.
+• Rutas alternativas, un perfil de altitud y las superficies; colorea la ruta según la pendiente, la superficie, el viento o la lluvia.
+• Busca lugares, guarda rutas en tu biblioteca y descarga una región para usarlo todo sin red.
+• Planifica en el navegador en app.velorki.com con la misma cuenta de iCloud o Google: ahí está tu biblioteca, y Plus si lo tienes.
 
 MAPA Y TIEMPO
 • Un mapa ciclista sin conexión: carriles bici y sendas, sentidos únicos, escaleras y subidas.
-• Paradas en el mapa: agua, cafeterías, panaderías, aseos, talleres de bicis y más, también en la ruta por delante.
+• Paradas en el mapa: agua, cafeterías, aseos, talleres de bicis y más, también en la ruta por delante.
 • Radar de lluvia, viento y nubes en el mapa, con un deslizador de tiempo hacia las próximas horas.
 • Viento y lluvia a lo largo de tu ruta para tu hora de salida.
 
@@ -19,17 +21,17 @@ NAVEGACIÓN
 
 GRABACIÓN
 • Graba con la pantalla apagada, con pausa automática, y muestra la salida en la pantalla bloqueada y en la Dynamic Island.
-• Elige los datos que ves al rodar: distancia, velocidad, tiempo, desnivel, pulso, cadencia, potencia y lo que queda de ruta.
+• Elige los datos que ves al rodar, de la velocidad y el pulso a la potencia y lo que queda de ruta.
 • Pulso del Apple Watch, sensores Bluetooth y app Salud; también sensores de velocidad, cadencia y potencia.
 • La app de Velorki para Apple Watch inicia, pausa y termina la salida desde la muñeca.
 • Cada salida tiene su página con mapa, gráficas y parciales.
 
 ARCHIVOS Y CONEXIONES
-• Abre archivos GPX, FIT y TCX desde Archivos, Mail, Safari o el menú de compartir; exporta rutas y salidas como GPX o FIT.
+• Abre y exporta archivos GPX, FIT y TCX.
 • Conecta dos plataformas populares de rutas y salidas: sube tus salidas, trae tus rutas. Gratis.
 
 GRATIS, Y VELORKI PLUS
-Todo lo que el teléfono hace por sí solo es gratis: planificar, rutas circulares, navegación, grabación, mapa del tiempo, tiempo en la ruta, regiones sin conexión, sensores, archivos y conexiones.
+Todo lo que el teléfono hace por sí solo es gratis, y la sincronización también.
 
 Velorki Plus es una suscripción para lo que depende de nuestros servidores:
 • Tiempo más preciso: radar de toda Europa de servicios meteorológicos nacionales y mejor previsión en la ruta.
@@ -42,7 +44,7 @@ Condiciones de uso: https://velorki.com/es/terms
 Política de privacidad: https://velorki.com/es/privacy
 
 PRIVACIDAD
-No hay cuenta ni registro. Las rutas, las salidas y los ajustes se quedan en tu iPhone. El asistente te pide consentimiento antes de que ningún texto salga del dispositivo, y la posición que envía se redondea a aproximadamente un kilómetro.
+Sin anuncios ni analíticas. El asistente te pide consentimiento antes de que ningún texto salga del dispositivo, y la posición que envía se redondea a aproximadamente un kilómetro.
 
 USO CONTINUADO DEL GPS
 El uso continuado del GPS en segundo plano puede reducir drásticamente la duración de la batería. Velorki solo mantiene el GPS activo mientras se graba o se navega una salida.

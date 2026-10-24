@@ -1,4 +1,5 @@
 import CloudKit
+import os
 import Flutter
 import Foundation
 
@@ -74,9 +75,15 @@ final class CloudSync: NSObject, FlutterStreamHandler, @unchecked Sendable {
       result(nil)
     case "fetchNow":
       if #available(iOS 17.0, *), let engine = engine as? CloudSyncEngine {
-        engine.fetchNow()
+        // Answers when the fetch is done, so a pull to refresh spins as
+        // long as it runs.
+        Task {
+          await engine.fetchNow()
+          result(nil)
+        }
+      } else {
+        result(nil)
       }
-      result(nil)
     case "readSettings":
       result(readSettings(args["keys"] as? [String] ?? []))
     case "writeSettings":
@@ -233,6 +240,15 @@ final class CloudSync: NSObject, FlutterStreamHandler, @unchecked Sendable {
   }
 }
 
+/// One line in the device log (`idevicesyslog -p Runner | grep velorki`):
+/// record names and outcomes only, never what a record holds.
+private let syncLogger = Logger(subsystem: "com.orkitec.velorki", category: "sync")
+
+/// Record names and outcomes only, never a route's name or content.
+private func syncLog(_ message: String) {
+  syncLogger.notice("velorki: iCloud \(message, privacy: .public)")
+}
+
 /// CKSyncEngine over the private database's `Library` zone.
 @available(iOS 17.0, *)
 final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
@@ -246,10 +262,32 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
 
   private weak var sync: CloudSync?
   private var engine: CKSyncEngine?
+  private let database: CKDatabase
   private let stateURL: URL
+  private let tokenURL: URL
   private let incomingDir: URL
   private let lock = NSLock()
   private var stopped = false
+
+  /// The engine fetches only what a push told it of, and a fetch asked of
+  /// it without one asks the server nothing ("no zone IDs needing to be
+  /// fetched"), so a missed push (sync off, the app in the background, a
+  /// throttled push) would leave a change unfetched until the next one. A
+  /// manual fetch therefore asks the server for the zone's changes itself,
+  /// since its own change token, kept next to the engine's state; the
+  /// engine still sends and fetches on pushes, and later fetches the same
+  /// changes again, which [deliver] drops or Dart finds it has.
+  private var directFetch: Task<Void, Never>?
+
+  /// One hand-over of fetched changes to Dart at a time, whichever fetch
+  /// they come from.
+  private let deliveries = DeliveryGate()
+
+  /// Per record name, the server's modification time of the last version
+  /// handed to Dart or saved from here, or when its deletion was handed
+  /// over: a fetch that read the server before another one's newer
+  /// version (or deletion) reached Dart does not put the older one back.
+  private var lastKnown: [String: Date] = [:]
 
   /// What went wrong in the fetch or send under way; nil while all goes
   /// through, so its end counts as synced.
@@ -270,19 +308,28 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
       .appendingPathComponent("cloud_sync", isDirectory: true)
     try? fm.createDirectory(at: support, withIntermediateDirectories: true)
     stateURL = support.appendingPathComponent("engine_state.json")
+    tokenURL = support.appendingPathComponent("zone_token.data")
     incomingDir = fm.urls(for: .cachesDirectory, in: .userDomainMask)[0]
       .appendingPathComponent("cloud_sync_in", isDirectory: true)
     try? fm.createDirectory(at: incomingDir, withIntermediateDirectories: true)
 
-    let state = loadState()
     let database = CKContainer(identifier: CloudSync.containerIdentifier).privateCloudDatabase
+    self.database = database
+    let state = loadState()
     let configuration = CKSyncEngine.Configuration(
       database: database, stateSerialization: state, delegate: self)
     let engine = CKSyncEngine(configuration)
     self.engine = engine
+    // Record names only in the device log, never what a record holds.
+    syncLog(
+      "engine started, state \(state == nil ? "new" : "loaded"), "
+        + "pending \(Self.names(engine.state.pendingRecordZoneChanges))")
     if state == nil {
       // The first start on this device: the zone may not be there yet.
       engine.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: Self.zoneID))])
+      // The engine fetches the whole zone by itself now; the manual fetch
+      // only notes where the server stands.
+      clearToken(engineFetchesAll: true)
     }
   }
 
@@ -311,26 +358,231 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
       if !pending.contains(change) { changes.append(change) }
     }
     if !changes.isEmpty { engine.state.add(pendingRecordZoneChanges: changes) }
-  }
-
-  func fetchNow() {
-    guard let engine else { return }
+    syncLog(
+      "enqueue saves \(saves) deletes \(deletes), "
+        + "added \(Self.names(changes))")
+    if saves.isEmpty && deletes.isEmpty { return }
+    // Sent now rather than whenever the engine's own schedule gets to it,
+    // which can be minutes.
     Task {
       do {
-        try await engine.fetchChanges()
+        try await engine.sendChanges()
       } catch {
-        NSLog("velorki: iCloud fetch failed: \(error)")
-        if let error = error as? CKError {
-          self.sync?.update(error: .some(Self.errorKind(error)))
-        }
+        syncLog("send failed: \(error)")
       }
     }
+  }
+
+  /// Asks the server for this zone's changes, then the engine for whatever
+  /// a push told it of. Answers when both are done.
+  func fetchNow() async {
+    guard let engine else { return }
+    await fetchDirectly()
+    do {
+      try await engine.fetchChanges(.init(scope: .zoneIDs([Self.zoneID])))
+    } catch {
+      syncLog("engine fetch failed: \(error)")
+      if let error = error as? CKError {
+        self.sync?.update(error: .some(Self.errorKind(error)))
+      }
+    }
+  }
+
+  // MARK: Manual fetch
+
+  /// Runs one fetch of the zone's changes past the engine; a call while one
+  /// runs waits for that one.
+  private func fetchDirectly() async {
+    let task: Task<Void, Never> = lock.withLock {
+      if let running = directFetch { return running }
+      let task = Task {
+        await self.runDirectFetch()
+        self.lock.withLock { self.directFetch = nil }
+      }
+      directFetch = task
+      return task
+    }
+    await task.value
+  }
+
+  /// Set when there is no token because the engine fetches the whole zone
+  /// itself (a new state, an account change): the next manual fetch only
+  /// notes where the server stands rather than fetching everything twice.
+  private var tokenFetchOnly = false
+
+  private func runDirectFetch() async {
+    guard !isStopped, let sync else { return }
+    sync.update(syncing: true)
+    var token = loadToken()
+    var onlyToken = lock.withLock { token == nil && tokenFetchOnly }
+    var retried = false
+    // A record that could not be fetched keeps the token where it was, so
+    // the next manual fetch asks for it again.
+    var keepToken = false
+    var modified = 0
+    var deleted = 0
+    while true {
+      do {
+        var more = true
+        while more {
+          if isStopped { return }
+          let page = try await database.recordZoneChanges(
+            inZoneWith: Self.zoneID, since: token,
+            desiredKeys: onlyToken ? [] : nil)
+          if isStopped { return }
+          if !onlyToken {
+            var records: [CKRecord] = []
+            for (id, result) in page.modificationResultsByID {
+              switch result {
+              case .success(let modification): records.append(modification.record)
+              case .failure(let error):
+                syncLog("could not fetch \(id.recordName): \(error)")
+                keepToken = true
+              }
+            }
+            let deletions = page.deletions.map(\.recordID)
+            modified += records.count
+            deleted += deletions.count
+            await deliver(records, deletions, sync: sync)
+            if isStopped { return }
+          }
+          // Kept only once Dart has what came before it.
+          if !keepToken { saveToken(page.changeToken) }
+          token = page.changeToken
+          more = page.moreComing
+        }
+        if onlyToken { lock.withLock { tokenFetchOnly = false } }
+        syncLog(
+          onlyToken
+            ? "manual fetch noted the server's state"
+            : "manual fetch done, modified \(modified) deleted \(deleted)")
+        finishDirectFetch(sync, error: nil)
+        return
+      } catch let error as CKError {
+        switch Self.zoneErrorCode(error) {
+        case .changeTokenExpired where !retried:
+          // The server forgot where this device stood: everything again.
+          syncLog("manual fetch: change token expired, fetching the zone whole")
+          clearToken(engineFetchesAll: false)
+          token = nil
+          onlyToken = false
+          retried = true
+          keepToken = false
+          continue
+        case .zoneNotFound, .userDeletedZone:
+          // Nothing to fetch; the engine makes the zone again on a send
+          // and reports a deletion on its database fetch.
+          syncLog("manual fetch: zone missing (\(Self.zoneErrorCode(error).rawValue))")
+          clearToken(engineFetchesAll: false)
+          finishDirectFetch(sync, error: nil)
+          return
+        case .notAuthenticated, .accountTemporarilyUnavailable:
+          syncLog("manual fetch: no account")
+          finishDirectFetch(sync, error: nil)
+          return
+        default:
+          syncLog("manual fetch failed: \(error)")
+          finishDirectFetch(sync, error: Self.errorKind(error))
+          return
+        }
+      } catch {
+        syncLog("manual fetch failed: \(error)")
+        finishDirectFetch(sync, error: "other")
+        return
+      }
+    }
+  }
+
+  private func finishDirectFetch(_ sync: CloudSync, error: String?) {
+    let full = lock.withLock { quotaFull }
+    sync.update(
+      syncing: false, synced: error == nil,
+      error: .some(error ?? (full ? "quotaExceeded" : nil)))
+  }
+
+  /// The code of [error], or of the zone's error inside a partial failure.
+  private static func zoneErrorCode(_ error: CKError) -> CKError.Code {
+    if error.code == .partialFailure,
+      let inner = error.partialErrorsByItemID?[zoneID] as? CKError
+    {
+      return inner.code
+    }
+    return error.code
+  }
+
+  private func loadToken() -> CKServerChangeToken? {
+    guard let data = try? Data(contentsOf: tokenURL) else { return nil }
+    return try? NSKeyedUnarchiver.unarchivedObject(
+      ofClass: CKServerChangeToken.self, from: data)
+  }
+
+  private func saveToken(_ token: CKServerChangeToken) {
+    guard
+      let data = try? NSKeyedArchiver.archivedData(
+        withRootObject: token, requiringSecureCoding: true)
+    else { return }
+    try? data.write(to: tokenURL, options: .atomic)
+  }
+
+  /// Forgets the manual fetch's token; [engineFetchesAll] when the engine
+  /// is about to fetch the whole zone by itself.
+  private func clearToken(engineFetchesAll: Bool) {
+    try? FileManager.default.removeItem(at: tokenURL)
+    lock.withLock { tokenFetchOnly = engineFetchesAll }
+  }
+
+  /// Hands [records] and [deletions] of the zone to Dart, one hand-over at
+  /// a time, leaving out what Dart already has a newer state of.
+  private func deliver(
+    _ records: [CKRecord], _ deletions: [CKRecord.ID], sync: CloudSync
+  ) async {
+    await deliveries.acquire()
+    let fresh = lock.withLock { () -> [CKRecord] in
+      records.filter { record in
+        guard record.recordID.zoneID == Self.zoneID,
+          Self.recordTypes.contains(record.recordType)
+        else { return false }
+        guard let known = lastKnown[record.recordID.recordName],
+          let date = record.modificationDate
+        else { return true }
+        return date > known
+      }
+    }
+    let deleted = deletions.filter { $0.zoneID == Self.zoneID }.map(\.recordName)
+    let stale = records.count - fresh.count
+    syncLog(
+      "fetched modified \(fresh.map(\.recordID.recordName)) "
+        + "deleted \(deleted)" + (stale > 0 ? ", \(stale) already known" : ""))
+    if !fresh.isEmpty || !deleted.isEmpty {
+      let modifications = fresh.map(payload(of:))
+      _ = await sync.callDart(
+        "remoteChanges", ["modifications": modifications, "deletions": deleted])
+      let now = Date()
+      lock.withLock {
+        for record in fresh {
+          if let date = record.modificationDate { lastKnown[record.recordID.recordName] = date }
+        }
+        for name in deleted { lastKnown[name] = now }
+      }
+    }
+    await deliveries.release()
   }
 
   /// Keeps the first error of a round; a full iCloud outranks the rest.
   private func setRoundError(_ kind: String) {
     lock.withLock {
       if roundError == nil || kind == "quotaExceeded" { roundError = kind }
+    }
+  }
+
+  /// The record names of [changes], with what is to happen to each.
+  private static func names(_ changes: [CKSyncEngine.PendingRecordZoneChange]) -> [String] {
+    changes.map { change in
+      switch change {
+      case .saveRecord(let id): return "save:\(id.recordName)"
+      case .deleteRecord(let id): return "delete:\(id.recordName)"
+      @unknown default: return "?"
+      }
     }
   }
 
@@ -371,6 +623,10 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
         // A new account may have no zone yet.
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: Self.zoneID))])
       }
+      // The token was the old account's; the engine fetches the new one's
+      // zone whole.
+      clearToken(engineFetchesAll: true)
+      lock.withLock { lastKnown.removeAll() }
       _ = await sync.callDart("accountChanged", ["change": name])
 
     case .fetchedDatabaseChanges(let changes):
@@ -384,28 +640,32 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
         if reason != "purged" {
           syncEngine.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: Self.zoneID))])
         }
+        clearToken(engineFetchesAll: false)
+        lock.withLock { lastKnown.removeAll() }
         _ = await sync.callDart("zoneDeleted", ["reason": reason])
       }
 
     case .fetchedRecordZoneChanges(let changes):
-      let modifications = changes.modifications
-        .map(\.record)
-        .filter { $0.recordID.zoneID == Self.zoneID && Self.recordTypes.contains($0.recordType) }
-        .map(payload(of:))
-      let deletions = changes.deletions
-        .filter { $0.recordID.zoneID == Self.zoneID }
-        .map(\.recordID.recordName)
-      if modifications.isEmpty && deletions.isEmpty { return }
-      _ = await sync.callDart(
-        "remoteChanges", ["modifications": modifications, "deletions": deletions])
+      await deliver(
+        changes.modifications.map(\.record), changes.deletions.map(\.recordID), sync: sync)
 
     case .sentRecordZoneChanges(let sent):
       await handleSent(sent, syncEngine: syncEngine, sync: sync)
 
     case .sentDatabaseChanges(let sent):
       for failure in sent.failedZoneSaves {
-        NSLog("velorki: iCloud zone save failed: \(failure.error)")
+        syncLog("zone save failed: \(failure.error)")
       }
+
+    case .didFetchChanges:
+      syncLog("fetch done")
+      finishRound(sync)
+
+    case .didSendChanges:
+      syncLog(
+        "send done, pending "
+          + "\(Self.names(syncEngine.state.pendingRecordZoneChanges))")
+      finishRound(sync)
 
     case .willFetchChanges, .willSendChanges:
       lock.withLock { roundError = nil }
@@ -414,17 +674,38 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
     case .didFetchRecordZoneChanges(let done):
       if let error = done.error { setRoundError(Self.errorKind(error)) }
 
-    case .didFetchChanges, .didSendChanges:
-      let (error, full) = lock.withLock { () -> (String?, Bool) in
-        defer { roundError = nil }
-        return (roundError, quotaFull)
-      }
-      sync.update(
-        syncing: false, synced: error == nil,
-        error: .some(error ?? (full ? "quotaExceeded" : nil)))
-
     default:
       break
+    }
+  }
+
+  /// The end of a fetch or a send: synced unless something went wrong.
+  private func finishRound(_ sync: CloudSync) {
+    let (error, full) = lock.withLock { () -> (String?, Bool) in
+      defer { roundError = nil }
+      return (roundError, quotaFull)
+    }
+    sync.update(
+      syncing: false, synced: error == nil,
+      error: .some(error ?? (full ? "quotaExceeded" : nil)))
+  }
+
+  /// [server] with its body file: the copy a refused save brings has its
+  /// asset without the file, and without it Dart cannot read the record
+  /// (nor tell whether the server's change is the newer one), so the
+  /// record is fetched whole.
+  private func completeRecord(_ server: CKRecord) async -> CKRecord {
+    if let url = (server["body"] as? CKAsset)?.fileURL,
+      FileManager.default.fileExists(atPath: url.path)
+    {
+      return server
+    }
+    do {
+      return try await database.record(for: server.recordID)
+    } catch {
+      syncLog(
+        "could not fetch \(server.recordID.recordName) whole: \(error)")
+      return server
     }
   }
 
@@ -438,8 +719,14 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
       saved[record.recordID.recordName] = FlutterStandardTypedData(
         bytes: Self.systemFields(of: record))
     }
+    lock.withLock {
+      for record in sent.savedRecords {
+        if let date = record.modificationDate { lastKnown[record.recordID.recordName] = date }
+      }
+    }
     var failedSaves: [[String: Any]] = []
     var quotaExceeded = false
+    var otherFailed = false
     var zoneMissing: [CKRecord.ID] = []
     for failure in sent.failedRecordSaves {
       let name = failure.record.recordID.recordName
@@ -448,7 +735,7 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
       case .serverRecordChanged:
         entry["failure"] = "conflict"
         if let server = failure.error.serverRecord {
-          entry["serverRecord"] = payload(of: server)
+          entry["serverRecord"] = payload(of: await completeRecord(server))
         }
       case .zoneNotFound, .userDeletedZone:
         // Made again, and the save with it, without asking Dart.
@@ -464,11 +751,20 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
         .batchRequestFailed, .internalError, .accountTemporarilyUnavailable:
         entry["failure"] = "retrying"
       default:
-        NSLog("velorki: iCloud save of \(name) failed: \(failure.error)")
+        syncLog("save of \(name) failed: \(failure.error.code.rawValue)")
         entry["failure"] = "other"
+        // Not tried again until the next launch or return to the app: not
+        // synced, whatever else went through.
+        otherFailed = true
       }
       failedSaves.append(entry)
     }
+    syncLog(
+      "sent saved \(sent.savedRecords.map(\.recordID.recordName)) "
+        + "failed \(failedSaves.map { "\($0["name"] ?? "?"):\($0["failure"] ?? "?")" }) "
+        + "zoneMissing \(zoneMissing.map(\.recordName)) "
+        + "deleted \(sent.deletedRecordIDs.map(\.recordName)) "
+        + "failedDeletes \(sent.failedRecordDeletes.keys.map(\.recordName))")
     if !zoneMissing.isEmpty {
       syncEngine.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: Self.zoneID))])
       syncEngine.state.add(pendingRecordZoneChanges: zoneMissing.map { .saveRecord($0) })
@@ -492,6 +788,8 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
       setRoundError("quotaExceeded")
     } else if failedSaves.contains(where: { $0["failure"] as? String == "retrying" }) {
       setRoundError("network")
+    } else if otherFailed {
+      setRoundError("other")
     }
     _ = await sync.callDart(
       "sentChanges",
@@ -541,6 +839,9 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
       // What Dart left out is not to be saved (deleted since, or a route
       // that stays on the phone).
       let dropped = saves.filter { records[$0.recordName] == nil }
+      syncLog(
+        "batch saves \(records.keys.sorted()) dropped \(dropped.map(\.recordName)) "
+          + "deletes \(Self.names(changes.filter { if case .deleteRecord = $0 { return true }; return false }))")
       if !dropped.isEmpty {
         syncEngine.state.remove(pendingRecordZoneChanges: dropped.map { .saveRecord($0) })
       }
@@ -611,7 +912,7 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
         try FileManager.default.copyItem(at: source, to: copy)
         entry["asset"] = copy.path
       } catch {
-        NSLog("velorki: could not copy the body of \(record.recordID.recordName): \(error)")
+        syncLog("could not copy the body of \(record.recordID.recordName): \(error)")
       }
     }
     return entry
@@ -638,6 +939,29 @@ final class CloudSyncEngine: CKSyncEngineDelegate, @unchecked Sendable {
       .zoneBusy:
       return "network"
     default: return "other"
+    }
+  }
+}
+
+/// An async lock: one holder at a time, the rest wait in turn.
+@available(iOS 17.0, *)
+private actor DeliveryGate {
+  private var busy = false
+  private var waiting: [CheckedContinuation<Void, Never>] = []
+
+  func acquire() async {
+    if !busy {
+      busy = true
+      return
+    }
+    await withCheckedContinuation { waiting.append($0) }
+  }
+
+  func release() {
+    if waiting.isEmpty {
+      busy = false
+    } else {
+      waiting.removeFirst().resume()
     }
   }
 }

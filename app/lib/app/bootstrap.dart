@@ -25,6 +25,8 @@ import '../features/sensors/application/ble_sources_controller.dart';
 import '../features/sensors/application/sensor_sources_controller.dart';
 import '../features/sensors/application/watch_ride_bridge.dart';
 import '../features/sharing/application/share_link_listener.dart';
+import '../features/store_prompts/application/review_prompts.dart';
+import '../features/store_prompts/application/update_notices.dart';
 import '../features/subscription/application/subscription_controller.dart';
 import '../features/sync/application/cloud_sync_controller.dart';
 import 'app.dart';
@@ -129,6 +131,11 @@ Future<void> bootstrap() async {
   // read: a provider nobody listens to is paused, and this one has to
   // follow the switch.
   container.listen(cloudSyncControllerProvider, (_, _) {});
+  // The store's rating dialog after the third ride or the fifth route, and
+  // a notice when the store has a newer version; neither in a browser, and
+  // neither while a ride records.
+  startReviewPrompts(container);
+  startUpdateNotices(container);
 
   runApp(
     UncontrolledProviderScope(container: container, child: const VelorkiApp()),
@@ -138,6 +145,13 @@ Future<void> bootstrap() async {
 void initLogging() {
   Logger.root.level = kReleaseMode ? Level.INFO : Level.ALL;
   Logger.root.onRecord.listen((record) {
+    // developer.log reaches a debugger and nothing else; iCloud sync is
+    // only seen working between two real devices, so outside debug builds
+    // its lines (record names and decisions, never content) go to the
+    // device log too: `idevicesyslog -p Runner | grep velorki`.
+    if (!kDebugMode && record.loggerName.startsWith('velorki.sync')) {
+      debugPrint('${record.loggerName}: ${record.message}');
+    }
     developer.log(
       record.message,
       time: record.time,

@@ -1,8 +1,9 @@
 {
   "site": {
     "name": "Velorki",
-    "tagline": "Plan de rit, vind het café, volg de afslagen, en dat allemaal waar het bereik ophoudt. Gratis, open source, gebouwd op OpenStreetMap.",
-    "description": "Velorki plant fietsroutes, maakt rondjes en neemt je ritten op — op de telefoon, offline, met OpenStreetMap-gegevens. Gratis en open source."
+    "tagline": "Plan de rit, vind het café, volg de afslagen, en dat allemaal waar het bereik ophoudt. Gratis, zonder account, en je routes en ritten blijven bij jou.",
+    "description": "Velorki plant fietsroutes, maakt rondjes en neemt je ritten op — op de telefoon, offline, gratis en zonder account. Je routes en ritten blijven bij jou, op je telefoon of in je eigen cloud, altijd te exporteren, en de code is open zodat iedereen dat kan controleren.",
+    "plannerDescription": "De fietsrouteplanner van Velorki in de browser: plan routes en rondjes op de computer met dezelfde routeberekening als de app, gratis en zonder account. Je routes en ritten synchroniseren via je eigen iCloud of Google Drive."
   },
   "nav": {
     "home": "Velorki-startpagina",
@@ -64,14 +65,14 @@
   },
   "home": {
     "meta": {
-      "title": "Velorki — fietsrouteplanner en ritrecorder, offline en open source",
-      "description": "Plan fietsroutes, genereer rondjes, zoek plaatsen en volg gesproken afslagen — allemaal op de telefoon, zonder verbinding. Gratis, open source, gebouwd op OpenStreetMap."
+      "title": "Velorki — fietsrouteplanner en ritrecorder, offline en privé",
+      "description": "Plan fietsroutes, genereer rondjes, zoek plaatsen en volg gesproken afslagen — allemaal op de telefoon, zonder verbinding en zonder account. Gratis en privé, met open code die iedereen kan controleren."
     },
     "hero": {
-      "eyebrow": "Gratis en open source",
+      "eyebrow": "Gratis, privé, zonder account",
       "title": "Fiets waar het bereik ophoudt",
-      "lead": "Plan de rit, vind het café, volg de afslagen, en dat allemaal waar het bereik ophoudt. Gratis, open source, gebouwd op OpenStreetMap.",
-      "body": "Download een regio één keer en de hele app werkt zonder netwerk: de kaart, de routering, het zoeken naar plaatsen en de gesproken afslagen. Geen account, geen advertenties, geen betaalmuur voor de rit zelf, en geen server ertussen, tenzij je daarom vraagt.",
+      "lead": "Plan de rit, vind het café, volg de afslagen, en dat allemaal waar het bereik ophoudt. Gratis, zonder account, en je routes en ritten blijven bij jou.",
+      "body": "Download een regio één keer en de hele app werkt zonder netwerk: de kaart, de routering, het zoeken naar plaatsen en de gesproken afslagen. Geen account, geen advertenties, geen betaalmuur voor de rit zelf. Je routes en ritten blijven bij jou: op je telefoon, of in je eigen iCloud of Google Drive als je ze synchroniseert, en je exporteert ze wanneer je wilt als GPX, FIT of TCX. Er zit geen server van ons tussen, tenzij je daarom vraagt.",
       "primaryCta": "Velorki downloaden",
       "secondaryCta": "Lees de handleiding",
       "stores": "Download de app",
@@ -83,7 +84,7 @@
     },
     "free": {
       "title": "Alles op de telefoon is gratis",
-      "body": "Plannen, rondjes, offline kaarten en routering, zoeken, navigatie, opnemen, sensoren en de Apple Watch, ritstatistieken, de weerkaart en het weer langs de route, GPX-, FIT- en TCX-bestanden, en de koppelingen met Strava en Ride with GPS — voor iedereen, voor altijd. De routeringsgegevens en de zoekindex spiegelen we gratis voor je.",
+      "body": "Plannen, rondjes, offline kaarten en routering, zoeken, navigatie, opnemen, sensoren en de Apple Watch, ritstatistieken, de weerkaart en het weer langs de route, GPX-, FIT- en TCX-bestanden, synchronisatie via je eigen iCloud of Google Drive, en de koppelingen met Strava en Ride with GPS — voor iedereen, voor altijd. De routeringsgegevens en de zoekindex spiegelen we gratis voor je.",
       "items": {
         "routing": "Routering op de telefoon",
         "loops": "Rondjes",
@@ -93,6 +94,7 @@
         "recording": "Opnemen",
         "sensors": "Sensoren en horloge",
         "files": "GPX, FIT en TCX",
+        "sync": "Synchronisatie met je eigen cloud",
         "weather": "Weerkaart en routeweer",
         "connections": "Compatibel met Strava en Ride with GPS"
       }
@@ -245,7 +247,7 @@
         }
       },
       "privacy": "De assistent vraagt het voordat hij iets verstuurt: wat je typt en, alleen als je dat toestaat, je positie afgerond op ongeveer een kilometer. Geen account, geen routegeschiedenis.",
-      "price": "Per maand of per jaar via de App Store of Google Play, met een gratis proefperiode. De app toont de actuele prijs in je eigen valuta.",
+      "price": "Per maand of per jaar via de App Store of Google Play, met een gratis proefperiode. De Plus-pagina toont de prijs in jouw land.",
       "moreLink": "Wat Plus omvat →",
       "docsLink": "Hoe de assistent werkt →"
     },
@@ -268,6 +270,7 @@
         "recording": "Ritten opnemen, statistieken, splits, klimmen, ondergrond, calorieën en zones",
         "sensors": "Hartslag, cadans en vermogen van sensoren, horloge en gezondheidsapp",
         "library": "Bibliotheek met routes en ritten",
+        "sync": "Synchronisatie tussen je apparaten via je eigen iCloud of Google Drive",
         "files": "GPX-, FIT- en TCX-import en -export",
         "weatherMap": "Weerkaart: regenradar, wolken en wind, met tijdregelaar",
         "routeColours": "Weer langs de route uit een grovere openbare verwachting: wind, regen, temperatuur, een samenvatting en de beste vertrektijd, en de route gekleurd naar helling, ondergrond, wind of regen",
@@ -282,8 +285,8 @@
       "plusLink": "Velorki Plus →"
     },
     "openSource": {
-      "title": "Open source, open data",
-      "body": "Velorki is open source onder de AGPL: de app, de relay en deze website. Alles wat de app tekent, waarop hij routeert en waarin hij zoekt, komt van OpenStreetMap, de kaart die iedereen kan bewerken. Zo kan iedereen de code lezen, controleren wat hij doet en hem verbeteren.",
+      "title": "Privé, en iedereen kan het controleren",
+      "body": "Alles draait op je telefoon en er is geen account. Je routes en ritten blijven bij jou of in je eigen iCloud of Google Drive, en je neemt ze altijd mee als GPX, FIT of TCX. De code is openbaar, dus iedereen kan dat controleren en verbeteren: de app, de relay en deze website zijn open source onder de AGPL. Alles wat de app tekent, waarop hij routeert en waarin hij zoekt, komt van OpenStreetMap, de kaart die iedereen kan bewerken.",
       "githubLink": "Lees de broncode op GitHub",
       "creditsLink": "Bronvermelding en licenties"
     },
@@ -296,17 +299,17 @@
         "routing": "Routes met de profielen Toer, Racefiets, Gravel en MTB, varianten en rondjes",
         "elevation": "Afstand, stijging en het hoogteprofiel, gekleurd naar helling of ondergrond",
         "maps": "Plaatsen zoeken, de fietskaart, stops onderweg en de weerkaart",
-        "library": "Een bibliotheek van je routes en GPX-bestanden om te downloaden"
+        "library": "Een bibliotheek van je routes en ritten, gesynchroniseerd via je eigen iCloud of Google Drive, en GPX-bestanden om te downloaden"
       },
       "doesntTitle": "Wat in de app blijft",
       "doesnt": {
         "ride": "Ritten opnemen en navigatie met afslagen",
         "offline": "Kaartgebieden bewaard om zonder bereik te rijden",
-        "connections": "Strava, Ride with GPS en synchronisatie met iCloud"
+        "connections": "Strava en Ride with GPS"
       },
       "ride": "De app is om mee te rijden: hij neemt op, navigeert en werkt onderweg offline.",
       "open": "Planner openen",
-      "plus": "Velorki Plus is voorlopig alleen beschikbaar in de apps voor iPhone en Android.",
+      "plus": "Velorki Plus koop je in de apps voor iPhone en Android; aangemeld bij het iCloud- of Google-account waarmee de app synchroniseert, werkt het ook in de browser.",
       "plusLink": "Download de app",
       "alt": "De Velorki-planner in een browservenster: een route langs de kust van Madeira van Funchal naar Caniço, met afstand, stijging en de route gekleurd naar helling."
     },
@@ -316,15 +319,15 @@
       "items": {
         "account": {
           "q": "Heb ik een account nodig?",
-          "a": "Nee. Er is geen account en geen registratie, zelfs niet voor Velorki Plus — een abonnement wordt hersteld via de store waarin je het hebt gekocht, zonder account bij ons."
+          "a": "Nee. Er is geen account en geen registratie, zelfs niet voor Velorki Plus — een abonnement wordt hersteld via de store waarin je het hebt gekocht, zonder account bij ons. Synchronisatie loopt, als je dat wilt, via je eigen iCloud- of Google-account."
         },
         "offline": {
           "q": "Werkt het echt zonder verbinding?",
-          "a": "Ja. Download een regio één keer en de kaart, de routering, het zoeken naar plaatsen en de gesproken afslagen draaien allemaal op de telefoon. Alleen het weer, de assistent, de koppelingen met Strava en Ride with GPS en de deellinks hebben een netwerk nodig."
+          "a": "Ja. Download een regio één keer en de kaart, de routering, het zoeken naar plaatsen en de gesproken afslagen draaien allemaal op de telefoon. Alleen het weer, de assistent, synchronisatie, de koppelingen met Strava en Ride with GPS en de deellinks hebben een netwerk nodig."
         },
         "price": {
           "q": "Wat kost Velorki?",
-          "a": "Alles wat op de telefoon draait, is gratis: plannen, rondjes, offline kaarten en routering, zoeken, navigatie, opnemen, hartslag, cadans en vermogen van je sensoren, ritstatistieken, de weerkaart, het weer langs de route uit een openbare verwachting, GPX-, FIT- en TCX-bestanden, en de koppelingen met Strava en Ride with GPS. Velorki Plus is een abonnement voor de functies aan de serverkant; de actuele prijs toont de store in de app, in je eigen valuta."
+          "a": "Alles wat op de telefoon draait, is gratis: plannen, rondjes, offline kaarten en routering, zoeken, navigatie, opnemen, hartslag, cadans en vermogen van je sensoren, ritstatistieken, de weerkaart, het weer langs de route uit een openbare verwachting, GPX-, FIT- en TCX-bestanden, synchronisatie via je eigen iCloud of Google Drive, en de koppelingen met Strava en Ride with GPS. Velorki Plus is een abonnement voor de functies aan de serverkant; de Plus-pagina toont de maand- en jaarprijs per land, zoals de App Store en Google Play die tonen."
         },
         "plus": {
           "q": "Wat is Velorki Plus?",
@@ -332,7 +335,7 @@
         },
         "data": {
           "q": "Wat verlaat mijn telefoon?",
-          "a": "Niets, tenzij je erom vraagt. Routes, ritten en instellingen worden op het apparaat bewaard. De assistent vraagt toestemming voordat er tekst vertrekt, en rondt de positie die hij verstuurt af op ongeveer een kilometer. Kaarttegels en online zoeken worden alleen opgehaald als je geen gedownloade gegevens gebruikt."
+          "a": "Niets, tenzij je erom vraagt. Routes, ritten en instellingen worden op het apparaat bewaard; als je ze synchroniseert, gaan ze naar je eigen iCloud of Google Drive, nooit naar ons. De assistent vraagt toestemming voordat er tekst vertrekt, en rondt de positie die hij verstuurt af op ongeveer een kilometer. Kaarttegels en online zoeken worden alleen opgehaald als je geen gedownloade gegevens gebruikt."
         },
         "osm": {
           "q": "Waar komen de kaartgegevens vandaan?",
@@ -340,7 +343,7 @@
         },
         "opensource": {
           "q": "Is Velorki echt open source?",
-          "a": "Ja. De app, de pure Dart-pakketten, de relay en deze website vallen onder AGPL-3.0-only; alles staat op GitHub. De naam, het logo en het icoon zijn voorbehouden, dus een fork moet een andere naam kiezen voordat hij in een store verschijnt."
+          "a": "Ja, zodat iedereen kan controleren wat de app met je gegevens doet. De app, de pure Dart-pakketten, de relay en deze website vallen onder AGPL-3.0-only; alles staat op GitHub. De naam, het logo en het icoon zijn voorbehouden, dus een fork moet een andere naam kiezen voordat hij in een store verschijnt."
         },
         "selfhost": {
           "q": "Kan ik de serveronderdelen zelf draaien?",
@@ -351,7 +354,7 @@
     },
     "cta": {
       "title": "Download de app en ga fietsen",
-      "body": "Gratis in beide stores, en de broncode staat op GitHub. Geen account, geen advertenties, geen proefperiode voor de onderdelen die op je telefoon draaien.",
+      "body": "Gratis in beide stores. Geen account, geen advertenties, geen proefperiode voor de onderdelen die op je telefoon draaien, en de broncode staat op GitHub, zodat iedereen kan meekijken.",
       "action": "Velorki downloaden"
     }
   },
@@ -385,7 +388,15 @@
     "freeTitle": "Wat gratis blijft",
     "freeBody": "Plannen, rondjes, offline kaarten en routering, zoeken, afslag-voor-afslagnavigatie, opnemen, ritstatistieken, de weerkaart, het weer langs de route uit een grovere openbare verwachting (wind, regen, temperatuur, de beste vertrektijd) met de route gekleurd naar helling, ondergrond, wind of regen, GPX-, FIT- en TCX-bestanden, en de koppelingen met Strava en Ride with GPS blijven gratis, met of zonder Plus.",
     "priceTitle": "Wat het kost",
-    "priceBody": "Je ziet de prijs in de app. De store toont de actuele maand- en jaarprijs in je eigen valuta, met een gratis proefperiode, en hier staat de prijs nooit, zodat hij niet kan verouderen.",
+    "priceBody": "Per maand of per jaar, gekocht in de App Store of Google Play, met een gratis proefperiode. Dit zijn de prijzen die de stores in elk land tonen:",
+    "prices": {
+      "country": "Land",
+      "monthly": "Per maand",
+      "yearly": "Per jaar",
+      "asOf": "Stand van {date}",
+      "tax": "Prijzen zoals de stores ze tonen, met belasting waar de store die meerekent; voor je koopt, toont de store de prijs die voor jou geldt.",
+      "missing": "Voor dit land staat hier geen prijs van de stores. De store toont de actuele maand- en jaarprijs in de app, in je eigen valuta, met een gratis proefperiode."
+    },
     "restoreTitle": "Een abonnement herstellen",
     "restoreBody": "Al geabonneerd? Herstel je aankopen onder Instellingen → Velorki Plus. Herstellen werkt zonder account: de store waarin je hebt gekocht, is het enige bewijs.",
     "cancelTitle": "Opzeggen",
@@ -398,7 +409,7 @@
   "download": {
     "meta": {
       "title": "Velorki downloaden",
-      "description": "Velorki voor Android en iOS: de stores, de APK uit GitHub Releases en de minimale systeemversies."
+      "description": "Velorki voor Android en iOS, en de planner in de browser: de stores, de APK uit GitHub Releases en de minimale systeemversies."
     },
     "eyebrow": "Download",
     "title": "Velorki downloaden",
@@ -410,7 +421,7 @@
     "iosRequirement": "iOS {version} of nieuwer",
     "storage": "Ongeveer 60 MB voor de app, plus wat je aan kaart- en routeringsregio's downloadt.",
     "browserTitle": "Of in de browser",
-    "browserBody": "Plan routes op de computer met de planner op het web: dezelfde kaarten, dezelfde routeberekening en dezelfde bibliotheek, zonder iets te installeren.",
+    "browserBody": "Plan routes op de computer met de planner op het web: dezelfde kaarten, dezelfde routeberekening en dezelfde bibliotheek, gesynchroniseerd via je eigen iCloud of Google Drive, zonder iets te installeren.",
     "browserLink": "Planner openen",
     "apkTitle": "APK en builds uit de broncode",
     "apkBody": "Elke release staat met een tag op GitHub met de APK erbij, voor wie liever geen store gebruikt. Updates gaan bij deze installatie met de hand.",

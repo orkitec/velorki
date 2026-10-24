@@ -7,7 +7,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:archive/archive.dart' show ZLibDecoderWeb, ZLibEncoderWeb;
+import 'package:archive/archive.dart'
+    show GZipDecoderWeb, GZipEncoderWeb, ZLibDecoderWeb, ZLibEncoderWeb;
 import 'package:path/path.dart' as p;
 
 final p.Context _posix = p.Context(style: p.Style.posix, current: '/');
@@ -846,6 +847,42 @@ class _ZLibDecoder extends Converter<List<int>, List<int>> {
   @override
   List<int> convert(List<int> input) =>
       const ZLibDecoderWeb().decodeBytes(input);
+}
+
+/// gzip as dart:io offers it, in Dart (package:archive's encoder and
+/// decoder) since a browser has no native one.
+class GZipCodec extends Codec<List<int>, List<int>> {
+  const GZipCodec({this.level = 6});
+
+  /// 0 (stored) to 9 (smallest); 6 is zlib's default, as in dart:io.
+  final int level;
+
+  @override
+  Converter<List<int>, List<int>> get encoder => _GZipEncoder(level);
+
+  @override
+  Converter<List<int>, List<int>> get decoder => const _GZipDecoder();
+}
+
+/// gzip at the default level, as dart:io's `gzip`.
+const GZipCodec gzip = GZipCodec();
+
+class _GZipEncoder extends Converter<List<int>, List<int>> {
+  const _GZipEncoder(this.level);
+
+  final int level;
+
+  @override
+  List<int> convert(List<int> input) =>
+      const GZipEncoderWeb().encodeBytes(input, level: level);
+}
+
+class _GZipDecoder extends Converter<List<int>, List<int>> {
+  const _GZipDecoder();
+
+  @override
+  List<int> convert(List<int> input) =>
+      const GZipDecoderWeb().decodeBytes(input);
 }
 
 final Stdout stdout = Stdout._(print);

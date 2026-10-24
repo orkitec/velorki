@@ -1178,7 +1178,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final state = ref.watch(plannerControllerProvider);
-    final hasBackend = ref.watch(routingBackendProvider) != null;
+    // Only a real reason not to route is shown: nothing while on-device
+    // routing starts.
+    final routing = ref.watch(routingAvailabilityProvider);
+    final routingNotice =
+        routing == RoutingAvailability.failed ||
+        routing == RoutingAvailability.noData;
 
     ref.listen(sharedMapControllerProvider, (_, next) => _onMapChanged(next));
     // A place another app sent: taken after this frame, when the search
@@ -1252,11 +1257,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             ),
           );
     // Upright, the column stands under the rows that run over its side,
-    // beside the chips under them; the banner of a missing routing server
+    // beside the chips under them; the banner saying routing cannot work
     // runs the full width too, and the column goes under it. Sideways the
     // controls are a row of their own at the top.
     _ownControlsTop =
-        (geometry.sideways || !hasBackend ? _chromeHeight : _acrossHeight) + 12;
+        (geometry.sideways || routingNotice ? _chromeHeight : _acrossHeight) +
+        12;
     // In a wide window the card at rest stays clear of the whole control
     // column under the chrome: in a short one (a foldable's inner screen
     // on its side) the card grown for the time control reached over it.
@@ -1467,10 +1473,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           ),
         ),
       ),
-      if (!hasBackend)
-        const Padding(
-          padding: EdgeInsets.only(top: 8),
-          child: _NoRoutingServerBanner(),
+      if (routingNotice)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: _RoutingUnavailableBanner(
+            failed: routing == RoutingAvailability.failed,
+          ),
         ),
     ];
 
@@ -1651,8 +1659,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   }
 }
 
-class _NoRoutingServerBanner extends StatelessWidget {
-  const _NoRoutingServerBanner();
+/// Routing cannot work here: on-device routing could not start ([failed]),
+/// or the build has no map data to route on and no server.
+class _RoutingUnavailableBanner extends StatelessWidget {
+  const _RoutingUnavailableBanner({required this.failed});
+
+  final bool failed;
 
   @override
   Widget build(BuildContext context) {
@@ -1665,11 +1677,16 @@ class _NoRoutingServerBanner extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            Icon(Icons.cloud_off, color: theme.colorScheme.onErrorContainer),
+            Icon(
+              failed ? Icons.error_outline : Icons.map_outlined,
+              color: theme.colorScheme.onErrorContainer,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                l10n.plannerNoRoutingServer,
+                failed
+                    ? l10n.plannerRoutingCouldNotStart
+                    : l10n.plannerNoRoutingData,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onErrorContainer,
                 ),

@@ -4,7 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
-import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
+import 'package:velorki/features/sync/data/sync_backend.dart';
 import 'package:velorki/features/sync/domain/cloud_record.dart';
 import 'package:velorki/features/sync/domain/cloud_sync_status.dart';
 
@@ -55,9 +55,13 @@ class FakeCloud {
     return text.startsWith('tag:') ? int.tryParse(text.substring(4)) : null;
   }
 
-  CloudRecord _handOut(_Stored stored) {
+  /// Whether a refused save brings the server's copy without its body, as
+  /// CloudKit's error does when the native side cannot fetch it whole.
+  bool conflictsWithoutBody = false;
+
+  CloudRecord _handOut(_Stored stored, {bool body = true}) {
     String? path;
-    if (stored.body != null) {
+    if (body && stored.body != null) {
       path = p.join(dir.path, 'in_${_files++}.json.gz');
       File(path).writeAsBytesSync(stored.body!);
     }
@@ -75,7 +79,7 @@ class FakeCloud {
   (Uint8List?, CloudRecord?) _save(CloudRecord record) {
     final current = _records[record.name];
     if (current != null && _tagOf(record.systemFields) != current.tag) {
-      return (null, _handOut(current));
+      return (null, _handOut(current, body: !conflictsWithoutBody));
     }
     final body = record.assetPath == null
         ? current?.body
@@ -102,7 +106,7 @@ class FakeCloud {
 }
 
 /// One device's engine over a [FakeCloud].
-class FakeCloudSyncBridge implements CloudSyncBridge {
+class FakeCloudSyncBridge implements SyncBackend {
   /// Creates a device's engine.
   FakeCloudSyncBridge(this.cloud, {this.supported = true});
 
@@ -115,7 +119,13 @@ class FakeCloudSyncBridge implements CloudSyncBridge {
   CloudSyncHandler? _handler;
   final Set<String> pendingSaves = <String>{};
   final Set<String> pendingDeletes = <String>{};
-  int _cursor = 0;
+
+  /// Where the engine's own fetches ([fetch], a push's) and the manual ones
+  /// ([fetchNow], with the native side's own change token) stand in the
+  /// change log: apart, so each fetches what the other already handed
+  /// over, as on the phone.
+  int _engineCursor = 0;
+  int _manualCursor = 0;
 
   /// Whether [start] was called and [stop] not since.
   bool started = false;
@@ -157,8 +167,19 @@ class FakeCloudSyncBridge implements CloudSyncBridge {
     }
   }
 
+  /// How often [fetchNow] was asked for.
+  int fetchRequests = 0;
+
+  /// The manual fetch: asks the server for what changed since its own
+  /// token, whether a push came or not (the engine's fetch, asked without
+  /// one, asks nothing).
   @override
-  Future<void> fetchNow() => fetch();
+  Future<void> fetchNow() async {
+    fetchRequests++;
+    final from = _manualCursor;
+    _manualCursor = cloud._log.length;
+    await _fetchFrom(from);
+  }
 
   @override
   Stream<CloudSyncStatus> get status => _status.stream;
@@ -183,38 +204,67 @@ class FakeCloudSyncBridge implements CloudSyncBridge {
 
   /// Sends everything pending, as one round, until nothing is left.
   Future<void> send() async {
-    final handler = _handler!;
+    var rounds = 0;
     while (pendingSaves.isNotEmpty || pendingDeletes.isNotEmpty) {
-      final names = pendingSaves.toList();
-      pendingSaves.clear();
-      final deletes = pendingDeletes.toList();
-      pendingDeletes.clear();
-      final records = await handler.recordsToSave(names);
-      final saved = <String, Uint8List>{};
-      final failed = <FailedSave>[];
-      for (final record in records) {
-        final (systemFields, server) = cloud._save(record);
-        if (systemFields != null) {
-          saved[record.name] = systemFields;
-        } else {
-          failed.add(
-            FailedSave(record.name, SaveFailure.conflict, serverRecord: server),
-          );
-        }
-      }
-      for (final name in deletes) {
-        cloud.deleteElsewhere(name);
-      }
-      await handler.sent(
-        SentChanges(saved: saved, failedSaves: failed, deleted: deletes),
-      );
+      if (++rounds > 100) throw StateError('the sends never settle');
+      await complete(await handOut());
     }
   }
 
-  /// Fetches what changed since this device last fetched.
+  /// The first half of a send, as CKSyncEngine does it: the pending
+  /// changes are asked of the library and stay pending (an enqueue of the
+  /// same name meanwhile adds nothing) until [complete] is through. What
+  /// the library leaves out is dropped, as `nextRecordZoneChangeBatch`
+  /// drops it.
+  Future<InFlight> handOut() async {
+    final names = pendingSaves.toList();
+    final deletes = pendingDeletes.toList();
+    final records = names.isEmpty
+        ? const <CloudRecord>[]
+        : await _handler!.recordsToSave(names);
+    final provided = {for (final r in records) r.name};
+    pendingSaves.removeWhere((n) => names.contains(n) && !provided.contains(n));
+    return InFlight._(records, deletes);
+  }
+
+  /// The second half: the server takes the batch, the changes done with
+  /// leave the engine's pending state (a refused save too, as CKSyncEngine
+  /// leaves it to the delegate to add it again), and the library hears of
+  /// it.
+  Future<void> complete(InFlight batch) async {
+    final saved = <String, Uint8List>{};
+    final failed = <FailedSave>[];
+    for (final record in batch.records) {
+      pendingSaves.remove(record.name);
+      final (systemFields, server) = cloud._save(record);
+      if (systemFields != null) {
+        saved[record.name] = systemFields;
+      } else {
+        failed.add(
+          FailedSave(record.name, SaveFailure.conflict, serverRecord: server),
+        );
+      }
+    }
+    for (final name in batch.deletes) {
+      pendingDeletes.remove(name);
+      cloud.deleteElsewhere(name);
+    }
+    await _handler!.sent(
+      SentChanges(saved: saved, failedSaves: failed, deleted: batch.deletes),
+    );
+  }
+
+  /// The engine's fetch, as a push sets off: what changed since the
+  /// engine last fetched.
   Future<void> fetch() async {
-    final log = cloud._log.sublist(_cursor);
-    _cursor = cloud._log.length;
+    final from = _engineCursor;
+    _engineCursor = cloud._log.length;
+    await _fetchFrom(from);
+  }
+
+  /// Hands the library what changed since [cursor].
+  Future<void> _fetchFrom(int cursor) async {
+    final log = cloud._log.sublist(cursor);
     if (log.isEmpty) return;
     final touched = <String>{for (final (name, _) in log) name};
     final modifications = <CloudRecord>[];
@@ -241,6 +291,17 @@ class FakeCloudSyncBridge implements CloudSyncBridge {
     settings.addAll(values);
     await _handler!.settingsChanged(values);
   }
+}
+
+/// A batch handed out and not yet saved: [FakeCloudSyncBridge.handOut].
+class InFlight {
+  InFlight._(this.records, this.deletes);
+
+  /// The records the library handed out.
+  final List<CloudRecord> records;
+
+  /// The names to delete.
+  final List<String> deletes;
 }
 
 /// [CloudSyncHandler] around a library sync and nothing else, for tests

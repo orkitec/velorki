@@ -62,12 +62,23 @@ class RoutesDao extends DatabaseAccessor<VelorkiDatabase>
   /// Returns how many went.
   Future<int> deleteStravaRoutes() => (delete(routes)..where(_fromStrava)).go();
 
+  /// How many routes the rider keeps in the library, as a stream that
+  /// follows the table: the planned, the generated and the imported ones,
+  /// not the routes read from Strava, which are a cache of the account.
+  Stream<int> watchKeptRouteCount() {
+    final count = routes.id.count();
+    final query = selectOnly(routes)
+      ..addColumns([count])
+      ..where(routes.source.equalsValue(RouteSource.strava).not());
+    return query.map((row) => row.read(count) ?? 0).watchSingle();
+  }
+
   static Expression<bool> _fromStrava($RoutesTable t) =>
       t.source.equalsValue(RouteSource.strava) |
       t.externalIdsJson.like('%"strava_route_id"%');
 
   SimpleSelectStatement<$RoutesTable, RouteRow> _ordered() =>
-      select(routes)..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
+      select(routes)..orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
 }
 
 /// What the Strava route check needs of one row.

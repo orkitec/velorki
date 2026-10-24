@@ -1,13 +1,14 @@
 ---
 title: Privacy policy
-description: "What Velorki does with your data: no account, routes and rides stay on your phone, and a list of exactly what leaves the device and when."
+description: "What Velorki does with your data: no account, routes and rides stay on your phone or in your browser unless you sync them to your own iCloud or Google Drive, and a list of exactly what leaves the device and when."
 draft: false
 ---
 
-Effective date: 16 October 2026.
+Effective date: 23 October 2026.
 
-Velorki is a bike route planning and ride recording app made by Orkitec. This
-page explains what happens to your data.
+Velorki is a bike route planning and ride recording app made by Orkitec, for
+iPhone, iPad and Android, and a web planner at app.velorki.com. This page
+explains what happens to your data.
 
 **Who is responsible.** The controller for everything described here is Steffen
 Roemer, trading as "Orkitec", Straße der Pariser Kommune 27, 10243 Berlin,
@@ -18,15 +19,17 @@ provider details are on the [imprint](./imprint) page.
 ## The short version
 
 - There is **no account**. You do not sign up, and we do not know who you are.
-- Your routes, your rides and your settings stay **on your phone**. On an
-  iPhone or iPad they also sync between your own devices through your iCloud,
-  not through us.
+- Your routes, your rides and your settings stay **on your phone**, or in your
+  browser for the web planner. If you turn on sync, they go to your own iCloud
+  or your own Google Drive, never to us.
 - Some things need a server: map tiles, routing outside the areas you have
   downloaded, search when you ask for it, and, if you use them, the AI
   assistant, the Strava and RideWithGPS connections (free), and share links. Each is
   described below.
 - This **website** has no analytics, no advertising and no tracking, so the
   short notice at the bottom of it asks nothing of you.
+- The **web planner** at app.velorki.com works the same way: no account, no
+  analytics, your library kept in your browser.
 - We do not sell your data, and we do not use it for advertising or profiling.
 
 ## What stays on your device
@@ -34,16 +37,18 @@ provider details are on the [imprint](./imprint) page.
 Planned routes, recorded rides, their GPS tracks, your settings, downloaded
 offline map regions, downloaded routing tiles and the place-search indexes that
 come with them are stored in the app's own storage on your phone. They are not
-uploaded anywhere unless you ask for it; the one exception is iCloud sync on
-an iPhone or iPad, described below, which goes to your own iCloud and not to us.
+uploaded anywhere unless you ask for it; the one exception is cloud sync,
+described below, which goes to your own iCloud or Google Drive and not to us.
+What the web planner keeps in your browser is described under The web planner.
 
 Heart rate, cadence and power from an Apple Watch, a Bluetooth sensor or your
 health app are stored with the ride, on the phone, like the track itself. With
 the Health switch on in Settings, the app reads heart rate from Apple Health or
 Health Connect and writes your finished rides there as cycling workouts; that
 exchange happens on your phone and none of it reaches us. Sensor values travel
-with a ride only where the ride does: in a GPX, FIT or TCX file you export, or in an
-upload to Strava or RideWithGPS that you start.
+with a ride only where the ride does: in a GPX, FIT or TCX file you export, in an
+upload to Strava or RideWithGPS that you start, or to your own cloud while sync
+is on.
 
 If you connect Strava or RideWithGPS, the access tokens for those accounts are
 stored in the phone's secure storage (Keychain on iOS, Keystore on Android), in
@@ -52,8 +57,9 @@ is kept on the phone; see the Strava and RideWithGPS section below.
 
 On Android, the app is excluded from Google's cloud backup and from
 device-to-device transfer, so your rides and your access tokens are not copied
-off the phone by the system either. Moving to a new phone means exporting what
-you want to keep as GPX, FIT or TCX files.
+off the phone by the system either. To move to a new phone, turn on sync with
+Google (described below) or export what you want to keep as GPX, FIT or TCX
+files.
 
 ## What leaves your device, and when
 
@@ -64,6 +70,12 @@ downloaded, and nothing is sent anywhere. For an area you have no tiles for,
 the app sends the coordinates of your waypoints to a routing server (BRouter,
 run by us) which sends back the route. It needs the waypoints to compute the
 route; it does not receive your identity, your other routes or your rides.
+
+Routing tiles and the search indexes beside them are downloaded from our tile
+mirror on GitHub (`raw.githubusercontent.com` and `github.com` release
+downloads). GitHub learns which 5° tiles you download and your IP address, as
+any web request does. The web planner fetches them through app.velorki.com
+instead, so GitHub sees Cloudflare and not you.
 
 ### Search
 
@@ -241,32 +253,70 @@ A shared item is kept for **one year** and then deleted automatically. To have
 it removed earlier, send the link to the contact address below and we delete
 it. Viewing a shared link requires no account.
 
-### iCloud sync (iPhone and iPad)
+### Cloud sync (iCloud or Google Drive)
 
-On an iPhone or iPad with iOS 17 or later, your saved routes and your recorded
-rides, with each ride's track, notes and statistics, sync between your own
-Apple devices that are signed in to the same Apple Account. A few settings sync
-as well: theme, accent colour, map look, bar style, column side, units, and the
-turn and voice announcement settings. It is on by default, and the **Sync with
-iCloud** switch in Settings turns it off on that device.
+Each device syncs with at most one cloud, chosen under **Settings → Sync
+with**: iCloud (iPhone and iPad with iOS 17 or later, and the web planner),
+Google (the iPhone, the iPad, Android and the web planner) or off. On an
+iPhone or iPad iCloud is on by default; on Android and in the browser sync
+is off until you choose a cloud.
 
-The data goes through Apple's CloudKit and is stored in your own iCloud private
-database. Apple stores and transfers it, and it counts against your iCloud
-storage. Orkitec runs no server for it and cannot read, access or delete it;
-there is no Velorki account. Apple encrypts the data in transit and on its
-servers; with Advanced Data Protection turned on, it is end-to-end encrypted, as
-described in [Apple's iCloud data security overview](https://support.apple.com/en-us/102651).
+**What syncs.** Your saved routes, and your recorded rides with each ride's
+track, notes, statistics, laps and the heart rate, cadence, power and
+temperature recorded with it. A few settings sync as well: theme, accent
+colour, map look, the rain radar's look, bar style, column side, units, and
+the turn, voice and rerouting settings. In the browser with iCloud, settings
+stay in the browser. Each app also writes one small Plus record into the same
+cloud, described under Subscriptions.
 
-Some things never sync. Routes read from Strava, and routes edited from them,
-and the Strava links of rides you uploaded to Strava stay on the one phone, as
-described under Strava above. The links of uploads to Ride with GPS do not sync
-either; a route you import from Ride with GPS syncs as your own route, without
-its Ride with GPS id. Downloaded map regions and routing tiles, permissions,
-paired sensors, connected accounts and subscription state are not part of it.
-The Android app does not sync.
+**Some things never sync.** Routes read from Strava, and routes edited from
+them, and the Strava links of rides you uploaded to Strava stay on the one
+phone, as described under Strava above. The links of uploads to Ride with GPS
+do not sync either; a route you import from Ride with GPS syncs as your own
+route, without its Ride with GPS id. Downloaded map regions and routing tiles,
+permissions, paired sensors, the voice, the language, connected accounts and
+the subscription itself are not part of it.
 
-Turning the switch off stops syncing on that device. What is already in iCloud
-stays there until you delete it, in iCloud settings on the device.
+**iCloud.** The data goes through Apple's CloudKit into your own iCloud
+private database. Apple stores and transfers it, and it counts against your
+iCloud storage. Apple encrypts it in transit and on its servers; with
+Advanced Data Protection turned on, it is end-to-end encrypted, as described
+in [Apple's iCloud data security overview](https://support.apple.com/en-us/102651).
+In the browser you sign in with Apple's own button, in a window of Apple's;
+Apple's CloudKit JS script is loaded from Apple only once you choose iCloud,
+and keeps your Apple sign-in in a cookie on the planner's site until you sign
+out (clearing the site's data in the browser removes it too).
+
+Apple's upload server does not accept uploads sent from our site directly. So
+when the web planner saves a route or a ride to iCloud, the record's file (the
+route's or ride's track and details) is sent to app.velorki.com/cloudkit/upload,
+a small Cloudflare function that passes it unchanged to the one-time upload
+address Apple gave for it and hands Apple's receipt back. It stores nothing, and
+we keep no logs of it. The record's other fields go to Apple directly.
+
+**Google Drive.** You sign in with your Google account, and Velorki asks for
+one permission only: its own hidden app folder in your Drive
+(`drive.appdata`). It cannot see or change any other file in your Drive, and
+the folder does not show up among your files. Google stores the data and it
+counts against your Google storage; Google encrypts it in transit and on its
+servers, not end to end. The phone keeps your Google account's id and email
+address to show who is signed in. In the browser you sign in with Google's own
+button; Google's sign-in script is loaded only once you choose Google, and its
+access token lives only as long as the page and at most an hour.
+
+**What Orkitec sees.** Nothing. Orkitec runs no server for sync and cannot
+read, access or delete what is in your iCloud or your Drive; there is no
+Velorki account. Apple and Google act under your own agreement with them.
+
+**Deleting, turning it off.** While sync is on, deleting a route or a ride on
+one device deletes it in your cloud and on your other devices too. Choosing
+**Off**, signing out, or switching to the other cloud stops syncing on that
+device and deletes nothing; switching sends your library to the new cloud and
+leaves the old copy where it was. What is already in iCloud stays until you
+delete it in iCloud settings on an Apple device. What is in Google Drive stays
+until you delete it: in Google Drive on the web, Settings → Manage apps →
+Velorki → Options → Delete hidden app data; removing Velorki's access at
+myaccount.google.com/permissions stops it reaching the folder.
 
 ### Subscriptions
 
@@ -278,6 +328,39 @@ store. Our relay sends that anonymous id to RevenueCat to check whether your
 subscription is active, and to nothing else.
 
 We never see your payment details; those stay with Apple or Google.
+
+**Plus in the browser.** Plus cannot be bought in the web planner. To use Plus
+bought in a phone app there, each app that syncs writes one record of its own
+into the cloud it syncs with: its RevenueCat app user id, whether it is an
+iPhone or Android app, whether its store last said Plus is active, and when it
+last wrote, under a random id for the device. It writes it again every six
+hours and when Plus starts or ends. The web planner, signed in to the same
+iCloud or Google account, reads these records, keeps them in the browser, and
+sends the freshest one's id to our relay with each Plus request, exactly as the
+app would. The relay checks that id with RevenueCat as it does for the apps;
+the browser does not contact RevenueCat, makes no id of its own for Plus and
+never writes a Plus record.
+
+The record goes only into the account sync first ran with, or one you then
+choose under Settings → Sync with: after a sign-out, another account or sync
+switched off, the app stops writing it and never copies it into a second
+account on its own. It is not deleted from the cloud; the web planner ignores
+a record not written for 30 days, and forgets the records it kept when you
+sign out or change account or cloud.
+
+### Update notices and ratings
+
+A few seconds after launch, and again after a day in the background, the app
+asks its store whether a newer version exists. On iOS it asks Apple's public
+App Store lookup (`itunes.apple.com`) with Velorki's bundle id and your
+phone's country and language codes; on Android it asks Google Play's in-app
+update service on the phone, which answers only for an install from Play. Each
+involves your IP address, as any web request does, and nothing else of yours.
+
+From time to time the app asks the system to show its own rating sheet. Apple
+or Google decide whether it appears and how often; a rating or review you give
+there goes to them under your store account, and the app is not told whether
+you rated or what. The web planner does neither.
 
 ### Crash reporting and analytics
 
@@ -354,24 +437,57 @@ to refuse, because nothing is stored on your device until you ask for it. The
   chat there is no third-party script, no CDN for our own assets and no font
   service.
 
+## The web planner (app.velorki.com)
+
+app.velorki.com is the same app running in your browser: it plans, searches
+and keeps a library, but does not record or navigate. There is no account, no
+analytics and no advertising. On a phone or tablet the address shows the app
+download page and loads nothing else.
+
+- **Stored in your browser.** Your routes, rides and settings are kept in a
+  database in the browser's own storage (IndexedDB, or the Origin Private File
+  System in some browsers), the routing tiles and search indexes you
+  downloaded in its Cache Storage, and settings, the cloud account you signed
+  in to and an anonymous id like the app's in its local storage. They stay in
+  that browser, on that computer, until you delete them in the planner or clear
+  the site's data in the browser. This storage is what the planner is for, so
+  it needs no consent under section 25 (2) TTDSG.
+- **What it contacts.** The same services as the app, under the same rules as
+  above: map tiles from OpenFreeMap (and CyclOSM if you turn it on), Photon
+  for an online search, the public weather services for the weather layers,
+  and our relay for the AI assistant, Plus weather and share links. It never
+  uses the routing server: routes are computed in the browser. Routing tiles
+  come through app.velorki.com. When a text needs a script the app's own fonts
+  lack, the browser loads a fallback font from Google Fonts
+  (`fonts.gstatic.com`), which sees your IP address. Cloud sync contacts Apple
+  or Google, only once you choose one.
+- **Cloudflare.** The planner is served by Cloudflare Pages. Two small
+  functions there answer `/tiles/` (fetching the tiles from our GitHub mirror)
+  and `/cloudkit/upload` (see Cloud sync). Like any server they see your IP
+  address and the request; they store nothing, and we keep no logs of them.
+
 ## Retention and deletion
 
 | Data | Kept | How to delete it |
 |---|---|---|
-| Routes, rides, settings, offline data | on your phone, until you delete them | delete them in the app, or uninstall the app |
+| Routes, rides, settings, offline data | on your phone, until you delete them | delete them in the app, or uninstall the app (with sync on, deleting a route or ride deletes it in your cloud too) |
 | Strava / RideWithGPS tokens | on your phone, encrypted so that only our relay can open them, until you disconnect; never stored on our side | disconnect in the app, or uninstall |
 | Strava data: your name, activity links | on your phone, until you disconnect; never stored on our side | disconnect Strava in the app, or uninstall; questions to ride@velorki.com |
 | Routes imported from Strava, and routes edited from them | on your phone, only while the route still exists on Strava: checked again every 48 hours, removed if it was deleted there or could not be checked for 7 days; never stored on our side | delete it in the app, disconnect Strava, or uninstall |
 | The cached list of your Strava routes | on your phone, at most 48 hours | disconnect Strava, or uninstall |
 | Rate-limit counters (anonymous install id, IP address) | on our server, for the counting window, at most one day | not applicable |
 | Share links | one year, then deleted automatically | delete them from the app |
-| Routes, rides and settings synced through iCloud (iPhone and iPad) | in your own iCloud, until you delete them there; never stored on our side | delete them in iCloud settings on the device |
+| Routes, rides and settings synced through iCloud | in your own iCloud, until you delete them there; never stored on our side | delete them in iCloud settings on an Apple device |
+| Routes, rides and settings synced through Google Drive | in your Drive's hidden Velorki folder, until you delete it; never stored on our side | in Google Drive on the web: Settings → Manage apps → Velorki → Options → Delete hidden app data |
+| Plus records (RevenueCat id, platform, Plus active, last written) | in the cloud you sync with, until you delete the app's data there; ignored by the web planner after 30 days | as the synced routes above |
+| The web planner's library, tiles and settings | in your browser, until you delete them | delete them in the planner, or clear the site's data in the browser |
 | AI prompts | not stored by us beyond what the logs above contain | not applicable |
 | RevenueCat data | per RevenueCat's own policy | contact us and we will pass the request on |
 | Support chat conversations | in our Discord channel until we delete them | ask at ride@velorki.com |
 
 Uninstalling the app removes everything the app stored on the device. What
-iCloud sync has put in your iCloud stays there; see iCloud sync above. It does
+sync has put in your iCloud or your Google Drive stays there; see Cloud sync
+above. It does
 not remove share links you created (they expire after one year, or on
 request), and it does not remove anything you uploaded to Strava or
 RideWithGPS.
@@ -388,7 +504,9 @@ For readers in the EU and the UK, the legal bases under Article 6 (1) GDPR are:
 | Velorki Plus: the finer weather along the route and the rain radar | (b) performance of the contract |
 | Strava and RideWithGPS: connecting an account, every transfer you trigger, and the Strava data kept on your phone | (b) performance of the service you requested, plus (a) consent, given by connecting the account and withdrawn by disconnecting it |
 | Share links you create | (b) performance of the contract |
-| iCloud sync (iPhone and iPad), while the switch is on | (b) performance of the service you requested; Apple acts under your own iCloud agreement with Apple |
+| Cloud sync with iCloud or Google Drive, while it is on, including the Plus records and the web planner's upload through `/cloudkit/upload` | (b) performance of the service you requested; Apple and Google act under your own agreement with them |
+| The web planner: serving it, storing your library in your browser, fetching tiles through app.velorki.com | (b) performance of the service you requested, and (f) for the IP address and request strictly needed to answer |
+| Update notices | (f) legitimate interest in telling you about a newer version; only the bundle id, country and language are sent |
 | The AI assistant | (a) consent, asked for separately in the app and revocable in the settings |
 | Answering you in the support chat | (b) where it concerns a subscription, otherwise (f) legitimate interest in answering the person who wrote to us |
 | Keeping tax-relevant records of a subscription | (c) legal obligation — and Apple and Google, not we, hold the billing data |
@@ -406,7 +524,9 @@ others:
 - **Hetzner Cloud GmbH**, Gunzenhausen, Germany — the server that runs the
   relay, the share links and this website. Data stays in Germany.
 - **Cloudflare, Inc.**, San Francisco, USA — DNS, CDN and attack protection for
-  velorki.com and api.velorki.com. IP addresses and request metadata.
+  velorki.com and api.velorki.com, and hosting of the web planner at
+  app.velorki.com with its `/tiles/` and `/cloudkit/upload` functions. IP
+  addresses and request metadata, and the iCloud upload it passes on unread.
 - **RevenueCat, Inc.**, San Francisco, USA — the subscription check. The
   anonymous app user id and the store receipt, no name and no email address.
 - **Orkify**, run by the same operator on the Hetzner infrastructure above —
@@ -437,11 +557,21 @@ own processing**
   — the part of the map or the box around your route you asked for, a time, and
   your IP address, only while a weather layer or the route's free forecast is
   on.
-- **Apple Inc.** (iCloud) — the routes, rides and settings of iCloud sync, in
-  your own iCloud, and only while the switch is on. We do not receive them;
-  Apple acts under your own iCloud agreement with Apple.
-- **Apple Inc.** and **Google Ireland Ltd** — the sale of Velorki Plus. They
-  are the sellers; we never see your payment details.
+- **Apple Inc.** (iCloud) — the routes, rides, settings and Plus records of
+  iCloud sync, in your own iCloud, and only while you sync with iCloud. We do
+  not receive them; Apple acts under your own iCloud agreement with Apple.
+- **Google Ireland Ltd**, Dublin (Google LLC, USA, outside the EEA and
+  Switzerland) — the routes, rides, settings and Plus records of Google sync,
+  in your own Drive's hidden app folder, and only while you sync with Google.
+  We do not receive them; Google acts under your own Google agreement.
+  Google also serves the web planner's fallback fonts (`fonts.gstatic.com`)
+  and Google Play's update check on Android.
+- **GitHub, Inc.**, San Francisco, USA — our tile mirror, from which the app
+  downloads routing tiles and search indexes; the tile names and your IP
+  address.
+- **Apple Inc.** and **Google Ireland Ltd** — the sale of Velorki Plus, the
+  update check and the rating sheet. They are the sellers; we never see your
+  payment details.
 - **Strava, Inc.** and **Ride with GPS** — only after you connect the account
   and only for a transfer you trigger. What they do with it is governed by
   their own policies.
@@ -451,14 +581,14 @@ We will also hand data to a court or an authority where the law requires it.
 ## Transfers outside the EU
 
 Cloudflare, RevenueCat, OpenRouter and the model provider behind it, Discord,
-Klipy, Strava, Ride with GPS, Apple and Google are in the United States or
+Klipy, Strava, Ride with GPS, GitHub, Apple and Google are in the United States or
 transfer data there. Those transfers rest on the European
 Commission's Standard Contractual Clauses, or on the provider's certification
 under the EU–US Data Privacy Framework where it has one, together with the
 provider's own technical safeguards. Hetzner, komoot and the map tile services
 we rely on are in the EU, OpenStreetMap in the UK. Everything the app stores
-for you stays on your
-phone and is transferred nowhere at all.
+for you stays on your phone, or in your browser, and is transferred nowhere
+unless you turn on sync, which goes to your own iCloud or Google Drive.
 
 ## Security
 
@@ -480,8 +610,9 @@ GDPR), rectification (16), erasure (17), restriction of processing (18), data
 portability (20) and objection to processing based on a legitimate interest
 (21), and where we rely on your consent — the assistant — you may withdraw it
 at any time without affecting what was lawful before (Article 7 (3)). Most of
-it you can exercise yourself, because the data is on your phone and can be
-exported as GPX, FIT or TCX files whenever you like.
+it you can exercise yourself, because the data is on your phone, in your
+browser or in your own cloud, and can be exported as GPX, FIT or TCX files
+whenever you like.
 
 For anything held on our side (share links, log entries, the RevenueCat record)
 write to **ride@velorki.com**. We answer within 30 days. We will need enough
@@ -502,9 +633,9 @@ them. It has no social features, no user-to-user messaging and no advertising.
 
 ## Changes
 
-If this policy changes in a way that affects what leaves your device, the app
-will tell you the next time you open it, and the date at the top will change.
-Old versions remain in the repository's git history.
+Changes to this policy are published on this page, with the date at the top
+changed; significant ones are also announced on the website. Old versions
+remain in the repository's git history.
 
 ## Contact
 

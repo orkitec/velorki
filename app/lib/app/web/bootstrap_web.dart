@@ -9,7 +9,8 @@ import '../../features/map/data/map_library_source.dart';
 import '../../features/map/presentation/map_view.dart';
 import '../../features/planner/presentation/planner_map_host.dart';
 import '../../features/routing_tiles/application/routing_tiles_startup.dart';
-import '../../features/subscription/application/subscription_controller.dart';
+import '../../features/subscription/application/web_plus.dart';
+import '../../features/sync/application/cloud_sync_controller.dart';
 import '../../features/subscription/data/subscription_service.dart';
 import '../app.dart';
 import '../app_config.dart';
@@ -54,10 +55,15 @@ Future<void> bootstrap() async {
     ],
   );
 
-  startSubscriptions(container);
+  // Plus bought in the apps, through the cloud this browser signs in to.
+  startWebPlus(container);
   WebGlassLayer.install(container);
   HeaderBridge.install(container);
   prepareOnDeviceRouting(container);
+  // Sync with the cloud the rider chose, from the start as in the apps,
+  // not only once Settings or the Library is opened: a provider nobody
+  // listens to is never built.
+  container.listen(cloudSyncControllerProvider, (_, _) {});
 
   runApp(
     UncontrolledProviderScope(container: container, child: const VelorkiApp()),

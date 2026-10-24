@@ -326,12 +326,15 @@ class PlaceSearch extends _$PlaceSearch {
   Future<void> _searchOnline(String text, {String? lang, LatLng? bias}) async {
     final client = ref.read(photonClientProvider);
     if (client == null) {
-      state = AsyncError<PlaceSearchState>(
-        const SearchException(
-          'no search server configured',
-          failure: SearchFailure.unconfigured,
+      // No online search in this build: the downloaded areas are all there
+      // is, and none covers this place. The list says it is not downloaded
+      // and offers the download.
+      state = AsyncData<PlaceSearchState>(
+        PlaceSearchState(
+          query: text,
+          source: SearchSource.local,
+          offlineAvailableHere: _covers(bias),
         ),
-        StackTrace.current,
       );
       return;
     }

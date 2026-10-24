@@ -5,9 +5,11 @@ import { useTranslations } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { CheckIcon } from '@/components/Icons';
 import { PhoneFrame } from '@/components/PhoneFrame';
+import { PlusPrices } from '@/components/PlusPrices';
 import { routing } from '@/i18n/routing';
 import { GITHUB_URL } from '@/site/config';
 import { localePath } from '@/site/paths';
+import { PRICES, formatAsOf, priceView } from '@/site/prices';
 import { pageMetadata } from '@/site/seo';
 
 const PLUS_FEATURES = ['assistant', 'sharing', 'weather', 'radar'] as const;
@@ -77,6 +79,17 @@ function PlusContent({ locale }: { locale: string }) {
           {t('priceTitle')}
         </h2>
         <p className="mt-3 text-lg text-muted">{t('priceBody')}</p>
+        <PlusPrices
+          view={priceView(PRICES, locale)}
+          strings={{
+            country: t('prices.country'),
+            monthly: t('prices.monthly'),
+            yearly: t('prices.yearly'),
+            asOf: t('prices.asOf', { date: formatAsOf(PRICES.fetchedAt, locale) }),
+            tax: t('prices.tax'),
+            missing: t('prices.missing'),
+          }}
+        />
 
         <h2 className="mt-12 text-3xl">{t('restoreTitle')}</h2>
         <p className="mt-3 text-lg text-muted">{t('restoreBody')}</p>

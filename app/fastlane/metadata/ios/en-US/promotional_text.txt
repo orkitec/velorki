@@ -1,1 +1,1 @@
-New: rain radar, wind and clouds on the map, the weather along your route, and routes coloured by gradient, surface, wind or rain. Spoken turns for imported routes too.
+No account, and your routes and rides stay with you. New: sync them through your own iCloud or Google Drive, and plan in the browser at app.velorki.com.

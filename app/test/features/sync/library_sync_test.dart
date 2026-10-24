@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:drift/drift.dart' show Value, driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/db/database.dart';
+import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/sync/application/library_sync.dart';
 import 'package:velorki/features/sync/data/record_codec.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/fake_cloud.dart';
 import 'support/rows.dart';
@@ -13,12 +16,18 @@ import 'support/rows.dart';
 class _Device {
   _Device(FakeCloud cloud, Directory dir, String name)
     : db = VelorkiDatabase.memory(),
-      bridge = FakeCloudSyncBridge(cloud) {
-    sync = LibrarySync(
-      db: db,
-      bridge: bridge,
-      codec: RecordCodec(Directory('${dir.path}/$name')),
-    );
+      bridge = FakeCloudSyncBridge(cloud),
+      _outbox = Directory('${dir.path}/$name') {
+    _attach();
+  }
+
+  final VelorkiDatabase db;
+  final FakeCloudSyncBridge bridge;
+  final Directory _outbox;
+  late LibrarySync sync;
+
+  void _attach() {
+    sync = LibrarySync(db: db, backend: bridge, codec: RecordCodec(_outbox));
     bridge.setHandler(
       LibraryHandler(
         toSave: sync.recordsToSave,
@@ -28,9 +37,22 @@ class _Device {
     );
   }
 
-  final VelorkiDatabase db;
-  final FakeCloudSyncBridge bridge;
-  late final LibrarySync sync;
+  /// The app killed and opened again: the database and the engine's state
+  /// stay, the library sync is a new one that knows nothing of what the old
+  /// one handed out, and it hands over what waits, as the controller's
+  /// start does.
+  Future<void> restart() async {
+    await sync.stop();
+    _attach();
+    await sync.push();
+  }
+
+  /// Renames the route [id] as the library screen does.
+  Future<void> renameRoute(String id, String name) =>
+      RouteRepository(db.routesDao).rename(id, name);
+
+  Future<String?> routeName(String id) async =>
+      (await db.routesDao.routeById(id))?.name;
 
   /// Hands the waiting changes over, sends them and fetches.
   Future<void> syncNow() async {
@@ -74,6 +96,33 @@ void main() {
     dir.deleteSync(recursive: true);
   });
 
+  test('a change whose push was missed comes with the manual fetch, and '
+      'the engine fetching it again later writes nothing', () async {
+    await phone.db.routesDao.upsertRoute(fullRoute('r1'));
+    await phone.db.routesDao.upsertRoute(fullRoute('r2'));
+    await phone.syncNow();
+    await pad.syncNow();
+    expect(await pad.routeNames(), hasLength(2));
+
+    await phone.renameRoute('r1', 'Renamed');
+    await phone.db.routesDao.deleteRoute('r2');
+    await phone.syncNow();
+
+    // No push reached the pad: only the manual fetch asks the server.
+    await pad.bridge.fetchNow();
+    expect(await pad.routeName('r1'), 'Renamed');
+    expect(await pad.db.routesDao.routeById('r2'), isNull);
+
+    // The engine gets to the same changes later, from its own token.
+    await pad.bridge.fetch();
+    expect(await pad.routeNames(), ['Renamed']);
+    expect(await pad.db.syncDao.dirtyRecords(), isEmpty);
+    expect(await pad.db.syncDao.record('route', 'r2'), isNull);
+    await pad.sync.push();
+    expect(pad.bridge.pendingSaves, isEmpty);
+    expect(pad.bridge.pendingDeletes, isEmpty);
+  });
+
   test('the library there was is sent once, then nothing waits', () async {
     await phone.db.routesDao.upsertRoute(fullRoute('r1'));
     await phone.db.routesDao.upsertRoute(fullRoute('r2'));
@@ -103,11 +152,19 @@ void main() {
 
     final route = await pad.db.routesDao.routeById('r1');
     final ride = await pad.db.ridesDao.rideById('ride1');
+    // Tracks cross the wire quantized.
+    Uint8List quantized(Uint8List packed) =>
+        CompactTrack.decode(CompactTrack.encode(packed));
+    final sentRoute = (await phone.db.routesDao.routeById('r1'))!;
     expect(
       route!.copyWith(externalIdsJson: const Value(null)),
-      (await phone.db.routesDao.routeById('r1'))!,
+      sentRoute.copyWith(
+        geometry: quantized(sentRoute.geometry),
+        originalGeometry: Value(quantized(sentRoute.originalGeometry!)),
+      ),
     );
-    expect(ride, (await phone.db.ridesDao.rideById('ride1'))!);
+    final sentRide = (await phone.db.ridesDao.rideById('ride1'))!;
+    expect(ride, sentRide.copyWith(geometry: quantized(sentRide.geometry)));
     expect(ride!.routeId, 'r1');
     expect(
       await pad.db.syncDao.dirtyRecords(),
@@ -194,6 +251,29 @@ void main() {
       expect(await phone.rideNames(), ['Phone']);
       expect(await pad.rideNames(), ['Phone']);
     });
+  });
+
+  test('a refused save whose server copy comes without its body is not '
+      'sent over the same stale tag again, and the fetch settles it', () async {
+    await phone.db.ridesDao.upsertRide(fullRide('ride1'));
+    await phone.syncNow();
+    await pad.syncNow();
+    await phone.db.ridesDao.renameRide('ride1', 'Phone');
+    await pad.db.ridesDao.renameRide('ride1', 'Pad');
+    await phone.setChangedAt('ride', 'ride1', 3000);
+    await pad.setChangedAt('ride', 'ride1', 2000);
+    await phone.syncNow();
+    cloud.conflictsWithoutBody = true;
+
+    // The pad's older rename is refused; it cannot read the server's copy
+    // it was refused with, so it fetches instead of sending again.
+    await pad.sync.push();
+    await pad.bridge.send();
+
+    expect(pad.bridge.fetchRequests, 1);
+    expect(await pad.rideNames(), ['Phone']);
+    expect(await pad.db.syncDao.dirtyRecords(), isEmpty);
+    expect(cloud.fields('ride_ride1')!['name'], 'Phone');
   });
 
   group('delete against edit', () {
@@ -360,4 +440,185 @@ void main() {
     await pad.syncNow();
     expect((await pad.db.ridesDao.allRides()).length, 120);
   });
+
+  group('one route renamed back and forth between two devices', () {
+    // The pad made the route, the phone renames it: what a rider did with
+    // an iPad and an iPhone.
+    setUp(() async {
+      await pad.db.routesDao.upsertRoute(fullRoute('r1'));
+      await pad.syncNow();
+      await phone.syncNow();
+      expect(await phone.routeName('r1'), 'Route r1');
+    });
+
+    Future<void> tick() =>
+        Future<void>.delayed(const Duration(milliseconds: 5));
+
+    test('a rename, a restart before it is sent, then a second rename: '
+        'both reach the other device', () async {
+      await tick();
+      await phone.renameRoute('r1', 'Name 1');
+      await phone.sync.push();
+      await phone.restart();
+      await phone.bridge.sync();
+      await pad.syncNow();
+      expect(await pad.routeName('r1'), 'Name 1');
+
+      await tick();
+      await phone.renameRoute('r1', 'Name 2');
+      await phone.syncNow();
+      await pad.syncNow();
+      expect(await pad.routeName('r1'), 'Name 2');
+      expect(cloud.fields('route_r1')!['name'], 'Name 2');
+      expect(await phone.db.syncDao.dirtyRecords(), isEmpty);
+      expect(await pad.db.syncDao.dirtyRecords(), isEmpty);
+    });
+
+    test('a restart after the first rename is sent', () async {
+      await tick();
+      await phone.renameRoute('r1', 'Name 1');
+      await phone.syncNow();
+      await phone.restart();
+      await pad.syncNow();
+      expect(await pad.routeName('r1'), 'Name 1');
+
+      await tick();
+      await phone.renameRoute('r1', 'Name 2');
+      await phone.syncNow();
+      await phone.restart();
+      await phone.syncNow();
+      await pad.restart();
+      await pad.syncNow();
+      expect(await pad.routeName('r1'), 'Name 2');
+    });
+
+    test('two renames in quick succession, the second while the first is '
+        'on its way', () async {
+      await tick();
+      await phone.renameRoute('r1', 'Name 1');
+      await phone.sync.push();
+      final first = await phone.bridge.handOut();
+      await tick();
+      await phone.renameRoute('r1', 'Name 2');
+      // What the dirty watch does: the name is pending still, so the
+      // engine adds nothing.
+      await phone.sync.push();
+      await phone.bridge.complete(first);
+      await phone.bridge.send();
+      await pad.syncNow();
+
+      expect(await pad.routeName('r1'), 'Name 2');
+      expect(await phone.db.syncDao.dirtyRecords(), isEmpty);
+    });
+
+    test('a rename here while the other device edited too: the newer one '
+        'wins on both', () async {
+      await tick();
+      await pad.renameRoute('r1', 'Pad');
+      await tick();
+      await phone.renameRoute('r1', 'Phone');
+      await pad.syncNow();
+      await phone.syncNow();
+      await pad.syncNow();
+
+      expect(await phone.routeName('r1'), 'Phone');
+      expect(await pad.routeName('r1'), 'Phone');
+      expect(await phone.db.syncDao.dirtyRecords(), isEmpty);
+      expect(await pad.db.syncDao.dirtyRecords(), isEmpty);
+    });
+
+    test('made on one, renamed on the other, renamed back on the first, '
+        'then again on the other', () async {
+      await tick();
+      await phone.renameRoute('r1', 'Phone 1');
+      await phone.syncNow();
+      await pad.syncNow();
+      expect(await pad.routeName('r1'), 'Phone 1');
+
+      await tick();
+      await pad.renameRoute('r1', 'Pad 1');
+      await pad.syncNow();
+      await phone.syncNow();
+      expect(await phone.routeName('r1'), 'Pad 1');
+
+      await tick();
+      await phone.renameRoute('r1', 'Phone 2');
+      await phone.restart();
+      await phone.syncNow();
+      await pad.syncNow();
+      expect(await pad.routeName('r1'), 'Phone 2');
+      expect(await phone.routeName('r1'), 'Phone 2');
+    });
+
+    test(
+      'a rename sent before the device fetched its own last save back',
+      () async {
+        await tick();
+        await phone.renameRoute('r1', 'Name 1');
+        await phone.sync.push();
+        await phone.bridge.send();
+        await tick();
+        await phone.renameRoute('r1', 'Name 2');
+        await phone.sync.push();
+        await phone.bridge.send();
+        await phone.bridge.fetch();
+        await pad.syncNow();
+
+        expect(await pad.routeName('r1'), 'Name 2');
+        expect(await phone.routeName('r1'), 'Name 2');
+      },
+    );
+
+    test('the other device fetches the first rename between the two', () async {
+      await tick();
+      await phone.renameRoute('r1', 'Name 1');
+      await phone.syncNow();
+      await pad.syncNow();
+      await tick();
+      await phone.renameRoute('r1', 'Name 2');
+      await phone.sync.push();
+      // The pad fetches while the phone's second save is on its way.
+      final batch = await phone.bridge.handOut();
+      await pad.syncNow();
+      await phone.bridge.complete(batch);
+      await phone.bridge.sync();
+      await pad.syncNow();
+
+      expect(await pad.routeName('r1'), 'Name 2');
+    });
+  });
+
+  test(
+    'a local edit after start is sent without a restart, and once',
+    () async {
+      await phone.db.routesDao.upsertRoute(fullRoute('r1'));
+      await phone.syncNow();
+      expect(phone.bridge.pendingSaves, isEmpty);
+
+      phone.sync.start();
+      addTearDown(phone.sync.stop);
+      await pumpEventQueue();
+
+      await RouteRepository(phone.db.routesDao).rename('r1', 'Renamed');
+      // The push waits out a burst of writes (two seconds).
+      await _until(() => phone.bridge.pendingSaves.contains('route_r1'));
+
+      await phone.bridge.sync();
+      expect(cloud.fields('route_r1')!['name'], 'Renamed');
+      expect(await phone.db.syncDao.dirtyRecords(), isEmpty);
+
+      // What the send wrote to sync_records does not send it again.
+      await Future<void>.delayed(const Duration(milliseconds: 2500));
+      expect(phone.bridge.pendingSaves, isEmpty);
+    },
+  );
+}
+
+/// Waits up to five seconds for [done].
+Future<void> _until(bool Function() done) async {
+  final until = DateTime.now().add(const Duration(seconds: 5));
+  while (!done()) {
+    if (DateTime.now().isAfter(until)) fail('timed out');
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+  }
 }

@@ -1,16 +1,17 @@
 ---
 title: Privacyverklaring
-description: "Wat Velorki met je gegevens doet: geen account, routes en ritten blijven op je telefoon, en een lijst van precies wat het apparaat verlaat en wanneer."
+description: "Wat Velorki met je gegevens doet: geen account, routes en ritten blijven op je telefoon of in je browser, tenzij je ze synchroniseert met je eigen iCloud of Google Drive, en een lijst van precies wat het apparaat verlaat en wanneer."
 draft: true
 ---
 
 > **Opmerking over de vertaling.** Dit is een vertaling van de Engelse versie.
 > Bij verschillen geldt de Engelse versie.
 
-Ingangsdatum: 16 oktober 2026.
+Ingangsdatum: 23 oktober 2026.
 
 Velorki is een app voor het plannen van fietsroutes en het opnemen van ritten,
-gemaakt door Orkitec. Deze pagina legt uit wat er met je gegevens gebeurt.
+gemaakt door Orkitec, voor iPhone, iPad en Android, en een webplanner op
+app.velorki.com. Deze pagina legt uit wat er met je gegevens gebeurt.
 
 **Wie verantwoordelijk is.** De verwerkingsverantwoordelijke voor alles wat hier
 wordt beschreven is Steffen Roemer, handelend onder de naam "Orkitec", Straße der
@@ -23,15 +24,17 @@ aanbieder staan op de pagina [colofon](./imprint).
 ## De korte versie
 
 - Er is **geen account**. Je meldt je niet aan, en we weten niet wie je bent.
-- Je routes, je ritten en je instellingen blijven **op je telefoon**. Op een
-  iPhone of iPad worden ze ook tussen je eigen apparaten gesynchroniseerd via
-  je iCloud, niet via ons.
+- Je routes, je ritten en je instellingen blijven **op je telefoon**, of in je
+  browser voor de webplanner. Als je synchronisatie aanzet, gaan ze naar je
+  eigen iCloud of je eigen Google Drive, nooit naar ons.
 - Sommige dingen hebben een server nodig: kaarttegels, routeplanning buiten de
   gebieden die je hebt gedownload, zoeken wanneer je daarom vraagt, en, als je
   ze gebruikt, de AI-assistent, de koppelingen met Strava en RideWithGPS (gratis) en
   deellinks. Elk daarvan wordt hieronder beschreven.
 - Deze **website** heeft geen analytics, geen advertenties en geen tracking,
   dus de korte melding onderaan vraagt niets van je.
+- De **webplanner** op app.velorki.com werkt op dezelfde manier: geen account,
+  geen analytics, je bibliotheek bewaard in je browser.
 - We verkopen je gegevens niet, en we gebruiken ze niet voor advertenties of
   profilering.
 
@@ -41,8 +44,9 @@ Geplande routes, opgenomen ritten, hun gps-tracks, je instellingen, gedownloade
 offline kaartregio's, gedownloade routeringstegels en de zoekindexen voor
 plaatsen die daarbij horen, worden opgeslagen in de eigen opslag van de app op
 je telefoon. Ze worden nergens naartoe geüpload, tenzij je daarom vraagt; de enige
-uitzondering is iCloud-synchronisatie op een iPhone of iPad, hieronder
-beschreven, die naar je eigen iCloud gaat en niet naar ons.
+uitzondering is cloudsynchronisatie, hieronder beschreven, die naar je eigen
+iCloud of Google Drive gaat en niet naar ons. Wat de webplanner in je browser
+bewaart, staat beschreven onder De webplanner.
 
 Hartslag, cadans en vermogen van een Apple Watch, een Bluetooth-sensor of je
 gezondheidsapp worden bij de rit opgeslagen, op de telefoon, net als de track
@@ -50,8 +54,9 @@ zelf. Met de schakelaar Gezondheid aan in Instellingen leest de app de hartslag
 uit Apple Health of Health Connect en schrijft hij je voltooide ritten daar weg
 als fietstrainingen; die uitwisseling gebeurt op je telefoon en niets ervan
 bereikt ons. Sensorwaarden gaan alleen mee met een rit waar de rit zelf
-naartoe gaat: in een GPX-, FIT- of TCX-bestand dat je exporteert, of in een
-upload naar Strava of RideWithGPS die je zelf start.
+naartoe gaat: in een GPX-, FIT- of TCX-bestand dat je exporteert, in een
+upload naar Strava of RideWithGPS die je zelf start, of naar je eigen cloud
+zolang synchronisatie aan staat.
 
 Als je Strava of RideWithGPS koppelt, worden de toegangstokens voor die accounts
 opgeslagen in de beveiligde opslag van de telefoon (Keychain op iOS, Keystore
@@ -61,9 +66,9 @@ hieronder.
 
 Op Android is de app uitgesloten van de cloudback-up van Google en van de
 overdracht van apparaat naar apparaat, zodat je ritten en je toegangstokens ook
-niet door het systeem van de telefoon worden gekopieerd. Overstappen naar een
-nieuwe telefoon betekent dat je wat je wilt bewaren exporteert als GPX-, FIT-
-of TCX-bestanden.
+niet door het systeem van de telefoon worden gekopieerd. Om over te stappen naar
+een nieuwe telefoon zet je synchronisatie met Google aan (hieronder beschreven)
+of exporteer je wat je wilt bewaren als GPX-, FIT- of TCX-bestanden.
 
 ## Wat je apparaat verlaat, en wanneer
 
@@ -75,6 +80,12 @@ gebied waarvoor je geen tegels hebt, stuurt de app de coördinaten van je
 routepunten naar een routeringsserver (BRouter, door ons beheerd), die de route
 terugstuurt. Die heeft de routepunten nodig om de route te berekenen; hij
 ontvangt niet je identiteit, je andere routes of je ritten.
+
+Routeringstegels en de zoekindexen die erbij horen, worden gedownload van onze
+tegelmirror op GitHub (`raw.githubusercontent.com` en downloads van releases op
+`github.com`). GitHub ziet welke tegels van 5° je downloadt en je IP-adres,
+zoals bij elk webverzoek. De webplanner haalt ze in plaats daarvan op via
+app.velorki.com, zodat GitHub Cloudflare ziet en niet jou.
 
 ### Zoeken
 
@@ -264,38 +275,79 @@ Wil je het eerder laten verwijderen, stuur de link dan naar het contactadres
 hieronder en we verwijderen het. Voor het bekijken van een gedeelde link is
 geen account nodig.
 
-### iCloud-synchronisatie (iPhone en iPad)
+### Cloudsynchronisatie (iCloud of Google Drive)
 
-Op een iPhone of iPad met iOS 17 of nieuwer worden je opgeslagen routes en je
-opgenomen ritten, met de track, de notities en de statistieken van elke rit,
-gesynchroniseerd tussen je eigen Apple-apparaten die met hetzelfde Apple-account
-zijn aangemeld. Een paar instellingen worden ook gesynchroniseerd: thema,
-accentkleur, kaartstijl, balkstijl, kant van de kolom, eenheden en de
-instellingen voor afslag- en spraakmeldingen. Het staat standaard aan, en de
-schakelaar **Synchroniseren met iCloud** in Instellingen zet het op dat
-apparaat uit.
+Elk apparaat synchroniseert met hooguit één cloud, gekozen onder **Instellingen
+→ Synchroniseren met**: iCloud (iPhone en iPad met iOS 17 of nieuwer, en de
+webplanner), Google (de iPhone, de iPad, Android en de webplanner) of uit. Op
+een iPhone of iPad staat iCloud standaard aan; op Android en in de browser
+staat synchronisatie uit totdat je een cloud kiest.
 
-De gegevens gaan via CloudKit van Apple en staan in je eigen privédatabase in
-iCloud. Apple slaat ze op en verstuurt ze, en ze tellen mee voor je
-iCloud-opslag. Orkitec heeft hiervoor geen server en kan ze niet lezen, er geen
-toegang toe krijgen en ze niet verwijderen; er is geen Velorki-account. Apple
-versleutelt de gegevens tijdens het transport en op zijn servers; met Geavanceerde
-gegevensbescherming ingeschakeld zijn ze end-to-end versleuteld, zoals
-beschreven in [Apples overzicht van de gegevensbeveiliging van iCloud](https://support.apple.com/en-us/102651).
+**Wat er wordt gesynchroniseerd.** Je opgeslagen routes, en je opgenomen ritten
+met de track, de notities, de statistieken, de ronden en de hartslag, cadans,
+het vermogen en de temperatuur die bij elke rit zijn opgenomen. Een paar
+instellingen worden ook gesynchroniseerd: thema, accentkleur, kaartstijl, de
+stijl van de regenradar, balkstijl, kant van de kolom, eenheden, en de
+instellingen voor afslagen, spraak en herberekenen. In de browser met iCloud
+blijven de instellingen in de browser. Elke app schrijft ook één klein
+Plus-record in dezelfde cloud, beschreven onder Abonnementen.
 
-Sommige dingen worden nooit gesynchroniseerd. Routes die uit Strava zijn
+**Sommige dingen worden nooit gesynchroniseerd.** Routes die uit Strava zijn
 gelezen en routes die daaruit zijn bewerkt, en de Strava-links van ritten die je
 naar Strava hebt geüpload, blijven op die ene telefoon, zoals hierboven bij
 Strava beschreven. De links van uploads naar Ride with GPS worden evenmin
 gesynchroniseerd; een route die je uit Ride with GPS importeert, wordt
 gesynchroniseerd als je eigen route, zonder haar Ride-with-GPS-id. Gedownloade
-kaartregio's en routeringstegels, toestemmingen, gekoppelde sensoren,
-gekoppelde accounts en de abonnementsstatus horen er niet bij. De Android-app
-synchroniseert niet.
+kaartregio's en routeringstegels, toestemmingen, gekoppelde sensoren, de stem,
+de taal, gekoppelde accounts en het abonnement zelf horen er niet bij.
 
-Als je de schakelaar uitzet, stopt het synchroniseren op dat apparaat. Wat al in
-iCloud staat, blijft daar totdat je het verwijdert, in de iCloud-instellingen
-van het apparaat.
+**iCloud.** De gegevens gaan via CloudKit van Apple naar je eigen privédatabase
+in iCloud. Apple slaat ze op en verstuurt ze, en ze tellen mee voor je
+iCloud-opslag. Apple versleutelt ze tijdens het transport en op zijn servers;
+met Geavanceerde gegevensbescherming ingeschakeld zijn ze end-to-end
+versleuteld, zoals beschreven in [Apples overzicht van de gegevensbeveiliging van iCloud](https://support.apple.com/en-us/102651).
+In de browser meld je je aan met de eigen knop van Apple, in een venster van
+Apple; het CloudKit JS-script van Apple wordt pas bij Apple geladen als je
+iCloud kiest, en bewaart je aanmelding bij Apple in een cookie op de site van
+de planner totdat je je afmeldt (de sitegegevens in de browser wissen
+verwijdert hem ook).
+
+De uploadserver van Apple accepteert geen uploads die rechtstreeks vanaf onze
+site worden verstuurd. Wanneer de webplanner een route of een rit in iCloud
+opslaat, wordt het bestand van het record (de track en de details van de route
+of rit) daarom naar app.velorki.com/cloudkit/upload gestuurd, een kleine
+Cloudflare-functie die het ongewijzigd doorgeeft aan het eenmalige uploadadres
+dat Apple ervoor gaf en het ontvangstbewijs van Apple teruggeeft. Ze bewaart
+niets, en we houden er geen logs van bij. De andere velden van het record gaan
+rechtstreeks naar Apple.
+
+**Google Drive.** Je meldt je aan met je Google-account, en Velorki vraagt maar
+één machtiging: zijn eigen verborgen app-map in je Drive (`drive.appdata`).
+Het kan geen enkel ander bestand in je Drive zien of wijzigen, en de map
+verschijnt niet tussen je bestanden. Google slaat de gegevens op en ze tellen
+mee voor je Google-opslag; Google versleutelt ze tijdens het transport en op
+zijn servers, niet end-to-end. De telefoon bewaart de id en het e-mailadres van
+je Google-account om te tonen wie er is aangemeld. In de browser meld je je aan
+met de eigen knop van Google; het aanmeldscript van Google wordt pas geladen
+als je Google kiest, en het toegangstoken ervan leeft alleen zo lang als de
+pagina en hooguit een uur.
+
+**Wat Orkitec ziet.** Niets. Orkitec heeft geen server voor synchronisatie en
+kan niet lezen, openen of verwijderen wat in je iCloud of je Drive staat; er is
+geen Velorki-account. Apple en Google handelen onder je eigen overeenkomst met
+hen.
+
+**Verwijderen, uitzetten.** Zolang synchronisatie aan staat, verwijdert het
+verwijderen van een route of een rit op één apparaat die ook in je cloud en op
+je andere apparaten. **Uit** kiezen, afmelden of overstappen naar de andere
+cloud stopt het synchroniseren op dat apparaat en verwijdert niets;
+overstappen stuurt je bibliotheek naar de nieuwe cloud en laat de oude kopie
+waar ze was. Wat al in iCloud staat, blijft daar totdat je het verwijdert in de
+iCloud-instellingen op een Apple-apparaat. Wat in Google Drive staat, blijft
+daar totdat je het verwijdert: in Google Drive op het web, Instellingen → Apps
+beheren → Velorki → Opties → Verborgen app-gegevens verwijderen; de toegang van
+Velorki intrekken op myaccount.google.com/permissions zorgt dat het de map niet
+meer bereikt.
 
 ### Abonnementen
 
@@ -307,6 +359,45 @@ aankoopbewijs van de store. Onze relay stuurt die anonieme id naar RevenueCat om
 te controleren of je abonnement actief is, en voor niets anders.
 
 We zien je betaalgegevens nooit; die blijven bij Apple of Google.
+
+**Plus in de browser.** Plus kun je niet in de webplanner kopen. Om daar Plus
+te gebruiken die je in een telefoonapp hebt gekocht, schrijft elke app die
+synchroniseert één eigen record in de cloud waarmee hij synchroniseert: zijn
+RevenueCat-app-gebruikers-id, of het een iPhone- of Android-app is, of zijn
+store het laatst zei dat Plus actief is, en wanneer hij het laatst schreef,
+onder een willekeurige id voor het apparaat. Hij schrijft het elke zes uur
+opnieuw en wanneer Plus begint of eindigt. De webplanner, aangemeld bij
+hetzelfde iCloud- of Google-account, leest deze records, bewaart ze in de
+browser en stuurt de id van het meest recente met elk Plus-verzoek naar onze
+relay, precies zoals de app zou doen. De relay controleert die id bij
+RevenueCat zoals hij dat voor de apps doet; de browser neemt geen contact op
+met RevenueCat, maakt geen eigen id voor Plus en schrijft nooit een
+Plus-record.
+
+Het record gaat alleen naar het account waarmee synchronisatie het eerst
+draaide, of een account dat je daarna kiest onder Instellingen →
+Synchroniseren met: na een afmelding, een ander account of uitgezette
+synchronisatie stopt de app met het schrijven ervan en kopieert hij het nooit
+uit zichzelf naar een tweede account. Het wordt niet uit de cloud verwijderd;
+de webplanner negeert een record dat 30 dagen niet is geschreven, en vergeet
+de records die hij bewaarde wanneer je je afmeldt of van account of cloud
+wisselt.
+
+### Updatemeldingen en beoordelingen
+
+Een paar seconden na het starten, en opnieuw na een dag op de achtergrond,
+vraagt de app aan zijn store of er een nieuwere versie is. Op iOS vraagt hij
+het aan de openbare zoekdienst van de App Store van Apple
+(`itunes.apple.com`), met de bundle-id van Velorki en de land- en taalcode van
+je telefoon; op Android vraagt hij het aan de in-app-updatedienst van Google
+Play op de telefoon, die alleen antwoordt voor een installatie uit Play. Bij
+beide komt je IP-adres kijken, zoals bij elk webverzoek, en verder niets van
+jou.
+
+Af en toe vraagt de app het systeem om zijn eigen beoordelingsvenster te tonen.
+Apple of Google beslissen of het verschijnt en hoe vaak; een beoordeling of
+recensie die je daar geeft, gaat naar hen onder je store-account, en de app
+hoort niet of je hebt beoordeeld of wat. De webplanner doet geen van beide.
 
 ### Crashrapportage en analytics
 
@@ -388,25 +479,60 @@ footer haalt haar terug.
   van de supportchat is er geen script van derden, geen CDN voor onze eigen
   bestanden en geen lettertypedienst.
 
+## De webplanner (app.velorki.com)
+
+app.velorki.com is dezelfde app, draaiend in je browser: hij plant, zoekt en
+houdt een bibliotheek bij, maar neemt niet op en navigeert niet. Er is geen
+account, er zijn geen analytics en geen advertenties. Op een telefoon of tablet
+toont het adres de downloadpagina van de app en laadt het verder niets.
+
+- **Bewaard in je browser.** Je routes, ritten en instellingen worden bewaard in
+  een database in de eigen opslag van de browser (IndexedDB, of in sommige
+  browsers het Origin Private File System), de routeringstegels en zoekindexen
+  die je hebt gedownload in de Cache Storage ervan, en instellingen, het
+  cloudaccount waarbij je je hebt aangemeld en een anonieme id zoals die van de
+  app in de lokale opslag ervan. Ze blijven in die browser, op die computer,
+  totdat je ze verwijdert in de planner of de sitegegevens in de browser wist.
+  Deze opslag is waar de planner voor dient, dus er is geen toestemming voor
+  nodig op grond van § 25 lid 2 TTDSG.
+- **Waarmee hij contact maakt.** Met dezelfde diensten als de app, onder
+  dezelfde regels als hierboven: kaarttegels van OpenFreeMap (en CyclOSM als je
+  die aanzet), Photon voor een online zoekopdracht, de openbare weerdiensten
+  voor de weerlagen, en onze relay voor de AI-assistent, het Plus-weer en
+  deellinks. Hij gebruikt nooit de routeringsserver: routes worden in de
+  browser berekend. Routeringstegels komen via app.velorki.com. Als een tekst
+  een schrift nodig heeft dat de eigen lettertypen van de app missen, laadt de
+  browser een reservelettertype van Google Fonts (`fonts.gstatic.com`), dat je
+  IP-adres ziet. Cloudsynchronisatie maakt contact met Apple of Google, en pas
+  als je er een kiest.
+- **Cloudflare.** De planner wordt geleverd door Cloudflare Pages. Twee kleine
+  functies daar beantwoorden `/tiles/` (die de tegels van onze GitHub-mirror
+  ophaalt) en `/cloudkit/upload` (zie Cloudsynchronisatie). Zoals elke server
+  zien ze je IP-adres en het verzoek; ze bewaren niets, en we houden er geen
+  logs van bij.
+
 ## Bewaren en verwijderen
 
 | Gegevens | Bewaard | Hoe je ze verwijdert |
 |---|---|---|
-| Routes, ritten, instellingen, offline gegevens | op je telefoon, totdat je ze verwijdert | verwijder ze in de app, of verwijder de app |
+| Routes, ritten, instellingen, offline gegevens | op je telefoon, totdat je ze verwijdert | verwijder ze in de app, of verwijder de app (met synchronisatie aan verwijdert het verwijderen van een route of rit die ook in je cloud) |
 | Tokens van Strava / RideWithGPS | op je telefoon, zo versleuteld dat alleen onze relay ze kan openen, totdat je ontkoppelt; nooit bij ons opgeslagen | ontkoppel in de app, of verwijder de app |
 | Strava-gegevens: je naam, links naar activiteiten | op je telefoon, tot je ontkoppelt; nooit bij ons opgeslagen | ontkoppel Strava in de app, of verwijder de app; vragen naar ride@velorki.com |
 | Routes geïmporteerd uit Strava, en routes die ervan zijn bewerkt | op je telefoon, alleen zolang de route nog op Strava bestaat: elke 48 uur opnieuw gecontroleerd, verwijderd als hij daar is verwijderd of 7 dagen lang niet kon worden gecontroleerd; nooit bij ons opgeslagen | verwijder hem in de app, ontkoppel Strava, of verwijder de app |
 | De lijst met je Strava-routes in de cache | op je telefoon, hooguit 48 uur | ontkoppel Strava, of verwijder de app |
 | Tellers voor de snelheidsbeperking (anonieme installatie-id, IP-adres) | op onze server, voor het telvenster, hooguit een dag | niet van toepassing |
 | Deellinks | één jaar, daarna automatisch verwijderd | verwijder ze vanuit de app |
-| Routes, ritten en instellingen gesynchroniseerd via iCloud (iPhone en iPad) | in je eigen iCloud, totdat je ze daar verwijdert; nooit bij ons opgeslagen | verwijder ze in de iCloud-instellingen van het apparaat |
+| Routes, ritten en instellingen gesynchroniseerd via iCloud | in je eigen iCloud, totdat je ze daar verwijdert; nooit bij ons opgeslagen | verwijder ze in de iCloud-instellingen op een Apple-apparaat |
+| Routes, ritten en instellingen gesynchroniseerd via Google Drive | in de verborgen Velorki-map van je Drive, totdat je die verwijdert; nooit bij ons opgeslagen | in Google Drive op het web: Instellingen → Apps beheren → Velorki → Opties → Verborgen app-gegevens verwijderen |
+| Plus-records (RevenueCat-id, platform, Plus actief, laatst geschreven) | in de cloud waarmee je synchroniseert, totdat je de gegevens van de app daar verwijdert; na 30 dagen genegeerd door de webplanner | zoals de gesynchroniseerde routes hierboven |
+| De bibliotheek, tegels en instellingen van de webplanner | in je browser, totdat je ze verwijdert | verwijder ze in de planner, of wis de sitegegevens in de browser |
 | AI-prompts | door ons niet bewaard, buiten wat de logs hierboven bevatten | niet van toepassing |
 | Gegevens bij RevenueCat | volgens het eigen beleid van RevenueCat | neem contact met ons op en we geven het verzoek door |
 | Gesprekken in de supportchat | in ons Discord-kanaal totdat we ze verwijderen | vraag het via ride@velorki.com |
 
 De app verwijderen wist alles wat de app op het apparaat heeft opgeslagen. Wat
-iCloud-synchronisatie in je iCloud heeft gezet, blijft daar; zie
-iCloud-synchronisatie hierboven. Het
+synchronisatie in je iCloud of je Google Drive heeft gezet, blijft daar; zie
+Cloudsynchronisatie hierboven. Het
 verwijdert geen deellinks die je hebt gemaakt (die verlopen na één jaar, of op
 verzoek), en het verwijdert niets wat je naar Strava of RideWithGPS hebt
 geüpload.
@@ -424,7 +550,9 @@ lid 1 AVG:
 | Velorki Plus: het gedetailleerdere weer langs de route en de regenradar | (b) uitvoering van de overeenkomst |
 | Strava en RideWithGPS: een account koppelen, elke overdracht die je start en de Strava-gegevens op je telefoon | (b) uitvoering van de dienst waar je om hebt gevraagd, plus (a) toestemming, gegeven door het account te koppelen en ingetrokken door te ontkoppelen |
 | Deellinks die je maakt | (b) uitvoering van de overeenkomst |
-| iCloud-synchronisatie (iPhone en iPad), zolang de schakelaar aan staat | (b) uitvoering van de dienst waar je om vroeg; Apple handelt onder je eigen iCloud-overeenkomst met Apple |
+| Cloudsynchronisatie met iCloud of Google Drive, zolang die aan staat, inclusief de Plus-records en de upload van de webplanner via `/cloudkit/upload` | (b) uitvoering van de dienst waar je om vroeg; Apple en Google handelen onder je eigen overeenkomst met hen |
+| De webplanner: hem leveren, je bibliotheek in je browser bewaren, tegels ophalen via app.velorki.com | (b) uitvoering van de dienst waar je om hebt gevraagd, en (f) voor het IP-adres en het verzoek die strikt nodig zijn om te antwoorden |
+| Updatemeldingen | (f) gerechtvaardigd belang bij het melden van een nieuwere versie; alleen de bundle-id, het land en de taal worden verstuurd |
 | De AI-assistent | (a) toestemming, apart gevraagd in de app en in te trekken in de instellingen |
 | Je antwoorden in de supportchat | (b) als het om een abonnement gaat, anders (f) gerechtvaardigd belang bij het antwoorden van wie ons heeft geschreven |
 | Fiscaal relevante gegevens van een abonnement bewaren | (c) wettelijke verplichting — en Apple en Google, niet wij, hebben de factuurgegevens |
@@ -442,8 +570,10 @@ partijen, en geen andere:
 - **Hetzner Cloud GmbH**, Gunzenhausen, Duitsland — de server waarop de relay,
   de deellinks en deze website draaien. Gegevens blijven in Duitsland.
 - **Cloudflare, Inc.**, San Francisco, VS — DNS, CDN en bescherming tegen
-  aanvallen voor velorki.com en api.velorki.com. IP-adressen en metadata van
-  verzoeken.
+  aanvallen voor velorki.com en api.velorki.com, en hosting van de webplanner op
+  app.velorki.com met zijn functies `/tiles/` en `/cloudkit/upload`.
+  IP-adressen en metadata van verzoeken, en de iCloud-upload die het ongelezen
+  doorgeeft.
 - **RevenueCat, Inc.**, San Francisco, VS — de abonnementscontrole. De anonieme
   app-gebruikers-id en het aankoopbewijs van de store, geen naam en geen
   e-mailadres.
@@ -476,12 +606,23 @@ verantwoordelijk voor de eigen verwerking**
   het deel van de kaart of het kader rond je route waar je om vroeg, een
   tijdstip en je IP-adres, alleen zolang een weerlaag of de gratis
   weersverwachting voor de route aanstaat.
-- **Apple Inc.** (iCloud) — de routes, ritten en instellingen van de
-  iCloud-synchronisatie, in je eigen iCloud en alleen zolang de schakelaar aan
-  staat. Wij ontvangen ze niet; Apple handelt onder je eigen
+- **Apple Inc.** (iCloud) — de routes, ritten, instellingen en Plus-records van
+  de iCloud-synchronisatie, in je eigen iCloud en alleen zolang je met iCloud
+  synchroniseert. Wij ontvangen ze niet; Apple handelt onder je eigen
   iCloud-overeenkomst met Apple.
-- **Apple Inc.** en **Google Ireland Ltd** — de verkoop van Velorki Plus. Zij
-  zijn de verkopers; wij zien je betaalgegevens nooit.
+- **Google Ireland Ltd**, Dublin (Google LLC, VS, buiten de EER en
+  Zwitserland) — de routes, ritten, instellingen en Plus-records van de
+  synchronisatie met Google, in de verborgen app-map van je eigen Drive, en
+  alleen zolang je met Google synchroniseert. Wij ontvangen ze niet; Google
+  handelt onder je eigen overeenkomst met Google. Google levert ook de
+  reservelettertypen van de webplanner (`fonts.gstatic.com`) en de
+  updatecontrole van Google Play op Android.
+- **GitHub, Inc.**, San Francisco, VS — onze tegelmirror, waarvan de app
+  routeringstegels en zoekindexen downloadt; de namen van de tegels en je
+  IP-adres.
+- **Apple Inc.** en **Google Ireland Ltd** — de verkoop van Velorki Plus, de
+  updatecontrole en het beoordelingsvenster. Zij zijn de verkopers; wij zien je
+  betaalgegevens nooit.
 - **Strava, Inc.** en **Ride with GPS** — alleen nadat je het account koppelt en
   alleen voor een overdracht die je start. Wat zij ermee doen valt onder hun
   eigen beleid.
@@ -491,14 +632,15 @@ We geven gegevens ook aan een rechter of een instantie als de wet dat vereist.
 ## Doorgifte buiten de EU
 
 Cloudflare, RevenueCat, OpenRouter en de modelaanbieder daarachter, Discord,
-Klipy, Strava, Ride with GPS, Apple en Google zitten in de Verenigde Staten of
+Klipy, Strava, Ride with GPS, GitHub, Apple en Google zitten in de Verenigde Staten of
 geven gegevens daarheen door. Die doorgifte berust op de
 modelcontractbepalingen van de Europese Commissie, of op de certificering van
 de aanbieder onder het EU-VS Data Privacy Framework als die er een heeft, samen
 met de eigen technische waarborgen van de aanbieder. Hetzner, komoot en de
 kaarttegeldiensten waarop we vertrouwen zitten in de EU, OpenStreetMap in het
-VK. Alles wat de app voor je opslaat blijft op je telefoon en wordt nergens
-naartoe doorgegeven.
+VK. Alles wat de app voor je opslaat blijft op je telefoon, of in je browser, en
+wordt nergens naartoe doorgegeven, tenzij je synchronisatie aanzet, die naar je
+eigen iCloud of Google Drive gaat.
 
 ## Beveiliging
 
@@ -523,8 +665,9 @@ overdraagbaarheid van gegevens (20) en bezwaar tegen verwerking op grond van
 een gerechtvaardigd belang (21), en waar we op je toestemming vertrouwen — de
 assistent — kun je die op elk moment intrekken, zonder dat dit afdoet aan wat
 daarvoor rechtmatig was (artikel 7 lid 3). Het meeste daarvan kun je zelf
-uitoefenen, omdat de gegevens op je telefoon staan en wanneer je maar wilt als
-GPX-, FIT- of TCX-bestanden kunnen worden geëxporteerd.
+uitoefenen, omdat de gegevens op je telefoon, in je browser of in je eigen
+cloud staan en wanneer je maar wilt als GPX-, FIT- of TCX-bestanden kunnen
+worden geëxporteerd.
 
 Voor alles wat aan onze kant wordt bewaard (deellinks, logregels, het gegeven
 bij RevenueCat) schrijf je naar **ride@velorki.com**. We antwoorden binnen 30
@@ -547,10 +690,9 @@ advertenties.
 
 ## Wijzigingen
 
-Als dit beleid verandert op een manier die invloed heeft op wat je apparaat
-verlaat, vertelt de app je dat de volgende keer dat je hem opent, en verandert
-de datum bovenaan. Oude versies blijven in de git-geschiedenis van de
-repository.
+Wijzigingen in dit beleid worden op deze pagina gepubliceerd, met een nieuwe
+datum bovenaan; belangrijke wijzigingen worden ook op de website aangekondigd.
+Oude versies blijven in de git-geschiedenis van de repository.
 
 ## Contact
 

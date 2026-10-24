@@ -1,4 +1,11 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoSliverRefreshControl;
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/router.dart';
@@ -7,12 +14,16 @@ import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
+import 'package:velorki/features/sync/application/cloud_sync_controller.dart';
+import 'package:velorki/features/sync/domain/sync_service.dart';
+import 'package:velorki/features/sync/data/cloud_sync_bridge.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
 import '../../support/format.dart';
 import '../planner/support/fakes.dart' show syntheticRoute;
 import '../recording/support/pump.dart';
+import '../sync/support/fake_cloud.dart';
 
 const List<Waypoint> _waypoints = [
   Waypoint(pos: LatLng(48.0, 11.0), kind: WaypointKind.start),
@@ -49,6 +60,7 @@ Future<void> _seedRide(RecordingHarness h) =>
     );
 
 void main() {
+  group('pull to refresh', _pullRefreshTests);
   testWidgets('the library offers both sections and starts on routes', (
     tester,
   ) async {
@@ -190,4 +202,168 @@ void main() {
     expect(find.text(l10n.rideDetailExportGpx), findsWidgets);
     await unmountApp(tester);
   });
+}
+
+void _pullRefreshTests() {
+  late Directory dir;
+  late _GatedBridge bridge;
+  setUp(() {
+    dir = Directory.systemTemp.createTempSync('library_pull');
+    bridge = _GatedBridge(FakeCloud(dir));
+  });
+  tearDown(() => dir.deleteSync(recursive: true));
+
+  Future<void> pump(
+    WidgetTester tester, {
+    required bool syncOn,
+    int moreRoutes = 30,
+  }) async {
+    final h = RecordingHarness();
+    await _seedRoute(h);
+    for (var i = 0; i < moreRoutes; i++) {
+      await RouteRepository(
+        h.planner.db.routesDao,
+        clock: () => DateTime.utc(2026, 9, 11, 10, i),
+      ).savePlannedRoute(
+        name: 'Route $i',
+        route: syntheticRoute(),
+        waypoints: _waypoints,
+        options: const RoutingOptions(),
+      );
+    }
+    await pumpRecordingApp(
+      tester,
+      initialLocation: libraryRoute,
+      harness: h,
+      extraOverrides: [
+        cloudSyncBridgeProvider.overrideWithValue(bridge),
+        cloudSyncOutboxProvider.overrideWith((ref) async => dir),
+        syncServiceChoiceProvider.overrideWith(
+          () => _Choice(syncOn ? SyncService.icloud : SyncService.off),
+        ),
+      ],
+    );
+    ProviderScope.containerOf(
+      tester.element(find.byType(SegmentedButton<LibrarySection>)),
+    ).listen(cloudSyncControllerProvider, (_, _) {});
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> finish(WidgetTester tester) async {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await unmountApp(tester);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await tester.pump(const Duration(milliseconds: 1));
+  }
+
+  /// Pulls the list down from its first row, lets go and lets the list
+  /// come to rest, which with a fetch under way is held open.
+  Future<void> pull(WidgetTester tester) async {
+    final g = await tester.startGesture(
+      tester.getCenter(find.text('Isar loop')),
+    );
+    for (var i = 0; i < 20; i++) {
+      await g.moveBy(const Offset(0, 40));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await g.up();
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
+
+  Future<void> pullHoldsUntilFetched(WidgetTester tester) async {
+    final before = bridge.fetchRequests;
+    final segments = find.byType(SegmentedButton<LibrarySection>);
+    final switchRect = tester.getRect(segments);
+    final rowTop = tester.getTopLeft(find.text('Isar loop')).dy;
+    // Idle it paints nothing, so the finder has to look offstage too.
+    expect(
+      find.byType(CupertinoSliverRefreshControl, skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(find.byType(CupertinoActivityIndicator), findsNothing);
+
+    bridge.gate = Completer<void>();
+    await pull(tester);
+    expect(bridge.fetchRequests, before + 1);
+    // Held open while the fetch runs: the spinner in the space opened
+    // between the switch and the first row, the switch where it was.
+    final spinner = find.byType(CupertinoActivityIndicator);
+    expect(spinner, findsOneWidget);
+    expect(tester.getRect(segments), switchRect);
+    expect(
+      tester.getRect(spinner).top,
+      greaterThanOrEqualTo(switchRect.bottom),
+    );
+    final heldTop = tester.getTopLeft(find.text('Isar loop')).dy;
+    expect(heldTop, greaterThan(rowTop + 40));
+    expect(tester.getRect(spinner).bottom, lessThanOrEqualTo(heldTop));
+
+    // Still held a while later.
+    await tester.pump(const Duration(seconds: 2));
+    expect(tester.getTopLeft(find.text('Isar loop')).dy, heldTop);
+
+    bridge.gate!.complete();
+    bridge.gate = null;
+    await tester.pumpAndSettle();
+    expect(find.byType(CupertinoActivityIndicator), findsNothing);
+    expect(tester.getTopLeft(find.text('Isar loop')).dy, rowTop);
+    expect(tester.getRect(segments), switchRect);
+  }
+
+  testWidgets('pulling the list holds it open until iCloud has answered', (
+    tester,
+  ) async {
+    await pump(tester, syncOn: true);
+    await pullHoldsUntilFetched(tester);
+    await finish(tester);
+  });
+
+  testWidgets('a list that fits can be pulled too', (tester) async {
+    await pump(tester, syncOn: true, moreRoutes: 1);
+    await pullHoldsUntilFetched(tester);
+    await finish(tester);
+  });
+
+  testWidgets('with sync off the list has no pull', (tester) async {
+    await pump(tester, syncOn: false);
+    expect(
+      find.byType(CupertinoSliverRefreshControl, skipOffstage: false),
+      findsNothing,
+    );
+    expect(find.byType(RefreshIndicator), findsNothing);
+    await unmountApp(tester);
+  });
+}
+
+/// A device's engine whose [fetchNow] waits for [gate], when there is one.
+class _GatedBridge extends FakeCloudSyncBridge {
+  _GatedBridge(super.cloud);
+
+  Completer<void>? gate;
+
+  @override
+  Future<void> fetchNow() async {
+    final wait = gate?.future;
+    final fetched = super.fetchNow();
+    if (wait != null) await wait;
+    await fetched;
+  }
+}
+
+class _Choice extends SyncServiceChoice {
+  _Choice(this.value);
+
+  final SyncService value;
+
+  @override
+  SyncService build() => value;
 }

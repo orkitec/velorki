@@ -5,6 +5,7 @@
 library;
 
 export 'src/bounding_box.dart';
+export 'src/compact_track.dart';
 export 'src/geodesy.dart';
 export 'src/lat_lng.dart';
 export 'src/packed_track.dart';

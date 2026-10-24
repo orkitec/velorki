@@ -3,8 +3,9 @@
 
     flutter build web --wasm --no-web-resources-cdn --dart-define-from-file=env/web.json
     python3 tool/web_serve.py [--port 8080] [--dir build/web] [--cache DIR]
+    python3 tool/web_serve.py --https [--port 8443]
 
-then open http://localhost:8080 in Chrome.
+then open http://localhost:8080 (or https://localhost:8443) in Chrome.
 
 - The build's own `_headers` (cross-origin isolation, CSP) are sent with
   every file, as Pages does.
@@ -14,6 +15,27 @@ then open http://localhost:8080 in Chrome.
   release asset from GitHub (following its redirect). Fetched tiles are kept
   in --cache (default build/web_tile_cache) so a restart does not fetch them
   again.
+- `POST /cloudkit/upload?url=...` stands in for the Pages Function of the
+  same name (CloudKit's upload host allows no CORS for our origin): the
+  body goes to Apple's upload URL, and Apple's JSON comes back. Same
+  checks as deploy/cloudflare/pages/cloudkit_upload.mjs.
+- `--https` serves https on 8443, the origin the CloudKit Development token
+  and the Google web client allow (Apple's console takes https origins
+  only), so iCloud and Google sign-in can be tried locally. The certificate
+  is mkcert's for localhost when mkcert is installed (`brew install mkcert`,
+  `mkcert -install` once: Chrome then trusts it), else a self-signed one made
+  with openssl, which Chrome warns about once ("Proceed to localhost"). Both
+  are kept in --cert-dir (default build/web_cert). Past that warning the
+  page may fetch, but a shared worker may not, so the database opens in
+  the page rather than in drift's shared worker (`connection_web.dart`
+  says so in the console); with mkcert's certificate it runs as on
+  app.velorki.com.
+- The relay at api.velorki.com answers CORS for https://app.velorki.com
+  only (production's `CORS_ORIGINS`): from here AI, route weather and
+  share links fail; sync and the rest do not need the relay. To try them,
+  build against a relay of your own over https (`docs/SELF_HOSTING.md`)
+  whose `CORS_ORIGINS` names https://localhost:8443, with its host in
+  `web/_headers`' connect-src.
 """
 import argparse
 import http.server
@@ -21,23 +43,34 @@ import json
 import os
 import re
 import shutil
+import ssl
+import subprocess
 import sys
 import threading
+import urllib.error
+import urllib.parse
 import urllib.request
 
 POINTER = "https://raw.githubusercontent.com/orkitec/velorki-data/main/latest.json"
 RELEASES = "https://github.com/orkitec/velorki-data/releases/download/"
 TAG = re.compile(r"^tiles-\d{8}(-s\d+)?$")
 FILE = re.compile(r"^[EW]\d{1,3}_[NS]\d{1,2}\.(rd5|gaz)$|^manifest\.json$")
+UPLOAD_HOST = re.compile(r"^(cws\.icloud-content\.com|p\d+-contentws\.icloud\.com)$")
+MAX_UPLOAD = 16 * 1024 * 1024
 LOCKS = {}
 LOCKS_GUARD = threading.Lock()
 AGENT = {"User-Agent": "velorki-web-serve (+https://github.com/orkitec/velorki)"}
 
 args = argparse.ArgumentParser()
-args.add_argument("--port", type=int, default=8080)
+args.add_argument("--port", type=int)
 args.add_argument("--dir", default="build/web")
 args.add_argument("--cache", default="build/web_tile_cache")
+args.add_argument("--https", action="store_true", help="serve https (default port 8443)")
+args.add_argument("--cert-dir", default="build/web_cert")
 opts = args.parse_args()
+if opts.port is None:
+    opts.port = 8443 if opts.https else 8080
+SCHEME = "https" if opts.https else "http"
 os.makedirs(opts.cache, exist_ok=True)
 
 
@@ -95,10 +128,58 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self.tile(m.group(1), m.group(2))
         return super().do_GET()
 
+    def do_POST(self):
+        parts = urllib.parse.urlsplit(self.path)
+        if parts.path != "/cloudkit/upload":
+            self.send_error(404)
+            return
+        target = urllib.parse.parse_qs(parts.query).get("url", [""])[0]
+        u = urllib.parse.urlsplit(target)
+        try:
+            ok = (
+                u.scheme == "https"
+                and UPLOAD_HOST.match(u.hostname or "")
+                and u.port in (None, 443)
+                and not u.username
+                and not u.password
+                and not u.fragment
+                and u.path.endswith("/singleFileUpload")
+                and "tk" in urllib.parse.parse_qs(u.query)
+            )
+        except ValueError:
+            ok = False
+        if not ok:
+            self.send_error(400, "not a CloudKit upload URL")
+            return
+        length = int(self.headers.get("Content-Length") or 0)
+        if length > MAX_UPLOAD:
+            self.send_error(413)
+            return
+        data = self.rfile.read(length)
+        headers = {}
+        if self.headers.get("Content-Type"):
+            headers["Content-Type"] = self.headers["Content-Type"]
+        try:
+            with urllib.request.urlopen(
+                urllib.request.Request(target, data=data, headers=headers, method="POST"),
+                timeout=30,
+            ) as r:
+                status, answer = r.status, r.read(64 * 1024)
+        except urllib.error.HTTPError as e:
+            status, answer = e.code, e.read(64 * 1024)
+        except OSError:
+            self.send_error(502)
+            return
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(answer)))
+        self.end_headers()
+        self.wfile.write(answer)
+
     def pointer(self):
         with urllib.request.urlopen(urllib.request.Request(POINTER, headers=AGENT)) as r:
             data = json.load(r)
-        origin = f"http://{self.headers.get('Host')}"
+        origin = f"{SCHEME}://{self.headers.get('Host')}"
 
         def rewrite(url):
             if isinstance(url, str) and url.startswith(RELEASES):
@@ -174,5 +255,39 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         sys.stderr.write("%s\n" % (fmt % a))
 
 
-print(f"Velorki web planner on http://localhost:{opts.port}  (Ctrl-C to stop)")
-http.server.ThreadingHTTPServer(("127.0.0.1", opts.port), Handler).serve_forever()
+def certificate():
+    """A certificate and key for localhost: mkcert's where it is installed,
+    else a self-signed one from openssl. Made once, then reused."""
+    os.makedirs(opts.cert_dir, exist_ok=True)
+    cert = os.path.join(opts.cert_dir, "localhost.pem")
+    key = os.path.join(opts.cert_dir, "localhost-key.pem")
+    if os.path.isfile(cert) and os.path.isfile(key):
+        return cert, key
+    if shutil.which("mkcert"):
+        subprocess.run(
+            ["mkcert", "-cert-file", cert, "-key-file", key, "localhost", "127.0.0.1", "::1"],
+            check=True,
+        )
+    else:
+        sys.stderr.write("mkcert not found: a self-signed certificate (Chrome warns once)\n")
+        subprocess.run(
+            [
+                "openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "825",
+                "-subj", "/CN=localhost",
+                "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:::1",
+                "-keyout", key, "-out", cert,
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    return cert, key
+
+
+server = http.server.ThreadingHTTPServer(("127.0.0.1", opts.port), Handler)
+if opts.https:
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(*certificate())
+    server.socket = context.wrap_socket(server.socket, server_side=True)
+print(f"Velorki web planner on {SCHEME}://localhost:{opts.port}  (Ctrl-C to stop)")
+server.serve_forever()

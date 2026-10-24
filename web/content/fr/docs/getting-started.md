@@ -4,7 +4,7 @@ description: "Installez Velorki, découvrez les quatre onglets, voyez quelles au
 order: 1
 ---
 
-Velorki est un planificateur d’itinéraires et un enregistreur de sorties à vélo, gratuit et open source, pour iPhone et Android, fondé sur les données d’OpenStreetMap. Cette page couvre les dix premières minutes : l’installation, ce que l’app demande, l’organisation de l’écran et le seul réglage que la plupart des cyclistes veulent changer tout de suite.
+Velorki est un planificateur d’itinéraires et un enregistreur de sorties à vélo, gratuit, pour iPhone et Android, fondé sur les données d’OpenStreetMap. Il tourne sur votre téléphone sans compte, garde vos itinéraires et vos sorties chez vous ou dans votre propre cloud, et son code est ouvert : chacun peut le vérifier. Cette page couvre les dix premières minutes : l’installation, ce que l’app demande, l’organisation de l’écran et le seul réglage que la plupart des cyclistes veulent changer tout de suite.
 
 ## Ce qu’il vous faut
 

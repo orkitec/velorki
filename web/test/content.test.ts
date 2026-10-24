@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { describe, expect, it } from 'vitest';
-import { docSlugs, loadDoc, loadLegal } from '@/site/content';
+import { contentFile, docSlugs, loadDoc, loadLegal, translatedLocales } from '@/site/content';
 import { renderMarkdown } from '@/site/markdown';
 
 describe('content loader', () => {
@@ -10,6 +10,16 @@ describe('content loader', () => {
     // A locale without content (no site language is "xx") falls back to the
     // English file.
     expect(loadDoc('xx', 'getting-started')?.translated).toBe(false);
+  });
+
+  it('names the locales a page is written in and the file each one reads', () => {
+    // The imprint is in English and German; every other locale shows the
+    // English text, which the sitemap and hreflang leave out.
+    expect(translatedLocales('legal', 'imprint')).toEqual(['en', 'de']);
+    expect(translatedLocales('docs', 'getting-started')).toContain('en');
+    expect(contentFile('de', 'docs', 'getting-started')).toBe('content/de/docs/getting-started.md');
+    expect(contentFile('xx', 'docs', 'getting-started')).toBe('content/en/docs/getting-started.md');
+    expect(contentFile('en', 'docs', 'no-such-page')).toBeNull();
   });
 
   it('refuses anything that is not a plain slug', () => {

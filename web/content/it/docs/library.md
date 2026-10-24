@@ -6,7 +6,7 @@ order: 10
 
 La scheda Libreria contiene tutto quello che hai conservato: i percorsi che hai pianificato e i giri che hai registrato. È un pannello sopra la mappa, come le schede Pianifica e Registra: il suo contenuto scorre a qualsiasi altezza, e la maniglia in alto lo sposta; quando non c'è nulla da scorrere, si muove tutto il pannello. Tiralo su per avere più spazio, tiralo giù fino in fondo e il pannello si ripiega nella barra di navigazione, lasciando la mappa. Vieni qui per riaprire un percorso, leggere i grafici e i parziali di un giro, e far entrare e uscire i file.
 
-Tutto quello che c'è nella libreria sta sul telefono. Non c'è alcun account. Su un iPhone o un iPad può essere sincronizzato tra i tuoi dispositivi tramite iCloud, vedi più sotto [sincronizzazione con iCloud](#sincronizzazione-con-icloud-iphone-e-ipad).
+Tutto quello che c'è nella libreria sta sul telefono. Non c'è alcun account. Può essere sincronizzato tra i tuoi dispositivi tramite il tuo iCloud o il tuo Google Drive, vedi più sotto [sincronizzazione con iCloud o Google Drive](#sincronizzazione-con-icloud-o-google-drive).
 
 ## Percorsi e giri
 
@@ -114,13 +114,15 @@ I due pulsanti a destra dell'intestazione del pannello:
 
 Entrambi sono descritti in [importazione ed esportazione](./import-and-export) e [Strava e Ride with GPS](./strava-and-ridewithgps).
 
-## Sincronizzazione con iCloud (iPhone e iPad)
+## Sincronizzazione con iCloud o Google Drive
 
-Su un iPhone o un iPad con iOS 17 o successivo, i tuoi percorsi salvati e i tuoi giri registrati, con traccia, note e cifre di ogni giro, vengono sincronizzati tra i tuoi dispositivi collegati allo stesso Apple Account, tramite il tuo iCloud. Con loro viaggiano poche impostazioni: tema, colore d'accento, aspetto della mappa, stile della barra, lato della colonna, unità e le impostazioni degli annunci di svolta e vocali. Velorki non gestisce alcun server per questo e non può leggere ciò che è salvato; vedi l'[informativa sulla privacy](/privacy).
+I tuoi percorsi salvati e i tuoi giri registrati, con traccia, note, cifre, lap e letture dei sensori di ogni giro, possono essere sincronizzati tra i tuoi dispositivi tramite il tuo cloud. **Opzioni → Sincronizza con** ne sceglie uno per dispositivo: **iCloud** (iPhone e iPad con iOS 17 o successivo, e il pianificatore nel browser), **Google** (iPhone, iPad, Android e il browser) o **Disattivato**. Su un iPhone o un iPad iCloud è attivo per impostazione predefinita; su Android e nel browser la sincronizzazione resta disattivata finché non scegli un cloud. Google conserva i dati in una cartella nascosta di Velorki nel tuo Google Drive; Velorki può aprire quella cartella e nient'altro nel tuo Drive.
 
-È attiva per impostazione predefinita. **Sincronizza con iCloud** in Impostazioni la disattiva su quel dispositivo; ciò che è già in iCloud resta lì finché non lo elimini nelle impostazioni iCloud del dispositivo. Una riga di stato in Impostazioni dice a che punto è: **Sincronizzato proprio ora**, **Sincronizzazione…**, **iCloud è disattivato su questo dispositivo** o **Lo spazio iCloud è pieno**.
+Con loro viaggiano poche impostazioni: tema, colore d'accento, aspetto della mappa, aspetto del radar della pioggia, stile della barra, lato della colonna, unità e le impostazioni di svolta, vocali e di ricalcolo del percorso. Nel browser con iCloud, le impostazioni restano nel browser. Velorki non gestisce alcun server per questo e non può leggere ciò che è salvato; vedi l'[informativa sulla privacy](/privacy).
 
-I percorsi letti da Strava e i percorsi modificati a partire da essi restano sul telefono, così come i link Strava dei giri; neppure i link dei caricamenti su Ride with GPS vengono sincronizzati. Le mappe scaricate e i riquadri di routing non vengono sincronizzati. L'app Android non sincronizza.
+Eliminare un percorso o un giro lo elimina anche sugli altri tuoi dispositivi. Scegliere **Disattivato**, uscire dall'account o passare all'altro cloud non elimina nulla: ciò che è già in iCloud resta lì finché non lo elimini nelle impostazioni iCloud di un dispositivo Apple, e ciò che è in Google Drive resta lì finché non lo elimini in Google Drive sul web, in Impostazioni → Gestisci app → Velorki → Opzioni → Elimina dati app nascosti. Una riga di stato in Opzioni dice a che punto è, per esempio **Sincronizzato ora**, **Sincronizzazione…**, **Lo spazio di iCloud è pieno** o **Accesso a Google non effettuato**.
+
+I percorsi letti da Strava e i percorsi modificati a partire da essi restano sul telefono, così come i link Strava dei giri; neppure i link dei caricamenti su Ride with GPS vengono sincronizzati. Le mappe scaricate e i riquadri di routing non vengono sincronizzati.
 
 ## Vedi anche
 

@@ -1,4 +1,6 @@
-Velorki plans bike routes, guides you along them and records your rides. Its routing is made for bikes and runs on your phone, offline too, and the whole app is open source. Every route is made for you: for your bike, your distance and the place you are standing right now.
+Velorki plans bike routes, guides you along them and records your rides, all on your phone and offline too: planning, routing, search, navigation and recording. No account, no sign-up.
+
+Your routes and rides stay with you: on your phone, or synced through your own Google Drive, never through our servers. The code is public, so anyone can check that. Export them as GPX, FIT or TCX anytime.
 
 PLANNING
 • Tap waypoints on the map and get a route for the bike you are on: touring, road, gravel, mountain bike, or the direct way.
@@ -6,6 +8,7 @@ PLANNING
 • Alternative routes, an elevation profile and a breakdown of the surfaces you will ride on.
 • Colour the route by gradient, surface, wind or rain.
 • Search places offline, save routes to your library, and download a region once to plan, search and navigate there without a connection.
+• Plan in the browser at app.velorki.com, signed in to the same Google account: your library is there, and Plus if you have it.
 
 MAP AND WEATHER
 • A cycle map drawn from the routing data, offline: bike paths and lanes, one-way streets, steps and climbs.
@@ -24,11 +27,11 @@ RECORDING
 • Each ride gets a page with its map, charts and splits.
 
 FILES AND CONNECTIONS
-• Open GPX, FIT and TCX files from your files app, mail, a browser or the share sheet; export routes and rides as GPX or FIT.
+• Open GPX, FIT and TCX files from your files app, mail, a browser or the share sheet; export routes and rides as GPX, FIT or TCX.
 • Connect two popular route and ride platforms to upload your rides and bring your routes in. Free.
 
 FREE, AND VELORKI PLUS
-Everything the phone can do on its own is free: planning, loops, navigation, recording, the weather map, the weather along the route, offline regions, sensors, files and the connections.
+Everything the phone can do on its own is free, and so is sync.
 
 Velorki Plus is a subscription for what needs our servers:
 • Finer weather: radar across Europe from the national weather services, and a sharper forecast along the route.
@@ -39,7 +42,7 @@ Velorki Plus is offered with a free trial on the yearly plan and renews until yo
 Terms: https://velorki.com/terms
 
 PRIVACY
-There is no account and no sign-up. Routes, rides and settings stay on your phone. Nothing goes to another platform until you connect the account and ask for it. The assistant asks for your consent before any text leaves the device, and the position it sends is rounded to about a kilometre.
+No ads, no analytics. Nothing goes to another platform until you connect the account and ask for it. The assistant asks for your consent before any text leaves the device, and the position it sends is rounded to about a kilometre.
 Privacy policy: https://velorki.com/privacy
 
 Map data © OpenStreetMap contributors.

@@ -5,13 +5,31 @@ import 'package:logging/logging.dart';
 
 import '../../../core/db/database.dart';
 import '../../../core/db/daos/sync_dao.dart';
-import '../data/cloud_sync_bridge.dart';
 import '../data/record_codec.dart';
+import '../data/sync_backend.dart';
 import '../domain/cloud_record.dart';
 
+/// Logs record names and decisions only, never a route's or ride's
+/// content; `initLogging` sends it to the device log in release builds.
 final Logger _log = Logger('velorki.sync.library');
 
-/// Keeps the routes and rides in step with the rider's iCloud.
+/// What became of one record from iCloud.
+enum _Applied {
+  /// Written here.
+  written,
+
+  /// The very change this device has; only the server's tag was kept.
+  sameChange,
+
+  /// The change here is newer and goes over the server's copy.
+  localWins,
+
+  /// The record could not be read (no body, no line, a name not known).
+  unreadable,
+}
+
+/// Keeps the routes and rides in step with the rider's cloud through a
+/// [SyncBackend] ("iCloud" below stands for whichever one it is).
 ///
 /// Local changes are found in `sync_records` (the triggers write it) and
 /// handed to the engine by record name; the engine asks for the records
@@ -26,11 +44,28 @@ final Logger _log = Logger('velorki.sync.library');
 /// was on iCloud before it became Strava's (which no path does today) is
 /// deleted there.
 class LibrarySync {
-  /// Creates the sync over [db], sending through [bridge].
-  LibrarySync({required this._db, required this._bridge, required this._codec});
+  /// Creates the sync over [db], sending through [backend].
+  LibrarySync({
+    required this._db,
+    required this._backend,
+    required this._codec,
+    this.recordTimeout = const Duration(seconds: 60),
+    this.openTimeout = const Duration(minutes: 3),
+  });
+
+  /// The longest the database may take to answer at all before the first
+  /// record: a browser's first visit creates it in the origin private file
+  /// system, which on a busy machine took over a minute.
+  final Duration openTimeout;
+
+  /// The longest one record from the cloud may take to be read and
+  /// written. One that takes longer (a database that does not answer)
+  /// ends the round with [RemoteApplyStalled]: the engine says so, and the
+  /// next round brings what was left again.
+  final Duration recordTimeout;
 
   final VelorkiDatabase _db;
-  final CloudSyncBridge _bridge;
+  final SyncBackend _backend;
   final RecordCodec _codec;
 
   SyncDao get _sync => _db.syncDao;
@@ -46,12 +81,17 @@ class LibrarySync {
 
   /// Starts watching for local changes, and sends what is waiting.
   void start() {
-    _dirtyWatch ??= _sync.watchDirtyCount().listen((count) {
-      if (count == 0) return;
-      // A burst of writes (an import, a save with its legs) is sent once.
-      _debounce?.cancel();
-      _debounce = Timer(const Duration(seconds: 2), () => unawaited(push()));
-    });
+    _dirtyWatch ??= _sync.watchDirtyCount().listen(
+      (count) {
+        if (count == 0) return;
+        // A burst of writes (an import, a save with its legs) is sent once.
+        _debounce?.cancel();
+        _debounce = Timer(const Duration(seconds: 2), () => _pushQuietly());
+      },
+      onError: (Object e, StackTrace st) {
+        _log.warning('no watch on the changes here: $e', e, st);
+      },
+    );
   }
 
   /// Stops watching. What is waiting stays marked for the next [start].
@@ -73,10 +113,18 @@ class LibrarySync {
       _pushing = null;
       if (_pushAgain) {
         _pushAgain = false;
-        unawaited(push());
+        _pushQuietly();
       }
     });
   }
+
+  /// [push] on its own: a failure (a database that does not answer) is
+  /// logged, and what waits goes with the next push.
+  void _pushQuietly() => unawaited(
+    push().catchError((Object e, StackTrace st) {
+      _log.warning('push failed: $e', e, st);
+    }),
+  );
 
   Future<void> _push() async {
     final dirty = await _sync.dirtyRecords();
@@ -103,7 +151,10 @@ class LibrarySync {
         saves.add(name);
       }
     }
-    await _bridge.enqueue(saves: saves, deletes: deletes);
+    if (saves.isNotEmpty || deletes.isNotEmpty) {
+      _log.info('enqueue saves=$saves deletes=$deletes');
+    }
+    await _backend.enqueue(saves: saves, deletes: deletes);
   }
 
   /// The records named [names], ready to be saved.
@@ -115,19 +166,30 @@ class LibrarySync {
       if (parsed == null) continue;
       final (kind, id) = parsed;
       final sync = await _sync.record(kind.column, id);
-      if (sync == null || sync.deleted) continue;
+      if (sync == null || sync.deleted) {
+        _log.info(
+          'not handed out $name: ${sync == null ? 'no row' : 'deleted'}',
+        );
+        continue;
+      }
       try {
         final record = switch (kind) {
           SyncKind.route => await _routeRecord(id, sync, strava),
           SyncKind.ride => await _rideRecord(id, sync, strava),
         };
-        if (record == null) continue;
+        if (record == null) {
+          _log.info('not handed out $name: gone or Strava');
+          continue;
+        }
         _handedOut[name] = sync.version;
         out.add(record);
       } on Object catch (e, st) {
         _log.warning('could not encode $name', e, st);
       }
     }
+    _log.info(
+      'handed out ${[for (final r in out) '${r.name}@${_handedOut[r.name]}']}',
+    );
     return out;
   }
 
@@ -175,12 +237,34 @@ class LibrarySync {
     final rides = modifications.where(
       (r) => parseRecordName(r.name)?.$1 == SyncKind.ride,
     );
+    final open = Stopwatch()..start();
+    try {
+      await _sync.record('', '').timeout(openTimeout);
+    } on TimeoutException {
+      _log.warning(
+        'the database did not answer in ${openTimeout.inSeconds} s: '
+        'nothing applied, the round stops',
+      );
+      throw const RemoteApplyStalled('database');
+    }
+    if (open.elapsed > const Duration(seconds: 2)) {
+      _log.info('the database answered after ${open.elapsed.inSeconds} s');
+    }
     for (final record in [...routes, ...rides]) {
+      final _Applied applied;
       try {
-        await _applyRecord(record);
+        applied = await _applyRecord(record).timeout(recordTimeout);
+      } on TimeoutException {
+        _log.warning(
+          'could not apply ${record.name}: no answer after '
+          '${recordTimeout.inSeconds} s, the round stops',
+        );
+        throw RemoteApplyStalled(record.name);
       } on Object catch (e, st) {
-        _log.warning('could not apply ${record.name}', e, st);
+        _log.warning('could not apply ${record.name}: $e', e, st);
+        continue;
       }
+      _log.info('remote ${record.name}: ${applied.name}');
     }
     for (final name in deletions) {
       try {
@@ -196,10 +280,10 @@ class LibrarySync {
   static bool _localWins(SyncRecordRow? sync, int remoteMs) =>
       sync != null && sync.dirty && sync.changedAtMs > remoteMs;
 
-  /// Applies one record from iCloud; true when it was written.
-  Future<bool> _applyRecord(CloudRecord record) async {
+  /// Applies one record from iCloud.
+  Future<_Applied> _applyRecord(CloudRecord record) async {
     final parsed = parseRecordName(record.name);
-    if (parsed == null) return false;
+    if (parsed == null) return _Applied.unreadable;
     final (kind, id) = parsed;
     final remoteMs = RecordCodec.modifiedAtOf(record);
     final sync = await _sync.record(kind.column, id);
@@ -213,19 +297,21 @@ class LibrarySync {
       if (record.systemFields != null) {
         await _sync.setSystemFields(kind.column, id, record.systemFields!);
       }
-      return true;
+      return _Applied.sameChange;
     }
     if (_localWins(sync, remoteMs)) {
       // Ours is newer and goes over the server's copy on the next save.
       if (record.systemFields != null) {
         await _sync.setSystemFields(kind.column, id, record.systemFields!);
       }
-      return false;
+      return _Applied.localWins;
     }
     switch (kind) {
       case SyncKind.route:
+        _log.info('apply ${record.name}: decoding');
         final decoded = await _codec.decodeRoute(record);
-        if (decoded == null) return false;
+        if (decoded == null) return _Applied.unreadable;
+        _log.info('apply ${record.name}: writing');
         await _db.transaction(() async {
           await _writeRoute(decoded.row);
           await _sync.markApplied(
@@ -237,8 +323,10 @@ class LibrarySync {
           await _linkWaitingRides(id);
         });
       case SyncKind.ride:
+        _log.info('apply ${record.name}: decoding');
         final decoded = await _codec.decodeRide(record);
-        if (decoded == null) return false;
+        if (decoded == null) return _Applied.unreadable;
+        _log.info('apply ${record.name}: writing');
         await _db.transaction(() async {
           final pending = await _writeRide(decoded.row);
           await _sync.markApplied(
@@ -250,7 +338,7 @@ class LibrarySync {
           );
         });
     }
-    return true;
+    return _Applied.written;
   }
 
   Future<void> _writeRoute(RoutesCompanion row) async {
@@ -320,15 +408,18 @@ class LibrarySync {
     if (kind == SyncKind.route && (await _sync.stravaRouteIds()).contains(id)) {
       // Taken off iCloud because it is Strava's (this device's own delete
       // coming back): it stays here.
+      _log.info('remote delete $name: kept, Strava');
       await _sync.clearSystemFields(kind.column, id);
       return;
     }
     final sync = await _sync.record(kind.column, id);
     if (sync != null && sync.dirty && !sync.deleted) {
       // Changed here since: it comes back, as a new record.
+      _log.info('remote delete $name: kept, changed here');
       await _sync.clearSystemFields(kind.column, id);
       return;
     }
+    _log.info('remote delete $name: deleted');
     await _db.transaction(() async {
       switch (kind) {
         case SyncKind.route:
@@ -344,16 +435,29 @@ class LibrarySync {
   /// What the engine reports of a round of sending.
   Future<void> sent(SentChanges changes) async {
     final again = <String>[];
+    var fetch = false;
     for (final MapEntry(key: name, value: systemFields)
         in changes.saved.entries) {
       final parsed = parseRecordName(name);
       if (parsed == null) continue;
+      final (kind, id) = parsed;
+      final version = _handedOut.remove(name);
       await _sync.markSaved(
-        parsed.$1.column,
-        parsed.$2,
+        kind.column,
+        id,
         systemFields: systemFields,
-        version: _handedOut.remove(name),
+        version: version,
       );
+      final after = await _sync.record(kind.column, id);
+      if (after != null && after.dirty && !after.deleted) {
+        // Changed again while it was on its way (or handed out before a
+        // restart): the engine has let go of the name, so it is asked for
+        // once more, now over the tag just saved.
+        _log.info('saved $name@$version, changed since: again');
+        again.add(name);
+      } else {
+        _log.info('saved $name@$version');
+      }
     }
     for (final failed in changes.failedSaves) {
       final parsed = parseRecordName(failed.name);
@@ -365,10 +469,26 @@ class LibrarySync {
           final server = failed.serverRecord;
           // The newer of the two stays: the server's is written here, or
           // ours goes again over the server's change tag.
-          if (server == null || !await _applyRecord(server)) {
-            again.add(failed.name);
+          final applied = server == null
+              ? _Applied.unreadable
+              : await _applyRecord(server);
+          _log.info('conflict on ${failed.name}: ${applied.name}');
+          switch (applied) {
+            case _Applied.written:
+            case _Applied.sameChange:
+              break;
+            case _Applied.localWins:
+              again.add(failed.name);
+            case _Applied.unreadable:
+              // Without the server's copy whole there is no telling which
+              // change is newer, and ours sent again over the same stale
+              // tag would only be refused again: the fetch brings the
+              // server's copy and decides, and what is left marked here is
+              // sent on the next push.
+              fetch = true;
           }
         case SaveFailure.unknownItem:
+          _log.info('save of ${failed.name} failed: not on the server, as new');
           await _sync.clearSystemFields(kind.column, id);
           again.add(failed.name);
         case SaveFailure.retrying:
@@ -384,12 +504,20 @@ class LibrarySync {
       final parsed = parseRecordName(name);
       if (parsed == null) continue;
       final (kind, id) = parsed;
+      _log.info('deleted $name');
       await _sync.markDeleted(kind.column, id);
       if (kind == SyncKind.route && strava.contains(id)) {
         await _sync.markClean(kind.column, id);
       }
     }
-    if (again.isNotEmpty) await _bridge.enqueue(saves: again);
+    for (final name in changes.failedDeletes) {
+      _log.info('delete of $name failed');
+    }
+    if (again.isNotEmpty) {
+      _log.info('enqueue again saves=$again');
+      await _backend.enqueue(saves: again);
+    }
+    if (fetch) await _backend.fetchNow();
   }
 
   /// Starts over: everything here is sent as new, tombstones forgotten.
@@ -399,6 +527,20 @@ class LibrarySync {
     _handedOut.clear();
     await _sync.resetAll();
   }
+}
+
+/// A record from the cloud that was not written in
+/// [LibrarySync.recordTimeout], or a database that did not answer in
+/// [LibrarySync.openTimeout].
+class RemoteApplyStalled implements Exception {
+  /// Creates the failure.
+  const RemoteApplyStalled(this.name);
+
+  /// The record's name, or `database`.
+  final String name;
+
+  @override
+  String toString() => 'RemoteApplyStalled($name)';
 }
 
 bool _sameBytes(List<int> a, List<int> b) {

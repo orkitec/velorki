@@ -1,16 +1,18 @@
-Velorki planifie vos itinéraires vélo, vous guide et enregistre vos sorties. Son calcul d’itinéraire, pensé pour le vélo, tourne sur votre iPhone, même hors ligne, et toute l’app est open source. Chaque itinéraire est fait pour vous : votre vélo, votre distance, votre position.
+Velorki planifie vos itinéraires vélo, vous guide et enregistre vos sorties, tout sur votre iPhone et même hors ligne : planification, calcul d’itinéraire, recherche, navigation et enregistrement. Pas de compte, pas d’inscription.
+
+Vos itinéraires et sorties restent chez vous : sur votre iPhone, ou synchronisés via votre propre iCloud ou Google Drive, jamais par nos serveurs. Le code est public, chacun peut donc le vérifier. Exportez-les en GPX, FIT ou TCX à tout moment.
 
 PLANIFICATION
 • Touchez des points sur la carte pour un itinéraire adapté à votre vélo : randonnée, route, gravel, VTT ou direct.
 • Boucles depuis chez vous : indiquez la distance et, si vous voulez, un lieu de passage ; Velorki propose des boucles qui reviennent au départ.
-• Variantes, profil altimétrique et revêtements traversés.
-• Itinéraire coloré selon pente, revêtement, vent ou pluie.
-• Recherche hors ligne, bibliothèque d’itinéraires, région téléchargée une fois pour planifier, chercher et naviguer sans connexion.
+• Variantes, profil altimétrique et revêtements ; itinéraire coloré selon pente, revêtement, vent ou pluie.
+• Recherche, bibliothèque d’itinéraires, régions téléchargées pour tout utiliser sans connexion.
+• Planifiez dans le navigateur sur app.velorki.com avec le même compte iCloud ou Google : votre bibliothèque y est, et Plus si vous l’avez.
 
 CARTE ET MÉTÉO
-• Carte vélo hors ligne issue des données d’itinéraire : pistes et bandes cyclables, sens uniques, escaliers, montées.
-• Haltes sur la carte : eau, cafés, boulangeries, toilettes, réparation de vélos et plus, aussi sur votre parcours.
-• Radar de pluie, vent et nuages sur la carte, curseur temporel vers les prochaines heures.
+• Carte vélo hors ligne : pistes et bandes cyclables, sens uniques, escaliers, montées.
+• Haltes sur la carte : eau, cafés, toilettes, réparation de vélos et plus, aussi sur votre parcours.
+• Radar de pluie, vent et nuages sur la carte, curseur vers les prochaines heures.
 • Vent et pluie le long du parcours pour votre heure de départ.
 
 NAVIGATION
@@ -19,17 +21,17 @@ NAVIGATION
 
 ENREGISTREMENT
 • Enregistre écran éteint, avec pause automatique, et affiche la sortie sur l’écran verrouillé et la Dynamic Island.
-• Choisissez vos données en roulant : distance, vitesse, temps, montée, fréquence cardiaque, cadence, puissance, reste du parcours.
+• Choisissez vos données en roulant : vitesse, fréquence cardiaque, puissance, reste du parcours et plus.
 • Fréquence cardiaque via Apple Watch, capteurs Bluetooth et Apple Santé ; capteurs de vitesse, cadence, puissance aussi.
 • L’app Velorki sur Apple Watch démarre, met en pause et termine la sortie au poignet.
 • Chaque sortie a sa page : carte, courbes, tronçons.
 
 FICHIERS ET CONNEXIONS
-• Ouvrez des fichiers GPX, FIT et TCX depuis Fichiers, Mail, Safari ou le partage ; exportez itinéraires et sorties en GPX/FIT.
+• Ouvrez et exportez des fichiers GPX, FIT et TCX.
 • Deux plateformes populaires d’itinéraires et de sorties à connecter : envoi des sorties, import des itinéraires. Gratuit.
 
 GRATUIT, ET VELORKI PLUS
-Tout ce que le téléphone fait seul est gratuit : planification, boucles, navigation, enregistrement, carte météo, météo sur le parcours, régions hors ligne, capteurs, fichiers, connexions.
+Tout ce que le téléphone fait seul est gratuit, la synchronisation aussi.
 
 Velorki Plus est un abonnement pour ce qui a besoin de nos serveurs :
 • Météo plus fine : radar sur toute l’Europe des services nationaux, prévision précise sur le parcours.
@@ -42,7 +44,7 @@ Conditions d’utilisation : https://velorki.com/fr/terms
 Politique de confidentialité : https://velorki.com/fr/privacy
 
 CONFIDENTIALITÉ
-Pas de compte, pas d’inscription. Itinéraires, sorties et réglages restent sur votre iPhone. L’assistant demande votre accord avant qu’un texte ne quitte l’appareil, et la position qu’il envoie est arrondie à environ un kilomètre.
+Pas de publicité, pas de mesure d’audience. L’assistant demande votre accord avant qu’un texte ne quitte l’appareil, et la position qu’il envoie est arrondie à environ un kilomètre.
 
 UTILISATION CONTINUE DU GPS
 L’utilisation continue du GPS en arrière-plan peut réduire considérablement l’autonomie de la batterie. Velorki ne garde le GPS actif que pendant l’enregistrement ou la navigation.

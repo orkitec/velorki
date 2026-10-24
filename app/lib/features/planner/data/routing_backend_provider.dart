@@ -37,9 +37,7 @@ part 'routing_backend_provider.g.dart';
 @Riverpod(keepAlive: true)
 RoutingBackend? routingBackend(Ref ref) {
   final config = ref.watch(effectiveConfigProvider);
-  final preference = ref.watch(platformFeaturesProvider).routingServer
-      ? ref.watch(routingPreferenceSettingProvider)
-      : RoutingPreference.onDeviceOnly;
+  final preference = _preference(ref, config);
 
   final onDevice = preference.allowsLocal
       ? ref.watch(onDeviceRoutingProvider).value
@@ -83,6 +81,49 @@ RoutingBackend? routingBackend(Ref ref) {
     // would only ever refuse a good one. The version is recorded per tile so
     // the check can be switched on in R5.
   );
+}
+
+/// The rider's routing preference as far as this build can follow it: on
+/// the device only where the platform asks no server (the browser), and
+/// never "server only" without a server to ask.
+RoutingPreference _preference(Ref ref, AppConfig config) {
+  if (!ref.watch(platformFeaturesProvider).routingServer) {
+    return RoutingPreference.onDeviceOnly;
+  }
+  final chosen = ref.watch(routingPreferenceSettingProvider);
+  return chosen == RoutingPreference.serverOnly && config.brouterUrl.isEmpty
+      ? RoutingPreference.auto
+      : chosen;
+}
+
+/// Where routing stands, for the planner to say why it cannot route.
+enum RoutingAvailability {
+  /// Something can route ([routingBackend] is there).
+  ready,
+
+  /// On-device routing is still starting (the profiles are copied, the
+  /// tile table read): nothing to say yet.
+  loading,
+
+  /// On-device routing could not start; the reason is in the log.
+  failed,
+
+  /// Nothing to route on: no routing server, no tile mirror to download
+  /// map data from, and none downloaded (a fork or CI build).
+  noData,
+}
+
+/// [RoutingAvailability] now.
+@Riverpod(keepAlive: true)
+RoutingAvailability routingAvailability(Ref ref) {
+  if (ref.watch(routingBackendProvider) != null) {
+    return RoutingAvailability.ready;
+  }
+  final onDevice = ref.watch(onDeviceRoutingProvider);
+  if (onDevice.hasValue) return RoutingAvailability.noData;
+  return onDevice.hasError
+      ? RoutingAvailability.failed
+      : RoutingAvailability.loading;
 }
 
 /// Whether routes may be computed on the device right now.

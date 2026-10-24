@@ -17,9 +17,9 @@ Alles wat je maakt en alles wat je downloadt:
 - de toegangstokens voor Strava en Ride with GPS als je die koppelt, die in de beveiligde opslag van de telefoon gaan in een vorm die alleen de Velorki-relay kan openen, en buiten back-ups worden gehouden.
 - wat je van Strava neemt: je Strava-naam, de lijst met je Strava-routes gedurende hooguit 48 uur, de routes die je importeert en de koppelingen van geüploade ritten naar hun Strava-activiteiten. Ontkoppelen verwijdert dat allemaal.
 
-Niets daarvan wordt ergens heen geüpload, tenzij je erom vraagt. De enige uitzondering is iCloud-synchronisatie op een iPhone of iPad (iOS 17 of nieuwer): je routes, ritten en een paar instellingen gaan naar je eigen iCloud, nooit naar ons, en Strava-gegevens blijven op de telefoon. Het staat standaard aan en gaat uit in Instellingen, zie [de bibliotheek](./library).
+Niets daarvan wordt ergens heen geüpload, tenzij je erom vraagt. De enige uitzondering is cloudsynchronisatie: je routes, ritten en een paar instellingen gaan naar je eigen iCloud of je eigen Google Drive, nooit naar ons, en Strava-gegevens blijven op de telefoon. Op een iPhone of iPad staat iCloud standaard aan; op Android staat synchronisatie uit totdat je een cloud kiest. **Instellingen → Synchroniseren met** kiest de cloud of zet synchronisatie uit, zie [de bibliotheek](./library#synchroniseren-met-icloud-of-google-drive).
 
-Op Android is Velorki bewust uitgesloten van de cloudback-up van Google en van overzetten van apparaat naar apparaat, dus ook het systeem kopieert je ritten niet van de telefoon af. Overstappen op een nieuwe telefoon betekent wat je wilt houden exporteren als GPX-, FIT- of TCX-bestanden, zie [importeren en exporteren](./import-and-export).
+Op Android is Velorki bewust uitgesloten van de cloudback-up van Google en van overzetten van apparaat naar apparaat, dus ook het systeem kopieert je ritten niet van de telefoon af. Om over te stappen op een nieuwe telefoon zet je synchronisatie met Google aan, of exporteer je wat je wilt houden als GPX-, FIT- of TCX-bestanden, zie [importeren en exporteren](./import-and-export).
 
 ## Wat de telefoon verlaat, en wanneer
 
@@ -67,7 +67,7 @@ Die route of rit, met track, naam en waarden, wordt naar onze server gekopieerd 
 
 ### Als je Velorki Plus koopt
 
-De store regelt de betaling en wij zien je kaart nooit. Het abonnement wordt gecontroleerd tegen een anonieme willekeurige id die niet gekoppeld is aan een naam, een e-mailadres of een apparaat-id.
+De store regelt de betaling en wij zien je kaart nooit. Het abonnement wordt gecontroleerd tegen een anonieme willekeurige id die niet gekoppeld is aan een naam, een e-mailadres of een apparaat-id. Met synchronisatie aan zet de app die id ook in je eigen cloud, zodat de planner in de browser, aangemeld bij hetzelfde account, je Plus kan gebruiken.
 
 ## Wat Velorki nooit doet
 
@@ -81,7 +81,7 @@ De store regelt de betaling en wij zien je kaart nooit. Het abonnement wordt gec
 
 | Wat | Hoe |
 |---|---|
-| Een route of een rit | verwijder hem in de [bibliotheek](./library) |
+| Een route of een rit | verwijder hem in de [bibliotheek](./library); met synchronisatie aan verdwijnt hij ook uit je cloud en van je andere apparaten |
 | Offline kaartgebieden en routeringstegels | verwijder ze in [offline gegevens](./offline-maps-and-routing) |
 | Een token voor Strava of Ride with GPS, en alles van Strava | **Ontkoppelen** in Instellingen → Koppelingen |
 | Alles wat de app heeft opgeslagen | verwijder de app |

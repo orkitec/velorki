@@ -118,6 +118,24 @@ void main() {
     await unmountApp(tester);
   });
 
+  testWidgets('the delete snack bar goes away by itself', (tester) async {
+    final h = PlannerHarness();
+    await _seed(h);
+    await pumpApp(tester, harness: h);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.commonDelete));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.libraryRouteDeleted('Isar loop')), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 10));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.libraryRouteDeleted('Isar loop')), findsNothing);
+    await unmountApp(tester);
+  });
+
   testWidgets('swiping a row away deletes it', (tester) async {
     final h = PlannerHarness();
     await _seed(h);

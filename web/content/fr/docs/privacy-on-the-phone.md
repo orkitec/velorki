@@ -17,9 +17,9 @@ Tout ce que vous créez et tout ce que vous téléchargez :
 - les jetons d’accès à Strava et Ride with GPS si vous les connectez, qui vont dans le stockage sécurisé du téléphone sous une forme que seul le relais Velorki peut ouvrir, et sont exclus des sauvegardes,
 - ce que vous récupérez de Strava : votre nom Strava, la liste de vos itinéraires Strava pendant 48 heures au plus, les itinéraires que vous importez et les liens entre les sorties téléversées et leurs activités Strava. La déconnexion supprime tout cela.
 
-Rien de tout cela n’est téléversé où que ce soit sans que vous le demandiez. La seule exception est la synchronisation iCloud sur un iPhone ou un iPad (iOS 17 ou plus récent) : vos itinéraires, vos sorties et quelques réglages vont dans votre propre iCloud, jamais chez nous, et les données Strava restent sur le téléphone. Elle est activée par défaut et se désactive dans les Réglages, voir [la bibliothèque](./library).
+Rien de tout cela n’est téléversé où que ce soit sans que vous le demandiez. La seule exception est la synchronisation dans le cloud : vos itinéraires, vos sorties et quelques réglages vont dans votre propre iCloud ou votre propre Google Drive, jamais chez nous, et les données Strava restent sur le téléphone. Sur un iPhone ou un iPad, iCloud est activé par défaut ; sur Android, la synchronisation est désactivée tant que vous ne choisissez pas de cloud. **Réglages → Synchroniser avec** choisit le cloud ou désactive la synchronisation, voir [la bibliothèque](./library#synchronisation-avec-icloud-ou-google-drive).
 
-Sur Android, Velorki est volontairement exclu de la sauvegarde cloud de Google et du transfert d’appareil à appareil : vos sorties ne sont donc pas non plus copiées hors du téléphone par le système. Pour passer à un nouveau téléphone, exportez ce que vous voulez garder en fichiers GPX, FIT ou TCX, voir [import et export](./import-and-export).
+Sur Android, Velorki est volontairement exclu de la sauvegarde cloud de Google et du transfert d’appareil à appareil : vos sorties ne sont donc pas non plus copiées hors du téléphone par le système. Pour passer à un nouveau téléphone, activez la synchronisation avec Google, ou exportez ce que vous voulez garder en fichiers GPX, FIT ou TCX, voir [import et export](./import-and-export).
 
 ## Ce qui quitte le téléphone, et quand
 
@@ -67,7 +67,7 @@ Cet itinéraire ou cette sortie, avec sa trace, son nom et ses chiffres, est cop
 
 ### Quand vous achetez Velorki Plus
 
-Le store gère le paiement et nous ne voyons jamais votre carte. L’abonnement est vérifié à l’aide d’un identifiant aléatoire anonyme qui n’est lié ni à un nom, ni à une adresse e-mail, ni à un identifiant d’appareil.
+Le store gère le paiement et nous ne voyons jamais votre carte. L’abonnement est vérifié à l’aide d’un identifiant aléatoire anonyme qui n’est lié ni à un nom, ni à une adresse e-mail, ni à un identifiant d’appareil. Si la synchronisation est activée, l’app place aussi cet identifiant dans votre propre cloud, pour que le planificateur dans le navigateur, connecté au même compte, puisse utiliser votre Plus.
 
 ## Ce que Velorki ne fait jamais
 
@@ -81,7 +81,7 @@ Le store gère le paiement et nous ne voyons jamais votre carte. L’abonnement 
 
 | Quoi | Comment |
 |---|---|
-| Un itinéraire ou une sortie | supprimez-le dans la [bibliothèque](./library) |
+| Un itinéraire ou une sortie | supprimez-le dans la [bibliothèque](./library) ; si la synchronisation est activée, il disparaît aussi de votre cloud et de vos autres appareils |
 | Zones de carte hors ligne et tuiles de routage | supprimez-les dans les [données hors ligne](./offline-maps-and-routing) |
 | Un jeton Strava ou Ride with GPS, et tout ce qui vient de Strava | **Déconnecter** dans Réglages → Connexions |
 | Tout ce que l’app a stocké | désinstallez l’app |

@@ -601,6 +601,29 @@ An *environment* secret, not a repository one: only a job that declares
 `production` branch so no other ref can spend the key, and add the maintainer as
 a required reviewer if a release should wait for an approval in the Actions tab.
 
+A first job, `prices`, runs in the **`release`** environment with the store
+keys the app release uses (`ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_BASE64`,
+`PLAY_SERVICE_ACCOUNT_JSON`): `web/scripts/prices-stores.mjs` reads the Plus
+prices per country from App Store Connect and the Play Developer API, and the
+deploy job builds with that file in place of the committed
+`web/src/site/prices.json`. It waits for `release`'s reviewer like a release
+does, and `release` must allow the `production` branch. A missing secret, a
+refused key (a 403 names the permission) or a rejected approval only leaves the
+committed prices in place; the deploy goes ahead. `node scripts/prices-public.mjs`
+refills the committed file from the public store pages.
+
+**Play prices to the App Store's.** Actions → *play prices* → Run workflow
+(`play-prices.yml`, a RELEASE_ACTORS login, approved in `release`) runs
+`web/scripts/prices-match-play.mjs`: each Play region of `plus_monthly:monthly`
+and `plus_yearly:yearly` whose currency is the App Store's there gets Apple's
+price (from App Store Connect, or the committed `prices.json` if ASC is
+unavailable); other regions stay as they are. Unticked it is a dry run, the
+table in the run summary; with `apply` it patches the base plans. New prices
+reach new subscribers only (nothing calls `migratePrices`). The service
+account needs **Manage store presence** for the app in Play Console → Users
+and permissions. `node scripts/prices-match-play.mjs --offline` shows the
+table locally from `prices.json` alone.
+
 ### Releasing
 
 ```sh

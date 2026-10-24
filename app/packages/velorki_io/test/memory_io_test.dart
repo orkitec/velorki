@@ -154,4 +154,13 @@ void main() {
     expect((packed[0] << 8 | packed[1]) % 31, 0);
     expect(zlib.decode(packed), data);
   });
+
+  test('gzip round-trips, and its output is a gzip member', () {
+    final data = Uint8List.fromList(List<int>.generate(4096, (i) => i % 7));
+    final packed = gzip.encode(data);
+    expect(packed.length, lessThan(data.length));
+    // The gzip magic, then deflate.
+    expect(packed.sublist(0, 3), [0x1f, 0x8b, 8]);
+    expect(gzip.decode(packed), data);
+  });
 }

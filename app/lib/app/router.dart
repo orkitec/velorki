@@ -35,7 +35,6 @@ import '../features/shared/application/active_tab.dart';
 import '../features/shared/application/nav_bar_docking.dart';
 import '../features/shared/application/shown_bar_style.dart';
 import '../features/subscription/presentation/paywall_screen.dart';
-import '../features/sync/application/cloud_sync_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'map_tab_page.dart';
 import 'platform_features.dart';
@@ -48,6 +47,9 @@ const String plannerRoute = '/plan';
 const String recordingRoute = '/record';
 const String libraryRoute = '/library';
 const String settingsRoute = '/settings';
+
+/// Settings → Connections, over the settings overview.
+const String settingsConnectionsRoute = '$settingsRoute/connections';
 
 /// The import preview, outside the tab shell so it covers whichever tab is
 /// showing when a file arrives. The [ImportCandidate] travels in `extra`.
@@ -237,6 +239,16 @@ GoRouter createRouter({
                   name: state.name ?? state.path,
                   child: const SettingsScreen(),
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'connections',
+                    pageBuilder: (context, state) => ColumnPage<void>(
+                      key: state.pageKey,
+                      name: state.name ?? state.path,
+                      child: const SettingsTopicPage(SettingsTopic.connections),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -287,25 +299,6 @@ class HomeShell extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.stravaRoutesRemoved(next))));
-    });
-    // A rider whose library was there before iCloud sync came is told
-    // once that it syncs now, and where to switch it off.
-    ref.listen(cloudSyncNoticeProvider, (previous, next) {
-      if (!next) return;
-      ref.read(cloudSyncNoticeProvider.notifier).dismiss();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.cloudSyncNotice),
-          duration: const Duration(seconds: 10),
-          action: SnackBarAction(
-            label: l10n.cloudSyncNoticeAction,
-            onPressed: () {
-              ref.read(activeTabProvider.notifier).show(settingsRoute);
-              context.go(settingsRoute);
-            },
-          ),
-        ),
-      );
     });
     ref.listen(stravaAccessLostNoticeProvider, (previous, next) {
       if (!next) return;
@@ -622,11 +615,28 @@ class HomeShell extends ConsumerWidget {
                         heightFactor: 1,
                         child: SizedBox(
                           width: column.width,
-                          child: MediaQuery.removeViewPadding(
-                            context: context,
-                            removeLeft: true,
-                            removeRight: true,
-                            child: navigation(null),
+                          // The slot's own media, which the scaffold
+                          // gives no top padding, as on a phone: the
+                          // shell's carried the status bar's height into
+                          // the bar, which stood that much taller than the
+                          // sheet docked on it. No sides in the column.
+                          child: Builder(
+                            builder: (context) {
+                              final media = MediaQuery.of(context);
+                              return MediaQuery(
+                                data: media.copyWith(
+                                  padding: media.padding.copyWith(
+                                    left: 0,
+                                    right: 0,
+                                  ),
+                                  viewPadding: media.viewPadding.copyWith(
+                                    left: 0,
+                                    right: 0,
+                                  ),
+                                ),
+                                child: navigation(null),
+                              );
+                            },
                           ),
                         ),
                       ),

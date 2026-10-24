@@ -9,6 +9,7 @@ import 'package:velorki/core/links/link_opener.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/integrations/rwgps/data/rwgps_providers.dart';
 import 'package:velorki/features/integrations/strava/data/strava_providers.dart';
+import 'package:velorki/features/subscription/application/web_plus.dart';
 import 'package:velorki/features/subscription/data/subscription_service.dart';
 import 'package:velorki/features/subscription/domain/plus_subscription.dart';
 import 'package:velorki/features/subscription/presentation/paywall_screen.dart';
@@ -244,6 +245,22 @@ void main() {
       expect(opened.map((u) => u.toString()), [
         velorkiDownloadUrl(l10n.localeName),
       ]);
+    });
+
+    testWidgets('a browser that can sign into a cloud says how to use Plus '
+        'from the apps here', (tester) async {
+      await _pump(
+        tester,
+        const PaywallScreen(),
+        service: FakeSubscriptionService(isAvailable: false),
+        extraOverrides: [
+          platformFeaturesProvider.overrideWithValue(PlatformFeatures.browser),
+          webCloudSignInProvider.overrideWithValue(true),
+        ],
+      );
+      expect(find.text(l10n.plusWebSignInTitle), findsOneWidget);
+      expect(find.text(l10n.plusWebSignInBody), findsOneWidget);
+      expect(find.text(l10n.plusUnavailableWebTitle), findsNothing);
     });
 
     testWidgets('a build without a store but not in a browser has no app '

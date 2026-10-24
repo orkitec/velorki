@@ -41,6 +41,27 @@ const Duration windRefreshInterval = Duration(minutes: 15);
 /// How long the camera rests before the wind of the view is asked for.
 const Duration windDebounce = Duration(milliseconds: 400);
 
+/// How long a request of the time control's own step that failed waits
+/// before it is asked again, attempt after attempt: one that fails each
+/// time, [weatherRetryDelays] and one more, counts as failed
+/// ([WeatherMapStatus.failed]); a hiccup of the network or the service
+/// does not.
+const List<Duration> weatherRetryDelays = <Duration>[
+  Duration(seconds: 2),
+  Duration(seconds: 6),
+];
+
+/// How often what failed over the view is asked for again, once each,
+/// while it does not answer: it comes back by itself, without a move of
+/// the map.
+const Duration weatherRecoveryInterval = Duration(seconds: 30);
+
+/// How much older than the frame a step wants a rain image of the same
+/// step may be and still stand in for it where that frame cannot be had:
+/// the rain of a refresh or two ago is still the rain, and no source is
+/// reported unavailable while it is drawn.
+const Duration weatherFrameGrace = Duration(minutes: 20);
+
 /// The zoom the radar's probe tile is asked at: low, so it is one cheap
 /// tile around the middle of the view.
 const int weatherProbeZoom = 5;
@@ -203,7 +224,12 @@ class WeatherMapStatus {
 /// loaded, or the nearest step that is, by switching which frame is seen.
 ///
 /// A source that does not answer is reported in [status], so the map can
-/// say so instead of looking like a dry, clear day.
+/// say so instead of looking like a dry, clear day: once a request of the
+/// time control's own step has failed a few times in a row
+/// ([weatherRetryDelays]), and for the rain only while nothing of it can
+/// be drawn over the view at the step (an older frame of the step within
+/// [weatherFrameGrace] stands in). What failed over the view is asked for
+/// again every [weatherRecoveryInterval] until it answers.
 class WeatherMapDriver {
   /// A driver fetching through [fetcher], telling the time by [clock];
   /// with [prefetch] off (for tests), only the time control's own step is
@@ -266,11 +292,24 @@ class WeatherMapDriver {
   /// The probe URL each radar source was last checked with.
   final Map<String, String> _probed = <String, String>{};
 
-  /// The sources that did not answer the last check.
+  /// The sources that did not answer the last check, after its retries.
   final Set<String> _failed = <String>{};
+
+  /// How many times in a row each request of the step set failed, by key
+  /// ([_retryLater]), and the retries waiting for their turn.
+  final Map<String, int> _attempts = <String, int>{};
+  final Map<String, Timer> _retries = <String, Timer>{};
+
+  /// Asks again for what failed over the view ([weatherRecoveryInterval]).
+  Timer? _recoveryTimer;
 
   /// The sources over the view at the last update.
   Set<String> _covering = <String>{};
+
+  /// The rain sources drawn as images whose every piece of the view shows
+  /// a frame of the step, its own or one standing in for it
+  /// ([weatherFrameGrace]): not reported however their requests went.
+  Set<String> _rainServed = <String>{};
 
   /// The last cloud image of each region (`source.region`), and the frame
   /// last asked for it: one that failed is asked again with the next
@@ -293,7 +332,7 @@ class WeatherMapDriver {
   /// shown now, by slot (a source's piece of the view); the requests in
   /// flight for the time control's own step (by slot) and in the
   /// background (by key); and those that failed, by key, not asked again
-  /// for until the next refresh, step or look.
+  /// for until the next check of what failed, refresh, step or look.
   final Map<String, _RadarImage> _frames = <String, _RadarImage>{};
   final Map<String, int> _frameUse = <String, int>{};
   int _useCount = 0;
@@ -301,6 +340,10 @@ class WeatherMapDriver {
   final Map<String, String> _radarInFlight = <String, String>{};
   final Set<String> _prefetchInFlight = <String>{};
   final Set<String> _rainFailed = <String>{};
+
+  /// The rain images of the step set that failed and wait for a retry
+  /// ([weatherRetryDelays]), by key: still to come, not failed.
+  final Set<String> _rainRetrying = <String>{};
 
   /// The radar sources switched to soft while drawn as tiles: their tiles
   /// stay until the first soft image is in or fails, so the switch leaves
@@ -353,6 +396,8 @@ class WeatherMapDriver {
     _radarImageTimer = null;
     _windTimer?.cancel();
     _windTimer = null;
+    _recoveryTimer?.cancel();
+    _recoveryTimer = null;
     _resetTimers();
   }
 
@@ -479,6 +524,9 @@ class WeatherMapDriver {
       _rainFailed.clear();
       _windFailed.clear();
       _update(recheck: true);
+    } else {
+      _recoveryTimer?.cancel();
+      _recoveryTimer = null;
     }
     _resetTimers();
     _scheduleDetails();
@@ -496,6 +544,11 @@ class WeatherMapDriver {
     _radarImageTimer?.cancel();
     _windTimer?.cancel();
     _windRefreshTimer?.cancel();
+    _recoveryTimer?.cancel();
+    for (final retry in _retries.values) {
+      retry.cancel();
+    }
+    _retries.clear();
     _status.dispose();
   }
 
@@ -553,6 +606,9 @@ class WeatherMapDriver {
     if (_settings.radar) {
       _radarTimer = Timer.periodic(radarRefreshInterval, (_) {
         _rainFailed.clear();
+        // The failures of a refresh ago are forgotten, but for those
+        // being retried.
+        _attempts.removeWhere((key, _) => !_retries.containsKey(key));
         _pruneFrames();
         _update(recheck: true);
         _planRadar();
@@ -566,6 +622,74 @@ class WeatherMapDriver {
         _planDetails();
       });
     }
+  }
+
+  /// After request [key] of the step set failed: whether it is asked again
+  /// shortly ([weatherRetryDelays]), by [again]; false once it has failed
+  /// each time, when it counts as failed.
+  bool _retryLater(String key, void Function() again) {
+    final failures = (_attempts[key] ?? 0) + 1;
+    _attempts[key] = failures;
+    if (failures > weatherRetryDelays.length) return false;
+    _retries.remove(key)?.cancel();
+    _retries[key] = Timer(weatherRetryDelays[failures - 1], () {
+      _retries.remove(key);
+      if (!_disposed) again();
+    });
+    return true;
+  }
+
+  /// After request [key] answered: its failures are forgotten.
+  void _answered(String key) {
+    _attempts.remove(key);
+    _retries.remove(key)?.cancel();
+  }
+
+  /// Keeps a check of what failed over the view due while anything does,
+  /// on a map, in the foreground.
+  void _planRecovery() {
+    final due =
+        !_disposed &&
+        _map != null &&
+        _foreground &&
+        _failed.any(_covering.contains);
+    if (!due) {
+      _recoveryTimer?.cancel();
+      _recoveryTimer = null;
+      return;
+    }
+    _recoveryTimer ??= Timer(weatherRecoveryInterval, _recover);
+  }
+
+  /// Asks once more for what failed over the view: the sources reported,
+  /// and those drawn from an older frame in place of the one that failed.
+  void _recover() {
+    _recoveryTimer = null;
+    if (_disposed || _map == null || !_foreground) return;
+    final failing = <String>{
+      for (final id in _failed)
+        if (_covering.contains(id)) id,
+    };
+    if (failing.isEmpty) return;
+    bool ofFailing(String key) {
+      final at = key.indexOf('@');
+      return failing.contains(at < 0 ? key : key.substring(0, at));
+    }
+
+    _rainFailed.removeWhere(ofFailing);
+    _windFailed.removeWhere(ofFailing);
+    // A cloud region's key is its source's id and the region's number.
+    _attempted.removeWhere(
+      (key, _) => failing.contains(key.substring(0, key.lastIndexOf('.'))),
+    );
+    _detailFailed.removeWhere((id, _) => failing.contains(id));
+    for (final id in failing) {
+      _probed.remove(id);
+    }
+    _update();
+    _planRadar();
+    _planWind();
+    _planDetails();
   }
 
   Iterable<WeatherMapSource> _enabled(WeatherKind kind) => _sources.where(
@@ -682,6 +806,7 @@ class WeatherMapDriver {
     final tiles = <String, WeatherLayer>{};
     final visible = <String, _RadarImage>{};
     final imageParts = <String>{};
+    final rainServed = <String>{};
     for (final p in plan) {
       final source = p.part.source;
       if (p.tiles) {
@@ -706,6 +831,8 @@ class WeatherMapDriver {
       _probed.remove(source.id);
       imageParts.add(source.id);
       var any = false;
+      var served = p.slots.isNotEmpty;
+      var own = served;
       for (final slot in p.slots) {
         final frame = p.waiting ? null : _frames[slot.key];
         if (frame != null) {
@@ -714,15 +841,23 @@ class WeatherMapDriver {
           any = true;
           continue;
         }
+        own = false;
         // The one shown stays until the next is in, unless the next failed
-        // and it shows another moment.
+        // and it shows another moment, too far from the step's.
         final old = _shown[slot.id];
+        final standsIn = old != null && _standsIn(old, p, view!, z);
+        if (!standsIn) served = false;
         if (old != null &&
-            (old.stamp == slot.stamp || !_rainFailed.contains(slot.key))) {
+            (standsIn ||
+                old.stamp == slot.stamp ||
+                !_rainFailed.contains(slot.key))) {
           visible[slot.id] = old;
           any = true;
         }
       }
+      if (served) rainServed.add(source.id);
+      // Its own frames all in: it answers, whatever failed before.
+      if (own) _failed.remove(source.id);
       // Just switched to soft: the tiles until the image is in.
       if (!any && _tilesUntilSoft.contains(source.id)) {
         tiles[source.id] = WeatherLayer.ofRadar(source, p.part.frame, now);
@@ -752,6 +887,7 @@ class WeatherMapDriver {
       }
     }
     _covering = covering;
+    _rainServed = rainServed;
 
     if (!listEquals(layers, _drawn)) {
       _drawn = List<WeatherLayer>.unmodifiable(layers);
@@ -893,7 +1029,7 @@ class WeatherMapDriver {
     for (final part in parts) {
       final source = part.source;
       if (!_drawnAsImage(source)) {
-        out.add(_PartPlan(part: part, tiles: true));
+        out.add(_PartPlan(part: part, step: step, tiles: true));
         continue;
       }
       final own = _imageAreasOf(source, areas);
@@ -902,6 +1038,7 @@ class WeatherMapDriver {
       out.add(
         _PartPlan(
           part: part,
+          step: step,
           mask: mask,
           areas: own,
           zoom: z,
@@ -1049,14 +1186,22 @@ class WeatherMapDriver {
     }
     if (grid == null) {
       _windFailed.add(key);
-      if (!background) {
+      // Asked again shortly before it counts.
+      if (!background &&
+          !_retryLater(key, () {
+            _windFailed.remove(key);
+            _planWind();
+          })) {
         _failed.add(source.id);
         // A grid of another hour does not stand in for this one.
         if (_wind != null && _wind!.time != frame.time) _wind = null;
       }
     } else {
       _windFailed.remove(key);
-      if (!background) _failed.remove(source.id);
+      if (!background) {
+        _answered(key);
+        _failed.remove(source.id);
+      }
       if (_windStillWanted(source, request)) {
         _windGrids
           ..remove(key)
@@ -1160,9 +1305,13 @@ class WeatherMapDriver {
   Future<void> _probe(String id, String url) async {
     final ok = await _fetcher.probe(url);
     if (_disposed || _probed[id] != url) return;
+    final key = 'probe:$id';
     if (ok) {
+      _answered(key);
       _failed.remove(id);
-    } else {
+    } else if (!_retryLater(key, () {
+      if (_probed[id] == url) unawaited(_probe(id, url));
+    })) {
       _failed.add(id);
     }
     _publish();
@@ -1187,11 +1336,17 @@ class WeatherMapDriver {
     _cloudInFlight.remove(key);
     if (_disposed) return;
     if (image == null) {
-      _failed.add(source.id);
+      // Asked again shortly, from the update, before it counts.
+      final retrying = _retryLater('cloud:$key', () {
+        if (_attempted[key] == frameKey) _attempted.remove(key);
+        _update();
+      });
+      if (!retrying) _failed.add(source.id);
       _onRefusal(source);
       _publish();
       return;
     }
+    _answered('cloud:$key');
     _failed.remove(source.id);
     _images[key] = WeatherLayer.image(
       id: key,
@@ -1275,12 +1430,21 @@ class WeatherMapDriver {
     );
     if (_disposed) return;
     _detailInFlight.remove(source.id);
+    final retryKey = 'detail:${source.id}';
     if (image == null) {
-      _detailFailed[source.id] = planned.layer.frameKey;
-      _failed.add(source.id);
+      final frameKey = planned.layer.frameKey;
+      _detailFailed[source.id] = frameKey;
+      final retrying = _retryLater(retryKey, () {
+        if (_detailFailed[source.id] == frameKey) {
+          _detailFailed.remove(source.id);
+        }
+        _planDetails();
+      });
+      if (!retrying) _failed.add(source.id);
       _onRefusal(source);
       _publish();
     } else {
+      _answered(retryKey);
       _detailFailed.remove(source.id);
       _failed.remove(source.id);
       // Kept only while it still fits what the map shows: zoomed out, the
@@ -1428,12 +1592,32 @@ class WeatherMapDriver {
       zoom: p.zoom,
       stamp: slot.stamp,
       capped: radarSoftCapped(source, slot.box),
+      step: p.step,
+      time: p.part.frame.time,
     );
+  }
+
+  /// Whether [frame], shown, stands in for [p]'s own frame over [view] at
+  /// [zoom] while that is not in: of the same step, at most
+  /// [weatherFrameGrace] from its moment, and still serving the view.
+  static bool _standsIn(
+    _RadarImage frame,
+    _PartPlan p,
+    BoundingBox view,
+    double zoom,
+  ) {
+    if (frame.step != p.step || !frame.fits(view, zoom)) return false;
+    final wanted = p.part.frame.time;
+    final time = frame.time;
+    if (wanted == null || time == null) return wanted == time;
+    return wanted.difference(time).abs() <= weatherFrameGrace;
   }
 
   /// Asks for each rain image of the time control's step over the view
   /// that is not loaded: one request per image at a time, a failed one not
-  /// again before the refresh. Then the other steps ([_prefetch]).
+  /// again before its retry ([weatherRetryDelays]), the check of what
+  /// failed ([weatherRecoveryInterval]) or the refresh. Then the other
+  /// steps ([_prefetch]).
   void _planRadar() {
     _radarImageTimer?.cancel();
     _radarImageTimer = null;
@@ -1455,6 +1639,8 @@ class WeatherMapDriver {
         // and was replaced (another step, another view) is asked again,
         // and comes from the cache.
         if (_rainFailed.contains(slot.key)) continue;
+        // One that failed a moment ago waits for its retry.
+        if (_rainRetrying.contains(slot.key)) continue;
         final planned = _planned(p, slot, now);
         // An image that would not serve the view even when it comes is not
         // asked for: its answer would be dropped and asked for again, over
@@ -1500,6 +1686,7 @@ class WeatherMapDriver {
       for (final slot in p.slots) {
         if (_frames.containsKey(slot.key) ||
             _rainFailed.contains(slot.key) ||
+            _rainRetrying.contains(slot.key) ||
             _prefetchInFlight.contains(slot.key)) {
           continue;
         }
@@ -1549,6 +1736,7 @@ class WeatherMapDriver {
           for (final slot in p.slots) {
             if (_frames.containsKey(slot.key) ||
                 _rainFailed.contains(slot.key) ||
+                _rainRetrying.contains(slot.key) ||
                 _prefetchInFlight.contains(slot.key) ||
                 _radarInFlight.containsValue(slot.key)) {
               continue;
@@ -1624,12 +1812,27 @@ class WeatherMapDriver {
     } else {
       _radarInFlight.remove(slot.id);
     }
+    // One of the step set that failed is asked again shortly before it
+    // counts: the one shown stays meanwhile.
+    final retrying =
+        image == null &&
+        !background &&
+        _retryLater(slot.key, () {
+          _rainRetrying.remove(slot.key);
+          _planRadar();
+        });
     if (image == null) {
-      _rainFailed.add(slot.key);
-      if (source.role == RainRole.satellite) _satellitesDown.add(source.id);
+      if (retrying) {
+        _rainRetrying.add(slot.key);
+      } else {
+        _rainFailed.add(slot.key);
+        if (source.role == RainRole.satellite) _satellitesDown.add(source.id);
+      }
       _onRefusal(source);
     } else {
+      if (!background) _answered(slot.key);
       _rainFailed.remove(slot.key);
+      _rainRetrying.remove(slot.key);
       if (!_stale(source, _clock())) _satellitesDown.remove(source.id);
     }
     final map = _map;
@@ -1643,7 +1846,7 @@ class WeatherMapDriver {
         map?.zoom,
         _clock(),
       ).any((q) => q.slots.any((s) => s.key == slot.key));
-      if (own) {
+      if (own && !retrying) {
         _tilesUntilSoft.remove(source.id);
         if (image == null) {
           _failed.add(source.id);
@@ -1725,9 +1928,12 @@ class WeatherMapDriver {
     if (_disposed) return;
     final failing = <WeatherMapSource>[
       for (final source in _sources)
-        if (_covering.contains(source.id) && _failed.contains(source.id))
+        if (_covering.contains(source.id) &&
+            _failed.contains(source.id) &&
+            !_rainServed.contains(source.id))
           source,
     ];
+    _planRecovery();
     _status.value = WeatherMapStatus(
       centre: _centre,
       at: _clockAt,
@@ -1843,6 +2049,7 @@ class _Slot {
 class _PartPlan {
   const _PartPlan({
     required this.part,
+    required this.step,
     this.tiles = false,
     this.mask,
     this.areas = const <BoundingBox>[],
@@ -1851,6 +2058,9 @@ class _PartPlan {
   });
 
   final RainPart part;
+
+  /// The step of the time control it draws.
+  final int step;
   final bool tiles;
   final _RainMask? mask;
   final List<BoundingBox> areas;
@@ -1877,6 +2087,8 @@ class _RadarImage {
     required this.zoom,
     required this.stamp,
     required this.capped,
+    required this.step,
+    required this.time,
     this.coverage,
     this.pixels = 0,
   });
@@ -1886,6 +2098,11 @@ class _RadarImage {
   final double zoom;
   final String stamp;
   final bool capped;
+
+  /// The step of the time control it was asked for, and the moment it
+  /// shows (`null` for a source's latest image).
+  final int step;
+  final DateTime? time;
 
   /// Where the frame measures, for a source with an extent drawn soft.
   final RainCoverage? coverage;
@@ -1920,6 +2137,8 @@ class _RadarImage {
       zoom: zoom,
       stamp: stamp,
       capped: capped,
+      step: step,
+      time: time,
       coverage: coverage,
       pixels: w * h,
     );

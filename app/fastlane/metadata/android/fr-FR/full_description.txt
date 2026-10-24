@@ -1,4 +1,6 @@
-Velorki planifie vos itinéraires vélo, vous guide le long du parcours et enregistre vos sorties. Son calcul d’itinéraire, pensé pour le vélo, tourne sur votre téléphone, même hors ligne, et toute l’app est open source. Chaque itinéraire est fait pour vous : votre vélo, votre distance, votre position.
+Velorki planifie vos itinéraires vélo, vous guide et enregistre vos sorties, tout sur votre téléphone et même hors ligne : planification, calcul d’itinéraire, recherche, navigation et enregistrement. Pas de compte, pas d’inscription.
+
+Vos itinéraires et sorties restent chez vous : sur votre téléphone, ou synchronisés via votre propre Google Drive, jamais par nos serveurs. Le code est public, chacun peut donc le vérifier. Exportez-les en GPX, FIT ou TCX à tout moment.
 
 PLANIFICATION
 • Touchez des points sur la carte pour un itinéraire adapté à votre vélo : randonnée, route, gravel, VTT ou direct.
@@ -6,6 +8,7 @@ PLANIFICATION
 • Variantes, profil altimétrique et revêtements traversés.
 • Itinéraire coloré selon pente, revêtement, vent ou pluie.
 • Recherche hors ligne, bibliothèque d’itinéraires, région téléchargée une fois pour planifier, chercher et naviguer sans connexion.
+• Planifiez dans le navigateur sur app.velorki.com avec le même compte Google : votre bibliothèque y est, et Plus si vous l’avez.
 
 CARTE ET MÉTÉO
 • Carte vélo hors ligne issue des données d’itinéraire : pistes et bandes cyclables, sens uniques, escaliers, montées.
@@ -24,11 +27,11 @@ ENREGISTREMENT
 • Chaque sortie a sa page : carte, courbes, tronçons.
 
 FICHIERS ET CONNEXIONS
-• Ouvrez des fichiers GPX, FIT et TCX depuis votre gestionnaire de fichiers, vos e-mails, un navigateur ou la feuille de partage ; exportez itinéraires et sorties en GPX ou FIT.
+• Ouvrez des fichiers GPX, FIT et TCX depuis votre gestionnaire de fichiers, vos e-mails, un navigateur ou la feuille de partage ; exportez itinéraires et sorties en GPX, FIT ou TCX.
 • Deux plateformes populaires d’itinéraires et de sorties à connecter : envoi des sorties, import des itinéraires. Gratuit.
 
 GRATUIT, ET VELORKI PLUS
-Tout ce que le téléphone fait seul est gratuit : planification, boucles, navigation, enregistrement, carte météo, météo sur le parcours, régions hors ligne, capteurs, fichiers, connexions.
+Tout ce que le téléphone fait seul est gratuit, la synchronisation aussi.
 
 Velorki Plus est un abonnement pour ce qui a besoin de nos serveurs :
 • Météo plus fine : radar sur toute l’Europe des services nationaux, prévision précise sur le parcours.
@@ -39,7 +42,7 @@ Velorki Plus est proposé avec un essai gratuit sur la formule annuelle et se re
 Conditions : https://velorki.com/fr/terms
 
 CONFIDENTIALITÉ
-Pas de compte, pas d’inscription. Itinéraires, sorties et réglages restent sur votre téléphone. Rien ne part vers une autre plateforme tant que vous n’avez pas connecté le compte et demandé l’envoi. L’assistant demande votre accord avant qu’un texte ne quitte l’appareil, et la position qu’il envoie est arrondie à environ un kilomètre.
+Pas de publicité, pas de mesure d’audience. Rien ne part vers une autre plateforme tant que vous n’avez pas connecté le compte et demandé l’envoi. L’assistant demande votre accord avant qu’un texte ne quitte l’appareil, et la position qu’il envoie est arrondie à environ un kilomètre.
 Politique de confidentialité : https://velorki.com/fr/privacy
 
 Données cartographiques © contributeurs OpenStreetMap.

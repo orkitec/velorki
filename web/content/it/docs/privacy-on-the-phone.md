@@ -17,9 +17,9 @@ Tutto ciò che crei e tutto ciò che scarichi:
 - i token di accesso per Strava e Ride with GPS se li colleghi, che vanno nell'archivio sicuro del telefono in una forma che solo il relay di Velorki può aprire, e sono esclusi dai backup,
 - ciò che prendi da Strava: il tuo nome su Strava, l'elenco dei tuoi percorsi Strava per al massimo 48 ore, i percorsi che importi e i collegamenti dai giri caricati alle rispettive attività Strava. Disconnettere elimina tutto questo.
 
-Nulla di tutto questo viene caricato da nessuna parte se non lo chiedi. L'unica eccezione è la sincronizzazione con iCloud su iPhone o iPad (iOS 17 o successivo): i tuoi percorsi, giri e alcune impostazioni vanno nel tuo iCloud, mai a noi, e i dati di Strava restano sul telefono. È attiva per impostazione predefinita e si disattiva nelle Opzioni, vedi [la libreria](./library).
+Nulla di tutto questo viene caricato da nessuna parte se non lo chiedi. L'unica eccezione è la sincronizzazione con il cloud: i tuoi percorsi, giri e alcune impostazioni vanno nel tuo iCloud o nel tuo Google Drive, mai a noi, e i dati di Strava restano sul telefono. Su un iPhone o un iPad iCloud è attivo per impostazione predefinita; su Android la sincronizzazione resta disattivata finché non scegli un cloud. **Opzioni → Sincronizza con** sceglie il cloud o disattiva la sincronizzazione, vedi [la libreria](./library#sincronizzazione-con-icloud-o-google-drive).
 
-Su Android, Velorki è deliberatamente escluso dal backup cloud di Google e dal trasferimento da dispositivo a dispositivo, così i tuoi giri non vengono copiati fuori dal telefono nemmeno dal sistema. Passare a un nuovo telefono significa esportare quello che vuoi conservare come file GPX, FIT o TCX, vedi [importa ed esporta](./import-and-export).
+Su Android, Velorki è deliberatamente escluso dal backup cloud di Google e dal trasferimento da dispositivo a dispositivo, così i tuoi giri non vengono copiati fuori dal telefono nemmeno dal sistema. Per passare a un nuovo telefono, attiva la sincronizzazione con Google, oppure esporta quello che vuoi conservare come file GPX, FIT o TCX, vedi [importa ed esporta](./import-and-export).
 
 ## Cosa lascia il telefono, e quando
 
@@ -67,7 +67,7 @@ Quel percorso o giro, con la sua traccia, il suo nome e i suoi numeri, viene cop
 
 ### Quando acquisti Velorki Plus
 
-Lo store gestisce il pagamento e noi non vediamo mai la tua carta. L'abbonamento viene verificato con un id casuale anonimo che non è collegato a un nome, a un indirizzo email o a un identificativo del dispositivo.
+Lo store gestisce il pagamento e noi non vediamo mai la tua carta. L'abbonamento viene verificato con un id casuale anonimo che non è collegato a un nome, a un indirizzo email o a un identificativo del dispositivo. Con la sincronizzazione attiva, l'app mette quell'id anche nel tuo cloud, così che il pianificatore nel browser, collegato allo stesso account, possa usare il tuo Plus.
 
 ## Cosa Velorki non fa mai
 
@@ -81,7 +81,7 @@ Lo store gestisce il pagamento e noi non vediamo mai la tua carta. L'abbonamento
 
 | Cosa | Come |
 |---|---|
-| Un percorso o un giro | eliminalo nella [libreria](./library) |
+| Un percorso o un giro | eliminalo nella [libreria](./library); con la sincronizzazione attiva, sparisce anche dal tuo cloud e dagli altri tuoi dispositivi |
 | Aree di mappa offline e riquadri di routing | eliminali nei [dati offline](./offline-maps-and-routing) |
 | Un token di Strava o Ride with GPS, e tutto ciò che viene da Strava | **Disconnetti** in Opzioni → Connessioni |
 | Tutto ciò che l'app ha salvato | disinstalla l'app |

@@ -64,7 +64,8 @@ The phone holds the routes, the rides, the loop generator, file import and
 export, and the routing itself. The server side exists only for what an
 open-source app cannot do: a BRouter server as an alternative to downloading rd5
 tiles, the OAuth client secrets and the model API key, the hosted model behind
-them, and the store for share links. No accounts, no cloud database, no sync.
+them, and the store for share links. No accounts, no cloud database, no sync
+server: sync goes to the rider's own iCloud or Google Drive.
 
 ## Components
 
@@ -176,7 +177,8 @@ and the tiles a route needs are fetched as soon as it needs them,
 (`deploy/cloudflare/`), so the mirror needs no CORS. `tool/web_assets.sh`
 fetches `sqlite3.wasm`, `drift_worker.js` and maplibre-gl-js before a build
 (`--no-web-resources-cdn`): the page's code comes from no CDN (only the
-engine's fallback fonts do, from fonts.gstatic.com), and
+engine's fallback fonts do, from fonts.gstatic.com, and Google's or
+Apple's sign-in script once the rider picks that sync), and
 `web/_headers` holds the Content-Security-Policy naming every host it does
 talk to. The isolate work (cycle map, weather images) runs inline through
 `package:velorki_io/worker.dart`, zlib is package:archive's. Where the
@@ -208,10 +210,10 @@ storage, not in the database.
 - **`offline_regions`** — the downloaded MapLibre offline map regions.
 - **`routing_tiles`** — the rd5 segment tiles downloaded for on-device routing:
   name, bytes, `updated_at`, `format_version`, state.
-- **`sync_records`** — the iCloud outbox, one row per route and ride, written
+- **`sync_records`** — the sync outbox, one row per route and ride, written
   by SQLite triggers on `routes` and `rides` (`core/db/sync_triggers.dart`):
-  last change time, a version, dirty and tombstone flags, the CloudKit system
-  fields, a ride's route link still waiting for its route.
+  last change time, a version, dirty and tombstone flags, the server's system
+  fields (CloudKit's, or a store's version), a ride's route link still waiting for its route.
 
 ## Key flows
 
@@ -392,20 +394,114 @@ AI descriptions are refused for `source == strava`. Strava's API cannot create
 routes, so sending one *to* Strava is "export GPX, then share"; Komoot and
 Garmin are file-based only.
 
-**iCloud sync.** iOS 17 and later, on by default (Settings → iCloud), nothing
-on Android. `ios/Runner/CloudSync.swift` runs CKSyncEngine on the private
+**Sync.** Each device syncs with one cloud, Settings → Sync with: iCloud
+(iOS 17 and later, the default there), Google (the Drive app data folder) or
+off (the default everywhere else); the old iCloud switch maps on to iCloud.
+Every service runs behind `SyncBackend` (`features/sync/data`), so
+`LibrarySync`, `SettingsSync` and `RecordCodec` are the same over all of
+them; switching service sends the library to the new one as new and deletes
+nothing (`sync.records_service`). Clouds without a sync engine of their own
+go through `StoreSyncBackend`, CKSyncEngine's part in Dart over a
+`CloudStore` (batch push over each record's version, pull from a cursor,
+full listing when it expires, account id): `sync_records` stays the outbox,
+the version rides in `system_fields`, the cursor and account in the
+preferences, transient failures back off with jitter.
+
+**Google sync.** `DriveCloudStore` is the `CloudStore` over the Drive v3
+app data folder (scope `drive.appdata` only). The layout, which the web
+planner reads too (`driveRecordFile`, `readDriveRecord`):
+
+- One file per record in `appDataFolder`, its `name` the record name
+  exactly, no extension: `route_<id>`, `ride_<id>`, `settings`,
+  `plus_<deviceId>`.
+- `appProperties`: `kind` (the record type: `Route`, `Ride`, `Settings`,
+  `PlusDevice`), `modifiedAt` (ms since the epoch) and `codec` (the
+  codec's schema version) where the record has them, all strings.
+- A record of short text fields alone (each key and value at most 124
+  bytes together, as `PlusDevice`) keeps them in `appProperties` too and
+  has empty content.
+- Any other record's content is one UTF-8 JSON line,
+  `{"v":1,"type":…,"fields":{…},"body":true|false}`, a newline, and then
+  the codec's gzip body bytes unchanged (routes and rides; settings
+  have no body). Fields keep their types there. `v` is the header's
+  version: a reader skips a file whose `v` is newer than it knows.
+
+A version is the file id and Drive's `version`; a save
+over one reads the file first (one `files.list` per batch of names) and
+compares, the race accepted; of two files with one name the older counts.
+Changes come from `changes.list` (deleted files' ids resolved through a
+map kept in the preferences), a refused page token lists the folder
+again, 403 `storageQuotaExceeded` is quota, 429 and 5xx are transient.
+Sign-in is `google_sign_in` behind `GoogleSignInService`: choosing Google
+in Settings signs in and authorises the scope first; the account (id,
+email) is kept in the preferences and is the store's account id. Tokens
+come silently, once more after a 401; one only the rider can grant again
+signs the account out. Sign out turns sync off and deletes nothing.
+Offered on iOS (`GIDClientID` in Info.plist) and on Android when
+`VELORKI_GOOGLE_WEB_CLIENT_ID` is set (Credential Manager's
+`serverClientId`). Tests run over `FakeDrive`, Drive at the HTTP layer.
+
+**iCloud sync.** `ios/Runner/CloudSync.swift` runs CKSyncEngine on the private
 database's `Library` zone (container `iCloud.com.orkitec.velorki`) and keeps
 its state in Application Support; the rows stay in Drift, so the engine asks
 Dart for each record as it sends and hands every fetched change to Dart,
 waiting for it to be written (`features/sync`, channel `velorki/cloud_sync`).
+The engine fetches only what a push told it of; a manual fetch (launch,
+switching sync on, the Library tab, a pull, a return to the app) asks for the
+zone's changes itself, since its own change token beside the engine's state,
+and the engine's later fetch of the same changes is dropped natively or is a
+no-op in Dart.
 The triggers mark every write, whatever path made it; the record format is
 `RecordCodec` (versioned fields, the track and other large columns as one
-gzip JSON asset). The newer change wins per record, the server's copy on a
+gzip asset: JSON text plus the tracks column-wise as quantized delta
+varints, `CompactTrack` in `velorki_geo`; the first build's gzip JSON
+with base64 tracks is still read). The newer change wins per record, the server's copy on a
 tie; a delete from elsewhere loses to a local change not yet sent. Strava
 routes and every upload link stay on the phone, partner ids too. Another
 account, a sign-out or a reset zone resends the library as new and never
 deletes it; data deleted from iCloud in Settings switches sync off. A few
 settings (`syncedSettingKeys`) go through the iCloud key-value store.
+
+**Sync in the browser.** The web planner offers iCloud and Google, both off
+until chosen, each signed in from Settings → Sync with by the provider's own
+button. Google is google_sign_in's web implementation (Google Identity
+Services, `ButtonGoogleSignIn`): its script is held back by
+`web/device_gate.mjs` until the rider picks Google; a token comes only from a
+click and lasts an hour and no reload, so a missing one is
+`CloudStoreFailure.signInNeeded` (the account stays, what waits stays queued,
+the section says "Sign in" and asks Google's popup again), never a lost
+account; `DriveCloudStore` is the phone's. iCloud is
+`CloudKitJsCloudStore` over CloudKit JS (`CloudKitWeb`,
+`cloudkit_web_js.dart`; loaded from Apple's CDN only once iCloud is chosen):
+the same `Library` zone, record types and fields CKSyncEngine writes (the
+codec's doubles sent as `DOUBLE`, the body as the `body` asset), the change
+tag as the version (`CONFLICT`/`EXISTS` looked up for the conflict), the
+zone's change feed with its sync token (a refused token lists the zone
+again), the zone made on the first save if no iPhone made it, the user
+record name as the account (kept while the session runs out, so nothing is
+resent). The version also carries a digest of the body's content, so a save
+whose body is unchanged sends the fields alone (`update`). CloudKit's upload
+host allows no CORS for our origin, so a wrapper around `fetch` sends the
+asset upload through `/cloudkit/upload`, a Pages Function (`deploy/cloudflare`)
+that forwards it and stores nothing. Its session token is kept in local storage. Settings stay in the
+browser (the iOS app keeps them in the key-value store, which CloudKit JS
+cannot reach).
+
+**Plus in the browser.** Beside the library, each app writes one record of
+its own into the cloud it syncs with, `plus_<device id>` (`PlusDevice`:
+its RevenueCat app user id, platform, `entitled` (what its store says),
+`lastSeen`; rewritten every six hours and whenever the store's answer
+changes; `PlusIdSync`). It goes only into the account sync first ran
+with, or one the rider picks in Settings → Sync with: an account change, a
+sign-out or sync off forgets locally where it went and stops writing, and
+deletes nothing. The browser, signed into the same iCloud or Google, keeps
+the records it fetches in its preferences (`WebPlusDevices`; cleared on an
+account or service change) and uses the freshest seen within 30 days,
+preferring one with Plus (`pickPlusDevice`): its id is the relay client's
+bearer, exactly as on the phone, and its `entitled` opens the Plus
+features (`startWebPlus`). The relay checks the id with RevenueCat on every
+call as for the apps; it has no endpoint of its own for the browser. The
+browser never writes a record or makes a RevenueCat id.
 
 **Smart loops.** `velorki_loops` is a pure algorithm, no model involved. From a
 `LoopRequest` three strategies generate candidates: `RoundtripStrategy` (BRouter

@@ -36,6 +36,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../features/recording/support/pump.dart';
 import '../support/app.dart';
+import '../support/settings.dart';
 
 // The wide layout is a phone placed in a column over a full-window map:
 // what is in the column runs the phone's own code, which the rest of the
@@ -733,6 +734,11 @@ void main() {
         final column = wide ? _column(size) : Offset.zero & size;
         expect(page.left, closeTo(column.left, 1));
         expect(page.width, closeTo(column.width, 1));
+        // Appearance's page in the column too.
+        await openSettingsTopic(tester, SettingsTopic.appearance);
+        final topic = _rect(tester, find.byType(SettingsTopicPage));
+        expect(topic.left, closeTo(column.left, 1));
+        expect(topic.width, closeTo(column.width, 1));
         await tester.scrollUntilVisible(
           find.text(l10n.appearanceRadarStyle),
           200,
@@ -745,6 +751,49 @@ void main() {
         await unmountApp(tester);
       },
     );
+  }
+
+  for (final size in const [_proSideways, _air, Size(951, 669)]) {
+    testWidgets('$size: the bar at the column\'s bottom as a phone has it at '
+        'the screen\'s, the status bar\'s height left out, and the sheet '
+        'docked on it one pill down to the bar\'s bottom', (tester) async {
+      await _window(tester, size);
+      await _pumpPlan(tester, size);
+      await tester.pumpAndSettle();
+      final window = MediaQueryData.fromView(tester.view);
+      // Over the safe area at the bottom by the air a phone has there.
+      final lift =
+          window.viewPadding.bottom +
+          floatingBarBottomGapFor(window, defaultTargetPlatform);
+      var bar = _bar(tester);
+      expect(bar.height, closeTo(floatingBarHeight, 0.5));
+      expect(bar.bottom, closeTo(size.height - lift, 0.5));
+
+      await tester.dragFrom(
+        tester.getCenter(find.byType(SheetHandle)),
+        const Offset(0, 1500),
+      );
+      await tester.pumpAndSettle();
+      bar = _bar(tester);
+      expect(bar.height, closeTo(floatingBarHeight, 0.5));
+      expect(bar.bottom, closeTo(size.height - lift, 0.5));
+      // The sheet behind the bar reaches the window's bottom; its glass,
+      // strip and bar as one pill, ends with the bar.
+      expect(_sheet(tester).bottom, closeTo(size.height, 0.5));
+      final pill = _rect(
+        tester,
+        find
+            .descendant(
+              of: find.byType(DockingSheetShell),
+              matching: find.byType(ClipRRect),
+            )
+            .first,
+      );
+      expect(pill.bottom, closeTo(bar.bottom, 0.5));
+      expect(pill.left, closeTo(bar.left, 0.5));
+      expect(pill.right, closeTo(bar.right, 0.5));
+      await unmountApp(tester);
+    });
   }
 
   testWidgets('the sheet docks into the column\'s bar, and a ride folds it '

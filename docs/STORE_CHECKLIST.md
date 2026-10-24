@@ -89,11 +89,17 @@ background-location app.
 
 ## Privacy labels and data safety
 
-What leaves the device: routing waypoints, map tile requests, search queries
+What leaves the device: routing waypoints, map tile requests, routing-tile and
+search-index downloads from the GitHub mirror (tile names and IP address), the
+store's update check (iOS: bundle id, country and language to
+`itunes.apple.com`; Android: Play's in-app update service), search queries
 when the rider asks for an online search, the AI prompt with a coarse start
 position, the RevenueCat anonymous app user id and purchase receipts, and —
 only on user action — rides and routes to Strava or RideWithGPS, and shared
-routes to our share store.
+routes to our share store. Cloud sync puts routes, rides, settings and a Plus
+record (RevenueCat id, platform, Plus active, last written) into the rider's
+own iCloud or Google Drive app folder; we never receive them, so they are not
+data we collect, but Play's form asks about it (see below).
 
 - [x] **(iOS)** The privacy manifest in the bundle declares precise location,
       purchase history, the RevenueCat user id, other user content and
@@ -117,7 +123,11 @@ routes to our share store.
       Store Connect, done for 1.0.
 - [ ] **(Play)** The Data safety form mirrors all of the above, including who
       the data is shared with: the routing server, Photon, OpenFreeMap/CyclOSM,
-      the AI provider, RevenueCat, and Strava/RideWithGPS on user action.
+      GitHub (IP address and tile names for the routing-tile downloads), the
+      AI provider, RevenueCat, Strava/RideWithGPS on user action, and Google
+      for Drive sync (routes, rides with their sensor values, settings and the
+      Plus record, into the rider's own Drive, only while sync with Google is
+      on).
 - [x] **(iOS)** The App Privacy answers state that no account is created and
       no data is used for tracking or advertising, and match `docs/PRIVACY.md`
       on what is collected. — App Store Connect, done for 1.0.

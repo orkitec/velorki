@@ -6,7 +6,7 @@ order: 10
 
 Der Tab Bibliothek enthält alles, was du behalten hast: die geplanten Routen und die aufgezeichneten Fahrten. Er ist ein Blatt über der Karte, wie die Tabs Planen und Aufnahme: Sein Inhalt scrollt in jeder Höhe, und der Griff oben bewegt es; gibt es nichts zu scrollen, bewegt es sich als Ganzes. Zieh es hoch für mehr Platz, zieh es ganz herunter, und das Blatt faltet sich in die Navigationsleiste und gibt die Karte frei. Geh hierher, um eine Route wieder zu öffnen, die Diagramme und Splits einer Fahrt zu lesen und Dateien hinein- und hinauszubekommen.
 
-Alles in der Bibliothek liegt auf dem Handy. Es gibt kein Konto. Auf einem iPhone oder iPad kann es zwischen deinen eigenen Geräten über iCloud abgeglichen werden, siehe unten [iCloud-Synchronisierung](#icloud-synchronisierung-iphone-und-ipad).
+Alles in der Bibliothek liegt auf dem Handy. Es gibt kein Konto. Es kann über deine eigene iCloud oder dein Google Drive zwischen deinen eigenen Geräten abgeglichen werden, siehe unten [Synchronisierung mit iCloud oder Google Drive](#synchronisierung-mit-icloud-oder-google-drive).
 
 ## Routen und Fahrten
 
@@ -114,13 +114,15 @@ Die beiden Schaltflächen rechts in der Kopfzeile des Blatts:
 
 Beides steht unter [Import und Export](./import-and-export) und [Strava und Ride with GPS](./strava-and-ridewithgps).
 
-## iCloud-Synchronisierung (iPhone und iPad)
+## Synchronisierung mit iCloud oder Google Drive
 
-Auf einem iPhone oder iPad mit iOS 17 oder neuer werden deine gespeicherten Routen und aufgezeichneten Fahrten, mit Track, Notizen und Kennzahlen jeder Fahrt, zwischen deinen eigenen Geräten abgeglichen, die mit demselben Apple Account angemeldet sind, über deine iCloud. Einige Einstellungen kommen mit: Design, Akzentfarbe, Kartenstil, Leistenstil, Spaltenseite, Einheiten sowie die Einstellungen für Abbiege- und Sprachansagen. Velorki betreibt dafür keinen Server und kann das Gespeicherte nicht lesen; siehe die [Datenschutzerklärung](/privacy).
+Deine gespeicherten Routen und aufgezeichneten Fahrten, mit Track, Notizen, Kennzahlen, Runden und Sensorwerten jeder Fahrt, lassen sich über deine eigene Cloud zwischen deinen eigenen Geräten abgleichen. **Einstellungen → Synchronisieren mit** wählt eine pro Gerät: **iCloud** (iPhone und iPad mit iOS 17 oder neuer, und der Planer im Browser), **Google** (iPhone, iPad, Android und der Browser) oder **Aus**. Auf einem iPhone oder iPad ist iCloud standardmäßig an; unter Android und im Browser ist die Synchronisierung aus, bis du eine Cloud wählst. Google legt die Daten in einen ausgeblendeten Velorki-Ordner in deinem Google Drive; Velorki kann diesen Ordner öffnen und sonst nichts in deinem Drive.
 
-Die Synchronisierung ist standardmäßig an. **Mit iCloud synchronisieren** in den Einstellungen schaltet sie auf diesem Gerät aus; was schon in iCloud liegt, bleibt dort, bis du es in den iCloud-Einstellungen des Geräts löschst. Eine Statuszeile in den Einstellungen zeigt den Stand: **Gerade synchronisiert**, **Synchronisiere …**, **iCloud ist auf diesem Gerät aus** oder **iCloud-Speicher ist voll**.
+Einige Einstellungen kommen mit: Design, Akzentfarbe, Kartenstil, der Stil des Regenradars, Leistenstil, Spaltenseite, Einheiten sowie die Einstellungen für Abbiegehinweise, Sprachansagen und Neuberechnung. Im Browser mit iCloud bleiben die Einstellungen im Browser. Velorki betreibt dafür keinen Server und kann das Gespeicherte nicht lesen; siehe die [Datenschutzerklärung](/privacy).
 
-Aus Strava gelesene Routen und daraus bearbeitete Routen bleiben auf dem Handy, ebenso die Strava-Links von Fahrten; auch Links von Uploads zu Ride with GPS werden nicht abgeglichen. Heruntergeladene Karten und Routing-Kacheln werden nicht abgeglichen. Die Android-App synchronisiert nicht.
+Löschst du eine Route oder eine Fahrt, verschwindet sie auch auf deinen anderen Geräten. **Aus** zu wählen, dich abzumelden oder zur anderen Cloud zu wechseln, löscht nichts: Was schon in iCloud liegt, bleibt dort, bis du es in den iCloud-Einstellungen auf einem Apple-Gerät löschst, und was in Google Drive liegt, bis du es in Google Drive im Web löschst, unter Einstellungen → Apps verwalten → Velorki → Optionen → Ausgeblendete App-Daten löschen. Eine Statuszeile in den Einstellungen zeigt den Stand, etwa **Gerade synchronisiert**, **Wird synchronisiert …**, **Der iCloud-Speicher ist voll** oder **Nicht bei Google angemeldet**.
+
+Aus Strava gelesene Routen und daraus bearbeitete Routen bleiben auf dem Handy, ebenso die Strava-Links von Fahrten; auch Links von Uploads zu Ride with GPS werden nicht abgeglichen. Heruntergeladene Karten und Routing-Kacheln werden nicht abgeglichen.
 
 ## Weiterlesen
 

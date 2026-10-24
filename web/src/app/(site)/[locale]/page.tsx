@@ -61,11 +61,11 @@ const CYCLE_MAP_PARTS = [
 /** The groups the Layers sheet offers stops from (`stopGroups` in layers_sheet.dart). */
 const STOP_GROUPS = ['cyclingStops', 'overnight', 'landmarks'] as const;
 
-const FREE_ITEMS = ['routing', 'loops', 'search', 'maps', 'navigation', 'recording', 'sensors', 'files', 'weather', 'connections'] as const;
+const FREE_ITEMS = ['routing', 'loops', 'search', 'maps', 'navigation', 'recording', 'sensors', 'files', 'sync', 'weather', 'connections'] as const;
 
 /**
  * Free vs Plus, from docs/ARCHITECTURE.md: free is everything on the phone,
- * and the Strava and Ride with GPS connections (Strava's API Policy does not
+ * sync through the rider's own cloud, and the Strava and Ride with GPS connections (Strava's API Policy does not
  * allow charging for its functionality).
  */
 const COMPARISON: ReadonlyArray<{ id: string; free: boolean }> = [
@@ -78,6 +78,7 @@ const COMPARISON: ReadonlyArray<{ id: string; free: boolean }> = [
   { id: 'recording', free: true },
   { id: 'sensors', free: true },
   { id: 'library', free: true },
+  { id: 'sync', free: true },
   { id: 'files', free: true },
   { id: 'weatherMap', free: true },
   { id: 'routeColours', free: true },
@@ -92,8 +93,9 @@ const COMPARISON: ReadonlyArray<{ id: string; free: boolean }> = [
 /**
  * The web planner, from what the browser build offers (`PlatformFeatures.browser`
  * in app/lib/app/platform_features.dart): on-device routing only, no recording
- * or navigation, no offline map areas, no account connections, no iCloud, no
- * store for Plus.
+ * or navigation, no offline map areas, no account connections, no store for
+ * Plus. The library syncs through iCloud (CloudKit JS) or Google Drive, and
+ * Plus comes from an app that syncs to the same account (lib/features/sync).
  */
 const WEB_DOES = ['routing', 'elevation', 'maps', 'library'] as const;
 const WEB_DOESNT = ['ride', 'offline', 'connections'] as const;
@@ -359,7 +361,7 @@ function CycleMapShowcase({ locale }: { locale: string }) {
  * Velorki Plus on the landing page: the assistant first, since it is most of
  * what Plus is, with two captures from the store pipeline beside it — the
  * assistant's card over the loop it asked for, and the Plus page as a
- * subscriber sees it, which carries no price (the site never quotes one).
+ * subscriber sees it, which carries no price (the Plus page lists them).
  */
 function PlusShowcase({ locale }: { locale: string }) {
   const t = useTranslations('home.plus');

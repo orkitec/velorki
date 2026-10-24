@@ -1,0 +1,738 @@
+{
+  "fetchedAt": "2026-10-23",
+  "source": "Public store pages (scripts/prices-public.mjs). App Store: the in-app purchases listed on apps.apple.com per storefront, the cheaper one monthly. Google Play: the \"per item\" range on play.google.com per country, low end monthly and high end yearly, valid while Plus has exactly two products. Prices as the stores show them, tax included where the store includes it.",
+  "appStore": {
+    "AL": {
+      "currency": "USD",
+      "monthly": "4.99",
+      "yearly": "34.99"
+    },
+    "AT": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "BA": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "BE": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "BG": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "BY": {
+      "currency": "USD",
+      "monthly": "4.99",
+      "yearly": "34.99"
+    },
+    "CA": {
+      "currency": "CAD",
+      "monthly": "4.99",
+      "yearly": "39.99"
+    },
+    "CH": {
+      "currency": "CHF",
+      "monthly": "3.00",
+      "yearly": "25.00"
+    },
+    "CY": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "CZ": {
+      "currency": "CZK",
+      "monthly": "99.00",
+      "yearly": "799.00"
+    },
+    "DE": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "DK": {
+      "currency": "DKK",
+      "monthly": "39.00",
+      "yearly": "249.00"
+    },
+    "EE": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "ES": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "FI": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "FR": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "GB": {
+      "currency": "GBP",
+      "monthly": "3.99",
+      "yearly": "29.99"
+    },
+    "GR": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "HR": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "HU": {
+      "currency": "HUF",
+      "monthly": "1790.00",
+      "yearly": "12990.00"
+    },
+    "IE": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "IS": {
+      "currency": "USD",
+      "monthly": "4.99",
+      "yearly": "34.99"
+    },
+    "IT": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "LT": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "LU": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "LV": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "MD": {
+      "currency": "USD",
+      "monthly": "4.99",
+      "yearly": "34.99"
+    },
+    "ME": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "29.99"
+    },
+    "MK": {
+      "currency": "USD",
+      "monthly": "3.99",
+      "yearly": "29.99"
+    },
+    "MT": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "NL": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "NO": {
+      "currency": "NOK",
+      "monthly": "49.00",
+      "yearly": "399.00"
+    },
+    "PL": {
+      "currency": "PLN",
+      "monthly": "19.99",
+      "yearly": "129.99"
+    },
+    "PT": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "RO": {
+      "currency": "RON",
+      "monthly": "19.99",
+      "yearly": "149.99"
+    },
+    "RS": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "RU": {
+      "currency": "RUB",
+      "monthly": "349.00",
+      "yearly": "2490.00"
+    },
+    "SE": {
+      "currency": "SEK",
+      "monthly": "49.00",
+      "yearly": "399.00"
+    },
+    "SI": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "SK": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "TR": {
+      "currency": "TRY",
+      "monthly": "199.99",
+      "yearly": "1499.99"
+    },
+    "UA": {
+      "currency": "USD",
+      "monthly": "4.99",
+      "yearly": "34.99"
+    },
+    "US": {
+      "currency": "USD",
+      "monthly": "3.99",
+      "yearly": "29.99"
+    },
+    "XK": {
+      "currency": "EUR",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    }
+  },
+  "googlePlay": {
+    "AE": {
+      "currency": "AED",
+      "monthly": "14.99",
+      "yearly": "149.99"
+    },
+    "AR": {
+      "currency": "ARS",
+      "monthly": "6100.00",
+      "yearly": "60000.00"
+    },
+    "AT": {
+      "currency": "EUR",
+      "monthly": "4.29",
+      "yearly": "41.99"
+    },
+    "AU": {
+      "currency": "AUD",
+      "monthly": "6.49",
+      "yearly": "61.99"
+    },
+    "AZ": {
+      "currency": "AZN",
+      "monthly": "6.99",
+      "yearly": "64.99"
+    },
+    "BD": {
+      "currency": "BDT",
+      "monthly": "550.00",
+      "yearly": "5600.00"
+    },
+    "BE": {
+      "currency": "EUR",
+      "monthly": "4.29",
+      "yearly": "41.99"
+    },
+    "BG": {
+      "currency": "EUR",
+      "monthly": "4.29",
+      "yearly": "41.99"
+    },
+    "BH": {
+      "currency": "USD",
+      "monthly": "4.39",
+      "yearly": "42.99"
+    },
+    "BM": {
+      "currency": "USD",
+      "monthly": "3.99",
+      "yearly": "38.99"
+    },
+    "BO": {
+      "currency": "BOB",
+      "monthly": "47.99",
+      "yearly": "469.99"
+    },
+    "BR": {
+      "currency": "BRL",
+      "monthly": "20.99",
+      "yearly": "204.99"
+    },
+    "CA": {
+      "currency": "CAD",
+      "monthly": "5.49",
+      "yearly": "55.99"
+    },
+    "CH": {
+      "currency": "CHF",
+      "monthly": "3.30",
+      "yearly": "33.00"
+    },
+    "CI": {
+      "currency": "XOF",
+      "monthly": "2800",
+      "yearly": "27100"
+    },
+    "CL": {
+      "currency": "CLP",
+      "monthly": "4700",
+      "yearly": "46400"
+    },
+    "CM": {
+      "currency": "XAF",
+      "monthly": "2800",
+      "yearly": "27400"
+    },
+    "CO": {
+      "currency": "COP",
+      "monthly": "13000",
+      "yearly": "129000"
+    },
+    "CR": {
+      "currency": "CRC",
+      "monthly": "1800.00",
+      "yearly": "18000.00"
+    },
+    "CY": {
+      "currency": "EUR",
+      "monthly": "4.29",
+      "yearly": "41.99"
+    },
+    "CZ": {
+      "currency": "CZK",
+      "monthly": "109.99",
+      "yearly": "999.99"
+    },
+    "DE": {
+      "currency": "EUR",
+      "monthly": "4.29",
+      "yearly": "41.99"
+    },
+    "DK": {
+      "currency": "DKK",
+      "monthly": "33.00",
+      "yearly": "325.00"
+    },
+    "DZ": {
+      "currency": "DZD",
+      "monthly": "525.00",
+      "yearly": "5275.00"
+    },
+    "EC": {
+      "currency": "USD",
+      "monthly": "3.99",
+      "yearly": "38.99"
+    },
+    "EE": {
+      "currency": "EUR",
+      "monthly": "4.39",
+      "yearly": "42.99"
+    },
+    "EG": {
+      "currency": "EGP",
+      "monthly": "239.99",
+      "yearly": "2349.99"
+    },
+    "ES": {
+      "currency": "EUR",
+      "monthly": "4.29",
+      "yearly": "41.99"
+    },
+    "ET": {
+      "currency": "ETB",
+      "monthly": "650.00",
+      "yearly": "6300.00"
+    },
+    "FI": {
+      "currency": "EUR",
+      "monthly": "4.49",
+      "yearly": "43.99"
+    },
+    "FM": {
+      "currency": "USD",
+      "monthly": "3.99",
+      "yearly": "38.99"
+    },
+    "FR": {
+      "currency": "EUR",
+      "monthly": "4.29",
+      "yearly": "41.99"
+    },
+    "GB": {
+      "currency": "GBP",
+      "monthly": "3.59",
+      "yearly": "35.49"
+    },
+    "GE": {
+      "currency": "GEL",
+      "monthly": "14.00",
+      "yearly": "124.00"
+    },
+    "GH": {
+      "currency": "GHS",
+      "monthly": "55.00",
+      "yearly": "550.00"
+    },
+    "GI": {
+      "currency": "GBP",
+      "monthly": "2.99",
+      "yearly": "29.49"
+    },
+    "GR": {
+      "currency": "EUR",
+      "monthly": "4.39",
+      "yearly": "42.99"
+    },
+    "HK": {
+      "currency": "HKD",
+      "monthly": "29.90",
+      "yearly": "309.00"
+    },
+    "HR": {
+      "currency": "EUR",
+      "monthly": "4.49",
+      "yearly": "43.99"
+    },
+    "HU": {
+      "currency": "HUF",
+      "monthly": "1690",
+      "yearly": "16499"
+    },
+    "ID": {
+      "currency": "IDR",
+      "monthly": "72000",
+      "yearly": "690000"
+    },
+    "IE": {
+      "currency": "EUR",
+      "monthly": "4.39",
+      "yearly": "42.99"
+    },
+    "IL": {
+      "currency": "ILS",
+      "monthly": "12.00",
+      "yearly": "125.00"
+    },
+    "IN": {
+      "currency": "INR",
+      "monthly": "450.00",
+      "yearly": "4500.00"
+    },
+    "IQ": {
+      "currency": "IQD",
+      "monthly": "5250",
+      "yearly": "51600"
+    },
+    "IT": {
+      "currency": "EUR",
+      "monthly": "4.39",
+      "yearly": "42.99"
+    },
+    "JO": {
+      "currency": "JOD",
+      "monthly": "2.850",
+      "yearly": "27.900"
+    },
+    "JP": {
+      "currency": "JPY",
+      "monthly": "700",
+      "yearly": "6800"
+    },
+    "KE": {
+      "currency": "KES",
+      "monthly": "600.00",
+      "yearly": "5900.00"
+    },
+    "KH": {
+      "currency": "USD",
+      "monthly": "3.99",
+      "yearly": "38.99"
+    },
+    "KR": {
+      "currency": "KRW",
+      "monthly": "5900",
+      "yearly": "59000"
+    },
+    "KW": {
+      "currency": "USD",
+      "monthly": "3.99",
+      "yearly": "38.99"
+    },
+    "KY": {
+      "currency": "USD",
+      "monthly": "3.99",
+      "yearly": "38.99"
+    },
+    "KZ": {
+      "currency": "KZT",
+      "monthly": "2090.00",
+      "yearly": "19990.00"
+    },
+    "LI": {
+      "currency": "CHF",
+      "monthly": "3.60",
+      "yearly": "35.00"
+    },
+    "LK": {
+      "currency": "LKR",
+      "monthly": "1325.00",
+      "yearly": "13000.00"
+    },
+    "LT": {
+      "currency": "EUR",
+      "monthly": "4.29",
+      "yearly": "41.99"
+    },
+    "LU": {
+      "currency": "EUR",
+      "monthly": "4.19",
+      "yearly": "40.99"
+    },
+    "LV": {
+      "currency": "EUR",
+      "monthly": "4.29",
+      "yearly": "41.99"
+    },
+    "MA": {
+      "currency": "MAD",
+      "monthly": "47.99",
+      "yearly": "469.99"
+    },
+    "MC": {
+      "currency": "EUR",
+      "monthly": "4.29",
+      "yearly": "41.99"
+    },
+    "MM": {
+      "currency": "MMK",
+      "monthly": "8000",
+      "yearly": "83000"
+    },
+    "MN": {
+      "currency": "MNT",
+      "monthly": "14300.00",
+      "yearly": "141600.00"
+    },
+    "MO": {
+      "currency": "MOP",
+      "monthly": "31.99",
+      "yearly": "318.00"
+    },
+    "MX": {
+      "currency": "MXN",
+      "monthly": "85.00",
+      "yearly": "829.00"
+    },
+    "MY": {
+      "currency": "MYR",
+      "monthly": "17.99",
+      "yearly": "174.99"
+    },
+    "NG": {
+      "currency": "NGN",
+      "monthly": "5710.00",
+      "yearly": "56500.00"
+    },
+    "NL": {
+      "currency": "EUR",
+      "monthly": "4.29",
+      "yearly": "41.99"
+    },
+    "NO": {
+      "currency": "NOK",
+      "monthly": "48.00",
+      "yearly": "475.00"
+    },
+    "NZ": {
+      "currency": "NZD",
+      "monthly": "7.99",
+      "yearly": "79.99"
+    },
+    "OM": {
+      "currency": "USD",
+      "monthly": "4.19",
+      "yearly": "40.99"
+    },
+    "PA": {
+      "currency": "USD",
+      "monthly": "3.99",
+      "yearly": "38.99"
+    },
+    "PE": {
+      "currency": "PEN",
+      "monthly": "13.99",
+      "yearly": "134.99"
+    },
+    "PH": {
+      "currency": "PHP",
+      "monthly": "280.00",
+      "yearly": "2750.00"
+    },
+    "PK": {
+      "currency": "PKR",
+      "monthly": "1100.00",
+      "yearly": "10900.00"
+    },
+    "PL": {
+      "currency": "PLN",
+      "monthly": "18.99",
+      "yearly": "189.99"
+    },
+    "PT": {
+      "currency": "EUR",
+      "monthly": "4.39",
+      "yearly": "42.99"
+    },
+    "PY": {
+      "currency": "PYG",
+      "monthly": "20000",
+      "yearly": "225000"
+    },
+    "QA": {
+      "currency": "QAR",
+      "monthly": "15.00",
+      "yearly": "145.00"
+    },
+    "RO": {
+      "currency": "RON",
+      "monthly": "22.99",
+      "yearly": "224.99"
+    },
+    "RS": {
+      "currency": "RSD",
+      "monthly": "499",
+      "yearly": "4899"
+    },
+    "RU": {
+      "currency": "RUB",
+      "monthly": "339.00",
+      "yearly": "3299.00"
+    },
+    "SA": {
+      "currency": "SAR",
+      "monthly": "16.99",
+      "yearly": "169.99"
+    },
+    "SE": {
+      "currency": "SEK",
+      "monthly": "49.00",
+      "yearly": "495.00"
+    },
+    "SG": {
+      "currency": "SGD",
+      "monthly": "5.49",
+      "yearly": "54.98"
+    },
+    "SI": {
+      "currency": "EUR",
+      "monthly": "4.39",
+      "yearly": "42.99"
+    },
+    "SK": {
+      "currency": "EUR",
+      "monthly": "4.39",
+      "yearly": "42.99"
+    },
+    "SM": {
+      "currency": "EUR",
+      "monthly": "3.59",
+      "yearly": "34.99"
+    },
+    "SN": {
+      "currency": "XOF",
+      "monthly": "2800",
+      "yearly": "27100"
+    },
+    "SV": {
+      "currency": "USD",
+      "monthly": "3.99",
+      "yearly": "38.99"
+    },
+    "TC": {
+      "currency": "USD",
+      "monthly": "3.99",
+      "yearly": "38.99"
+    },
+    "TH": {
+      "currency": "THB",
+      "monthly": "150.00",
+      "yearly": "1425.00"
+    },
+    "TR": {
+      "currency": "TRY",
+      "monthly": "234.99",
+      "yearly": "2319.99"
+    },
+    "TW": {
+      "currency": "TWD",
+      "monthly": "130.00",
+      "yearly": "1320.00"
+    },
+    "TZ": {
+      "currency": "TZS",
+      "monthly": "11000.00",
+      "yearly": "104000.00"
+    },
+    "UA": {
+      "currency": "UAH",
+      "monthly": "214.99",
+      "yearly": "2149.99"
+    },
+    "US": {
+      "currency": "USD",
+      "monthly": "3.99",
+      "yearly": "34.99"
+    },
+    "UZ": {
+      "currency": "UZS",
+      "monthly": "52630.00",
+      "yearly": "519500.00"
+    },
+    "VA": {
+      "currency": "EUR",
+      "monthly": "3.59",
+      "yearly": "34.99"
+    },
+    "VG": {
+      "currency": "USD",
+      "monthly": "3.99",
+      "yearly": "38.99"
+    },
+    "VN": {
+      "currency": "VND",
+      "monthly": "104000",
+      "yearly": "1000000"
+    },
+    "ZA": {
+      "currency": "ZAR",
+      "monthly": "76.99",
+      "yearly": "749.99"
+    }
+  }
+}

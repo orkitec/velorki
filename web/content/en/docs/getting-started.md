@@ -4,7 +4,7 @@ description: Install Velorki, understand the four tabs, see which permissions it
 order: 1
 ---
 
-Velorki is a free, open-source bike route planner and ride recorder for iPhone and Android, built on OpenStreetMap data. This page covers the first ten minutes: installing it, what it asks for, how the app is laid out, and the one setting most riders want to change straight away.
+Velorki is a free bike route planner and ride recorder for iPhone and Android, built on OpenStreetMap data. It runs on your phone with no account, keeps your routes and rides with you or in your own cloud, and its code is open, so anyone can check that. This page covers the first ten minutes: installing it, what it asks for, how the app is laid out, and the one setting most riders want to change straight away.
 
 ## What you need
 

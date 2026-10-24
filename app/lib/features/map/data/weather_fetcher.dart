@@ -43,6 +43,12 @@ Map<String, String> relayAuthFor(RelayClient? relay, String url) {
 /// unavailable.
 const Duration weatherProbeTimeout = Duration(seconds: 8);
 
+/// How long a rain image of the view may take, or each tile of one put
+/// together from tiles: the service renders it on request, up to
+/// [radarSoftMaxSide] pixels a side, and a busy one or a slow network
+/// takes longer than for a probe's tile.
+const Duration radarImageTimeout = Duration(seconds: 15);
+
 /// How long the one image of a cloud region may take: it is a large image
 /// the service renders on request.
 const Duration cloudImageTimeout = Duration(seconds: 30);
@@ -1045,6 +1051,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
     this.process = processCloudImage,
     this.processRadar = processRainImage,
     this.probeTimeout = weatherProbeTimeout,
+    this.radarTimeout = radarImageTimeout,
     this.imageTimeout = cloudImageTimeout,
     this.windTimeLimit = windTimeout,
     this.parseWind = parseWindGridInBackground,
@@ -1088,6 +1095,9 @@ class HttpWeatherFetcher implements WeatherFetcher {
 
   /// How long a probe may take.
   final Duration probeTimeout;
+
+  /// How long a rain image may take.
+  final Duration radarTimeout;
 
   /// How long a cloud image may take.
   final Duration imageTimeout;
@@ -1239,7 +1249,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
       name,
       source: source.id,
       now,
-      timeout: probeTimeout,
+      timeout: radarTimeout,
       fetch: mosaic == null ? null : () => _mosaicImage(source, frame, mosaic),
       process: (png) => processRadar(png, job),
     );
@@ -1247,7 +1257,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
 
   /// The image [mosaic] describes of [source] at [frame], put together
   /// from its tiles, all asked for at once, as a PNG; `null` where one of
-  /// them cannot be had within [probeTimeout].
+  /// them cannot be had within [radarTimeout].
   Future<Uint8List?> _mosaicImage(
     WeatherMapSource source,
     WeatherFrame frame,
@@ -1257,7 +1267,7 @@ class HttpWeatherFetcher implements WeatherFetcher {
       for (final (x, y) in mosaic.tiles)
         _getImage(
           source.imageTileUrl(frame, mosaic.zoom, x, y),
-          probeTimeout,
+          radarTimeout,
           source: source.id,
         ),
     ]);

@@ -5,13 +5,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../app/platform_features.dart';
 import '../../../app/theme.dart';
+import '../../../core/db/database.dart';
 import '../../../core/permissions/location_permission.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../offline/application/visible_area_status.dart';
 import '../../offline/presentation/offline_screen.dart';
+import '../../routing_tiles/application/tile_download_controller.dart';
+import '../../routing_tiles/data/routing_tiles_repository.dart';
+import '../../routing_tiles/data/segments_manifest_service.dart';
+import '../../routing_tiles/domain/routing_tile.dart';
+import '../../routing_tiles/presentation/routing_tiles_screen.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/wide_panel.dart';
 import '../data/map_preferences.dart';
+import '../data/offline_regions_repository.dart';
 import '../data/position_provider.dart';
 import '../data/weather_map_preferences.dart';
 import '../domain/map_controller.dart';
@@ -151,11 +160,7 @@ class MapControls extends ConsumerWidget {
           _Resizing(
             axis: axis,
             child: (chrome?.showRoutingTiles ?? true) && !compact
-                ? _ControlButton(
-                    icon: Icons.download_for_offline_outlined,
-                    tooltip: l10n.offlineEntryTitle,
-                    onPressed: enabled ? () => _openOffline(context) : null,
-                  )
+                ? _DownloadButton(controller: controller)
                 : const SizedBox.shrink(),
           ),
           _ControlDivider(axis: axis),
@@ -180,18 +185,6 @@ class MapControls extends ConsumerWidget {
         : panel;
   }
 
-  void _openOffline(BuildContext context) {
-    final map = controller;
-    if (map == null) return;
-    unawaited(
-      Navigator.of(context).push(
-        ColumnPageRoute<void>(
-          builder: (_) => OfflineScreen(mapController: map),
-        ),
-      ),
-    );
-  }
-
   Future<void> _zoomBy(double delta) async {
     final map = controller;
     final center = map?.center;
@@ -205,7 +198,10 @@ class MapControls extends ConsumerWidget {
     String message, {
     SnackBarAction? action,
   }) {
-    messenger?.showSnackBar(SnackBar(content: Text(message), action: action));
+    messenger?.showSnackBar(
+      // With an action Flutter keeps a snack bar until it is closed.
+      SnackBar(content: Text(message), action: action, persist: false),
+    );
   }
 }
 
@@ -339,6 +335,145 @@ class _LocateButtonState extends ConsumerState<_LocateButton> {
     // After the move, not before: the screen's follow mode watches camera
     // idles to spot a hand pan, and this move is ours, not the rider's.
     onLocate?.call();
+  }
+}
+
+/// The download button: opens the download for the area the map shows, and
+/// says where that area stands — the outline while something is missing, a
+/// mark while the mirror has updates for it, a ring while its download runs,
+/// and the filled icon in the accent once nothing is left to fetch.
+///
+/// Worked out from what is on the device ([visibleAreaStatus]) whenever the
+/// camera comes to rest or the tiles, the queue or the map areas change.
+class _DownloadButton extends ConsumerStatefulWidget {
+  const _DownloadButton({required this.controller});
+
+  /// `null` while the map is not ready, which leaves the button inert.
+  final MapController? controller;
+
+  @override
+  ConsumerState<_DownloadButton> createState() => _DownloadButtonState();
+}
+
+class _DownloadButtonState extends ConsumerState<_DownloadButton> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?.addCameraIdleListener(_cameraIdle);
+  }
+
+  @override
+  void didUpdateWidget(_DownloadButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+    oldWidget.controller?.removeCameraIdleListener(_cameraIdle);
+    widget.controller?.addCameraIdleListener(_cameraIdle);
+  }
+
+  @override
+  void dispose() {
+    widget.controller?.removeCameraIdleListener(_cameraIdle);
+    super.dispose();
+  }
+
+  // The bounds are read in build; the camera only says when to read them.
+  void _cameraIdle() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final map = widget.controller;
+    final mapAreas = ref.watch(platformFeaturesProvider).offlineMapAreas;
+    final repository = ref.watch(routingTilesRepositoryProvider).value;
+    final status = visibleAreaStatus(
+      bounds: map?.visibleBounds,
+      tiles: ref.watch(routingTilesProvider).value ?? const <RoutingTile>[],
+      hasGazetteer: (tile) =>
+          repository?.gazetteerFileFor(tile).existsSync() ?? false,
+      queue: ref.watch(tileDownloadQueueProvider),
+      // Only a manifest already read this session: the button never asks
+      // the mirror itself. The camera's next rest picks one up.
+      manifest: ref.exists(segmentsManifestSourceProvider)
+          ? ref.watch(segmentsManifestSourceProvider).value
+          : null,
+      mapProgress: mapAreas
+          ? ref.watch(offlineDownloadControllerProvider)?.fraction
+          : null,
+      // Watched only when asked, once the routing data is all there: a map
+      // with nothing downloaded keeps no watch on the map areas.
+      regions: mapAreas
+          ? () =>
+                ref.watch(offlineRegionsProvider).value ??
+                const <OfflineRegionRow>[]
+          : null,
+    );
+    final ring = _ControlSize.of(context) < mapControlButtonSize ? 16.0 : 18.0;
+    return _ControlButton(
+      icon: status.state == VisibleAreaState.downloaded
+          ? Icons.download_for_offline
+          : Icons.download_for_offline_outlined,
+      tooltip: switch (status.state) {
+        VisibleAreaState.downloaded => l10n.offlineAreaDownloaded,
+        VisibleAreaState.update => l10n.offlineAreaUpdates,
+        VisibleAreaState.busy => l10n.mapOfflineDownloading,
+        VisibleAreaState.missing => l10n.offlineEntryTitle,
+      },
+      selected: status.state == VisibleAreaState.downloaded,
+      onPressed: map == null ? null : () => _tap(map, status),
+      child: switch (status.state) {
+        VisibleAreaState.busy => SizedBox.square(
+          dimension: ring,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            value: status.progress,
+          ),
+        ),
+        VisibleAreaState.update => Badge(
+          smallSize: 7,
+          backgroundColor: theme.velorki.warning,
+          child: const Icon(Icons.download_for_offline_outlined),
+        ),
+        _ => null,
+      },
+    );
+  }
+
+  void _tap(MapController map, VisibleAreaStatus status) {
+    switch (status.state) {
+      case VisibleAreaState.downloaded:
+        final l10n = AppLocalizations.of(context);
+        final navigator = Navigator.of(context);
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        messenger?.hideCurrentSnackBar();
+        MapControls._show(
+          messenger,
+          l10n.offlineAreaDownloaded,
+          action: SnackBarAction(
+            label: l10n.offlineManage,
+            onPressed: () => _openOffline(navigator, map),
+          ),
+        );
+      case VisibleAreaState.update:
+        unawaited(
+          confirmTileDownload(context, ref, status.stale, refreshStale: true),
+        );
+      case VisibleAreaState.busy || VisibleAreaState.missing:
+        _openOffline(Navigator.of(context), map);
+    }
+  }
+
+  void _openOffline(NavigatorState navigator, MapController map) {
+    if (!navigator.mounted) return;
+    unawaited(
+      navigator.push(
+        ColumnPageRoute<void>(
+          builder: (_) => OfflineScreen(mapController: map),
+        ),
+      ),
+    );
   }
 }
 
