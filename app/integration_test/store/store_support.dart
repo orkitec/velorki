@@ -119,12 +119,12 @@ Future<StoreSession> startStoreApp(
 
   if (storeOrientation == 'landscape') {
     // Locked sideways before the app is up, so it lays itself out once,
-    // either way round: the device is already held one way (the driver
-    // turns the simulator), and the status bar is on top in both. Left
-    // upright again after, as every integration test leaves it.
+    // one way round only: the simulator's screenshots stay in the device's
+    // portrait frame, and the driver turns them upright knowing which way
+    // the screen went. Left upright again after, as every integration test
+    // leaves it.
     await SystemChrome.setPreferredOrientations(const [
       DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
     ]);
     addTearDown(
       () => SystemChrome.setPreferredOrientations(const [

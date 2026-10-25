@@ -560,9 +560,17 @@ PY
     SHUTTER_PID=""
   done
 
-  # The iPad's pictures are taken sideways (the test locks the screen so):
-  # one of another size would land in no App Store slot, or the wrong one.
+  # The iPad's pictures are taken sideways (the test locks the screen to
+  # Flutter's landscapeLeft), but simctl saves them in the device's portrait
+  # frame: each new one is turned upright first (IPAD_TURN degrees
+  # clockwise). One of another size would land in no App Store slot, or the
+  # wrong one.
   if [ "$PLATFORM" = ipad ]; then
+    find "$OUT/raw" -name '*.png' -newer "$DEFINES" -print0 | while IFS= read -r -d '' shot; do
+      if [ "$(sips -g pixelHeight "$shot" | awk '/pixelHeight/{print $2}')" = 2752 ]; then
+        sips -r "${IPAD_TURN:-90}" "$shot" > /dev/null
+      fi
+    done
     python3 - "$OUT/raw" "$DEFINES" << 'PY' || die "the iPad's pictures are not all 2752x2064 (landscape)"
 import os, struct, sys
 raw, since = sys.argv[1], os.path.getmtime(sys.argv[2])
