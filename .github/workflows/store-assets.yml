@@ -83,6 +83,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       locales: ${{ steps.list.outputs.locales }}
+      pairs: ${{ steps.list.outputs.pairs }}
     steps:
       - id: list
         env:
@@ -94,18 +95,23 @@ jobs:
           json=$(printf '%s' "$LOCALES" | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | jq -R . | jq -cs .)
           [ "$json" != "[]" ] || { echo "::error::no locales"; exit 1; }
           echo "locales=$json" >> "$GITHUB_OUTPUT"
+          # The App Store sets two languages to a Mac: one build and one
+          # simulator boot for both, and with seven languages four runners,
+          # leaving one of the five a free account gets for a release.
+          pairs=$(printf '%s' "$json" | jq -c '[range(0; length; 2) as $i | .[$i:$i+2] | join(",")]')
+          echo "pairs=$pairs" >> "$GITHUB_OUTPUT"
 
   assets:
     needs: locales
     if: ${{ inputs.ios && inputs.assets_run_id == '' }}
     runs-on: xcode-27
-    # One language on the iPhone, the iPad and the Duo, each with a simulator
-    # reboot, and the preview records it again.
-    timeout-minutes: 240
+    # Two languages on the iPhone, the iPad and the Duo, each with a
+    # simulator reboot, and the preview records them again.
+    timeout-minutes: 300
     strategy:
       fail-fast: false
       matrix:
-        locale: ${{ fromJSON(needs.locales.outputs.locales) }}
+        locale: ${{ fromJSON(needs.locales.outputs.pairs) }}
     env:
       # store_screenshots.sh prints memory, disk, the busiest processes, the
       # booted simulators and the test's last line every three minutes.
