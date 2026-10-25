@@ -25,6 +25,13 @@ on:
         description: The App Store sets, iPhone, iPad and iPhone Duo (iOS simulator)
         type: boolean
         default: true
+      # A subset captures and uploads only those; the upload then replaces
+      # only their device types on App Store Connect (the iPhone's carries
+      # the watch shots).
+      ios_sets:
+        description: Which App Store sets, comma-separated (iphone, ipad, duo)
+        type: string
+        default: iphone,ipad,duo
       # Off by default: an hour and more on the emulator. The map is drawn
       # with MapLibre's Vulkan renderer there (docs/STORE_ASSETS.md).
       android:
@@ -80,7 +87,10 @@ jobs:
       - id: list
         env:
           LOCALES: ${{ inputs.locales }}
+          IOS_SETS: ${{ inputs.ios_sets }}
         run: |
+          [[ "$IOS_SETS" =~ ^(iphone|ipad|duo)(,(iphone|ipad|duo))*$ ]] \
+            || { echo "::error::ios_sets takes iphone, ipad and duo, comma-separated, not '$IOS_SETS'"; exit 1; }
           json=$(printf '%s' "$LOCALES" | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | jq -R . | jq -cs .)
           [ "$json" != "[]" ] || { echo "::error::no locales"; exit 1; }
           echo "locales=$json" >> "$GITHUB_OUTPUT"
@@ -218,6 +228,7 @@ jobs:
 
       - name: Screenshots and slides
         id: iphone
+        if: ${{ contains(format(',{0},', inputs.ios_sets), ',iphone,') }}
         working-directory: app
         env:
           LOCALES: ${{ matrix.locale }}
@@ -244,7 +255,7 @@ jobs:
       - name: iPad screenshots and slides
         id: ipad
         # Each platform's set stands on its own: one failing keeps the others.
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && contains(format(',{0},', inputs.ios_sets), ',ipad,') }}
         working-directory: app
         env:
           LOCALES: ${{ matrix.locale }}
@@ -268,7 +279,7 @@ jobs:
       # 27.0. Downloaded (several GB) for the Xcode selected above when no
       # installed runtime has the device, as the watchOS step does.
       - name: iOS simulator runtime for the iPhone Duo
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && contains(format(',{0},', inputs.ios_sets), ',duo,') }}
         run: |
           has_duo() {
             xcrun simctl list runtimes -j | python3 -c '
@@ -292,7 +303,7 @@ jobs:
       - name: iPhone Duo screenshots and slides
         id: duo
         # Each platform's set stands on its own: one failing keeps the others.
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && contains(format(',{0},', inputs.ios_sets), ',duo,') }}
         # About 25 minutes on a Mac, the iPad's 40 here: a run past this is
         # stuck, and ends with a log rather than with the runner.
         timeout-minutes: 75
@@ -362,8 +373,11 @@ jobs:
           APP_VERSION: ${{ inputs.app_version }}
           REF: ${{ github.ref }}
           RUN_ID: ${{ inputs.assets_run_id }}
+          IOS_SETS: ${{ inputs.ios_sets }}
         run: |
           [ -n "$APP_VERSION" ] || { echo "::error::upload needs app_version"; exit 1; }
+          [[ "$IOS_SETS" =~ ^(iphone|ipad|duo)(,(iphone|ipad|duo))*$ ]] \
+            || { echo "::error::ios_sets takes iphone, ipad and duo, comma-separated, not '$IOS_SETS'"; exit 1; }
           case "$REF" in
             refs/tags/v* | refs/heads/main) ;;
             *) echo "::error::upload runs only from a v* tag or main, not $REF"; exit 1 ;;
@@ -386,6 +400,8 @@ jobs:
 
       - name: Stage the screenshots for deliver
         working-directory: app
+        env:
+          STORE_SETS: ${{ inputs.ios_sets }}
         run: tool/store_stage_deliver.sh "$RUNNER_TEMP/assets" "$RUNNER_TEMP/screenshots"
 
       # The image's Ruby; the Gemfile pins fastlane to 2.x.
@@ -406,6 +422,7 @@ jobs:
           ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
           APP_VERSION: ${{ inputs.app_version }}
           UPLOAD_METADATA: ${{ inputs.metadata }}
+          STORE_SETS: ${{ inputs.ios_sets }}
           FASTLANE_SKIP_UPDATE_CHECK: "1"
           FASTLANE_OPT_OUT_USAGE: "YES"
         run: |

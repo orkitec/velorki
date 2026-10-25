@@ -45,8 +45,9 @@
 #
 # --platform ipad takes the same screens on the simulator "Velorki Shots iPad
 # 13" (VELORKI_STORE_SIM again takes a UDID), created as an iPad Pro 13-inch
-# (M5): 2064x2752, the size App Store Connect wants for 13". The slides are
-# those of store/slide_set_ipad.json; no watch or preview. Output under
+# (M5), with the screen locked sideways by the test (VELORKI_STORE_ORIENTATION):
+# 2752x2064, a size App Store Connect takes for 13". The slides are those of
+# store/slide_set_ipad.json; no watch or preview. Output under
 # ipad/: raw/<theme>/<locale>/<screen>.png and slides/ (see
 # tool/store_slides.py --platform ipad).
 #
@@ -98,6 +99,7 @@ CAPTURE=1
 UNTIL=
 PREVIEW=0
 PLATFORM=ios
+ORIENTATION=
 while [ $# -gt 0 ]; do
   case "$1" in
     --locales) LOCALES="$2"; shift ;;
@@ -125,6 +127,7 @@ case "$PLATFORM" in
     OUT="$OUT/ipad"
     SIM_NAME="Velorki Shots iPad 13"
     SIM_TYPE=com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB
+    ORIENTATION=landscape
     ;;
   duo)
     [ "$PREVIEW" = 0 ] || die "the preview is recorded on the iPhone only"
@@ -199,6 +202,13 @@ boot() {  # boot <udid> <language> <region>
     xcrun simctl bootstatus "$udid" -b > /dev/null
   fi
   [ "$PLATFORM" = duo ] && unfold "$udid"
+  # The iPad held sideways, as the test then locks the screen: the turn the
+  # app is asked for is then the one the device is already in.
+  if [ "$ORIENTATION" = landscape ]; then
+    build_duo_state
+    xcrun simctl spawn "$udid" "$DUO_STATE" orientation landscape-left \
+      || say "could not turn the simulator; the test turns the screen itself"
+  fi
   # A moment for SpringBoard to settle before anything is installed.
   sleep 15
   python3 "$APP/tool/store_shutter.py" --status-bar "$udid"
@@ -207,14 +217,17 @@ boot() {  # boot <udid> <language> <region>
 # The iPhone Duo boots folded, on its outer display: opened flat and held
 # upright, its inner display is the active one, wider than tall.
 DUO_STATE=""
-unfold() {  # unfold <udid>
-  local udid=$1
+build_duo_state() {
   if [ -z "$DUO_STATE" ]; then
     DUO_STATE="$WORK/duo_state"
     xcrun -sdk iphonesimulator clang -arch "$(uname -m)" -mios-simulator-version-min=17.0 -O2 \
       -o "$DUO_STATE" "$APP/tool/duo_state.c" -framework IOKit -framework CoreFoundation
     codesign -f -s - "$DUO_STATE" 2> /dev/null
   fi
+}
+unfold() {  # unfold <udid>
+  local udid=$1
+  build_duo_state
   xcrun simctl spawn "$udid" "$DUO_STATE" hinge 180
   xcrun simctl spawn "$udid" "$DUO_STATE" orientation portrait
   local displays
@@ -369,6 +382,7 @@ capture() {
       --dart-define=VELORKI_STORE_LOCALE="$locale" \
       --dart-define=VELORKI_STORE_THEMES="$THEMES" \
       --dart-define=VELORKI_STORE_UNTIL="$UNTIL" \
+      --dart-define=VELORKI_STORE_ORIENTATION="$ORIENTATION" \
       --dart-define=VELORKI_PREVIEW_SET="$PREVIEW_SET" > "$log" 2>&1 &
     pid=$!
     started=0
@@ -530,6 +544,27 @@ PY
     wait "$SHUTTER_PID" 2> /dev/null || true
     SHUTTER_PID=""
   done
+
+  # The iPad's pictures are taken sideways (the test locks the screen so):
+  # one of another size would land in no App Store slot, or the wrong one.
+  if [ "$PLATFORM" = ipad ]; then
+    python3 - "$OUT/raw" "$DEFINES" << 'PY' || die "the iPad's pictures are not all 2752x2064 (landscape)"
+import os, struct, sys
+raw, since = sys.argv[1], os.path.getmtime(sys.argv[2])
+bad = []
+for folder, _, names in os.walk(raw):
+    for name in names:
+        path = os.path.join(folder, name)
+        if not name.endswith(".png") or os.path.getmtime(path) < since:
+            continue
+        with open(path, "rb") as f:
+            size = struct.unpack(">II", f.read(24)[16:24])
+        if size != (2752, 2064):
+            bad.append(f"{path}: {size[0]}x{size[1]}")
+print("\n".join(bad), file=sys.stderr)
+sys.exit(1 if bad else 0)
+PY
+  fi
 
   # The watch takes the figures of the ride, which comes last.
   if [ -z "$UNTIL" ] && [ "$PREVIEW" = 0 ] && [ "$PLATFORM" = ios ]; then

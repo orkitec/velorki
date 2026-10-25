@@ -10,9 +10,13 @@
 # watch/<theme>/<locale>/store/N-<state>.png. Every locale with a slide set
 # becomes <out-dir>/<store locale>/, holding its 6.9", 6.5", 13" iPad and
 # iPhone Duo slides and the four watch shots. deliver tells the devices apart
-# by pixel size (2064x2752 is the 13" iPad, 2853x2007 the Duo's inner display,
-# known from fastlane 2.241.1) and orders each device's screenshots by file
-# name, so the NN- prefix is the upload order.
+# by pixel size (2752x2064, landscape, or 2064x2752 is the 13" iPad,
+# 2853x2007 the Duo's inner display, known from fastlane 2.241.1) and orders
+# each device's screenshots by file name, so the NN- prefix is the upload order.
+#
+# STORE_SETS (comma-separated, default iphone,ipad,duo) stages only those
+# sets: `iphone` is the 6.9" and 6.5" slides and the watch shots, `ipad` the
+# 13" iPad's, `duo` the iPhone Duo's.
 #
 # The store locale is the folder fastlane/metadata/ios already has for the
 # language (Crowdin names them, see crowdin.yml), else the one below. The watch
@@ -57,13 +61,28 @@ style = slides[0]["style"] if slides else ""
 print(style if style in ("light", "dark") else "dark")
 ' store/slide_set.json)"
 
-[ -d "$IN/slides/set/6.9" ] || die "no slide set under $IN/slides/set"
+SETS=",${STORE_SETS:-iphone,ipad,duo},"
+SETS="${SETS// /}"
+chosen() { [[ "$SETS" == *",$1,"* ]]; }
+sizes=()
+chosen iphone && sizes+=(6.9 6.5)
+chosen ipad && sizes+=(ipad-13)
+chosen duo && sizes+=(duo)
+[ "${#sizes[@]}" -gt 0 ] || die "STORE_SETS names no set (iphone, ipad, duo): $STORE_SETS"
+
+# The languages of the first set staged.
+case "${sizes[0]}" in
+  6.9) first="$IN/slides/set/6.9" ;;
+  ipad-13) first="$IN/ipad/slides/set/13" ;;
+  duo) first="$IN/duo/slides/set/duo" ;;
+esac
+[ -d "$first" ] || die "no slide set under $first"
 count=0
-for dir in "$IN/slides/set/6.9"/*/; do
+for dir in "$first"/*/; do
   locale="$(basename "$dir")"
   target="$OUT/$(store_locale "$locale")"
   mkdir -p "$target"
-  for size in 6.9 6.5 ipad-13 duo; do
+  for size in "${sizes[@]}"; do
     from="$IN/slides/set/$size/$locale"
     [ "$size" = ipad-13 ] && from="$IN/ipad/slides/set/13/$locale"
     [ "$size" = duo ] && from="$IN/duo/slides/set/duo/$locale"
@@ -74,6 +93,7 @@ for dir in "$IN/slides/set/6.9"/*/; do
   done
   watch="$IN/watch/$watch_theme/$locale/store"
   for state in 1-riding-turn 2-riding 3-paused 4-idle; do
+    chosen iphone || break
     [ -f "$watch/$state.png" ] || die "missing $watch/$state.png"
     sips -s format jpeg -s formatOptions 100 "$watch/$state.png" \
       --out "$target/watch-$state.jpg" > /dev/null
@@ -81,4 +101,4 @@ for dir in "$IN/slides/set/6.9"/*/; do
   echo "$locale -> $(basename "$target"): $(find "$target" -type f | wc -l | tr -d ' ') screenshots"
   count=$((count + 1))
 done
-[ "$count" -gt 0 ] || die "no locales under $IN/slides/set/6.9"
+[ "$count" -gt 0 ] || die "no locales under $first"

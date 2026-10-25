@@ -65,10 +65,10 @@ Output: build/store_screenshots/android-tablet/slides/<style>/tablet/<locale>/<s
         build/store_screenshots/android-tablet/slides/set/tablet/<locale>/NN-<slide>.png
         build/store_screenshots/android-tablet/slides/set/tablet/contact-<locale>.png
 
---platform ipad makes the 13" iPad set from the iPad captures, at 2064x2752:
-the set is store/slide_set_ipad.json, a slide's `ipad` object in
-slides_<locale>.json overrides its copy, the copy is scaled to the squarer
-canvas, and the screenshot sits whole in an iPad frame below it.
+--platform ipad makes the 13" iPad set from the iPad captures, landscape, at
+2752x2064: the set is store/slide_set_ipad.json, laid out as the Duo's, the
+copy centred above the screenshot, which sits whole in an iPad's frame; a
+slide's `ipad` object in slides_<locale>.json overrides its copy.
 Input:  build/store_screenshots/ipad/raw/<theme>/<locale>/<screen>.png
 Output: build/store_screenshots/ipad/slides/<style>/13/<locale>/<slide>.png
         build/store_screenshots/ipad/slides/set/13/<locale>/NN-<slide>.png
@@ -108,7 +108,7 @@ CHROME = os.environ.get(
 
 SIZES = {"6.9": (1320, 2868), "6.5": (1284, 2778)}
 ANDROID_SIZES = {"android": (1242, 2208)}
-IPAD_SIZES = {"13": (2064, 2752)}
+IPAD_SIZES = {"13": (2752, 2064)}
 DUO_SIZES = {"duo": (2853, 2007)}
 TABLET_SIZES = {"tablet": (2560, 1440)}
 
@@ -183,23 +183,6 @@ p.sub { font-size: 4.7vw; line-height: 1.3; margin: 3.8vw 0 0; font-weight: 700;
 .seam { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 """
 
-# The iPad canvas is nearly square: the copy at about the share of the height
-# it takes on the iPhone, and an iPad's thinner bezel and rounder corners
-# relative to its screen.
-IPAD_CSS = """
-.copy { padding: 5.6vw 7vw 0; }
-.chip { gap: 1vw; padding: 0.9vw 2.1vw; border-width: 0.14vw; font-size: 2vw; }
-.chip i { width: 1.15vw; height: 1.15vw; }
-.brand { gap: 1.5vw; margin-bottom: 2.4vw; }
-.brand img { width: 3.8vw; height: 3.8vw; }
-.brand span { font-size: 3.7vw; }
-h1 { font-size: 7.4vw; margin-top: 2.6vw; }
-p.sub { font-size: 2.8vw; margin-top: 2.2vw; max-width: 74vw; }
-.stage { margin-top: 4.4vw; height: 120vw; }
-.phone { padding: 1.3vw; border-radius: 3.6vw; }
-.screen { border-radius: 2.4vw; }
-"""
-
 # The Duo's inner display unfolded is wider than tall: the copy centred in
 # two lines at most above the screenshot, which takes the rest of the height,
 # in the thin bezel and round corners of that display.
@@ -229,6 +212,13 @@ TABLET_CSS = DUO_CSS + """
 h1 { font-size: 3.8vw; margin-top: 1.1vw; }
 p.sub { font-size: 1.5vw; margin-top: 0.8vw; }
 .stage { margin-top: 1.8vw; }
+"""
+
+# The iPad on its side, 4:3: the Duo's layout, the copy centred above the
+# screenshot, which sits whole in the iPad's thicker bezel and its corners.
+IPAD_CSS = DUO_CSS + """
+.phone { padding: 0.85vw; border-radius: 2.35vw; }
+.screen { border-radius: 1.6vw; }
 """
 
 # The Lock Screen, in fractions of the screen width (cqw): the wallpaper,
@@ -497,9 +487,7 @@ def page(w: int, h: int, body: str, shots: list[str] = (), tablet: str = "") -> 
         css = css.replace("aspect-ratio: 1320 / 2868", f"aspect-ratio: {size[0]} / {size[1]}")
     js = FIT_JS.replace("W *", f"{w} *").replace("H -", f"{h} -")
     # The floors in the same proportion to the copy as on the iPhone.
-    if tablet == "ipad":
-        js = js.replace("HEAD_FLOOR = 0.09, SUB_FLOOR = 0.036", "HEAD_FLOOR = 0.049, SUB_FLOOR = 0.021")
-    elif tablet == "duo":
+    if tablet in ("ipad", "duo"):
         js = js.replace("HEAD_FLOOR = 0.09, SUB_FLOOR = 0.036, HEAD_LINES = 3, GAP = 0.05",
                         "HEAD_FLOOR = 0.032, SUB_FLOOR = 0.0125, HEAD_LINES = 2, GAP = 0.025")
     elif tablet == "tablet":

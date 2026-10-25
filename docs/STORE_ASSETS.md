@@ -115,15 +115,19 @@ app/tool/store_screenshots.sh --platform ipad [--locales en,de] [--themes light,
 ```
 
 The same test on the simulator "Velorki Shots iPad 13" (an iPad Pro 13-inch
-(M5), created on the first run), portrait, 2064 × 2752, the size App Store
-Connect wants for the 13" iPad; the status bar as on the iPhone. The app lays
-itself out as it does in that window (see `wide_panel.dart`), so the test is
-the iPhone's. `store_slides.py --platform ipad` lays out
-`app/store/slide_set_ipad.json` (plan, weather, variants, loops, cyclemap,
-ai, ride, offline-themes: no watch or Lock Screen) at 2064 × 2752, the copy
-scaled to the squarer canvas and every screenshot whole in an iPad frame; a
-slide's `ipad` object in `slides_<lang>.json` overrides its copy (the plan's
-subline names the iPad). No watch or preview.
+(M5), created on the first run), landscape, 2752 × 2064, a size App Store
+Connect takes for the 13" iPad (the same slot as portrait): the wide layout
+(see `wide_panel.dart`) shows far more map sideways. The script holds the
+simulator sideways (`duo_state orientation landscape-left`) and passes
+`VELORKI_STORE_ORIENTATION=landscape`, on which the test locks the screen to
+either landscape before the app starts and back upright after; a picture of
+any other size fails the run. The status bar as on the iPhone.
+`store_slides.py --platform ipad` lays out `app/store/slide_set_ipad.json`
+(plan, weather, variants, loops, cyclemap, ai, ride, offline-themes: no
+watch or Lock Screen) as the Duo's at 2752 × 2064, the copy centred above the
+screenshot, whole in an iPad frame; a slide's `ipad` object in
+`slides_<lang>.json` overrides its copy (the plan's subline names the iPad).
+No watch or preview.
 
 Output, git-ignored, under `app/build/store_screenshots/ipad/`:
 `raw/<theme>/<locale>/<screen>.png`, `slides/<style>/13/<locale>/<slide>.png`,
@@ -398,7 +402,8 @@ poster), all merged into one tree for the upload. Before the iPad, the Duo and
 the preview the simulators of the step before are shut down, and every three
 minutes the script logs memory, disk, the busiest processes and the booted
 simulators (`VELORKI_STORE_MONITOR`, seconds). The `ios` and `android` inputs
-choose the sets (`ios` the iPhone's, the iPad's and the Duo's); `android` (off by default) runs
+choose the sets (`ios` the iPhone's, the iPad's and the Duo's, narrowed by
+`ios_sets`, e.g. `ipad`); `android` (off by default) runs
 `--platform android` and `--platform android-tablet` on API 35 emulators on
 Ubuntu (Pixel 6 and Pixel Tablet profiles), one job per language and device
 (close to an hour each) into the artifacts `store-assets-android-<locale>`
@@ -414,7 +419,14 @@ the App Store version to fill (created if it does not exist yet). The
 approval, then `app/tool/store_stage_deliver.sh` lays the set out per store
 locale and `fastlane ios store_assets` (deliver, with the App Store Connect
 API key; fastlane 2.241.1 or later, the first that knows the Duo) replaces that version's 6.9", 6.5", 13" iPad, iPhone Duo and Apple Watch screenshots in
-each language uploaded, the watch getting the four `store/` shots.
+each language uploaded, the watch getting the four `store/` shots. With
+`ios_sets` narrower than `iphone,ipad,duo` only those sets are staged, and
+the lane deletes just their device types first (`iphone` carries 6.9", 6.5"
+and the watch) instead of deliver's overwrite, which would empty every
+device type of the language. The iPad set alone, captured and uploaded:
+`ios: true`, `ios_sets: ipad`, `upload: true`, `app_version: <version>`
+(from a `v*` tag or `main`); with `assets_run_id` an earlier run's iPad
+artifacts instead.
 `metadata` also uploads `app/fastlane/metadata/ios`. Nothing is submitted for
 review. The preview video is uploaded by hand, from the Mac's recording.
 
