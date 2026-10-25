@@ -432,9 +432,24 @@ cleanup() {
     adb -s "$DEMO_SERIAL" shell am broadcast -a com.android.systemui.demo \
       -e command exit > /dev/null 2>&1 || true
   fi
+  # The capture build's full-screen flag (below) comes off again.
+  if [ -n "$PLIST_BACKUP" ] && [ -f "$PLIST_BACKUP" ]; then
+    cp "$PLIST_BACKUP" "$APP/ios/Runner/Info.plist"
+  fi
   rm -rf "$WORK"
 }
 trap cleanup EXIT
+
+# An iPad app that supports multitasking ignores the orientations a Flutter
+# app asks for, so the test could not turn the iPad. The capture build is
+# marked full-screen, which makes iPadOS honour them; the Info.plist is put
+# back when the script ends.
+PLIST_BACKUP=""
+if [ "$ORIENTATION" = landscape ]; then
+  PLIST_BACKUP="$WORK/Info.plist"
+  cp "$APP/ios/Runner/Info.plist" "$PLIST_BACKUP"
+  plutil -replace UIRequiresFullScreen -bool YES "$APP/ios/Runner/Info.plist"
+fi
 
 # Every VELORKI_STORE_MONITOR seconds (the workflow sets it), what the machine
 # is doing: memory, swap, disk, the busiest processes, the booted simulators
