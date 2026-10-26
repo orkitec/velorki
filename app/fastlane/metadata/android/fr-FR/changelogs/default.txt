@@ -1,9 +1,8 @@
-• Radar de pluie, vent et nuages sur la carte, gratuit
-• Vent et pluie sur l’itinéraire pour l’heure de départ
-• Itinéraire coloré selon pente, revêtement, vent ou pluie
-• Carte vélo hors ligne et haltes sur la carte
-• Recherche hors ligne bien meilleure ; fiches de lieux
-• Annonces vocales pour les itinéraires importés
-• Connexions aux plateformes gratuites ; un bouton Partager
-• Plus : radar sur l’Europe, prévision plus précise
-• Français, espagnol, italien et néerlandais
+• Synchronisez itinéraires, sorties et réglages via votre Google Drive ; ils restent à vous
+• Planifiez sur app.velorki.com avec le même compte Google, Plus aussi
+• Tablettes et pliables : carte plein écran, app à côté
+• Réglages : une vue d’ensemble, un groupe par page
+• Le bouton de téléchargement indique si la zone est chargée
+• Couches météo : alerte après plusieurs essais, levée d’elle-même
+• Les cartes sombres affichent de nouveau les localités
+• Les messages « Annuler » se ferment seuls

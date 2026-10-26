@@ -115,15 +115,19 @@ app/tool/store_screenshots.sh --platform ipad [--locales en,de] [--themes light,
 ```
 
 The same test on the simulator "Velorki Shots iPad 13" (an iPad Pro 13-inch
-(M5), created on the first run), portrait, 2064 × 2752, the size App Store
-Connect wants for the 13" iPad; the status bar as on the iPhone. The app lays
-itself out as it does in that window (see `wide_panel.dart`), so the test is
-the iPhone's. `store_slides.py --platform ipad` lays out
-`app/store/slide_set_ipad.json` (plan, weather, variants, loops, cyclemap,
-ai, ride, offline-themes: no watch or Lock Screen) at 2064 × 2752, the copy
-scaled to the squarer canvas and every screenshot whole in an iPad frame; a
-slide's `ipad` object in `slides_<lang>.json` overrides its copy (the plan's
-subline names the iPad). No watch or preview.
+(M5), created on the first run), landscape, 2752 × 2064, a size App Store
+Connect takes for the 13" iPad (the same slot as portrait): the wide layout
+(see `wide_panel.dart`) shows far more map sideways. The script holds the
+simulator sideways (`duo_state orientation landscape-left`) and passes
+`VELORKI_STORE_ORIENTATION=landscape`, on which the test locks the screen to
+either landscape before the app starts and back upright after; a picture of
+any other size fails the run. The status bar as on the iPhone.
+`store_slides.py --platform ipad` lays out `app/store/slide_set_ipad.json`
+(plan, weather, variants, loops, cyclemap, ai, ride, offline-themes: no
+watch or Lock Screen) as the Duo's at 2752 × 2064, the copy centred above the
+screenshot, whole in an iPad frame; a slide's `ipad` object in
+`slides_<lang>.json` overrides its copy (the plan's subline names the iPad).
+No watch or preview.
 
 Output, git-ignored, under `app/build/store_screenshots/ipad/`:
 `raw/<theme>/<locale>/<screen>.png`, `slides/<style>/13/<locale>/<slide>.png`,
@@ -242,8 +246,8 @@ feature graphic (the brand line and `feature.headline` over the dark plan)
 and a 512 × 512 icon from the app icon, and fails on a PNG Play would refuse.
 
 What Play wants: 2 to 8 phone screenshots per language, PNG or JPEG without
-alpha, each side 320 to 3840 px, 9:16 portrait,
-up to 8 MB each; a 1024 × 500 feature graphic; a 512 × 512 icon.
+alpha, each side 320 to 3840 px, the longer at most twice the shorter, 9:16
+portrait, up to 8 MB each; a 1024 × 500 feature graphic; a 512 × 512 icon.
 
 Output, git-ignored, under `app/build/store_screenshots/android/`:
 
@@ -252,9 +256,31 @@ Output, git-ignored, under `app/build/store_screenshots/android/`:
 - `slides/set/<locale>/NN-<slide>.png` and `feature-graphic.png`, to upload
 - `slides/set/contact-<locale>.png` and `slides/set/icon-512.png`
 
+### Tablets
+
+```
+app/tool/store_screenshots.sh --platform android-tablet [--locales en,de] [--themes light,dark]
+```
+
+The same test on a tablet emulator: a Pixel Tablet profile (2560 × 1600,
+landscape, 320 dpi, so the app takes its wide layout as on the iPad), e.g.
+`avdmanager create avd -n Velorki_Shots_Tablet -d pixel_tablet -k
+"system-images;android-35;google_apis;arm64-v8a"`, started as above. As the
+phone's, without the hole-punch. `store_slides.py --platform android-tablet`
+lays out the iPad's set (`slide_set_ipad.json`) as the Duo's slides are laid
+out, at 2560 × 1440 (Play wants 16:9 and at least 1080 px for tablets, 4 to
+8 of them), a slide's `tablet` object overriding its copy (the plan's subline
+names a tablet). Play's 7-inch and 10-inch tablets take the same images.
+
+Output, git-ignored, under `app/build/store_screenshots/android-tablet/`:
+`raw/<theme>/<locale>/<screen>.png` (2560 × 1600),
+`slides/<style>/tablet/<locale>/<slide>.png`,
+`slides/set/tablet/<locale>/NN-<slide>.png` (to upload) and
+`slides/set/tablet/contact-<locale>.png`.
+
 By hand, in the Play Console under the store listing, per language: the set
-as phone screenshots in file order, the feature graphic and the icon. Or from
-CI, below.
+as phone screenshots in file order, the tablet set as 7-inch and 10-inch
+tablet screenshots, the feature graphic and the icon. Or from CI, below.
 
 ## Preview video
 
@@ -336,7 +362,8 @@ beside the screenshots.
 2. If the store's region for the language is not in `region_of` in
    `store_screenshots.sh`, and to `store_watch.sh`, add it.
 3. `app/tool/store_screenshots.sh --locales <lang>`, and again with
-   `--platform ipad` and `--platform duo`.
+   `--platform ipad`, `--platform duo`, `--platform android` and
+   `--platform android-tablet`.
 
 ## Uploading
 
@@ -375,9 +402,12 @@ poster), all merged into one tree for the upload. Before the iPad, the Duo and
 the preview the simulators of the step before are shut down, and every three
 minutes the script logs memory, disk, the busiest processes and the booted
 simulators (`VELORKI_STORE_MONITOR`, seconds). The `ios` and `android` inputs
-choose the sets (`ios` the iPhone's, the iPad's and the Duo's); `android` (off by default) runs
-`--platform android` on an API 35 emulator on Ubuntu, one job per language
-(close to an hour each) into the artifacts `store-assets-android-<locale>`,
+choose the sets (`ios` the iPhone's, the iPad's and the Duo's, narrowed by
+`ios_sets`, e.g. `ipad`); `android` (off by default) runs
+`--platform android` and `--platform android-tablet` on API 35 emulators on
+Ubuntu (Pixel 6 and Pixel Tablet profiles), one job per language and device
+(close to an hour each) into the artifacts `store-assets-android-<locale>`
+and `store-assets-android-tablet-<locale>` (its `tablet/` folder),
 drawn with MapLibre's Vulkan renderer (see above). The runner's
 simulator has no GPU and drops frames of the moving map (a third in the
 navigation scene), so the preview for the store is recorded on a Mac with
@@ -389,7 +419,14 @@ the App Store version to fill (created if it does not exist yet). The
 approval, then `app/tool/store_stage_deliver.sh` lays the set out per store
 locale and `fastlane ios store_assets` (deliver, with the App Store Connect
 API key; fastlane 2.241.1 or later, the first that knows the Duo) replaces that version's 6.9", 6.5", 13" iPad, iPhone Duo and Apple Watch screenshots in
-each language uploaded, the watch getting the four `store/` shots.
+each language uploaded, the watch getting the four `store/` shots. With
+`ios_sets` narrower than `iphone,ipad,duo` only those sets are staged, and
+the lane deletes just their device types first (`iphone` carries 6.9", 6.5"
+and the watch) instead of deliver's overwrite, which would empty every
+device type of the language. The iPad set alone, captured and uploaded:
+`ios: true`, `ios_sets: ipad`, `upload: true`, `app_version: <version>`
+(from a `v*` tag or `main`); with `assets_run_id` an earlier run's iPad
+artifacts instead.
 `metadata` also uploads `app/fastlane/metadata/ios`. Nothing is submitted for
 review. The preview video is uploaded by hand, from the Mac's recording.
 
@@ -398,8 +435,10 @@ needed), the `android_upload` job also waits in the `release` environment,
 then `app/tool/store_stage_supply.sh` lays the merged `store-assets-android*` out per Play
 locale and `fastlane android store_listing` (supply, with the service account
 release.yml uploads the builds with, `PLAY_SERVICE_ACCOUNT_JSON`) replaces each
-uploaded language's phone screenshots, feature graphic and icon on the store
-listing; `metadata` also uploads the title and both descriptions of every
+uploaded language's phone screenshots, 7- and 10-inch tablet screenshots
+(`sevenInchScreenshots`, `tenInchScreenshots`: the same tablet set), feature
+graphic and icon on the store listing (a type with no images in the set is
+left as it is); `metadata` also uploads the title and both descriptions of every
 language in `app/fastlane/metadata/android`. No build, track or release notes
 change (the Play release notes stay with the release). Look at the
 artifact before approving: the listing changes at once, so approve once the

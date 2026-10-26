@@ -1,9 +1,8 @@
-• Radar de lluvia, viento y nubes en el mapa, gratis
-• Viento y lluvia en tu ruta para la hora de salida
-• Colorea la ruta por pendiente, superficie, viento o lluvia
-• Mapa ciclista sin conexión y paradas en el mapa
-• Mucha mejor búsqueda sin conexión; fichas de lugares
-• Avisos hablados para rutas importadas
-• Conexiones con plataformas gratis; un botón de compartir
-• Plus: radar en toda Europa, previsión más precisa
-• Francés, español, italiano y neerlandés
+• Sincroniza rutas, salidas y ajustes con tu propio Google Drive; se quedan contigo
+• Planifica en app.velorki.com con la misma cuenta de Google, también con Plus
+• Tabletas y plegables: el mapa en la pantalla, la app al lado
+• Ajustes: un resumen, cada grupo en su página
+• El botón de descarga indica si la zona está descargada
+• Las capas del tiempo avisan tras reintentos y se recuperan solas
+• Los mapas oscuros vuelven a mostrar localidades
+• Los mensajes «Deshacer» se cierran solos

@@ -1,9 +1,8 @@
-• Regenradar, wind en wolken op de kaart, gratis
-• Wind en regen langs je route voor je vertrektijd
-• Kleur de route naar helling, ondergrond, wind of regen
-• Offline fietskaart en stops op de kaart
-• Veel betere offline zoekfunctie; plaatskaarten
-• Gesproken afslagen voor geïmporteerde routes
-• Koppelingen met platforms nu gratis; één Deel-knop
-• Plus: radar over Europa, scherpere routeverwachting
-• Frans, Spaans, Italiaans en Nederlands
+• Synchroniseer routes, ritten en instellingen via je eigen Google Drive; ze blijven bij jou
+• Plan op app.velorki.com met hetzelfde Google-account, ook met Plus
+• Tablets en vouwtoestellen: de kaart over het scherm, de app ernaast
+• Instellingen: een overzicht, elke groep op een eigen pagina
+• De downloadknop toont of het gebied gedownload is
+• Weerlagen waarschuwen pas na pogingen en herstellen vanzelf
+• Donkere kaartstijlen tonen weer plaatsen
+• ‘Ongedaan maken’-meldingen sluiten vanzelf

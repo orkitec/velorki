@@ -455,12 +455,12 @@
       "description": "Die offenen Daten, die Open-Source-Projekte und die Schriften, auf denen Velorki aufbaut, mit ihren Lizenzen."
     },
     "title": "Danksagung",
-    "lead": "Velorki baut auf offenen Daten und Open Source auf. Das sind die Projekte hinter der Karte, den Routen, der Suche und der Schrift, mit den Lizenzen, unter denen sie stehen.",
+    "lead": "Velorki baut auf offenen Daten und Open Source auf. Das sind die Projekte hinter der Karte, den Routen, dem Wetter, der Suche und der Schrift, mit den Lizenzen, unter denen sie stehen.",
     "licenceLabel": "Lizenz:",
     "items": {
       "osm": {
         "title": "OpenStreetMap",
-        "body": "Kartendaten © OpenStreetMap-Mitwirkende. Die Kartendaten, die Velorki zeichnet, für das Routing nutzt und durchsucht, kommen von OpenStreetMap.",
+        "body": "Kartendaten © OpenStreetMap-Mitwirkende. Die Kartendaten, die Velorki zeichnet, für das Routing nutzt und durchsucht, kommen von OpenStreetMap. Die Routing-Kacheln stammen aus den Segment-Builds von brouter.de, gespiegelt auf GitHub; sie sind aus OpenStreetMap abgeleitet und stehen unter der ODbL, ebenso der Offline-Suchindex, gebaut aus den OpenStreetMap-Extrakten von Geofabrik.",
         "licence": "Open Database License (ODbL) 1.0; gerenderte Kacheln unter CC BY-SA 2.0."
       },
       "brouter": {
@@ -475,23 +475,38 @@
       },
       "cyclosm": {
         "title": "CyclOSM",
-        "body": "Das optionale Rad-Overlay: ein fahrradorientierter Kartenstil für OpenStreetMap, ausgeliefert von den Kachel-Servern der OpenStreetMap Foundation.",
-        "licence": "CC BY-SA 4.0."
+        "body": "Das optionale Rad-Overlay: ein fahrradorientierter Kartenstil für OpenStreetMap, ausgeliefert von OpenStreetMap France.",
+        "licence": "Der Stil unter der BSD-3-Clause-Lizenz, einige seiner Farben unter Apache 2.0 und einige Symbole unter CC BY 4.0 oder CC0; die Kartendaten © OpenStreetMap-Mitwirkende, ODbL 1.0."
+      },
+      "weatherMap": {
+        "title": "Wetterkarte",
+        "body": "Die optionalen Ebenen Regenradar, Wolken und Wind, die das Handy direkt von den öffentlichen Diensten lädt, die sie erstellen. Das europaweite und das italienische Radar gibt es mit Velorki Plus, gezeichnet vom Velorki-Relay aus den offenen Daten der Radarnetze.",
+        "licence": "Regenradar: Deutscher Wetterdienst (DWD), KNMI, Finnisches Meteorologisches Institut (FMI) und EUMETNET OPERA, CC BY 4.0; Radar-DPC, Dipartimento della Protezione Civile, CC BY-SA 4.0; NOAA National Weather Service, gemeinfrei, nicht von der NOAA gebilligt. Satellitenregen und Wolken über Europa und Afrika: enthält veränderte EUMETSAT-Daten (H SAF, Meteosat), CC BY 4.0 nach der EUMETSAT-Datenpolitik. Regenvorhersage und Wind: die Modelle ICON-EU und ICON des DWD, CC BY 4.0; über den zusammenhängenden USA das HRRR-Modell der NOAA über das Iowa Environmental Mesonet, gemeinfrei. Wolken über Amerika: NOAA-GOES-Bilder über NASA GIBS, gemeinfrei; wir danken für die Nutzung von Bildern der Dienste von NASAs Global Imagery Browse Services (GIBS), Teil von NASAs Earth Science Data and Information System (ESDIS)."
+      },
+      "routeWeather": {
+        "title": "Routenwetter",
+        "body": "Das Wetter entlang einer Route. Ohne Velorki Plus fragt das Handy selbst den Deutschen Wetterdienst (DWD) nach seinen Vorhersagen aus ICON und ICON-EU; mit Velorki Plus fragt der Velorki-Relay in den USA den NOAA National Weather Service (api.weather.gov), in und um Deutschland die MOSMIX-Vorhersage des DWD über Bright Sky und überall sonst die Locationforecast von MET Norway.",
+        "licence": "DWD: CC BY 4.0. NOAA National Weather Service: gemeinfrei, nicht von der NOAA gebilligt. MET Norway: CC BY 4.0 und NLOD 2.0, mit Nennung von MET Norway."
       },
       "photon": {
         "title": "Photon",
         "body": "Die Online-Ortssuche, von komoot. Photon findet die Ortsnamen, die ins Suchfeld getippt werden, und die, die der Assistent vorschlägt, und baut auf OpenStreetMap-Daten auf. © komoot GmbH und Mitwirkende.",
         "licence": "Apache License 2.0."
       },
+      "maplibre": {
+        "title": "MapLibre",
+        "body": "Der Karten-Renderer: MapLibre Native in der App auf Android und iOS, MapLibre GL JS im Web-Planer und auf den Teilen-Seiten dieser Website.",
+        "licence": "MapLibre Native unter der BSD-2-Clause-Lizenz, MapLibre GL JS unter der BSD-3-Clause-Lizenz."
+      },
+      "voices": {
+        "title": "Stimmenkatalog",
+        "body": "Welche Sprachausgabe-Stimme auf dem Handy welche ist, ihr Geschlecht und ihre Qualität: aus dem Katalog Web Speech Recommended Voices von Hadrien Gardeur.",
+        "licence": "CC0 1.0 (Widmung an die Gemeinfreiheit)."
+      },
       "fonts": {
         "title": "Barlow Condensed und Manrope",
         "body": "Die beiden Schriften der App und dieser Website. Copyright 2017 The Barlow Project Authors, Copyright 2018 The Manrope Project Authors.",
         "licence": "SIL Open Font License (OFL) 1.1."
-      },
-      "maplibre": {
-        "title": "MapLibre GL",
-        "body": "Der Karten-Renderer: MapLibre GL in der App und MapLibre GL JS auf den Teilen-Seiten dieser Website.",
-        "licence": "BSD-3-Clause-Lizenz."
       },
       "flutter": {
         "title": "Flutter",

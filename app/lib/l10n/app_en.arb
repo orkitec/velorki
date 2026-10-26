@@ -98,6 +98,22 @@
   "@settingsTerms": {
     "description": "About tile that opens the terms of use in the browser"
   },
+  "settingsImprint": "Imprint",
+  "@settingsImprint": {
+    "description": "About tile that opens the imprint (the legally required provider identification) in the browser"
+  },
+  "webStorageNoticeLabel": "What this browser stores",
+  "@webStorageNoticeLabel": {
+    "description": "Label of the cookie button in the web planner's legal chip, which brings back the note on what the browser stores"
+  },
+  "webStorageNoticeTitle": "Stored in this browser",
+  "@webStorageNoticeTitle": {
+    "description": "Title of the web planner's note on what it keeps in the browser, shown once over the map"
+  },
+  "webStorageNoticeBody": "Your routes, rides, settings and downloaded map data stay in this browser, so the planner works offline and your library is here next time. Nothing is tracked; the privacy policy lists what leaves the browser and when.",
+  "@webStorageNoticeBody": {
+    "description": "Body of that note"
+  },
   "settingsReportProblem": "Report a problem",
   "@settingsReportProblem": {
     "description": "About tile that opens the issue tracker"

@@ -13,6 +13,7 @@
 #   tool/store_screenshots.sh --platform ipad          # the iPad set; see below
 #   tool/store_screenshots.sh --platform duo           # the iPhone Duo set; see below
 #   tool/store_screenshots.sh --platform android       # the Google Play set; see below
+#   tool/store_screenshots.sh --platform android-tablet  # Google Play's tablet set; see below
 #
 # Output, under app/build/store_screenshots/ (git-ignored):
 #   raw/<theme>/<locale>/<screen>.png          the simulator's screen, 1320x2868
@@ -44,8 +45,9 @@
 #
 # --platform ipad takes the same screens on the simulator "Velorki Shots iPad
 # 13" (VELORKI_STORE_SIM again takes a UDID), created as an iPad Pro 13-inch
-# (M5): 2064x2752, the size App Store Connect wants for 13". The slides are
-# those of store/slide_set_ipad.json; no watch or preview. Output under
+# (M5), with the screen locked sideways by the test (VELORKI_STORE_ORIENTATION):
+# 2752x2064, a size App Store Connect takes for 13". The slides are those of
+# store/slide_set_ipad.json; no watch or preview. Output under
 # ipad/: raw/<theme>/<locale>/<screen>.png and slides/ (see
 # tool/store_slides.py --platform ipad).
 #
@@ -68,6 +70,11 @@
 # mirror is reached as 10.0.2.2. No watch, Lock Screen or preview. Output
 # under android/: raw/<theme>/<locale>/<screen>.png and slides/ (see
 # tool/store_slides.py --platform android).
+#
+# --platform android-tablet does the same on a tablet emulator (a Pixel
+# Tablet profile, 2560x1600 landscape, where the app takes its wide layout),
+# without the phone's hole-punch, for the slides of store/slide_set_ipad.json.
+# Output under android-tablet/.
 #
 # VELORKI_STORE_MONITOR=<seconds> logs memory, disk, the busiest processes and
 # the booted simulators that often (the workflow sets it).
@@ -92,6 +99,7 @@ CAPTURE=1
 UNTIL=
 PREVIEW=0
 PLATFORM=ios
+ORIENTATION=
 while [ $# -gt 0 ]; do
   case "$1" in
     --locales) LOCALES="$2"; shift ;;
@@ -110,6 +118,8 @@ done
 say() { printf '==> %s\n' "$*"; }
 die() { printf 'store_screenshots: %s\n' "$*" >&2; exit 1; }
 
+ANDROID=0
+case "$PLATFORM" in android*) ANDROID=1 ;; esac
 case "$PLATFORM" in
   ios) ;;
   ipad)
@@ -117,6 +127,7 @@ case "$PLATFORM" in
     OUT="$OUT/ipad"
     SIM_NAME="Velorki Shots iPad 13"
     SIM_TYPE=com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB
+    ORIENTATION=landscape
     ;;
   duo)
     [ "$PREVIEW" = 0 ] || die "the preview is recorded on the iPhone only"
@@ -124,11 +135,11 @@ case "$PLATFORM" in
     SIM_NAME="Velorki Shots Duo"
     SIM_TYPE=com.apple.CoreSimulator.SimDeviceType.iPhone-Duo
     ;;
-  android)
+  android | android-tablet)
     [ "$PREVIEW" = 0 ] || die "the preview is recorded on iOS only"
-    OUT="$OUT/android"
+    OUT="$OUT/$PLATFORM"
     ;;
-  *) die "unknown platform $PLATFORM (ios, ipad, duo or android)" ;;
+  *) die "unknown platform $PLATFORM (ios, ipad, duo, android or android-tablet)" ;;
 esac
 
 # The App Store's region for each language the app ships.
@@ -191,6 +202,13 @@ boot() {  # boot <udid> <language> <region>
     xcrun simctl bootstatus "$udid" -b > /dev/null
   fi
   [ "$PLATFORM" = duo ] && unfold "$udid"
+  # The iPad held sideways, as the test then locks the screen: the turn the
+  # app is asked for is then the one the device is already in.
+  if [ "$ORIENTATION" = landscape ]; then
+    build_duo_state
+    xcrun simctl spawn "$udid" "$DUO_STATE" orientation landscape-left \
+      || say "could not turn the simulator; the test turns the screen itself"
+  fi
   # A moment for SpringBoard to settle before anything is installed.
   sleep 15
   python3 "$APP/tool/store_shutter.py" --status-bar "$udid"
@@ -199,14 +217,17 @@ boot() {  # boot <udid> <language> <region>
 # The iPhone Duo boots folded, on its outer display: opened flat and held
 # upright, its inner display is the active one, wider than tall.
 DUO_STATE=""
-unfold() {  # unfold <udid>
-  local udid=$1
+build_duo_state() {
   if [ -z "$DUO_STATE" ]; then
     DUO_STATE="$WORK/duo_state"
     xcrun -sdk iphonesimulator clang -arch "$(uname -m)" -mios-simulator-version-min=17.0 -O2 \
       -o "$DUO_STATE" "$APP/tool/duo_state.c" -framework IOKit -framework CoreFoundation
     codesign -f -s - "$DUO_STATE" 2> /dev/null
   fi
+}
+unfold() {  # unfold <udid>
+  local udid=$1
+  build_duo_state
   xcrun simctl spawn "$udid" "$DUO_STATE" hinge 180
   xcrun simctl spawn "$udid" "$DUO_STATE" orientation portrait
   local displays
@@ -269,22 +290,25 @@ android_boot() {  # android_boot <serial> <language-tag>
       say "no adb root on $serial; the status bar keeps the language $current"
     fi
   fi
-  # A Pixel's hole-punch and gesture bar, whatever the image defaults to:
-  # both decide where the app's chrome sits.
-  adb -s "$serial" shell cmd overlay enable-exclusive --category \
-    com.android.internal.display.cutout.emulation.hole > /dev/null 2>&1 || true
+  # A Pixel's gesture bar and, on the phone, its hole-punch, whatever the
+  # image defaults to: both decide where the app's chrome sits. The Pixel
+  # Tablet's camera is in its bezel.
+  local cutout=com.android.internal.display.cutout.emulation.hole
+  if [ "$PLATFORM" = android ]; then
+    adb -s "$serial" shell cmd overlay enable-exclusive --category "$cutout" > /dev/null 2>&1 || true
+  fi
   adb -s "$serial" shell cmd overlay enable-exclusive --category \
     com.android.internal.systemui.navbar.gestural > /dev/null 2>&1 || true
   # A moment for SystemUI to settle before the bar is set.
   sleep 10
   # Then the cutout off and on again: after a reboot the status bar is now and
   # then laid out for no cutout, its top row cut off, until it changes.
-  adb -s "$serial" shell cmd overlay disable \
-    com.android.internal.display.cutout.emulation.hole > /dev/null 2>&1 || true
-  sleep 3
-  adb -s "$serial" shell cmd overlay enable-exclusive --category \
-    com.android.internal.display.cutout.emulation.hole > /dev/null 2>&1 || true
-  sleep 5
+  if [ "$PLATFORM" = android ]; then
+    adb -s "$serial" shell cmd overlay disable "$cutout" > /dev/null 2>&1 || true
+    sleep 3
+    adb -s "$serial" shell cmd overlay enable-exclusive --category "$cutout" > /dev/null 2>&1 || true
+    sleep 5
+  fi
   adb -s "$serial" shell settings put global sysui_demo_allowed 1
   python3 "$APP/tool/store_shutter.py" --android-status-bar "$serial"
 }
@@ -358,6 +382,7 @@ capture() {
       --dart-define=VELORKI_STORE_LOCALE="$locale" \
       --dart-define=VELORKI_STORE_THEMES="$THEMES" \
       --dart-define=VELORKI_STORE_UNTIL="$UNTIL" \
+      --dart-define=VELORKI_STORE_ORIENTATION="$ORIENTATION" \
       --dart-define=VELORKI_PREVIEW_SET="$PREVIEW_SET" > "$log" 2>&1 &
     pid=$!
     started=0
@@ -407,9 +432,24 @@ cleanup() {
     adb -s "$DEMO_SERIAL" shell am broadcast -a com.android.systemui.demo \
       -e command exit > /dev/null 2>&1 || true
   fi
+  # The capture build's full-screen flag (below) comes off again.
+  if [ -n "$PLIST_BACKUP" ] && [ -f "$PLIST_BACKUP" ]; then
+    cp "$PLIST_BACKUP" "$APP/ios/Runner/Info.plist"
+  fi
   rm -rf "$WORK"
 }
 trap cleanup EXIT
+
+# An iPad app that supports multitasking ignores the orientations a Flutter
+# app asks for, so the test could not turn the iPad. The capture build is
+# marked full-screen, which makes iPadOS honour them; the Info.plist is put
+# back when the script ends.
+PLIST_BACKUP=""
+if [ "$ORIENTATION" = landscape ]; then
+  PLIST_BACKUP="$WORK/Info.plist"
+  cp "$APP/ios/Runner/Info.plist" "$PLIST_BACKUP"
+  plutil -replace UIRequiresFullScreen -bool YES "$APP/ios/Runner/Info.plist"
+fi
 
 # Every VELORKI_STORE_MONITOR seconds (the workflow sets it), what the machine
 # is doing: memory, swap, disk, the busiest processes, the booted simulators
@@ -443,7 +483,7 @@ if [ "$CAPTURE" = 1 ]; then
   if ! command -v flutter > /dev/null; then
     eval "$(mise env -s bash)" || die "flutter is not on PATH and mise could not provide it"
   fi
-  if [ "$PLATFORM" = android ]; then
+  if [ "$ANDROID" = 1 ]; then
     # The first SDK that has one; mise.toml names the Linux place.
     for sdk in "${ANDROID_HOME:-}" "${ANDROID_SDK_ROOT:-}" "$HOME/Library/Android/sdk" "$HOME/Android/Sdk"; do
       if [ -n "$sdk" ] && [ -x "$sdk/platform-tools/adb" ]; then
@@ -498,7 +538,7 @@ PY
   IFS=, read -r -a locales <<< "$LOCALES"
   for locale in "${locales[@]}"; do
     region="$(region_of "$locale")"
-    if [ "$PLATFORM" = android ]; then
+    if [ "$ANDROID" = 1 ]; then
       android_boot "$DEVICE" "${region/_/-}"
       DEMO_SERIAL="$DEVICE"
       python3 "$APP/tool/store_shutter.py" --android "$DEVICE" "$OUT/raw" &
@@ -519,6 +559,35 @@ PY
     wait "$SHUTTER_PID" 2> /dev/null || true
     SHUTTER_PID=""
   done
+
+  # The iPad's pictures are taken sideways (the test locks the screen to
+  # Flutter's landscapeLeft), but simctl saves them in the device's portrait
+  # frame: each new one is turned upright first (IPAD_TURN degrees
+  # clockwise). One of another size would land in no App Store slot, or the
+  # wrong one.
+  if [ "$PLATFORM" = ipad ]; then
+    find "$OUT/raw" -name '*.png' -newer "$DEFINES" -print0 | while IFS= read -r -d '' shot; do
+      if [ "$(sips -g pixelHeight "$shot" | awk '/pixelHeight/{print $2}')" = 2752 ]; then
+        sips -r "${IPAD_TURN:-90}" "$shot" > /dev/null
+      fi
+    done
+    python3 - "$OUT/raw" "$DEFINES" << 'PY' || die "the iPad's pictures are not all 2752x2064 (landscape)"
+import os, struct, sys
+raw, since = sys.argv[1], os.path.getmtime(sys.argv[2])
+bad = []
+for folder, _, names in os.walk(raw):
+    for name in names:
+        path = os.path.join(folder, name)
+        if not name.endswith(".png") or os.path.getmtime(path) < since:
+            continue
+        with open(path, "rb") as f:
+            size = struct.unpack(">II", f.read(24)[16:24])
+        if size != (2752, 2064):
+            bad.append(f"{path}: {size[0]}x{size[1]}")
+print("\n".join(bad), file=sys.stderr)
+sys.exit(1 if bad else 0)
+PY
+  fi
 
   # The watch takes the figures of the ride, which comes last.
   if [ -z "$UNTIL" ] && [ "$PREVIEW" = 0 ] && [ "$PLATFORM" = ios ]; then

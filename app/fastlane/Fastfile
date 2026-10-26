@@ -33,6 +33,31 @@ def dart_defines_property
       .join(",")
 end
 
+# Deletes, on the App Store version being edited, the screenshot sets of the
+# device types (display types) and languages found under [path], laid out as
+# deliver reads them, and no others.
+def delete_screenshot_types(app_identifier, app_version, path)
+  require "deliver"
+  staged = Deliver::Loader.load_app_screenshots(path, false)
+  UI.user_error!("No screenshots under #{path}") if staged.empty?
+  types = staged.map(&:display_type).uniq
+  languages = staged.map(&:language).uniq
+  app = Spaceship::ConnectAPI::App.find(app_identifier)
+  UI.user_error!("No app #{app_identifier} on App Store Connect") unless app
+  version = app.get_edit_app_store_version(platform: Spaceship::ConnectAPI::Platform::IOS)
+  unless version && version.version_string == app_version
+    UI.user_error!("The App Store version being edited is #{version&.version_string || 'none'}, not #{app_version}")
+  end
+  version.get_app_store_version_localizations.each do |localization|
+    next unless languages.include?(localization.locale)
+    localization.get_app_screenshot_sets.each do |set|
+      next unless types.include?(set.screenshot_display_type)
+      UI.message("Deleting #{localization.locale} #{set.screenshot_display_type} (#{(set.app_screenshots || []).size})")
+      set.delete!
+    end
+  end
+end
+
 platform :android do
   desc "Build a signed AAB and upload it to the Play internal testing track"
   lane :internal do
@@ -174,15 +199,23 @@ platform :ios do
       key_filepath: ENV["ASC_KEY_PATH"],
     )
 
+    app_identifier = ENV["IOS_BUNDLE_ID"] || "com.orkitec.velorki"
+    # deliver's overwrite deletes every device's screenshots in each language
+    # uploaded; a run with only some sets (STORE_SETS, e.g. `ipad`) deletes
+    # just the device types it brings and keeps the others.
+    sets = (ENV["STORE_SETS"] || "iphone,ipad,duo").split(",").map(&:strip).reject(&:empty?)
+    partial = (%w[iphone ipad duo] - sets).any?
+    delete_screenshot_types(app_identifier, ENV["APP_VERSION"], ENV["SCREENSHOTS_PATH"]) if partial
+
     deliver(
       api_key: api_key,
-      app_identifier: ENV["IOS_BUNDLE_ID"] || "com.orkitec.velorki",
+      app_identifier: app_identifier,
       app_version: ENV["APP_VERSION"],
       screenshots_path: ENV["SCREENSHOTS_PATH"],
       metadata_path: File.join(FASTLANE_DIR, "metadata/ios"),
       skip_metadata: ENV["UPLOAD_METADATA"] != "true",
       skip_binary_upload: true,
-      overwrite_screenshots: true,
+      overwrite_screenshots: !partial,
       submit_for_review: false,
       run_precheck_before_submit: false,
       # No HTML preview to confirm: CI has nobody to confirm it.

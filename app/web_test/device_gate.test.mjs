@@ -84,6 +84,7 @@ test("the reused wording is the website's", () => {
     assert.equal(t.description, m.site.description, lang);
     assert.equal(t.storeIos, m.home.hero.storeIos, lang);
     assert.equal(t.storeAndroid, m.home.hero.storeAndroid, lang);
+    assert.equal(t.imprint, m.legal.imprint.title, lang);
   }
 });
 
@@ -223,12 +224,14 @@ test('boot shows the download page on a phone, and continuing loads the app once
   assert.ok(page);
   assert.equal(w.document.documentElement.attributes.lang, 'de');
   const text = page.textContent;
-  for (const key of ['heading', 'description', 'storeIos', 'storeAndroid', 'continue']) {
+  for (const key of ['heading', 'description', 'storeIos', 'storeAndroid', 'continue', 'imprint']) {
     assert.ok(text.includes(STRINGS.de[key]), key);
   }
   const hrefs = [...page.walk()].map((n) => n.attributes.href).filter(Boolean);
   assert.ok(hrefs.includes('https://apps.apple.com/app/id6816790504'));
   assert.ok(hrefs.includes('https://play.google.com/store/apps/details?id=com.orkitec.velorki'));
+  // The imprint, in the page's language (§ 5 DDG: reachable from every page).
+  assert.ok(hrefs.includes('https://velorki.com/de/imprint'));
   const header = byId(w.document, 'velorki-header');
   assert.ok([...header.walk()].some((n) => n.attributes.href === 'https://velorki.com/de/docs'));
 

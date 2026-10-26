@@ -64,7 +64,7 @@ export function CookieNoticeCard({
 /**
  * A notice, not a consent gate. velorki.com stores nothing on a visitor's
  * device until they ask for it - a language choice, a theme, the support chat's
- * own state - and none of it is tracking, so under section 25 (2) TTDSG there
+ * own state - and none of it is tracking, so under section 25 (2) TDDDG there
  * is nothing to consent to and nothing to refuse. It therefore has one button,
  * blocks nothing, and is shown once per browser; the footer's Cookies entry
  * brings it back.

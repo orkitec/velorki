@@ -455,12 +455,12 @@
       "description": "De open data, de opensourceprojecten en de lettertypen waarop Velorki is gebouwd, met hun licenties."
     },
     "title": "Bronvermelding",
-    "lead": "Velorki is gebouwd op open data en open source. Dit zijn de projecten achter de kaart, de routes, het zoeken en de letters, met de licenties waaronder ze zijn gepubliceerd.",
+    "lead": "Velorki is gebouwd op open data en open source. Dit zijn de projecten achter de kaart, de routes, het weer, het zoeken en de letters, met de licenties waaronder ze zijn gepubliceerd.",
     "licenceLabel": "Licentie:",
     "items": {
       "osm": {
         "title": "OpenStreetMap",
-        "body": "Kaartgegevens © OpenStreetMap-bijdragers. De kaartgegevens die Velorki tekent, waarop het routeert en waarin het zoekt, komen van OpenStreetMap.",
+        "body": "Kaartgegevens © OpenStreetMap-bijdragers. De kaartgegevens die Velorki tekent, waarop het routeert en waarin het zoekt, komen van OpenStreetMap. De routeringstegels komen uit de segmentbuilds van brouter.de, gespiegeld op GitHub; ze zijn afgeleid van OpenStreetMap en worden aangeboden onder de ODbL, net als de offline zoekindex, gebouwd uit de OpenStreetMap-extracten van Geofabrik.",
         "licence": "Open Database License (ODbL) 1.0; gerenderde tegels onder CC BY-SA 2.0."
       },
       "brouter": {
@@ -475,23 +475,38 @@
       },
       "cyclosm": {
         "title": "CyclOSM",
-        "body": "De optionele fietslaag: een op fietsers gerichte kaartstijl voor OpenStreetMap, geleverd door de tegelservers van de OpenStreetMap Foundation.",
-        "licence": "CC BY-SA 4.0."
+        "body": "De optionele fietslaag: een op fietsers gerichte kaartstijl voor OpenStreetMap, geleverd door OpenStreetMap France.",
+        "licence": "De stijl onder de BSD 3-Clause-licentie, enkele van zijn kleuren onder Apache 2.0 en enkele iconen onder CC BY 4.0 of CC0; de kaartgegevens © OpenStreetMap-bijdragers, ODbL 1.0."
+      },
+      "weatherMap": {
+        "title": "Weerkaart",
+        "body": "De optionele lagen regenradar, wolken en wind, die de telefoon rechtstreeks laadt van de openbare diensten die ze maken. De radar voor heel Europa en de Italiaanse radar komen met Velorki Plus, getekend door de Velorki-relay uit de open data van de radarnetwerken.",
+        "licence": "Regenradar: Deutscher Wetterdienst (DWD), KNMI, Fins Meteorologisch Instituut (FMI) en EUMETNET OPERA, CC BY 4.0; Radar-DPC, Dipartimento della Protezione Civile, CC BY-SA 4.0; NOAA National Weather Service, publiek domein, niet onderschreven door NOAA. Satellietregen en wolken boven Europa en Afrika: bevat bewerkte EUMETSAT-gegevens (H SAF, Meteosat), CC BY 4.0 volgens het gegevensbeleid van EUMETSAT. Regenverwachting en wind: de modellen ICON-EU en ICON van de DWD, CC BY 4.0; boven de aaneengesloten VS het HRRR-model van NOAA via het Iowa Environmental Mesonet, publiek domein. Wolken boven Amerika: GOES-beelden van NOAA via NASA GIBS, publiek domein; met dank voor het gebruik van beelden van de diensten van NASA's Global Imagery Browse Services (GIBS), onderdeel van NASA's Earth Science Data and Information System (ESDIS)."
+      },
+      "routeWeather": {
+        "title": "Routeweer",
+        "body": "Het weer langs een route. Zonder Velorki Plus vraagt de telefoon zelf de Deutscher Wetterdienst (DWD) om zijn verwachtingen uit ICON en ICON-EU; met Velorki Plus vraagt de Velorki-relay in de VS de NOAA National Weather Service (api.weather.gov), in en rond Duitsland de MOSMIX-verwachting van de DWD via Bright Sky en overal elders de Locationforecast van MET Norway.",
+        "licence": "DWD: CC BY 4.0. NOAA National Weather Service: publiek domein, niet onderschreven door NOAA. MET Norway: CC BY 4.0 en NLOD 2.0, met naamsvermelding van MET Norway."
       },
       "photon": {
         "title": "Photon",
         "body": "Online zoeken naar plaatsen, van komoot. Photon zoekt de plaatsnamen op die in het zoekveld worden getypt en de namen die de assistent voorstelt, en is gebouwd op OpenStreetMap-gegevens. © komoot GmbH en bijdragers.",
         "licence": "Apache License 2.0."
       },
+      "maplibre": {
+        "title": "MapLibre",
+        "body": "De kaartrenderer: MapLibre Native in de app op Android en iOS, MapLibre GL JS in de webplanner en op de deelpagina's van deze website.",
+        "licence": "MapLibre Native onder de BSD 2-Clause-licentie, MapLibre GL JS onder de BSD 3-Clause-licentie."
+      },
+      "voices": {
+        "title": "Stemmencatalogus",
+        "body": "Welke spraakstem op de telefoon welke is, zijn geslacht en zijn kwaliteit: uit de catalogus Web Speech Recommended Voices van Hadrien Gardeur.",
+        "licence": "CC0 1.0 (toewijding aan het publiek domein)."
+      },
       "fonts": {
         "title": "Barlow Condensed en Manrope",
         "body": "De twee lettertypen van de app en deze website. Copyright 2017 The Barlow Project Authors, copyright 2018 The Manrope Project Authors.",
         "licence": "SIL Open Font License (OFL) 1.1."
-      },
-      "maplibre": {
-        "title": "MapLibre GL",
-        "body": "De kaartrenderer: MapLibre GL in de app en MapLibre GL JS op de deelpagina's van deze website.",
-        "licence": "BSD 3-Clause-licentie."
       },
       "flutter": {
         "title": "Flutter",

@@ -1,9 +1,8 @@
-• Regenradar, Wind und Wolken auf der Karte, kostenlos
-• Wind und Regen auf der Route für deine Abfahrtszeit
-• Route nach Steigung, Belag, Wind oder Regen färben
-• Radkarte offline und Stopps auf der Karte
-• Viel bessere Offline-Suche; Ortskarten
-• Sprachansagen für importierte Routen
-• Plattform-Verbindungen jetzt kostenlos; ein Teilen-Button
-• Plus: Radar in ganz Europa, schärfere Routenvorhersage
-• Französisch, Spanisch, Italienisch und Niederländisch
+• Routen, Fahrten, Einstellungen über dein Google Drive synchronisieren; sie bleiben bei dir
+• Planen auf app.velorki.com mit demselben Google-Konto, auch Plus
+• Tablets und Foldables: Karte im Vollbild, App daneben
+• Einstellungen: Übersicht, jede Gruppe auf eigener Seite
+• Download-Button zeigt, ob der Ausschnitt geladen ist
+• Wetterebenen warnen erst nach Wiederholungen und erholen sich selbst
+• Dunkle Kartenstile zeigen wieder Ortspunkte
+• „Rückgängig“-Meldungen schließen sich selbst

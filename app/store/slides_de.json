@@ -1,6 +1,6 @@
 {
   "plan": {
-    "eyebrow": "Kostenlos & quelloffen",
+    "eyebrow": "Kostenlos, privat, ohne Konto",
     "headline": "Fahr dort, wo der **Empfang endet**",
     "subline": "Planen, routen und navigieren auf dem iPhone, auch offline.",
     "android": {
@@ -8,6 +8,9 @@
     },
     "ipad": {
       "subline": "Planen, routen und navigieren auf dem iPad, auch offline."
+    },
+    "tablet": {
+      "subline": "Planen, routen und navigieren auf dem Tablet, auch offline."
     }
   },
   "variants": {

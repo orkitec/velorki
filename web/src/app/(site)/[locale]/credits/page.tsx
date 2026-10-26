@@ -5,52 +5,10 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Breadcrumbs } from '@/components/DocsNav';
 import { JsonLd } from '@/components/JsonLd';
 import { routing } from '@/i18n/routing';
+import { CREDITS } from '@/site/credits';
 import { breadcrumbJsonLd } from '@/site/jsonld';
 import { localePath } from '@/site/paths';
 import { pageMetadata } from '@/site/seo';
-
-interface CreditLink {
-  /** Shown as written, in every language: a project or a licence name. */
-  label: string;
-  href: string;
-}
-
-/**
- * The data, services, fonts and frameworks Velorki is built on, in the order
- * the ride uses them: the data, the routing, the tiles, the search, then the
- * type and the toolkit. The wording and the licence names follow
- * `app/lib/app/licenses.dart`, which registers the same list in the app, so
- * the website and the About screen cannot drift apart.
- */
-const CREDITS: ReadonlyArray<{ id: string; links: readonly CreditLink[] }> = [
-  {
-    id: 'osm',
-    links: [
-      { label: 'openstreetmap.org/copyright', href: 'https://www.openstreetmap.org/copyright' },
-      { label: 'ODbL 1.0', href: 'https://opendatacommons.org/licenses/odbl/1-0/' },
-    ],
-  },
-  { id: 'brouter', links: [{ label: 'github.com/abrensch/brouter', href: 'https://github.com/abrensch/brouter' }] },
-  {
-    id: 'openfreemap',
-    links: [
-      { label: 'openfreemap.org', href: 'https://openfreemap.org/' },
-      { label: 'openmaptiles.org', href: 'https://openmaptiles.org/' },
-    ],
-  },
-  { id: 'cyclosm', links: [{ label: 'cyclosm.org', href: 'https://www.cyclosm.org/' }] },
-  { id: 'photon', links: [{ label: 'photon.komoot.io', href: 'https://photon.komoot.io/' }] },
-  {
-    id: 'fonts',
-    links: [
-      { label: 'Barlow Condensed', href: 'https://github.com/jpt/barlow' },
-      { label: 'Manrope', href: 'https://github.com/sharanda/manrope' },
-      { label: 'SIL Open Font License 1.1', href: 'https://openfontlicense.org/' },
-    ],
-  },
-  { id: 'maplibre', links: [{ label: 'maplibre.org', href: 'https://maplibre.org/' }] },
-  { id: 'flutter', links: [{ label: 'flutter.dev', href: 'https://flutter.dev/' }] },
-];
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

@@ -25,6 +25,14 @@ const String velorkiSupportEmail = 'ride@velorki.com';
 /// The site's download page in [languageCode], as the site's own paths are:
 /// English unprefixed, every other language under its code. Where the web
 /// planner sends a rider for what only the phone apps have.
-String velorkiDownloadUrl(String languageCode) => languageCode == 'en'
-    ? 'https://velorki.com/download'
-    : 'https://velorki.com/$languageCode/download';
+String velorkiDownloadUrl(String languageCode) =>
+    _sitePage(languageCode, 'download');
+
+/// The imprint (§ 5 DDG) in [languageCode]. Linked from Settings → About and,
+/// on the web, from the map's attribution, so it is two taps from anywhere.
+String velorkiImprintUrl(String languageCode) =>
+    _sitePage(languageCode, 'imprint');
+
+String _sitePage(String languageCode, String page) => languageCode == 'en'
+    ? 'https://velorki.com/$page'
+    : 'https://velorki.com/$languageCode/$page';

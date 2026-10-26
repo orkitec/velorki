@@ -1,11 +1,9 @@
-• Wetter auf der Karte, kostenlos: Regenradar, Wind und Wolken, mit einem Zeitschieber in die nächsten Stunden.
-• Das Wetter auf der Route: Wind und Regen für die Zeit, zu der du losfährst, ein Regler für die Abfahrt.
-• Färbe die Route nach Steigung, Belag, Wind oder Regen, auf der Karte und unter dem Höhenprofil.
-• Eine Radkarte offline: Radwege und Radstreifen, Einbahnstraßen, Treppen und Anstiege, aus den Routingdaten gezeichnet.
-• Stopps auf der Karte: Trinkwasser, Cafés, Bäckereien, Toiletten, Fahrrad-Reparaturstationen und mehr, dazu die Stopps auf deiner Route.
-• Tippe auf einen Ort für seine Ortskarte: Route hierher, Als Stopp einfügen, Öffnungszeiten und mehr.
-• Die Suche findet offline viel mehr: Hausnummern, Tippfehler, andere Alphabete, Restaurants und Tankstellen.
-• Auch importierte Routen bekommen Sprachansagen.
-• Die Verbindungen zu Routen- und Fahrtenplattformen sind jetzt kostenlos, und ein Teilen-Button vereint sie alle.
-• Velorki Plus: echtes Radar in ganz Europa und eine schärfere Vorhersage entlang der Route.
-• Velorki spricht jetzt Französisch, Spanisch, Italienisch und Niederländisch.
+• Synchronisiere deine Routen, Fahrten und Einstellungen über deine eigene iCloud oder dein Google Drive, zwischen iPhone, iPad und dem Web-Planer auf app.velorki.com. Deine Routen und Fahrten bleiben bei dir.
+• Im Browser planen auf app.velorki.com: Melde dich mit demselben iCloud- oder Google-Konto an, und deine Bibliothek ist da. Auch Plus funktioniert dort, sobald die App mit Plus mit demselben Konto synchronisiert.
+• Velorki auf dem iPad: die Karte über den ganzen Bildschirm, die App in einer Spalte daneben, auf der Seite deiner Wahl.
+• Die Einstellungen sind jetzt eine Übersicht, jede Gruppe auf ihrer eigenen Seite.
+• Der Download-Button zeigt, ob der sichtbare Kartenausschnitt schon heruntergeladen ist.
+• Wetterkarte: Eine Ebene gilt erst nach mehreren Versuchen als nicht verfügbar, und die Warnung verschwindet von selbst, sobald der Dienst wieder da ist.
+• Die dunklen Kartenstile zeigen wieder Ortspunkte.
+• Ein Hinweis, wenn eine neue Version von Velorki im App Store ist.
+• Kleine Korrekturen: „Rückgängig“-Meldungen schließen sich von selbst, und die Google-Anmeldung fragt nur noch einmal.

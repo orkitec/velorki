@@ -1,9 +1,8 @@
-• Rain radar, wind and clouds on the map, free
-• Wind and rain along your route for the time you leave
-• Colour the route by gradient, surface, wind or rain
-• Offline cycle map and stops on the map
-• Much better offline search; place cards
-• Spoken turns for imported routes
-• Platform connections now free; one Share button
-• Plus: radar across Europe, sharper route forecast
-• French, Spanish, Italian and Dutch
+• Sync routes, rides and settings via your own Google Drive; they stay with you
+• Plan at app.velorki.com with the same Google account, Plus too
+• Tablets and foldables: the map across the screen, the app beside it
+• Settings: an overview, each group on its own page
+• Download button shows if the area in view is downloaded
+• Weather layers warn only after retries; the warning clears by itself
+• Dark map styles show town dots again
+• "Undo" messages close by themselves

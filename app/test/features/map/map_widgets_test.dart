@@ -12,6 +12,7 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/links/link_opener.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
+import 'package:velorki/features/map/application/web_storage_notice.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/map/presentation/layers_sheet.dart';
@@ -19,11 +20,99 @@ import 'package:velorki/features/map/presentation/map_attribution.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/visible_map_padding.dart';
+import 'package:velorki/features/map/presentation/web_legal_chip.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
+
+String _imprintUrl() {
+  final String lang = testLocale.languageCode;
+  return lang == 'en'
+      ? 'https://velorki.com/imprint'
+      : 'https://velorki.com/$lang/imprint';
+}
+
+void _legalTests() {
+  group('WebLegalChip', () {
+    testWidgets("its imprint link opens the site's imprint in the app's "
+        'language, and its cookie button brings the storage note back', (
+      tester,
+    ) async {
+      final opened = <Uri>[];
+      await tester.pumpWidget(
+        await _wrap(
+          const WebLegalChip(),
+          overrides: [
+            linkOpenerProvider.overrideWithValue((url) async {
+              opened.add(url);
+              return true;
+            }),
+          ],
+        ),
+      );
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(WebLegalChip)),
+      );
+      await container.read(webStorageNoticeProvider.notifier).dismiss();
+      expect(container.read(webStorageNoticeProvider), isFalse);
+
+      await tester.tap(find.text(l10n.settingsImprint));
+      await tester.pumpAndSettle();
+      expect(opened, [Uri.parse(_imprintUrl())]);
+      expect(find.bySemanticsLabel(l10n.settingsImprint), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.cookie_outlined));
+      await tester.pumpAndSettle();
+      expect(container.read(webStorageNoticeProvider), isTrue);
+    });
+
+    testWidgets('both targets are a finger tall and rise from the chip', (
+      tester,
+    ) async {
+      await tester.pumpWidget(await _wrap(const WebLegalChip()));
+      final chip = tester.getRect(find.byType(WebLegalChip));
+      for (final target in find.byType(GestureDetector).evaluate()) {
+        final rect = tester.getRect(find.byWidget(target.widget));
+        expect(rect.height, kMinInteractiveDimension);
+        expect(rect.bottom, chip.bottom);
+      }
+    });
+  });
+
+  group('WebStorageNoticeCard', () {
+    testWidgets('shows on a first visit, goes with OK and stays gone, and '
+        'links the privacy policy', (tester) async {
+      final opened = <Uri>[];
+      await tester.pumpWidget(
+        await _wrap(
+          const WebStorageNoticeCard(),
+          overrides: [
+            linkOpenerProvider.overrideWithValue((url) async {
+              opened.add(url);
+              return true;
+            }),
+          ],
+        ),
+      );
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(WebStorageNoticeCard)),
+      );
+      expect(container.read(webStorageNoticeProvider), isTrue);
+      expect(find.text(l10n.webStorageNoticeTitle), findsOneWidget);
+
+      await tester.tap(find.text(l10n.settingsPrivacyPolicy));
+      expect(opened, [Uri.parse('https://velorki.com/privacy')]);
+
+      await tester.tap(find.text(l10n.commonOk));
+      await tester.pumpAndSettle();
+      expect(container.read(webStorageNoticeProvider), isFalse);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('web.storage_notice_seen'), isTrue);
+    });
+  });
+}
 
 Future<Widget> _wrap(
   Widget child, {
@@ -144,6 +233,7 @@ double _needleAngle(WidgetTester tester) {
 }
 
 void main() {
+  _legalTests();
   group('MapAttributionChip', () {
     testWidgets('names OpenStreetMap and OpenFreeMap', (tester) async {
       await tester.pumpWidget(await _wrap(const MapAttributionChip()));

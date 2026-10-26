@@ -78,3 +78,7 @@ test('the page cannot be framed, post forms or load plugins', () => {
   assert.deepEqual(csp['form-action'], ["'none'"]);
   assert.deepEqual(csp['object-src'], ["'none'"]);
 });
+
+test('the planner is kept out of search indexes; velorki.com is the page to show', () => {
+  assert.equal(all['x-robots-tag'], 'noindex');
+});

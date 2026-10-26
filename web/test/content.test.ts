@@ -17,6 +17,12 @@ describe('content loader', () => {
     // English text, which the sitemap and hreflang leave out.
     expect(translatedLocales('legal', 'imprint')).toEqual(['en', 'de']);
     expect(translatedLocales('docs', 'getting-started')).toContain('en');
+    // The privacy policy is reviewed in every language (a `draft: true`
+    // translation would be left out; see content_draft.test.ts).
+    const privacy = translatedLocales('legal', 'privacy');
+    expect(privacy).toContain('en');
+    expect(privacy).toContain('de');
+    expect(privacy).toContain('fr');
     expect(contentFile('de', 'docs', 'getting-started')).toBe('content/de/docs/getting-started.md');
     expect(contentFile('xx', 'docs', 'getting-started')).toBe('content/en/docs/getting-started.md');
     expect(contentFile('en', 'docs', 'no-such-page')).toBeNull();

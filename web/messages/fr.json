@@ -455,12 +455,12 @@
       "description": "Les données ouvertes, les projets open source et les polices sur lesquels repose Velorki, avec leurs licences."
     },
     "title": "Crédits",
-    "lead": "Velorki repose sur des données ouvertes et du logiciel libre. Voici les projets derrière la carte, les itinéraires, la recherche et la typographie, avec les licences sous lesquelles ils sont publiés.",
+    "lead": "Velorki repose sur des données ouvertes et du logiciel libre. Voici les projets derrière la carte, les itinéraires, la météo, la recherche et la typographie, avec les licences sous lesquelles ils sont publiés.",
     "licenceLabel": "Licence :",
     "items": {
       "osm": {
         "title": "OpenStreetMap",
-        "body": "Données cartographiques © contributeurs OpenStreetMap. Les données que Velorki affiche, sur lesquelles il calcule ses itinéraires et dans lesquelles il cherche, viennent d’OpenStreetMap.",
+        "body": "Données cartographiques © contributeurs OpenStreetMap. Les données que Velorki affiche, sur lesquelles il calcule ses itinéraires et dans lesquelles il cherche, viennent d’OpenStreetMap. Les tuiles de routage viennent des segments construits par brouter.de, mis en miroir sur GitHub ; elles sont dérivées d’OpenStreetMap et proposées sous l’ODbL, tout comme l’index de recherche hors ligne, construit à partir des extraits OpenStreetMap de Geofabrik.",
         "licence": "Open Database License (ODbL) 1.0 ; tuiles rendues sous CC BY-SA 2.0."
       },
       "brouter": {
@@ -475,23 +475,38 @@
       },
       "cyclosm": {
         "title": "CyclOSM",
-        "body": "Le calque cyclable optionnel : un style de carte OpenStreetMap pensé pour le vélo, servi par les serveurs de tuiles de la Fondation OpenStreetMap.",
-        "licence": "CC BY-SA 4.0."
+        "body": "Le calque cyclable optionnel : un style de carte OpenStreetMap pensé pour le vélo, servi par OpenStreetMap France.",
+        "licence": "Le style sous licence BSD 3-Clause, certaines de ses couleurs sous Apache 2.0 et certaines icônes sous CC BY 4.0 ou CC0 ; les données © contributeurs OpenStreetMap, ODbL 1.0."
+      },
+      "weatherMap": {
+        "title": "Carte météo",
+        "body": "Les calques optionnels radar de pluie, nuages et vent, que le téléphone charge directement depuis les services publics qui les produisent. Le radar à l’échelle de l’Europe et le radar italien viennent avec Velorki Plus, dessinés par le relais Velorki à partir des données ouvertes des réseaux radar.",
+        "licence": "Radar de pluie : Deutscher Wetterdienst (DWD), KNMI, Institut météorologique finlandais (FMI) et EUMETNET OPERA, CC BY 4.0 ; Radar-DPC, Dipartimento della Protezione Civile, CC BY-SA 4.0 ; NOAA National Weather Service, domaine public, sans approbation de la NOAA. Pluie par satellite et nuages sur l’Europe et l’Afrique : contient des données EUMETSAT modifiées (H SAF, Meteosat), CC BY 4.0 selon la politique de données d’EUMETSAT. Prévision de pluie et vent : les modèles ICON-EU et ICON du DWD, CC BY 4.0 ; sur les États-Unis contigus, le modèle HRRR de la NOAA via l’Iowa Environmental Mesonet, domaine public. Nuages sur les Amériques : images GOES de la NOAA via NASA GIBS, domaine public ; nous remercions les services de NASA Global Imagery Browse Services (GIBS), qui fait partie du Earth Science Data and Information System (ESDIS) de la NASA, pour les images utilisées."
+      },
+      "routeWeather": {
+        "title": "Météo le long de l’itinéraire",
+        "body": "La météo le long d’un itinéraire. Sans Velorki Plus, le téléphone interroge lui-même le Deutscher Wetterdienst (DWD) pour ses prévisions ICON et ICON-EU ; avec Velorki Plus, le relais Velorki interroge le NOAA National Weather Service (api.weather.gov) aux États-Unis, la prévision MOSMIX du DWD via Bright Sky en Allemagne et autour, et le Locationforecast de MET Norway partout ailleurs.",
+        "licence": "DWD : CC BY 4.0. NOAA National Weather Service : domaine public, sans approbation de la NOAA. MET Norway : CC BY 4.0 et NLOD 2.0, en citant MET Norway."
       },
       "photon": {
         "title": "Photon",
         "body": "La recherche de lieux en ligne, par komoot. Photon géocode les noms de lieux saisis dans le champ de recherche et ceux que propose l’assistant, et repose sur les données OpenStreetMap. © komoot GmbH et contributeurs.",
         "licence": "Apache License 2.0."
       },
+      "maplibre": {
+        "title": "MapLibre",
+        "body": "Le moteur de rendu de la carte : MapLibre Native dans l’application sur Android et iOS, MapLibre GL JS dans le planificateur web et sur les pages de partage de ce site.",
+        "licence": "MapLibre Native sous licence BSD 2-Clause, MapLibre GL JS sous licence BSD 3-Clause."
+      },
+      "voices": {
+        "title": "Catalogue des voix",
+        "body": "Quelle voix de synthèse du téléphone est laquelle, son genre et sa qualité : d’après le catalogue Web Speech Recommended Voices de Hadrien Gardeur.",
+        "licence": "CC0 1.0 (dédicace au domaine public)."
+      },
       "fonts": {
         "title": "Barlow Condensed et Manrope",
         "body": "Les deux polices de l’application et de ce site. Copyright 2017 The Barlow Project Authors, copyright 2018 The Manrope Project Authors.",
         "licence": "SIL Open Font License (OFL) 1.1."
-      },
-      "maplibre": {
-        "title": "MapLibre GL",
-        "body": "Le moteur de rendu de la carte : MapLibre GL dans l’application et MapLibre GL JS sur les pages de partage de ce site.",
-        "licence": "Licence BSD 3-Clause."
       },
       "flutter": {
         "title": "Flutter",

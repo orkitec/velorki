@@ -404,10 +404,10 @@ to refuse, because nothing is stored on your device until you ask for it. The
   therefore processes your IP address and the request itself. Cloudflare is in
   the United States; the transfer rests on the EU Standard Contractual Clauses.
 - **A language cookie.** Picking a language in the header sets a cookie called
-  `NEXT_LOCALE` (the value `en` or `de`, one year). It exists so the site opens
+  `NEXT_LOCALE` (the language code you chose, such as `en`, one year). It exists so the site opens
   in the language you chose. Nothing else is stored in it, and it is only set
   when you make that choice — it is strictly necessary for a function you asked
-  for and needs no consent under section 25 (2) TTDSG.
+  for and needs no consent under section 25 (2) TDDDG.
 - **A theme preference.** Choosing light, dark or an accent colour writes
   `velorki.theme` into your browser's local storage. It never leaves the
   browser and is not readable by us. Dismissing the notice above writes one
@@ -451,7 +451,7 @@ download page and loads nothing else.
   in to and an anonymous id like the app's in its local storage. They stay in
   that browser, on that computer, until you delete them in the planner or clear
   the site's data in the browser. This storage is what the planner is for, so
-  it needs no consent under section 25 (2) TTDSG.
+  it needs no consent under section 25 (2) TDDDG.
 - **What it contacts.** The same services as the app, under the same rules as
   above: map tiles from OpenFreeMap (and CyclOSM if you turn it on), Photon
   for an online search, the public weather services for the weather layers,

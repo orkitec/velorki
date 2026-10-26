@@ -1,6 +1,7 @@
 // Unfolds and turns an iPhone Duo simulator, as the hinge slider and the
 // orientation picker of Xcode's Device Hub do. Built for the simulator and run
-// inside it by tool/store_screenshots.sh --platform duo:
+// inside it by tool/store_screenshots.sh --platform duo (and, to hold the iPad
+// sideways, --platform ipad):
 //
 //   xcrun -sdk iphonesimulator clang -arch arm64 -mios-simulator-version-min=17.0 -O2 \
 //     -o duo_state duo_state.c -framework IOKit -framework CoreFoundation

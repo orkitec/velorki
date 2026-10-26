@@ -1,6 +1,6 @@
 {
   "plan": {
-    "eyebrow": "Gratis e open source",
+    "eyebrow": "Gratis, privato, senza account",
     "headline": "Pedala dove **finisce il segnale**",
     "subline": "Pianifica, calcola percorsi e naviga sull'iPhone, anche offline.",
     "android": {
@@ -8,6 +8,9 @@
     },
     "ipad": {
       "subline": "Pianifica, calcola percorsi e naviga sull'iPad, anche offline."
+    },
+    "tablet": {
+      "subline": "Pianifica, calcola percorsi e naviga sul tablet, anche offline."
     }
   },
   "variants": {

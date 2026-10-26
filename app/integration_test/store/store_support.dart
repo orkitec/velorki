@@ -7,6 +7,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -72,6 +73,13 @@ import 'store_weather.dart';
 /// The loop distance the loop sheet opens at: a morning's ride from Funchal.
 const double storeLoopKm = 25;
 
+/// `landscape` takes the pictures with the screen turned sideways (the
+/// iPad's set: its wide layout shows far more map that way); anything else
+/// upright, as the device stands.
+const String storeOrientation = String.fromEnvironment(
+  'VELORKI_STORE_ORIENTATION',
+);
+
 /// The app as a test left it for the pictures.
 class StoreSession {
   StoreSession(this.container, this.positions, this.clock, this.relay);
@@ -108,6 +116,26 @@ Future<StoreSession> startStoreApp(
     Future<RecoveryResult>.value(const NoRecovery()),
   );
   addTearDown(RecordingRecovery.reset);
+
+  if (storeOrientation == 'landscape') {
+    // Locked sideways before the app is up, so it lays itself out once,
+    // one way round only: the simulator's screenshots stay in the device's
+    // portrait frame, and the driver turns them upright knowing which way
+    // the screen went. Left upright again after, as every integration test
+    // leaves it.
+    await SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.landscapeLeft,
+    ]);
+    addTearDown(
+      () => SystemChrome.setPreferredOrientations(const [
+        DeviceOrientation.portraitUp,
+      ]),
+    );
+    await waitUntil(tester, () {
+      final size = tester.view.physicalSize;
+      return size.width > size.height;
+    }, describe: 'the screen to turn sideways');
+  }
 
   final positions = ScriptedPositionSource(origin);
   addTearDown(positions.close);

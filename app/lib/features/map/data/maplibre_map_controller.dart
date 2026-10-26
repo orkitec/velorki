@@ -637,10 +637,11 @@ abstract class MapLibreStyleOps {
 /// Completes [op] as if it had succeeded when the platform says there was
 /// nothing to do.
 ///
-/// Four answers mean exactly that: `MAP_NOT_READY` (Android) and
-/// `styleNotFound` (iOS), when the view or its style is gone under the map
-/// (a recreated activity, a page popped mid-write) and a fresh map with a
-/// fresh adapter is on its way; a missing plugin implementation, when the
+/// Five answers mean exactly that: `MAP_NOT_READY` and `STYLE_NOT_READY`
+/// (Android) and `styleNotFound` (iOS), when the view or its style is gone
+/// or not yet loaded under the map (a recreated activity, a page popped
+/// mid-write, a theme change mid-write) and a fresh style or map, whose
+/// style-loaded callback replays everything, is on its way; a missing plugin implementation, when the
 /// view's method channel has already been torn down; and "already exists",
 /// when a style reload kept a source or layer the adapter had written off.
 /// All used to surface as unhandled exceptions from fire-and-forget calls
@@ -651,7 +652,11 @@ Future<void> tolerateMapGone(Future<void> Function() op) async {
   } on MissingPluginException {
     return;
   } on PlatformException catch (e) {
-    if (e.code == 'MAP_NOT_READY' || e.code == 'styleNotFound') return;
+    if (e.code == 'MAP_NOT_READY' ||
+        e.code == 'STYLE_NOT_READY' ||
+        e.code == 'styleNotFound') {
+      return;
+    }
     if ((e.message ?? '').contains('already exists')) return;
     // A source or layer the style no longer has: the style is on its way
     // out under us, and the style-loaded callback that follows replays
@@ -2458,7 +2463,8 @@ class MaplibreMapControllerAdapter implements MapController {
   /// Draws the groups' bubbles and layers again in the new palette.
   Future<void> _recolourStopGroups() async {
     final markers = MarkerLayers(palette);
-    for (final group in _stopGroupsInStyle) {
+    // A copy: a style change during the awaits below changes the groups.
+    for (final group in List<String>.of(_stopGroupsInStyle)) {
       await _ops.setLayerProperties(
         MapLayerIds.stopGroupLabelLayer(group),
         markers.name(field: 'name', chosenOnly: true),

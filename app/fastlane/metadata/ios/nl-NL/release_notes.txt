@@ -1,11 +1,9 @@
-• Weer op de kaart, gratis: regenradar, wind en wolken, met een tijdschuif naar de komende uren.
-• Het weer langs je route: wind en regen voor het moment waarop je vertrekt, één schuif voor het vertrek.
-• Kleur de route naar hellingspercentage, ondergrond, wind of regen, op de kaart en onder het hoogteprofiel.
-• Een offline fietskaart: fietspaden en fietsstroken, eenrichtingsstraten, trappen en klimmen, getekend met de routeringsdata.
-• Stops op de kaart: water, cafés, bakkers, toiletten, fietsenmakers en meer, en die langs je route.
-• Tik op een plaats voor de kaart ervan: Route hierheen, Als tussenstop, openingstijden en meer.
-• Zoeken vindt offline veel meer: huisnummers, typfouten, andere alfabetten, restaurants en tankstations.
-• Geïmporteerde routes krijgen ook gesproken afslagen.
-• De koppelingen met platforms voor routes en ritten zijn nu gratis, en één Deel-knop bevat ze allemaal.
-• Velorki Plus: echte radar over heel Europa en een scherpere verwachting langs de route.
-• Velorki spreekt nu Frans, Spaans, Italiaans en Nederlands.
+• Synchroniseer je routes, ritten en instellingen via je eigen iCloud of Google Drive, tussen iPhone, iPad en de webplanner op app.velorki.com. Je routes en ritten blijven bij jou.
+• Plan in de browser op app.velorki.com: log in met hetzelfde iCloud- of Google-account en je bibliotheek staat er. Ook Plus werkt daar, zodra de app met Plus met hetzelfde account synchroniseert.
+• Velorki op de iPad: de kaart over het hele scherm, de app in een kolom ernaast, aan de kant die je kiest.
+• Instellingen zijn nu een overzicht, met elke groep op een eigen pagina.
+• De downloadknop laat zien of het gebied in beeld al gedownload is.
+• Weerkaart: een laag geldt pas na meerdere pogingen als niet beschikbaar, en de waarschuwing verdwijnt vanzelf zodra de dienst terug is.
+• Donkere kaartstijlen tonen weer de stipjes van plaatsen.
+• Een melding wanneer er een nieuwe versie van Velorki in de App Store staat.
+• Kleine verbeteringen: ‘Ongedaan maken’-meldingen sluiten vanzelf, en inloggen met Google vraagt het nog maar één keer.

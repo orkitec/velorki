@@ -255,6 +255,20 @@ async function route(request: NextRequest): Promise<NextResponse> {
       });
     }
 
+    // The relay has nothing to index. A crawler asking is told so in plain
+    // text: a JSON 404 here is replaced on the way out by Cloudflare's managed
+    // robots.txt, a comments-only file that allows everything.
+    if (host.pathname === '/robots.txt' && request.method === 'GET') {
+      return new NextResponse('User-agent: *\nDisallow: /\n', {
+        status: 200,
+        headers: {
+          'content-type': 'text/plain; charset=utf-8',
+          'cache-control': 'public, max-age=86400',
+          [REQUEST_ID_HEADER]: requestId,
+        },
+      });
+    }
+
     if (!isApiRoute(request.method, host.pathname)) {
       return jsonResponse(
         404,

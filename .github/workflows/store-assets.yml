@@ -3,9 +3,9 @@ name: store assets
 # The App Store screenshots (iPhone, 13" iPad and iPhone Duo), the watch shots and the
 # preview videos, made by app/tool/store_screenshots.sh on iOS simulators
 # exactly as on the Mac, and
-# on request uploaded to an App Store version; and the Google Play set (`android`),
-# made by the same script on an Android emulator, and on request uploaded to
-# the Play store listing. Started by hand only; see docs/STORE_ASSETS.md.
+# on request uploaded to an App Store version; and the Google Play sets (`android`:
+# the phone's and the tablets'), made by the same script on Android emulators,
+# and on request uploaded to the Play store listing. Started by hand only; see docs/STORE_ASSETS.md.
 #
 # `assets` and `android` need no secrets and run from any ref. `upload` and
 # `android_upload` run in the `release` environment, which admits `v*` tags
@@ -25,10 +25,17 @@ on:
         description: The App Store sets, iPhone, iPad and iPhone Duo (iOS simulator)
         type: boolean
         default: true
+      # A subset captures and uploads only those; the upload then replaces
+      # only their device types on App Store Connect (the iPhone's carries
+      # the watch shots).
+      ios_sets:
+        description: Which App Store sets, comma-separated (iphone, ipad, duo)
+        type: string
+        default: iphone,ipad,duo
       # Off by default: an hour and more on the emulator. The map is drawn
       # with MapLibre's Vulkan renderer there (docs/STORE_ASSETS.md).
       android:
-        description: The Google Play set (Android emulator)
+        description: The Google Play sets, phone and tablet (Android emulator)
         type: boolean
         default: false
       # The runner's simulator has no GPU and drops frames of the moving map;
@@ -76,26 +83,35 @@ jobs:
     timeout-minutes: 5
     outputs:
       locales: ${{ steps.list.outputs.locales }}
+      pairs: ${{ steps.list.outputs.pairs }}
     steps:
       - id: list
         env:
           LOCALES: ${{ inputs.locales }}
+          IOS_SETS: ${{ inputs.ios_sets }}
         run: |
+          [[ "$IOS_SETS" =~ ^(iphone|ipad|duo)(,(iphone|ipad|duo))*$ ]] \
+            || { echo "::error::ios_sets takes iphone, ipad and duo, comma-separated, not '$IOS_SETS'"; exit 1; }
           json=$(printf '%s' "$LOCALES" | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | jq -R . | jq -cs .)
           [ "$json" != "[]" ] || { echo "::error::no locales"; exit 1; }
           echo "locales=$json" >> "$GITHUB_OUTPUT"
+          # The App Store sets two languages to a Mac: one build and one
+          # simulator boot for both, and with seven languages four runners,
+          # leaving one of the five a free account gets for a release.
+          pairs=$(printf '%s' "$json" | jq -c '[range(0; length; 2) as $i | .[$i:$i+2] | join(",")]')
+          echo "pairs=$pairs" >> "$GITHUB_OUTPUT"
 
   assets:
     needs: locales
     if: ${{ inputs.ios && inputs.assets_run_id == '' }}
     runs-on: xcode-27
-    # One language on the iPhone, the iPad and the Duo, each with a simulator
-    # reboot, and the preview records it again.
-    timeout-minutes: 240
+    # Two languages on the iPhone, the iPad and the Duo, each with a
+    # simulator reboot, and the preview records them again.
+    timeout-minutes: 300
     strategy:
       fail-fast: false
       matrix:
-        locale: ${{ fromJSON(needs.locales.outputs.locales) }}
+        locale: ${{ fromJSON(needs.locales.outputs.pairs) }}
     env:
       # store_screenshots.sh prints memory, disk, the busiest processes, the
       # booted simulators and the test's last line every three minutes.
@@ -218,6 +234,7 @@ jobs:
 
       - name: Screenshots and slides
         id: iphone
+        if: ${{ contains(format(',{0},', inputs.ios_sets), ',iphone,') }}
         working-directory: app
         env:
           LOCALES: ${{ matrix.locale }}
@@ -244,7 +261,7 @@ jobs:
       - name: iPad screenshots and slides
         id: ipad
         # Each platform's set stands on its own: one failing keeps the others.
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && contains(format(',{0},', inputs.ios_sets), ',ipad,') }}
         working-directory: app
         env:
           LOCALES: ${{ matrix.locale }}
@@ -268,7 +285,7 @@ jobs:
       # 27.0. Downloaded (several GB) for the Xcode selected above when no
       # installed runtime has the device, as the watchOS step does.
       - name: iOS simulator runtime for the iPhone Duo
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && contains(format(',{0},', inputs.ios_sets), ',duo,') }}
         run: |
           has_duo() {
             xcrun simctl list runtimes -j | python3 -c '
@@ -292,7 +309,7 @@ jobs:
       - name: iPhone Duo screenshots and slides
         id: duo
         # Each platform's set stands on its own: one failing keeps the others.
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && contains(format(',{0},', inputs.ios_sets), ',duo,') }}
         # About 25 minutes on a Mac, the iPad's 40 here: a run past this is
         # stuck, and ends with a log rather than with the runner.
         timeout-minutes: 75
@@ -362,8 +379,11 @@ jobs:
           APP_VERSION: ${{ inputs.app_version }}
           REF: ${{ github.ref }}
           RUN_ID: ${{ inputs.assets_run_id }}
+          IOS_SETS: ${{ inputs.ios_sets }}
         run: |
           [ -n "$APP_VERSION" ] || { echo "::error::upload needs app_version"; exit 1; }
+          [[ "$IOS_SETS" =~ ^(iphone|ipad|duo)(,(iphone|ipad|duo))*$ ]] \
+            || { echo "::error::ios_sets takes iphone, ipad and duo, comma-separated, not '$IOS_SETS'"; exit 1; }
           case "$REF" in
             refs/tags/v* | refs/heads/main) ;;
             *) echo "::error::upload runs only from a v* tag or main, not $REF"; exit 1 ;;
@@ -386,6 +406,8 @@ jobs:
 
       - name: Stage the screenshots for deliver
         working-directory: app
+        env:
+          STORE_SETS: ${{ inputs.ios_sets }}
         run: tool/store_stage_deliver.sh "$RUNNER_TEMP/assets" "$RUNNER_TEMP/screenshots"
 
       # The image's Ruby; the Gemfile pins fastlane to 2.x.
@@ -406,6 +428,7 @@ jobs:
           ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
           APP_VERSION: ${{ inputs.app_version }}
           UPLOAD_METADATA: ${{ inputs.metadata }}
+          STORE_SETS: ${{ inputs.ios_sets }}
           FASTLANE_SKIP_UPDATE_CHECK: "1"
           FASTLANE_OPT_OUT_USAGE: "YES"
         run: |
@@ -418,18 +441,38 @@ jobs:
         if: ${{ always() }}
         run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8
 
-  # The Google Play set on the emulator integration.yml runs (API 35, Pixel 6
-  # profile), with its system image step and, read only, its Gradle and AVD
-  # caches.
+  # The Google Play sets, one job per language and device: the phone's on the
+  # emulator integration.yml runs (API 35, Pixel 6 profile), with its system
+  # image step and, read only, its Gradle and AVD caches; the tablets' on a
+  # Pixel Tablet profile (2560x1600 landscape, the app's wide layout) of the
+  # same image, its AVD made fresh. One tablet set goes up as both the 7-inch
+  # and the 10-inch screenshots.
   android:
     needs: locales
     if: ${{ inputs.android && inputs.assets_run_id == '' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # The tablet has 1.6 times the phone's pixels for Lavapipe to draw.
+    timeout-minutes: ${{ matrix.device == 'tablet' && 150 || 120 }}
     strategy:
       fail-fast: false
       matrix:
         locale: ${{ fromJSON(needs.locales.outputs.locales) }}
+        device: [phone, tablet]
+        include:
+          - device: phone
+            profile: pixel_6
+            platform: android
+            artifact: store-assets-android
+            # The tree from slides/set down: <locale>/NN-<slide>.png, the
+            # feature graphic, the contact sheets and the icon.
+            set: app/build/store_screenshots/android/slides/set
+          - device: tablet
+            profile: pixel_tablet
+            platform: android-tablet
+            artifact: store-assets-android-tablet
+            # `?ablet` keeps the `tablet/` folder in the artifact (see the
+            # iPad's), so it merges beside the phone's set.
+            set: app/build/store_screenshots/android-tablet/slides/set/?ablet
     env:
       API_LEVEL: "35"
 
@@ -517,9 +560,11 @@ jobs:
           echo "::error::$pkg could not be installed"
           exit 1
 
-      # integration.yml's AVD and snapshot, under its key; on a miss the
-      # emulator action creates the AVD and boots it cold.
+      # integration.yml's AVD and snapshot, under its key; on a miss (and
+      # always for the tablet, which it has no AVD for) the emulator action
+      # creates the AVD and boots it cold.
       - name: Restore the AVD
+        if: ${{ matrix.device == 'phone' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -551,13 +596,14 @@ jobs:
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         env:
           LOCALES: ${{ matrix.locale }}
+          PLATFORM: ${{ matrix.platform }}
           VELORKI_STORE_START_TIMEOUT: "1500"
           ORG_GRADLE_PROJECT_velorkiMapVulkan: "true"
         with:
           api-level: ${{ env.API_LEVEL }}
           target: google_apis
           arch: x86_64
-          profile: pixel_6
+          profile: ${{ matrix.profile }}
           working-directory: app
           force-avd-creation: false
           # software: Lavapipe for Vulkan; GLES is still the old SwiftShader
@@ -574,12 +620,12 @@ jobs:
           # One line: the action runs the script line by line.
           # The device log is kept for a failed run: the emulator is gone
           # once this step ends.
-          script: tool/store_screenshots.sh --platform android --locales "$LOCALES" || { timeout 60 adb -s emulator-5554 logcat -d > build/logcat.txt; exit 1; }
+          script: tool/store_screenshots.sh --platform "$PLATFORM" --locales "$LOCALES" || { timeout 60 adb -s emulator-5554 logcat -d > build/logcat.txt; exit 1; }
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-assets-android-${{ matrix.locale }}
-          path: app/build/store_screenshots/android/slides/set
+          name: ${{ matrix.artifact }}-${{ matrix.locale }}
+          path: ${{ matrix.set }}
           if-no-files-found: error
           retention-days: 30
 
@@ -591,7 +637,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-logcat-android-${{ matrix.locale }}
+          name: store-logcat-android-${{ matrix.device }}-${{ matrix.locale }}
           path: app/build/logcat.txt
           if-no-files-found: ignore
           retention-days: 7
@@ -628,7 +674,8 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      # One artifact per language (store-assets-android-<locale>), or one
+      # One artifact per language and device (store-assets-android-<locale>,
+      # store-assets-android-tablet-<locale> with its tablet/ folder), or one
       # for all from a run before the split; merged into one set.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:

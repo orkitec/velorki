@@ -1,6 +1,6 @@
 {
   "plan": {
-    "eyebrow": "Free & open source",
+    "eyebrow": "Free, private, no account",
     "headline": "Ride where the **signal ends**",
     "subline": "Plan, route and navigate on your iPhone, even offline.",
     "android": {
@@ -8,6 +8,9 @@
     },
     "ipad": {
       "subline": "Plan, route and navigate on your iPad, even offline."
+    },
+    "tablet": {
+      "subline": "Plan, route and navigate on your tablet, even offline."
     }
   },
   "variants": {

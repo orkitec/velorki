@@ -71,9 +71,9 @@ class LastMapCamera extends _$LastMapCamera {
 
 /// Whether the CyclOSM raster overlay is switched on.
 ///
-/// Offline downloads read this too: the OpenStreetMap Foundation tile policy
-/// forbids bulk downloading CyclOSM tiles, so the download action is disabled
-/// while the overlay is active.
+/// Offline downloads read this too: CyclOSM's tiles come from OpenStreetMap
+/// France's servers, which are not for bulk downloading, so the download
+/// action is disabled while the overlay is active.
 ///
 /// It and the offline cycle map ([CycleMapPreferences]) draw the same ways,
 /// so one switched on switches the other off.

@@ -16,6 +16,21 @@ void main() {
       );
     });
 
+    test(
+      'a style still loading after a theme change is nothing to report',
+      () async {
+        await expectLater(
+          tolerateMapGone(
+            () async => throw PlatformException(
+              code: 'STYLE_NOT_READY',
+              message: 'Style is null or not fully loaded.',
+            ),
+          ),
+          completes,
+        );
+      },
+    );
+
     test('a layer the style already has is nothing to report', () async {
       await expectLater(
         tolerateMapGone(

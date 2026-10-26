@@ -1,11 +1,9 @@
-• La météo sur la carte, gratuite : radar de pluie, vent et nuages, avec un curseur temporel vers les prochaines heures.
-• La météo le long de l’itinéraire : vent et pluie pour l’heure de départ, un curseur pour la choisir.
-• Colorez l’itinéraire selon la pente, le revêtement, le vent ou la pluie, sur la carte et sous le profil altimétrique.
-• Une carte vélo hors ligne : pistes et bandes cyclables, sens uniques, escaliers et montées, dessinée d’après les données de calcul.
-• Des haltes sur la carte : eau, cafés, boulangeries, toilettes, réparation de vélos et plus, et celles de votre itinéraire.
-• Touchez un lieu pour sa fiche : Itinéraire jusqu’ici, Ajouter comme étape, horaires d’ouverture et plus.
-• La recherche hors ligne trouve bien plus : numéros de rue, fautes de frappe, autres alphabets, restaurants et stations-service.
-• Les itinéraires importés ont aussi des annonces vocales.
-• Les connexions aux plateformes d’itinéraires et de sorties sont désormais gratuites, et un seul bouton Partager les réunit.
-• Velorki Plus : un vrai radar sur toute l’Europe et une prévision plus précise le long de l’itinéraire.
-• Velorki parle maintenant français, espagnol, italien et néerlandais.
+• Synchronisez vos itinéraires, sorties et réglages avec votre propre iCloud ou Google Drive, entre iPhone, iPad et le planificateur web sur app.velorki.com. Vos itinéraires et sorties restent chez vous.
+• Planifiez dans le navigateur sur app.velorki.com : connectez-vous avec le même compte iCloud ou Google et votre bibliothèque y est. Plus y fonctionne aussi, dès que l’app avec Plus synchronise avec le même compte.
+• Velorki sur iPad : la carte sur tout l’écran, l’app dans une colonne à côté, du côté de votre choix.
+• Les réglages sont désormais une vue d’ensemble, chaque groupe sur sa propre page.
+• Le bouton de téléchargement indique si la zone affichée est déjà téléchargée.
+• Carte météo : une couche n’apparaît indisponible qu’après plusieurs essais, et l’alerte disparaît d’elle-même dès que le service revient.
+• Les styles de carte sombres affichent de nouveau les points des localités.
+• Un avis quand une nouvelle version de Velorki est sur l’App Store.
+• Petites corrections : les messages « Annuler » se ferment d’eux-mêmes, et la connexion Google ne demande plus qu’une fois.

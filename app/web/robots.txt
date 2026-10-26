@@ -1,0 +1,5 @@
+# The web planner (app.velorki.com). Without this file Cloudflare Pages
+# answers /robots.txt with index.html, which crawlers cannot read as rules.
+# The site's robots.txt lives at velorki.com.
+User-agent: *
+Allow: /
