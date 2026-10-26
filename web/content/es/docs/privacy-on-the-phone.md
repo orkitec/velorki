@@ -79,13 +79,13 @@ La tienda gestiona el pago y nunca vemos tu tarjeta. La suscripción se comprueb
 
 ## Deshacerse de las cosas
 
-| Qué | Cómo |
-|---|---|
-| Una ruta o una salida | bórrala en la [biblioteca](./library); con la sincronización activada, desaparece también de tu nube y de tus otros dispositivos |
-| Zonas de mapa sin conexión y teselas de rutas | bórralas en [datos sin conexión](./offline-maps-and-routing) |
-| Un token de Strava o Ride with GPS, y todo lo que viene de Strava | **Desconectar** en Ajustes → Conexiones |
-| Todo lo que guardó la app | desinstala la app |
-| Un enlace para compartir | caduca al cabo de un año; escribe a [hello@orkitec.com](mailto:hello@orkitec.com) con el enlace para que se elimine antes |
+| Qué                                                               | Cómo                                                                                                                                                   |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Una ruta o una salida                                             | bórrala en la [biblioteca](./library); con la sincronización activada, desaparece también de tu nube y de tus otros dispositivos                       |
+| Zonas de mapa sin conexión y teselas de rutas                     | bórralas en [datos sin conexión](./offline-maps-and-routing)                                                                                           |
+| Un token de Strava o Ride with GPS, y todo lo que viene de Strava | **Desconectar** en Ajustes → Conexiones                                                                                                                |
+| Todo lo que guardó la app                                         | desinstala la app                                                                                                                                      |
+| Un enlace para compartir                                          | caduca al cabo de un año; escribe a [hello@orkitec.com](mailto:hello@orkitec.com) con el enlace para que se elimine antes |
 
 Desinstalar no elimina los enlaces para compartir que creaste, ni nada de lo que subiste a Strava o Ride with GPS.
 
