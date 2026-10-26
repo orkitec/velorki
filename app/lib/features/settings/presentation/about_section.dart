@@ -100,6 +100,18 @@ class AboutSection extends ConsumerWidget {
           onTap: () => unawaited(_open(context, ref, velorkiTermsUrl)),
         ),
         ListTile(
+          leading: const Icon(Icons.business_outlined),
+          title: Text(l10n.settingsImprint),
+          trailing: const Icon(Icons.open_in_new, size: 18),
+          onTap: () => unawaited(
+            _open(
+              context,
+              ref,
+              velorkiImprintUrl(Localizations.localeOf(context).languageCode),
+            ),
+          ),
+        ),
+        ListTile(
           leading: const Icon(Icons.bug_report_outlined),
           title: Text(l10n.settingsReportProblem),
           subtitle: Text(l10n.settingsReportProblemSubtitle),

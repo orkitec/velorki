@@ -10,6 +10,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/app_config.dart';
 import '../../recording/data/battery_saver.dart';
+import '../application/web_storage_notice.dart';
 import '../../settings/data/appearance_controller.dart';
 import '../data/cyclosm_tone.dart';
 import '../data/map_preferences.dart';
@@ -21,6 +22,7 @@ import 'map_attribution.dart';
 import 'map_chrome.dart';
 import 'puck_ownership.dart';
 import 'map_controls.dart';
+import 'web_legal_chip.dart';
 
 /// Sets up the native map before the first map is built.
 ///
@@ -115,6 +117,7 @@ class MapView extends ConsumerStatefulWidget {
       right: 12,
     ),
     this.attributionPadding = const EdgeInsets.only(bottom: 6),
+    this.showWebLegal,
     super.key,
   });
 
@@ -145,6 +148,11 @@ class MapView extends ConsumerStatefulWidget {
   /// phone with no gesture zone there, on the safe area's edge
   /// ([MapChromeInsets.attributionFloor]).
   final EdgeInsets attributionPadding;
+
+  /// Whether the web planner's legal chip ([WebLegalChip]) and its note on
+  /// what the browser stores are drawn with the attribution. On the web by
+  /// default; tests set it.
+  final bool? showWebLegal;
 
   @override
   ConsumerState<MapView> createState() => _MapViewState();
@@ -446,9 +454,40 @@ class _MapViewState extends ConsumerState<MapView> {
                   ),
                 ),
               ),
+            if (widget.showAttribution && (widget.showWebLegal ?? kIsWeb))
+              ..._webLegal(constraints, attributionBottom),
           ],
         );
       },
     );
+  }
+
+  /// The legal chip at the right end of the attribution's band, and the
+  /// note on the browser's storage above it while it is shown. In a window
+  /// narrower than a tablet's the chip stands over the credit instead of
+  /// beside it, so the two never overlap.
+  List<Widget> _webLegal(BoxConstraints constraints, double bottom) {
+    final chrome = MapChromeInsets.maybeOf(context);
+    final left =
+        widget.attributionPadding.left + (chrome?.attributionInsets.left ?? 0);
+    final right =
+        widget.attributionPadding.right +
+        (chrome?.attributionInsets.right ?? 0);
+    final stacked = constraints.maxWidth < 600;
+    final chipBottom = stacked ? bottom + 36 : bottom;
+    return <Widget>[
+      Positioned(
+        right: right + 8,
+        bottom: chipBottom,
+        child: const WebLegalChip(),
+      ),
+      if (ref.watch(webStorageNoticeProvider))
+        Positioned(
+          left: left + 8,
+          right: right + 8,
+          bottom: chipBottom + 40,
+          child: const Center(child: WebStorageNoticeCard()),
+        ),
+    ];
   }
 }

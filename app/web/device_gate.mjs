@@ -15,6 +15,7 @@ import {
   el,
   pickLanguage,
   renderHeader,
+  siteUrl,
   storeLocale,
   storeTheme,
   storedLocale,
@@ -41,6 +42,7 @@ export const STRINGS = {
     storeIos: 'Download on the App Store',
     storeAndroid: 'Get it on Google Play',
     continue: 'Continue in the browser',
+    imprint: 'Imprint',
   },
   de: {
     heading: 'App holen',
@@ -49,6 +51,7 @@ export const STRINGS = {
     storeIos: 'Laden im App Store',
     storeAndroid: 'Jetzt bei Google Play',
     continue: 'Im Browser weiter',
+    imprint: 'Impressum',
   },
   es: {
     heading: 'Consigue la app',
@@ -57,6 +60,7 @@ export const STRINGS = {
     storeIos: 'Descárgalo en el App Store',
     storeAndroid: 'Disponible en Google Play',
     continue: 'Continuar en el navegador',
+    imprint: 'Aviso legal',
   },
   fr: {
     heading: 'Obtenir l’application',
@@ -65,6 +69,7 @@ export const STRINGS = {
     storeIos: 'Télécharger dans l’App Store',
     storeAndroid: 'Disponible sur Google Play',
     continue: 'Continuer dans le navigateur',
+    imprint: 'Mentions légales',
   },
   it: {
     heading: "Scarica l'app",
@@ -73,6 +78,7 @@ export const STRINGS = {
     storeIos: 'Scarica su App Store',
     storeAndroid: 'Disponibile su Google Play',
     continue: 'Continua nel browser',
+    imprint: 'Note legali',
   },
   nl: {
     heading: 'Download de app',
@@ -81,6 +87,7 @@ export const STRINGS = {
     storeIos: 'Download in de App Store',
     storeAndroid: 'Ontdek het op Google Play',
     continue: 'Verder in de browser',
+    imprint: 'Colofon',
   },
 };
 
@@ -196,6 +203,9 @@ const PAGE_CSS = `
 .vg-btn:hover{border-color:var(--accent)}
 .vg-continue{margin-top:2rem;padding:.5rem 0;border:0;background:none;font:inherit;font-size:.875rem;font-weight:700;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .vg-continue:hover{color:var(--fg)}
+.vg-legal{margin-top:2.5rem;font-size:.8125rem;color:var(--muted)}
+.vg-legal a{text-decoration:underline;text-underline-offset:3px}
+.vg-legal a:hover{color:var(--fg)}
 `;
 
 /**
@@ -216,6 +226,9 @@ export function renderDownloadPage(document, lang, onContinue) {
       store(PLAY_STORE_URL, icon(document, GOOGLE_PLAY), t.storeAndroid),
     ]),
     proceed,
+    // The imprint (§ 5 DDG) is two taps from every page of app.velorki.com:
+    // here on the download page, beside the map's attribution in the planner.
+    el(document, 'p', { class: 'vg-legal' }, [el(document, 'a', { href: siteUrl(lang, '/imprint') }, [t.imprint])]),
   ]);
   const remove = () => page.remove();
   proceed.addEventListener('click', () => {

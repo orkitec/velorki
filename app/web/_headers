@@ -38,6 +38,10 @@
 # this policy does not govern. CloudKit JS's error statistics
 # (feedbackws.*) stay blocked.
 /*
+  # The planner is an application, not a page to read: velorki.com is
+  # what search engines show. Crawling stays allowed (robots.txt) so they
+  # see this.
+  X-Robots-Tag: noindex
   Cross-Origin-Opener-Policy: same-origin-allow-popups
   Document-Isolation-Policy: isolate-and-credentialless
   X-Content-Type-Options: nosniff
