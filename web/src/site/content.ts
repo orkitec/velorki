@@ -58,12 +58,18 @@ function resolveFile(locale: string, kind: 'docs' | 'legal', slug: string): { fi
 }
 
 /**
- * The locales that have their own text of a page, English (the source) among
- * them. Any other locale serves the English text with a notice, which is not a
- * page of its own for a crawler: the sitemap and the hreflang links leave it out.
+ * The locales that have their own reviewed text of a page, English (the
+ * source) among them. Any other locale serves the English text with a notice,
+ * and a `draft: true` translation renders with `noindex`; neither is a page of
+ * its own for a crawler, so the sitemap and the hreflang links leave them out.
  */
 export function translatedLocales(kind: 'docs' | 'legal', slug: string): string[] {
-  return routing.locales.filter((locale) => resolveFile(locale, kind, slug)?.translated === true);
+  return routing.locales.filter((locale) => {
+    const resolved = resolveFile(locale, kind, slug);
+    if (resolved?.translated !== true) return false;
+    const text = readFileSync(/*turbopackIgnore: true*/ resolved.file, 'utf8');
+    return readFrontMatter(text, titleFromSlug(slug)).draft !== true;
+  });
 }
 
 /** The file a page's text comes from, relative to web/, e.g. `content/de/docs/library.md`. */

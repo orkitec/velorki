@@ -17,6 +17,12 @@ describe('content loader', () => {
     // English text, which the sitemap and hreflang leave out.
     expect(translatedLocales('legal', 'imprint')).toEqual(['en', 'de']);
     expect(translatedLocales('docs', 'getting-started')).toContain('en');
+    // A translation still marked `draft: true` renders with noindex, so it is
+    // left out as well (the privacy policy awaits a native read in some).
+    const privacy = translatedLocales('legal', 'privacy');
+    expect(privacy).toContain('en');
+    expect(privacy).toContain('de');
+    expect(privacy).not.toContain('fr');
     expect(contentFile('de', 'docs', 'getting-started')).toBe('content/de/docs/getting-started.md');
     expect(contentFile('xx', 'docs', 'getting-started')).toBe('content/en/docs/getting-started.md');
     expect(contentFile('en', 'docs', 'no-such-page')).toBeNull();
