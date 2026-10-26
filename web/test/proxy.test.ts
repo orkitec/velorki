@@ -414,13 +414,26 @@ describe('generated site files', () => {
 
   it('404s them on the api host like any other unknown route', async () => {
     await withEnv({}, async () => {
-      for (const path of SITE_FILES) {
+      for (const path of SITE_FILES.filter((p) => p !== '/robots.txt')) {
         const res = await proxy(request(`${API}${path}`));
         expect(res.status, path).toBe(404);
         const body = await errOf(res);
         expect(body.code).toBe('not_found');
         expect(body.message).toBe(`No route for GET ${path}.`);
       }
+    });
+  });
+
+  it('tells crawlers on the api host there is nothing to index', async () => {
+    await withEnv({}, async () => {
+      const res = await proxy(request(`${API}/robots.txt`));
+      expect(res.status).toBe(200);
+      expect(res.headers.get('content-type')).toBe('text/plain; charset=utf-8');
+      expect(await res.text()).toBe('User-agent: *\nDisallow: /\n');
+      expect(res.headers.get('x-request-id')).toBeTruthy();
+      // Only a GET is a crawler's question; anything else is an unknown route.
+      const post = await proxy(request(`${API}/robots.txt`, { method: 'POST' }));
+      expect(post.status).toBe(404);
     });
   });
 });
