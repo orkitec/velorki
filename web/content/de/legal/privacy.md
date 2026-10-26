@@ -451,11 +451,11 @@ auf deinem Gerät wird nichts gespeichert, bis du es verlangst. Der Eintrag
   selbst. Cloudflare sitzt in den USA; die Übermittlung stützt sich auf die
   Standardvertragsklauseln der EU.
 - **Ein Sprach-Cookie.** Wählst du oben eine Sprache, wird ein Cookie
-  `NEXT_LOCALE` gesetzt (Wert `en` oder `de`, ein Jahr). Es sorgt dafür, dass die
+  `NEXT_LOCALE` gesetzt (der gewählte Sprachcode, etwa `de`, ein Jahr). Es sorgt dafür, dass die
   Website in der gewählten Sprache öffnet. Mehr steht nicht darin, und es wird
   nur gesetzt, wenn du diese Wahl triffst — es ist für eine von dir
   angeforderte Funktion unbedingt erforderlich und braucht nach § 25 Abs. 2
-  TTDSG keine Einwilligung.
+  TDDDG keine Einwilligung.
 - **Die Darstellung.** Wählst du hell, dunkel oder eine Akzentfarbe, wird
   `velorki.theme` im lokalen Speicher deines Browsers abgelegt. Das verlässt den
   Browser nie und ist für uns nicht lesbar. Schließt du den Hinweis oben, kommt
@@ -502,7 +502,7 @@ Adresse die Download-Seite der App und lädt sonst nichts.
   App in seinem lokalen Speicher. Sie bleiben in diesem Browser auf diesem
   Computer, bis du sie im Planer löschst oder die Websitedaten im Browser
   löschst. Dieser Speicher ist das, wofür der Planer da ist, und braucht nach
-  § 25 Abs. 2 TTDSG keine Einwilligung.
+  § 25 Abs. 2 TDDDG keine Einwilligung.
 - **Was er kontaktiert.** Dieselben Dienste wie die App, nach denselben Regeln
   wie oben: Kartenkacheln von OpenFreeMap (und CyclOSM, wenn du es
   einschaltest), Photon für eine Online-Suche, die öffentlichen Wetterdienste

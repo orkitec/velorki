@@ -1,7 +1,7 @@
 ---
 title: Politique de confidentialité
 description: "Ce que Velorki fait de vos données : aucun compte, vos itinéraires et vos sorties restent sur votre téléphone ou dans votre navigateur, sauf si vous les synchronisez avec votre propre iCloud ou Google Drive, et la liste exacte de ce qui quitte l'appareil et à quel moment."
-draft: true
+draft: false
 ---
 
 > **Note sur la traduction.** Ceci est une traduction de la version anglaise.
@@ -18,8 +18,8 @@ ce qu'il advient de vos données.
 décrit ici est Steffen Roemer, exerçant sous le nom « Orkitec », Straße der
 Pariser Kommune 27, 10243 Berlin, Allemagne, ride@velorki.com. Aucun délégué à
 la protection des données n'est désigné : les traitements décrits ci-dessous
-n'en exigent pas au titre de l'article 37 du RGPD. Les informations complètes
-sur le prestataire figurent dans les [mentions légales](./imprint).
+n'en exigent pas au titre de l'article 37 du RGPD. Les coordonnées complètes
+de l'éditeur figurent dans les [mentions légales](./imprint).
 
 ## En bref
 
@@ -56,7 +56,7 @@ La fréquence cardiaque, la cadence et la puissance provenant d'une Apple Watch,
 d'un capteur Bluetooth ou de votre application de santé sont enregistrées avec
 la sortie, sur le téléphone, comme la trace elle-même. Lorsque l'interrupteur
 Santé est activé dans les Réglages, l'application lit la fréquence cardiaque
-depuis Apple Health ou Health Connect et y inscrit vos sorties terminées en tant
+depuis Apple Santé ou Health Connect et y inscrit vos sorties terminées en tant
 qu'entraînements de cyclisme ; cet échange a lieu sur votre téléphone et rien
 ne nous en parvient. Les valeurs des capteurs ne voyagent avec une sortie que
 là où la sortie elle-même va : dans un fichier GPX, FIT ou TCX que vous
@@ -180,10 +180,10 @@ contiennent jamais le jeton, le corps de la requête ni cet identifiant.
 
 **Ce que Velorki demande.** Deux autorisations : `read`, votre profil Strava
 public (votre identifiant d'athlète et votre nom), et `activity:write`, pour
-téléverser les sorties que vous choisissez de téléverser. Velorki ne lit pas vos
+envoyer les sorties que vous choisissez d'envoyer. Velorki ne lit pas vos
 activités.
 
-**Ce qu'il lit et conserve, uniquement sur votre téléphone :**
+**Ce que Velorki lit et conserve, uniquement sur votre téléphone :**
 
 - votre identifiant d'athlète et votre nom, affichés dans Réglages →
   Connexions, jusqu'à ce que vous vous déconnectiez ;
@@ -206,8 +206,8 @@ Une sortie que vous envoyez est transmise à Strava, qui la traite comme décrit
 dans la [politique de confidentialité de Strava](https://www.strava.com/legal/privacy).
 Strava et Orkitec sont chacun responsables de leur propre traitement.
 
-**Les données Strava restent chez vous.** Les données Strava ne servent qu'à
-vous être montrées, dans l'application. Elles ne sont jamais envoyées à
+**Les données Strava restent chez vous.** Les données Strava ne sont montrées
+qu'à vous, dans l'application. Elles ne sont jamais envoyées à
 l'assistant IA, jamais mises dans un lien de partage et jamais envoyées à
 RideWithGPS ni à aucun autre service. Nous ne détenons aucune donnée Strava sur
 nos serveurs.
@@ -217,7 +217,7 @@ l'autorisation de Velorki chez Strava, supprime les jetons et supprime du
 téléphone tout élément venant de Strava : les itinéraires Strava importés et
 ceux modifiés à partir d'eux, la liste d'itinéraires en cache et les liens
 d'activité conservés. L'application le confirme alors : « Vos données Strava ont
-été supprimées de ce téléphone. » Si vous révoquez plutôt l'accès de Velorki sur
+été effacées de ce téléphone. » Si vous révoquez plutôt l'accès de Velorki sur
 strava.com, l'application le remarque à son prochain appel à Strava, supprime
 les mêmes données et vous le dit. Désinstaller l'application les supprime aussi.
 Comme tout est sur votre téléphone, ce sont les moyens de les supprimer ; pour
@@ -257,7 +257,7 @@ relais, à notre fournisseur d'IA :
   10 m près). Le fournisseur d'IA les reçoit également ; un itinéraire qui part
   de votre domicile révèle donc où se trouve votre domicile.
 
-Aucun identifiant vous concernant, vous ou votre téléphone, n'est inséré dans la
+Aucun identifiant, ni de vous ni de votre téléphone, n'est inséré dans la
 requête. Le modèle renvoie une demande structurée : une distance, une forme, des
 noms de lieux, des préférences. Le routage proprement dit a ensuite lieu dans
 l'application ; le modèle ne voit jamais votre itinéraire.
@@ -303,15 +303,15 @@ planificateur web) ou désactivé. Sur un iPhone ou un iPad, iCloud est activé 
 défaut ; sur Android et dans le navigateur, la synchronisation est désactivée
 tant que vous ne choisissez pas de cloud.
 
-**Ce qui est synchronisé.** Vos itinéraires enregistrés, et vos sorties
-enregistrées avec la trace, les notes, les statistiques et les tours de chaque
-sortie, ainsi que la fréquence cardiaque, la cadence, la puissance et la
+**Ce qui est synchronisé.** Les itinéraires de votre bibliothèque, et vos
+sorties enregistrées avec la trace, les notes, les statistiques et les tours de
+chaque sortie, ainsi que la fréquence cardiaque, la cadence, la puissance et la
 température enregistrées avec elle. Quelques réglages le sont aussi : thème,
-couleur d'accent, aspect de la carte, aspect du radar de pluie, style de la
-barre, côté de la colonne, unités, ainsi que les réglages des virages, de la
-voix et du recalcul d'itinéraire. Dans le navigateur avec iCloud, les réglages
-restent dans le navigateur. Chaque application inscrit aussi un petit
-enregistrement Plus dans le même cloud, décrit sous Abonnements.
+couleur d'accentuation, aspect de la carte, aspect du radar de pluie, style de
+la barre, côté de la colonne, unités, ainsi que les réglages des indications de
+direction, de la voix et du recalcul d'itinéraire. Dans le navigateur avec
+iCloud, les réglages restent dans le navigateur. Chaque application inscrit
+aussi un petit enregistrement Plus dans le même cloud, décrit sous Abonnements.
 
 **Certaines choses ne sont jamais synchronisées.** Les itinéraires lus depuis
 Strava et les itinéraires modifiés à partir d'eux, ainsi que les liens Strava
@@ -401,7 +401,7 @@ navigateur ne contacte pas RevenueCat, ne crée aucun identifiant propre pour
 Plus et n'inscrit jamais d'enregistrement Plus.
 
 L'enregistrement ne va que dans le compte avec lequel la synchronisation a
-d'abord fonctionné, ou dans un compte que vous choisissez ensuite sous Réglages →
+démarré, ou dans un compte que vous choisissez ensuite sous Réglages →
 Synchroniser avec : après une déconnexion, un changement de compte ou la
 désactivation de la synchronisation, l'application cesse de l'inscrire et ne le
 copie jamais d'elle-même dans un second compte. Il n'est pas supprimé du cloud ;
@@ -416,9 +416,10 @@ arrière-plan, l'application demande à sa boutique si une version plus récente
 existe. Sur iOS, elle interroge le service public de recherche de l'App Store
 d'Apple (`itunes.apple.com`) avec l'identifiant de bundle de Velorki et les
 codes de pays et de langue de votre téléphone ; sur Android, elle interroge le
-service de mise à jour intégrée de Google Play sur le téléphone, qui ne répond
-que pour une installation depuis Play. Chacune implique votre adresse IP, comme
-toute requête web, et rien d'autre vous concernant.
+service de mise à jour intégrée à l'application de Google Play sur le
+téléphone, qui ne répond que pour une installation depuis Play. Chacune
+implique votre adresse IP, comme toute requête web, et rien d'autre vous
+concernant.
 
 De temps à autre, l'application demande au système d'afficher sa propre fenêtre
 d'évaluation. Apple ou Google décident si elle apparaît et à quelle fréquence ;
@@ -440,11 +441,11 @@ indiquera ce qu'il collecte avant la sortie de la version concernée.
 ### Journaux des serveurs
 
 Notre relais et notre serveur de routage tiennent des journaux d'exploitation
-(heure de la requête, point d'accès, statut, adresse IP et un en-tête indiquant
-la version du client) pour faire fonctionner le service, détecter les pannes et
-appliquer les limitations de débit. Ils ne servent pas à établir des profils
-d'utilisateurs et ne contiennent jamais de jeton d'accès, de corps de requête
-ni d'identifiant d'abonné.
+(heure de la requête, point de terminaison, statut, adresse IP et un en-tête
+indiquant la version du client) pour faire fonctionner le service, détecter les
+pannes et appliquer les limitations de débit. Ils ne servent pas à établir des
+profils d'utilisateurs et ne contiennent jamais de jeton d'accès, de corps de
+requête ni d'identifiant d'abonné.
 
 - Les journaux d'accès du serveur web sont conservés sur la machine pendant
   **14 jours**, puis supprimés par la rotation des journaux.
@@ -473,11 +474,11 @@ pas. L'entrée 🍪 Cookies du pied de page le fait réapparaître.
   donc votre adresse IP et la requête elle-même. Cloudflare est établi aux
   États-Unis ; le transfert repose sur les clauses contractuelles types de l'UE.
 - **Un cookie de langue.** Choisir une langue dans l'en-tête dépose un cookie
-  appelé `NEXT_LOCALE` (valeur `en` ou `de`, durée d'un an). Il sert à ce que
+  appelé `NEXT_LOCALE` (le code de la langue choisie, par exemple `fr`, durée d'un an). Il sert à ce que
   le site s'ouvre dans la langue que vous avez choisie. Rien d'autre n'y est
   stocké, et il n'est déposé que lorsque vous faites ce choix — il est
   strictement nécessaire à une fonction que vous avez demandée et ne requiert
-  aucun consentement au titre de l'article 25, paragraphe 2, du TTDSG.
+  aucun consentement au titre de l'article 25, paragraphe 2, du TDDDG.
 - **Une préférence de thème.** Choisir le mode clair, le mode sombre ou une
   couleur d'accentuation inscrit `velorki.theme` dans le stockage local de
   votre navigateur. Cette valeur ne quitte jamais le navigateur et nous ne
@@ -498,7 +499,7 @@ pas. L'entrée 🍪 Cookies du pied de page le fait réapparaître.
   Lorsque vous nous écrivez, votre message — ainsi que le nom et l'adresse
   e-mail que vous saisissez dans son formulaire — est transmis à un canal
   Discord privé où nous répondons, et la conversation y reste jusqu'à ce que
-  nous la supprimions. Demandez-le à ride@velorki.com et nous supprimons la
+  nous la supprimions. Écrivez à ride@velorki.com et nous supprimons la
   vôtre. Le widget conserve l'identifiant de la conversation ainsi que le nom et
   l'adresse e-mail que vous avez indiqués dans le stockage local de votre
   navigateur, afin qu'une réponse vous parvienne encore lorsque vous revenez, et
@@ -530,15 +531,15 @@ téléchargement de l'application et ne charge rien d'autre.
   ordinateur, jusqu'à ce que vous les supprimiez dans le planificateur ou que
   vous effaciez les données du site dans le navigateur. Ce stockage est la
   raison d'être du planificateur : il ne requiert donc aucun consentement au
-  titre de l'article 25, paragraphe 2, du TTDSG.
+  titre de l'article 25, paragraphe 2, du TDDDG.
 - **Ce qu'il contacte.** Les mêmes services que l'application, selon les mêmes
   règles que ci-dessus : les tuiles de carte d'OpenFreeMap (et de CyclOSM si
   vous l'activez), Photon pour une recherche en ligne, les services
   météorologiques publics pour les couches météo, et notre relais pour
   l'assistant IA, la météo Plus et les liens de partage. Il n'utilise jamais le
   serveur de routage : les itinéraires sont calculés dans le navigateur. Les
-  tuiles de routage passent par app.velorki.com. Lorsqu'un texte exige une
-  écriture que les polices propres de l'application ne couvrent pas, le
+  tuiles de routage passent par app.velorki.com. Lorsqu'un texte utilise un
+  système d'écriture que les polices de l'application ne couvrent pas, le
   navigateur charge une police de secours depuis Google Fonts
   (`fonts.gstatic.com`), qui voit votre adresse IP. La synchronisation dans le
   cloud contacte Apple ou Google, uniquement une fois que vous en avez choisi un.
@@ -553,7 +554,7 @@ téléchargement de l'application et ne charge rien d'autre.
 | Données | Conservation | Comment les supprimer |
 |---|---|---|
 | Itinéraires, sorties, réglages, données hors ligne | sur votre téléphone, jusqu'à ce que vous les supprimiez | supprimez-les dans l'application, ou désinstallez l'application (si la synchronisation est activée, supprimer un itinéraire ou une sortie le supprime aussi dans votre cloud) |
-| Jetons Strava / RideWithGPS | sur votre téléphone, chiffrés de sorte que seul notre relais puisse les ouvrir, jusqu'à ce que vous vous déconnectiez ; jamais conservés de notre côté | déconnectez-vous dans l'application, ou désinstallez-la |
+| Jetons Strava / RideWithGPS | sur votre téléphone, chiffrés de sorte que seul notre relais puisse les ouvrir, jusqu'à ce que vous vous déconnectiez ; jamais conservés de notre côté | déconnectez le compte dans l'application, ou désinstallez-la |
 | Données Strava : votre nom, les liens d'activité | sur votre téléphone, jusqu'à ce que vous vous déconnectiez ; jamais conservées de notre côté | déconnectez Strava dans l'application, ou désinstallez-la ; questions à ride@velorki.com |
 | Itinéraires importés depuis Strava, et itinéraires modifiés à partir d'eux | sur votre téléphone, uniquement tant que l'itinéraire existe encore sur Strava : revérifié toutes les 48 heures, supprimé s'il y a été supprimé ou n'a pas pu être vérifié pendant 7 jours ; jamais conservés de notre côté | supprimez-le dans l'application, déconnectez Strava, ou désinstallez l'application |
 | La liste en cache de vos itinéraires Strava | sur votre téléphone, 48 heures au plus | déconnectez Strava, ou désinstallez l'application |
@@ -565,7 +566,7 @@ téléchargement de l'application et ne charge rien d'autre.
 | La bibliothèque, les tuiles et les réglages du planificateur web | dans votre navigateur, jusqu'à ce que vous les supprimiez | supprimez-les dans le planificateur, ou effacez les données du site dans le navigateur |
 | Requêtes à l'IA | non conservées par nous au-delà de ce que contiennent les journaux ci-dessus | sans objet |
 | Données RevenueCat | selon la politique propre de RevenueCat | contactez-nous et nous transmettrons la demande |
-| Conversations du chat d'assistance | dans notre canal Discord jusqu'à ce que nous les supprimions | demandez-le à ride@velorki.com |
+| Conversations du chat d'assistance | dans notre canal Discord jusqu'à ce que nous les supprimions | sur demande à ride@velorki.com |
 
 La désinstallation de l'application supprime tout ce que l'application a stocké
 sur l'appareil. Ce que la synchronisation a placé dans votre iCloud ou votre
@@ -616,7 +617,7 @@ sous-traitance**
 - **RevenueCat, Inc.**, San Francisco, États-Unis — la vérification de
   l'abonnement. L'identifiant d'utilisateur anonyme de l'application et le reçu
   de la boutique, sans nom ni adresse e-mail.
-- **Orkify**, exploité par le même exploitant sur l'infrastructure Hetzner
+- **Orkify**, géré par le même exploitant sur l'infrastructure Hetzner
   mentionnée ci-dessus — le tableau de bord de déploiement qui collecte les
   journaux de l'application et les métriques des processus décrits sous
   Journaux des serveurs ainsi que les rapports d'erreur de ce site web, et le
@@ -691,8 +692,8 @@ Google Drive.
 ## Sécurité
 
 Chaque connexion à nos serveurs et aux services ci-dessus est chiffrée par TLS.
-Les jetons Strava et RideWithGPS ne se trouvent jamais nulle part en clair :
-votre téléphone les conserve dans le stockage sécurisé de la plateforme,
+Les jetons Strava et RideWithGPS ne sont jamais stockés en clair, où que ce
+soit : votre téléphone les conserve dans le stockage sécurisé de la plateforme,
 enveloppés avec une clé que seul le relais possède, et le relais n'en déchiffre
 un que pour la seule requête qui le nécessite, sans rien conserver. La base de
 données des partages se trouve sur le disque du serveur, en dehors du
@@ -701,8 +702,8 @@ Les journaux sont expurgés : aucun en-tête `Authorization`, aucun corps de
 requête, aucun identifiant d'abonné. L'accès au serveur nécessite une clé, et
 non un mot de passe, et est réservé à l'exploitant. Si une violation de
 données devait mettre vos droits en danger, nous la notifierons à l'autorité de
-contrôle dans un délai de 72 heures (article 33 du RGPD) et, lorsque la loi
-l'exige, à vous.
+contrôle dans un délai de 72 heures (article 33 du RGPD) et vous-même,
+lorsque la loi l'exige.
 
 ## Vos droits
 
@@ -742,10 +743,10 @@ entre utilisateurs et aucune publicité.
 
 ## Modifications
 
-Les modifications de la présente politique sont publiées sur cette page, et la
-date indiquée en haut change ; les modifications importantes sont aussi
-annoncées sur le site web. Les anciennes versions restent disponibles dans
-l'historique git du dépôt.
+Les modifications de la présente politique sont publiées sur cette page, avec
+mise à jour de la date indiquée en haut ; les modifications importantes sont
+aussi annoncées sur le site web. Les anciennes versions restent disponibles
+dans l'historique git du dépôt.
 
 ## Contact
 
