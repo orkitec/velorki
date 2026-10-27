@@ -112,10 +112,11 @@ dpkg-reconfigure -plow unattended-upgrades       # answer yes
 systemctl status unattended-upgrades --no-pager
 ```
 
-## 2. Node 22 LTS and the orkify CLI
+## 2. Node 24 LTS and the orkify CLI
 
-First, is it already there? Any system-wide Node 22.13 or newer will do — that
-is where `node:sqlite` is unflagged — and on a shared box there usually is one:
+First, is it already there? Node 24 LTS is what CI gates with and what
+velorki.com runs on; any system-wide Node 22.13 or newer works — that is
+where `node:sqlite` is unflagged — and on a shared box there usually is one:
 
 ```sh
 node -v          # 22.13+ → skip the install below entirely
@@ -125,9 +126,9 @@ Otherwise NodeSource, because it gives a system-wide Node that a systemd unit
 and cron can both see (mise would need per-user shims):
 
 ```sh
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt install -y nodejs
-node -v          # v22.x — `node:sqlite` is unflagged from 22.13
+node -v          # v24.x
 ```
 
 ```sh
@@ -909,7 +910,7 @@ release.
 | Logs in `~/.orkify/logs/{process}.std{out,err}.log`, defaults 100 MB / 90 files / 90 days | <https://orkify.com/docs/cli> |
 | `ORKIFY_WORKER_ID`, `ORKIFY_WORKERS`, `ORKIFY_CLUSTER_MODE` are set on every managed process (the share sweeper uses worker 0) | <https://orkify.com/docs/cli> |
 | Dashboard secrets are per project, injected at runtime on the agent's next heartbeat, and take precedence over the config's `env` block | <https://orkify.com/docs/secrets> |
-| Next.js needs `output: 'standalone'`, `public/` and `.next/static` copied in by hand, Node 22+, Next 16+ for `use cache`. Velorki does not use `@orkify/next`'s cache handlers: they key pages by path and keep them across a rolling reload, so a deploy served the previous build's HTML | <https://orkify.com/docs/nextjs> |
+| Next.js needs `output: 'standalone'`, `public/` and `.next/static` copied in by hand, Node 22+, Next 16+ for `use cache`. Velorki keeps Next's own page cache rather than `@orkify/next`'s handlers: before Orkify 1.2 they kept pages across a deploy and served the previous build's HTML (orkify/orkify#1, fixed there); Next's cache is enough for a site this size | <https://orkify.com/docs/nextjs> |
 | `@orkify/cache`: `incr/get/set/getAsync`, cluster writes broadcast over IPC, eventually consistent, degrades to a local cache outside a cluster | <https://orkify.com/docs/cache> |
 | Origin CA: SSL/TLS → Origin Server → Origin Certificates → Create Certificate; up to 200 SANs; a wildcard covers one label; then switch to Full (strict) | <https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/> |
 | Global Authenticated Origin Pulls CA: `https://developers.cloudflare.com/ssl/static/authenticated_origin_pull_ca.pem`, enabled zone-wide from the dashboard | <https://developers.cloudflare.com/ssl/origin-configuration/authenticated-origin-pull/set-up/global/> |
