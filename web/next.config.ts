@@ -132,6 +132,11 @@ const nextConfig: NextConfig = {
     VELORKI_COMMIT: buildCommit(),
   },
   experimental: { serverSourceMaps: true },
+  // Browser stacks in the Orkify dashboard are readable because `orkify
+  // deploy` (1.2+) moves the `.map` files out of the public `/_next/static`
+  // into the release's private `.orkify/sourcemaps/`, where the daemon
+  // resolves them; nothing serves them to a browser.
+  productionBrowserSourceMaps: true,
   // Files read at runtime with readFileSync must be traced into the standalone
   // output by hand: the prompts, the markdown content, the message catalogues.
   outputFileTracingIncludes: {
