@@ -112,10 +112,11 @@ dpkg-reconfigure -plow unattended-upgrades       # answer yes
 systemctl status unattended-upgrades --no-pager
 ```
 
-## 2. Node 22 LTS and the orkify CLI
+## 2. Node 24 LTS and the orkify CLI
 
-First, is it already there? Any system-wide Node 22.13 or newer will do — that
-is where `node:sqlite` is unflagged — and on a shared box there usually is one:
+First, is it already there? Node 24 LTS is what CI gates with and what
+velorki.com runs on; any system-wide Node 22.13 or newer works — that is
+where `node:sqlite` is unflagged — and on a shared box there usually is one:
 
 ```sh
 node -v          # 22.13+ → skip the install below entirely
@@ -125,9 +126,9 @@ Otherwise NodeSource, because it gives a system-wide Node that a systemd unit
 and cron can both see (mise would need per-user shims):
 
 ```sh
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt install -y nodejs
-node -v          # v22.x — `node:sqlite` is unflagged from 22.13
+node -v          # v24.x
 ```
 
 ```sh
