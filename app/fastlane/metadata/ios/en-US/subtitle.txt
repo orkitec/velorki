@@ -1,1 +1,1 @@
-Private, offline, no account
+Offline route planner, tracker
