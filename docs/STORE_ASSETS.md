@@ -171,10 +171,14 @@ app/tool/store_creative.py [--locales en]
 ```
 
 The App Store's universal creative asset (iOS 27: the product page header,
-search results and featuring), 5244 × 2950 per language, uploaded by hand to
-the Asset Library. Only Apple's art safe area, 1402 × 962 at (1921, 660) in
-its Figma template, is sure to show, so the rain on the route fills it; the
-cycle map and the stops sit behind as backdrop, and there is no text. Writes
+search results and featuring), 5244 × 2950 per language. The store-assets
+run makes it beside the slides and, with `creative` on, places it and the
+search results image on the App Store version through deliver (the Gemfile
+pins fastlane/fastlane#30442 until it is released). Only Apple's art safe area, 1402 × 962 at (1921, 660) in
+its Figma template, is sure to show: the `universal` line of
+`app/store/creative_<lang>.json` fills its top in two lines at most (no price
+word: Apple's rules for these images exclude pricing), the rain on the route
+in the dark phone under it, the light cycle map and stops either side. Writes
 `creative/<locale>/universal.png` and a `universal-debug.png` with the safe
 area and the crops outlined.
 

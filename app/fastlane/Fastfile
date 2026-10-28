@@ -207,6 +207,9 @@ platform :ios do
     partial = (%w[iphone ipad duo] - sets).any?
     delete_screenshot_types(app_identifier, ENV["APP_VERSION"], ENV["SCREENSHOTS_PATH"]) if partial
 
+    creative = ENV["UPLOAD_CREATIVE"] == "true" ? creative_assets_for(ENV.fetch("CREATIVE_PATH")) : []
+    UI.important("No creative assets found under #{ENV['CREATIVE_PATH']}") if ENV["UPLOAD_CREATIVE"] == "true" && creative.empty?
+
     deliver(
       api_key: api_key,
       app_identifier: app_identifier,
@@ -220,6 +223,66 @@ platform :ios do
       run_precheck_before_submit: false,
       # No HTML preview to confirm: CI has nobody to confirm it.
       force: true,
+      **(creative.empty? ? {} : { creative_assets: creative, overwrite_creative_assets: true }),
     )
+  end
+end
+
+# The App Store's creative assets (iOS 27: the product page header and the
+# search results image), one of each per language under
+# `dir/<locale>/{universal,search}.png` as tool/store_creative.py writes
+# them, for deliver's `creative_assets` (fastlane/fastlane#30442, pinned in
+# the Gemfile). Where each goes is Apple's reference data's say: the
+# placement group whose image specification names the file's size, else
+# the type's first group. The data is printed, so a refusal can be read.
+CREATIVE_LOCALES = {
+  "en" => "en-US", "de" => "de-DE", "fr" => "fr-FR", "it" => "it", "es" => "es-ES", "nl" => "nl-NL",
+}.freeze
+CREATIVE_IMAGES = {
+  "universal.png" => "PRODUCT_PAGE_HEADER_ASSET",
+  "search.png" => "APP_STORE_SEARCH_RESULTS_ASSET",
+}.freeze
+
+def creative_assets_for(dir)
+  reference = Spaceship::ConnectAPI::AppAssetLibraryRefDatum.all.first
+  UI.user_error!("Apple returned no asset library reference data") unless reference
+  UI.message("Asset library placement types: #{(reference.placement_types || []).to_json}")
+  UI.message("Asset library image specs: #{(reference.image_specs || []).to_json}")
+  entries = []
+  CREATIVE_LOCALES.each do |folder, locale|
+    CREATIVE_IMAGES.each do |file, type|
+      path = File.join(dir, folder, file)
+      next unless File.exist?(path)
+      entries << {
+        locale: locale, path: path, placement_type: type,
+        placement_group: placement_group_for(reference, type, path),
+      }
+    end
+  end
+  entries
+end
+
+def placement_group_for(reference, type, path)
+  placement = (reference.placement_types || []).find { |item| item["placementTypeId"] == type }
+  UI.user_error!("Apple's reference data has no placement type #{type}") unless placement
+  mappings = placement.fetch("specMappings", [])
+  width, height = png_size(path)
+  specs = reference.image_specs || []
+  fitting = mappings.find do |mapping|
+    mapping.fetch("specs", []).any? do |spec_id|
+      spec = specs.find { |item| item["specId"] == spec_id || item["id"] == spec_id }
+      spec && spec.to_json.include?(width.to_s) && spec.to_json.include?(height.to_s)
+    end
+  end
+  group = fitting || mappings.first
+  UI.user_error!("Apple's reference data has no placement group for #{type}") unless group
+  group["placementGroupId"]
+end
+
+# Width and height from a PNG's header.
+def png_size(path)
+  File.open(path, "rb") do |file|
+    file.seek(16)
+    file.read(8).unpack("NN")
   end
 end

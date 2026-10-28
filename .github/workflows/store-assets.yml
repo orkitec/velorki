@@ -52,6 +52,10 @@ on:
         description: Also upload the store texts (fastlane/metadata/ios, /android)
         type: boolean
         default: false
+      creative:
+        description: Also place the creative assets (product page header, search results image) on that App Store version
+        type: boolean
+        default: false
       app_version:
         description: App Store version to put them on, e.g. 1.0.1 (needed to upload iOS)
         type: string
@@ -440,6 +444,8 @@ jobs:
           ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
           APP_VERSION: ${{ inputs.app_version }}
           UPLOAD_METADATA: ${{ inputs.metadata }}
+          UPLOAD_CREATIVE: ${{ inputs.creative }}
+          CREATIVE_PATH: ${{ runner.temp }}/assets/creative
           STORE_SETS: ${{ inputs.ios_sets }}
           FASTLANE_SKIP_UPDATE_CHECK: "1"
           FASTLANE_OPT_OUT_USAGE: "YES"
