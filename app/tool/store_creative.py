@@ -66,7 +66,7 @@ CSS = """
 @font-face { font-family: Barlow; src: url('FONTS/BarlowCondensed-Bold.ttf'); font-weight: 700; }
 html, body { margin: 0; width: %(w)dpx; height: %(h)dpx; overflow: hidden; }
 .htext { position: absolute; z-index: 5; text-align: center; color: var(--fg); }
-.htext h1 { font-family: Barlow; font-weight: 700; font-size: 170px; line-height: 0.95; margin: 0;
+.htext h1 { font-family: Barlow; font-weight: 700; font-size: 270px; line-height: 0.93; margin: 0;
   letter-spacing: 0.005em; text-wrap: balance; }
 .htext h1 em { font-style: normal; color: var(--accent); }
 body { position: relative;
@@ -177,17 +177,22 @@ def universal_page(raw: str, locale: str, debug: bool) -> tuple[str, list]:
     left = os.path.join(raw, "light", locale, "cyclemap.png")
     right = os.path.join(raw, "light", locale, "stops.png")
     x, y, w, _ = SAFE
-    # One line at the top of the safe area, set smaller until it is one
-    # line, and the front phone starting under it.
+    # The copy at the top of the safe area, as large as two lines of the
+    # area's width allow, and the front phone starting under it. On a phone the
+    # safe area is the copy and the top of the phone; wider crops show the
+    # maps.
     text = (f'<div class="htext" style="left:{x}px;top:{y + 20}px;width:{w}px">'
             f'<h1>{headline(copy.get("headline", ""))}</h1></div>'
-            '<script>const h = document.querySelector(".htext h1"); let size = 170;'
-            'const wraps = () => h.scrollHeight > parseFloat(getComputedStyle(h).lineHeight) + 1;'
-            'while (wraps() && size > 96) { size -= 2; h.style.fontSize = size + "px"; }</script>')
+            # Measured once the fonts are in: the fallback face is wider.
+            '<script>document.fonts.ready.then(() => {'
+            'const h = document.querySelector(".htext h1"); let size = 270;'
+            # Two line boxes plus the ascenders that overflow them.
+            'const wraps = () => h.scrollWidth > h.clientWidth + 1 || h.scrollHeight > parseFloat(getComputedStyle(h).fontSize) * (0.93 * 2 + 0.5);'
+            'while (wraps() && size > 120) { size -= 2; h.style.fontSize = size + "px"; } });</script>')
     pad = 26
     width = SCREEN_W * FRONT_SCALE + 2 * pad
     front_left = x + w / 2 - width / 2
-    front_top = y + 200
+    front_top = y + 560
     back_width = width * 0.86
     stage = (phone(left, back_width, front_left - 900, front_top + 260, -7, 1)
              + phone(right, back_width, front_left + width - back_width + 900, front_top + 260,
@@ -262,16 +267,16 @@ def search_page(raw: str, locale: str, debug: bool) -> tuple[str, list]:
             # fits the box, the headline no smaller than 230 px: on a phone
             # the safe area shows at about a fifth of this size, so the
             # headline is the one line sure to be read there.
-            '<script>const box = document.querySelector(".text");'
+            '<script>document.fonts.ready.then(() => { const box = document.querySelector(".text");'
             'const copy = box.firstElementChild;'
             'const h1 = copy.querySelector("h1"), p = copy.querySelector("p");'
-            'const lines = () => h1.scrollHeight > parseFloat(getComputedStyle(h1).lineHeight) * 2 + 1;'
+            'const lines = () => h1.scrollWidth > h1.clientWidth + 1 || h1.scrollHeight > parseFloat(getComputedStyle(h1).fontSize) * (0.93 * 2 + 0.5);'
             'let hs = 260, ps = 84;'
             'while ((copy.offsetHeight > box.clientHeight || lines()) && hs > 200) {'
             'hs -= 4; ps = Math.max(64, ps - 1.5);'
             'h1.style.fontSize = hs + "px"; p.style.fontSize = ps + "px"; }'
             'while (copy.offsetHeight > box.clientHeight && ps > 52) {'
-            'ps -= 1; p.style.fontSize = ps + "px"; }</script>')
+            'ps -= 1; p.style.fontSize = ps + "px"; } });</script>')
     # The front phone's map, enlarged and soft, behind everything, fading out
     # under the copy.
     crop_x, crop_y, crop_w = 0, 560, 1150
