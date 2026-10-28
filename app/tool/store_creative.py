@@ -95,13 +95,13 @@ body { position: relative; font-family: Manrope, sans-serif; color: var(--fg);
 .text { position: absolute; display: flex; flex-direction: column; justify-content: center; }
 .copy { display: flex; flex-direction: column; }
 .chip { align-self: flex-start; display: inline-flex; align-items: center; gap: 22px;
-  padding: 20px 42px 20px 34px; border-radius: 999px; background: var(--chip);
-  font-size: 52px; font-weight: 600; margin-bottom: 48px; }
-.chip i { width: 26px; height: 26px; border-radius: 50%%; background: var(--accent); }
-h1 { font-family: Barlow; font-weight: 700; font-size: 200px; line-height: 0.95; margin: 0;
+  padding: 24px 52px 24px 40px; border-radius: 999px; background: var(--chip);
+  font-size: 74px; font-weight: 600; margin-bottom: 56px; }
+.chip i { width: 34px; height: 34px; border-radius: 50%%; background: var(--accent); }
+h1 { font-family: Barlow; font-weight: 700; font-size: 260px; line-height: 0.93; margin: 0;
   letter-spacing: 0.005em; text-wrap: balance; }
 h1 em { font-style: normal; color: var(--accent); }
-p { font-size: 62px; line-height: 1.3; font-weight: 700; color: var(--muted); margin: 52px 0 0;
+p { font-size: 84px; line-height: 1.25; font-weight: 700; color: var(--muted); margin: 40px 0 0;
   text-wrap: pretty; }
 p b { color: var(--fg); }
 .phone { position: absolute; padding: 18px; border-radius: 110px;
@@ -238,19 +238,22 @@ def search_page(raw: str, locale: str, debug: bool) -> tuple[str, list]:
     # The copy in the left half of the safe area, a margin inside it.
     margin = 60
     text = (f'<div class="text" style="left:{x + margin}px;top:{y + margin}px;'
-            f'width:1090px;height:{h - 2 * margin}px"><div class="copy">'
+            f'width:1240px;height:{h - 2 * margin}px"><div class="copy">'
             f'<div class="chip"><i></i>{html.escape(copy["chip"])}</div>'
             f'<h1>{headline(copy["headline"])}</h1><p>{subline(copy["subline"])}</p></div></div>'
             # A language whose copy runs long has it set smaller until it
-            # fits the box, the headline no smaller than 160 px.
+            # fits the box, the headline no smaller than 230 px: on a phone
+            # the safe area shows at about a fifth of this size, so the
+            # headline is the one line sure to be read there.
             '<script>const box = document.querySelector(".text");'
             'const copy = box.firstElementChild;'
             'const h1 = copy.querySelector("h1"), p = copy.querySelector("p");'
-            'let hs = 200, ps = 62;'
-            'while (copy.offsetHeight > box.clientHeight && hs > 160) {'
-            'hs -= 4; ps = Math.max(48, ps - 1.5);'
+            'const lines = () => h1.scrollHeight > parseFloat(getComputedStyle(h1).lineHeight) * 2 + 1;'
+            'let hs = 260, ps = 84;'
+            'while ((copy.offsetHeight > box.clientHeight || lines()) && hs > 200) {'
+            'hs -= 4; ps = Math.max(64, ps - 1.5);'
             'h1.style.fontSize = hs + "px"; p.style.fontSize = ps + "px"; }'
-            'while (copy.offsetHeight > box.clientHeight && ps > 40) {'
+            'while (copy.offsetHeight > box.clientHeight && ps > 52) {'
             'ps -= 1; p.style.fontSize = ps + "px"; }</script>')
     # The front phone's map, enlarged and soft, behind everything, fading out
     # under the copy.
@@ -266,7 +269,7 @@ def search_page(raw: str, locale: str, debug: bool) -> tuple[str, list]:
     pad = 18
     scale = 0.66
     width = SCREEN_W * scale + 2 * pad
-    front_left = x + w - width - 40
+    front_left = x + w - width + 40
     front_top = y - 60
     stage = (phone(charts, width, front_left + 960, front_top + 170, 10, 0)
              + phone(back, width, front_left + 480, front_top - 40, 5, 1)
@@ -275,8 +278,8 @@ def search_page(raw: str, locale: str, debug: bool) -> tuple[str, list]:
              # Under the copy, across the safe area's lower edge, clear of
              # the front phone beside them: the time control and the rain's
              # key.
-             + badge(front, below_save(TIME_CONTROL, front), 0.85, x + margin, y + h - 40, -2)
-             + badge(front, below_save(RAIN_KEY, front), 1.25, x + margin + 260, y + h + 230, 2))
+             + badge(front, below_save(TIME_CONTROL, front), 0.85, x + margin, y + h + 30, -2)
+             + badge(front, below_save(RAIN_KEY, front), 1.25, x + margin + 260, y + h + 300, 2))
     css = (SEARCH_CSS % {"w": SEARCH_W, "h": SEARCH_H}).replace("FONTS", "file://" + FONTS)
     rings = contours(style, SEARCH_W, SEARCH_H, ((3300, 400, 160), (300, 2500, 220)),
                      step=250, reach=2000)
