@@ -1,1 +1,1 @@
-cycling,bicycle,gpx,navigation,ride tracker,maps,loop,gravel,mtb,road bike,rain radar,wind,privacy
+cycling,bicycle,computer,ride,gpx,maps,loop,gravel,mtb,road,radar,wind,private,no account

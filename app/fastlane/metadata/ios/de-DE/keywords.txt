@@ -1,1 +1,1 @@
-Radfahren,Radroute,GPX,Navigation,Fahrradnavi,Karten,Rundtour,Gravel,MTB,Rennrad,Tour,aufzeichnen
+Navigation,Fahrradnavigation,Radfahren,Fahrradcomputer,GPX,Karten,Rundtour,Gravel,MTB,Rennrad,Radar

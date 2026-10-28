@@ -1,1 +1,1 @@
-ciclismo,bicicleta,gpx,navegación,mapas offline,ruta circular,gravel,mtb,lluvia,grabar,privacidad
+ciclismo,bicicleta,ciclocomputador,navegación,planificador,gpx,mapas,gravel,mtb,radar lluvia,grabar

@@ -17,13 +17,16 @@ improve them. `crowdin.yml` in the repository root says what is translated.
 | `app/store/slides_en.json` | `app/store/slides_<lang>.json` |
 
 `.github/workflows/crowdin.yml` uploads the sources and the translations to
-Crowdin when they change on `main`, the translations as approved, and every
-Monday morning downloads what people changed there into the branch
-`l10n/crowdin` and opens a pull request titled "Update translations" (the
-translated ARB files without the `@key` metadata Crowdin copies into them).
-While that pull request is open, a push uploads only the sources: the
-repository's older copy would overwrite the newer text. Merge it first. The
-download can also be started by hand from the Actions tab. A translation pull
+Crowdin when they change on `main`, the translations as approved. Nothing
+comes back on its own: when someone has translated in Crowdin, run the
+workflow by hand (Actions → crowdin → Run workflow, `upload_translations`
+off) and it downloads what changed into the branch `l10n/crowdin` and opens a
+pull request titled "Update translations" (the translated ARB files without
+the `@key` metadata Crowdin copies into them). Read that pull request line by
+line: Crowdin re-serialises every file, and Markdown has come back with text
+dropped at an abbreviation such as "EE. UU.". While the pull request is open,
+a push uploads only the sources: the repository's older copy would overwrite
+the newer text. Merge or close it first. A translation pull
 request can never touch a source file: Crowdin only ever writes a target
 language, and English is the source.
 
@@ -146,7 +149,7 @@ is its unit test (`python3 -m unittest app/tool/store_text_check_test.py`).
    with **upload_translations = true**. The German already in the repository
    goes up and is approved in Crowdin; without it the first download would
    replace it with empty strings. The English sources go up in the same run,
-   so nothing else has to be pushed. Do this before any scheduled download.
+   so nothing else has to be pushed.
 6. Optional: turn on pre-translation from machine translation in the project
    settings, so a new language starts from a draft instead of an empty file. A
    machine draft still has to be reviewed before the pull request is merged.

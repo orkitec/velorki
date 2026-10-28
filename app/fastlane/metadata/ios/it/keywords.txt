@@ -1,1 +1,1 @@
-ciclismo,bicicletta,gpx,navigatore,mappe,anello,gravel,mtb,bici da corsa,registra,giro,privacy
+ciclismo,bicicletta,ciclocomputer,navigazione,giro,gpx,mappe,anello,gravel,mtb,corsa,radar pioggia

@@ -39,6 +39,7 @@ jobs:
   # on a missing secret or a refused key it says why and writes nothing, and
   # the deploy below builds with the committed web/src/site/prices.json.
   prices:
+    name: Sync Store Prices
     runs-on: ubuntu-latest
     # Where ASC_* and PLAY_SERVICE_ACCOUNT_JSON live. Its required reviewer
     # gates this job; the deploy goes on without it if the job is rejected.
@@ -69,6 +70,7 @@ jobs:
           retention-days: 7
 
   deploy:
+    name: Upload to Orkify
     runs-on: ubuntu-latest
     needs: prices
     # Also when `prices` failed or was rejected: the committed prices are good
