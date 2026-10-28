@@ -1,4 +1,4 @@
-Velorki pianifica percorsi in bici, ti guida lungo il tragitto e registra i tuoi giri, tutto sul tuo telefono e anche offline: pianificazione, calcolo dei percorsi, ricerca, navigazione e registrazione. Percorsi bici, navigazione GPS, tracker e ciclocomputer: un'unica app, gratis. Non serve nessun account.
+Velorki pianifica percorsi in bici, ti guida lungo il tragitto e registra i tuoi giri, tutto sul tuo telefono e anche offline. Percorsi bici, navigazione GPS, tracker e ciclocomputer: un'unica app, gratis. Non serve nessun account.
 
 I tuoi percorsi e giri restano con te: sul tuo telefono, oppure sincronizzati tramite il tuo Google Drive, mai attraverso i nostri server. Il codice è pubblico, quindi chiunque può verificarlo. Esportali in GPX, FIT o TCX quando vuoi.
 

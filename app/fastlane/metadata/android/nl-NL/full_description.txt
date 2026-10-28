@@ -1,4 +1,4 @@
-Velorki plant fietsroutes, leidt je erlangs en neemt je ritten op, allemaal op je telefoon en ook offline: plannen, routeren, zoeken, navigeren en opnemen. Fietsnavigatie, fietsrouteplanner, tracker en fietscomputer: één app, gratis. Geen account, geen registratie.
+Velorki plant fietsroutes, leidt je erlangs en neemt je ritten op, allemaal op je telefoon en ook offline. Fietsnavigatie, fietsrouteplanner, tracker en fietscomputer: één app, gratis. Geen account, geen registratie.
 
 Je routes en ritten blijven bij jou: op je telefoon, of gesynchroniseerd via je eigen Google Drive, nooit via onze servers. De code is openbaar, dus iedereen kan dat controleren. Exporteer ze wanneer je wilt als GPX, FIT of TCX.
 

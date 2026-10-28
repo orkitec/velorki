@@ -1,4 +1,4 @@
-Velorki plans bike routes, guides you along them and records your rides, all on your phone and offline too: planning, routing, search, navigation and recording. Bike navigation, route planner, ride tracker and bike computer: one free app. No account, no sign-up.
+Velorki plans bike routes, guides you along them and records your rides, all on your phone and offline too. Bike navigation, route planner, ride tracker and bike computer: one free app. No account, no sign-up.
 
 Your routes and rides stay with you: on your phone, or synced through your own Google Drive, never through our servers. The code is public, so anyone can check that. Export them as GPX, FIT or TCX anytime.
 

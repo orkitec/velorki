@@ -1,4 +1,4 @@
-Velorki plant Radrouten, führt dich darauf entlang und zeichnet deine Fahrten auf, alles auf deinem Handy und auch offline: Planen, Routing, Suche, Navigation und Aufzeichnen. Fahrrad-Navi, Routenplaner, Tracker und Fahrradcomputer: eine App, kostenlos. Kein Konto, keine Anmeldung.
+Velorki plant Radrouten, führt dich darauf entlang und zeichnet deine Fahrten auf, alles auf deinem Handy und auch offline. Fahrrad-Navi, Routenplaner, Tracker und Fahrradcomputer: eine App, kostenlos. Kein Konto, keine Anmeldung.
 
 Deine Routen und Fahrten bleiben bei dir: auf deinem Handy oder synchronisiert über dein eigenes Google Drive, nie über unsere Server. Der Code ist öffentlich, so kann jeder das nachprüfen. Exportieren kannst du sie jederzeit als GPX, FIT oder TCX.
 
