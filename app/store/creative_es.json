@@ -3,5 +3,8 @@
     "chip": "Gratis · Funciona sin conexión",
     "headline": "Rueda donde **acaba la cobertura**",
     "subline": "Planifica y navega sin cobertura, y mira el radar de lluvia y el viento a lo largo de tu ruta."
+  },
+  "universal": {
+    "headline": "Ciclocomputador & **rutas en bici**"
   }
 }

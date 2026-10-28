@@ -10,10 +10,11 @@ template) is sure to be seen; everything else is cropped per device or lies
 under the store's own UI, so it only carries the backdrop on.
 
 * universal.png (5244x2950, dark): behind the product page's header and in
-  the featuring. The route coloured by the rain under the radar in front,
-  the cycle map and the stops behind it to either side. The front phone's
-  map fills the safe area (1402x962 at 1921,660); there is no text, which
-  would cover the map it is about.
+  the featuring. One line of copy ("universal" in creative_<locale>.json,
+  a **phrase** in the accent) at the top of the safe area (1402x962 at
+  1921,660), the route coloured by the rain under the radar in the dark
+  phone below it, the light cycle map and stops to either side. Apple's
+  rules for these images allow no price word, so "free" stays out of it.
 * search.png (3840x2560, light): in the search results, in place of the
   first three screenshots, so it says what the app is. The copy of
   store/creative_<locale>.json ("search": chip, headline with a **phrase**
@@ -23,8 +24,8 @@ under the store's own UI, so it only carries the backdrop on.
   ride's charts behind it; left of the copy the ride under way; under the
   copy the time control and the rain's key, cut out of the real screen.
 
-Input:  build/store_screenshots/raw/dark/<locale>/{weather,cyclemap,stops,
-        navigation}.png, build/store_screenshots/raw/light/<locale>/{weather,ride}.png
+Input:  build/store_screenshots/raw/dark/<locale>/{weather,cyclemap,navigation}.png,
+        build/store_screenshots/raw/light/<locale>/{weather,ride,cyclemap,stops}.png
 Output: build/store_screenshots/creative/<locale>/universal.png and
         search.png, and each with -debug beside it: the safe area outlined,
         on the universal one also the 3:2 and 2.33:1 crops (centred).
@@ -62,7 +63,12 @@ FRONT_SCALE = 1.0
 SHOWN_TOP = 310
 
 CSS = """
+@font-face { font-family: Barlow; src: url('FONTS/BarlowCondensed-Bold.ttf'); font-weight: 700; }
 html, body { margin: 0; width: %(w)dpx; height: %(h)dpx; overflow: hidden; }
+.htext { position: absolute; z-index: 5; text-align: center; color: var(--fg); }
+.htext h1 { font-family: Barlow; font-weight: 700; font-size: 170px; line-height: 0.95; margin: 0;
+  letter-spacing: 0.005em; text-wrap: balance; }
+.htext h1 em { font-style: normal; color: var(--accent); }
 body { position: relative;
   background:
     radial-gradient(1500px 1100px at 50%% 38%%, var(--glow), transparent 70%%),
@@ -165,20 +171,31 @@ def universal_page(raw: str, locale: str, debug: bool) -> tuple[str, list]:
     def shot(screen: str) -> str:
         return os.path.join(raw, style, locale, f"{screen}.png")
 
-    front, left, right = shot("weather"), shot("cyclemap"), shot("stops")
+    english = load_json(os.path.join(STORE, "creative_en.json")).get("universal", {})
+    copy = load_json(os.path.join(STORE, f"creative_{locale}.json")).get("universal", english)
+    front = shot("weather")
+    left = os.path.join(raw, "light", locale, "cyclemap.png")
+    right = os.path.join(raw, "light", locale, "stops.png")
     x, y, w, _ = SAFE
+    # One line at the top of the safe area, set smaller until it is one
+    # line, and the front phone starting under it.
+    text = (f'<div class="htext" style="left:{x}px;top:{y + 20}px;width:{w}px">'
+            f'<h1>{headline(copy.get("headline", ""))}</h1></div>'
+            '<script>const h = document.querySelector(".htext h1"); let size = 170;'
+            'const wraps = () => h.scrollHeight > parseFloat(getComputedStyle(h).lineHeight) + 1;'
+            'while (wraps() && size > 96) { size -= 2; h.style.fontSize = size + "px"; }</script>')
     pad = 26
     width = SCREEN_W * FRONT_SCALE + 2 * pad
     front_left = x + w / 2 - width / 2
-    front_top = y - pad - SHOWN_TOP * FRONT_SCALE
+    front_top = y + 200
     back_width = width * 0.86
-    stage = (phone(left, back_width, front_left - 900, front_top + 260, -7, 1, back=True)
+    stage = (phone(left, back_width, front_left - 900, front_top + 260, -7, 1)
              + phone(right, back_width, front_left + width - back_width + 900, front_top + 260,
-                     7, 1, back=True)
+                     7, 1)
              + phone(front, width, front_left, front_top, 0, 2))
-    css = CSS % {"w": W, "h": H}
+    css = (CSS % {"w": W, "h": H}).replace("FONTS", "file://" + FONTS)
     body = (f'<!doctype html><meta charset="utf-8"><style>{css}</style>'
-            f'<body style="{tokens}">{contours(style)}{stage}'
+            f'<body style="{tokens}">{contours(style)}{text}{stage}'
             f'{boxes() if debug else ""}</body>')
     return body, [front, left, right]
 

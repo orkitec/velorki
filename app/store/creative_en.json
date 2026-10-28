@@ -3,5 +3,8 @@
     "chip": "Free · Works offline",
     "headline": "Ride where the **signal ends**",
     "subline": "Plan and navigate without signal, and see the rain radar and the wind along your route."
+  },
+  "universal": {
+    "headline": "Bike computer & **route planner**"
   }
 }
