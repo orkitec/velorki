@@ -459,6 +459,24 @@ h4 {
   object-fit: cover;
   object-position: top center;
 }
+/* The screen before hydration (ScreenshotImage): the system-following
+   picture, or, when the header's theme choice is on <html> before the first
+   paint, the one still image of that look. Same three states as the colour
+   tokens above. */
+.shot-dark,
+.shot-light {
+  display: none;
+}
+:root[data-theme='dark'] .shot-system,
+:root[data-theme='dark'] .shot-light,
+:root[data-theme='light'] .shot-system,
+:root[data-theme='light'] .shot-dark {
+  display: none;
+}
+:root[data-theme='dark'] .shot-dark,
+:root[data-theme='light'] .shot-light {
+  display: block;
+}
 .phone-placeholder {
   display: flex;
   height: 100%;
