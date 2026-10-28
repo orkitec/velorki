@@ -140,6 +140,9 @@ const nextConfig: NextConfig = {
   images: {
     deviceSizes: [420, 640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 320, 384, 448, 512, 576],
+    // The optimized images' URLs carry the deployment id, so a deploy gives
+    // them new URLs and the old ones may live as long as a cache likes.
+    minimumCacheTTL: 31536000,
   },
   // Browser stacks in the Orkify dashboard are readable because `orkify
   // deploy` (1.2+) moves the `.map` files out of the public `/_next/static`
