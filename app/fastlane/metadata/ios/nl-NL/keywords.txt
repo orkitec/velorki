@@ -1,1 +1,1 @@
-fietsen,fietsroute,fietscomputer,navigatie,rit,gpx,kaart,rondje,gravel,mtb,racefiets,regenradar
+fietsrouteplanner,fietsroutes,knooppunten,gratis,fietscomputer,navigatie,gpx,gravel,mtb,racefiets

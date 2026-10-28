@@ -1,1 +1,1 @@
-ciclismo,bicicleta,ciclocomputador,navegación,planificador,gpx,mapas,gravel,mtb,radar lluvia,grabar
+bicicleta,ciclismo,navegación,gratis,planificador,tracker,gpx,mapas,gravel,mtb,radar lluvia,grabar

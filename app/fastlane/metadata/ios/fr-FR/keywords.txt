@@ -1,1 +1,1 @@
-cyclisme,vélo,compteur,traceur,balade,gpx,cartes,boucle,gravel,vtt,route,radar pluie,sans compte
+cyclisme,compteur,traceur,parcours,balade,gpx,cartes,boucle,gravel,vtt,route,radar pluie,sans compte
