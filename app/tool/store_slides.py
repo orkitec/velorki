@@ -142,22 +142,22 @@ html, body { margin: 0; width: Wpx; height: Hpx; overflow: hidden; }
               radial-gradient(95vw 60vw at 98% 2%, var(--soft), transparent 66%); }
 .topo { position: absolute; inset: 0; width: 100%; height: 100%; }
 .topo path { fill: none; stroke: var(--contour); stroke-width: 0.12; }
-.copy { position: relative; padding: 8.4vw 7vw 0; }
-.chip { display: inline-flex; align-items: center; gap: 1.7vw; padding: 1.5vw 3.4vw;
+.copy { position: relative; padding: 7vw 5.6vw 0; }
+.chip { display: inline-flex; align-items: center; gap: 2vw; padding: 1.8vw 4vw;
   border-radius: 999px; border: 0.22vw solid var(--line); background: var(--panel);
-  font-size: 3.3vw; font-weight: 600; letter-spacing: 0.01em; }
+  font-size: 4.4vw; font-weight: 600; letter-spacing: 0.01em; }
 .brand { display: flex; align-items: center; gap: 2.4vw; margin-bottom: 4vw; }
 .brand img { width: 6.2vw; height: 6.2vw; border-radius: 22.4%;
   box-shadow: 0 0 0 0.15vw var(--line), 0 0.8vw 2vw rgb(0 0 0 / 0.25); }
 .brand span { font-family: Barlow, sans-serif; font-weight: 700; font-size: 6vw; letter-spacing: 0.01em;
   line-height: 1; }
-.chip i { width: 1.9vw; height: 1.9vw; border-radius: 50%; background: var(--accent); }
-h1 { font-family: Barlow, sans-serif; font-weight: 700; font-size: 13.6vw; line-height: 0.95;
-  letter-spacing: -0.01em; margin: 4.4vw 0 0; text-wrap: balance; }
+.chip i { width: 2.3vw; height: 2.3vw; border-radius: 50%; background: var(--accent); }
+h1 { font-family: Barlow, sans-serif; font-weight: 700; font-size: 16.4vw; line-height: 0.93;
+  letter-spacing: -0.01em; margin: 3.6vw 0 0; text-wrap: balance; }
 h1 em { font-style: normal; color: var(--accent); }
-p.sub { font-size: 4.7vw; line-height: 1.3; margin: 3.8vw 0 0; font-weight: 700;
-  max-width: 84vw; text-wrap: pretty; }
-.stage { position: relative; margin-top: 7vw; height: 200vw; }
+p.sub { font-size: 6.2vw; line-height: 1.25; margin: 3.2vw 0 0; font-weight: 700;
+  max-width: 88vw; text-wrap: pretty; }
+.stage { position: relative; margin-top: 5vw; height: 200vw; }
 .phone { position: absolute; left: 50%; top: 0; width: 78vw; translate: -50% 0; padding: 2.1vw;
   border-radius: 11vw; background: linear-gradient(160deg, #2a3039, #0e1115 45%, #1b1f26);
   box-shadow: 0 0 0 0.25vw rgb(255 255 255 / 0.10), var(--shadow), 0 0 14vw -5vw var(--glow); }
