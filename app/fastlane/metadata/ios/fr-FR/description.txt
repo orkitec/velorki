@@ -1,4 +1,4 @@
-Velorki planifie vos itinéraires vélo, vous guide et enregistre vos sorties, tout sur votre iPhone et même hors ligne : planification, calcul d’itinéraire, recherche, navigation et enregistrement. Pas de compte, pas d’inscription.
+Velorki planifie vos itinéraires vélo, vous guide et enregistre vos sorties, tout sur votre iPhone et même hors ligne : planification, calcul d’itinéraire, recherche, navigation et enregistrement. Itinéraires vélo, navigation GPS, traceur et compteur vélo : une seule appli, gratuite. Pas de compte, pas d’inscription.
 
 Vos itinéraires et sorties restent chez vous : sur votre iPhone, ou synchronisés via votre propre iCloud ou Google Drive, jamais par nos serveurs. Le code est public, chacun peut donc le vérifier. Exportez-les en GPX, FIT ou TCX à tout moment.
 

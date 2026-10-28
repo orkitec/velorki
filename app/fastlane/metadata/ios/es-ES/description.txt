@@ -1,4 +1,4 @@
-Velorki planifica rutas en bici, te guía por ellas y graba tus salidas, todo en tu iPhone y también sin conexión: planificar, calcular rutas, buscar, navegar y grabar. Sin cuenta ni registro.
+Velorki planifica rutas en bici, te guía por ellas y graba tus salidas, todo en tu iPhone y también sin conexión: planificar, calcular rutas, buscar, navegar y grabar. Rutas en bici, navegación GPS, tracker y ciclocomputador: una sola app, gratis. Sin cuenta ni registro.
 
 Tus rutas y salidas se quedan contigo: en tu iPhone o sincronizadas con tu propio iCloud o Google Drive, nunca a través de nuestros servidores. El código es público, así que cualquiera puede comprobarlo. Expórtalas como GPX, FIT o TCX cuando quieras.
 
