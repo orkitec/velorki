@@ -132,6 +132,15 @@ const nextConfig: NextConfig = {
     VELORKI_COMMIT: buildCommit(),
   },
   experimental: { serverSourceMaps: true },
+  // The screenshots sit in a 304 px phone frame (`.phone`, 19rem) or at 70vw
+  // on a phone, so the srcset needs candidates well under Next's smallest
+  // default device size of 640: a 1x desktop wants ~300 px, Lighthouse's
+  // 1.75x phone ~500. The 420 device size lets the 70vw rule keep candidates
+  // from 294 px up; the image sizes fill the gaps between it and 640.
+  images: {
+    deviceSizes: [420, 640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 320, 384, 448, 512, 576],
+  },
   // Browser stacks in the Orkify dashboard are readable because `orkify
   // deploy` (1.2+) moves the `.map` files out of the public `/_next/static`
   // into the release's private `.orkify/sourcemaps/`, where the daemon
