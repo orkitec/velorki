@@ -242,6 +242,17 @@ jobs:
           VELORKI_STORE_START_TIMEOUT: "1500"
         run: tool/store_screenshots.sh --locales "$LOCALES"
 
+      # The App Store's creative assets (the product page header and the
+      # search results image) from the same captures. Uploaded by hand to
+      # the Asset Library, so they only ride along in the artifact.
+      - name: Creative assets
+        if: ${{ !cancelled() && steps.iphone.outcome == 'success' }}
+        continue-on-error: true
+        working-directory: app
+        env:
+          LOCALES: ${{ matrix.locale }}
+        run: python3 tool/store_creative.py --locales "$LOCALES"
+
       # Each platform's set is kept as soon as it is made, in an artifact of
       # its own (store-assets-ios-*, merged again for the upload): a runner
       # that dies later loses only what it was doing. A path's tree is kept
@@ -255,6 +266,7 @@ jobs:
           path: |
             app/build/store_screenshots/slides/set
             app/build/store_screenshots/watch
+            app/build/store_screenshots/creative
           if-no-files-found: ${{ steps.iphone.outcome == 'success' && 'error' || 'warn' }}
           retention-days: 30
 
