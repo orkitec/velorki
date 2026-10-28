@@ -1,1 +1,1 @@
-Navigation,Fahrradnavigation,kostenlos,Radfahren,Fahrradcomputer,Tacho,Radtouren,Gravel,MTB,Rennrad
+Navigation,Fahrradnavigation,Tracker,Radfahren,Fahrradcomputer,Radtouren,Karten,Gravel,MTB,Rennrad
