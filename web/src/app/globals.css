@@ -509,6 +509,12 @@ h4 {
   aspect-ratio: 396 / 484;
   border-radius: 2.1rem;
   background: #000000;
+  /* The screen is black whatever the page's theme, so its text takes the
+     dark palette's accent: the light one (a deep pink or green) fails the
+     contrast check on black. */
+  --accent: var(--accent-dark);
+  --on-accent: var(--on-accent-dark);
+  --accent-glow: var(--accent-glow-dark);
 }
 .watch-screen img {
   width: 100%;
