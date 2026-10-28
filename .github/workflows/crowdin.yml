@@ -2,8 +2,8 @@ name: crowdin
 
 # Translations are written in the repository, in the commit that changes the
 # English (see CLAUDE.md), and go up to Crowdin as approved with the sources on
-# every push to main; what people improve in Crowdin comes back once a week as
-# a pull request on `l10n/crowdin`. Both need the
+# every push to main; what people improve in Crowdin comes back when the
+# workflow is run by hand, as a pull request on `l10n/crowdin`. Both need the
 # CROWDIN_PROJECT_ID and CROWDIN_PERSONAL_TOKEN secrets; without them the jobs
 # are skipped rather than shown green for doing nothing. Forks never talk to
 # our project. What is translated is in `crowdin.yml`; the day-to-day is in
@@ -18,8 +18,6 @@ on:
       - "app/fastlane/metadata/ios/*/*.txt"
       - "app/fastlane/metadata/android/*/*.txt"
       - "app/store/slides_*.json"
-  schedule:
-    - cron: "0 6 * * 1"
   workflow_dispatch:
     inputs:
       upload_translations:
@@ -63,7 +61,7 @@ jobs:
   # Push to main that touched a source file, or a manual run.
   upload:
     needs: token
-    if: ${{ needs.token.outputs.present == 'true' && github.event_name != 'schedule' }}
+    if: ${{ needs.token.outputs.present == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -102,7 +100,10 @@ jobs:
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
 
-  # Weekly, or a manual run that is not the one-off translation upload.
+  # A manual run that is not the one-off translation upload; nothing runs on
+  # a clock, since the download only makes sense once someone has translated
+  # in Crowdin (every download re-serialises the files, and Markdown has come
+  # back truncated: review the pull request line by line).
   # Translations never land on main without review.
   # The pull request cannot touch app_en.arb or messages/en.json: the
   # translation patterns in crowdin.yml resolve to a target language only, and
