@@ -125,6 +125,32 @@ jobs:
           dart run build_runner build
           flutter gen-l10n
 
+      # The Android Gradle plugin installs the NDK during the build with no
+      # check: a download that arrived broken ("Error on ZipFile unknown
+      # archive") failed a build. So it is installed here first, the version
+      # Flutter's Gradle plugin asks for, verified by the file the plugin
+      # looks for, and fetched again on a bad archive.
+      - name: Install the NDK
+        run: |
+          sdk="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          root="$(dirname "$(dirname "$(command -v flutter)")")"
+          ver="$(sed -n 's/.*val ndkVersion: String = "\([^"]*\)".*/\1/p' \
+            "$root/packages/flutter_tools/gradle/src/main/kotlin/FlutterExtension.kt")"
+          [ -n "$ver" ] || { echo "::error::no ndkVersion in Flutter's FlutterExtension.kt"; exit 1; }
+          for try in 1 2 3; do
+            printf 'y\n%.0s' {1..30} \
+              | "$sdk/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ver" || true
+            if [ -f "$sdk/ndk/$ver/source.properties" ]; then
+              echo "==> ndk;$ver in place"
+              exit 0
+            fi
+            echo "==> ndk;$ver did not install cleanly (try $try of 3); fetching it again"
+            rm -rf "$sdk/ndk/$ver" "$sdk/.temp"
+            sleep 20
+          done
+          echo "::error::ndk;$ver could not be installed"
+          exit 1
+
       # The emulator action installs the system image itself, once, with no
       # check: a download that arrived broken ("Error on ZipFile unknown
       # archive") left it with no image, the emulator never came up and the
