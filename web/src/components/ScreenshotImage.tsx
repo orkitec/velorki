@@ -35,6 +35,13 @@ const LIGHT = '(prefers-color-scheme: light)';
  * made the real image a late discovery and the preloaded one a waste. The
  * preloads carry the same media queries, so only the matching shot is
  * fetched, at high priority for the frame above the fold.
+ *
+ * A theme chosen in the header is applied to `<html>` before the first paint
+ * (`ThemeScript`), and a media query cannot see it; so beside the picture
+ * stand one dark and one light `<img>`, hidden, that the site's own
+ * `data-theme` rules show in its place (`.shot-*` in globals.css). They load
+ * lazily, so the hidden ones are never fetched. After hydration the look is
+ * known and the frame is one image again.
  */
 export function ScreenshotImage({
   screen,
@@ -85,6 +92,9 @@ export function ScreenshotImage({
     const darkProps = shot(dark);
     const lightProps = shot(light);
     const shown = variant.mode === 'dark' ? darkProps : lightProps;
+    // Hidden until a theme override says otherwise; lazy, so a hidden one is
+    // not fetched. See `.shot-*` in globals.css.
+    const fixed = { loading: 'lazy' as const, fetchPriority: undefined };
     return (
       <>
         {priority && (
@@ -107,11 +117,13 @@ export function ScreenshotImage({
             />
           </>
         )}
-        <picture>
+        <picture className="shot-system">
           <source media={DARK} srcSet={darkProps.srcSet} sizes={SIZES} />
           <source media={LIGHT} srcSet={lightProps.srcSet} sizes={SIZES} />
           <img {...shown} alt={alt} />
         </picture>
+        <img {...darkProps} {...fixed} alt={alt} className="shot-dark" />
+        <img {...lightProps} {...fixed} alt={alt} className="shot-light" />
       </>
     );
   }
