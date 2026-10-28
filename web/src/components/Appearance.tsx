@@ -60,6 +60,24 @@ function useSiteMode(): Mode {
   return useSyncExternalStore(subscribeSiteMode, siteMode, () => DEFAULT_MODE);
 }
 
+function themeOverridden(): boolean {
+  const attribute = document.documentElement.getAttribute('data-theme');
+  return attribute === 'light' || attribute === 'dark';
+}
+
+/**
+ * Whether the look simply follows the visitor's colour scheme: nobody picked
+ * a mode in the switcher and the header's theme switch is on "System". Then
+ * a frame can offer both looks and let the browser choose by media query
+ * (`ScreenshotImage`). The server assumes so; the attribute is read during
+ * hydration like the mode itself.
+ */
+export function useSystemLook(): boolean {
+  const overridden = useSyncExternalStore(subscribeSiteMode, themeOverridden, () => false);
+  const choice = useContext(AppearanceContext);
+  return !overridden && (choice?.picked ?? null) === null;
+}
+
 /** What the switcher holds: nothing at all until somebody touches it. */
 interface AppearanceChoice {
   picked: Mode | null;
