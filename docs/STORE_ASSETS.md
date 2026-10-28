@@ -187,7 +187,7 @@ The search results get their own image, 3840 × 2560 (safe area 2168 × 1030 at
 the dark ride view on the left, the light weather phone, the dark cycle map
 and the light ride stats on the right, over the weather screen's rain map
 blurred, with the time control and the rain key cut out of the real screen
-(found per language from the Save button; needs ffmpeg). Writes
+(found per language from the Save button, read through sips). Writes
 `creative/<locale>/search.png` and `search-debug.png`.
 
 ## Gallery

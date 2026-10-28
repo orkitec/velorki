@@ -30,8 +30,8 @@ Output: build/store_screenshots/creative/<locale>/universal.png and
         search.png, and each with -debug beside it: the safe area outlined,
         on the universal one also the 3:2 and 2.33:1 crops (centred).
 
-Needs Google Chrome (CHROME overrides its path), and ffmpeg for the search
-image's cut-outs.
+Needs Google Chrome (CHROME overrides its path) and, for the search image's
+cut-outs, sips (macOS).
 """
 import argparse
 import html
@@ -216,17 +216,35 @@ def save_bottom(src: str) -> int:
     """The last row of the Save button on a light planner screen: where the
     sheet's content under it starts, which a longer header in some languages
     pushes down."""
-    column = subprocess.run(
-        ["ffmpeg", "-v", "error", "-i", src, "-vf", f"crop=1:{SCREEN_H}:{SCREEN_W // 2}:0",
-         "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
-        check=True, capture_output=True).stdout
+    column = pixel_column(src, SCREEN_W // 2)
     # The light accent, #3f7a00.
-    rows = [i for i in range(1200, 2400)
-            if abs(column[3 * i] - 0x3f) < 25 and abs(column[3 * i + 1] - 0x7a) < 25
-            and column[3 * i + 2] < 40]
+    rows = [i for i, (r, g, b) in enumerate(column)
+            if 1200 <= i < 2400 and abs(r - 0x3f) < 25 and abs(g - 0x7a) < 25 and b < 40]
     if not rows:
         raise RuntimeError(f"no Save button found on {src}")
     return rows[-1]
+
+
+def pixel_column(src: str, x: int) -> list:
+    """The pixels of column [x] of a PNG, top to bottom, as (r, g, b): the
+    file converted to an uncompressed BMP by sips, which every Mac has (the
+    runner has no ffmpeg unless the preview is recorded)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        bmp = os.path.join(tmp, "column.bmp")
+        subprocess.run(["sips", "-s", "format", "bmp", src, "--out", bmp],
+                       check=True, capture_output=True)
+        with open(bmp, "rb") as f:
+            data = f.read()
+    offset = int.from_bytes(data[10:14], "little")
+    width = int.from_bytes(data[18:22], "little", signed=True)
+    height = int.from_bytes(data[22:26], "little", signed=True)
+    bpp = int.from_bytes(data[28:30], "little") // 8
+    stride = (width * bpp + 3) // 4 * 4
+    # Rows are stored bottom-up unless the height is negative; BGR(A).
+    rows = range(abs(height))
+    order = reversed(rows) if height > 0 else rows
+    return [(data[offset + r * stride + x * bpp + 2], data[offset + r * stride + x * bpp + 1],
+             data[offset + r * stride + x * bpp]) for r in order]
 
 
 def below_save(crop: tuple, src: str) -> tuple:
