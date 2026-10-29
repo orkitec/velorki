@@ -415,7 +415,7 @@ against it, to see which converts better.
 `.github/workflows/store-assets.yml`, started by hand (Actions → store assets
 → Run workflow), runs `store_screenshots.sh` and then `--platform ipad` and `--platform duo` for the
 `locales` given, and with `preview` the preview too, on five macOS runners:
-English on the iPhone and the iPad, English on the Duo, and the other
+English on the iPhone, English on the iPad and the Duo, and the other
 languages on each device (the simulator's region, which decides the status
 bar's clock, changes only with a reboot, so English runs apart). Each
 device's set is kept as an artifact as soon as it is made,

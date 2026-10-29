@@ -89,8 +89,8 @@ env:
 jobs:
   # The languages, and the capture jobs. A job takes all its languages and
   # both themes in one run of the app (the test switches them in place).
-  # On iOS English is a job of its own (the iPhone's and the iPad's in one,
-  # the Duo's in another), because the simulator's region, which decides
+  # On iOS English is a job of its own (the iPhone's in one, the iPad's
+  # and the Duo's in another), because the simulator's region, which decides
   # the status bar's 9:41 AM or 09:41, changes only with a reboot: five
   # macOS jobs, what a free account runs at once. Android takes a job per
   # language and device, as the emulator draws slowly and Linux jobs are many.
@@ -114,16 +114,17 @@ jobs:
           [ "$json" != "[]" ] || { echo "::error::no locales"; exit 1; }
           echo "locales=$(printf '%s' "$json" | jq -r 'join(",")')" >> "$GITHUB_OUTPUT"
           echo "list=$json" >> "$GITHUB_OUTPUT"
-          # {id, sets, locales} per macOS job: English on the iPhone and the
-          # iPad together, on the Duo alone; the other languages per device.
+          # {id, sets, locales} per macOS job: English on the iPhone (with the
+          # watch), English on the iPad and the Duo; the other languages per
+          # device. The two English jobs take about as long as the others.
           jobs=$(jq -cn --argjson locales "$json" --arg sets "$IOS_SETS" '
             ($sets | split(",")) as $sets
             | ($locales | map(select(startswith("en")))) as $en
             | ($locales | map(select(startswith("en") | not))) as $rest
             | [ (if ($en | length) > 0 then
-                  ([$sets[] | select(. != "duo")] as $s
-                   | if ($s | length) > 0 then {id: "en", sets: ($s | join(",")), locales: ($en | join(","))} else empty end),
-                  (if ($sets | index("duo")) then {id: "en-duo", sets: "duo", locales: ($en | join(","))} else empty end)
+                  (if ($sets | index("iphone")) then {id: "en", sets: "iphone", locales: ($en | join(","))} else empty end),
+                  ([$sets[] | select(. != "iphone")] as $s
+                   | if ($s | length) > 0 then {id: "en-tablets", sets: ($s | join(",")), locales: ($en | join(","))} else empty end)
                 else empty end),
                 (if ($rest | length) > 0 then
                   ($sets[] | {id: ., sets: ., locales: ($rest | join(","))})
@@ -365,7 +366,10 @@ jobs:
         working-directory: app
         env:
           VELORKI_STORE_START_TIMEOUT: "1500"
-        run: tool/store_screenshots.sh --platform duo --locales "$LOCALES"
+        # The iPad's simulator, when this job had it, is shut down first.
+        run: |
+          xcrun simctl shutdown all || true
+          tool/store_screenshots.sh --platform duo --locales "$LOCALES"
 
       - name: Keep the iPhone Duo set
         if: ${{ !cancelled() && steps.duo.outcome != 'skipped' }}
