@@ -114,20 +114,22 @@ jobs:
           [ "$json" != "[]" ] || { echo "::error::no locales"; exit 1; }
           echo "locales=$(printf '%s' "$json" | jq -r 'join(",")')" >> "$GITHUB_OUTPUT"
           echo "list=$json" >> "$GITHUB_OUTPUT"
-          # {id, sets, locales} per macOS job: English on the iPhone (with the
-          # watch), English on the iPad and the Duo; the other languages per
-          # device. The two English jobs take about as long as the others.
+          # {id, sets, locales, watch} per macOS job: English on the iPhone,
+          # with the watch in every language (the test writes the watch's
+          # figures for all of them), English on the iPad and the Duo, and
+          # the other languages per device.
           jobs=$(jq -cn --argjson locales "$json" --arg sets "$IOS_SETS" '
             ($sets | split(",")) as $sets
             | ($locales | map(select(startswith("en")))) as $en
             | ($locales | map(select(startswith("en") | not))) as $rest
             | [ (if ($en | length) > 0 then
-                  (if ($sets | index("iphone")) then {id: "en", sets: "iphone", locales: ($en | join(","))} else empty end),
+                  (if ($sets | index("iphone")) then {id: "en", sets: "iphone", locales: ($en | join(",")), watch: ($locales | join(","))} else empty end),
                   ([$sets[] | select(. != "iphone")] as $s
                    | if ($s | length) > 0 then {id: "en-tablets", sets: ($s | join(",")), locales: ($en | join(","))} else empty end)
                 else empty end),
                 (if ($rest | length) > 0 then
-                  ($sets[] | {id: ., sets: ., locales: ($rest | join(","))})
+                  ($sets[] | {id: ., sets: ., locales: ($rest | join(",")),
+                              watch: (if . == "iphone" and ($en | length) == 0 then ($rest | join(",")) else "none" end)})
                 else empty end) ]')
           echo "ios_jobs=$jobs" >> "$GITHUB_OUTPUT"
           echo "$jobs" | jq .
@@ -183,7 +185,7 @@ jobs:
       # The watch shots need a watchOS simulator runtime for that Xcode; the
       # image usually has one, and a download is a few GB when it has not.
       - name: watchOS simulator runtime
-        if: ${{ contains(format(',{0},', matrix.job.sets), ',iphone,') }}
+        if: ${{ contains(format(',{0},', matrix.job.sets), ',iphone,') && matrix.job.watch != 'none' && matrix.job.watch != '' }}
         run: |
           if xcrun simctl list runtimes | grep -q '^watchOS'; then
             xcrun simctl list runtimes | grep '^watchOS'
@@ -290,42 +292,19 @@ jobs:
           path: ~/store-tiles
           key: store-tiles-W75_N40-${{ steps.snapshot.outputs.tag }}
 
-      - name: Screenshots and slides
+      # The pictures only (and the watch): the slides job draws the slides
+      # from every capture job's pictures.
+      - name: iPhone screenshots
         id: iphone
         if: ${{ contains(format(',{0},', matrix.job.sets), ',iphone,') }}
         working-directory: app
         env:
           # The runner's first build of the test app alone takes eight minutes.
           VELORKI_STORE_START_TIMEOUT: "1500"
-        run: tool/store_screenshots.sh --locales "$LOCALES"
+          WATCH_LOCALES: ${{ matrix.job.watch || 'none' }}
+        run: tool/store_screenshots.sh --no-slides --watch-locales "$WATCH_LOCALES" --locales "$LOCALES"
 
-      # The App Store's creative assets (the product page header and the
-      # search results image) from the same captures. Uploaded by hand to
-      # the Asset Library, so they only ride along in the artifact.
-      - name: Creative assets
-        if: ${{ !cancelled() && steps.iphone.outcome == 'success' }}
-        continue-on-error: true
-        working-directory: app
-        run: python3 tool/store_creative.py --locales "$LOCALES"
-
-      # Each platform's set is kept as soon as it is made, in an artifact of
-      # its own (store-assets-ios-*, merged again for the upload): a runner
-      # that dies later loses only what it was doing. A path's tree is kept
-      # from before its first wildcard, so `?pad` keeps the `ipad/` folder (a
-      # one-letter `[i]` counts as a literal there).
-      - name: Keep the iPhone set
-        if: ${{ !cancelled() && steps.iphone.outcome != 'skipped' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: store-assets-ios-iphone-${{ matrix.job.id }}
-          path: |
-            app/build/store_screenshots/slides/set
-            app/build/store_screenshots/watch
-            app/build/store_screenshots/creative
-          if-no-files-found: ${{ steps.iphone.outcome == 'success' && 'error' || 'warn' }}
-          retention-days: 30
-
-      - name: iPad screenshots and slides
+      - name: iPad screenshots
         id: ipad
         # Each device's set stands on its own: one failing keeps the others.
         if: ${{ !cancelled() && contains(format(',{0},', matrix.job.sets), ',ipad,') }}
@@ -336,16 +315,7 @@ jobs:
         # shut down first: one at a time on a 7 GB runner.
         run: |
           xcrun simctl shutdown all || true
-          tool/store_screenshots.sh --platform ipad --locales "$LOCALES"
-
-      - name: Keep the iPad set
-        if: ${{ !cancelled() && steps.ipad.outcome != 'skipped' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: store-assets-ios-ipad-${{ matrix.job.id }}
-          path: app/build/store_screenshots/?pad/slides/set
-          if-no-files-found: ${{ steps.ipad.outcome == 'success' && 'error' || 'warn' }}
-          retention-days: 30
+          tool/store_screenshots.sh --no-slides --platform ipad --locales "$LOCALES"
 
       # The Duo needs an iOS 27.1 simulator runtime; the image may carry only
       # 27.0. Downloaded (several GB) for the Xcode selected above when no
@@ -372,7 +342,7 @@ jobs:
 
       # The Duo's inner display, unfolded (tool/duo_state.c), on a simulator
       # the script creates on the newest runtime that has the device.
-      - name: iPhone Duo screenshots and slides
+      - name: iPhone Duo screenshots
         id: duo
         if: ${{ contains(format(',{0},', matrix.job.sets), ',duo,') }}
         working-directory: app
@@ -381,16 +351,23 @@ jobs:
         # The iPad's simulator, when this job had it, is shut down first.
         run: |
           xcrun simctl shutdown all || true
-          tool/store_screenshots.sh --platform duo --locales "$LOCALES"
+          tool/store_screenshots.sh --no-slides --platform duo --locales "$LOCALES"
 
-      - name: Keep the iPhone Duo set
-        if: ${{ !cancelled() && steps.duo.outcome != 'skipped' }}
+      # Every device's pictures this job took (and the watch's), for the
+      # slides job. A path's tree is kept from the paths' common folder, so
+      # `ipad/raw` stays apart from the iPhone's `raw`.
+      - name: Keep the pictures
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-assets-ios-duo-${{ matrix.job.id }}
-          path: app/build/store_screenshots/?uo/slides/set
-          if-no-files-found: ${{ steps.duo.outcome == 'success' && 'error' || 'warn' }}
-          retention-days: 30
+          name: store-raw-ios-${{ matrix.job.id }}
+          path: |
+            app/build/store_screenshots/raw
+            app/build/store_screenshots/watch
+            app/build/store_screenshots/ipad/raw
+            app/build/store_screenshots/duo/raw
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Preview video
         id: preview
@@ -426,12 +403,92 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # The App Store slides of every device and language, and the creative
+  # assets, from all the capture jobs' pictures at once, drawn several at a
+  # time: kept out of the capture jobs, which then end sooner, and the
+  # watch, shot in one job, reaches every language's slides.
+  slides:
+    needs: [locales, assets]
+    if: ${{ inputs.ios && inputs.assets_run_id == '' && needs.assets.result == 'success' }}
+    # macOS for sips, which the creative assets use; Chrome is on the image.
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      LOCALES: ${{ needs.locales.outputs.locales }}
+      IOS_SETS: ${{ inputs.ios_sets }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: store-raw-ios-*
+          merge-multiple: true
+          path: app/build/store_screenshots
+
+      - name: Slides
+        working-directory: app
+        run: |
+          set -euo pipefail
+          B=build/store_screenshots
+          case ",$IOS_SETS," in *,iphone,*)
+            python3 tool/store_slides.py --locales "$LOCALES" --set-only \
+              --raw "$B/raw" --watch "$B/watch" --out "$B/slides" | tail -1 ;;
+          esac
+          for platform in ipad duo; do
+            case ",$IOS_SETS," in *,$platform,*)
+              python3 tool/store_slides.py --platform "$platform" --locales "$LOCALES" --set-only \
+                --raw "$B/$platform/raw" --out "$B/$platform/slides" | tail -1 ;;
+            esac
+          done
+
+      # The App Store's creative assets (the product page header and the
+      # search results image), from the iPhone's pictures.
+      - name: Creative assets
+        if: ${{ contains(format(',{0},', inputs.ios_sets), ',iphone,') }}
+        continue-on-error: true
+        working-directory: app
+        run: python3 tool/store_creative.py --locales "$LOCALES"
+
+      # One artifact per device (store-assets-ios-*, merged again for the
+      # upload). A path's tree is kept from before its first wildcard, so
+      # `?pad` keeps the `ipad/` folder (a one-letter `[i]` counts as a
+      # literal there).
+      - name: Keep the iPhone set
+        if: ${{ contains(format(',{0},', inputs.ios_sets), ',iphone,') }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-iphone
+          path: |
+            app/build/store_screenshots/slides/set
+            app/build/store_screenshots/watch
+            app/build/store_screenshots/creative
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Keep the iPad set
+        if: ${{ contains(format(',{0},', inputs.ios_sets), ',ipad,') }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-ipad
+          path: app/build/store_screenshots/?pad/slides/set
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Keep the iPhone Duo set
+        if: ${{ contains(format(',{0},', inputs.ios_sets), ',duo,') }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-duo
+          path: app/build/store_screenshots/?uo/slides/set
+          if-no-files-found: error
+          retention-days: 30
+
   upload:
-    needs: assets
+    needs: [assets, slides]
     # After a capture in this run, or straight away with an earlier run's set.
     if: >-
       ${{ always() && inputs.ios && inputs.upload
-      && (needs.assets.result == 'success'
+      && (needs.slides.result == 'success'
       || (needs.assets.result == 'skipped' && inputs.assets_run_id != '')) }}
     # macOS for sips, which the staging script uses.
     runs-on: xcode-27

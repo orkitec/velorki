@@ -10,6 +10,8 @@
 #   tool/store_screenshots.sh --shots dark             # both slide styles show the dark app
 #   tool/store_screenshots.sh --until variants         # capture only up to that screen
 #   tool/store_screenshots.sh --all-shots              # every screen in every theme
+#   tool/store_screenshots.sh --no-slides              # the pictures (and the watch) only
+#   tool/store_screenshots.sh --watch-locales en,de    # the watch in these languages ('none': not at all)
 #   tool/store_screenshots.sh --preview                # the preview video instead (store/preview_set.json)
 #   tool/store_screenshots.sh --platform ipad          # the iPad set; see below
 #   tool/store_screenshots.sh --platform duo           # the iPhone Duo set; see below
@@ -102,6 +104,8 @@ SHOTS=same
 CAPTURE=1
 UNTIL=
 ALL_SHOTS=0
+SLIDES=1
+WATCH_LOCALES=
 PREVIEW=0
 PLATFORM=ios
 ORIENTATION=
@@ -113,6 +117,8 @@ while [ $# -gt 0 ]; do
     --skip-capture) CAPTURE=0 ;;
     --until) UNTIL="$2"; shift ;;
     --all-shots) ALL_SHOTS=1 ;;
+    --no-slides) SLIDES=0 ;;
+    --watch-locales) WATCH_LOCALES="$2"; shift ;;
     --preview) PREVIEW=1 ;;
     --platform) PLATFORM="$2"; shift ;;
     -h | --help) sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//;$d'; exit 0 ;;
@@ -195,6 +201,21 @@ print(max(ios, key=lambda r: [int(p) for p in r["version"].split(".")])["identif
 
 boot() {  # boot <udid> <language> <region>
   local udid=$1 language=$2 region=$3
+  # Shut down, the simulator's language and region go straight into its
+  # preferences, so it boots in them once instead of booting, being told
+  # and booting again (minutes on a runner); the check below stays for a
+  # simulator already running, or one that ignored the file.
+  local prefs="$HOME/Library/Developer/CoreSimulator/Devices/$udid/data/Library/Preferences/.GlobalPreferences.plist"
+  if xcrun simctl list devices -j | python3 -c '
+import json, sys
+udid = sys.argv[1]
+sys.exit(not any(d["udid"] == udid and d["state"] == "Shutdown"
+                 for ds in json.load(sys.stdin)["devices"].values() for d in ds))' "$udid"; then
+    mkdir -p "$(dirname "$prefs")"
+    [ -f "$prefs" ] || plutil -create binary1 "$prefs"
+    plutil -replace AppleLanguages -json "[\"$language\"]" "$prefs"
+    plutil -replace AppleLocale -string "$region" "$prefs"
+  fi
   xcrun simctl boot "$udid" 2> /dev/null || true
   xcrun simctl bootstatus "$udid" -b > /dev/null
   local current
@@ -656,10 +677,13 @@ sys.exit(1 if bad else 0)
 PY
   fi
 
-  # The watch takes the figures of the ride, which comes last.
-  if [ -z "$UNTIL" ] && [ "$PREVIEW" = 0 ] && [ "$PLATFORM" = ios ]; then
+  # The watch takes the figures of the ride, which comes last. The test
+  # writes them for every language the store has, so --watch-locales can
+  # shoot the watch for languages this run did not take.
+  if [ -z "$UNTIL" ] && [ "$PREVIEW" = 0 ] && [ "$PLATFORM" = ios ] \
+    && [ "${WATCH_LOCALES:-$LOCALES}" != none ]; then
     say "the watch, with the phone's figures"
-    bash "$APP/tool/store_watch.sh" "$OUT/raw" "$OUT/watch" "$LOCALES" "${WATCH_THEME:-$THEMES}"
+    bash "$APP/tool/store_watch.sh" "$OUT/raw" "$OUT/watch" "${WATCH_LOCALES:-$LOCALES}" "${WATCH_THEME:-$THEMES}"
   fi
 fi
 
@@ -667,6 +691,12 @@ if [ "$PREVIEW" = 1 ]; then
   say "making the preview"
   python3 "$APP/tool/store_preview.py" --locales "$LOCALES" \
     --clips "$OUT/raw/preview" --out "$OUT/preview"
+  exit 0
+fi
+
+# The store-assets workflow draws the slides in a job of its own, from every
+# capture job's pictures.
+if [ "$SLIDES" = 0 ]; then
   exit 0
 fi
 

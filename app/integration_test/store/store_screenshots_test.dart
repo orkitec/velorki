@@ -759,11 +759,12 @@ void main() {
       await shoot('live');
       // What the Live Activity and the watch show right now, for the slides
       // that draw them: the same snapshot the live card was built from, in
-      // every language and theme, shot or not (the figures are the same in
-      // both themes). The Play set has neither.
+      // every language the store has and both themes, shot or not (the ride
+      // is the same in every run, and so are its figures), so the watch can
+      // be shot for all of them from one run. The Play set has neither.
       if (Platform.isIOS) {
         for (final mode in themes) {
-          for (final locale in locales) {
+          for (final locale in rideNames.keys) {
             await sendStoreData(
               tester,
               '${mode.name}/$locale/activity',
