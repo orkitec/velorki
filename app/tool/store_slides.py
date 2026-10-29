@@ -714,6 +714,9 @@ def main() -> int:
     parser.add_argument("--watch", default=os.path.join(BUILD, "watch"),
                         help="the watch screenshots, <theme>/<locale>/riding.png")
     parser.add_argument("--out")
+    parser.add_argument("--set-only", action="store_true",
+                        help="draw each slide only in the style the set uses (what a capture "
+                             "of only the screens the set needs can make)")
     args = parser.parse_args()
     android = args.platform == "android"
     # Play's tablets take the Duo's wide layout, and the Play checks.
@@ -779,7 +782,8 @@ def main() -> int:
                 if text is None:
                     print(f"store_slides: warning: {locale} has no {slide}; using English")
                     text = copy_of(english, slide)
-                styles = ["split"] if entry["layout"] == "split" else ["dark", "light"]
+                styles = (["split"] if entry["layout"] == "split"
+                          else [entry["style"]] if args.set_only else ["dark", "light"])
                 for style in styles:
                     theme = style if args.shots == "same" else args.shots
                     for size in sizes:

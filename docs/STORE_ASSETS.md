@@ -34,7 +34,13 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
    after a change on the map, once MapLibre reports the map idle (every
    tile and layer drawn, `MapDrawn`), the old fixed holds kept only as
    limits. `VELORKI_STORE_LATE_CHECK=true` takes every picture again four
-   seconds later as `<screen>-late.png`, to compare. The screens: the offline cycle map with stops and the
+   seconds later as `<screen>-late.png`, to compare. Only the pictures the
+   platform's slide set uses are taken, each in the theme its slide shows
+   (`app/tool/store_need.py`: on the iPhone also those of the creative
+   assets, on Android those the website takes), screens no set uses are not
+   even set up, the watch is shot in its slide's theme, and the slides are
+   drawn in the set's style only; `--all-shots` takes every screen in every
+   theme and draws both styles. The screens: the offline cycle map with stops and the
    Layers sheet over it, the plan, its variants, the plan under the rain
    (the weather of `store_weather.dart`, the same on every run, the clock
    at 9:41), the stops beside a route under a status bar with no signal (in

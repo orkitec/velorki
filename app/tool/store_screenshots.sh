@@ -9,6 +9,7 @@
 #   tool/store_screenshots.sh --skip-capture           # slides from the last capture
 #   tool/store_screenshots.sh --shots dark             # both slide styles show the dark app
 #   tool/store_screenshots.sh --until variants         # capture only up to that screen
+#   tool/store_screenshots.sh --all-shots              # every screen in every theme
 #   tool/store_screenshots.sh --preview                # the preview video instead (store/preview_set.json)
 #   tool/store_screenshots.sh --platform ipad          # the iPad set; see below
 #   tool/store_screenshots.sh --platform duo           # the iPhone Duo set; see below
@@ -100,6 +101,7 @@ THEMES=light,dark
 SHOTS=same
 CAPTURE=1
 UNTIL=
+ALL_SHOTS=0
 PREVIEW=0
 PLATFORM=ios
 ORIENTATION=
@@ -110,6 +112,7 @@ while [ $# -gt 0 ]; do
     --shots) SHOTS="$2"; shift ;;
     --skip-capture) CAPTURE=0 ;;
     --until) UNTIL="$2"; shift ;;
+    --all-shots) ALL_SHOTS=1 ;;
     --preview) PREVIEW=1 ;;
     --platform) PLATFORM="$2"; shift ;;
     -h | --help) sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//;$d'; exit 0 ;;
@@ -373,9 +376,10 @@ PY
 # with the one given. Right after the simulator boots, flutter test
 # now and then installs and launches the app and then never attaches to it,
 # with the app on its splash screen for good; a run that has not started its
-# first test within VELORKI_STORE_START_TIMEOUT seconds (ten minutes; the
-# build alone takes eight on a CI runner) is stopped and tried once more. The
-# expanded reporter names a test when it starts, not when it ends.
+# first test within VELORKI_STORE_ATTACH_TIMEOUT seconds (four minutes) of
+# the build being done, or within VELORKI_STORE_START_TIMEOUT seconds (ten
+# minutes) at all, is stopped and tried once more. The expanded reporter
+# names a test when it starts, not when it ends.
 capture() {
   local locale=$1 log="$WORK/test-${1//,/-}.log" attempt pid started
   local test=store_screenshots_test.dart first='store screenshots, '
@@ -387,15 +391,18 @@ capture() {
       --dart-define=VELORKI_STORE_LOCALES="$locale" \
       --dart-define=VELORKI_STORE_THEMES="$THEMES" \
       --dart-define=VELORKI_STORE_UNTIL="$UNTIL" \
+      --dart-define=VELORKI_STORE_NEED="$NEED" \
       --dart-define=VELORKI_STORE_LATE_CHECK="${VELORKI_STORE_LATE_CHECK:-false}" \
       --dart-define=VELORKI_STORE_ORIENTATION="$ORIENTATION" \
       --dart-define=VELORKI_PREVIEW_SET="$PREVIEW_SET" > "$log" 2>&1 &
     pid=$!
-    started=0
-    for _ in $(seq 1 "${VELORKI_STORE_START_TIMEOUT:-600}"); do
+    started=0 built=""
+    for second in $(seq 1 "${VELORKI_STORE_START_TIMEOUT:-600}"); do
       kill -0 "$pid" 2> /dev/null || break
       if [ "$started" = 0 ] && grep -qE "$first|VELORKI_STORE" "$log"; then started=1; fi
       [ "$started" = 1 ] && break
+      if [ -z "$built" ] && grep -qE 'Xcode build done|Built build/app' "$log"; then built=$second; fi
+      if [ -n "$built" ] && [ $((second - built)) -ge "${VELORKI_STORE_ATTACH_TIMEOUT:-240}" ]; then break; fi
       sleep 1
     done
     if [ "$started" = 1 ] || ! kill -0 "$pid" 2> /dev/null; then
@@ -422,6 +429,19 @@ capture() {
 }
 
 # The theme of each preview clip, as `clip:theme` pairs for the test.
+# The screens, each in the themes, the platform's slide set uses (a split
+# slide both, and the dark one in its other accent too), with on the iPhone
+# those of the App Store's creative assets (tool/store_creative.py) and on
+# Android those the website takes from here (tool/screenshots.sh): the test
+# shoots only these, as `screen:theme` pairs. --all-shots takes every screen
+# in every theme, and the slides in both styles. WATCH_THEME is the theme of
+# the watch slide, the only one the watch is shot in.
+NEED="" WATCH_THEME=""
+if [ "$ALL_SHOTS" = 0 ] && [ "$PREVIEW" = 0 ]; then
+  read -r NEED WATCH_THEME < <(python3 "$APP/tool/store_need.py" "$PLATFORM")
+  [ "$WATCH_THEME" != "-" ] || WATCH_THEME=""
+fi
+
 PREVIEW_SET="$(python3 -c '
 import json, sys
 print(",".join(c["clip"] + ":" + c["theme"] for c in json.load(open(sys.argv[1]))["clips"]))
@@ -628,7 +648,7 @@ PY
   # The watch takes the figures of the ride, which comes last.
   if [ -z "$UNTIL" ] && [ "$PREVIEW" = 0 ] && [ "$PLATFORM" = ios ]; then
     say "the watch, with the phone's figures"
-    bash "$APP/tool/store_watch.sh" "$OUT/raw" "$OUT/watch" "$LOCALES" "$THEMES"
+    bash "$APP/tool/store_watch.sh" "$OUT/raw" "$OUT/watch" "$LOCALES" "${WATCH_THEME:-$THEMES}"
   fi
 fi
 
@@ -641,9 +661,9 @@ fi
 
 say "making the slides"
 if [ "$PLATFORM" != ios ]; then
-  python3 "$APP/tool/store_slides.py" --platform "$PLATFORM" --locales "$LOCALES" \
+  python3 "$APP/tool/store_slides.py" --platform "$PLATFORM" --locales "$LOCALES" ${NEED:+--set-only} \
     --shots "$SHOTS" --raw "$OUT/raw" --out "$OUT/slides" | tail -1
   exit 0
 fi
-python3 "$APP/tool/store_slides.py" --locales "$LOCALES" --shots "$SHOTS" \
+python3 "$APP/tool/store_slides.py" --locales "$LOCALES" --shots "$SHOTS" ${NEED:+--set-only} \
   --raw "$OUT/raw" --watch "$OUT/watch" --out "$OUT/slides" | tail -1

@@ -88,6 +88,19 @@ const String _themes = String.fromEnvironment(
 /// screens come in the order of the sections below. Empty takes them all.
 const String _until = String.fromEnvironment('VELORKI_STORE_UNTIL');
 
+/// The pictures the slides use, as `screen:theme` pairs (tool/store_need.py);
+/// empty takes every screen in every theme.
+const String _need = String.fromEnvironment('VELORKI_STORE_NEED');
+
+/// Whether [screen] is wanted in any theme: a screen nobody wants is not
+/// even set up, where nothing after it depends on it.
+bool _any(String screen) =>
+    _need.isEmpty || _need.split(',').any((p) => p.startsWith('$screen:'));
+
+/// Whether [screen] is wanted in [mode].
+bool _wanted(String screen, ThemeMode mode) =>
+    _need.isEmpty || _need.split(',').contains('$screen:${mode.name}');
+
 /// Takes every picture after a change of language twice, the second
 /// [_lateHold] later as `<screen>-late`, to check that settleFrames and waitForMapDrawn waited
 /// long enough: the pairs should not differ.
@@ -173,6 +186,7 @@ void main() {
       ];
       for (final mode in order) {
         if (only != null && !only(mode)) continue;
+        if (!_wanted(screen, mode)) continue;
         final switched = container.read(appearanceSettingProvider).mode != mode;
         if (switched) markMapChange();
         await appearance.setMode(mode);
@@ -271,30 +285,31 @@ void main() {
 
     if (await stopAfter('plan')) return;
 
-    // -------------------------------------------------------- variants
-    await tapAndPump(tester, plannerAction(l10n.plannerVariants));
-    await waitUntil(
-      tester,
-      () {
-        final state = container.read(plannerControllerProvider);
-        return state.alternatives.length > 1 && !state.loadingAlternatives;
-      },
-      describe: 'the variants',
-      timeout: const Duration(minutes: 5),
-      onTimeout: () {
-        final state = container.read(plannerControllerProvider);
-        return '${state.alternatives.length} variants, '
-            'loading ${state.loadingAlternatives}, error ${state.error}';
-      },
-    );
-    await tapAndPump(tester, find.text(l10n.plannerAlternativeIndex(1)));
-    // Tapping scrolled the sheet's content; the chips belong at its top.
-    scrollSheetToTop(tester);
-    await shoot(
-      'variants',
-      relocalize: (_, _) async => scrollSheetToTop(tester),
-    );
-
+    if (_any('variants')) {
+      // -------------------------------------------------------- variants
+      await tapAndPump(tester, plannerAction(l10n.plannerVariants));
+      await waitUntil(
+        tester,
+        () {
+          final state = container.read(plannerControllerProvider);
+          return state.alternatives.length > 1 && !state.loadingAlternatives;
+        },
+        describe: 'the variants',
+        timeout: const Duration(minutes: 5),
+        onTimeout: () {
+          final state = container.read(plannerControllerProvider);
+          return '${state.alternatives.length} variants, '
+              'loading ${state.loadingAlternatives}, error ${state.error}';
+        },
+      );
+      await tapAndPump(tester, find.text(l10n.plannerAlternativeIndex(1)));
+      // Tapping scrolled the sheet's content; the chips belong at its top.
+      scrollSheetToTop(tester);
+      await shoot(
+        'variants',
+        relocalize: (_, _) async => scrollSheetToTop(tester),
+      );
+    }
     if (await stopAfter('variants')) return;
 
     // --------------------------------------------------------- weather
@@ -514,73 +529,78 @@ void main() {
 
     if (await stopAfter('ai')) return;
 
-    // ---------------------------------------------------------- paywall
-    // Velorki Plus to someone without it, at the stores' prices (see
-    // plusOffering): the top of the page, then its end, with the plans,
-    // Subscribe and the terms.
-    // First as a subscriber sees it, for the website's Plus section: the
-    // same page with the active banner where the prices are, which the
-    // site never quotes.
-    container.read(plusEntitledProvider.notifier).value = true;
-    unawaited(container.read(routerProvider).push(paywallRoute));
-    await waitForWidget(tester, find.byType(PaywallScreen));
-    await settleFrames(tester);
-    await shoot('paywall-active', mapShown: false);
-    container.read(routerProvider).pop();
-    await settleFrames(tester);
-    container.read(plusEntitledProvider.notifier).value = false;
-    unawaited(container.read(routerProvider).push(paywallRoute));
-    await waitForWidget(tester, find.byType(PaywallScreen));
-    await settleFrames(tester);
-    // The prices in each language's currency and format: the store asked
-    // again for its offering.
-    Future<void> price(String locale) async {
-      session.subscriptions.offering = plusOffering(locale);
-      container.invalidate(plusOfferingProvider);
-      await waitUntil(
-        tester,
-        // The fake hands back the very offering it was given.
-        () => identical(
-          container.read(plusOfferingProvider).value,
-          session.subscriptions.offering,
-        ),
-        describe: 'the offering in $locale',
-      );
+    if (_any('paywall-active') ||
+        _any('paywall-top') ||
+        _any('paywall-bottom')) {
+      // ---------------------------------------------------------- paywall
+      // Velorki Plus to someone without it, at the stores' prices (see
+      // plusOffering): the top of the page, then its end, with the plans,
+      // Subscribe and the terms.
+      // First as a subscriber sees it, for the website's Plus section: the
+      // same page with the active banner where the prices are, which the
+      // site never quotes.
+      container.read(plusEntitledProvider.notifier).value = true;
+      unawaited(container.read(routerProvider).push(paywallRoute));
+      await waitForWidget(tester, find.byType(PaywallScreen));
       await settleFrames(tester);
-    }
-
-    await shoot(
-      'paywall-top',
-      mapShown: false,
-      relocalize: (_, locale) => price(locale),
-    );
-    final paywall = find
-        .descendant(
-          of: find.byType(PaywallScreen),
-          matching: find.byType(Scrollable),
-        )
-        .first;
-    Future<void> toEnd() async {
-      // A lazy list knows its end only once it has built it.
-      for (var i = 0; i < 3; i++) {
-        final scroll = tester.state<ScrollableState>(paywall).position;
-        scroll.jumpTo(scroll.maxScrollExtent);
+      await shoot('paywall-active', mapShown: false);
+      container.read(routerProvider).pop();
+      await settleFrames(tester);
+      container.read(plusEntitledProvider.notifier).value = false;
+      unawaited(container.read(routerProvider).push(paywallRoute));
+      await waitForWidget(tester, find.byType(PaywallScreen));
+      await settleFrames(tester);
+      // The prices in each language's currency and format: the store asked
+      // again for its offering.
+      Future<void> price(String locale) async {
+        session.subscriptions.offering = plusOffering(locale);
+        container.invalidate(plusOfferingProvider);
+        await waitUntil(
+          tester,
+          // The fake hands back the very offering it was given.
+          () => identical(
+            container.read(plusOfferingProvider).value,
+            session.subscriptions.offering,
+          ),
+          describe: 'the offering in $locale',
+        );
         await settleFrames(tester);
       }
+
+      await shoot(
+        'paywall-top',
+        mapShown: false,
+        relocalize: (_, locale) => price(locale),
+      );
+      final paywall = find
+          .descendant(
+            of: find.byType(PaywallScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      Future<void> toEnd() async {
+        // A lazy list knows its end only once it has built it.
+        for (var i = 0; i < 3; i++) {
+          final scroll = tester.state<ScrollableState>(paywall).position;
+          scroll.jumpTo(scroll.maxScrollExtent);
+          await settleFrames(tester);
+        }
+      }
+
+      await shoot(
+        'paywall-bottom',
+        mapShown: false,
+        relocalize: (_, locale) async {
+          await price(locale);
+          await toEnd();
+        },
+      );
+      await price(base);
+      container.read(routerProvider).pop();
+      await settleFrames(tester);
     }
-
-    await shoot(
-      'paywall-bottom',
-      mapShown: false,
-      relocalize: (_, locale) async {
-        await price(locale);
-        await toEnd();
-      },
-    );
-    await price(base);
-    container.read(routerProvider).pop();
-    await settleFrames(tester);
-
+    // The rest is shot without Velorki Plus, as after the paywall.
+    container.read(plusEntitledProvider.notifier).value = false;
     if (await stopAfter('paywall')) return;
 
     // ---------------------------------------------------- import, ride
@@ -644,129 +664,139 @@ void main() {
 
     if (await stopAfter('ride')) return;
 
-    // --------------------------------------------------------- library
-    await tapAndPump(tester, find.text(l10n.tabLibrary));
-    await tapAndPump(tester, find.text(l10n.tabLibrary));
-    await tapAndPump(tester, find.text(l10n.libraryRoutes));
-    await waitForWidget(tester, find.text(featuredRoute.name));
-    clearSnackBars(tester);
-    await shoot('library');
-
+    if (_any('library')) {
+      // --------------------------------------------------------- library
+      await tapAndPump(tester, find.text(l10n.tabLibrary));
+      await tapAndPump(tester, find.text(l10n.tabLibrary));
+      await tapAndPump(tester, find.text(l10n.libraryRoutes));
+      await waitForWidget(tester, find.text(featuredRoute.name));
+      clearSnackBars(tester);
+      await shoot('library');
+    }
     if (await stopAfter('library')) return;
 
-    // --------------------------------------------------------- offline
-    // The planner with a route on the map downloaded for offline use, and
-    // the status bar with no signal at all.
-    await tapAndPump(tester, find.text(l10n.tabPlan));
-    final saved = await container
-        .read(routeRepositoryProvider)
-        .watchRoutes()
-        .first;
-    final coast = saved.firstWhere((r) => r.name == libraryRoutes.first.name);
-    planner
-      ..clear()
-      ..loadSavedRoute(coast);
-    await frameRoute(tester, container, coast.geometry);
-    await shoot('offline', offline: true);
-    // The same in another accent, for the dark half of the slide that
-    // shows the themes with it.
-    if (themes.any(dark)) {
-      markMapChange();
-      await appearance.setAccent(AccentPreset.ember);
-      await shoot('offline-accent', offline: true, only: dark);
-      markMapChange();
-      await appearance.setAccent(AccentPreset.volt);
-      await waitForMapDrawn(tester, cap: const Duration(seconds: 4));
+    if (_any('offline')) {
+      // --------------------------------------------------------- offline
+      // The planner with a route on the map downloaded for offline use, and
+      // the status bar with no signal at all.
+      await tapAndPump(tester, find.text(l10n.tabPlan));
+      final saved = await container
+          .read(routeRepositoryProvider)
+          .watchRoutes()
+          .first;
+      final coast = saved.firstWhere((r) => r.name == libraryRoutes.first.name);
+      planner
+        ..clear()
+        ..loadSavedRoute(coast);
+      await frameRoute(tester, container, coast.geometry);
+      await shoot('offline', offline: true);
+      // The same in another accent, for the dark half of the slide that
+      // shows the themes with it.
+      if (themes.any(dark)) {
+        markMapChange();
+        await appearance.setAccent(AccentPreset.ember);
+        await shoot('offline-accent', offline: true, only: dark);
+        markMapChange();
+        await appearance.setAccent(AccentPreset.volt);
+        await waitForMapDrawn(tester, cap: const Duration(seconds: 4));
+      }
+      planner.clear();
     }
-    planner.clear();
-
     if (await stopAfter('offline')) return;
 
-    // ------------------------------------------------ live and navigation
-    // Funchal to Santa Cruz by Camacha, ridden the way the demo ride is: most of it fast
-    // forward, then a fix a second until a turn comes up about 20 km in.
-    final route = await planRoute(tester, container, liveRideWaypoints);
-    await container
-        .read(followModeProvider.notifier)
-        .select(FollowMode.headingUp);
-    await tapAndPump(tester, find.text(l10n.tabRecord));
-    final sheet = find
-        .descendant(
-          of: find.byType(DraggableScrollableSheet),
-          matching: find.byType(Scrollable),
-        )
-        .first;
-    final start = find.widgetWithText(FilledButton, l10n.recordingStart);
-    await tester.dragUntilVisible(start, sheet, const Offset(0, 220));
-    await tapAndPump(tester, start);
-    await waitUntil(
-      tester,
-      () => positions.isListenedTo,
-      describe: 'the recorder to subscribe to the GPS',
-    );
-    final rider = Rider(positions, ride, demoRide(route));
-    await rider.rideTo(tester, 18000);
-    // Navigation only sees the recorder's last snapshot, so the banner is
-    // read after every fix once they come a second apart.
-    Future<void> rideOn(int fixes) async {
-      for (var i = 0; i < fixes && !rider.done; i++) {
-        await rider.step(tester, const Duration(seconds: 1));
+    // The ride is only for the live and navigation pictures.
+    if (_any('live') || _any('navigation')) {
+      // ------------------------------------------------ live and navigation
+      // Funchal to Santa Cruz by Camacha, ridden the way the demo ride is: most of it fast
+      // forward, then a fix a second until a turn comes up about 20 km in.
+      final route = await planRoute(tester, container, liveRideWaypoints);
+      await container
+          .read(followModeProvider.notifier)
+          .select(FollowMode.headingUp);
+      await tapAndPump(tester, find.text(l10n.tabRecord));
+      final sheet = find
+          .descendant(
+            of: find.byType(DraggableScrollableSheet),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      final start = find.widgetWithText(FilledButton, l10n.recordingStart);
+      await tester.dragUntilVisible(start, sheet, const Offset(0, 220));
+      await tapAndPump(tester, start);
+      await waitUntil(
+        tester,
+        () => positions.isListenedTo,
+        describe: 'the recorder to subscribe to the GPS',
+      );
+      final rider = Rider(positions, ride, demoRide(route));
+      await rider.rideTo(tester, 18000);
+      // Navigation only sees the recorder's last snapshot, so the banner is
+      // read after every fix once they come a second apart.
+      Future<void> rideOn(int fixes) async {
+        for (var i = 0; i < fixes && !rider.done; i++) {
+          await rider.step(tester, const Duration(seconds: 1));
+        }
       }
-    }
 
-    var shown = false;
-    while (!rider.done && rider.alongM < 21500) {
+      var shown = false;
+      while (!rider.done && rider.alongM < 21500) {
+        await rideOn(1);
+        final progress = bannerProgress(tester);
+        final next = progress?.distanceToNextM;
+        if (progress?.next != null &&
+            next != null &&
+            next > 110 &&
+            next < 250) {
+          shown = true;
+          break;
+        }
+      }
+      expect(shown, isTrue, reason: 'a turn has to come up on the way');
       await rideOn(1);
-      final progress = bannerProgress(tester);
-      final next = progress?.distanceToNextM;
-      if (progress?.next != null && next != null && next > 110 && next < 250) {
-        shown = true;
-        break;
+      // From here the rider stands still while every theme and language is
+      // shot: the recorder's clock moves only with the fixes, so the figures
+      // and the banner hold as they are.
+      await shoot('live');
+      // What the Live Activity and the watch show right now, for the slides
+      // that draw them: the same snapshot the live card was built from, in
+      // every language and theme, shot or not (the figures are the same in
+      // both themes). The Play set has neither.
+      if (Platform.isIOS) {
+        for (final mode in themes) {
+          for (final locale in locales) {
+            await sendStoreData(
+              tester,
+              '${mode.name}/$locale/activity',
+              rideActivityData(
+                lookupAppLocalizations(Locale(locale)),
+                UnitSystem.metric,
+                container.read(recordingControllerProvider).snapshot!,
+                bannerProgress(tester),
+              ),
+            );
+          }
+        }
       }
-    }
-    expect(shown, isTrue, reason: 'a turn has to come up on the way');
-    await rideOn(1);
-    // From here the rider stands still while every theme and language is
-    // shot: the recorder's clock moves only with the fixes, so the figures
-    // and the banner hold as they are.
-    await shoot(
-      'live',
-      // What the Live Activity and the watch show right now, for the
-      // slides that draw them: the same snapshot the live card was built
-      // from. The Play set has neither.
-      relocalize: (mode, locale) async {
-        if (!Platform.isIOS) return;
-        await sendStoreData(
-          tester,
-          '${mode.name}/$locale/activity',
-          rideActivityData(
-            lookupAppLocalizations(Locale(locale)),
-            UnitSystem.metric,
-            container.read(recordingControllerProvider).snapshot!,
-            bannerProgress(tester),
-          ),
-        );
-      },
-    );
-    // Folded down, the live sheet docks into the figures bar.
-    await tester.dragFrom(
-      tester.getCenter(
-        find
-            .descendant(
-              of: find.byType(RecordingScreen),
-              matching: find.byType(SheetHandle),
-            )
-            .first,
-      ),
-      const Offset(0, 700),
-    );
-    await rideOn(2);
-    await waitForWidget(tester, find.byType(FiguresBar));
-    await shoot('navigation');
+      // Folded down, the live sheet docks into the figures bar.
+      await tester.dragFrom(
+        tester.getCenter(
+          find
+              .descendant(
+                of: find.byType(RecordingScreen),
+                matching: find.byType(SheetHandle),
+              )
+              .first,
+        ),
+        const Offset(0, 700),
+      );
+      await rideOn(2);
+      await waitForWidget(tester, find.byType(FiguresBar));
+      await shoot('navigation');
 
-    final recording = container.read(recordingControllerProvider.notifier);
-    final halted = await recording.halt();
-    if (halted != null) await recording.discardInterrupted(halted);
+      final recording = container.read(recordingControllerProvider.notifier);
+      final halted = await recording.halt();
+      if (halted != null) await recording.discardInterrupted(halted);
+    }
     await container
         .read(followModeProvider.notifier)
         .select(FollowMode.northUp);
