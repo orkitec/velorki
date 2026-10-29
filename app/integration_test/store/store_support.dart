@@ -82,7 +82,13 @@ const String storeOrientation = String.fromEnvironment(
 
 /// The app as a test left it for the pictures.
 class StoreSession {
-  StoreSession(this.container, this.positions, this.clock, this.relay);
+  StoreSession(
+    this.container,
+    this.positions,
+    this.clock,
+    this.relay,
+    this.subscriptions,
+  );
 
   /// The app's providers.
   final ProviderContainer container;
@@ -96,6 +102,9 @@ class StoreSession {
   /// The relay the app talks to: mocked in the test process, so the AI
   /// answers the same on every run and nothing leaves the device.
   final MockRelay relay;
+
+  /// The store the paywall asks; its offering is set per language.
+  final FakeSubscriptionService subscriptions;
 }
 
 /// Boots the app for the store pictures in [locale] and [mode], with the
@@ -144,6 +153,7 @@ Future<StoreSession> startStoreApp(
   // card, the Live Activity and the watch agrees with the others.
   final ride = RideClock();
   final relay = MockRelay();
+  final subscriptions = FakeSubscriptionService(offering: plusOffering(locale));
   // The loop sheet opens at the distance last asked for.
   final prefs = await SharedPreferences.getInstance();
   await prefs.setDouble('loop.distance_km', storeLoopKm);
@@ -177,9 +187,7 @@ Future<StoreSession> startStoreApp(
       // The paywall sells what the stores sell, at their prices, and lists
       // every feature a release build delivers (this one has no partner
       // client ids).
-      subscriptionServiceProvider.overrideWithValue(
-        FakeSubscriptionService(offering: plusOffering(locale)),
-      ),
+      subscriptionServiceProvider.overrideWithValue(subscriptions),
       offeredPlusFeaturesProvider.overrideWithValue([
         for (final feature in PlusFeature.values)
           if (gatedFeatures.contains(feature)) feature,
@@ -230,7 +238,7 @@ Future<StoreSession> startStoreApp(
   await weather.setWind(false);
   container.read(weatherRadarOffsetProvider.notifier).set(0);
   await pumpFor(tester, const Duration(seconds: 2));
-  return StoreSession(container, positions, ride, relay);
+  return StoreSession(container, positions, ride, relay, subscriptions);
 }
 
 /// Opens the assistant to the rider: Velorki Plus held, consent given, and
@@ -511,25 +519,7 @@ Future<Future<void> Function()> showRouteRain(
   await pumpFor(tester, const Duration(seconds: 3));
   planner.loadSavedRoute(route);
   await pumpFor(tester, const Duration(seconds: 1));
-  final handle = tester.getRect(
-    find
-        .descendant(
-          of: find.byType(PlannerScreen),
-          matching: find.byType(SheetHandle),
-        )
-        .first,
-  );
-  final button = tester.getRect(find.widgetWithText(FilledButton, save).first);
-  final list = tester
-      .stateList<ScrollableState>(
-        find.descendant(
-          of: find.byType(PlannerScreen),
-          matching: find.byType(Scrollable),
-        ),
-      )
-      .firstWhere((s) => s.position.axis == Axis.vertical)
-      .position;
-  list.jumpTo(list.pixels + button.top - handle.bottom - 2);
+  scrollPlannerSheetTo(tester, save);
   await frameRoute(tester, container, route.geometry);
   await waitUntil(
     tester,
@@ -627,6 +617,31 @@ class DeviceFinger {
       _binding.shouldPropagateDevicePointerEvents = false;
     }
   }
+}
+
+/// Scrolls the planner's sheet until the button labelled [label] sits just
+/// under its handle, so what follows it shows at the sheet's height. Again
+/// after a change of language, whose texts are of other heights.
+void scrollPlannerSheetTo(WidgetTester tester, String label) {
+  final handle = tester.getRect(
+    find
+        .descendant(
+          of: find.byType(PlannerScreen),
+          matching: find.byType(SheetHandle),
+        )
+        .first,
+  );
+  final button = tester.getRect(find.widgetWithText(FilledButton, label).first);
+  final list = tester
+      .stateList<ScrollableState>(
+        find.descendant(
+          of: find.byType(PlannerScreen),
+          matching: find.byType(Scrollable),
+        ),
+      )
+      .firstWhere((s) => s.position.axis == Axis.vertical)
+      .position;
+  list.jumpTo(list.pixels + button.top - handle.bottom - 2);
 }
 
 /// Scrolls every list in the planner's sheet back to its top.

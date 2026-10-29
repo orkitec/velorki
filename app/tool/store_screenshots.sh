@@ -34,11 +34,14 @@
 #   a mirror already answers on the port, and stops it again at the end; beside
 #   them New York's W75_N40 tile and gazetteer for the cycle map shots, fetched
 #   once from the tile mirror into VELORKI_STORE_TILES (~/.cache/velorki-tiles/store);
-# * per locale, sets the simulator's language and region (the region decides
-#   the clock format, in the app and in the status bar) and reboots it, sets
-#   the status bar to 9:41 with full bars, and runs
-#   integration_test/store/store_screenshots_test.dart once, which takes every
-#   theme asked for; tool/store_shutter.py takes the pictures it asks for;
+# * sets the simulator's language and region and reboots it if they differ,
+#   sets the status bar to 9:41 with full bars, and runs
+#   integration_test/store/store_screenshots_test.dart, which takes every
+#   screen in every language and theme of the run, switching them in the
+#   app: on iOS once for English and once for the other languages, whose
+#   region shows the status bar's clock another way (see below); on Android
+#   once. tool/store_shutter.py takes the pictures it asks for. The preview
+#   is recorded once per language, the device set to each;
 # * tool/store_watch.sh shoots the watch app with the figures the phone
 #   showed, on the watch simulator;
 # * then tool/store_slides.py makes the slides.
@@ -366,20 +369,22 @@ for name, want in files:
 PY
 }
 
-# Runs the test for one locale. Right after the simulator boots, flutter test
+# Runs the test: for the screenshots once with every locale, for the preview
+# with the one given. Right after the simulator boots, flutter test
 # now and then installs and launches the app and then never attaches to it,
 # with the app on its splash screen for good; a run that has not started its
 # first test within VELORKI_STORE_START_TIMEOUT seconds (ten minutes; the
 # build alone takes eight on a CI runner) is stopped and tried once more. The
 # expanded reporter names a test when it starts, not when it ends.
 capture() {
-  local locale=$1 log="$WORK/test-$1.log" attempt pid started
+  local locale=$1 log="$WORK/test-${1//,/-}.log" attempt pid started
   local test=store_screenshots_test.dart first='store screenshots, '
   if [ "$PREVIEW" = 1 ]; then test=store_preview_test.dart first='store preview, '; fi
   for attempt in 1 2; do
     flutter test "integration_test/store/$test" -d "$DEVICE" --reporter expanded \
       --dart-define-from-file="$DEFINES" \
       --dart-define=VELORKI_STORE_LOCALE="$locale" \
+      --dart-define=VELORKI_STORE_LOCALES="$locale" \
       --dart-define=VELORKI_STORE_THEMES="$THEMES" \
       --dart-define=VELORKI_STORE_UNTIL="$UNTIL" \
       --dart-define=VELORKI_STORE_ORIENTATION="$ORIENTATION" \
@@ -535,9 +540,31 @@ defines.update({
 json.dump(defines, open(sys.argv[2], "w"))
 PY
 
+  # The screenshots in as few runs as the status bar allows, each switching
+  # its languages in the app. On iOS the region the simulator booted with
+  # decides the status bar's clock and date (9:41 AM Sat Sep 12, or 09:41
+  # Sat 12 Sep), and only a reboot changes it: so English runs on its own,
+  # the other languages together. On Android the shutter sets the clock per
+  # picture, so one run takes them all. The preview runs once per language.
   IFS=, read -r -a locales <<< "$LOCALES"
-  for locale in "${locales[@]}"; do
-    region="$(region_of "$locale")"
+  if [ "$PREVIEW" = 1 ]; then
+    runs=("${locales[@]}")
+  elif [ "$ANDROID" = 1 ]; then
+    runs=("$LOCALES")
+  else
+    twelve="" others=""
+    for locale in "${locales[@]}"; do
+      case "$locale" in
+        en*) twelve="${twelve:+$twelve,}$locale" ;;
+        *) others="${others:+$others,}$locale" ;;
+      esac
+    done
+    runs=()
+    if [ -n "$twelve" ]; then runs+=("$twelve"); fi
+    if [ -n "$others" ]; then runs+=("$others"); fi
+  fi
+  for run in "${runs[@]}"; do
+    region="$(region_of "${run%%,*}")"
     if [ "$ANDROID" = 1 ]; then
       android_boot "$DEVICE" "${region/_/-}"
       DEMO_SERIAL="$DEVICE"
@@ -553,8 +580,8 @@ PY
       python3 "$APP/tool/store_shutter.py" ${display[@]+"${display[@]}"} "$UDID" "$OUT/raw" &
     fi
     SHUTTER_PID=$!
-    if [ "$PREVIEW" = 1 ]; then say "recording $locale"; else say "capturing $locale ($THEMES)"; fi
-    capture "$locale"
+    if [ "$PREVIEW" = 1 ]; then say "recording $run"; else say "capturing $run ($THEMES)"; fi
+    capture "$run"
     kill "$SHUTTER_PID" 2> /dev/null || true
     wait "$SHUTTER_PID" 2> /dev/null || true
     SHUTTER_PID=""

@@ -151,6 +151,13 @@ class Android:
     def status_bar(self, online: bool) -> None:
         android_status_bar(self.serial, online)
 
+    def clock_format(self, locale: str) -> None:
+        """The 12- or 24-hour clock of [locale]'s region: the emulator stays
+        in one language for every locale of a run, and the setting decides
+        how the status bar shows 9:41."""
+        hours = "12" if locale.startswith("en") else "24"
+        self.adb("shell", "settings", "put", "system", "time_12_24", hours, check=True)
+
     def screenshot(self, target: str) -> None:
         png = self.adb("exec-out", "screencap", "-p", check=True).stdout
         with open(target, "wb") as f:
@@ -232,6 +239,7 @@ def main_android(serial: str, out: str) -> int:
         elif action in ("record-start", "record-stop"):
             print(f"store_shutter: no recording on Android, skipping {name}", file=sys.stderr)
         else:
+            device.clock_format(name.split("/")[1])
             device.status_bar(online=fields.get("status") != "offline")
             device.screenshot(target + ".png")
             print(f"store_shutter: {target}.png", flush=True)
@@ -260,6 +268,8 @@ def main() -> int:
     last = None
     started = False
     recorder = None
+    # The bar as the last picture left it: None until the first sets it.
+    bar = None
 
     def quit_(*_):
         # A recording left running would keep the simulator busy for good.
@@ -306,21 +316,20 @@ def main() -> int:
             shutil.copyfile(os.path.join(folder, "data.json"), target + ".json")
             print(f"store_shutter: {target}.json", flush=True)
         else:
-            offline = fields.get("status") == "offline"
-            # Every picture from a bar set afresh: once a ride has run, iOS
-            # now and then keeps the icons out of order (the battery before
-            # the bars, no wifi) for the rest of the run.
-            status_bar(udid, OFFLINE if offline else ONLINE)
-            try:
-                subprocess.run(
-                    ["xcrun", "simctl", "io", udid, "screenshot", "--type=png", *display,
-                     target + ".png"],
-                    check=True,
-                    capture_output=True,
-                )
-            finally:
-                if offline:
-                    status_bar(udid, ONLINE)
+            # The bar is set only when it changes: setting it takes five
+            # seconds, and a run takes some two hundred pictures in a row.
+            # (Setting it afresh for every picture did not cure iOS keeping
+            # the icons out of order while a ride records.)
+            wanted = OFFLINE if fields.get("status") == "offline" else ONLINE
+            if bar is not wanted:
+                status_bar(udid, wanted)
+                bar = wanted
+            subprocess.run(
+                ["xcrun", "simctl", "io", udid, "screenshot", "--type=png", *display,
+                 target + ".png"],
+                check=True,
+                capture_output=True,
+            )
             print(f"store_shutter: {target}.png", flush=True)
         with open(os.path.join(folder, "shot.ack"), "w") as f:
             f.write(token)
