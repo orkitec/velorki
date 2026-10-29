@@ -134,7 +134,8 @@ void main() {
 
     /// Shoots [screen] as it stands in every theme (those [only] allows)
     /// and every language of [inLocales], all of [locales] by default,
-    /// then puts the first of each back.
+    /// starting in the theme it finds and leaving the last one, then puts
+    /// the first language back.
     ///
     /// Nothing waits a fixed time. The first picture in each theme waits
     /// for the map to have drawn what changed since the last
@@ -156,8 +157,21 @@ void main() {
       Future<void> Function(ThemeMode mode, String locale)? relocalize,
     }) async {
       final these = inLocales ?? locales;
-      final cap = hold ?? Duration(seconds: Platform.isAndroid ? 8 : 4);
-      for (final mode in themes) {
+      // On the emulator the map is drawn in software: a change of theme
+      // reloads its style, which takes 15 to 20 s to draw, and the map's
+      // idle ends the wait long before this anywhere it can.
+      final cap = Platform.isAndroid
+          ? const Duration(seconds: 30)
+          : hold ?? const Duration(seconds: 4);
+      // The theme the last screen left first: one change of theme a
+      // screen, not two.
+      final current = container.read(appearanceSettingProvider).mode;
+      final order = [
+        if (themes.contains(current)) current,
+        for (final mode in themes)
+          if (mode != current) mode,
+      ];
+      for (final mode in order) {
         if (only != null && !only(mode)) continue;
         final switched = container.read(appearanceSettingProvider).mode != mode;
         if (switched) markMapChange();
@@ -190,11 +204,6 @@ void main() {
           }
           first = false;
         }
-      }
-      if (container.read(appearanceSettingProvider).mode != themes.first) {
-        markMapChange();
-        await appearance.setMode(themes.first);
-        await waitForMapDrawn(tester, cap: cap);
       }
       await language.select(Locale(these.first));
       await settleFrames(tester);

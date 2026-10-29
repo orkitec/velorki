@@ -94,6 +94,7 @@ import re
 import shutil
 import signal
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 import sys
 import tempfile
 import time
@@ -610,8 +611,9 @@ def stop(process: subprocess.Popen, sig: int) -> None:
 
 
 def render(html_text: str, target: str, w: int, h: int, work: str) -> None:
-    page_file = os.path.join(work, "slide.html")
-    with open(page_file, "w", encoding="utf-8") as f:
+    # A page of its own: several slides are drawn at once (see [JOBS]).
+    fd, page_file = tempfile.mkstemp(suffix=".html", dir=work)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
         f.write(html_text)
     os.makedirs(os.path.dirname(target), exist_ok=True)
     # Now and then Chrome quits at once without a picture; a second try
@@ -624,6 +626,11 @@ def render(html_text: str, target: str, w: int, h: int, work: str) -> None:
             if attempt == 2:
                 raise
     print(target)
+
+
+# How many slides headless Chrome draws at once: each in a Chrome of its
+# own, which waits on its fonts and images more than on the processor.
+JOBS = int(os.environ.get("VELORKI_SLIDES_JOBS", "0")) or min(6, os.cpu_count() or 2)
 
 
 def load_json(path: str):
@@ -761,6 +768,9 @@ def main() -> int:
     problems = []
     made = 0
     with tempfile.TemporaryDirectory() as work:
+        # Every slide of every language first, drawn several at once; then
+        # each language's set and contact sheet from them.
+        jobs = []
         for locale in locales:
             copy = load_json(os.path.join(STORE, f"slides_{locale}.json"))
             for entry in chosen:
@@ -782,11 +792,17 @@ def main() -> int:
                             missing.update(absent)
                             continue
                         target = os.path.join(out, style, size, locale, f"{slide}.png")
-                        render(markup, target, w, h, work)
-                        if play:
-                            problems += check_play_png(target, w, h)
-                        made += 1
+                        jobs.append((markup, target, w, h))
+        with ThreadPoolExecutor(max_workers=JOBS) as pool:
+            for job in [pool.submit(render, m, t, w, h, work) for m, t, w, h in jobs]:
+                job.result()
+        for _, target, w, h in jobs:
+            if play:
+                problems += check_play_png(target, w, h)
+            made += 1
 
+        for locale in locales:
+            copy = load_json(os.path.join(STORE, f"slides_{locale}.json"))
             # The set: the chosen style of each slide, numbered in order.
             for size in sizes:
                 folder = set_folder(size, locale)

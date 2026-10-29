@@ -408,22 +408,24 @@ against it, to see which converts better.
 
 `.github/workflows/store-assets.yml`, started by hand (Actions → store assets
 → Run workflow), runs `store_screenshots.sh` and then `--platform ipad` and `--platform duo` for the
-`locales` given, and with `preview` the preview too, on macOS runners, one job
-per device with every language in it. Each device's set is kept as
-an artifact as soon as it is made: `store-assets-ios-iphone` (`slides/set/`,
-both sizes and the contact sheet, `watch/` and `creative/`), `store-assets-ios-ipad`
-(`ipad/slides/set/`), `store-assets-ios-duo` (`duo/slides/set/`) and
-`store-assets-ios-preview` (`preview/<locale>/preview.mp4` with its
-poster, recorded on the iPhone's job), all merged into one tree for the
-upload. Every three
+`locales` given, and with `preview` the preview too, on five macOS runners:
+English on the iPhone and the iPad, English on the Duo, and the other
+languages on each device (the simulator's region, which decides the status
+bar's clock, changes only with a reboot, so English runs apart). Each
+device's set is kept as an artifact as soon as it is made,
+`store-assets-ios-<set>-<job>`: the iPhone's (`slides/set/`, both sizes and
+the contact sheet, `watch/` and `creative/`), the iPad's (`ipad/slides/set/`),
+the Duo's (`duo/slides/set/`) and the preview's (`preview/<locale>/preview.mp4`
+with its poster, recorded in the iPhone's jobs), all merged into one tree for
+the upload. The slides are drawn six at a time (`VELORKI_SLIDES_JOBS`). Every three
 minutes the script logs memory, disk, the busiest processes and the booted
 simulators (`VELORKI_STORE_MONITOR`, seconds). The `ios` and `android` inputs
 choose the sets (`ios` the iPhone's, the iPad's and the Duo's, narrowed by
 `ios_sets`, e.g. `ipad`); `android` (off by default) runs
 `--platform android` and `--platform android-tablet` on API 35 emulators on
-Ubuntu (Pixel 6 and Pixel Tablet profiles), one job per device with every
-language in it, into the artifacts `store-assets-android`
-and `store-assets-android-tablet` (its `tablet/` folder),
+Ubuntu (Pixel 6 and Pixel Tablet profiles), one job per language and device
+into the artifacts `store-assets-android-<locale>`
+and `store-assets-android-tablet-<locale>` (its `tablet/` folder),
 drawn with MapLibre's Vulkan renderer (see above). The runner's
 simulator has no GPU and drops frames of the moving map (a third in the
 navigation scene), so the preview for the store is recorded on a Mac with
