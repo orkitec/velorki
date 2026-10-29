@@ -194,6 +194,18 @@ jobs:
               || { echo "::error::still no watchOS simulator runtime"; exit 1; }
           fi
 
+      # Flutter has xcodebuild resolve the Swift packages before every build,
+      # which asked each package's remote for news and took five minutes on
+      # a runner although the checkouts are cached: resolved from the
+      # committed Package.resolved and the cache only, no update checks, and
+      # with the system's git rather than Xcode's own.
+      - name: Swift packages from the lock file
+        run: |
+          defaults write com.apple.dt.Xcode IDEPackageOnlyUseVersionsFromResolvedFile -bool YES
+          defaults write com.apple.dt.Xcode IDEDisableAutomaticPackageResolution -bool YES
+          defaults write com.apple.dt.Xcode IDESkipPackageUpdates -bool YES
+          defaults write com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM -bool NO
+
       # store_slides.py drives headless Chrome, which the image ships;
       # store_preview.py wants ffmpeg, which it does not.
       - name: Chrome and ffmpeg
