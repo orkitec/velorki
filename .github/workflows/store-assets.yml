@@ -65,6 +65,10 @@ on:
         description: App Store version to put them on, e.g. 1.0.1 (needed to upload iOS)
         type: string
         default: ""
+      verbose:
+        description: Keep flutter's verbose test log of each capture (an artifact)
+        type: boolean
+        default: false
       assets_run_id:
         description: Upload the set of this earlier run instead of capturing (its run id)
         type: string
@@ -142,6 +146,7 @@ jobs:
         job: ${{ fromJSON(needs.locales.outputs.ios_jobs) }}
     env:
       LOCALES: ${{ matrix.job.locales }}
+      VELORKI_STORE_VERBOSE: ${{ inputs.verbose && '1' || '' }}
       # store_screenshots.sh prints memory, disk, the busiest processes, the
       # booted simulators and the test's last line every three minutes.
       VELORKI_STORE_MONITOR: "180"
@@ -395,6 +400,15 @@ jobs:
       - name: Mirror log
         if: failure()
         run: cat mirror.log || true
+
+      - name: Keep the verbose logs
+        if: ${{ !cancelled() && inputs.verbose }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-logs-ios-${{ matrix.job.id }}
+          path: app/build/store_screenshots/**/logs
+          if-no-files-found: ignore
+          retention-days: 7
 
   upload:
     needs: assets

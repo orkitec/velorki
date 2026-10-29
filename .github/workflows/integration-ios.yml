@@ -33,6 +33,14 @@ on:
     branches: [main]
     paths:
       - "app/**"
+      # The store pictures' tools, test and texts touch nothing the suite
+      # runs; a change to them alone leaves the runners to a store run.
+      - "!app/tool/store_*"
+      - "!app/tool/store_watch/**"
+      - "!app/store/**"
+      - "!app/integration_test/store/**"
+      - "!app/fastlane/**"
+      - "!app/Gemfile"
       - "tools/brouter-oracle/tiles/**"
       - "tools/gazetteer/fixtures/**"
       - ".github/workflows/integration-ios.yml"

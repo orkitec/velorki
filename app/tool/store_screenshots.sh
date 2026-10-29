@@ -386,6 +386,7 @@ capture() {
   if [ "$PREVIEW" = 1 ]; then test=store_preview_test.dart first='store preview, '; fi
   for attempt in 1 2; do
     flutter test "integration_test/store/$test" -d "$DEVICE" --reporter expanded \
+      ${VELORKI_STORE_VERBOSE:+-v} \
       --dart-define-from-file="$DEFINES" \
       --dart-define=VELORKI_STORE_LOCALE="$locale" \
       --dart-define=VELORKI_STORE_LOCALES="$locale" \
@@ -399,14 +400,24 @@ capture() {
     started=0 built=""
     for second in $(seq 1 "${VELORKI_STORE_START_TIMEOUT:-600}"); do
       kill -0 "$pid" 2> /dev/null || break
-      if [ "$started" = 0 ] && grep -qE "$first|VELORKI_STORE" "$log"; then started=1; fi
+      # The reporter's line for the test (a verbose log also prints the
+      # command line, with every VELORKI_STORE define in it).
+      if [ "$started" = 0 ] && grep -qE "[0-9]+:[0-9]+ \+[0-9]+.*: $first|VELORKI_STORE (shot|data|recording)" "$log"; then started=1; fi
       [ "$started" = 1 ] && break
       if [ -z "$built" ] && grep -qE 'Xcode build done|Built build/app' "$log"; then built=$second; fi
       if [ -n "$built" ] && [ $((second - built)) -ge "${VELORKI_STORE_ATTACH_TIMEOUT:-240}" ]; then break; fi
       sleep 1
     done
     if [ "$started" = 1 ] || ! kill -0 "$pid" 2> /dev/null; then
-      if wait "$pid"; then
+      local status=0
+      wait "$pid" || status=$?
+      # VELORKI_STORE_VERBOSE keeps flutter's whole log (-v), timestamped by
+      # the monitor's ticks, under logs/ for the artifact.
+      if [ -n "${VELORKI_STORE_VERBOSE:-}" ]; then
+        mkdir -p "$OUT/logs"
+        cp "$log" "$OUT/logs/test-${locale//,/-}-$attempt.log"
+      fi
+      if [ "$status" = 0 ]; then
         grep -E 'VELORKI_STORE|All tests passed' "$log" || true
         return 0
       fi
