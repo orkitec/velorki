@@ -36,12 +36,11 @@
 #   once from the tile mirror into VELORKI_STORE_TILES (~/.cache/velorki-tiles/store);
 # * sets the simulator's language and region and reboots it if they differ,
 #   sets the status bar to 9:41 with full bars, and runs
-#   integration_test/store/store_screenshots_test.dart, which takes every
-#   screen in every language and theme of the run, switching them in the
-#   app: on iOS once for English and once for the other languages, whose
-#   region shows the status bar's clock another way (see below); on Android
-#   once. tool/store_shutter.py takes the pictures it asks for. The preview
-#   is recorded once per language, the device set to each;
+#   integration_test/store/store_screenshots_test.dart once, which takes
+#   every screen in every language and theme, switching them in the app;
+#   tool/store_shutter.py takes the pictures it asks for, setting each one's
+#   region first for the status bar's clock. The preview is recorded once
+#   per language, the device set to each;
 # * tool/store_watch.sh shoots the watch app with the figures the phone
 #   showed, on the watch simulator;
 # * then tool/store_slides.py makes the slides.
@@ -540,29 +539,13 @@ defines.update({
 json.dump(defines, open(sys.argv[2], "w"))
 PY
 
-  # The screenshots in as few runs as the status bar allows, each switching
-  # its languages in the app. On iOS the region the simulator booted with
-  # decides the status bar's clock and date (9:41 AM Sat Sep 12, or 09:41
-  # Sat 12 Sep), and only a reboot changes it: so English runs on its own,
-  # the other languages together. On Android the shutter sets the clock per
-  # picture, so one run takes them all. The preview runs once per language.
+  # The screenshots in one run, the languages switched in the app; the
+  # shutter sets each picture's region for the status bar's clock (on iOS
+  # the date's order stays the booted region's: only a reboot changes it).
+  # The preview runs once per language, the device set to each.
   IFS=, read -r -a locales <<< "$LOCALES"
-  if [ "$PREVIEW" = 1 ]; then
-    runs=("${locales[@]}")
-  elif [ "$ANDROID" = 1 ]; then
-    runs=("$LOCALES")
-  else
-    twelve="" others=""
-    for locale in "${locales[@]}"; do
-      case "$locale" in
-        en*) twelve="${twelve:+$twelve,}$locale" ;;
-        *) others="${others:+$others,}$locale" ;;
-      esac
-    done
-    runs=()
-    if [ -n "$twelve" ]; then runs+=("$twelve"); fi
-    if [ -n "$others" ]; then runs+=("$others"); fi
-  fi
+  runs=("$LOCALES")
+  if [ "$PREVIEW" = 1 ]; then runs=("${locales[@]}"); fi
   for run in "${runs[@]}"; do
     region="$(region_of "${run%%,*}")"
     if [ "$ANDROID" = 1 ]; then
