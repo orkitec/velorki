@@ -97,28 +97,6 @@ def status_bar(udid: str, network: list[str]) -> None:
     time.sleep(2.5)
 
 
-# The App Store's region for each language, as tool/store_screenshots.sh
-# boots the simulator with.
-REGIONS = {"en": "en_US", "de": "de_DE", "fr": "fr_FR", "es": "es_ES", "it": "it_IT",
-           "nl": "nl_NL"}
-
-
-def set_region(udid: str, locale: str) -> None:
-    """The simulator's region set to [locale]'s while it runs, for the status
-    bar's clock (9:41 AM or 09:41): the run boots once, in the first
-    language, and switches the others in the app. The notices are the ones
-    the Settings app sends; the status bar redraws its clock on them, but
-    keeps the date's order (Sat Sep 12, Sat 12 Sep) of the region it booted
-    with until a reboot."""
-    region = REGIONS.get(locale.split("-")[0], locale)
-    subprocess.run(["xcrun", "simctl", "spawn", udid, "defaults", "write", "-g",
-                    "AppleLocale", "-string", region], check=True, capture_output=True)
-    for notice in ("AppleDatePreferencesChangedNotification",
-                   "AppleTimePreferencesChangedNotification"):
-        subprocess.run(["xcrun", "simctl", "spawn", udid, "notifyutil", "-p", notice],
-                       check=True, capture_output=True)
-
-
 def start_recording(udid: str, target: str) -> subprocess.Popen:
     recorder = subprocess.Popen(
         ["xcrun", "simctl", "io", udid, "recordVideo", "--codec=h264", "--force", target],
@@ -290,10 +268,8 @@ def main() -> int:
     last = None
     started = False
     recorder = None
-    # The bar and the region as the last picture left them: None until the
-    # first sets them.
+    # The bar as the last picture left it: None until the first sets it.
     bar = None
-    region = None
 
     def quit_(*_):
         # A recording left running would keep the simulator busy for good.
@@ -345,12 +321,6 @@ def main() -> int:
             # (Setting it afresh for every picture did not cure iOS keeping
             # the icons out of order while a ride records.)
             wanted = OFFLINE if fields.get("status") == "offline" else ONLINE
-            locale = name.split("/")[1]
-            if region != locale:
-                set_region(udid, locale)
-                region = locale
-                # The bar is set again with the region's clock.
-                bar = None
             if bar is not wanted:
                 status_bar(udid, wanted)
                 bar = wanted

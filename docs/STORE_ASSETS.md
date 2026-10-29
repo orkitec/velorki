@@ -20,10 +20,10 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
 ```
 
 1. **Capture.** On the iOS simulator "Velorki Shots 6.9" (an iPhone 17 Pro
-   Max, created on the first run), booted in the first language's language
-   and region, the status bar at 9:41 (the shutter sets each picture's
-   region, so the clock reads 9:41 AM or 09:41 as the language has it; an
-   iPad's date keeps the booted region's order),
+   Max, created on the first run), set to a language's language and region
+   (English on its own, then the other languages together: the region
+   decides the status bar's 9:41 AM or 09:41, and only a reboot changes
+   it), the status bar at 9:41,
    `app/integration_test/store/store_screenshots_test.dart` takes every screen
    the slides use in one run of the app, each set up once and then shot in
    every theme and language by switching them in the app's settings (the
