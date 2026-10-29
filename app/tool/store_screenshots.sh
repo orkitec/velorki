@@ -401,6 +401,14 @@ capture() {
         grep -E 'VELORKI_STORE|All tests passed' "$log" || true
         return 0
       fi
+      # On a loaded runner Xcode's build settings query now and then gives
+      # up ("No Xcode build settings have been found"), and the app is never
+      # built: that is tried once more, like a test that never started.
+      if [ "$attempt" = 1 ] && ! grep -q 'VELORKI_STORE' "$log" \
+        && grep -qE 'Could not build the application|Unable to start the app on the device' "$log"; then
+        say "the app was not built; trying again"
+        continue
+      fi
       cat "$log" >&2
       die "the capture for $locale failed"
     fi
