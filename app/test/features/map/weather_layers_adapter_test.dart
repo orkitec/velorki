@@ -488,6 +488,29 @@ void main() {
       },
     );
 
+    test('a frame joining while a dark map repaints the others is no error, '
+        'and the repaint goes on', () async {
+      await map.setWeatherLayers([
+        rain('a', <String>['b', 'c']),
+      ]);
+      ops
+        ..clearCalls()
+        ..beforeLayerProperties = (layerId) async {
+          ops.beforeLayerProperties = null;
+          await map.setWeatherLayers([
+            rain('a', <String>['b', 'c', 'd']),
+          ]);
+        };
+
+      await map.setWeatherDark(true);
+
+      final repainted = ops
+          .callsNamed('setLayerProperties')
+          .map((c) => c.id)
+          .toSet();
+      expect(repainted, contains(MapLayerIds.weatherLayer('radar_dwd', 2)));
+    });
+
     test('a dark map repaints each frame, the unseen ones unseen', () async {
       await map.setWeatherLayers([
         rain('a', <String>['b']),

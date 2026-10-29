@@ -3216,10 +3216,16 @@ class MaplibreMapControllerAdapter implements MapController {
     _weatherDark = dark;
     if (!_attached || _disposed) return;
     try {
-      for (final entry in _weatherDrawn.entries) {
-        for (final generation in entry.value) {
+      // Copies: frames come and go during the awaits below (the radar
+      // loads its frames while the theme changes). A frame gone meanwhile
+      // is skipped.
+      for (final id in List<String>.of(_weatherDrawn.keys)) {
+        final drawn = _weatherDrawn[id];
+        if (drawn == null) continue;
+        for (final generation in List<_WeatherGeneration>.of(drawn)) {
+          if (!(_weatherDrawn[id]?.contains(generation) ?? false)) continue;
           await _ops.setLayerProperties(
-            MapLayerIds.weatherLayer(entry.key, generation.n),
+            MapLayerIds.weatherLayer(id, generation.n),
             _weatherProperties(generation.layer, shown: generation.shown),
           );
         }
