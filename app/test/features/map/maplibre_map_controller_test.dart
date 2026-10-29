@@ -1033,6 +1033,31 @@ void main() {
   });
 
   group('setRouteLine', () {
+    test('a variant removed while a new palette is applied is skipped, and '
+        'the recolour goes on', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine('main', _points);
+      await adapter.setRouteLine('main-2', _points);
+      ops
+        ..clearCalls()
+        ..beforeLayerProperties = (layerId) async {
+          if (layerId == MapLayerIds.routeCasingLayer('main')) {
+            ops.beforeLayerProperties = null;
+            await adapter.removeRouteLine('main-2');
+          }
+        };
+
+      await adapter.setPalette(_repainted);
+
+      final recoloured = ops
+          .callsNamed('setLayerProperties')
+          .map((c) => c.id)
+          .toList();
+      expect(recoloured, contains(MapLayerIds.routeLayer('main')));
+      expect(recoloured, isNot(contains(MapLayerIds.routeLayer('main-2'))));
+    });
     test(
       'a line the style kept through a reload is refreshed, not re-added',
       () async {

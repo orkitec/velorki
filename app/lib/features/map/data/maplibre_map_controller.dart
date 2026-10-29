@@ -2020,14 +2020,18 @@ class MaplibreMapControllerAdapter implements MapController {
     if (_windAdded) {
       await _ops.setLayerProperties(MapLayerIds.windLayer, _windProperties());
     }
-    for (final entry in _routeLines.entries) {
+    // A copy: the variants can come or go during the awaits below. A line
+    // gone meanwhile is skipped, one still there drawn as it is now.
+    for (final key in List<String>.of(_routeLines.keys)) {
+      final line = _routeLines[key];
+      if (line == null) continue;
       await _ops.setLayerProperties(
-        MapLayerIds.routeCasingLayer(entry.key),
-        _casingProperties(entry.value),
+        MapLayerIds.routeCasingLayer(key),
+        _casingProperties(line),
       );
       await _ops.setLayerProperties(
-        MapLayerIds.routeLayer(entry.key),
-        _lineProperties(entry.value, entry.key),
+        MapLayerIds.routeLayer(key),
+        _lineProperties(line, key),
       );
     }
   }
