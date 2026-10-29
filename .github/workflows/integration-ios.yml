@@ -108,6 +108,16 @@ jobs:
           restore-keys: |
             derived-xcode27-${{ env.FLUTTER_VERSION }}-${{ hashFiles('app/ios/Podfile.lock') }}-
 
+      # Flutter has Xcode clone the Swift packages into app/build/ios, not
+      # into the derived data: fetched fresh, every package was cloned again
+      # and, with new file times, compiled again, minutes on every run.
+      - name: Restore the Swift packages
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: app/build/ios/SourcePackages
+          key: swiftpm-xcode27-${{ hashFiles('app/ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: swiftpm-xcode27-
+
       - name: Prepare the app package
         working-directory: app
         run: |
@@ -164,6 +174,13 @@ jobs:
           key: >-
             derived-xcode27-${{ env.FLUTTER_VERSION }}-${{
             hashFiles('app/ios/Podfile.lock') }}-${{ steps.stamp.outputs.week }}
+
+      - name: Save the Swift packages
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: app/build/ios/SourcePackages
+          key: swiftpm-xcode27-${{ hashFiles('app/ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
 
       - name: Mirror log
         if: always()

@@ -207,6 +207,16 @@ jobs:
           restore-keys: |
             derived-xcode27-${{ env.FLUTTER_VERSION }}-${{ hashFiles('app/ios/Podfile.lock') }}-
 
+      # The Swift packages Xcode clones into app/build/ios (Flutter's place
+      # for them, not the derived data), under integration-ios.yml's key:
+      # fetched fresh, every package was cloned and compiled again.
+      - name: Swift packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: app/build/ios/SourcePackages
+          key: swiftpm-xcode27-${{ hashFiles('app/ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: swiftpm-xcode27-
+
       - name: Prepare the app package
         working-directory: app
         run: |
