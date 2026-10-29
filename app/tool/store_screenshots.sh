@@ -387,6 +387,7 @@ capture() {
       --dart-define=VELORKI_STORE_LOCALES="$locale" \
       --dart-define=VELORKI_STORE_THEMES="$THEMES" \
       --dart-define=VELORKI_STORE_UNTIL="$UNTIL" \
+      --dart-define=VELORKI_STORE_LATE_CHECK="${VELORKI_STORE_LATE_CHECK:-false}" \
       --dart-define=VELORKI_STORE_ORIENTATION="$ORIENTATION" \
       --dart-define=VELORKI_PREVIEW_SET="$PREVIEW_SET" > "$log" 2>&1 &
     pid=$!

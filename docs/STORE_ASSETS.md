@@ -29,7 +29,12 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
    every theme and language by switching them in the app's settings (the
    AI prompt, the paywall's prices and the imported ride's name are redone
    per language; the ride under way stands still meanwhile, since the
-   recorder's clock moves only with the fixes): the offline cycle map with stops and the
+   recorder's clock moves only with the fixes). Nothing waits a fixed
+   time: a picture is taken once Flutter has nothing left to draw and,
+   after a change on the map, once MapLibre reports the map idle (every
+   tile and layer drawn, `MapDrawn`), the old fixed holds kept only as
+   limits. `VELORKI_STORE_LATE_CHECK=true` takes every picture again four
+   seconds later as `<screen>-late.png`, to compare. The screens: the offline cycle map with stops and the
    Layers sheet over it, the plan, its variants, the plan under the rain
    (the weather of `store_weather.dart`, the same on every run, the clock
    at 9:41), the stops beside a route under a status bar with no signal (in

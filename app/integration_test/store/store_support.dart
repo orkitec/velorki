@@ -21,6 +21,7 @@ import 'package:velorki/features/assistant/domain/ai_consent.dart';
 import 'package:velorki/features/assistant/domain/intent_resolver.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/import_export/application/incoming_import_listener.dart';
+import 'package:velorki/features/map/application/map_drawn.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/data/weather_map_preferences.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
@@ -79,6 +80,71 @@ const double storeLoopKm = 25;
 const String storeOrientation = String.fromEnvironment(
   'VELORKI_STORE_ORIENTATION',
 );
+
+/// Pumps until Flutter has nothing more to draw, at most [cap]. With
+/// [margin], a moment more for the last frame to reach the screen, before a
+/// picture; [label] logs how long it took.
+Future<void> settleFrames(
+  WidgetTester tester, {
+  Duration cap = const Duration(seconds: 3),
+  bool margin = false,
+  String? label,
+}) async {
+  final clock = Stopwatch()..start();
+  var idle = 0;
+  while (idle < 2 && clock.elapsed < cap) {
+    await tester.pump(const Duration(milliseconds: 50));
+    idle = tester.binding.hasScheduledFrame ? 0 : idle + 1;
+  }
+  if (label != null) {
+    debugPrint(
+      'VELORKI_STORE $label settled in ${clock.elapsedMilliseconds} ms'
+      '${idle < 2 ? ' (cap)' : ''}',
+    );
+  }
+  if (margin) await pumpFor(tester, const Duration(milliseconds: 300));
+}
+
+int _mapMark = 0;
+
+/// Notes that the test is about to change the map (move it, load a route,
+/// switch its colours): [waitForMapDrawn] waits for the map to have drawn
+/// what came after this.
+void markMapChange() => _mapMark = MapDrawn.idles.value;
+
+/// Waits until a map has drawn everything that changed since the last
+/// [markMapChange]: a newer idle (MapLibre's "did become idle": tiles,
+/// layers and images all drawn, nothing moving), then [quiet] with no
+/// further one, since a change made in steps (a style, then the route's
+/// layers over it) goes idle once per step. At most [cap]: when nothing
+/// changed on the map there is no idle to wait for. [label] logs how long
+/// it took.
+Future<void> waitForMapDrawn(
+  WidgetTester tester, {
+  required Duration cap,
+  Duration quiet = const Duration(milliseconds: 800),
+  String? label,
+}) async {
+  final since = _mapMark;
+  final clock = Stopwatch()..start();
+  var seen = MapDrawn.idles.value;
+  var lastIdle = seen > since ? Duration.zero : null;
+  while (clock.elapsed < cap) {
+    await tester.pump(const Duration(milliseconds: 50));
+    final now = MapDrawn.idles.value;
+    if (now != seen) {
+      seen = now;
+      lastIdle = clock.elapsed;
+    }
+    if (seen > since && clock.elapsed - lastIdle! >= quiet) break;
+  }
+  if (label != null) {
+    debugPrint(
+      'VELORKI_STORE $label map drawn in ${clock.elapsedMilliseconds} ms'
+      '${seen > since ? '' : ' (cap, no idle)'}',
+    );
+  }
+}
 
 /// The app as a test left it for the pictures.
 class StoreSession {
@@ -237,7 +303,7 @@ Future<StoreSession> startStoreApp(
   await weather.setClouds(false);
   await weather.setWind(false);
   container.read(weatherRadarOffsetProvider.notifier).set(0);
-  await pumpFor(tester, const Duration(seconds: 2));
+  await settleFrames(tester);
   return StoreSession(container, positions, ride, relay, subscriptions);
 }
 
@@ -252,7 +318,7 @@ Future<void> grantAssistant(
   await container
       .read(aiConsentControllerProvider.notifier)
       .set(AiConsent.textOnly);
-  await pumpFor(tester, const Duration(milliseconds: 300));
+  await settleFrames(tester);
 }
 
 /// Names resolved by the region's offline gazetteer.
@@ -297,7 +363,7 @@ Future<SavedRoute> seedLibrary(
     );
   }
   container.read(plannerControllerProvider.notifier).clear();
-  await pumpFor(tester, const Duration(milliseconds: 500));
+  await settleFrames(tester);
   return featured;
 }
 
@@ -311,7 +377,6 @@ Future<RouteResult> planRoute(
   for (final point in waypoints) {
     planner.addWaypoint(point);
   }
-  await pumpFor(tester, const Duration(milliseconds: 400));
   await waitUntil(
     tester,
     () {
@@ -397,8 +462,9 @@ Future<void> frameRoute(
   List<TrackPoint> line, {
   Finder? handle,
 }) async {
-  // The planner's own fit goes first; this one lands after it.
-  await pumpFor(tester, const Duration(seconds: 2));
+  // The planner's own fit goes first, drawn; this one lands after it.
+  await waitForMapDrawn(tester, cap: const Duration(seconds: 2));
+  markMapChange();
   final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
   final wide = _widePadding(tester);
   if (wide != null) {
@@ -449,7 +515,10 @@ Future<void> frameArea(
   double zoom, {
   Duration? glide,
 }) async {
-  if (glide == null) await pumpFor(tester, const Duration(seconds: 1));
+  if (glide == null) {
+    await waitForMapDrawn(tester, cap: const Duration(seconds: 1));
+  }
+  markMapChange();
   final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
   final wide = _widePadding(tester);
   final EdgeInsets padding;
@@ -508,7 +577,8 @@ Future<Future<void> Function()> showRouteRain(
   final colouringOn = container.read(routeColouringOnProvider);
   final weatherMap = container.read(weatherMapPreferencesProvider.notifier);
   final planner = container.read(plannerControllerProvider.notifier);
-  // The weather first, so the frames are loading while the route comes in.
+  // The weather first, so the frames are loading while the route comes in;
+  // the picture waits for the map to have drawn them.
   planner.clear();
   await container
       .read(routeOverlayChoiceProvider.notifier)
@@ -516,9 +586,10 @@ Future<Future<void> Function()> showRouteRain(
   await container.read(routeColouringOnProvider.notifier).set(on: true);
   await weatherMap.setRadar(true);
   container.read(weatherRadarOffsetProvider.notifier).set(offsetMinutes);
-  await pumpFor(tester, const Duration(seconds: 3));
+  await settleFrames(tester);
   planner.loadSavedRoute(route);
-  await pumpFor(tester, const Duration(seconds: 1));
+  // The sheet laid out with the route, before it is measured.
+  await settleFrames(tester);
   scrollPlannerSheetTo(tester, save);
   await frameRoute(tester, container, route.geometry);
   await waitUntil(

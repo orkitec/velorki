@@ -183,8 +183,7 @@ def android_status_bar(serial: str, online: bool) -> None:
             command, *extras)
 
     def in_demo_mode() -> bool:
-        state = adb("dumpsys", "activity", "service", "com.android.systemui").stdout
-        return "isInDemoMode=true" in state
+        return android_in_demo_mode(serial)
 
     for attempt in range(1, 6):
         adb("settings", "put", "global", "sysui_demo_allowed", "1")
@@ -209,10 +208,22 @@ def android_status_bar(serial: str, online: bool) -> None:
     raise RuntimeError(f"SystemUI on {serial} never entered demo mode")
 
 
+def android_in_demo_mode(serial: str) -> bool:
+    """Whether SystemUI still shows the demo mode's bar: a tenth of a second
+    to ask, where setting the bar afresh takes seconds."""
+    state = subprocess.run(["adb", "-s", serial, "shell", "dumpsys", "activity", "service",
+                            "com.android.systemui"], capture_output=True, text=True).stdout
+    return "isInDemoMode=true" in state
+
+
 def main_android(serial: str, out: str) -> int:
     device = Android(serial)
     last = None
     started = False
+    # The bar as the last picture left it, (online, 12/24-hour clock): set
+    # again only when a picture wants another, or SystemUI dropped the demo
+    # mode (on a CI emulator it did, between boot and the first picture).
+    bar = None
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     while True:
         fields = device.request()
@@ -239,8 +250,16 @@ def main_android(serial: str, out: str) -> int:
         elif action in ("record-start", "record-stop"):
             print(f"store_shutter: no recording on Android, skipping {name}", file=sys.stderr)
         else:
-            device.clock_format(name.split("/")[1])
-            device.status_bar(online=fields.get("status") != "offline")
+            locale = name.split("/")[1]
+            wanted = (fields.get("status") != "offline", locale.startswith("en"))
+            if bar != wanted or not android_in_demo_mode(serial):
+                if bar is None or bar[1] != wanted[1]:
+                    device.clock_format(locale)
+                # Set after the clock, which the demo mode's 9:41 is drawn
+                # in; the seconds it takes also let the app redraw its own
+                # times in that clock.
+                device.status_bar(online=wanted[0])
+                bar = wanted
             device.screenshot(target + ".png")
             print(f"store_shutter: {target}.png", flush=True)
         device.ack(token)

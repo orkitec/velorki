@@ -88,6 +88,12 @@ const String _themes = String.fromEnvironment(
 /// screens come in the order of the sections below. Empty takes them all.
 const String _until = String.fromEnvironment('VELORKI_STORE_UNTIL');
 
+/// Takes every picture after a change of language twice, the second
+/// [_lateHold] later as `<screen>-late`, to check that settleFrames and waitForMapDrawn waited
+/// long enough: the pairs should not differ.
+const bool _lateCheck = bool.fromEnvironment('VELORKI_STORE_LATE_CHECK');
+const Duration _lateHold = Duration(seconds: 4);
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -128,39 +134,72 @@ void main() {
 
     /// Shoots [screen] as it stands in every theme (those [only] allows)
     /// and every language of [inLocales], all of [locales] by default,
-    /// then puts the first of each back. [hold] is for the first picture
-    /// in each theme, which waits for the map's style and tiles; a change
-    /// of language only redraws the texts. [relocalize] puts right what
-    /// the app does not translate itself, before each picture.
+    /// then puts the first of each back.
+    ///
+    /// Nothing waits a fixed time. The first picture in each theme waits
+    /// for the map to have drawn what changed since the last
+    /// [markMapChange] (the screen's set-up, the switch of theme), at most
+    /// [hold]; [mapChanges] false says the set-up left the map as it was (a
+    /// sheet over it); [mapShown] false that no map is on screen at all (a
+    /// page over it), which then never draws. Every picture waits for Flutter to have
+    /// drawn everything: a change of language only redraws its texts.
+    /// [relocalize] puts right what the app does not translate itself,
+    /// before each picture.
     Future<void> shoot(
       String screen, {
       Duration? hold,
       bool offline = false,
+      bool mapChanges = true,
+      bool mapShown = true,
       bool Function(ThemeMode mode)? only,
       List<String>? inLocales,
       Future<void> Function(ThemeMode mode, String locale)? relocalize,
     }) async {
       final these = inLocales ?? locales;
+      final cap = hold ?? Duration(seconds: Platform.isAndroid ? 8 : 4);
       for (final mode in themes) {
         if (only != null && !only(mode)) continue;
+        final switched = container.read(appearanceSettingProvider).mode != mode;
+        if (switched) markMapChange();
         await appearance.setMode(mode);
         var first = true;
         for (final locale in these) {
           await language.select(Locale(locale));
-          await pumpFor(tester, const Duration(milliseconds: 300));
-          if (relocalize != null) await relocalize(mode, locale);
+          if (relocalize != null) {
+            // Laid out in the new language first: the fixes measure it.
+            await settleFrames(tester);
+            await relocalize(mode, locale);
+          }
+          if (first && mapShown && (mapChanges || switched)) {
+            await waitForMapDrawn(tester, cap: cap, label: screen);
+          }
+          await settleFrames(tester, margin: true, label: screen);
           await takeStoreShot(
             tester,
             '${mode.name}/$locale/$screen',
-            hold: first ? hold : Duration(seconds: Platform.isAndroid ? 4 : 2),
+            hold: Duration.zero,
             offline: offline,
           );
+          if (_lateCheck) {
+            await takeStoreShot(
+              tester,
+              '${mode.name}/$locale/$screen-late',
+              hold: _lateHold,
+              offline: offline,
+            );
+          }
           first = false;
         }
       }
-      await appearance.setMode(themes.first);
+      if (container.read(appearanceSettingProvider).mode != themes.first) {
+        markMapChange();
+        await appearance.setMode(themes.first);
+        await waitForMapDrawn(tester, cap: cap);
+      }
       await language.select(Locale(these.first));
-      await pumpFor(tester, const Duration(seconds: 1));
+      await settleFrames(tester);
+      // What the next screen's set-up changes on the map comes after this.
+      markMapChange();
     }
 
     bool dark(ThemeMode mode) => mode == ThemeMode.dark;
@@ -205,11 +244,11 @@ void main() {
 
     await tapAndPump(tester, find.byTooltip(l10n.mapLayers));
     await waitForWidget(tester, find.byType(LayersSheet));
-    await shoot('layers');
+    await shoot('layers', mapChanges: false);
     Navigator.of(tester.element(find.byType(LayersSheet))).pop();
     await cycleMap.setShown(false);
     await stops.setShown(false);
-    await pumpFor(tester, const Duration(seconds: 1));
+    await settleFrames(tester);
 
     if (await stopAfter('layers')) return;
 
@@ -292,10 +331,12 @@ void main() {
     await frameRoute(tester, container, stopsRoute.geometry);
     await shoot('stops', offline: true, hold: const Duration(seconds: 8));
     if (themes.any(dark)) {
+      markMapChange();
       await appearance.setAccent(AccentPreset.ember);
       await shoot('stops-accent', offline: true, only: dark);
+      markMapChange();
       await appearance.setAccent(AccentPreset.volt);
-      await pumpFor(tester, const Duration(seconds: 2));
+      await waitForMapDrawn(tester, cap: const Duration(seconds: 4));
     }
     await stops.setShown(false);
     await container
@@ -309,7 +350,7 @@ void main() {
     // From the rider's position, at the distance seeded before the start.
     positions.emit(fix(funchal, seconds: 0, speed: 0));
     planner.clear();
-    await pumpFor(tester, const Duration(milliseconds: 500));
+    await settleFrames(tester);
     await tapAndPump(tester, plannerAction(l10n.loopAction));
     // The sheet's title says the same as the button.
     await tapAndPump(
@@ -361,7 +402,7 @@ void main() {
     Future<void> openCard() async {
       await tapAndPump(tester, plannerAction(l10n.assistantAction));
       await waitForWidget(tester, find.byType(AssistantSheet));
-      await pumpFor(tester, const Duration(milliseconds: 600));
+      await settleFrames(tester);
     }
 
     await openCard();
@@ -370,7 +411,7 @@ void main() {
       assistantPrompts[base] ?? assistantPrompts['en']!,
     );
     FocusManager.instance.primaryFocus?.unfocus();
-    await pumpFor(tester, const Duration(milliseconds: 600));
+    await settleFrames(tester);
     await tapAndPump(
       tester,
       inCard(find.widgetWithText(FilledButton, l10n.assistantSend)),
@@ -417,14 +458,14 @@ void main() {
       for (var i = 0; i < 4; i++) {
         final scroll = tester.state<ScrollableState>(content).position;
         scroll.jumpTo(scroll.maxScrollExtent);
-        await pumpFor(tester, const Duration(milliseconds: 300));
+        await settleFrames(tester);
         final short =
             tester.getRect(content).top -
             tester.getRect(inCard(find.byType(TextField))).top +
             12;
         if (short <= 1) break;
         card.jumpTo(card.size + card.pixelsToSize(short));
-        await pumpFor(tester, const Duration(milliseconds: 300));
+        await settleFrames(tester);
       }
       await frameRoute(tester, container, aiLoop.geometry, handle: cardHandle);
     }
@@ -436,12 +477,15 @@ void main() {
       relocalize: (_, locale) async {
         // Into the field's controller: with an answer on the card, typing
         // through the test's keyboard never reaches it.
-        tester
-                .widget<TextField>(inCard(find.byType(TextField)))
-                .controller!
-                .text =
-            assistantPrompts[locale] ?? assistantPrompts['en']!;
-        await pumpFor(tester, const Duration(milliseconds: 600));
+        final field = tester
+            .widget<TextField>(inCard(find.byType(TextField)))
+            .controller!;
+        final prompt = assistantPrompts[locale] ?? assistantPrompts['en']!;
+        // Fitted to this prompt already: fitted again, the map would not
+        // move, and the picture would wait for a redraw that never comes.
+        if (field.text == prompt) return;
+        field.text = prompt;
+        await settleFrames(tester);
         await fitCard();
       },
     );
@@ -452,7 +496,7 @@ void main() {
         2000,
         warnIfMissed: false,
       );
-      await pumpFor(tester, const Duration(milliseconds: 800));
+      await settleFrames(tester);
     }
     // The rest is planned on the default bike, as before the AI chose one.
     planner
@@ -471,23 +515,36 @@ void main() {
     container.read(plusEntitledProvider.notifier).value = true;
     unawaited(container.read(routerProvider).push(paywallRoute));
     await waitForWidget(tester, find.byType(PaywallScreen));
-    await pumpFor(tester, const Duration(seconds: 1));
-    await shoot('paywall-active');
+    await settleFrames(tester);
+    await shoot('paywall-active', mapShown: false);
     container.read(routerProvider).pop();
-    await pumpFor(tester, const Duration(seconds: 1));
+    await settleFrames(tester);
     container.read(plusEntitledProvider.notifier).value = false;
     unawaited(container.read(routerProvider).push(paywallRoute));
     await waitForWidget(tester, find.byType(PaywallScreen));
-    await pumpFor(tester, const Duration(seconds: 1));
+    await settleFrames(tester);
     // The prices in each language's currency and format: the store asked
     // again for its offering.
     Future<void> price(String locale) async {
       session.subscriptions.offering = plusOffering(locale);
       container.invalidate(plusOfferingProvider);
-      await pumpFor(tester, const Duration(seconds: 1));
+      await waitUntil(
+        tester,
+        // The fake hands back the very offering it was given.
+        () => identical(
+          container.read(plusOfferingProvider).value,
+          session.subscriptions.offering,
+        ),
+        describe: 'the offering in $locale',
+      );
+      await settleFrames(tester);
     }
 
-    await shoot('paywall-top', relocalize: (_, locale) => price(locale));
+    await shoot(
+      'paywall-top',
+      mapShown: false,
+      relocalize: (_, locale) => price(locale),
+    );
     final paywall = find
         .descendant(
           of: find.byType(PaywallScreen),
@@ -499,12 +556,13 @@ void main() {
       for (var i = 0; i < 3; i++) {
         final scroll = tester.state<ScrollableState>(paywall).position;
         scroll.jumpTo(scroll.maxScrollExtent);
-        await pumpFor(tester, const Duration(milliseconds: 300));
+        await settleFrames(tester);
       }
     }
 
     await shoot(
       'paywall-bottom',
+      mapShown: false,
       relocalize: (_, locale) async {
         await price(locale);
         await toEnd();
@@ -512,7 +570,7 @@ void main() {
     );
     await price(base);
     container.read(routerProvider).pop();
-    await pumpFor(tester, const Duration(seconds: 1));
+    await settleFrames(tester);
 
     if (await stopAfter('paywall')) return;
 
@@ -541,7 +599,6 @@ void main() {
             fileName: '$rideName.gpx',
             sourceHint: 'picker',
           );
-      await pumpFor(tester, const Duration(milliseconds: 500));
       await waitForWidget(tester, find.text(local.importKindRide));
       await tapAndPump(tester, find.text(local.importKindRide));
       // The preview's own map loads its marker images after the route
@@ -571,10 +628,10 @@ void main() {
       for (final saved in await rides.watchRides().first) {
         await rides.delete(saved.id);
       }
-      await pumpFor(tester, const Duration(milliseconds: 500));
+      await settleFrames(tester);
     }
     await language.select(Locale(base));
-    await pumpFor(tester, const Duration(seconds: 1));
+    await settleFrames(tester);
 
     if (await stopAfter('ride')) return;
 
@@ -605,10 +662,12 @@ void main() {
     // The same in another accent, for the dark half of the slide that
     // shows the themes with it.
     if (themes.any(dark)) {
+      markMapChange();
       await appearance.setAccent(AccentPreset.ember);
       await shoot('offline-accent', offline: true, only: dark);
+      markMapChange();
       await appearance.setAccent(AccentPreset.volt);
-      await pumpFor(tester, const Duration(seconds: 2));
+      await waitForMapDrawn(tester, cap: const Duration(seconds: 4));
     }
     planner.clear();
 
@@ -663,7 +722,6 @@ void main() {
     // and the banner hold as they are.
     await shoot(
       'live',
-      hold: Duration.zero,
       // What the Live Activity and the watch show right now, for the
       // slides that draw them: the same snapshot the live card was built
       // from. The Play set has neither.
@@ -695,7 +753,7 @@ void main() {
     );
     await rideOn(2);
     await waitForWidget(tester, find.byType(FiguresBar));
-    await shoot('navigation', hold: Duration.zero);
+    await shoot('navigation');
 
     final recording = container.read(recordingControllerProvider.notifier);
     final halted = await recording.halt();
@@ -703,7 +761,7 @@ void main() {
     await container
         .read(followModeProvider.notifier)
         .select(FollowMode.northUp);
-    await pumpFor(tester, const Duration(seconds: 1));
+    await settleFrames(tester);
     planner.clear();
     await unmountApp(tester);
   });
