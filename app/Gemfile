@@ -6,9 +6,8 @@
 source "https://rubygems.org"
 
 # 2.241.1 is the first deliver that knows the iPhone Duo's 2853x2007 (2.230
-# the 13" iPad's 2064x2752).
-# fastlane from the pull request that teaches deliver the App Store's creative
-# assets (the product page header and the search results image; iOS 27),
-# fastlane/fastlane#30442, pinned to its commit until it is released. Then:
-#   gem "fastlane", "~> 2.242"
-gem "fastlane", git: "https://github.com/techiro/fastlane.git", ref: "6af3a362df0745a5bf84f5da2db395a43d9bc9cd"
+# the 13" iPad's 2064x2752). The App Store's creative assets (the product
+# page header and the search results image) need fastlane/fastlane#30442;
+# its branch is on 2.241.0, which refuses the Duo's screenshots, so it is not
+# pinned: the Fastfile skips the creative assets until a release has them.
+gem "fastlane", "~> 2.241", ">= 2.241.1"

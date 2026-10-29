@@ -208,6 +208,13 @@ platform :ios do
     delete_screenshot_types(app_identifier, ENV["APP_VERSION"], ENV["SCREENSHOTS_PATH"]) if partial
 
     creative = ENV["UPLOAD_CREATIVE"] == "true" ? creative_assets_for(ENV.fetch("CREATIVE_PATH")) : []
+    # Only a deliver with fastlane/fastlane#30442 takes creative assets; any
+    # other would refuse the whole upload over the unknown option.
+    require "deliver"
+    unless creative.empty? || Deliver::Options.available_options.any? { |o| o.key == :creative_assets }
+      UI.important("This fastlane cannot place creative assets (fastlane/fastlane#30442); upload them by hand")
+      creative = []
+    end
     UI.important("No creative assets found under #{ENV['CREATIVE_PATH']}") if ENV["UPLOAD_CREATIVE"] == "true" && creative.empty?
 
     deliver(

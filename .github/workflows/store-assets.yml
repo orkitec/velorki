@@ -53,7 +53,7 @@ on:
         type: boolean
         default: false
       creative:
-        description: Also place the creative assets (product page header, search results image) on that App Store version
+        description: Also place the creative assets (product page header, search results image); needs a fastlane with fastlane#30442
         type: boolean
         default: false
       app_version:
