@@ -9,6 +9,7 @@ source "https://rubygems.org"
 # the 13" iPad's 2064x2752). The App Store's creative assets (the product
 # page header and the search results image) need fastlane/fastlane#30442,
 # whose branch is on 2.241.0; orkitec/fastlane's creative-assets-2.241.2 is
-# its two commits on 2.241.2, pinned until a release has them. Then:
+# its two commits on 2.241.2 and a longer wait for Apple's processing,
+# pinned until a release has them. Then:
 #   gem "fastlane", "~> 2.242"
-gem "fastlane", git: "https://github.com/orkitec/fastlane.git", ref: "731c648f80d8613b2fadf20ca2bb797530f7a3a7"
+gem "fastlane", git: "https://github.com/orkitec/fastlane.git", ref: "c3f136ee24b4e84c987e7f46766f20143314a528"

@@ -205,7 +205,10 @@ platform :ios do
     # just the device types it brings and keeps the others.
     sets = (ENV["STORE_SETS"] || "iphone,ipad,duo").split(",").map(&:strip).reject(&:empty?)
     partial = (%w[iphone ipad duo] - sets).any?
-    delete_screenshot_types(app_identifier, ENV["APP_VERSION"], ENV["SCREENSHOTS_PATH"]) if partial
+    # UPLOAD_SCREENSHOTS=false leaves the screenshots as they are, for a run
+    # that only brings the texts or the creative assets.
+    screenshots = ENV["UPLOAD_SCREENSHOTS"] != "false"
+    delete_screenshot_types(app_identifier, ENV["APP_VERSION"], ENV["SCREENSHOTS_PATH"]) if partial && screenshots
 
     creative = ENV["UPLOAD_CREATIVE"] == "true" ? creative_assets_for(ENV.fetch("CREATIVE_PATH")) : []
     # Only a deliver with fastlane/fastlane#30442 takes creative assets; any
@@ -225,7 +228,8 @@ platform :ios do
       metadata_path: File.join(FASTLANE_DIR, "metadata/ios"),
       skip_metadata: ENV["UPLOAD_METADATA"] != "true",
       skip_binary_upload: true,
-      overwrite_screenshots: !partial,
+      skip_screenshots: !screenshots,
+      overwrite_screenshots: screenshots && !partial,
       submit_for_review: false,
       run_precheck_before_submit: false,
       # No HTML preview to confirm: CI has nobody to confirm it.

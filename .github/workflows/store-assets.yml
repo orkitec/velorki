@@ -52,6 +52,11 @@ on:
         description: Also upload the store texts (fastlane/metadata/ios, /android)
         type: boolean
         default: false
+      # Off for a run that only brings the texts or the creative assets.
+      screenshots:
+        description: Upload the App Store screenshots (off to send only texts or creative assets)
+        type: boolean
+        default: true
       creative:
         description: Also place the creative assets (product page header, search results image); needs a fastlane with fastlane#30442
         type: boolean
@@ -464,6 +469,7 @@ jobs:
           APP_VERSION: ${{ inputs.app_version }}
           UPLOAD_METADATA: ${{ inputs.metadata }}
           UPLOAD_CREATIVE: ${{ inputs.creative }}
+          UPLOAD_SCREENSHOTS: ${{ inputs.screenshots }}
           CREATIVE_PATH: ${{ runner.temp }}/assets/creative
           STORE_SETS: ${{ inputs.ios_sets }}
           FASTLANE_SKIP_UPDATE_CHECK: "1"
