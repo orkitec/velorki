@@ -23,10 +23,7 @@
 set -euo pipefail
 
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# --prepare: only find or create the watch's simulator and boot it once.
-PREPARE=0
-if [ "${1:-}" = --prepare ]; then PREPARE=1; fi
-RAW=${1:-} OUT=${2:-} LOCALES=${3:-} THEMES=${4:-}
+RAW=$1 OUT=$2 LOCALES=$3 THEMES=$4
 SRC=ios/VelorkiWatch
 BUNDLE=com.orkitec.velorki.shot.watchkitapp
 WORK="$(mktemp -d)"
@@ -54,16 +51,6 @@ print(max(watch, key=lambda r: [int(p) for p in r["version"].split(".")])["ident
   udid="$(xcrun simctl create "Apple Watch Ultra 3 (49mm)" \
     com.apple.CoreSimulator.SimDeviceType.Apple-Watch-Ultra-3-49mm "$runtime")"
   printf '==> created Apple Watch Ultra 3 (49mm) (%s) on %s\n' "$udid" "$runtime"
-fi
-
-# A new simulator's first boot takes minutes on a runner, the next ones far
-# less: tool/store_screenshots.sh --prepare has it done in the background.
-if [ "$PREPARE" = 1 ]; then
-  xcrun simctl boot "$udid" 2> /dev/null || true
-  xcrun simctl bootstatus "$udid" -b > /dev/null
-  xcrun simctl shutdown "$udid"
-  printf '==> prepared Apple Watch Ultra 3 (49mm) (%s)\n' "$udid"
-  exit 0
 fi
 
 # RideView with its first page shown, compiled against the stub.

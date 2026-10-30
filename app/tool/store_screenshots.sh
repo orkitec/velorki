@@ -11,7 +11,6 @@
 #   tool/store_screenshots.sh --until variants         # capture only up to that screen
 #   tool/store_screenshots.sh --all-shots              # every screen in every theme
 #   tool/store_screenshots.sh --no-slides              # the pictures (and the watch) only
-#   tool/store_screenshots.sh --prepare --platform ipad # create the simulator, boot it once, shut it down
 #   tool/store_screenshots.sh --watch-locales en,de    # the watch in these languages ('none': not at all)
 #   tool/store_screenshots.sh --preview                # the preview video instead (store/preview_set.json)
 #   tool/store_screenshots.sh --platform ipad          # the iPad set; see below
@@ -106,7 +105,6 @@ CAPTURE=1
 UNTIL=
 ALL_SHOTS=0
 SLIDES=1
-PREPARE=0
 WATCH_LOCALES=
 PREVIEW=0
 PLATFORM=ios
@@ -120,7 +118,6 @@ while [ $# -gt 0 ]; do
     --until) UNTIL="$2"; shift ;;
     --all-shots) ALL_SHOTS=1 ;;
     --no-slides) SLIDES=0 ;;
-    --prepare) PREPARE=1 ;;
     --watch-locales) WATCH_LOCALES="$2"; shift ;;
     --preview) PREVIEW=1 ;;
     --platform) PLATFORM="$2"; shift ;;
@@ -517,28 +514,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# --prepare creates the simulator and boots it once, in the region of the
-# run that comes first, then shuts it down: a new simulator's first boot
-# takes minutes on a runner, later ones well under one, so the workflow does
-# this in the background while it sets up Flutter. With the iPhone, the
-# watch's simulator too.
-if [ "$PREPARE" = 1 ]; then
-  [ "$ANDROID" = 0 ] || die "--prepare is for the iOS simulators"
-  UDID="$(simulator)"
-  first="${LOCALES%%,*}"
-  case ",$LOCALES," in *,en*) first="$(printf '%s' "$LOCALES" | tr ',' '\n' | grep '^en' | head -1)" ;; esac
-  region="$(region_of "$first")"
-  if shut_down "$UDID"; then write_region "$UDID" "${region/_/-}" "$region"; fi
-  say "first boot of $UDID ($region)"
-  xcrun simctl boot "$UDID" 2> /dev/null || true
-  xcrun simctl bootstatus "$UDID" -b > /dev/null
-  xcrun simctl shutdown "$UDID"
-  if [ "$PLATFORM" = ios ]; then bash "$APP/tool/store_watch.sh" --prepare; fi
-  say "prepared $UDID"
-  exit 0
-fi
-
-
 # An iPad app that supports multitasking ignores the orientations a Flutter
 # app asks for, so the test could not turn the iPad. The capture build is
 # marked full-screen, which makes iPadOS honour them; the Info.plist is put
@@ -712,8 +687,10 @@ PY
 
   # VELORKI_STORE_CREATIVE=1: the App Store's creative assets
   # (tool/store_creative.py) from the iPhone's pictures, made in the
-  # background while the watch is shot and the slides drawn; a failure only
-  # warns, as they can be uploaded by hand.
+  # background while the watch is shot (the simulator's work, not the
+  # processor's) and done before the slides, whose six Chromes at once
+  # left one of its pictures unwritten. They are uploaded with the set, so
+  # a failure fails the run.
   if [ "${VELORKI_STORE_CREATIVE:-0}" = 1 ] && [ "$PLATFORM" = ios ] && [ -z "$UNTIL" ] \
     && [ "$PREVIEW" = 0 ]; then
     say "the creative assets, in the background"
@@ -741,19 +718,20 @@ fi
 # Waits for the creative assets begun after the capture, if any.
 creative_done() {
   [ -n "$CREATIVE_PID" ] || return 0
-  if wait "$CREATIVE_PID"; then
+  local pid=$CREATIVE_PID
+  CREATIVE_PID=""
+  if wait "$pid"; then
     tail -n 2 "$WORK/creative.log"
   else
     cat "$WORK/creative.log" >&2
-    say "warning: the creative assets failed"
-    [ -z "${GITHUB_ACTIONS:-}" ] || echo "::warning::the creative assets failed; see the log above"
+    die "the creative assets failed"
   fi
-  CREATIVE_PID=""
 }
+
+creative_done
 
 # --no-slides stops here: the pictures (and the watch) only.
 if [ "$SLIDES" = 0 ]; then
-  creative_done
   exit 0
 fi
 
@@ -765,4 +743,3 @@ if [ "$PLATFORM" != ios ]; then
 fi
 python3 "$APP/tool/store_slides.py" --locales "$LOCALES" --shots "$SHOTS" ${NEED:+--set-only} \
   --raw "$OUT/raw" --watch "$OUT/watch" --out "$OUT/slides" | tail -1
-creative_done

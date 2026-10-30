@@ -349,6 +349,7 @@ def main() -> int:
               "to a Chrome or Chromium binary.", file=sys.stderr)
         return 1
     missing = set()
+    failed = []
     with tempfile.TemporaryDirectory() as work:
         for locale in args.locales.split(","):
             out = os.path.join(args.out, locale)
@@ -366,12 +367,26 @@ def main() -> int:
                     with open(page_file, "w", encoding="utf-8") as f:
                         f.write(html_text)
                     target = os.path.join(out, f"{name}.png")
-                    photograph(page_file, target, w, h, work)
-                    print(target)
+                    # Now and then Chrome writes nothing in time on a busy
+                    # runner: tried three times, and one picture that never
+                    # comes costs only itself, not the languages after it.
+                    for attempt in range(3):
+                        try:
+                            photograph(page_file, target, w, h, work)
+                            print(target)
+                            break
+                        except RuntimeError as error:
+                            if attempt == 2:
+                                failed.append(f"{target}: {error}")
     if missing:
         print("store_creative: missing input, those images were skipped:", file=sys.stderr)
         for path in sorted(missing):
             print(f"  {path}", file=sys.stderr)
+        return 1
+    if failed:
+        print("store_creative: these could not be drawn:", file=sys.stderr)
+        for line in failed:
+            print(f"  {line}", file=sys.stderr)
         return 1
     return 0
 

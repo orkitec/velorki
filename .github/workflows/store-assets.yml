@@ -229,25 +229,6 @@ jobs:
             has_duo || { echo "::error::still no iOS simulator runtime with the iPhone Duo"; exit 1; }
           fi
 
-      # A new simulator's first boot takes minutes on a runner, the ones after
-      # it well under one: each of the job's simulators (and the watch's)
-      # is created and booted once in the background, in the region its
-      # first run wants, while Flutter and the caches are set up. The first
-      # capture waits for it.
-      - name: Boot the simulators once, in the background
-        working-directory: app
-        env:
-          SETS: ${{ matrix.job.sets }}
-        run: |
-          (
-            for set in ${SETS//,/ }; do
-              case "$set" in iphone) platform=ios ;; *) platform="$set" ;; esac
-              tool/store_screenshots.sh --prepare --platform "$platform" --locales "$LOCALES" \
-                || echo "could not prepare the $set simulator; the capture boots it itself"
-            done
-            touch "$RUNNER_TEMP/simulators-ready"
-          ) > "$RUNNER_TEMP/simulators.log" 2>&1 &
-
       # store_slides.py drives headless Chrome, which the image ships;
       # store_preview.py wants ffmpeg, which it does not.
       - name: Chrome and ffmpeg
@@ -332,15 +313,6 @@ jobs:
           path: ~/store-tiles
           key: store-tiles-W75_N40-${{ steps.snapshot.outputs.tag }}
 
-      - name: Wait for the simulators
-        run: |
-          for _ in $(seq 1 900); do
-            [ -f "$RUNNER_TEMP/simulators-ready" ] && break
-            sleep 1
-          done
-          grep -v Malformed "$RUNNER_TEMP/simulators.log" || true
-          [ -f "$RUNNER_TEMP/simulators-ready" ] || echo "::warning::the simulators were not ready in 15 minutes"
-
       - name: Screenshots and slides
         id: iphone
         if: ${{ contains(format(',{0},', matrix.job.sets), ',iphone,') }}
@@ -349,7 +321,7 @@ jobs:
           # The runner's first build of the test app alone takes eight minutes.
           VELORKI_STORE_START_TIMEOUT: "1500"
           # The App Store's creative assets (the product page header and the
-          # search results image), made beside the watch and the slides.
+          # search results image), made while the watch is shot.
           VELORKI_STORE_CREATIVE: "1"
         run: tool/store_screenshots.sh --locales "$LOCALES"
 
