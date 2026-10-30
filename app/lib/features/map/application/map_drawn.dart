@@ -26,33 +26,41 @@ abstract final class MapDrawn {
   static Duration _lastChangeAt = Duration.zero;
   static final List<Duration> _recentChanges = <Duration>[];
   static final List<(Duration, String)> _recentWrites = <(Duration, String)>[];
+  static final Map<int, (Duration, String)> _open = <int, (Duration, String)>{};
+  static int _nextWrite = 0;
 
   /// Notes a write to a map setting out: until [changed] notes its end, the
   /// map is not drawn. An owner's writes follow one another without a
   /// break, so a run of them (the markers, then the route) holds this up
-  /// from its first to its last.
-  static void writing([String what = 'write']) {
+  /// from its first to its last. Returns the write's number for [changed],
+  /// so [describe] can name the writes still under way.
+  static int writing([String what = 'write']) {
     _writing++;
+    final id = ++_nextWrite;
+    _open[id] = (_clock.elapsed, what);
     _recentWrites
       ..add((_clock.elapsed, what))
       ..removeRange(0, _recentWrites.length > 8 ? _recentWrites.length - 8 : 0);
+    return id;
   }
 
   /// Runs [work], a job of several writes with work of the app's between
   /// them (painting a marker's image, say), as one write under way from its
   /// start to its end.
   static Future<T> busy<T>(String what, Future<T> Function() work) async {
-    writing(what);
+    final id = writing(what);
     try {
       return await work();
     } finally {
-      changed();
+      changed(id);
     }
   }
 
-  /// Notes a write to a map done (or given up).
-  static void changed() {
+  /// Notes a write to a map done (or given up): [id] is what [writing]
+  /// returned.
+  static void changed([int? id]) {
     if (_writing > 0) _writing--;
+    if (id != null) _open.remove(id);
     _lastChange = ++_sequence;
     _lastChangeAt = _clock.elapsed;
     _recentChanges
@@ -78,7 +86,12 @@ abstract final class MapDrawn {
     final recent = _recentChanges
         .where((at) => now - at <= const Duration(seconds: 5))
         .length;
-    return '$_writing write(s) under way; the last write '
+    final open = [
+      for (final (at, what) in _open.values)
+        '$what ${(now - at).inMilliseconds} ms',
+    ];
+    return '$_writing write(s) under way'
+        '${open.isEmpty ? '' : ' (${open.join(', ')})'}; the last write '
         '${(now - _lastChangeAt).inMilliseconds} ms ago, the last idle '
         '${(now - _lastIdleAt).inMilliseconds} ms ago '
         '(${_lastIdle > _lastChange ? 'after' : 'before'} the last write); '

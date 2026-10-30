@@ -653,7 +653,7 @@ Future<void> tolerateMapGone(
 ]) async {
   // Every write to a map goes through here: the store pictures wait for no
   // write under way and the map gone idle after the last one (MapDrawn).
-  MapDrawn.writing(what);
+  final write = MapDrawn.writing(what);
   try {
     await op();
   } on MissingPluginException {
@@ -672,7 +672,7 @@ Future<void> tolerateMapGone(
     if (isStyleGoneError(e)) return;
     rethrow;
   } finally {
-    MapDrawn.changed();
+    MapDrawn.changed(write);
   }
 }
 
