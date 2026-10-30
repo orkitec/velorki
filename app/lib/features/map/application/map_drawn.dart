@@ -57,9 +57,10 @@ abstract final class MapDrawn {
   /// one's.
   static final ValueNotifier<int> styles = ValueNotifier<int>(0);
 
-  /// How many weather frames (rain, clouds) have been put on a map: they
-  /// come after the radar is switched on, or a new style, once their
-  /// images are in.
+  /// How often a weather frame (rain, clouds) has been shown on a map:
+  /// drawn, or one kept unseen made visible. They come after the radar is
+  /// switched on, or a new style, once their images are in; the frames
+  /// preloaded unseen for other times do not count.
   static final ValueNotifier<int> weatherFrames = ValueNotifier<int>(0);
 
   /// How often the cycle map has been put on a map: it comes once its data

@@ -2952,6 +2952,7 @@ class MaplibreMapControllerAdapter implements MapController {
           MapLayerIds.weatherLayer(layer.id, generation.n),
           _weatherProperties(frame, shown: shown),
         );
+        if (shown) MapDrawn.weatherFrames.value++;
       }
       // Frames no longer asked for: a shown one under a new frame stays
       // until that has loaded; the rest go now.
@@ -3050,7 +3051,7 @@ class MaplibreMapControllerAdapter implements MapController {
     (_weatherDrawn[layer.id] ??= <_WeatherGeneration>[]).add(
       _WeatherGeneration(n, layer, shown: shown),
     );
-    MapDrawn.weatherFrames.value++;
+    if (shown) MapDrawn.weatherFrames.value++;
   }
 
   /// The layer the weather goes under: the cycle map's lowest, else the
