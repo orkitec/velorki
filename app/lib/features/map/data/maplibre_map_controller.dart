@@ -1148,7 +1148,10 @@ class MaplibreMapControllerAdapter implements MapController {
   /// replaced its own, draws everything. A late write that finds its source
   /// gone must not rebuild the layers onto that successor's style in the
   /// middle of the successor's own attach.
-  Future<void> attachToStyle() async {
+  Future<void> attachToStyle() =>
+      MapDrawn.busy('attachToStyle', () => _attachToStyleNow());
+
+  Future<void> _attachToStyleNow() async {
     if (_disposed) return;
     _attached = false;
     _coneRegistered = false;
@@ -2021,7 +2024,10 @@ class MaplibreMapControllerAdapter implements MapController {
 
   /// Recolours every layer for [palette], e.g. after the accent changed
   /// without a style reload.
-  Future<void> setPalette(MapPalette palette) async {
+  Future<void> setPalette(MapPalette palette) =>
+      MapDrawn.busy('setPalette', () => _setPaletteNow(palette));
+
+  Future<void> _setPaletteNow(MapPalette palette) async {
     if (palette == _palette) return;
     _palette = palette;
     // A disposed adapter's layers belong to the adapter that replaced it.
@@ -2234,7 +2240,10 @@ class MaplibreMapControllerAdapter implements MapController {
   // -------------------------------------------------------------- features
 
   @override
-  Future<void> setWaypoints(List<MapWaypoint> waypoints) async {
+  Future<void> setWaypoints(List<MapWaypoint> waypoints) =>
+      MapDrawn.busy('setWaypoints', () => _setWaypointsNow(waypoints));
+
+  Future<void> _setWaypointsNow(List<MapWaypoint> waypoints) async {
     _waypoints = List<MapWaypoint>.unmodifiable(waypoints);
     final call = ++_waypointsCall;
     if (!_attached) return;
@@ -2273,7 +2282,10 @@ class MaplibreMapControllerAdapter implements MapController {
   }
 
   @override
-  Future<void> setPois(List<MapPoi> pois) async {
+  Future<void> setPois(List<MapPoi> pois) =>
+      MapDrawn.busy('setPois', () => _setPoisNow(pois));
+
+  Future<void> _setPoisNow(List<MapPoi> pois) async {
     _pois = List<MapPoi>.unmodifiable(pois);
     final call = ++_poisCall;
     if (!_attached) return;
@@ -2289,6 +2301,11 @@ class MaplibreMapControllerAdapter implements MapController {
 
   @override
   Future<void> setStops(
+    List<MapPoi> stops, {
+    List<String> groups = const <String>[],
+  }) => MapDrawn.busy('setStops', () => _setStopsNow(stops, groups: groups));
+
+  Future<void> _setStopsNow(
     List<MapPoi> stops, {
     List<String> groups = const <String>[],
   }) async {
@@ -3246,7 +3263,10 @@ class MaplibreMapControllerAdapter implements MapController {
   }
 
   /// Paints the weather for a dark map look or a light one.
-  Future<void> setWeatherDark(bool dark) async {
+  Future<void> setWeatherDark(bool dark) =>
+      MapDrawn.busy('setWeatherDark', () => _setWeatherDarkNow(dark));
+
+  Future<void> _setWeatherDarkNow(bool dark) async {
     if (dark == _weatherDark) return;
     _weatherDark = dark;
     if (!_attached || _disposed) return;

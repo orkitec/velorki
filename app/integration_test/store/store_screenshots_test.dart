@@ -91,9 +91,10 @@ const String _until = String.fromEnvironment('VELORKI_STORE_UNTIL');
 
 /// The longest a picture waits for its map, never less than the screen's
 /// own [hold]: past it the test fails. The emulator draws the map in
-/// software, a change of theme in 15 to 20 s.
+/// software: a change of theme in 15 to 20 s, a change of accent, which
+/// paints every marker afresh, in up to 30 s on a tablet.
 Duration _mapCap(Duration? hold) {
-  final floor = Duration(seconds: Platform.isAndroid ? 30 : 15);
+  final floor = Duration(seconds: Platform.isAndroid ? 60 : 20);
   return hold != null && hold > floor ? hold : floor;
 }
 
@@ -166,8 +167,11 @@ void main() {
     /// sheet over it); [mapShown] false that no map is on screen at all (a
     /// page over it), which then never draws; [weather] that the map shows
     /// the weather, whose frames must be back after a change of theme, and
-    /// [cycleMap] the same of the cycle map, and [route] that a route line
-    /// has to be on the map first. Every
+    /// [cycleMap] the same of the cycle map, [route] that a route line
+    /// has to be on the map first, and [moving] that the app updates the map
+    /// every second (a ride recording: the position, the camera following
+    /// it), so the picture is taken the moment the map is idle after the
+    /// last update rather than after a quiet spell, which never comes. Every
     /// picture waits for Flutter to have
     /// drawn everything: a change of language only redraws its texts.
     /// [relocalize] puts right what the app does not translate itself,
@@ -181,6 +185,7 @@ void main() {
       bool weather = false,
       bool cycleMap = false,
       bool route = false,
+      bool moving = false,
       bool Function(ThemeMode mode)? only,
       List<String>? inLocales,
       Future<void> Function(ThemeMode mode, String locale)? relocalize,
@@ -262,7 +267,12 @@ void main() {
             );
           }
           if (first && mapShown && (mapChanges || switched)) {
-            await waitForMapDrawn(tester, cap: cap, label: screen);
+            await waitForMapDrawn(
+              tester,
+              cap: cap,
+              label: screen,
+              quiet: moving ? Duration.zero : null,
+            );
           }
           await settleFrames(tester, margin: true, label: screen);
           await takeStoreShot(
@@ -841,7 +851,7 @@ void main() {
       // From here the rider stands still while every theme and language is
       // shot: the recorder's clock moves only with the fixes, so the figures
       // and the banner hold as they are.
-      await shoot('live', route: true);
+      await shoot('live', route: true, moving: true);
       // What the Live Activity and the watch show right now, for the slides
       // that draw them: the same snapshot the live card was built from, in
       // every language the store has and both themes, shot or not (the ride
@@ -877,7 +887,7 @@ void main() {
       );
       await rideOn(2);
       await waitForWidget(tester, find.byType(FiguresBar));
-      await shoot('navigation', route: true);
+      await shoot('navigation', route: true, moving: true);
 
       final recording = container.read(recordingControllerProvider.notifier);
       final halted = await recording.halt();

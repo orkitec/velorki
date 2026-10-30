@@ -38,6 +38,18 @@ abstract final class MapDrawn {
       ..removeRange(0, _recentWrites.length > 8 ? _recentWrites.length - 8 : 0);
   }
 
+  /// Runs [work], a job of several writes with work of the app's between
+  /// them (painting a marker's image, say), as one write under way from its
+  /// start to its end.
+  static Future<T> busy<T>(String what, Future<T> Function() work) async {
+    writing(what);
+    try {
+      return await work();
+    } finally {
+      changed();
+    }
+  }
+
   /// Notes a write to a map done (or given up).
   static void changed() {
     if (_writing > 0) _writing--;
