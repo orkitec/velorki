@@ -317,12 +317,13 @@ wait_for_boot() {  # wait_for_boot <serial>
   booted "$1" || die "$1 did not finish booting"
 }
 
-# An emulator started in the language (the workflow passes -change-locale
-# and says which in VELORKI_STORE_BOOT_LOCALE) reports its boot complete in
-# the old one, then restarts the framework in the new one; the flag stays
-# set throughout. So: the language first, then a framework that has stayed
-# up for a few seconds, past its boot screen (FallbackHome). A reboot to switch instead now and then never comes
-# back on a runner.
+# Switching the language restarts only the framework (stop, start), as the
+# emulator's own -change-locale does; a whole reboot for it now and then
+# never came back on a runner, and -change-locale itself raced the emulator
+# action's first commands. The boot-complete flag stays set across a
+# framework restart, so what is waited for is the language, a framework
+# that has stayed up for a few seconds, and the launcher past its boot
+# screen (FallbackHome).
 framework_in() {  # framework_in <serial> <language-tag>: whether it got there
   local serial=$1 tag=$2 pid="" now
   for _ in $(seq 1 90); do
@@ -345,19 +346,6 @@ framework_in() {  # framework_in <serial> <language-tag>: whether it got there
 android_boot() {  # android_boot <serial> <language-tag>
   local serial=$1 tag=$2 current
   wait_for_boot "$serial"
-  if [ "${VELORKI_STORE_BOOT_LOCALE:-}" = "$tag" ]; then
-    if framework_in "$serial" "$tag"; then
-      say "the emulator started in $tag"
-      # The workflow leaves this to here: the emulator action would do it
-      # while the framework restarts.
-      local scale
-      for scale in window_animation_scale transition_animation_scale animator_duration_scale; do
-        bounded 10 adb -s "$serial" shell settings put global "$scale" 0.0
-      done
-    else
-      say "the emulator did not come up in $tag; switching it by a reboot"
-    fi
-  fi
   current="$(bounded 10 adb -s "$serial" shell getprop persist.sys.locale | tr -d '\r')"
   if [ "$current" != "$tag" ]; then
     say "switching the emulator to $tag"
@@ -365,17 +353,23 @@ android_boot() {  # android_boot <serial> <language-tag>
       sleep 2
       wait_for_boot "$serial"
       bounded 10 adb -s "$serial" shell setprop persist.sys.locale "$tag"
-      # Now and then the emulator does not come back from a reboot: once
-      # more, then the run fails rather than waiting out the job.
-      local try
-      for try in 1 2; do
-        bounded 30 adb -s "$serial" reboot || true
-        sleep 5
-        booted "$serial" && break
-        [ "$try" = 2 ] && die "$serial did not come back from the reboot into $tag"
-        say "$serial did not come back from the reboot; rebooting once more"
-      done
-      say "the emulator is in $tag"
+      bounded 60 adb -s "$serial" shell 'stop; start' || true
+      if framework_in "$serial" "$tag"; then
+        say "the emulator is in $tag"
+      else
+        # Once more the long way: a reboot, tried twice, then the run fails
+        # rather than waiting out the job.
+        say "the framework did not come back in $tag; rebooting"
+        local try
+        for try in 1 2; do
+          bounded 30 adb -s "$serial" reboot || true
+          sleep 5
+          booted "$serial" && framework_in "$serial" "$tag" && break
+          [ "$try" = 2 ] && die "$serial did not come back from the reboot into $tag"
+          say "$serial did not come back from the reboot; rebooting once more"
+        done
+        say "the emulator is in $tag"
+      fi
     else
       say "no adb root on $serial; the status bar keeps the language $current"
     fi

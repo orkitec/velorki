@@ -691,21 +691,6 @@ jobs:
           path: ~/store-tiles
           key: store-tiles-W75_N40-${{ steps.snapshot.outputs.tag }}
 
-      # The emulator starts in the job's language (-change-locale), which
-      # only restarts its framework; switching it by a reboot afterwards now
-      # and then never came back on a runner.
-      - name: Emulator language
-        id: language
-        env:
-          LOCALE: ${{ matrix.locale }}
-        run: |
-          case "$LOCALE" in
-            en) tag=en-US ;;
-            *-*) tag=$LOCALE ;;
-            *) tag="$LOCALE-${LOCALE^^}" ;;
-          esac
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-
       - name: Screenshots and slides
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         # A capture takes about half an hour; a stuck test stops itself after
@@ -717,7 +702,6 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
           VELORKI_STORE_START_TIMEOUT: "1500"
           ORG_GRADLE_PROJECT_velorkiMapVulkan: "true"
-          VELORKI_STORE_BOOT_LOCALE: ${{ steps.language.outputs.tag }}
         with:
           api-level: ${{ env.API_LEVEL }}
           target: google_apis
@@ -735,10 +719,7 @@ jobs:
           emulator-options: >-
             -no-window -no-snapshot -no-audio -no-boot-anim
             -gpu software -camera-back none -camera-front none
-            -change-locale ${{ steps.language.outputs.tag }}
-          # tool/store_screenshots.sh turns the animations off once the
-          # framework is back in the job's language.
-          disable-animations: false
+          disable-animations: true
           # One line: the action runs the script line by line.
           # The device log is kept for a failed run: the emulator is gone
           # once this step ends.
