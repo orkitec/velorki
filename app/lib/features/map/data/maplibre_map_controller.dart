@@ -1841,7 +1841,7 @@ class MaplibreMapControllerAdapter implements MapController {
         if (!isStyleGoneError(e)) rethrow;
       }
     } finally {
-      MapDrawn.routeLinesOn(this, _drawnRouteLengths());
+      _publishRouteLines();
     }
   }
 
@@ -1889,6 +1889,15 @@ class MaplibreMapControllerAdapter implements MapController {
   }
 
   /// The point count of each route line written to the map.
+  /// Tells [MapDrawn] which route lines this map has. A write that ends
+  /// after [dispose] (a theme change swaps the style, and with it the
+  /// adapter) says nothing: its line is on a style that is gone, and a stale
+  /// entry would count as the new style's line.
+  void _publishRouteLines() {
+    if (_disposed) return;
+    MapDrawn.routeLinesOn(this, _drawnRouteLengths());
+  }
+
   List<int> _drawnRouteLengths() => <int>[
     for (final id in _routeLines.keys) _routePoints[id]?.length ?? 0,
   ];
@@ -1897,7 +1906,7 @@ class MaplibreMapControllerAdapter implements MapController {
     // Set again while this waited its turn: the write after it draws.
     if (_routePoints.containsKey(id)) return;
     if (!_attached || _routeLines.remove(id) == null) return;
-    MapDrawn.routeLinesOn(this, _drawnRouteLengths());
+    _publishRouteLines();
     await _ops.removeLayer(MapLayerIds.routeLayer(id));
     await _ops.removeLayer(MapLayerIds.routeCasingLayer(id));
     await _ops.removeSource(MapLayerIds.routeSource(id));

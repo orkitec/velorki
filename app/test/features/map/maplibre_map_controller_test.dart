@@ -11,6 +11,7 @@ import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki/features/map/data/cyclosm_tone.dart';
 import 'package:velorki/features/map/data/geojson.dart';
 import 'package:velorki/features/map/data/heading_cone.dart';
+import 'package:velorki/features/map/application/map_drawn.dart';
 import 'package:velorki/features/map/data/maplibre_map_controller.dart';
 import 'package:velorki/features/map/data/marker_glyph.dart';
 import 'package:velorki/features/map/data/marker_layers.dart';
@@ -679,6 +680,26 @@ void main() {
           expect(_featuresOf(ops, MapLayerIds.waypointsSource), hasLength(1));
         },
       );
+
+      test('a route line that lands after dispose is not counted as drawn '
+          '(the style it went on is gone)', () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        final gate = Completer<void>();
+        ops.nextSourceIdsGate = gate;
+
+        final drawing = adapter.setRouteLine('main', const [
+          LatLng(48, 11),
+          LatLng(48.1, 11.1),
+          LatLng(48.2, 11.2),
+        ]);
+        adapter.dispose();
+        gate.complete();
+        await drawing;
+
+        expect(MapDrawn.hasRouteLineOf(3), isFalse);
+      });
 
       test('turn markers too', () async {
         final ops = RecordingStyleOps();
