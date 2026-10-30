@@ -151,8 +151,7 @@ Future<void> waitForMapDrawn(
   if (!drawn && !lenient) {
     fail(
       'the map was not drawn within ${cap.inSeconds} s'
-      '${label == null ? '' : ' for $label'}: a write still under way, or no '
-      'idle after the last one',
+      '${label == null ? '' : ' for $label'}: ${MapDrawn.describe()}',
     );
   }
 }

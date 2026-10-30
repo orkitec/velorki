@@ -21,6 +21,10 @@ abstract final class MapDrawn {
   static int get now => _sequence;
 
   static int _writing = 0;
+  static final Stopwatch _clock = Stopwatch()..start();
+  static Duration _lastIdleAt = Duration.zero;
+  static Duration _lastChangeAt = Duration.zero;
+  static final List<Duration> _recentChanges = <Duration>[];
 
   /// Notes a write to a map setting out: until [changed] notes its end, the
   /// map is not drawn. An owner's writes follow one another without a
@@ -32,12 +36,30 @@ abstract final class MapDrawn {
   static void changed() {
     if (_writing > 0) _writing--;
     _lastChange = ++_sequence;
+    _lastChangeAt = _clock.elapsed;
+    _recentChanges
+      ..add(_lastChangeAt)
+      ..removeWhere((at) => _lastChangeAt - at > const Duration(seconds: 5));
   }
 
   /// Notes that a map has become idle.
   static void idle() {
     _lastIdle = ++_sequence;
+    _lastIdleAt = _clock.elapsed;
     idles.value++;
+  }
+
+  /// What holds the maps from counting as drawn, for a failure to say.
+  static String describe() {
+    final now = _clock.elapsed;
+    final recent = _recentChanges
+        .where((at) => now - at <= const Duration(seconds: 5))
+        .length;
+    return '$_writing write(s) under way; the last write '
+        '${(now - _lastChangeAt).inMilliseconds} ms ago, the last idle '
+        '${(now - _lastIdleAt).inMilliseconds} ms ago '
+        '(${_lastIdle > _lastChange ? 'after' : 'before'} the last write); '
+        '$recent write(s) in the last 5 s';
   }
 
   /// Whether the maps have drawn everything written to them since [mark]:
