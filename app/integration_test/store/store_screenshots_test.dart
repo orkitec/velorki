@@ -318,7 +318,9 @@ void main() {
       tester,
       () => MapDrawn.cycleMaps.value > cyclesBefore,
       describe: 'the cycle map drawn',
-      timeout: const Duration(seconds: 90),
+      // Built from the tile in the background: over 90 s once on a CI
+      // tablet emulator, whose larger map needs more of it.
+      timeout: const Duration(minutes: 3),
     );
     markMapChange();
     await shoot('cyclemap', hold: const Duration(seconds: 20), cycleMap: true);
