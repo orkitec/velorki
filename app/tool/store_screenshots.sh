@@ -458,8 +458,13 @@ capture() {
       local status=0 shown=0 quiet=0 size=-1 now_size
       # Each picture's line as it comes, so the job's log shows how far the
       # test got; a test that prints nothing for VELORKI_STORE_STALL_TIMEOUT
-      # seconds (ten minutes; its longest wait is three) is stuck, and is
-      # stopped with its log's end rather than left to the job's limit.
+      # seconds (seven minutes; its longest wait is three, then a minute for
+      # the map) is stuck: it is stopped with its log's end rather than left
+      # to the job's limit, then run once more from the start (it clears the
+      # library as it starts).
+      # On the CI emulator the app now and then stops drawing for good as a
+      # second map view opens (the import's preview): no frame, so the
+      # test's next pump never returns.
       while kill -0 "$pid" 2> /dev/null; do
         sleep 5
         now_size=$(wc -c < "$log")
@@ -470,7 +475,7 @@ capture() {
           sed -n "$((shown + 1)),${total}p" "$log" | grep -E 'VELORKI_STORE' || true
           shown=$total
         fi
-        if [ "$quiet" -ge "${VELORKI_STORE_STALL_TIMEOUT:-600}" ]; then
+        if [ "$quiet" -ge "${VELORKI_STORE_STALL_TIMEOUT:-420}" ]; then
           echo "::error::the capture for $locale printed nothing for $quiet s; its log ends:" >&2
           tail -n 60 "$log" >&2
           kill "$pid" 2> /dev/null || true
@@ -478,8 +483,12 @@ capture() {
         fi
       done
       wait "$pid" || status=$?
-      if [ "$quiet" -ge "${VELORKI_STORE_STALL_TIMEOUT:-600}" ]; then
-        die "the capture for $locale stalled"
+      if [ "$quiet" -ge "${VELORKI_STORE_STALL_TIMEOUT:-420}" ]; then
+        if [ "$attempt" = 1 ]; then
+          echo "::warning::the capture for $locale stalled; trying again from the start" >&2
+          continue
+        fi
+        die "the capture for $locale stalled twice"
       fi
       # VELORKI_STORE_VERBOSE keeps flutter's whole log (-v), timestamped by
       # the monitor's ticks, under logs/ for the artifact.

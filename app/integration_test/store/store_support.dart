@@ -802,6 +802,7 @@ class Rider {
   final List<TrackPoint> points;
   int _next = 0;
   double alongM = 0;
+  int _km = 0;
 
   bool get done => _next >= points.length;
 
@@ -839,6 +840,12 @@ class Rider {
       ),
     );
     _next++;
+    // A line a kilometre: the ride takes minutes on an emulator, and the
+    // driver stops a test that prints nothing for seven of them as stuck.
+    if (alongM ~/ 1000 > _km) {
+      _km = alongM ~/ 1000;
+      debugPrint('VELORKI_ITEST rider at $_km km');
+    }
     await tester.pump(pump);
   }
 }
