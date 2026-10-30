@@ -801,10 +801,15 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
     'addLayer $layerId',
   );
 
+  // The two reads the adapter makes on its way to a write count as one
+  // under way too (MapDrawn): a route line asks for the sources first.
   @override
-  Future<List<String>> getLayerIds() async => <String>[
-    for (final id in await map.getLayerIds()) id as String,
-  ];
+  Future<List<String>> getLayerIds() => MapDrawn.busy(
+    'getLayerIds',
+    () async => <String>[
+      for (final id in await map.getLayerIds()) id as String,
+    ],
+  );
 
   @override
   Future<void> removeLayer(String layerId) =>
@@ -837,7 +842,8 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       );
 
   @override
-  Future<List<String>> getSourceIds() => map.getSourceIds();
+  Future<List<String>> getSourceIds() =>
+      MapDrawn.busy('getSourceIds', map.getSourceIds);
 
   @override
   Future<void> addImage(String name, Uint8List bytes, {bool sdf = false}) =>
