@@ -248,6 +248,7 @@ class _MapViewState extends ConsumerState<MapView> {
     // wait for the next one, which is up to five metres of riding away.
     final known = ref.read(devicePositionProvider).value;
     if (known != null) _pushPosition(known);
+    MapDrawn.styles.value++;
   }
 
   /// The map look on screen right now, resolved.

@@ -41,6 +41,7 @@ import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/assistant/application/assistant_controller.dart';
 import 'package:velorki/features/assistant/presentation/assistant_sheet.dart';
 import 'package:velorki/features/import_export/data/incoming_file_service.dart';
+import 'package:velorki/features/map/application/map_drawn.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/domain/cycle_map.dart';
 import 'package:velorki/features/map/presentation/layers_sheet.dart';
@@ -155,7 +156,10 @@ void main() {
     /// [markMapChange] (the screen's set-up, the switch of theme), at most
     /// [hold]; [mapChanges] false says the set-up left the map as it was (a
     /// sheet over it); [mapShown] false that no map is on screen at all (a
-    /// page over it), which then never draws. Every picture waits for Flutter to have
+    /// page over it), which then never draws; [weather] that the map shows
+    /// the weather, whose frames must be back after a change of theme, and
+    /// [cycleMap] the same of the cycle map. Every
+    /// picture waits for Flutter to have
     /// drawn everything: a change of language only redraws its texts.
     /// [relocalize] puts right what the app does not translate itself,
     /// before each picture.
@@ -165,6 +169,8 @@ void main() {
       bool offline = false,
       bool mapChanges = true,
       bool mapShown = true,
+      bool weather = false,
+      bool cycleMap = false,
       bool Function(ThemeMode mode)? only,
       List<String>? inLocales,
       Future<void> Function(ThemeMode mode, String locale)? relocalize,
@@ -188,8 +194,40 @@ void main() {
         if (only != null && !only(mode)) continue;
         if (!_wanted(screen, mode)) continue;
         final switched = container.read(appearanceSettingProvider).mode != mode;
+        final styles = MapDrawn.styles.value;
+        final frames = MapDrawn.weatherFrames.value;
+        final cycles = MapDrawn.cycleMaps.value;
         if (switched) markMapChange();
         await appearance.setMode(mode);
+        if (switched && mapShown) {
+          // A change of theme swaps the map's style: an idle before the new
+          // one has loaded is the old style's, and a picture then caught the
+          // map half drawn.
+          await waitUntil(
+            tester,
+            () => MapDrawn.styles.value > styles,
+            describe: 'the map style for ${mode.name}',
+            timeout: const Duration(seconds: 60),
+          );
+          // The weather's frames go back on the new style once loaded.
+          if (weather) {
+            await waitUntil(
+              tester,
+              () => MapDrawn.weatherFrames.value > frames,
+              describe: 'the weather drawn again in ${mode.name}',
+              timeout: const Duration(seconds: 60),
+            );
+          }
+          if (cycleMap) {
+            await waitUntil(
+              tester,
+              () => MapDrawn.cycleMaps.value > cycles,
+              describe: 'the cycle map drawn again in ${mode.name}',
+              timeout: const Duration(seconds: 60),
+            );
+          }
+          markMapChange();
+        }
         var first = true;
         for (final locale in these) {
           await language.select(Locale(locale));
@@ -254,6 +292,7 @@ void main() {
     }) {
       await stops.setKind(kind, shown: defaultStopKinds.contains(kind));
     }
+    final cyclesBefore = MapDrawn.cycleMaps.value;
     await cycleMap.setShown(true);
     // The stops read best on a plain route line.
     await container.read(routeColouringOnProvider.notifier).set(on: false);
@@ -261,13 +300,22 @@ void main() {
     planner.clear();
     await frameArea(tester, container, chelsea, chelseaZoom);
     // The first shot of a run waits for the map style and its tiles.
-    await shoot('cyclemap', hold: const Duration(seconds: 20));
+    // The cycle map is drawn once its data is built from the tile, which
+    // can be after the map has gone idle.
+    await waitUntil(
+      tester,
+      () => MapDrawn.cycleMaps.value > cyclesBefore,
+      describe: 'the cycle map drawn',
+      timeout: const Duration(seconds: 90),
+    );
+    markMapChange();
+    await shoot('cyclemap', hold: const Duration(seconds: 20), cycleMap: true);
 
     if (await stopAfter('cyclemap')) return;
 
     await tapAndPump(tester, find.byTooltip(l10n.mapLayers));
     await waitForWidget(tester, find.byType(LayersSheet));
-    await shoot('layers', mapChanges: false);
+    await shoot('layers', mapChanges: false, cycleMap: true);
     Navigator.of(tester.element(find.byType(LayersSheet))).pop();
     await cycleMap.setShown(false);
     await stops.setShown(false);
@@ -325,6 +373,7 @@ void main() {
     );
     await shoot(
       'weather',
+      weather: true,
       hold: const Duration(seconds: 8),
       // The time control and the colours' key under the Save button, in
       // each language's own heights.

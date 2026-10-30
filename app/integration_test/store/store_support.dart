@@ -385,7 +385,9 @@ Future<RouteResult> planRoute(
       return state.result != null && !state.isRouting;
     },
     describe: 'a route through $waypoints',
-    timeout: const Duration(seconds: 90),
+    // Right after an emulator boots, while Android still compiles the new
+    // app, a route took 14 to 90 s instead of two.
+    timeout: const Duration(minutes: 3),
     onTimeout: () => '${container.read(plannerControllerProvider).route}',
   );
   return container.read(plannerControllerProvider).result!;
@@ -577,6 +579,7 @@ Future<Future<void> Function()> showRouteRain(
   final colouringOn = container.read(routeColouringOnProvider);
   final weatherMap = container.read(weatherMapPreferencesProvider.notifier);
   final planner = container.read(plannerControllerProvider.notifier);
+  final frames = MapDrawn.weatherFrames.value;
   // The weather first, so the frames are loading while the route comes in;
   // the picture waits for the map to have drawn them.
   planner.clear();
@@ -600,6 +603,15 @@ Future<Future<void> Function()> showRouteRain(
         .isNotEmpty,
     describe: 'the route coloured by the rain',
   );
+  // The rain's frames on the map: the map can go idle before their images
+  // are in, and a picture then had no rain.
+  await waitUntil(
+    tester,
+    () => MapDrawn.weatherFrames.value > frames,
+    describe: 'the rain drawn on the map',
+    timeout: const Duration(seconds: 60),
+  );
+  markMapChange();
   return () async {
     await weatherMap.setRadar(false);
     container.read(weatherRadarOffsetProvider.notifier).set(0);

@@ -11,6 +11,7 @@ import 'package:flutter/services.dart'
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../application/map_drawn.dart';
 import '../../../app/theme.dart';
 import '../domain/cycle_map.dart';
 import '../domain/map_controller.dart';
@@ -2799,6 +2800,7 @@ class MaplibreMapControllerAdapter implements MapController {
     }
     final old = List<int>.of(_cycleGenerations);
     _cycleGenerations.add(generation);
+    MapDrawn.cycleMaps.value++;
     if (old.isEmpty) return;
     await Future<void>.delayed(cycleMapSwapDelay);
     if (!_attached || _disposed) return;
@@ -3041,6 +3043,7 @@ class MaplibreMapControllerAdapter implements MapController {
     (_weatherDrawn[layer.id] ??= <_WeatherGeneration>[]).add(
       _WeatherGeneration(n, layer, shown: shown),
     );
+    MapDrawn.weatherFrames.value++;
   }
 
   /// The layer the weather goes under: the cycle map's lowest, else the
