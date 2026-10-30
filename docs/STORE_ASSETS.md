@@ -418,17 +418,16 @@ against it, to see which converts better.
 English on the iPhone, English on the iPad and the Duo, and the other
 languages on each device (the simulator's region, which decides the status
 bar's clock, changes only with a reboot, so English runs apart; a shut-down
-simulator gets its region written before it boots). The capture jobs take
-the pictures only (`--no-slides`), the English iPhone job also the watch in
-every language (`--watch-locales`: the test writes the watch's figures for
-all of them), and keep them as `store-raw-ios-<job>`. Then a `slides` job
-draws every device's slides and the creative assets from all of them, six
-at a time (`VELORKI_SLIDES_JOBS`), into `store-assets-ios-iphone`
-(`slides/set/`, both sizes and the contact sheet, `watch/` and
-`creative/`), `-ipad` (`ipad/slides/set/`) and `-duo` (`duo/slides/set/`);
-with the preview's (`store-assets-ios-preview-<job>`, recorded in the
-iPhone's jobs) they are merged into one tree for the upload. Xcode resolves
-the Swift packages from `Package.resolved` only, without update checks. Every three
+simulator gets its region written before it boots). Each job draws its own
+languages' slides, six at a time (`VELORKI_SLIDES_JOBS`); the iPhone's jobs
+also shoot the watch and make the creative assets in their languages. Each
+device's set is kept as an artifact as soon as it is made,
+`store-assets-ios-<set>-<job>`: the iPhone's (`slides/set/`, both sizes and
+the contact sheet, `watch/` and `creative/`), the iPad's (`ipad/slides/set/`),
+the Duo's (`duo/slides/set/`) and the preview's (`preview/<locale>/preview.mp4`
+with its poster, recorded in the iPhone's jobs), all merged into one tree for
+the upload. Xcode resolves the Swift packages from `Package.resolved` only,
+without update checks. Every three
 minutes the script logs memory, disk, the busiest processes and the booted
 simulators (`VELORKI_STORE_MONITOR`, seconds). The `ios` and `android` inputs
 choose the sets (`ios` the iPhone's, the iPad's and the Duo's, narrowed by
