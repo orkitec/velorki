@@ -20,8 +20,19 @@ abstract final class MapDrawn {
   /// The sequence so far: a mark for [drawnSince].
   static int get now => _sequence;
 
-  /// Notes a write to a map.
-  static void changed() => _lastChange = ++_sequence;
+  static int _writing = 0;
+
+  /// Notes a write to a map setting out: until [changed] notes its end, the
+  /// map is not drawn. An owner's writes follow one another without a
+  /// break, so a run of them (the markers, then the route) holds this up
+  /// from its first to its last.
+  static void writing() => _writing++;
+
+  /// Notes a write to a map done (or given up).
+  static void changed() {
+    if (_writing > 0) _writing--;
+    _lastChange = ++_sequence;
+  }
 
   /// Notes that a map has become idle.
   static void idle() {
@@ -29,10 +40,10 @@ abstract final class MapDrawn {
     idles.value++;
   }
 
-  /// Whether a map has become idle after [mark] and after the last write
-  /// made to any map.
-  static bool drawnSince(int mark) =>
-      _lastIdle > mark && _lastIdle > _lastChange;
+  /// Whether the maps have drawn everything written to them since [mark]:
+  /// no write under way and an idle after the last write. When nothing was
+  /// written after [mark], an idle after the last write before it will do.
+  static bool drawnSince(int mark) => _writing == 0 && _lastIdle > _lastChange;
 
   static final Map<Object, List<int>> _routeLines = <Object, List<int>>{};
 

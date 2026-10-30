@@ -89,6 +89,14 @@ const String _themes = String.fromEnvironment(
 /// screens come in the order of the sections below. Empty takes them all.
 const String _until = String.fromEnvironment('VELORKI_STORE_UNTIL');
 
+/// The longest a picture waits for its map, never less than the screen's
+/// own [hold]: past it the test fails. The emulator draws the map in
+/// software, a change of theme in 15 to 20 s.
+Duration _mapCap(Duration? hold) {
+  final floor = Duration(seconds: Platform.isAndroid ? 30 : 15);
+  return hold != null && hold > floor ? hold : floor;
+}
+
 /// The pictures the slides use, as `screen:theme` pairs (tool/store_need.py);
 /// empty takes every screen in every theme.
 const String _need = String.fromEnvironment('VELORKI_STORE_NEED');
@@ -178,12 +186,7 @@ void main() {
       Future<void> Function(ThemeMode mode, String locale)? relocalize,
     }) async {
       final these = inLocales ?? locales;
-      // On the emulator the map is drawn in software: a change of theme
-      // reloads its style, which takes 15 to 20 s to draw, and the map's
-      // idle ends the wait long before this anywhere it can.
-      final cap = Platform.isAndroid
-          ? const Duration(seconds: 30)
-          : hold ?? const Duration(seconds: 4);
+      final cap = _mapCap(hold);
       // The theme the last screen left first: one change of theme a
       // screen, not two.
       final current = container.read(appearanceSettingProvider).mode;
@@ -440,7 +443,7 @@ void main() {
       await shoot('stops-accent', route: true, offline: true, only: dark);
       markMapChange();
       await appearance.setAccent(AccentPreset.volt);
-      await waitForMapDrawn(tester, cap: const Duration(seconds: 4));
+      await waitForMapDrawn(tester, cap: _mapCap(null));
     }
     await stops.setShown(false);
     await container
@@ -780,7 +783,7 @@ void main() {
         await shoot('offline-accent', route: true, offline: true, only: dark);
         markMapChange();
         await appearance.setAccent(AccentPreset.volt);
-        await waitForMapDrawn(tester, cap: const Duration(seconds: 4));
+        await waitForMapDrawn(tester, cap: _mapCap(null));
       }
       planner.clear();
     }

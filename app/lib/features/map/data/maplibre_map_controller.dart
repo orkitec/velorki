@@ -648,11 +648,11 @@ abstract class MapLibreStyleOps {
 /// All used to surface as unhandled exceptions from fire-and-forget calls
 /// and take an integration test down; none is worth reporting.
 Future<void> tolerateMapGone(Future<void> Function() op) async {
+  // Every write to a map goes through here: the store pictures wait for no
+  // write under way and the map gone idle after the last one (MapDrawn).
+  MapDrawn.writing();
   try {
     await op();
-    // Every write to a map goes through here: the store pictures wait for
-    // the map to go idle after the last one (MapDrawn).
-    MapDrawn.changed();
   } on MissingPluginException {
     return;
   } on PlatformException catch (e) {
@@ -668,6 +668,8 @@ Future<void> tolerateMapGone(Future<void> Function() op) async {
     // still matters for the fakes that stand in for the plugin.)
     if (isStyleGoneError(e)) return;
     rethrow;
+  } finally {
+    MapDrawn.changed();
   }
 }
 

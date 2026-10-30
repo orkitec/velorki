@@ -114,16 +114,18 @@ int _mapMark = 0;
 void markMapChange() => _mapMark = MapDrawn.now;
 
 /// Waits until the map has drawn everything written to it since the last
-/// [markMapChange]: MapLibre's idle after the app's last write to it
-/// (MapDrawn.drawnSince), and that for [quiet] with no new write, as the
-/// app draws a screen in steps (the route's lines after its style, the
-/// stops after the camera has moved). At most [cap]: when nothing changed
-/// on the map there is no idle to wait for. [label] logs how long it took.
+/// [markMapChange]: no write under way and MapLibre's idle after the app's
+/// last write (MapDrawn.drawnSince), and that for [quiet] with no new
+/// write, as the app draws a screen in steps (the route's lines after its
+/// style, the stops after the camera has moved). Fails the test when the
+/// map is not drawn after [cap], unless [lenient] (a wait that only lets an
+/// earlier move finish). [label] logs how long it took.
 Future<void> waitForMapDrawn(
   WidgetTester tester, {
   required Duration cap,
   Duration? quiet,
   String? label,
+  bool lenient = false,
 }) async {
   final still =
       quiet ?? Duration(milliseconds: Platform.isAndroid ? 1500 : 800);
@@ -143,7 +145,14 @@ Future<void> waitForMapDrawn(
   if (label != null) {
     debugPrint(
       'VELORKI_STORE $label map drawn in ${clock.elapsedMilliseconds} ms'
-      '${drawn ? '' : ' (cap, not idle after the last change)'}',
+      '${drawn ? '' : ' (not drawn)'}',
+    );
+  }
+  if (!drawn && !lenient) {
+    fail(
+      'the map was not drawn within ${cap.inSeconds} s'
+      '${label == null ? '' : ' for $label'}: a write still under way, or no '
+      'idle after the last one',
     );
   }
 }
@@ -467,7 +476,7 @@ Future<void> frameRoute(
   Finder? handle,
 }) async {
   // The planner's own fit goes first, drawn; this one lands after it.
-  await waitForMapDrawn(tester, cap: const Duration(seconds: 2));
+  await waitForMapDrawn(tester, cap: const Duration(seconds: 2), lenient: true);
   markMapChange();
   final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
   final wide = _widePadding(tester);
@@ -520,7 +529,11 @@ Future<void> frameArea(
   Duration? glide,
 }) async {
   if (glide == null) {
-    await waitForMapDrawn(tester, cap: const Duration(seconds: 1));
+    await waitForMapDrawn(
+      tester,
+      cap: const Duration(seconds: 1),
+      lenient: true,
+    );
   }
   markMapChange();
   final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
