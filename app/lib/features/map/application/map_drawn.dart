@@ -49,6 +49,11 @@ abstract final class MapDrawn {
     idles.value++;
   }
 
+  /// Whether the app has written nothing to a map for [quiet], none under
+  /// way: done drawing, whether or not MapLibre has said so.
+  static bool writesSettled(Duration quiet) =>
+      _writing == 0 && _clock.elapsed - _lastChangeAt >= quiet;
+
   /// What holds the maps from counting as drawn, for a failure to say.
   static String describe() {
     final now = _clock.elapsed;
