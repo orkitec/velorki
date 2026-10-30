@@ -693,6 +693,9 @@ jobs:
 
       - name: Screenshots and slides
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        # A capture takes about half an hour; a stuck test stops itself after
+        # ten silent minutes (tool/store_screenshots.sh), this is the backstop.
+        timeout-minutes: 60
         env:
           LOCALES: ${{ matrix.locale }}
           PLATFORM: ${{ matrix.platform }}

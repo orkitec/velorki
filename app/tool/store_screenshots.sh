@@ -297,28 +297,47 @@ emulator_serial() {
   echo "$found"
 }
 
-wait_for_boot() {  # wait_for_boot <serial>
-  adb -s "$1" wait-for-device
+# bounded <seconds> <command...>: the command, killed after that long (an adb
+# call to an emulator that went down for a reboot and never came back waits
+# for good). perl's alarm survives the exec; macOS has no timeout(1).
+bounded() {
+  perl -e 'alarm shift @ARGV; exec @ARGV or exit 127' "$@"
+}
+
+booted() {  # booted <serial>: whether it is up within three minutes
+  bounded 180 adb -s "$1" wait-for-device || return 1
   for _ in $(seq 1 180); do
-    [ "$(adb -s "$1" shell getprop sys.boot_completed 2> /dev/null | tr -d '\r')" = 1 ] && return 0
+    [ "$(bounded 10 adb -s "$1" shell getprop sys.boot_completed 2> /dev/null | tr -d '\r')" = 1 ] && return 0
     sleep 1
   done
-  die "$1 did not finish booting"
+  return 1
+}
+
+wait_for_boot() {  # wait_for_boot <serial>
+  booted "$1" || die "$1 did not finish booting"
 }
 
 android_boot() {  # android_boot <serial> <language-tag>
   local serial=$1 tag=$2 current
   wait_for_boot "$serial"
-  current="$(adb -s "$serial" shell getprop persist.sys.locale | tr -d '\r')"
+  current="$(bounded 10 adb -s "$serial" shell getprop persist.sys.locale | tr -d '\r')"
   if [ "$current" != "$tag" ]; then
     say "switching the emulator to $tag"
-    if adb -s "$serial" root > /dev/null 2>&1; then
+    if bounded 30 adb -s "$serial" root > /dev/null 2>&1; then
       sleep 2
       wait_for_boot "$serial"
-      adb -s "$serial" shell setprop persist.sys.locale "$tag"
-      adb -s "$serial" reboot
-      sleep 5
-      wait_for_boot "$serial"
+      bounded 10 adb -s "$serial" shell setprop persist.sys.locale "$tag"
+      # Now and then the emulator does not come back from a reboot: once
+      # more, then the run fails rather than waiting out the job.
+      local try
+      for try in 1 2; do
+        bounded 30 adb -s "$serial" reboot || true
+        sleep 5
+        booted "$serial" && break
+        [ "$try" = 2 ] && die "$serial did not come back from the reboot into $tag"
+        say "$serial did not come back from the reboot; rebooting once more"
+      done
+      say "the emulator is in $tag"
     else
       say "no adb root on $serial; the status bar keeps the language $current"
     fi
@@ -436,8 +455,32 @@ capture() {
       sleep 1
     done
     if [ "$started" = 1 ] || ! kill -0 "$pid" 2> /dev/null; then
-      local status=0
+      local status=0 shown=0 quiet=0 size=-1 now_size
+      # Each picture's line as it comes, so the job's log shows how far the
+      # test got; a test that prints nothing for VELORKI_STORE_STALL_TIMEOUT
+      # seconds (ten minutes; its longest wait is three) is stuck, and is
+      # stopped with its log's end rather than left to the job's limit.
+      while kill -0 "$pid" 2> /dev/null; do
+        sleep 5
+        now_size=$(wc -c < "$log")
+        if [ "$now_size" = "$size" ]; then quiet=$((quiet + 5)); else quiet=0 size=$now_size; fi
+        local total
+        total=$(wc -l < "$log")
+        if [ "$total" -gt "$shown" ]; then
+          sed -n "$((shown + 1)),${total}p" "$log" | grep -E 'VELORKI_STORE' || true
+          shown=$total
+        fi
+        if [ "$quiet" -ge "${VELORKI_STORE_STALL_TIMEOUT:-600}" ]; then
+          echo "::error::the capture for $locale printed nothing for $quiet s; its log ends:" >&2
+          tail -n 60 "$log" >&2
+          kill "$pid" 2> /dev/null || true
+          break
+        fi
+      done
       wait "$pid" || status=$?
+      if [ "$quiet" -ge "${VELORKI_STORE_STALL_TIMEOUT:-600}" ]; then
+        die "the capture for $locale stalled"
+      fi
       # VELORKI_STORE_VERBOSE keeps flutter's whole log (-v), timestamped by
       # the monitor's ticks, under logs/ for the artifact.
       if [ -n "${VELORKI_STORE_VERBOSE:-}" ]; then
@@ -445,7 +488,8 @@ capture() {
         cp "$log" "$OUT/logs/test-${locale//,/-}-$attempt.log"
       fi
       if [ "$status" = 0 ]; then
-        grep -E 'VELORKI_STORE|All tests passed' "$log" || true
+        sed -n "$((shown + 1)),\$p" "$log" | grep -E 'VELORKI_STORE' || true
+        grep -E 'All tests passed' "$log" || true
         return 0
       fi
       # On a loaded runner Xcode's build settings query now and then gives
