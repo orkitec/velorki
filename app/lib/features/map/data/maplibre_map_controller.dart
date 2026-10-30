@@ -647,10 +647,13 @@ abstract class MapLibreStyleOps {
 /// when a style reload kept a source or layer the adapter had written off.
 /// All used to surface as unhandled exceptions from fire-and-forget calls
 /// and take an integration test down; none is worth reporting.
-Future<void> tolerateMapGone(Future<void> Function() op) async {
+Future<void> tolerateMapGone(
+  Future<void> Function() op, [
+  String what = 'write',
+]) async {
   // Every write to a map goes through here: the store pictures wait for no
   // write under way and the map gone idle after the last one (MapDrawn).
-  MapDrawn.writing();
+  MapDrawn.writing(what);
   try {
     await op();
   } on MissingPluginException {
@@ -718,6 +721,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
             promoteId: promotedIdProperty,
           )
         : map.addGeoJsonSource(sourceId, geojson),
+    'addGeoJsonSource $sourceId',
   );
 
   @override
@@ -729,6 +733,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       sourceId,
       kIsWeb ? withPromotedIds(geojson) : geojson,
     ),
+    'setGeoJsonSource $sourceId',
   );
 
   @override
@@ -748,6 +753,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
                 )
               : properties,
         ),
+        'addSource $sourceId',
       );
 
   @override
@@ -771,7 +777,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
         ],
       ),
     );
-  });
+  }, 'addImageSource $sourceId');
 
   @override
   Future<void> addLayer(
@@ -792,6 +798,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       filter: filter,
       minzoom: minzoom,
     ),
+    'addLayer $layerId',
   );
 
   @override
@@ -801,7 +808,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
 
   @override
   Future<void> removeLayer(String layerId) =>
-      tolerateMapGone(() => map.removeLayer(layerId));
+      tolerateMapGone(() => map.removeLayer(layerId), 'removeLayer $layerId');
 
   @override
   Future<void> removeSource(String sourceId) => tolerateMapGone(() async {
@@ -811,17 +818,23 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       final url = _imageUrls.remove(sourceId);
       if (url != null) releaseLocalFileUrl(url);
     }
-  });
+  }, 'removeSource $sourceId');
 
   @override
   Future<void> setLayerProperties(
     String layerId,
     ml.LayerProperties properties,
-  ) => tolerateMapGone(() => map.setLayerProperties(layerId, properties));
+  ) => tolerateMapGone(
+    () => map.setLayerProperties(layerId, properties),
+    'setLayerProperties $layerId',
+  );
 
   @override
   Future<void> setLayerVisibility(String layerId, bool visible) =>
-      tolerateMapGone(() => map.setLayerVisibility(layerId, visible));
+      tolerateMapGone(
+        () => map.setLayerVisibility(layerId, visible),
+        'setLayerVisibility $layerId',
+      );
 
   @override
   Future<List<String>> getSourceIds() => map.getSourceIds();
@@ -834,15 +847,19 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
           imagePixelRatio,
           () => map.addImage(name, bytes, sdf),
         ),
+        'addImage $name',
       );
 
   @override
   Future<void> animateCamera(ml.CameraUpdate update, {Duration? duration}) =>
-      tolerateMapGone(() => map.animateCamera(update, duration: duration));
+      tolerateMapGone(
+        () => map.animateCamera(update, duration: duration),
+        'animateCamera',
+      );
 
   @override
   Future<void> moveCamera(ml.CameraUpdate update) =>
-      tolerateMapGone(() => map.moveCamera(update));
+      tolerateMapGone(() => map.moveCamera(update), 'moveCamera');
 
   @override
   ml.CameraPosition? get cameraPosition => map.cameraPosition;

@@ -25,12 +25,18 @@ abstract final class MapDrawn {
   static Duration _lastIdleAt = Duration.zero;
   static Duration _lastChangeAt = Duration.zero;
   static final List<Duration> _recentChanges = <Duration>[];
+  static final List<(Duration, String)> _recentWrites = <(Duration, String)>[];
 
   /// Notes a write to a map setting out: until [changed] notes its end, the
   /// map is not drawn. An owner's writes follow one another without a
   /// break, so a run of them (the markers, then the route) holds this up
   /// from its first to its last.
-  static void writing() => _writing++;
+  static void writing([String what = 'write']) {
+    _writing++;
+    _recentWrites
+      ..add((_clock.elapsed, what))
+      ..removeRange(0, _recentWrites.length > 8 ? _recentWrites.length - 8 : 0);
+  }
 
   /// Notes a write to a map done (or given up).
   static void changed() {
@@ -64,7 +70,8 @@ abstract final class MapDrawn {
         '${(now - _lastChangeAt).inMilliseconds} ms ago, the last idle '
         '${(now - _lastIdleAt).inMilliseconds} ms ago '
         '(${_lastIdle > _lastChange ? 'after' : 'before'} the last write); '
-        '$recent write(s) in the last 5 s';
+        '$recent write(s) in the last 5 s: '
+        '${[for (final (at, what) in _recentWrites) '$what ${(now - at).inMilliseconds} ms ago'].join(', ')}';
   }
 
   /// Whether the maps have drawn everything written to them since [mark]:
