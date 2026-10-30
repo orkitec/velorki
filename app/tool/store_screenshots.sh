@@ -776,24 +776,11 @@ sys.exit(1 if bad else 0)
 PY
   fi
 
-  # The simulator is done with: shut down, so the watch's simulator and
-  # Chrome, drawing the creative assets beside it, have its memory (a 7 GB
-  # runner with all three at once stopped answering).
+  # The simulator is done with: shut down, so the watch's simulator has its
+  # memory (a 7 GB runner with it, the watch's and Chrome at once stopped
+  # answering).
   if [ "$ANDROID" = 0 ] && [ "$PREVIEW" = 0 ]; then
     xcrun simctl shutdown "$UDID" 2> /dev/null || true
-  fi
-
-  # VELORKI_STORE_CREATIVE=1: the App Store's creative assets
-  # (tool/store_creative.py) from the iPhone's pictures, made in the
-  # background while the watch is shot (the simulator's work, not the
-  # processor's) and done before the slides, whose six Chromes at once
-  # left one of its pictures unwritten. They are uploaded with the set, so
-  # a failure fails the run.
-  if [ "${VELORKI_STORE_CREATIVE:-0}" = 1 ] && [ "$PLATFORM" = ios ] && [ -z "$UNTIL" ] \
-    && [ "$PREVIEW" = 0 ]; then
-    say "the creative assets, in the background"
-    python3 "$APP/tool/store_creative.py" --locales "$LOCALES" > "$WORK/creative.log" 2>&1 &
-    CREATIVE_PID=$!
   fi
 
   # The watch takes the figures of the ride, which comes last. The test
@@ -803,6 +790,19 @@ PY
     && [ "${WATCH_LOCALES:-$LOCALES}" != none ]; then
     say "the watch, with the phone's figures"
     bash "$APP/tool/store_watch.sh" "$OUT/raw" "$OUT/watch" "${WATCH_LOCALES:-$LOCALES}" "${WATCH_THEME:-$THEMES}"
+  fi
+
+  # VELORKI_STORE_CREATIVE=1: the App Store's creative assets
+  # (tool/store_creative.py) from the iPhone's pictures, made after the
+  # watch: drawn beside the watch's simulator, a runner stopped answering
+  # for a quarter of an hour and Chrome missed its pictures. They are done
+  # before the slides, whose six Chromes at once left one of its pictures
+  # unwritten, and uploaded with the set, so a failure fails the run.
+  if [ "${VELORKI_STORE_CREATIVE:-0}" = 1 ] && [ "$PLATFORM" = ios ] && [ -z "$UNTIL" ] \
+    && [ "$PREVIEW" = 0 ]; then
+    say "the creative assets"
+    python3 "$APP/tool/store_creative.py" --locales "$LOCALES" > "$WORK/creative.log" 2>&1 &
+    CREATIVE_PID=$!
   fi
 fi
 
