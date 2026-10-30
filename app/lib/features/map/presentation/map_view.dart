@@ -398,7 +398,7 @@ class _MapViewState extends ConsumerState<MapView> {
         onMapLongClick: (_, coordinates) =>
             _adapter?.handleMapLongClick(coordinates),
         onCameraIdle: _onCameraIdle,
-        onMapIdle: () => MapDrawn.idles.value++,
+        onMapIdle: MapDrawn.idle,
       ),
     );
 

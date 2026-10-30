@@ -650,6 +650,9 @@ abstract class MapLibreStyleOps {
 Future<void> tolerateMapGone(Future<void> Function() op) async {
   try {
     await op();
+    // Every write to a map goes through here: the store pictures wait for
+    // the map to go idle after the last one (MapDrawn).
+    MapDrawn.changed();
   } on MissingPluginException {
     return;
   } on PlatformException catch (e) {

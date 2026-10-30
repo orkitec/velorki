@@ -315,6 +315,8 @@ jobs:
 
       - name: Screenshots and slides
         id: iphone
+        # A hung capture fails here with its log, not with the job's limit.
+        timeout-minutes: 60
         if: ${{ contains(format(',{0},', matrix.job.sets), ',iphone,') }}
         working-directory: app
         env:
@@ -344,6 +346,8 @@ jobs:
 
       - name: iPad screenshots and slides
         id: ipad
+        # A hung capture fails here with its log, not with the job's limit.
+        timeout-minutes: 60
         # Each device's set stands on its own: one failing keeps the others.
         if: ${{ !cancelled() && contains(format(',{0},', matrix.job.sets), ',ipad,') }}
         working-directory: app
@@ -368,6 +372,8 @@ jobs:
       # the script creates on the newest runtime that has the device.
       - name: iPhone Duo screenshots and slides
         id: duo
+        # A hung capture fails here with its log, not with the job's limit.
+        timeout-minutes: 60
         if: ${{ contains(format(',{0},', matrix.job.sets), ',duo,') }}
         working-directory: app
         env:

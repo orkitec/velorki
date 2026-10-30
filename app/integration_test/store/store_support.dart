@@ -4,6 +4,7 @@
 library;
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
@@ -110,38 +111,39 @@ int _mapMark = 0;
 /// Notes that the test is about to change the map (move it, load a route,
 /// switch its colours): [waitForMapDrawn] waits for the map to have drawn
 /// what came after this.
-void markMapChange() => _mapMark = MapDrawn.idles.value;
+void markMapChange() => _mapMark = MapDrawn.now;
 
-/// Waits until a map has drawn everything that changed since the last
-/// [markMapChange]: a newer idle (MapLibre's "did become idle": tiles,
-/// layers and images all drawn, nothing moving), then [quiet] with no
-/// further one, since a change made in steps (a style, then the route's
-/// layers over it) goes idle once per step. At most [cap]: when nothing
-/// changed on the map there is no idle to wait for. [label] logs how long
-/// it took.
+/// Waits until the map has drawn everything written to it since the last
+/// [markMapChange]: MapLibre's idle after the app's last write to it
+/// (MapDrawn.drawnSince), and that for [quiet] with no new write, as the
+/// app draws a screen in steps (the route's lines after its style, the
+/// stops after the camera has moved). At most [cap]: when nothing changed
+/// on the map there is no idle to wait for. [label] logs how long it took.
 Future<void> waitForMapDrawn(
   WidgetTester tester, {
   required Duration cap,
-  Duration quiet = const Duration(milliseconds: 800),
+  Duration? quiet,
   String? label,
 }) async {
+  final still =
+      quiet ?? Duration(milliseconds: Platform.isAndroid ? 1500 : 800);
   final since = _mapMark;
   final clock = Stopwatch()..start();
-  var seen = MapDrawn.idles.value;
-  var lastIdle = seen > since ? Duration.zero : null;
+  Duration? drawnAt;
   while (clock.elapsed < cap) {
-    await tester.pump(const Duration(milliseconds: 50));
-    final now = MapDrawn.idles.value;
-    if (now != seen) {
-      seen = now;
-      lastIdle = clock.elapsed;
+    if (MapDrawn.drawnSince(since)) {
+      drawnAt ??= clock.elapsed;
+      if (clock.elapsed - drawnAt >= still) break;
+    } else {
+      drawnAt = null;
     }
-    if (seen > since && clock.elapsed - lastIdle! >= quiet) break;
+    await tester.pump(const Duration(milliseconds: 50));
   }
+  final drawn = MapDrawn.drawnSince(since);
   if (label != null) {
     debugPrint(
       'VELORKI_STORE $label map drawn in ${clock.elapsedMilliseconds} ms'
-      '${seen > since ? '' : ' (cap, no idle)'}',
+      '${drawn ? '' : ' (cap, not idle after the last change)'}',
     );
   }
 }
