@@ -11,6 +11,7 @@
 #   tool/store_screenshots.sh --until variants         # capture only up to that screen
 #   tool/store_screenshots.sh --all-shots              # every screen in every theme
 #   tool/store_screenshots.sh --no-slides              # the pictures (and the watch) only
+#   tool/store_screenshots.sh --prepare --platform ipad # create the simulator, boot it once, shut it down
 #   tool/store_screenshots.sh --watch-locales en,de    # the watch in these languages ('none': not at all)
 #   tool/store_screenshots.sh --preview                # the preview video instead (store/preview_set.json)
 #   tool/store_screenshots.sh --platform ipad          # the iPad set; see below
@@ -105,6 +106,7 @@ CAPTURE=1
 UNTIL=
 ALL_SHOTS=0
 SLIDES=1
+PREPARE=0
 WATCH_LOCALES=
 PREVIEW=0
 PLATFORM=ios
@@ -118,6 +120,7 @@ while [ $# -gt 0 ]; do
     --until) UNTIL="$2"; shift ;;
     --all-shots) ALL_SHOTS=1 ;;
     --no-slides) SLIDES=0 ;;
+    --prepare) PREPARE=1 ;;
     --watch-locales) WATCH_LOCALES="$2"; shift ;;
     --preview) PREVIEW=1 ;;
     --platform) PLATFORM="$2"; shift ;;
@@ -199,23 +202,29 @@ print(max(ios, key=lambda r: [int(p) for p in r["version"].split(".")])["identif
   echo "$udid"
 }
 
+shut_down() {  # shut_down <udid>: whether the simulator is shut down
+  xcrun simctl list devices -j | python3 -c '
+import json, sys
+udid = sys.argv[1]
+sys.exit(not any(d["udid"] == udid and d["state"] == "Shutdown"
+                 for ds in json.load(sys.stdin)["devices"].values() for d in ds))' "$1"
+}
+
+write_region() {  # write_region <udid> <language> <region>, the simulator shut down
+  local prefs="$HOME/Library/Developer/CoreSimulator/Devices/$1/data/Library/Preferences/.GlobalPreferences.plist"
+  mkdir -p "$(dirname "$prefs")"
+  [ -f "$prefs" ] || plutil -create binary1 "$prefs"
+  plutil -replace AppleLanguages -json "[\"$2\"]" "$prefs"
+  plutil -replace AppleLocale -string "$3" "$prefs"
+}
+
 boot() {  # boot <udid> <language> <region>
   local udid=$1 language=$2 region=$3
   # Shut down, the simulator's language and region go straight into its
   # preferences, so it boots in them once instead of booting, being told
   # and booting again (minutes on a runner); the check below stays for a
   # simulator already running, or one that ignored the file.
-  local prefs="$HOME/Library/Developer/CoreSimulator/Devices/$udid/data/Library/Preferences/.GlobalPreferences.plist"
-  if xcrun simctl list devices -j | python3 -c '
-import json, sys
-udid = sys.argv[1]
-sys.exit(not any(d["udid"] == udid and d["state"] == "Shutdown"
-                 for ds in json.load(sys.stdin)["devices"].values() for d in ds))' "$udid"; then
-    mkdir -p "$(dirname "$prefs")"
-    [ -f "$prefs" ] || plutil -create binary1 "$prefs"
-    plutil -replace AppleLanguages -json "[\"$language\"]" "$prefs"
-    plutil -replace AppleLocale -string "$region" "$prefs"
-  fi
+  if shut_down "$udid"; then write_region "$udid" "$language" "$region"; fi
   xcrun simctl boot "$udid" 2> /dev/null || true
   xcrun simctl bootstatus "$udid" -b > /dev/null
   local current
@@ -480,6 +489,8 @@ print(",".join(c["clip"] + ":" + c["theme"] for c in json.load(open(sys.argv[1])
 ' "$APP/store/preview_set.json")"
 
 MIRROR_PID=""
+CREATIVE_PID=""
+PLIST_BACKUP=""
 SHUTTER_PID=""
 MONITOR_PID=""
 DEMO_SERIAL=""
@@ -505,6 +516,28 @@ cleanup() {
   rm -rf "$WORK"
 }
 trap cleanup EXIT
+
+# --prepare creates the simulator and boots it once, in the region of the
+# run that comes first, then shuts it down: a new simulator's first boot
+# takes minutes on a runner, later ones well under one, so the workflow does
+# this in the background while it sets up Flutter. With the iPhone, the
+# watch's simulator too.
+if [ "$PREPARE" = 1 ]; then
+  [ "$ANDROID" = 0 ] || die "--prepare is for the iOS simulators"
+  UDID="$(simulator)"
+  first="${LOCALES%%,*}"
+  case ",$LOCALES," in *,en*) first="$(printf '%s' "$LOCALES" | tr ',' '\n' | grep '^en' | head -1)" ;; esac
+  region="$(region_of "$first")"
+  if shut_down "$UDID"; then write_region "$UDID" "${region/_/-}" "$region"; fi
+  say "first boot of $UDID ($region)"
+  xcrun simctl boot "$UDID" 2> /dev/null || true
+  xcrun simctl bootstatus "$UDID" -b > /dev/null
+  xcrun simctl shutdown "$UDID"
+  if [ "$PLATFORM" = ios ]; then bash "$APP/tool/store_watch.sh" --prepare; fi
+  say "prepared $UDID"
+  exit 0
+fi
+
 
 # An iPad app that supports multitasking ignores the orientations a Flutter
 # app asks for, so the test could not turn the iPad. The capture build is
@@ -677,6 +710,17 @@ sys.exit(1 if bad else 0)
 PY
   fi
 
+  # VELORKI_STORE_CREATIVE=1: the App Store's creative assets
+  # (tool/store_creative.py) from the iPhone's pictures, made in the
+  # background while the watch is shot and the slides drawn; a failure only
+  # warns, as they can be uploaded by hand.
+  if [ "${VELORKI_STORE_CREATIVE:-0}" = 1 ] && [ "$PLATFORM" = ios ] && [ -z "$UNTIL" ] \
+    && [ "$PREVIEW" = 0 ]; then
+    say "the creative assets, in the background"
+    python3 "$APP/tool/store_creative.py" --locales "$LOCALES" > "$WORK/creative.log" 2>&1 &
+    CREATIVE_PID=$!
+  fi
+
   # The watch takes the figures of the ride, which comes last. The test
   # writes them for every language the store has, so --watch-locales can
   # shoot the watch for languages this run did not take.
@@ -694,9 +738,22 @@ if [ "$PREVIEW" = 1 ]; then
   exit 0
 fi
 
-# The store-assets workflow draws the slides in a job of its own, from every
-# capture job's pictures.
+# Waits for the creative assets begun after the capture, if any.
+creative_done() {
+  [ -n "$CREATIVE_PID" ] || return 0
+  if wait "$CREATIVE_PID"; then
+    tail -n 2 "$WORK/creative.log"
+  else
+    cat "$WORK/creative.log" >&2
+    say "warning: the creative assets failed"
+    [ -z "${GITHUB_ACTIONS:-}" ] || echo "::warning::the creative assets failed; see the log above"
+  fi
+  CREATIVE_PID=""
+}
+
+# --no-slides stops here: the pictures (and the watch) only.
 if [ "$SLIDES" = 0 ]; then
+  creative_done
   exit 0
 fi
 
@@ -708,3 +765,4 @@ if [ "$PLATFORM" != ios ]; then
 fi
 python3 "$APP/tool/store_slides.py" --locales "$LOCALES" --shots "$SHOTS" ${NEED:+--set-only} \
   --raw "$OUT/raw" --watch "$OUT/watch" --out "$OUT/slides" | tail -1
+creative_done

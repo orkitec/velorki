@@ -206,6 +206,48 @@ jobs:
           defaults write com.apple.dt.Xcode IDESkipPackageUpdates -bool YES
           defaults write com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM -bool NO
 
+      # The Duo needs an iOS 27.1 simulator runtime; the image may carry only
+      # 27.0. Downloaded (several GB) for the Xcode selected above when no
+      # installed runtime has the device, as the watchOS step does.
+      - name: iOS simulator runtime for the iPhone Duo
+        if: ${{ contains(format(',{0},', matrix.job.sets), ',duo,') }}
+        run: |
+          has_duo() {
+            xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          sys.exit(not any(r["isAvailable"] and any(d["identifier"].endswith(".iPhone-Duo")
+                                                    for d in r.get("supportedDeviceTypes", []))
+                           for r in json.load(sys.stdin)["runtimes"]))'
+          }
+          xcrun simctl list runtimes | grep '^iOS'
+          df -h / "$HOME"
+          if ! has_duo; then
+            echo "::notice::no iOS runtime with the iPhone Duo on the image; downloading the one for this Xcode"
+            xcodebuild -downloadPlatform iOS
+            xcrun simctl list runtimes | grep '^iOS'
+            df -h / "$HOME"
+            has_duo || { echo "::error::still no iOS simulator runtime with the iPhone Duo"; exit 1; }
+          fi
+
+      # A new simulator's first boot takes minutes on a runner, the ones after
+      # it well under one: each of the job's simulators (and the watch's)
+      # is created and booted once in the background, in the region its
+      # first run wants, while Flutter and the caches are set up. The first
+      # capture waits for it.
+      - name: Boot the simulators once, in the background
+        working-directory: app
+        env:
+          SETS: ${{ matrix.job.sets }}
+        run: |
+          (
+            for set in ${SETS//,/ }; do
+              case "$set" in iphone) platform=ios ;; *) platform="$set" ;; esac
+              tool/store_screenshots.sh --prepare --platform "$platform" --locales "$LOCALES" \
+                || echo "could not prepare the $set simulator; the capture boots it itself"
+            done
+            touch "$RUNNER_TEMP/simulators-ready"
+          ) > "$RUNNER_TEMP/simulators.log" 2>&1 &
+
       # store_slides.py drives headless Chrome, which the image ships;
       # store_preview.py wants ffmpeg, which it does not.
       - name: Chrome and ffmpeg
@@ -290,6 +332,15 @@ jobs:
           path: ~/store-tiles
           key: store-tiles-W75_N40-${{ steps.snapshot.outputs.tag }}
 
+      - name: Wait for the simulators
+        run: |
+          for _ in $(seq 1 900); do
+            [ -f "$RUNNER_TEMP/simulators-ready" ] && break
+            sleep 1
+          done
+          grep -v Malformed "$RUNNER_TEMP/simulators.log" || true
+          [ -f "$RUNNER_TEMP/simulators-ready" ] || echo "::warning::the simulators were not ready in 15 minutes"
+
       - name: Screenshots and slides
         id: iphone
         if: ${{ contains(format(',{0},', matrix.job.sets), ',iphone,') }}
@@ -297,16 +348,10 @@ jobs:
         env:
           # The runner's first build of the test app alone takes eight minutes.
           VELORKI_STORE_START_TIMEOUT: "1500"
+          # The App Store's creative assets (the product page header and the
+          # search results image), made beside the watch and the slides.
+          VELORKI_STORE_CREATIVE: "1"
         run: tool/store_screenshots.sh --locales "$LOCALES"
-
-      # The App Store's creative assets (the product page header and the
-      # search results image) from the same captures. Uploaded by hand to
-      # the Asset Library, so they only ride along in the artifact.
-      - name: Creative assets
-        if: ${{ !cancelled() && steps.iphone.outcome == 'success' }}
-        continue-on-error: true
-        working-directory: app
-        run: python3 tool/store_creative.py --locales "$LOCALES"
 
       # Each platform's set is kept as soon as it is made, in an artifact of
       # its own (store-assets-ios-*, merged again for the upload): a runner
@@ -346,29 +391,6 @@ jobs:
           path: app/build/store_screenshots/?pad/slides/set
           if-no-files-found: ${{ steps.ipad.outcome == 'success' && 'error' || 'warn' }}
           retention-days: 30
-
-      # The Duo needs an iOS 27.1 simulator runtime; the image may carry only
-      # 27.0. Downloaded (several GB) for the Xcode selected above when no
-      # installed runtime has the device, as the watchOS step does.
-      - name: iOS simulator runtime for the iPhone Duo
-        if: ${{ contains(format(',{0},', matrix.job.sets), ',duo,') }}
-        run: |
-          has_duo() {
-            xcrun simctl list runtimes -j | python3 -c '
-          import json, sys
-          sys.exit(not any(r["isAvailable"] and any(d["identifier"].endswith(".iPhone-Duo")
-                                                    for d in r.get("supportedDeviceTypes", []))
-                           for r in json.load(sys.stdin)["runtimes"]))'
-          }
-          xcrun simctl list runtimes | grep '^iOS'
-          df -h / "$HOME"
-          if ! has_duo; then
-            echo "::notice::no iOS runtime with the iPhone Duo on the image; downloading the one for this Xcode"
-            xcodebuild -downloadPlatform iOS
-            xcrun simctl list runtimes | grep '^iOS'
-            df -h / "$HOME"
-            has_duo || { echo "::error::still no iOS simulator runtime with the iPhone Duo"; exit 1; }
-          fi
 
       # The Duo's inner display, unfolded (tool/duo_state.c), on a simulator
       # the script creates on the newest runtime that has the device.
