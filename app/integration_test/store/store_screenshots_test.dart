@@ -30,6 +30,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -824,7 +825,7 @@ void main() {
         describe: 'the recorder to subscribe to the GPS',
       );
       final rider = Rider(positions, ride, demoRide(route));
-      await rider.rideTo(tester, 18000);
+      await rider.fastForwardTo(tester, 18000);
       // Navigation only sees the recorder's last snapshot, so the banner is
       // read after every fix once they come a second apart.
       Future<void> rideOn(int fixes) async {
@@ -835,7 +836,26 @@ void main() {
 
       var shown = false;
       while (!rider.done && rider.alongM < 21500) {
-        await rideOn(1);
+        // Far from the next turn, on to 300 m before it at once; from there
+        // a fix a second, so the ride stops on the first fix with the turn
+        // in range, as it always has.
+        final ahead = bannerProgress(tester)?.distanceToNextM;
+        if (ahead != null && ahead > 300) {
+          await rider.fastForwardTo(
+            tester,
+            rider.alongM + math.min(ahead - 300, 1000),
+          );
+          // The banner from the recorder's tick after the jump, not the one
+          // before it: another jump by that would go past the turn.
+          await waitUntil(
+            tester,
+            () => bannerProgress(tester)?.distanceToNextM != ahead,
+            describe: 'the banner after the jump',
+            timeout: const Duration(seconds: 15),
+          );
+        } else {
+          await rideOn(1);
+        }
         final progress = bannerProgress(tester);
         final next = progress?.distanceToNextM;
         if (progress?.next != null &&

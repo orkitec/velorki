@@ -813,8 +813,27 @@ class Rider {
     }
   }
 
+  /// Rides on to [metres] along the ride without drawing in between, for
+  /// pictures that only show where the ride got to. Each fix reaches the
+  /// recorder before the clock moves on (it stamps the heart rate by the
+  /// clock), so the ride is recorded as [step] records it; the screen
+  /// catches up once the recorder's next tick, a second later, publishes
+  /// it.
+  Future<void> fastForwardTo(WidgetTester tester, double metres) async {
+    while (!done && alongM < metres) {
+      _push();
+      await Future<void>(() {});
+    }
+    await tester.pump(const Duration(milliseconds: 1100));
+  }
+
   /// Pushes the next fix and pumps [pump].
   Future<void> step(WidgetTester tester, Duration pump) async {
+    _push();
+    await tester.pump(pump);
+  }
+
+  void _push() {
     final point = points[_next];
     final previous = _next == 0 ? null : points[_next - 1];
     final seconds = point.time!.difference(points.first.time!).inSeconds;
@@ -846,6 +865,5 @@ class Rider {
       _km = alongM ~/ 1000;
       debugPrint('VELORKI_ITEST rider at $_km km');
     }
-    await tester.pump(pump);
   }
 }
