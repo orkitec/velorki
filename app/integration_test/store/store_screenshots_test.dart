@@ -239,11 +239,21 @@ void main() {
             await relocalize(mode, locale);
           }
           if (first && route) {
-            // An owner draws its markers first and its route after them;
-            // the map can go idle in between.
+            // An owner draws its markers first and its route after them,
+            // and the map can go idle in between; and the lines an earlier
+            // screen left can still be on it. So: a line of exactly the
+            // planner's route (any route line where the planner has none,
+            // as under an import's preview).
+            final points = container
+                .read(plannerControllerProvider)
+                .result
+                ?.positions
+                .length;
             await waitUntil(
               tester,
-              () => MapDrawn.routeLines > 0,
+              () => points == null
+                  ? MapDrawn.routeLines > 0
+                  : MapDrawn.hasRouteLineOf(points),
               describe: 'the route on the map for $screen',
               timeout: const Duration(seconds: 60),
             );

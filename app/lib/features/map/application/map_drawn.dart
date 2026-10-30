@@ -34,18 +34,24 @@ abstract final class MapDrawn {
   static bool drawnSince(int mark) =>
       _lastIdle > mark && _lastIdle > _lastChange;
 
-  static final Map<Object, int> _routeLines = <Object, int>{};
+  static final Map<Object, List<int>> _routeLines = <Object, List<int>>{};
 
   /// How many route lines are on the maps: written to them, not just asked
   /// for (an owner draws its markers first and its route after them).
-  static int get routeLines => _routeLines.values.fold(0, (a, b) => a + b);
+  static int get routeLines =>
+      _routeLines.values.fold(0, (sum, lines) => sum + lines.length);
 
-  /// Notes that [map] now has [count] route lines on it.
-  static void routeLinesOn(Object map, int count) {
-    if (count == 0) {
+  /// Whether a map has a route line of exactly [points] points on it: the
+  /// route asked for, not one an earlier screen left that is still to go.
+  static bool hasRouteLineOf(int points) =>
+      _routeLines.values.any((lines) => lines.contains(points));
+
+  /// Notes that [map] now has route lines of these point counts on it.
+  static void routeLinesOn(Object map, List<int> points) {
+    if (points.isEmpty) {
       _routeLines.remove(map);
     } else {
-      _routeLines[map] = count;
+      _routeLines[map] = List<int>.unmodifiable(points);
     }
   }
 

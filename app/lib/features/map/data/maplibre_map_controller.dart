@@ -1134,7 +1134,7 @@ class MaplibreMapControllerAdapter implements MapController {
     _attached = false;
     _coneRegistered = false;
     _routeLines.clear();
-    MapDrawn.routeLinesOn(this, 0);
+    MapDrawn.routeLinesOn(this, const <int>[]);
     // A fresh style holds no cycle map; the replay adds the last one.
     _cycleGenerations.clear();
     _cycleUrls.values.forEach(releaseLocalFileUrl);
@@ -1813,7 +1813,7 @@ class MaplibreMapControllerAdapter implements MapController {
         if (!isStyleGoneError(e)) rethrow;
       }
     } finally {
-      MapDrawn.routeLinesOn(this, _routeLines.length);
+      MapDrawn.routeLinesOn(this, _drawnRouteLengths());
     }
   }
 
@@ -1860,11 +1860,16 @@ class MaplibreMapControllerAdapter implements MapController {
     return _queuedRouteLine(id, () => _removeRouteLineNow(id));
   }
 
+  /// The point count of each route line written to the map.
+  List<int> _drawnRouteLengths() => <int>[
+    for (final id in _routeLines.keys) _routePoints[id]?.length ?? 0,
+  ];
+
   Future<void> _removeRouteLineNow(String id) async {
     // Set again while this waited its turn: the write after it draws.
     if (_routePoints.containsKey(id)) return;
     if (!_attached || _routeLines.remove(id) == null) return;
-    MapDrawn.routeLinesOn(this, _routeLines.length);
+    MapDrawn.routeLinesOn(this, _drawnRouteLengths());
     await _ops.removeLayer(MapLayerIds.routeLayer(id));
     await _ops.removeLayer(MapLayerIds.routeCasingLayer(id));
     await _ops.removeSource(MapLayerIds.routeSource(id));
@@ -3671,7 +3676,7 @@ class MaplibreMapControllerAdapter implements MapController {
   /// by the widget that owns it.
   void dispose() {
     _disposed = true;
-    MapDrawn.routeLinesOn(this, 0);
+    MapDrawn.routeLinesOn(this, const <int>[]);
     _puckWalk?.cancel();
     _puckWalk = null;
     _ops.onFeatureDrag.remove(_handleFeatureDrag);
