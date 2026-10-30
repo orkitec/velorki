@@ -317,9 +317,47 @@ wait_for_boot() {  # wait_for_boot <serial>
   booted "$1" || die "$1 did not finish booting"
 }
 
+# An emulator started in the language (the workflow passes -change-locale
+# and says which in VELORKI_STORE_BOOT_LOCALE) reports its boot complete in
+# the old one, then restarts the framework in the new one; the flag stays
+# set throughout. So: the language first, then a framework that has stayed
+# up for a few seconds, past its boot screen (FallbackHome). A reboot to switch instead now and then never comes
+# back on a runner.
+framework_in() {  # framework_in <serial> <language-tag>: whether it got there
+  local serial=$1 tag=$2 pid="" now
+  for _ in $(seq 1 90); do
+    if [ "$(bounded 10 adb -s "$serial" shell getprop persist.sys.locale 2> /dev/null | tr -d '\r')" = "$tag" ] \
+      && bounded 10 adb -s "$serial" shell service check activity 2> /dev/null | grep -q found \
+      && bounded 10 adb -s "$serial" shell service check package 2> /dev/null | grep -q found \
+      && ! bounded 10 adb -s "$serial" shell dumpsys activity activities 2> /dev/null \
+        | grep -m1 topResumedActivity | grep -q FallbackHome; then
+      now="$(bounded 10 adb -s "$serial" shell pidof system_server 2> /dev/null | tr -d '\r')"
+      if [ -n "$now" ] && [ "$now" = "$pid" ]; then return 0; fi
+      pid=$now
+    else
+      pid=""
+    fi
+    sleep 2
+  done
+  return 1
+}
+
 android_boot() {  # android_boot <serial> <language-tag>
   local serial=$1 tag=$2 current
   wait_for_boot "$serial"
+  if [ "${VELORKI_STORE_BOOT_LOCALE:-}" = "$tag" ]; then
+    if framework_in "$serial" "$tag"; then
+      say "the emulator started in $tag"
+      # The workflow leaves this to here: the emulator action would do it
+      # while the framework restarts.
+      local scale
+      for scale in window_animation_scale transition_animation_scale animator_duration_scale; do
+        bounded 10 adb -s "$serial" shell settings put global "$scale" 0.0
+      done
+    else
+      say "the emulator did not come up in $tag; switching it by a reboot"
+    fi
+  fi
   current="$(bounded 10 adb -s "$serial" shell getprop persist.sys.locale | tr -d '\r')"
   if [ "$current" != "$tag" ]; then
     say "switching the emulator to $tag"
