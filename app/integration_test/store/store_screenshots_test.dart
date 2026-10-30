@@ -158,7 +158,8 @@ void main() {
     /// sheet over it); [mapShown] false that no map is on screen at all (a
     /// page over it), which then never draws; [weather] that the map shows
     /// the weather, whose frames must be back after a change of theme, and
-    /// [cycleMap] the same of the cycle map. Every
+    /// [cycleMap] the same of the cycle map, and [route] that a route line
+    /// has to be on the map first. Every
     /// picture waits for Flutter to have
     /// drawn everything: a change of language only redraws its texts.
     /// [relocalize] puts right what the app does not translate itself,
@@ -171,6 +172,7 @@ void main() {
       bool mapShown = true,
       bool weather = false,
       bool cycleMap = false,
+      bool route = false,
       bool Function(ThemeMode mode)? only,
       List<String>? inLocales,
       Future<void> Function(ThemeMode mode, String locale)? relocalize,
@@ -235,6 +237,16 @@ void main() {
             // Laid out in the new language first: the fixes measure it.
             await settleFrames(tester);
             await relocalize(mode, locale);
+          }
+          if (first && route) {
+            // An owner draws its markers first and its route after them;
+            // the map can go idle in between.
+            await waitUntil(
+              tester,
+              () => MapDrawn.routeLines > 0,
+              describe: 'the route on the map for $screen',
+              timeout: const Duration(seconds: 60),
+            );
           }
           if (first && mapShown && (mapChanges || switched)) {
             await waitForMapDrawn(tester, cap: cap, label: screen);
@@ -329,7 +341,7 @@ void main() {
       ..loadSavedRoute(featured);
     await frameRoute(tester, container, featured.geometry);
     // The first shot over Madeira waits for its tiles.
-    await shoot('plan', hold: const Duration(seconds: 10));
+    await shoot('plan', route: true, hold: const Duration(seconds: 10));
 
     if (await stopAfter('plan')) return;
 
@@ -355,6 +367,7 @@ void main() {
       scrollSheetToTop(tester);
       await shoot(
         'variants',
+        route: true,
         relocalize: (_, _) async => scrollSheetToTop(tester),
       );
     }
@@ -373,6 +386,7 @@ void main() {
     );
     await shoot(
       'weather',
+      route: true,
       weather: true,
       hold: const Duration(seconds: 8),
       // The time control and the colours' key under the Save button, in
@@ -402,11 +416,16 @@ void main() {
       ..clear()
       ..loadSavedRoute(stopsRoute);
     await frameRoute(tester, container, stopsRoute.geometry);
-    await shoot('stops', offline: true, hold: const Duration(seconds: 8));
+    await shoot(
+      'stops',
+      route: true,
+      offline: true,
+      hold: const Duration(seconds: 8),
+    );
     if (themes.any(dark)) {
       markMapChange();
       await appearance.setAccent(AccentPreset.ember);
-      await shoot('stops-accent', offline: true, only: dark);
+      await shoot('stops-accent', route: true, offline: true, only: dark);
       markMapChange();
       await appearance.setAccent(AccentPreset.volt);
       await waitForMapDrawn(tester, cap: const Duration(seconds: 4));
@@ -445,7 +464,7 @@ void main() {
       onTimeout: () => '${container.read(smartLoopControllerProvider)}',
     );
     expect(container.read(smartLoopControllerProvider).foundNothing, isFalse);
-    await shoot('loop');
+    await shoot('loop', route: true);
     await tapAndPump(
       tester,
       find.ancestor(
@@ -547,6 +566,7 @@ void main() {
     // The rider's request in each language, the card fitted to it again.
     await shoot(
       'ai',
+      route: true,
       relocalize: (_, locale) async {
         // Into the field's controller: with an answer on the card, typing
         // through the test's keyboard never reaches it.
@@ -683,6 +703,7 @@ void main() {
       // shows; on a loaded emulator that takes a while longer.
       await shoot(
         'import',
+        route: true,
         hold: const Duration(seconds: 20),
         inLocales: [locale],
       );
@@ -738,13 +759,13 @@ void main() {
         ..clear()
         ..loadSavedRoute(coast);
       await frameRoute(tester, container, coast.geometry);
-      await shoot('offline', offline: true);
+      await shoot('offline', route: true, offline: true);
       // The same in another accent, for the dark half of the slide that
       // shows the themes with it.
       if (themes.any(dark)) {
         markMapChange();
         await appearance.setAccent(AccentPreset.ember);
-        await shoot('offline-accent', offline: true, only: dark);
+        await shoot('offline-accent', route: true, offline: true, only: dark);
         markMapChange();
         await appearance.setAccent(AccentPreset.volt);
         await waitForMapDrawn(tester, cap: const Duration(seconds: 4));
@@ -805,7 +826,7 @@ void main() {
       // From here the rider stands still while every theme and language is
       // shot: the recorder's clock moves only with the fixes, so the figures
       // and the banner hold as they are.
-      await shoot('live');
+      await shoot('live', route: true);
       // What the Live Activity and the watch show right now, for the slides
       // that draw them: the same snapshot the live card was built from, in
       // every language the store has and both themes, shot or not (the ride
@@ -841,7 +862,7 @@ void main() {
       );
       await rideOn(2);
       await waitForWidget(tester, find.byType(FiguresBar));
-      await shoot('navigation');
+      await shoot('navigation', route: true);
 
       final recording = container.read(recordingControllerProvider.notifier);
       final halted = await recording.halt();

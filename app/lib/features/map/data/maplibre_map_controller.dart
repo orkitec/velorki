@@ -1134,6 +1134,7 @@ class MaplibreMapControllerAdapter implements MapController {
     _attached = false;
     _coneRegistered = false;
     _routeLines.clear();
+    MapDrawn.routeLinesOn(this, 0);
     // A fresh style holds no cycle map; the replay adds the last one.
     _cycleGenerations.clear();
     _cycleUrls.values.forEach(releaseLocalFileUrl);
@@ -1811,6 +1812,8 @@ class MaplibreMapControllerAdapter implements MapController {
       } on PlatformException catch (e) {
         if (!isStyleGoneError(e)) rethrow;
       }
+    } finally {
+      MapDrawn.routeLinesOn(this, _routeLines.length);
     }
   }
 
@@ -1861,6 +1864,7 @@ class MaplibreMapControllerAdapter implements MapController {
     // Set again while this waited its turn: the write after it draws.
     if (_routePoints.containsKey(id)) return;
     if (!_attached || _routeLines.remove(id) == null) return;
+    MapDrawn.routeLinesOn(this, _routeLines.length);
     await _ops.removeLayer(MapLayerIds.routeLayer(id));
     await _ops.removeLayer(MapLayerIds.routeCasingLayer(id));
     await _ops.removeSource(MapLayerIds.routeSource(id));
@@ -3666,6 +3670,7 @@ class MaplibreMapControllerAdapter implements MapController {
   /// by the widget that owns it.
   void dispose() {
     _disposed = true;
+    MapDrawn.routeLinesOn(this, 0);
     _puckWalk?.cancel();
     _puckWalk = null;
     _ops.onFeatureDrag.remove(_handleFeatureDrag);

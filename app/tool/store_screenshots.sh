@@ -685,6 +685,13 @@ sys.exit(1 if bad else 0)
 PY
   fi
 
+  # The simulator is done with: shut down, so the watch's simulator and
+  # Chrome, drawing the creative assets beside it, have its memory (a 7 GB
+  # runner with all three at once stopped answering).
+  if [ "$ANDROID" = 0 ] && [ "$PREVIEW" = 0 ]; then
+    xcrun simctl shutdown "$UDID" 2> /dev/null || true
+  fi
+
   # VELORKI_STORE_CREATIVE=1: the App Store's creative assets
   # (tool/store_creative.py) from the iPhone's pictures, made in the
   # background while the watch is shot (the simulator's work, not the

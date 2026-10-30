@@ -34,6 +34,21 @@ abstract final class MapDrawn {
   static bool drawnSince(int mark) =>
       _lastIdle > mark && _lastIdle > _lastChange;
 
+  static final Map<Object, int> _routeLines = <Object, int>{};
+
+  /// How many route lines are on the maps: written to them, not just asked
+  /// for (an owner draws its markers first and its route after them).
+  static int get routeLines => _routeLines.values.fold(0, (a, b) => a + b);
+
+  /// Notes that [map] now has [count] route lines on it.
+  static void routeLinesOn(Object map, int count) {
+    if (count == 0) {
+      _routeLines.remove(map);
+    } else {
+      _routeLines[map] = count;
+    }
+  }
+
   /// How often a map has become idle since the app started.
   static final ValueNotifier<int> idles = ValueNotifier<int>(0);
 
