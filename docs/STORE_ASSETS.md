@@ -248,12 +248,17 @@ the emulator with `-gpu software` and builds the app with MapLibre's Vulkan
 renderer (`ORG_GRADLE_PROJECT_velorkiMapVulkan=true`, see
 `android/app/build.gradle.kts`); riders' builds stay on OpenGL.
 `VELORKI_STORE_EMULATOR` names its adb serial when more than one runs. The
-script sets the emulator to the first language (`adb root`, then a reboot
-when it changes), the shutter sets each picture's language's 12- or 24-hour
-clock, and the script switches on the hole-punch cutout and gesture navigation,
-and the shutter sets SystemUI's demo mode before every shot, checked with
-`dumpsys`: 9:41, full wifi, a full battery, no notification icons, and no
-network at all for the offline shot. The demo mode's
+emulator keeps its own language: the app switches its own, and nothing of
+the system's in the pictures has words (switching it took a reboot or a
+framework restart per job, which now and then never came back on a
+runner). The shutter sets each picture's language's 12- or 24-hour clock,
+the script switches on the hole-punch cutout and gesture navigation and
+hides the system's error and "isn't responding" dialogs, and the shutter
+sets SystemUI's demo mode before every shot, checked with `dumpsys`: 9:41,
+full wifi, a full battery, no notification icons, and no network at all
+for the offline shot. It refuses a picture when anything but the app has
+the focus (a busy emulator's launcher once stopped answering, and its
+dialog stood over every picture of a run that passed). The demo mode's
 mobile icon is left out: on API 35 it keeps a stale "3G" and the wrong tint.
 `tool/store_shutter.py --android` answers the test through `adb shell run-as`
 (the request lies in the app's `files/itest/`) and takes the pictures with

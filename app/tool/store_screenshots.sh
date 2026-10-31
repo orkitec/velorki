@@ -70,9 +70,10 @@
 # --platform android takes the screens the Play set uses (store/
 # slide_set_android.json) on an Android emulator: VELORKI_STORE_EMULATOR names
 # its adb serial, else the one emulator running is taken (start one first: a
-# Pixel 6 profile, 1080x2400). Per locale the emulator's language is set (adb
-# root, a reboot when it changes), gestural navigation and a hole-punch cutout
-# are switched on, and SystemUI's demo mode shows 9:41 and full wifi; the
+# Pixel 6 profile, 1080x2400). The emulator keeps its own language (the app
+# switches its own), gestural navigation and a hole-punch cutout are switched
+# on, the system's error dialogs hidden, and SystemUI's demo mode shows 9:41
+# and full wifi; the
 # mirror is reached as 10.0.2.2. No watch, Lock Screen or preview. Output
 # under android/: raw/<theme>/<locale>/<screen>.png and slides/ (see
 # tool/store_slides.py --platform android).
@@ -317,63 +318,20 @@ wait_for_boot() {  # wait_for_boot <serial>
   booted "$1" || die "$1 did not finish booting"
 }
 
-# Switching the language restarts only the framework (stop, start), as the
-# emulator's own -change-locale does; a whole reboot for it now and then
-# never came back on a runner, and -change-locale itself raced the emulator
-# action's first commands. The boot-complete flag stays set across a
-# framework restart, so what is waited for is the language, a framework
-# that has stayed up for a few seconds, and the launcher past its boot
-# screen (FallbackHome).
-framework_in() {  # framework_in <serial> <language-tag>: whether it got there
-  local serial=$1 tag=$2 pid="" now
-  for _ in $(seq 1 90); do
-    if [ "$(bounded 10 adb -s "$serial" shell getprop persist.sys.locale 2> /dev/null | tr -d '\r')" = "$tag" ] \
-      && bounded 10 adb -s "$serial" shell service check activity 2> /dev/null | grep -q found \
-      && bounded 10 adb -s "$serial" shell service check package 2> /dev/null | grep -q found \
-      && ! bounded 10 adb -s "$serial" shell dumpsys activity activities 2> /dev/null \
-        | grep -m1 topResumedActivity | grep -q FallbackHome; then
-      now="$(bounded 10 adb -s "$serial" shell pidof system_server 2> /dev/null | tr -d '\r')"
-      if [ -n "$now" ] && [ "$now" = "$pid" ]; then return 0; fi
-      pid=$now
-    else
-      pid=""
-    fi
-    sleep 2
-  done
-  return 1
-}
-
-android_boot() {  # android_boot <serial> <language-tag>
-  local serial=$1 tag=$2 current
+# The emulator keeps the language it has: the app is shown in each locale by
+# its own setting, and nothing of the system's in the pictures has words
+# (SystemUI's demo mode draws the bar). Switching it took a reboot or a
+# framework restart per job, and on a runner those now and then never came
+# back.
+android_boot() {  # android_boot <serial>
+  local serial=$1
   wait_for_boot "$serial"
-  current="$(bounded 10 adb -s "$serial" shell getprop persist.sys.locale | tr -d '\r')"
-  if [ "$current" != "$tag" ]; then
-    say "switching the emulator to $tag"
-    if bounded 30 adb -s "$serial" root > /dev/null 2>&1; then
-      sleep 2
-      wait_for_boot "$serial"
-      bounded 10 adb -s "$serial" shell setprop persist.sys.locale "$tag"
-      bounded 60 adb -s "$serial" shell 'stop; start' || true
-      if framework_in "$serial" "$tag"; then
-        say "the emulator is in $tag"
-      else
-        # Once more the long way: a reboot, tried twice, then the run fails
-        # rather than waiting out the job.
-        say "the framework did not come back in $tag; rebooting"
-        local try
-        for try in 1 2; do
-          bounded 30 adb -s "$serial" reboot || true
-          sleep 5
-          booted "$serial" && framework_in "$serial" "$tag" && break
-          [ "$try" = 2 ] && die "$serial did not come back from the reboot into $tag"
-          say "$serial did not come back from the reboot; rebooting once more"
-        done
-        say "the emulator is in $tag"
-      fi
-    else
-      say "no adb root on $serial; the status bar keeps the language $current"
-    fi
-  fi
+  # No "isn't responding" or crash dialog of the system's over the app: a
+  # busy emulator's launcher stopped answering once, and its dialog stood
+  # over every picture of the run. (The shutter still refuses a picture
+  # with anything of the system's in front.)
+  bounded 10 adb -s "$serial" shell settings put global hide_error_dialogs 1 || true
+  bounded 10 adb -s "$serial" shell settings put global anr_show_background 0 || true
   # A Pixel's gesture bar and, on the phone, its hole-punch, whatever the
   # image defaults to: both decide where the app's chrome sits. The Pixel
   # Tablet's camera is in its bezel.
@@ -720,7 +678,7 @@ PY
   for run in "${runs[@]}"; do
     region="$(region_of "${run%%,*}")"
     if [ "$ANDROID" = 1 ]; then
-      android_boot "$DEVICE" "${region/_/-}"
+      android_boot "$DEVICE"
       DEMO_SERIAL="$DEVICE"
       python3 "$APP/tool/store_shutter.py" --android "$DEVICE" "$OUT/raw" &
     else

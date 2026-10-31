@@ -158,6 +158,32 @@ class Android:
         hours = "12" if locale.startswith("en") else "24"
         self.adb("shell", "settings", "put", "system", "time_12_24", hours, check=True)
 
+    def focus(self) -> str:
+        """The window that has the focus, as dumpsys names it."""
+        shown = self.adb("shell", "dumpsys", "window").stdout.decode("utf-8", "replace")
+        for line in shown.splitlines():
+            if "mCurrentFocus=" in line:
+                return line.split("mCurrentFocus=", 1)[1].strip()
+        return ""
+
+    def app_in_front(self) -> bool:
+        """Whether the app's window is in front, nothing of the system's over
+        it: a busy emulator's launcher once stopped answering, and its "isn't
+        responding" dialog stood over every picture of a run that passed.
+        Such a window is closed once; if it stays, the picture is refused."""
+        for attempt in range(3):
+            focus = self.focus()
+            if BUNDLE in focus:
+                return True
+            print(f"store_shutter: {focus or 'nothing'} has the focus, not the app",
+                  file=sys.stderr)
+            if focus and "null" not in focus:
+                self.adb("shell", "am", "broadcast", "-a",
+                         "android.intent.action.CLOSE_SYSTEM_DIALOGS")
+                self.adb("shell", "input", "keyevent", "KEYCODE_BACK")
+            time.sleep(1.5)
+        return BUNDLE in self.focus()
+
     def screenshot(self, target: str) -> None:
         png = self.adb("exec-out", "screencap", "-p", check=True).stdout
         with open(target, "wb") as f:
@@ -260,6 +286,10 @@ def main_android(serial: str, out: str) -> int:
                 # times in that clock.
                 device.status_bar(online=wanted[0])
                 bar = wanted
+            if not device.app_in_front():
+                print(f"store_shutter: refusing {name}: a window of the system covers the app",
+                      file=sys.stderr)
+                return 1
             device.screenshot(target + ".png")
             print(f"store_shutter: {target}.png", flush=True)
         device.ack(token)
