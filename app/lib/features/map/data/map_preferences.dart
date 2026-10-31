@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/app_config.dart';
+import '../../settings/data/units.dart';
 import '../domain/cycle_map.dart';
+import 'country_map_views.dart';
 
 part 'map_preferences.g.dart';
 
@@ -32,8 +35,9 @@ class MapCamera {
   String toString() => 'MapCamera($center, zoom: $zoom, bearing: $bearing)';
 }
 
-/// Central Europe at a country-sized zoom: something recognisable before the
-/// first fix, wherever the user is.
+/// Central Europe at a country-sized zoom: where the map opens when there is
+/// no remembered view and the phone's country is unknown (see
+/// [LastMapCamera]).
 const MapCamera defaultMapCamera = MapCamera(
   center: LatLng(50.0, 10.0),
   zoom: 4.5,
@@ -44,9 +48,17 @@ const String _prefsCameraLon = 'map.camera.lon';
 const String _prefsCameraZoom = 'map.camera.zoom';
 const String _prefsCyclosm = 'map.cyclosm_overlay';
 
+/// Whether a map view was ever remembered: false on a fresh install, where
+/// [LastMapCamera] opens over the phone's country instead.
+bool hasStoredMapCamera(SharedPreferences prefs) =>
+    prefs.getDouble(_prefsCameraLat) != null &&
+    prefs.getDouble(_prefsCameraLon) != null &&
+    prefs.getDouble(_prefsCameraZoom) != null;
+
 /// The camera the map was left at: the one every map starts from. Centre
 /// and zoom survive a restart; the bearing is for this launch only, so the
-/// app never opens on a turned map.
+/// app never opens on a turned map. With nothing remembered it opens over
+/// the phone's country, or at [defaultMapCamera] when that is unknown.
 @Riverpod(keepAlive: true)
 class LastMapCamera extends _$LastMapCamera {
   @override
@@ -55,7 +67,12 @@ class LastMapCamera extends _$LastMapCamera {
     final lat = prefs.getDouble(_prefsCameraLat);
     final lon = prefs.getDouble(_prefsCameraLon);
     final zoom = prefs.getDouble(_prefsCameraZoom);
-    if (lat == null || lon == null || zoom == null) return defaultMapCamera;
+    if (lat == null || lon == null || zoom == null) {
+      final view = countryMapViews[ref.read(localeCountryProvider)];
+      return view == null
+          ? defaultMapCamera
+          : MapCamera(center: LatLng(view.lat, view.lon), zoom: view.zoom);
+    }
     return MapCamera(center: LatLng(lat, lon), zoom: zoom);
   }
 

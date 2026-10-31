@@ -23,7 +23,7 @@ Future<void> askLocationOnFirstStart(
   // An install with a remembered map view has been used before: an update
   // does not ask.
   if ((prefs.getBool(firstStartLocationAskedKey) ?? false) ||
-      ref.read(lastMapCameraProvider) != defaultMapCamera) {
+      hasStoredMapCamera(prefs)) {
     return;
   }
   await prefs.setBool(firstStartLocationAskedKey, true);
