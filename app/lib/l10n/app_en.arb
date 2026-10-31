@@ -3208,6 +3208,18 @@
   "@offlineDialogTitle": {
     "description": "Title of the combined download confirmation"
   },
+  "offlineCancelTitle": "Stop the download?",
+  "@offlineCancelTitle": {
+    "description": "Title of the dialog asking whether to stop the running download of the visible area"
+  },
+  "offlineCancelBody": "The area stays not downloaded; you can download it again any time.",
+  "@offlineCancelBody": {
+    "description": "Body of the dialog asking whether to stop the running download of the visible area"
+  },
+  "offlineCancelKeep": "Keep downloading",
+  "@offlineCancelKeep": {
+    "description": "Button that keeps the download of the visible area running"
+  },
   "offlineDialogMap": "Map of the visible area · size known once downloaded",
   "@offlineDialogMap": {
     "description": "The map line in the combined download confirmation"

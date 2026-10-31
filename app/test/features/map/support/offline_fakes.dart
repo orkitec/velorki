@@ -39,12 +39,21 @@ class FakeOfflineMapApi implements OfflineMapApi {
   Future<OfflineDownloadResult> download(
     OfflineRegionSpec spec, {
     void Function(OfflineDownloadProgress progress)? onProgress,
+    Future<void>? cancelled,
   }) async {
     downloads.add(spec);
     for (final event in progressEvents) {
       onProgress?.call(event);
     }
-    await duringDownload?.call();
+    final during = duringDownload?.call();
+    if (during != null) {
+      var stopped = false;
+      await Future.any<void>(<Future<void>>[
+        during,
+        if (cancelled != null) cancelled.then((_) => stopped = true),
+      ]);
+      if (stopped) throw const OfflineDownloadCancelled();
+    }
     final failure = failWith;
     if (failure != null) throw failure;
     final id = nextRegionId++;

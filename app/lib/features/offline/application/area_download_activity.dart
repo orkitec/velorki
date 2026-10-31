@@ -20,6 +20,19 @@ class AreaDownloadStarting extends _$AreaDownloadStarting {
   }
 }
 
+/// Whether the rider stopped the running download of the visible area:
+/// what is left of it then ends without a word.
+@Riverpod(keepAlive: true)
+class AreaDownloadCancelled extends _$AreaDownloadCancelled {
+  @override
+  bool build() => false;
+
+  /// Marks the download as stopped, or a new one as not stopped.
+  void set(bool value) {
+    if (ref.mounted) state = value;
+  }
+}
+
 /// A download of the visible area that is under way.
 class AreaDownloadActivity {
   /// Creates the activity; [fraction] is `null` when it cannot say.

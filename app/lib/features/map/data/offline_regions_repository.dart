@@ -79,6 +79,15 @@ class OfflineDownloadResult {
   final int sizeBytes;
 }
 
+/// Raised by a download the rider cancelled; nothing to report.
+class OfflineDownloadCancelled implements Exception {
+  /// Creates the exception.
+  const OfflineDownloadCancelled();
+
+  @override
+  String toString() => 'OfflineDownloadCancelled';
+}
+
 /// Raised when MapLibre refuses or aborts a download.
 class OfflineDownloadException implements LocalizedException {
   OfflineDownloadException(this.message, {this.regionGone = false});
@@ -104,9 +113,12 @@ class OfflineDownloadException implements LocalizedException {
 /// way to satisfy.
 abstract interface class OfflineMapApi {
   /// Downloads [spec], reporting progress, and completes when it is done.
+  /// When [cancelled] completes first, the download stops, its pack goes,
+  /// and it throws [OfflineDownloadCancelled].
   Future<OfflineDownloadResult> download(
     OfflineRegionSpec spec, {
     void Function(OfflineDownloadProgress progress)? onProgress,
+    Future<void>? cancelled,
   });
 
   /// Removes the region MapLibre knows as [maplibreRegionId].
@@ -133,6 +145,7 @@ class MaplibreOfflineMapApi implements OfflineMapApi {
   Future<OfflineDownloadResult> download(
     OfflineRegionSpec spec, {
     void Function(OfflineDownloadProgress progress)? onProgress,
+    Future<void>? cancelled,
   }) async {
     final definition = ml.OfflineRegionDefinition(
       bounds: ml.LatLngBounds(
@@ -163,6 +176,13 @@ class MaplibreOfflineMapApi implements OfflineMapApi {
     }
 
     arm();
+    unawaited(
+      cancelled?.then((_) {
+        if (!finished.isCompleted) {
+          finished.completeError(const OfflineDownloadCancelled());
+        }
+      }),
+    );
     ml.OfflineRegion? region;
     final regionCall = ml.downloadOfflineRegion(
       definition,
@@ -197,9 +217,7 @@ class MaplibreOfflineMapApi implements OfflineMapApi {
         },
       ),
     );
-    try {
-      await finished.future;
-    } on OfflineDownloadException {
+    Future<void> dropPack() async {
       final stalled = region;
       if (stalled != null) {
         try {
@@ -208,6 +226,15 @@ class MaplibreOfflineMapApi implements OfflineMapApi {
           // Gone already, or never stored: nothing left to stop.
         }
       }
+    }
+
+    try {
+      await finished.future;
+    } on OfflineDownloadException {
+      await dropPack();
+      rethrow;
+    } on OfflineDownloadCancelled {
+      await dropPack();
       rethrow;
     } finally {
       stall?.cancel();
@@ -289,6 +316,7 @@ class OfflineRegionsRepository {
   Future<OfflineRegionRow> download(
     OfflineRegionSpec spec, {
     void Function(OfflineDownloadProgress progress)? onProgress,
+    Future<void>? cancelled,
   }) async {
     final id = _idFactory();
     await _dao.upsertRegion(
@@ -304,7 +332,11 @@ class OfflineRegionsRepository {
       ),
     );
     try {
-      final result = await _api.download(spec, onProgress: onProgress);
+      final result = await _api.download(
+        spec,
+        onProgress: onProgress,
+        cancelled: cancelled,
+      );
       await _dao.setDownloadResult(
         id,
         maplibreRegionId: result.maplibreRegionId,
@@ -419,17 +451,32 @@ class OfflineDownloadController extends _$OfflineDownloadController {
   /// Whether a download is running right now.
   bool get isDownloading => state != null;
 
+  Completer<void>? _cancel;
+
   /// Downloads the area described by [spec], updating [state] as it goes.
+  /// A [cancel] meanwhile ends it with [OfflineDownloadCancelled].
   Future<void> download(OfflineRegionSpec spec) async {
     if (state != null) return;
     state = const OfflineDownloadProgress(fraction: 0, completedBytes: 0);
+    final cancel = _cancel = Completer<void>();
     try {
       await ref
           .read(offlineRegionsRepositoryProvider)
-          .download(spec, onProgress: (p) => state = p);
+          .download(
+            spec,
+            onProgress: (p) => state = p,
+            cancelled: cancel.future,
+          );
     } finally {
+      _cancel = null;
       state = null;
     }
+  }
+
+  /// Stops the running [download], if any.
+  void cancel() {
+    final cancel = _cancel;
+    if (cancel != null && !cancel.isCompleted) cancel.complete();
   }
 
   /// Fetches the area [id] again with the map's current style.

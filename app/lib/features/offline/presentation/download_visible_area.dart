@@ -43,6 +43,7 @@ Future<void> downloadVisibleArea(
     return;
   }
   if (ref.read(areaDownloadActivityProvider) != null) return;
+  ref.read(areaDownloadCancelledProvider.notifier).set(false);
   final starting = ref.read(areaDownloadStartingProvider.notifier)..set(true);
   try {
     await _download(context, ref, bounds, l10n, messenger);
@@ -125,6 +126,7 @@ Future<void> _download(
         .enqueue(entries, gazetteersOnly: plan.gazetteers);
     // Left meanwhile (the offline screen popped): its ref is gone.
     if (!context.mounted) return;
+    if (ref.read(areaDownloadCancelledProvider)) return;
     // The offline screen shows a failed tile in its own list; over the map
     // nothing else would say so.
     final failure = ref.read(tileDownloadQueueProvider).failure;
@@ -138,7 +140,7 @@ Future<void> _download(
       );
     }
   }
-  if (!mapAreas) return;
+  if (!mapAreas || ref.read(areaDownloadCancelledProvider)) return;
   final existing = await ref.read(offlineRegionsRepositoryProvider).regions();
   final spec = OfflineRegionSpec(
     name: l10n.mapOfflineRegionName(existing.length + 1),
@@ -147,9 +149,43 @@ Future<void> _download(
   );
   try {
     await ref.read(offlineDownloadControllerProvider.notifier).download(spec);
+  } on OfflineDownloadCancelled {
+    return;
   } on Object catch (error) {
     messenger?.showSnackBar(
       SnackBar(content: Text(l10n.offlineMapFailed(errorText(l10n, error)))),
     );
   }
+}
+
+/// Asks whether to stop the running download of the visible area and, if
+/// the rider says so, stops both its parts: the routing data (a tile part
+/// way down keeps what it has) and the map pack. The area then counts as
+/// not downloaded, so the chip offering it comes back.
+Future<void> cancelVisibleAreaDownload(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  final l10n = AppLocalizations.of(context);
+  final stop = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l10n.offlineCancelTitle),
+      content: Text(l10n.offlineCancelBody),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(l10n.offlineCancelKeep),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(l10n.routingTilesCancelDownload),
+        ),
+      ],
+    ),
+  );
+  if (!(stop ?? false)) return;
+  ref.read(areaDownloadCancelledProvider.notifier).set(true);
+  ref.read(tileDownloadQueueProvider.notifier).cancel();
+  ref.read(offlineDownloadControllerProvider.notifier).cancel();
 }

@@ -9,13 +9,15 @@ import '../../shared/presentation/stat_tile.dart';
 class StopsDownloadChip extends StatelessWidget {
   /// Creates the chip; [onDownload] starts the download, and [onClose], where
   /// given, puts a close button at its end. While [downloading] the chip says
-  /// so, with [progress] where it is known, and a tap does nothing.
+  /// so, with [progress] where it is known, and a tap does nothing; the
+  /// button at its end is then [onCancel]'s, which stops the download.
   const StopsDownloadChip({
     required this.onDownload,
     this.downloading = false,
     this.progress,
     this.message,
     this.onClose,
+    this.onCancel,
     super.key,
   });
 
@@ -35,11 +37,16 @@ class StopsDownloadChip extends StatelessWidget {
   /// Called by the close button; no close button when `null`.
   final VoidCallback? onClose;
 
+  /// Called by the button at the chip's end while it downloads; no button
+  /// then when `null`. Closing the chip would hide the only sign that the
+  /// download is running, so the button stops it instead.
+  final VoidCallback? onCancel;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final onClose = this.onClose;
+    final onClose = downloading ? onCancel : this.onClose;
     final download = InkWell(
       onTap: downloading ? null : onDownload,
       customBorder: const StadiumBorder(),
@@ -111,7 +118,9 @@ class StopsDownloadChip extends StatelessWidget {
                   Flexible(child: download),
                   IconButton(
                     onPressed: onClose,
-                    tooltip: l10n.mapAreaHintHide,
+                    tooltip: downloading
+                        ? l10n.routingTilesCancelDownload
+                        : l10n.mapAreaHintHide,
                     icon: const Icon(Icons.close_rounded, size: 20),
                     color: theme.colorScheme.onSurfaceVariant,
                     constraints: const BoxConstraints(

@@ -282,6 +282,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     unawaited(downloadVisibleArea(context, ref, _map));
   }
 
+  void _cancelAreaDownload() {
+    unawaited(cancelVisibleAreaDownload(context, ref));
+  }
+
   /// Closes the stops' not-downloaded chip for the area it speaks of, with
   /// every other not-downloaded chip over it; it comes back over another
   /// area that is not downloaded.
@@ -2095,6 +2099,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                                                 progress:
                                                     areaDownload?.fraction,
                                                 onClose: _closeStopsHint,
+                                                onCancel: _cancelAreaDownload,
                                               )
                                       : StopsAheadLine(
                                           entries: _stops.nextPerKind(),

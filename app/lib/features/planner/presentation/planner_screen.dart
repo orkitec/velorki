@@ -948,6 +948,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     unawaited(downloadVisibleArea(context, ref, _map));
   }
 
+  void _cancelAreaDownload() {
+    unawaited(cancelVisibleAreaDownload(context, ref));
+  }
+
   /// [place] is the destination; the ride starts where the rider is right
   /// now.
   Future<void> _rideFromPosition(SearchResult place) async {
@@ -1415,6 +1419,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   onDownload: _downloadArea,
                   downloading: areaDownload != null,
                   progress: areaDownload?.fraction,
+                  onCancel: _cancelAreaDownload,
                   onClose: () => _closeAreaHint(stopsMissing),
                 )
               : cycleMapMissing != null &&
@@ -1423,6 +1428,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   onDownload: _downloadArea,
                   downloading: areaDownload != null,
                   progress: areaDownload?.fraction,
+                  onCancel: _cancelAreaDownload,
                   message: l10n.mapCycleMapNotDownloaded,
                   onClose: () => _closeAreaHint(cycleMapMissing),
                 )
@@ -1431,6 +1437,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   onDownload: _downloadArea,
                   downloading: areaDownload != null,
                   progress: areaDownload?.fraction,
+                  onCancel: _cancelAreaDownload,
                   message: l10n.searchAreaNotDownloaded,
                   onClose: () => _closeAreaHint(_areaHint.missingArea),
                 )

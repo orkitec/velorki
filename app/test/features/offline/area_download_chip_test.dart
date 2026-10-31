@@ -49,6 +49,8 @@ class _HostState extends ConsumerState<_Host> {
               unawaited(downloadVisibleArea(context, ref, widget.map)),
           downloading: activity != null,
           progress: activity?.fraction,
+          onClose: () {},
+          onCancel: () => unawaited(cancelVisibleAreaDownload(context, ref)),
         ),
       ),
     );
@@ -172,6 +174,7 @@ void main() {
     h.api.duringDownload = () => release.future;
 
     expect(find.text(l10n.mapStopsDownload), findsOneWidget);
+    expect(find.byIcon(Icons.close_rounded), findsOneWidget);
     await _startDownload(tester);
     await _untilTrue(tester, () => h.api.downloads.isNotEmpty);
 
@@ -181,6 +184,8 @@ void main() {
     expect(find.text(l10n.mapOfflineDownloading), findsOneWidget);
     expect(find.text(l10n.mapStopsDownload), findsNothing);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    // While it downloads the button at the end stops it, after asking.
+    expect(find.byTooltip(l10n.routingTilesCancelDownload), findsOneWidget);
 
     // A second tap while it runs opens nothing and starts nothing.
     await tester.tap(find.text(l10n.mapOfflineDownloading));
@@ -192,6 +197,7 @@ void main() {
     await _until(tester, find.text(l10n.mapStopsDownload));
     await tester.pumpAndSettle();
     expect(find.text(l10n.mapStopsDownload), findsOneWidget);
+    expect(find.byIcon(Icons.close_rounded), findsOneWidget);
     expect(h.api.downloads, hasLength(1));
     await _unmount(tester);
   });
@@ -236,6 +242,41 @@ void main() {
     expect(find.text(l10n.offlineNeedsMap), findsOneWidget);
     expect(find.text(l10n.commonCancel), findsNothing);
     expect(h.api.downloads, isEmpty);
+    await _unmount(tester);
+  });
+
+  testWidgets('the button at the end stops the download after asking, and '
+      'the chip offers the area again', (tester) async {
+    final map = _map();
+    final h = await _pump(tester, map);
+    h.api.duringDownload = () => Completer<void>().future;
+
+    await _startDownload(tester);
+    await _untilTrue(tester, () => h.api.downloads.isNotEmpty);
+    expect(find.text(l10n.mapOfflineDownloading), findsOneWidget);
+
+    // Asked first: keeping it changes nothing.
+    await tester.tap(find.byTooltip(l10n.routingTilesCancelDownload));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text(l10n.offlineCancelTitle), findsOneWidget);
+    await tester.tap(find.text(l10n.offlineCancelKeep));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text(l10n.mapOfflineDownloading), findsOneWidget);
+
+    await tester.tap(find.byTooltip(l10n.routingTilesCancelDownload));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text(l10n.routingTilesCancelDownload),
+      ),
+    );
+    await _until(tester, find.text(l10n.mapStopsDownload));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mapStopsDownload), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(h.api.live, isEmpty);
     await _unmount(tester);
   });
 }
