@@ -230,6 +230,14 @@ class SearchFieldState extends ConsumerState<SearchField> {
     );
   }
 
+  /// The results make way for the map, where the download shows its
+  /// progress, and the download starts.
+  void _downloadArea() {
+    _focusNode.unfocus();
+    setState(() => _dismissed = true);
+    widget.onDownloadArea?.call();
+  }
+
   void _select(SearchResult result) {
     // A street at a house number goes out under the address, number and
     // all, so the pin and the waypoint say "400 West 42nd Street".
@@ -327,7 +335,9 @@ class SearchFieldState extends ConsumerState<SearchField> {
                   onSelected: _select,
                   onSearchOnline: _searchOnline,
                   onSearchOffline: _searchOffline,
-                  onDownloadArea: widget.onDownloadArea,
+                  onDownloadArea: widget.onDownloadArea == null
+                      ? null
+                      : _downloadArea,
                 ),
               ),
             ),

@@ -35,7 +35,6 @@ import '../../map/presentation/visible_map_padding.dart';
 import '../../map/presentation/shared_map_host.dart';
 import '../../offline/application/area_download_activity.dart';
 import '../../offline/presentation/download_visible_area.dart';
-import '../../offline/presentation/offline_screen.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../search/domain/search_result.dart';
 import '../../search/presentation/place_card.dart';
@@ -986,21 +985,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     ref.read(areaHintDismissalsProvider.notifier).dismiss(area);
   }
 
-  /// Opens the offline data screen for the area on screen, which is what the
-  /// map's download button opens: "Download for the visible area" is then one
-  /// tap away from a search that had nothing to answer with.
-  void _openOfflineData() {
-    final map = _map;
-    if (map == null) return;
-    unawaited(
-      Navigator.of(context).push(
-        ColumnPageRoute<void>(
-          builder: (_) => OfflineScreen(mapController: map),
-        ),
-      ),
-    );
-  }
-
   /// Downloads the area on screen where it is, on the map: what the
   /// not-downloaded chips ask for.
   void _downloadArea() {
@@ -1468,7 +1452,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         onSelected: _onPlaceSelected,
         onFocusChanged: _onSearchFocus,
         bias: () => _map?.center,
-        onDownloadArea: _openOfflineData,
+        onDownloadArea: _downloadArea,
         trailing: sideways || compactColumn
             ? ({required compact}) => ProfileDropdown(
                 selected: state.options.profile,
