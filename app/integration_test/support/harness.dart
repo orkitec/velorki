@@ -18,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/map/presentation/map_view.dart';
+import 'package:velorki/features/planner/presentation/first_action_cue.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
@@ -61,6 +62,10 @@ Future<ProviderContainer> pumpApp(
       localeCountryProvider.overrideWithValue(null),
       // No DWD on the emulator: see OfflineDwdClient.
       dwdForecastClientProvider.overrideWithValue(dwd),
+      // The empty plan's hint plays, and again after a quiet while, on a
+      // timer of its own; flows that drive the app without touching the
+      // screen must not have it start in the middle of them.
+      firstActionCueEnabledProvider.overrideWithValue(false),
       if (realMap)
         mapViewBuilderProvider.overrideWithValue(
           (onReady) => MapView(onControllerReady: onReady),

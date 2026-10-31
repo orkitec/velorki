@@ -14,85 +14,237 @@ import 'support/pump.dart';
 
 final Finder _headlinePulse = find.byKey(firstActionCueHeadlinePulseKey);
 final Finder _pulse = find.byKey(firstActionCuePulseKey);
+final Finder _chipPulse = find.byKey(firstActionCueChipPulseKey);
 final Finder _ring = find.byKey(firstActionCueRingKey);
 
-/// How far the empty sheet's headline has faded in.
-double _headlineOpacity(WidgetTester tester) {
-  final opacity = find.ancestor(
-    of: find.text(l10n.plannerEmptyState),
-    matching: find.byType(Opacity),
-  );
-  if (opacity.evaluate().isEmpty) return 1;
-  return tester.widget<Opacity>(opacity.first).opacity;
+/// Which of the cue's parts are drawn now, in their order.
+List<String> _drawn() => [
+  if (_headlinePulse.evaluate().isNotEmpty) 'headline',
+  if (_pulse.evaluate().isNotEmpty) 'field',
+  if (_chipPulse.evaluate().isNotEmpty) 'chip',
+  if (_ring.evaluate().isNotEmpty) 'ring',
+];
+
+/// Whether the headline is drawn as it is: never faded, never moved.
+void _expectHeadlinePlain() {
+  for (final type in [Opacity, FadeTransition, Transform]) {
+    expect(
+      find.descendant(
+        of: find.byType(FirstActionCueHeadline),
+        matching: find.byType(type),
+      ),
+      findsNothing,
+    );
+  }
+  expect(find.text(l10n.plannerEmptyState), findsOneWidget);
 }
 
 PlannerController _planner(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(PlannerScreen)))
         .read(plannerControllerProvider.notifier);
 
+/// Lets the cue that has just ended by itself wait out its idle time and
+/// start again, at the start of its second run.
+Future<void> _waitForRepeat(WidgetTester tester) async {
+  await tester.pump(
+    FirstActionCue.idleAgainAfter - const Duration(milliseconds: 500),
+  );
+  expect(_drawn(), isEmpty);
+  expect(tester.binding.hasScheduledFrame, isFalse);
+  await tester.pump(const Duration(milliseconds: 600));
+}
+
 void main() {
-  testWidgets('after a moment the headline fades in and its outline pulses, '
-      'then the field\'s, then a ring spreads, once', (tester) async {
+  testWidgets('the headline is simply there; after a moment its outline '
+      'pulses, then the field\'s, then a ring spreads, once', (tester) async {
     await pumpScreen(tester, const PlannerScreen());
+    var elapsed = 100;
     await tester.pump(const Duration(milliseconds: 100));
-    expect(_headlineOpacity(tester), 0);
-    expect(_pulse, findsNothing);
+    _expectHeadlinePlain();
+    expect(_drawn(), isEmpty);
 
-    await tester.pump(const Duration(milliseconds: 800));
-    expect(_headlineOpacity(tester), inExclusiveRange(0, 1));
-    expect(_pulse, findsNothing);
+    // Times since the cue started, each a little inside its window.
+    Future<void> at(int ms) async {
+      await tester.pump(Duration(milliseconds: ms - elapsed));
+      elapsed = ms;
+    }
 
-    // The headline's outline, the headline in place.
-    await tester.pump(const Duration(milliseconds: 600));
-    expect(_headlineOpacity(tester), 1);
-    expect(_headlinePulse, findsOneWidget);
-    expect(_pulse, findsNothing);
+    await at(450);
+    expect(_drawn(), isEmpty);
+    // 0.6–1.5 s: the headline's outline, the headline as it was.
+    await at(700);
+    expect(_drawn(), ['headline']);
+    _expectHeadlinePlain();
+    await at(1400);
+    expect(_drawn(), ['headline']);
+    // 1.5–1.7 s: a breath.
+    await at(1600);
+    expect(_drawn(), isEmpty);
+    // 1.7–2.6 s: the field's.
+    await at(1800);
+    expect(_drawn(), ['field']);
+    await at(2500);
+    expect(_drawn(), ['field']);
+    await at(2700);
+    expect(_drawn(), isEmpty);
+    // 2.8–3.9 s: no chip, so the ring comes next.
+    await at(2900);
+    expect(_drawn(), ['ring']);
+    await at(3800);
+    expect(_drawn(), ['ring']);
+    await at(4000);
+    expect(_drawn(), isEmpty);
 
-    // Then the field's, the ring still to come.
-    await tester.pump(const Duration(milliseconds: 1300));
-    expect(_headlinePulse, findsNothing);
-    expect(_pulse, findsOneWidget);
-    expect(_ring, findsNothing);
-
-    // Then the map, the field done.
-    await tester.pump(const Duration(milliseconds: 1200));
-    expect(_pulse, findsNothing);
-    expect(_ring, findsOneWidget);
-
-    // Finite: it settles, and does not come back while the plan stays empty.
+    // Finite: it settles, and does not come back before the idle wait.
     await tester.pumpAndSettle();
-    expect(_pulse, findsNothing);
-    expect(_ring, findsNothing);
+    expect(_drawn(), isEmpty);
     await tester.pump(const Duration(seconds: 5));
-    expect(_pulse, findsNothing);
-    expect(_ring, findsNothing);
+    expect(_drawn(), isEmpty);
     expect(find.text(l10n.plannerEmptyState), findsOneWidget);
+  });
+
+  testWidgets('with the not-downloaded chip shown as it starts, the chip\'s '
+      'outline pulses between the field\'s and the ring', (tester) async {
+    final harness = PlannerHarness();
+    harness.stopsCoverage.covered = (_) => false;
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+    );
+    h.map
+      ..zoom = 13
+      ..center = const LatLng(48.05, 11.05)
+      ..visibleBounds = const BoundingBox(
+        south: 48.0,
+        west: 11.0,
+        north: 48.1,
+        east: 11.1,
+      );
+    for (final listener in [...h.map.cameraIdleListeners]) {
+      listener();
+    }
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
+
+    // The empty state again, the chip over the map as the cue starts.
+    _planner(tester).addWaypoint(const LatLng(48.05, 11.05));
+    await tester.pumpAndSettle();
+    _planner(tester).clear();
+    await tester.pump();
+    expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(_drawn(), isEmpty);
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(_drawn(), ['headline']);
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['field']);
+    // 2.8–3.7 s: the chip's.
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['chip']);
+    expect(
+      find.descendant(
+        of: find.byType(FirstActionCueChipPulse),
+        matching: find.text(l10n.searchAreaNotDownloaded),
+      ),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(_drawn(), ['chip']);
+    // 3.7–3.9 s: a breath; then 3.9–5.0 s the ring.
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(_drawn(), isEmpty);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(_drawn(), ['ring']);
+    await tester.pump(const Duration(milliseconds: 900));
+    expect(_drawn(), ['ring']);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(_drawn(), isEmpty);
+    expect(tester.binding.hasScheduledFrame, isFalse);
+  });
+
+  testWidgets('left alone after it has played, it plays once more, and only '
+      'once', (tester) async {
+    await pumpScreen(tester, const PlannerScreen());
+    await tester.pumpAndSettle();
+    expect(_drawn(), isEmpty);
+
+    await _waitForRepeat(tester);
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['headline']);
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['field']);
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['ring']);
+    await tester.pumpAndSettle();
+    expect(_drawn(), isEmpty);
+
+    // Its second end asks for no third run.
+    await tester.pump(const Duration(seconds: 20));
+    expect(_drawn(), isEmpty);
+    expect(tester.binding.hasScheduledFrame, isFalse);
+  });
+
+  testWidgets('a touch while it waits to play again calls it off', (
+    tester,
+  ) async {
+    await pumpScreen(tester, const PlannerScreen());
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 5));
+
+    await tester.tapAt(const Offset(400, 600));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 20));
+    expect(_drawn(), isEmpty);
+    expect(tester.binding.hasScheduledFrame, isFalse);
+  });
+
+  testWidgets('stopped by a touch, it does not play again', (tester) async {
+    await pumpScreen(tester, const PlannerScreen());
+    await tester.pump(const Duration(milliseconds: 2000));
+    expect(_drawn(), ['field']);
+
+    await tester.tapAt(const Offset(400, 600));
+    await tester.pump();
+    expect(_drawn(), isEmpty);
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 20));
+    expect(_drawn(), isEmpty);
+    expect(tester.binding.hasScheduledFrame, isFalse);
+  });
+
+  testWidgets('a point on the plan while it waits calls it off', (
+    tester,
+  ) async {
+    await pumpScreen(tester, const PlannerScreen());
+    await tester.pumpAndSettle();
+    _planner(tester).addWaypoint(const LatLng(48.1, 11.5));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 20));
+    expect(_drawn(), isEmpty);
   });
 
   testWidgets('a touch on the map ends it at once', (tester) async {
     await pumpScreen(tester, const PlannerScreen());
-    await tester.pump(const Duration(milliseconds: 4000));
+    await tester.pump(const Duration(milliseconds: 3300));
     expect(_ring, findsOneWidget);
 
     await tester.tapAt(const Offset(400, 600));
     await tester.pump();
-    expect(_pulse, findsNothing);
-    expect(_ring, findsNothing);
-    expect(_headlineOpacity(tester), 1);
+    expect(_drawn(), isEmpty);
+    _expectHeadlinePlain();
   });
 
-  testWidgets('a tap on the search field ends it, the headline too', (
-    tester,
-  ) async {
+  testWidgets('a tap on the search field ends it', (tester) async {
     await pumpScreen(tester, const PlannerScreen());
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(_headlineOpacity(tester), lessThan(1));
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['headline']);
 
     await tester.tap(find.byType(TextField).first);
     await tester.pump();
-    expect(_headlineOpacity(tester), 1);
-    expect(_pulse, findsNothing);
-    expect(_ring, findsNothing);
+    expect(_drawn(), isEmpty);
     await tester.pumpAndSettle();
   });
 
@@ -107,7 +259,7 @@ void main() {
 
     _planner(tester).clear();
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 2800));
+    await tester.pump(const Duration(milliseconds: 2000));
     expect(find.text(l10n.plannerEmptyState), findsOneWidget);
     expect(_pulse, findsOneWidget);
     await tester.pump(const Duration(milliseconds: 1200));
@@ -121,18 +273,14 @@ void main() {
         const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
     await pumpScreen(tester, const PlannerScreen());
-    for (var i = 0; i < 4; i++) {
-      expect(
-        find.descendant(
-          of: find.byType(FirstActionCueReveal),
-          matching: find.byType(Opacity),
-        ),
-        findsNothing,
-      );
-      expect(_pulse, findsNothing);
-      expect(_ring, findsNothing);
+    for (var i = 0; i < 20; i++) {
+      _expectHeadlinePlain();
+      expect(_drawn(), isEmpty);
       await tester.pump(const Duration(milliseconds: 300));
     }
+    // Nor again once it would have played.
+    await tester.pump(const Duration(seconds: 20));
+    expect(_drawn(), isEmpty);
   });
 
   testWidgets('switched off, nothing moves', (tester) async {
@@ -141,11 +289,13 @@ void main() {
       const PlannerScreen(),
       extraOverrides: [firstActionCueEnabledProvider.overrideWithValue(false)],
     );
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(_headlineOpacity(tester), 1);
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(_pulse, findsNothing);
-    expect(_ring, findsNothing);
+    for (var i = 0; i < 20; i++) {
+      _expectHeadlinePlain();
+      expect(_drawn(), isEmpty);
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    await tester.pump(const Duration(seconds: 20));
+    expect(_drawn(), isEmpty);
   });
 
   testWidgets('the ring spreads from the middle of the map left visible', (
@@ -158,7 +308,7 @@ void main() {
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await pumpScreen(tester, const PlannerScreen());
-    await tester.pump(const Duration(milliseconds: 4000));
+    await tester.pump(const Duration(milliseconds: 3300));
     final painter =
         tester.widget<CustomPaint>(_ring).painter! as FirstActionCueRingPainter;
     final element = tester.element(find.byType(PlannerScreen));
@@ -206,7 +356,7 @@ void main() {
     await closed;
     // The wait for the dialog, then the cue up to its ring.
     await tester.pump(const Duration(milliseconds: 600));
-    await tester.pump(const Duration(milliseconds: 3800));
+    await tester.pump(const Duration(milliseconds: 3300));
     expect(_ring, findsOneWidget);
     await tester.pumpAndSettle();
   });

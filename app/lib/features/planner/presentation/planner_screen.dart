@@ -471,7 +471,27 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     }
     if (!_active || ref.read(firstStartLocationAskProvider)) return;
     _cuePending = false;
-    if (!_covered()) _cue.play();
+    if (!_covered()) _cue.play(withChip: _chipShown, again: _cueAgain);
+  }
+
+  /// Whether the not-downloaded chip is over the map, as last built: the
+  /// cue pulses it too.
+  bool _chipShown = false;
+
+  /// Plays the cue once more after the rider has left the screen alone
+  /// since it ended, if the empty state is still there and nothing is in
+  /// its way; this run asks for no other after it.
+  void _cueAgain() {
+    if (!mounted ||
+        !ref.read(firstActionCueEnabledProvider) ||
+        !ref.read(plannerControllerProvider).isEmpty ||
+        !_active ||
+        ref.read(firstStartLocationAskProvider) ||
+        MediaQuery.disableAnimationsOf(context) ||
+        _covered()) {
+      return;
+    }
+    _cue.play(withChip: _chipShown);
   }
 
   /// Whether a navigator around this tab has anything over it.
@@ -1548,6 +1568,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   onClose: () => _closeAreaHint(_areaHint.missingArea),
                 )
               : null;
+          _chipShown = chip != null;
           return chip == null
               ? const SizedBox.shrink()
               : Padding(
@@ -1563,7 +1584,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   ),
                   child: Align(
                     alignment: AlignmentDirectional.centerStart,
-                    child: chip,
+                    child: FirstActionCueChipPulse(child: chip),
                   ),
                 );
         },
@@ -1864,7 +1885,7 @@ class _SheetHeader extends ConsumerWidget {
     final units = ref.watch(unitSystemProvider);
 
     if (state.isEmpty) {
-      return FirstActionCueReveal(
+      return FirstActionCueHeadline(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

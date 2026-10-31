@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -14,32 +15,26 @@ bool firstActionCueEnabled(Ref ref) => true;
 
 // One after the other, with a breath between, so each is seen, and each
 // in the same accent outline so they read as one hint: the headline, then
-// the search field, then the map. Times from the start of the cue.
+// the search field, then the not-downloaded chip when there is one, then
+// the map. Times from the start of the cue.
 
-/// Before anything moves: the sheet has just settled.
-const Duration _revealStart = Duration(milliseconds: 600);
+/// The headline's pulse, once the sheet has settled.
+const Duration _headlinePulseStart = Duration(milliseconds: 600);
 
-/// The headline's fade and rise.
-const Duration _revealDuration = Duration(milliseconds: 700);
-
-/// One pulse of outline: the headline's, then the search field's.
+/// One pulse of outline: the headline's, the search field's, the chip's.
 const Duration _pulseDuration = Duration(milliseconds: 900);
 
-/// The headline's pulse, once it is in.
-const Duration _headlinePulseStart = Duration(milliseconds: 1300);
-
 /// The search field's pulse, after the headline's.
-const Duration _pulseStart = Duration(milliseconds: 2400);
+const Duration _pulseStart = Duration(milliseconds: 1700);
 
-/// The ring's spread from the middle of the map, after the field.
-const Duration _ringStart = Duration(milliseconds: 3500);
+/// The chip's pulse, after the field's.
+const Duration _chipPulseStart = Duration(milliseconds: 2800);
+
+/// The ring's spread from the middle of the map, after the chip's pulse,
+/// or after the field's where there is no chip.
+const Duration _ringStartWithChip = Duration(milliseconds: 3900);
+const Duration _ringStartWithoutChip = Duration(milliseconds: 2800);
 const Duration _ringDuration = Duration(milliseconds: 1100);
-
-/// The whole cue.
-const Duration _cueDuration = Duration(milliseconds: 4600);
-
-/// How far below its place the headline starts.
-const double _revealRise = 16;
 
 /// How far the ring spreads.
 const double _ringRadius = 90;
@@ -54,26 +49,42 @@ const Key firstActionCueHeadlinePulseKey = ValueKey<String>(
 @visibleForTesting
 const Key firstActionCuePulseKey = ValueKey<String>('firstActionCuePulse');
 
+/// The pulse around the not-downloaded chip, while it is drawn.
+@visibleForTesting
+const Key firstActionCueChipPulseKey = ValueKey<String>(
+  'firstActionCueChipPulse',
+);
+
 /// The ring over the map, while it is drawn.
 @visibleForTesting
 const Key firstActionCueRingKey = ValueKey<String>('firstActionCueRing');
 
 /// The empty Plan tab's one short hint at how to start, one part after the
-/// other: after a moment the headline fades in and its outline pulses, then
-/// the search field's, then a ring spreads once from the middle of the map. One run, stopped at once by the rider's first
-/// touch anywhere; the parts listen to [progress].
+/// other: after a moment the headline's outline pulses, then the search
+/// field's, then the not-downloaded chip's if one is shown, then a ring
+/// spreads once from the middle of the map. Stopped at once by the rider's
+/// first touch anywhere; the parts listen to [progress]. A run that ends by
+/// itself can ask to be played again once nothing has touched the screen
+/// for [idleAgainAfter].
 class FirstActionCue {
   /// Creates the cue, at rest.
   FirstActionCue({required TickerProvider vsync})
     : _controller = AnimationController(
         vsync: vsync,
-        duration: _cueDuration,
+        duration: _durationFor(withChip: false),
         value: 1,
       ) {
     _controller.addStatusListener((status) {
-      if (status != AnimationStatus.forward) _end();
+      if (status != AnimationStatus.forward) _end(status);
     });
   }
+
+  /// How long nothing must touch the screen after a run that ended by
+  /// itself before its `again` is called.
+  static const Duration idleAgainAfter = Duration(seconds: 15);
+
+  static Duration _durationFor({required bool withChip}) =>
+      (withChip ? _ringStartWithChip : _ringStartWithoutChip) + _ringDuration;
 
   final AnimationController _controller;
 
@@ -84,72 +95,120 @@ class FirstActionCue {
   ValueListenable<bool> get running => _running;
   final ValueNotifier<bool> _running = ValueNotifier<bool>(false);
 
+  /// Whether this run pulses the not-downloaded chip too.
+  bool get withChip => _withChip;
+  bool _withChip = false;
+
+  /// The whole of this run.
+  Duration get _total => _controller.duration!;
+
+  /// Called once the screen has been left alone for [idleAgainAfter] after
+  /// this run ended by itself.
+  VoidCallback? _again;
+  Timer? _idle;
+
   bool _listening = false;
 
-  /// Runs the cue from its start.
-  void play() {
+  /// Runs the cue from its start, the chip's pulse in it if [withChip]. If
+  /// it ends by itself and nothing touches the screen for [idleAgainAfter]
+  /// after, [again] is called, once.
+  void play({bool withChip = false, VoidCallback? again}) {
+    _idle?.cancel();
+    _idle = null;
+    _again = null;
+    _withChip = withChip;
+    _controller.duration = _durationFor(withChip: withChip);
     // First, while the jump back to the start may still end a run.
     _controller.forward(from: 0);
+    _again = again;
     _running.value = true;
-    if (!_listening) {
-      _listening = true;
-      GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
-    }
+    _listen();
   }
 
-  /// Ends the cue where it is: the headline shown, the rest gone.
+  /// Ends the cue where it is, the rest gone, and anything waiting to play
+  /// it again.
   void stop() {
-    if (_running.value) _controller.value = 1;
+    _again = null;
+    _idle?.cancel();
+    _idle = null;
+    if (_running.value) {
+      _controller.value = 1;
+    } else {
+      _unlisten();
+    }
   }
 
   void _onPointer(PointerEvent event) {
     if (event is PointerDownEvent || event is PointerSignalEvent) stop();
   }
 
-  void _end() {
+  void _end(AnimationStatus status) {
     _running.value = false;
-    if (_listening) {
-      _listening = false;
-      GestureBinding.instance.pointerRouter.removeGlobalRoute(_onPointer);
+    final again = _again;
+    if (status == AnimationStatus.completed && again != null) {
+      // Ended by itself: still listening, a touch while it waits stops it.
+      _idle = Timer(idleAgainAfter, () {
+        _idle = null;
+        _again = null;
+        _unlisten();
+        again();
+      });
+    } else {
+      _again = null;
+      _unlisten();
     }
   }
 
-  /// Lets go of the ticker and the pointer.
+  void _listen() {
+    if (_listening) return;
+    _listening = true;
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
+  }
+
+  void _unlisten() {
+    if (!_listening) return;
+    _listening = false;
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_onPointer);
+  }
+
+  /// Lets go of the ticker, the pointer and the wait.
   void dispose() {
-    _end();
+    _again = null;
+    _idle?.cancel();
+    _idle = null;
+    _unlisten();
     _controller.dispose();
     _running.dispose();
   }
 
   /// How far through the part that runs [length] from [start] the cue is
-  /// at [t], 0..1 of the whole: below 0 before it, 1 or more after it.
-  static double _local(double t, Duration start, Duration length) =>
-      (t * _cueDuration.inMicroseconds - start.inMicroseconds) /
-      length.inMicroseconds;
-
-  /// The headline's share of its way in at [t], eased.
-  static double revealAt(double t) => Curves.easeOut.transform(
-    _local(t, _revealStart, _revealDuration).clamp(0.0, 1.0),
-  );
+  /// at [t], 0..1 of the whole, or `null` outside it.
+  double? _phase(double t, Duration start, Duration length) {
+    final local =
+        (t * _total.inMicroseconds - start.inMicroseconds) /
+        length.inMicroseconds;
+    return local < 0 || local >= 1 ? null : local;
+  }
 
   /// How far through its pulse the headline is at [t], or `null` outside
   /// it.
-  static double? headlinePulseAt(double t) {
-    final local = _local(t, _headlinePulseStart, _pulseDuration);
-    return local < 0 || local >= 1 ? null : local;
-  }
+  double? headlinePulseAt(double t) =>
+      _phase(t, _headlinePulseStart, _pulseDuration);
 
   /// How far through its pulse the field is at [t], or `null` outside it.
-  static double? pulseAt(double t) {
-    final local = _local(t, _pulseStart, _pulseDuration);
-    return local < 0 || local >= 1 ? null : local;
-  }
+  double? pulseAt(double t) => _phase(t, _pulseStart, _pulseDuration);
+
+  /// How far through its pulse the chip is at [t], or `null` outside it
+  /// and in a run without the chip.
+  double? chipPulseAt(double t) =>
+      _withChip ? _phase(t, _chipPulseStart, _pulseDuration) : null;
 
   /// How far through its spread the ring is at [t], or `null` outside it.
-  static double? ringAt(double t) {
-    final local = _local(t, _ringStart, _ringDuration);
-    return local < 0 || local >= 1 ? null : local;
-  }
+  double? ringAt(double t) => _phase(
+    t,
+    _withChip ? _ringStartWithChip : _ringStartWithoutChip,
+    _ringDuration,
+  );
 
   /// The cue handed down from [FirstActionCueScope], if any.
   static FirstActionCue? maybeOf(BuildContext context) =>
@@ -173,67 +232,26 @@ class FirstActionCueScope extends InheritedWidget {
       cue != oldWidget.cue;
 }
 
-/// [child], the empty sheet's headline, fading in and rising into place as
-/// the cue starts. With animations off it is simply there.
-class FirstActionCueReveal extends StatelessWidget {
-  /// Creates the reveal.
-  const FirstActionCueReveal({required this.child, super.key});
+/// [child], the empty sheet's headline, with the cue's first pulse of
+/// outline around it.
+class FirstActionCueHeadline extends StatelessWidget {
+  /// Creates the pulse around the headline.
+  const FirstActionCueHeadline({required this.child, super.key});
 
   /// The headline and its detail.
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    final cue = FirstActionCue.maybeOf(context);
-    if (cue == null || MediaQuery.disableAnimationsOf(context)) return child;
-    return AnimatedBuilder(
-      animation: Listenable.merge(<Listenable>[cue.running, cue.progress]),
-      builder: (context, child) {
-        final t = cue.progress.value;
-        final shown = FirstActionCue.revealAt(t);
-        final pulse = cue.running.value
-            ? FirstActionCue.headlinePulseAt(t)
-            : null;
-        return Opacity(
-          opacity: shown,
-          // Read out from the start, faded or not.
-          alwaysIncludeSemantics: true,
-          child: Transform.translate(
-            offset: Offset(0, (1 - shown) * _revealRise),
-            child: Stack(
-              fit: StackFit.passthrough,
-              clipBehavior: Clip.none,
-              children: [
-                child!,
-                if (pulse != null)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: ExcludeSemantics(
-                        child: CustomPaint(
-                          key: firstActionCueHeadlinePulseKey,
-                          painter: _PulsePainter(
-                            cue.progress,
-                            Theme.of(context).colorScheme.primary,
-                            FirstActionCue.headlinePulseAt,
-                            pad: 8,
-                            radius: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-      child: child,
-    );
-  }
+  Widget build(BuildContext context) => _CuePulse(
+    pulseKey: firstActionCueHeadlinePulseKey,
+    phaseOf: (cue) => cue.headlinePulseAt,
+    pad: 8,
+    radius: 16,
+    child: child,
+  );
 }
 
-/// [child], the search field, with the cue's pulse of outline painted
-/// around it: over it and beyond its edge, taking no room and no touch.
+/// [child], the search field, with the cue's pulse of outline around it.
 class FirstActionCuePulse extends StatelessWidget {
   /// Creates the pulse around [child].
   const FirstActionCuePulse({required this.child, super.key});
@@ -242,32 +260,81 @@ class FirstActionCuePulse extends StatelessWidget {
   final Widget child;
 
   @override
+  Widget build(BuildContext context) => _CuePulse(
+    pulseKey: firstActionCuePulseKey,
+    phaseOf: (cue) => cue.pulseAt,
+    child: child,
+  );
+}
+
+/// [child], the not-downloaded chip over the map, with the cue's pulse of
+/// outline around it in a run that has the chip.
+class FirstActionCueChipPulse extends StatelessWidget {
+  /// Creates the pulse around [child].
+  const FirstActionCueChipPulse({required this.child, super.key});
+
+  /// The chip.
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => _CuePulse(
+    pulseKey: firstActionCueChipPulseKey,
+    phaseOf: (cue) => cue.chipPulseAt,
+    pad: 4,
+    // The chip's glass panel's.
+    radius: 22,
+    child: child,
+  );
+}
+
+/// [child] with a pulse of outline painted around it in its turn of the
+/// cue: over it and beyond its edge, taking no room and no touch. With
+/// animations off it is simply [child].
+class _CuePulse extends StatelessWidget {
+  const _CuePulse({
+    required this.pulseKey,
+    required this.phaseOf,
+    required this.child,
+    this.pad = 0,
+    this.radius,
+  });
+
+  final Key pulseKey;
+
+  /// Which of the cue's parts this is.
+  final double? Function(double t) Function(FirstActionCue cue) phaseOf;
+
+  final double pad;
+  final double? radius;
+  final Widget child;
+
+  @override
   Widget build(BuildContext context) {
     final cue = FirstActionCue.maybeOf(context);
-    if (cue == null) return child;
+    if (cue == null || MediaQuery.disableAnimationsOf(context)) return child;
     final colour = Theme.of(context).colorScheme.primary;
-    final still = MediaQuery.disableAnimationsOf(context);
+    final phaseAt = phaseOf(cue);
     return AnimatedBuilder(
       // Rebuilt as the cue runs, so the pulse is there only in its turn.
       animation: Listenable.merge(<Listenable>[cue.running, cue.progress]),
       builder: (context, child) => Stack(
-        // The field's own size and constraints, whatever the pulse paints.
+        // The child's own size and constraints, whatever the pulse paints.
         fit: StackFit.passthrough,
         clipBehavior: Clip.none,
         children: [
           child!,
-          if (cue.running.value &&
-              !still &&
-              FirstActionCue.pulseAt(cue.progress.value) != null)
+          if (cue.running.value && phaseAt(cue.progress.value) != null)
             Positioned.fill(
               child: IgnorePointer(
                 child: ExcludeSemantics(
                   child: CustomPaint(
-                    key: firstActionCuePulseKey,
+                    key: pulseKey,
                     painter: _PulsePainter(
                       cue.progress,
                       colour,
-                      FirstActionCue.pulseAt,
+                      phaseAt,
+                      pad: pad,
+                      radius: radius,
                     ),
                   ),
                 ),
@@ -333,6 +400,7 @@ class _PulsePainter extends CustomPainter {
   @override
   bool shouldRepaint(_PulsePainter oldDelegate) =>
       oldDelegate.progress != progress ||
+      oldDelegate.phaseAt != phaseAt ||
       oldDelegate.colour != colour ||
       oldDelegate.pad != pad ||
       oldDelegate.radius != radius;
@@ -373,7 +441,7 @@ class _FirstActionCueRingState extends State<FirstActionCueRing> {
         builder: (context, _) =>
             !cue.running.value ||
                 still ||
-                FirstActionCue.ringAt(cue.progress.value) == null
+                cue.ringAt(cue.progress.value) == null
             ? const SizedBox.shrink()
             : IgnorePointer(
                 child: ExcludeSemantics(
@@ -381,7 +449,7 @@ class _FirstActionCueRingState extends State<FirstActionCueRing> {
                     child: CustomPaint(
                       key: firstActionCueRingKey,
                       painter: FirstActionCueRingPainter(
-                        cue.progress,
+                        cue,
                         widget.centre(),
                         colour,
                       ),
@@ -398,11 +466,11 @@ class _FirstActionCueRingState extends State<FirstActionCueRing> {
 /// Paints the cue's ring.
 class FirstActionCueRingPainter extends CustomPainter {
   /// Creates the painter.
-  FirstActionCueRingPainter(this.progress, this.centre, this.colour)
-    : super(repaint: progress);
+  FirstActionCueRingPainter(this.cue, this.centre, this.colour)
+    : super(repaint: cue.progress);
 
-  /// The cue's progress.
-  final Animation<double> progress;
+  /// The cue, whose run says when the ring spreads.
+  final FirstActionCue cue;
 
   /// Where the ring spreads from, in the overlay, which is the window.
   final Offset centre;
@@ -412,7 +480,7 @@ class FirstActionCueRingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final ring = FirstActionCue.ringAt(progress.value);
+    final ring = cue.ringAt(cue.progress.value);
     if (ring == null) return;
     final radius = _ringRadius * Curves.easeOut.transform(ring);
     final fade = 1 - ring;
@@ -434,7 +502,7 @@ class FirstActionCueRingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(FirstActionCueRingPainter oldDelegate) =>
-      oldDelegate.progress != progress ||
+      oldDelegate.cue != cue ||
       oldDelegate.centre != centre ||
       oldDelegate.colour != colour;
 }
