@@ -57,4 +57,20 @@ void main() {
 
     expect(answers, <bool>[false]);
   });
+
+  testWidgets('on iOS has only Continue and cannot be dismissed', (
+    tester,
+  ) async {
+    final answers = await _open(tester);
+
+    expect(find.text(l10n.mapLocationRationaleDeny), findsNothing);
+    // A tap beside the dialog does not close it.
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapLocationRationaleTitle), findsOneWidget);
+
+    await tester.tap(find.text(l10n.mapLocationRationaleAllow));
+    await tester.pumpAndSettle();
+    expect(answers, <bool>[true]);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 }
