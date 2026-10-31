@@ -116,9 +116,18 @@ abstract interface class OfflineMapApi {
   Future<List<int>> regionIds();
 }
 
+/// How long a map pack download may go without progress before it is given
+/// up (see [MaplibreOfflineMapApi.stallTimeout]).
+const Duration offlineDownloadStallTimeout = Duration(seconds: 60);
+
 /// [OfflineMapApi] over maplibre_gl's global offline functions.
 class MaplibreOfflineMapApi implements OfflineMapApi {
-  const MaplibreOfflineMapApi();
+  const MaplibreOfflineMapApi({
+    this.stallTimeout = offlineDownloadStallTimeout,
+  });
+
+  /// How long a download may go without any progress before it is given up.
+  final Duration stallTimeout;
 
   @override
   Future<OfflineDownloadResult> download(
@@ -136,10 +145,30 @@ class MaplibreOfflineMapApi implements OfflineMapApi {
     );
     final finished = Completer<void>();
     var lastBytes = 0;
-    final region = await ml.downloadOfflineRegion(
+    // A part of the pack that fails is retried by MapLibre for good, and the
+    // iOS plugin then reports nothing more: neither progress nor an error,
+    // so the download would wait forever. Without progress for
+    // [stallTimeout] it is given up, and the pack deleted so the retrying
+    // stops.
+    Timer? stall;
+    void arm() {
+      stall?.cancel();
+      stall = Timer(stallTimeout, () {
+        if (!finished.isCompleted) {
+          finished.completeError(
+            OfflineDownloadException('the download made no progress'),
+          );
+        }
+      });
+    }
+
+    arm();
+    ml.OfflineRegion? region;
+    final regionCall = ml.downloadOfflineRegion(
       definition,
       metadata: <String, dynamic>{'name': spec.name},
       onEvent: (event) {
+        arm();
         switch (event) {
           case ml.InProgress(:final progress, :final completedResourceSize):
             lastBytes = completedResourceSize;
@@ -160,16 +189,39 @@ class MaplibreOfflineMapApi implements OfflineMapApi {
         }
       },
     );
-    await finished.future;
+    unawaited(
+      regionCall.then<void>(
+        (created) => region = created,
+        onError: (Object error, StackTrace stack) {
+          if (!finished.isCompleted) finished.completeError(error, stack);
+        },
+      ),
+    );
+    try {
+      await finished.future;
+    } on OfflineDownloadException {
+      final stalled = region;
+      if (stalled != null) {
+        try {
+          await ml.deleteOfflineRegion(stalled.id);
+        } on Object {
+          // Gone already, or never stored: nothing left to stop.
+        }
+      }
+      rethrow;
+    } finally {
+      stall?.cancel();
+    }
+    final created = region ?? await regionCall;
     var sizeBytes = lastBytes;
     try {
-      final status = await ml.getOfflineRegionStatus(region.id);
+      final status = await ml.getOfflineRegionStatus(created.id);
       sizeBytes = status.completedResourceSize;
     } on Object {
       // Keep the size from the last progress event.
     }
     return OfflineDownloadResult(
-      maplibreRegionId: region.id,
+      maplibreRegionId: created.id,
       sizeBytes: sizeBytes,
     );
   }
