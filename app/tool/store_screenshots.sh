@@ -491,6 +491,18 @@ capture() {
         grep -E 'All tests passed' "$log" || true
         return 0
       fi
+      # On a loaded runner the connection to the device now and then drops
+      # mid-run (adb took the emulator for offline while it ran on): the
+      # test ends "did not complete", and the shutter with it. Once more from
+      # the start (the test clears the library first), with the device back
+      # and a shutter running.
+      if [ "$attempt" = 1 ] && grep -q 'did not complete' "$log"; then
+        echo "::warning::the capture for $locale lost the device; trying again from the start" >&2
+        tail -n 20 "$log" >&2
+        if [ "$ANDROID" = 1 ]; then wait_for_boot "$DEVICE"; fi
+        if [ -z "$SHUTTER_PID" ] || ! kill -0 "$SHUTTER_PID" 2> /dev/null; then start_shutter; fi
+        continue
+      fi
       # On a loaded runner Xcode's build settings query now and then gives
       # up ("No Xcode build settings have been found"), and the app is never
       # built: that is tried once more, like a test that never started.
@@ -532,9 +544,16 @@ MIRROR_PID=""
 CREATIVE_PID=""
 PLIST_BACKUP=""
 SHUTTER_PID=""
+SHUTTER_ARGS=()
 MONITOR_PID=""
 DEMO_SERIAL=""
 WORK="$(mktemp -d)"
+# Starts tool/store_shutter.py for the run (SHUTTER_ARGS), in the background.
+start_shutter() {
+  python3 "$APP/tool/store_shutter.py" "${SHUTTER_ARGS[@]}" &
+  SHUTTER_PID=$!
+}
+
 cleanup() {
   if [ -n "$MONITOR_PID" ]; then
     kill "$MONITOR_PID" 2> /dev/null || true
@@ -680,7 +699,7 @@ PY
     if [ "$ANDROID" = 1 ]; then
       android_boot "$DEVICE"
       DEMO_SERIAL="$DEVICE"
-      python3 "$APP/tool/store_shutter.py" --android "$DEVICE" "$OUT/raw" &
+      SHUTTER_ARGS=(--android "$DEVICE" "$OUT/raw")
     else
       boot "$UDID" "${region/_/-}" "$region"
       display=()
@@ -689,9 +708,9 @@ PY
         [ -n "$inner" ] || die "no 2007x2853 display on $UDID; is it an iPhone Duo?"
         display=(--display "$inner")
       fi
-      python3 "$APP/tool/store_shutter.py" ${display[@]+"${display[@]}"} "$UDID" "$OUT/raw" &
+      SHUTTER_ARGS=(${display[@]+"${display[@]}"} "$UDID" "$OUT/raw")
     fi
-    SHUTTER_PID=$!
+    start_shutter
     if [ "$PREVIEW" = 1 ]; then say "recording $run"; else say "capturing $run ($THEMES)"; fi
     capture "$run"
     kill "$SHUTTER_PID" 2> /dev/null || true
