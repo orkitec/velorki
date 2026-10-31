@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/map/data/maplibre_map_controller.dart';
@@ -93,6 +96,33 @@ void main() {
       var ran = false;
       await tolerateMapGone(() async => ran = true);
       expect(ran, isTrue);
+    });
+  });
+
+  group('styleRead', () {
+    test('a read the plugin never answers fails as a style that is gone', () {
+      fakeAsync((async) {
+        Object? error;
+        styleRead(Completer<List<String>>().future)
+            .then<void>((_) {}, onError: (Object e) => error = e);
+        async.elapse(styleReadTimeout - const Duration(milliseconds: 1));
+        expect(error, isNull);
+        async.elapse(const Duration(milliseconds: 1));
+        expect(
+          error,
+          isA<PlatformException>().having(
+            isStyleGoneError,
+            'is a style gone',
+            isTrue,
+          ),
+        );
+      });
+    });
+
+    test('an answer comes through as it is', () async {
+      expect(await styleRead(Future.value(<String>['velorki-stops'])), [
+        'velorki-stops',
+      ]);
     });
   });
 }

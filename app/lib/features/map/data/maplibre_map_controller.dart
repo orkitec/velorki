@@ -684,6 +684,21 @@ bool isStyleGoneError(PlatformException e) {
   return code.contains('notfound') || code.contains('not_found');
 }
 
+/// How long a read of the style ([styleRead]) is given.
+const Duration styleReadTimeout = Duration(seconds: 10);
+
+/// [call], a read of the style's sources or layers, or the error a style
+/// that is gone answers with if it has not answered in [styleReadTimeout].
+///
+/// The iOS plugin answers those two reads not at all while the map has no
+/// style (a change of look, between the old style and the new), which left
+/// a Dart future pending for good: the stops drawn then never were, and a
+/// store picture waited out its limit on them.
+Future<T> styleRead<T>(Future<T> call) => call.timeout(
+  styleReadTimeout,
+  onTimeout: () => throw PlatformException(code: 'styleNotFound'),
+);
+
 /// [MapLibreStyleOps] forwarding one for one to a real plugin controller.
 ///
 /// Nothing but the forwarding lives here: every decision the adapter makes
@@ -807,7 +822,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
   Future<List<String>> getLayerIds() => MapDrawn.busy(
     'getLayerIds',
     () async => <String>[
-      for (final id in await map.getLayerIds()) id as String,
+      for (final id in await styleRead(map.getLayerIds())) id as String,
     ],
   );
 
@@ -843,7 +858,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
 
   @override
   Future<List<String>> getSourceIds() =>
-      MapDrawn.busy('getSourceIds', map.getSourceIds);
+      MapDrawn.busy('getSourceIds', () => styleRead(map.getSourceIds()));
 
   @override
   Future<void> addImage(String name, Uint8List bytes, {bool sdf = false}) =>
