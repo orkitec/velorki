@@ -333,6 +333,9 @@ jobs:
       # from before its first wildcard, so `?pad` keeps the `ipad/` folder (a
       # one-letter `[i]` counts as a literal there).
       - name: Keep the iPhone set
+        id: keep_iphone
+        # GitHub's artifact service now and then times out; once more below.
+        continue-on-error: true
         if: ${{ !cancelled() && steps.iphone.outcome != 'skipped' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -342,6 +345,19 @@ jobs:
             app/build/store_screenshots/watch
             app/build/store_screenshots/creative
           if-no-files-found: ${{ steps.iphone.outcome == 'success' && 'error' || 'warn' }}
+          retention-days: 30
+
+      - name: Keep the iPhone set, once more
+        if: ${{ !cancelled() && steps.iphone.outcome != 'skipped' && steps.keep_iphone.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-iphone-${{ matrix.job.id }}
+          path: |
+            app/build/store_screenshots/slides/set
+            app/build/store_screenshots/watch
+            app/build/store_screenshots/creative
+          if-no-files-found: ${{ steps.iphone.outcome == 'success' && 'error' || 'warn' }}
+          overwrite: true
           retention-days: 30
 
       - name: iPad screenshots and slides
@@ -360,12 +376,25 @@ jobs:
           tool/store_screenshots.sh --platform ipad --locales "$LOCALES"
 
       - name: Keep the iPad set
+        id: keep_ipad
+        # GitHub's artifact service now and then times out; once more below.
+        continue-on-error: true
         if: ${{ !cancelled() && steps.ipad.outcome != 'skipped' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: store-assets-ios-ipad-${{ matrix.job.id }}
           path: app/build/store_screenshots/?pad/slides/set
           if-no-files-found: ${{ steps.ipad.outcome == 'success' && 'error' || 'warn' }}
+          retention-days: 30
+
+      - name: Keep the iPad set, once more
+        if: ${{ !cancelled() && steps.ipad.outcome != 'skipped' && steps.keep_ipad.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-ipad-${{ matrix.job.id }}
+          path: app/build/store_screenshots/?pad/slides/set
+          if-no-files-found: ${{ steps.ipad.outcome == 'success' && 'error' || 'warn' }}
+          overwrite: true
           retention-days: 30
 
       # The Duo's inner display, unfolded (tool/duo_state.c), on a simulator
@@ -384,12 +413,25 @@ jobs:
           tool/store_screenshots.sh --platform duo --locales "$LOCALES"
 
       - name: Keep the iPhone Duo set
+        id: keep_duo
+        # GitHub's artifact service now and then times out; once more below.
+        continue-on-error: true
         if: ${{ !cancelled() && steps.duo.outcome != 'skipped' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: store-assets-ios-duo-${{ matrix.job.id }}
           path: app/build/store_screenshots/?uo/slides/set
           if-no-files-found: ${{ steps.duo.outcome == 'success' && 'error' || 'warn' }}
+          retention-days: 30
+
+      - name: Keep the iPhone Duo set, once more
+        if: ${{ !cancelled() && steps.duo.outcome != 'skipped' && steps.keep_duo.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-duo-${{ matrix.job.id }}
+          path: app/build/store_screenshots/?uo/slides/set
+          if-no-files-found: ${{ steps.duo.outcome == 'success' && 'error' || 'warn' }}
+          overwrite: true
           retention-days: 30
 
       - name: Preview video
@@ -725,11 +767,25 @@ jobs:
           # once this step ends.
           script: tool/store_screenshots.sh --platform "$PLATFORM" --locales "$LOCALES" || { timeout 60 adb -s emulator-5554 logcat -d > build/logcat.txt; exit 1; }
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - name: Keep the set
+        id: keep_set
+        # GitHub's artifact service now and then times out; once more below.
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ${{ matrix.artifact }}-${{ matrix.locale }}
           path: ${{ matrix.set }}
           if-no-files-found: error
+          retention-days: 30
+
+      - name: Keep the set, once more
+        if: ${{ steps.keep_set.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ${{ matrix.artifact }}-${{ matrix.locale }}
+          path: ${{ matrix.set }}
+          if-no-files-found: error
+          overwrite: true
           retention-days: 30
 
       - name: Mirror log
