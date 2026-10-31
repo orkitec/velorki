@@ -402,3 +402,7 @@ class OfflineDownloadController extends _$OfflineDownloadController {
 @Riverpod(keepAlive: true)
 String offlineStyleUrl(Ref ref) =>
     ref.watch(effectiveConfigProvider).mapStyleUrl;
+
+/// Empties MapLibre's ambient tile cache, the part of its store that belongs
+/// to no region.
+Future<void> clearMapAmbientCache() => ml.clearAmbientCache();

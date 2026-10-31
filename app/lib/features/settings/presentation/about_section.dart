@@ -9,6 +9,7 @@ import '../../../core/links/velorki_urls.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../performance/data/show_performance_setting.dart';
 import '../../shared/presentation/wide_panel.dart';
+import '../application/app_reset.dart';
 import '../data/package_info_provider.dart';
 
 /// Opens the licence page: every package's licence and the data sources
@@ -53,6 +54,32 @@ class AboutSection extends ConsumerWidget {
     final opened = await ref.read(linkOpenerProvider)(Uri.parse(url));
     if (opened) return;
     messenger.showSnackBar(SnackBar(content: Text(l10n.settingsOpenFailed)));
+  }
+
+  Future<void> _reset(BuildContext context, WidgetRef ref) async {
+    final reset = ref.read(appResetProvider);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      useRootNavigator: true,
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(l10n.settingsResetAppTitle),
+          content: Text(l10n.settingsResetAppBody),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.commonCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l10n.settingsResetAppConfirm),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed ?? false) await reset.run();
   }
 
   @override
@@ -126,6 +153,13 @@ class AboutSection extends ConsumerWidget {
           onChanged: (value) =>
               unawaited(ref.read(showPerformanceProvider.notifier).set(value)),
         ),
+        if (ref.watch(devToolsAvailableProvider))
+          ListTile(
+            leading: const Icon(Icons.restart_alt),
+            title: Text(l10n.settingsResetApp),
+            subtitle: Text(l10n.settingsResetAppHint),
+            onTap: () => unawaited(_reset(context, ref)),
+          ),
       ],
     );
   }
