@@ -4,6 +4,10 @@
 
 import 'package:velorki_io/io.dart';
 
+/// The in-memory file system's documents root.
+Future<Directory> appDocumentsDirectory() async =>
+    Directory('/documents')..createSync(recursive: true);
+
 /// The in-memory file system's support root; what is kept across visits is
 /// decided by the browser store (`web_file_store.dart`).
 Future<Directory> appSupportDirectory() async =>

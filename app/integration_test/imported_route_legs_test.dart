@@ -132,7 +132,8 @@ void main() {
     );
 
     // ------------------------------------------------------- save, reopen
-    final save = find.widgetWithText(FilledButton, 'Save');
+    // The Plan sheet's Save, beside Ride.
+    final save = find.widgetWithText(OutlinedButton, 'Save');
     await tester.ensureVisible(save);
     await pumpFor(tester, const Duration(milliseconds: 500));
     await tapAndPump(tester, save);

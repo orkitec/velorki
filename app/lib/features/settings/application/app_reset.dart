@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart' as pp;
 import 'package:velorki_io/io.dart';
 
 import '../../../app/app_config.dart';
@@ -109,7 +108,7 @@ final appResetProvider = Provider<AppReset>((ref) {
     closeDatabase: database.close,
     clearSecureStorage: const FlutterSecureStorage().deleteAll,
     directories: () async => [
-      await pp.getApplicationDocumentsDirectory(),
+      await appDocumentsDirectory(),
       await appSupportDirectory(),
       await appCacheDirectory(),
       await appTemporaryDirectory(),
