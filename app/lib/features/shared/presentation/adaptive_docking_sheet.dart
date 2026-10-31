@@ -458,6 +458,12 @@ class _AdaptiveDockingSheetState extends ConsumerState<AdaptiveDockingSheet> {
   void _settleInBand() {
     final controller = widget.controller;
     if (!mounted || _pointers > 0 || !controller.isAttached) return;
+    // Under the keyboard the sheet is where its screen put it, out of the
+    // way: the keyboard hides the bar and its safe area, the docked extent
+    // drops by that much, and a sheet parked at the old one sits part way
+    // into the new band. Its screen brings it back once the keyboard goes,
+    // and the going re-arms this.
+    if (_keyboardUp) return;
     final t = DockingSheetShell.dockedFraction(
       extent: controller.size,
       collapsedExtent: widget.collapsedExtent,
@@ -473,6 +479,9 @@ class _AdaptiveDockingSheetState extends ConsumerState<AdaptiveDockingSheet> {
           : (resting >= bandTop ? resting : bandTop),
     );
   }
+
+  /// Whether the keyboard was up at the last build.
+  bool _keyboardUp = false;
 
   void _lift() {
     if (_pointers > 0) _pointers--;
@@ -550,6 +559,10 @@ class _AdaptiveDockingSheetState extends ConsumerState<AdaptiveDockingSheet> {
     final layout = ShellLayout.of(context);
     final turns = shellQuarterTurns(layout);
     final screen = MediaQuery.sizeOf(context);
+    final keyboardUp = MediaQuery.viewInsetsOf(context).bottom > 0;
+    // The keyboard gone: a sheet nobody moved back looks again.
+    if (_keyboardUp && !keyboardUp) _armSettle();
+    _keyboardUp = keyboardUp;
     final view = View.of(context);
     final safe = EdgeInsets.fromViewPadding(
       view.viewPadding,

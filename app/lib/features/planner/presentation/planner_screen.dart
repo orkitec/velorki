@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart' show GestureBinding;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -422,6 +423,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     // The keyboard's going is what brings the sheet back; the window does
     // not rebuild this screen by itself, so metrics changes are listened for.
     WidgetsBinding.instance.addObserver(this);
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
     _active = ref.read(activeTabProvider) == plannerRoute;
     _map = ref.read(sharedMapControllerProvider);
     _stops = MapStopsController(
@@ -509,7 +511,41 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
 
   /// A stop tapped on the map: its card, the map kept at its zoom, since
   /// the rider is looking at the stop already.
-  void _onStopTapped(SearchResult stop) => unawaited(_openPlace(stop));
+  void _onStopTapped(SearchResult stop) {
+    if (_endSearchForMapTap()) return;
+    unawaited(_openPlace(stop));
+  }
+
+  /// Whether the search was under way when the last finger went down,
+  /// anywhere on the screen.
+  bool _searchActiveAtDown = false;
+
+  /// Every pointer that goes down, before anything acts on it: the field
+  /// may let go of the focus for that very touch, and the map's tap comes
+  /// later, once the map knows it was a tap.
+  void _onPointer(PointerEvent event) {
+    if (event is! PointerDownEvent) return;
+    _searchActiveAtDown = _searchActive;
+  }
+
+  /// Whether the search field has the focus or its results are open.
+  bool get _searchActive {
+    final search = _searchKey.currentState;
+    return search is SearchFieldState && search.active;
+  }
+
+  /// A tap or a press on the map while the search is under way only ends
+  /// the search: the field lets go, the keyboard and the results go, and
+  /// the sheet comes back. The next one sets a point as always. Answers
+  /// whether the tap was taken for that.
+  bool _endSearchForMapTap() {
+    final wasActive = _searchActiveAtDown;
+    _searchActiveAtDown = false;
+    if (!wasActive && !_searchActive) return false;
+    final search = _searchKey.currentState;
+    if (search is SearchFieldState) search.dismiss();
+    return true;
+  }
 
   bool _searchFocused = false;
   bool _keyboardUp = false;
@@ -605,6 +641,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_onPointer);
     _binding?.detach();
     _cursor.dispose();
     _chartWindow.dispose();
@@ -806,6 +843,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         // map between this tab's chrome and its sheet.
         fitPadding: _visiblePadding,
       );
+      binding.takesTap = _endSearchForMapTap;
       binding.onWaypointTap = (index) {
         unawaited(_editWaypoint(index));
       };
@@ -892,8 +930,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
 
   /// A place picked in the search (or sent by another app, which goes the
   /// same way): its card, the map zoomed in on it.
-  void _onPlaceSelected(SearchResult result) =>
-      unawaited(_openPlace(result, fromSearch: true, zoom: 13));
+  void _onPlaceSelected(SearchResult result) {
+    // The search ended with the pick, not for a tap on the map.
+    _searchActiveAtDown = false;
+    unawaited(_openPlace(result, fromSearch: true, zoom: 13));
+  }
 
   /// What the pin on the map says: the place's name, or what it is.
   String _placeLabel(SearchResult place) => place.name.isNotEmpty
@@ -988,6 +1029,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// Downloads the area on screen where it is, on the map: what the
   /// not-downloaded chips ask for.
   void _downloadArea() {
+    _searchActiveAtDown = false;
     unawaited(downloadVisibleArea(context, ref, _map));
   }
 

@@ -45,6 +45,36 @@ void main() {
     );
   });
 
+  testWidgets('under the keyboard a sheet stays where it is, and settles '
+      'once the keyboard has gone', (tester) async {
+    await pumpScreen(tester, const PlannerScreen());
+    await tester.pumpAndSettle();
+    final sheet = tester.widget<AdaptiveDockingSheet>(
+      find.byType(AdaptiveDockingSheet).first,
+    );
+    final controller = sheet.controller;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 600);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pump();
+    // Part way into the band, mostly open: left alone, it would go up.
+    final left = sheet.collapsedExtent + sheet.dockedRange * 0.7;
+    controller.jumpTo(left);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+    await tester.pumpAndSettle();
+    expect(controller.size, closeTo(left, 0.002));
+
+    // The keyboard goes, and nothing else moves the sheet: it settles.
+    tester.view.viewInsets = FakeViewPadding.zero;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    expect(
+      controller.size,
+      greaterThanOrEqualTo(sheet.collapsedExtent + sheet.dockedRange - 0.002),
+    );
+  });
+
   testWidgets('a sheet held by a finger stays where it is', (tester) async {
     await pumpScreen(tester, const PlannerScreen());
     await tester.pumpAndSettle();

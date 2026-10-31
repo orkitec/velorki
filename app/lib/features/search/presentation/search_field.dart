@@ -104,6 +104,10 @@ class SearchFieldState extends ConsumerState<SearchField> {
   double _fieldWidth = 0;
   bool _dismissed = false;
 
+  /// Whether the results were put away with the search ([dismiss]): they
+  /// come back with the field's focus, or with what is typed next.
+  bool _closed = false;
+
   /// Where the field's bottom edge was on the screen at the last frame, so
   /// the list can end above the keyboard: a phone turned sideways with the
   /// keyboard up leaves it little more than a row or two.
@@ -138,8 +142,26 @@ class SearchFieldState extends ConsumerState<SearchField> {
 
   void _onFocus() {
     widget.onFocusChanged?.call(_focusNode.hasFocus);
-    // A narrow field puts its trailing button away while the rider types.
-    if (widget.trailing != null) setState(() {});
+    // Back in the field, the results put away with the search come back.
+    if (_focusNode.hasFocus && _closed) {
+      setState(() => _closed = false);
+    } else if (widget.trailing != null) {
+      // A narrow field puts its trailing button away while the rider types.
+      setState(() {});
+    }
+  }
+
+  /// Whether the search is under way: the field has the focus (and the
+  /// keyboard), or its results are open.
+  bool get active => _focusNode.hasFocus || _results.isShowing;
+
+  /// Ends the search for now, as a tap on the map does: the field lets go
+  /// of the focus, the keyboard goes and the results close. What was typed
+  /// stays, and the results come back with the field's focus.
+  void dismiss() {
+    _focusNode.unfocus();
+    if (_results.isShowing) _results.hide();
+    setState(() => _closed = true);
   }
 
   @override
@@ -154,7 +176,9 @@ class SearchFieldState extends ConsumerState<SearchField> {
   }
 
   bool get _showResults =>
-      !_dismissed && _controller.text.trim().length >= searchMinChars;
+      !_dismissed &&
+      !_closed &&
+      _controller.text.trim().length >= searchMinChars;
 
   void _syncResults() {
     // The field moves when the phone turns, from one row to another, and
@@ -175,7 +199,10 @@ class SearchFieldState extends ConsumerState<SearchField> {
     // Typing over a picked result unpicks it: the pin on the map must not
     // outlive the words that put it there.
     if (_dismissed) widget.onCleared?.call();
-    setState(() => _dismissed = false);
+    setState(() {
+      _dismissed = false;
+      _closed = false;
+    });
     ref
         .read(placeSearchProvider.notifier)
         .query(

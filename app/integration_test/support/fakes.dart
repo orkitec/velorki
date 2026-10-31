@@ -468,11 +468,25 @@ class RecordingMapController implements MapController {
   @override
   BoundingBox? get visibleBounds => inner.visibleBounds;
 
-  @override
-  set onTap(ValueChanged<LatLng>? handler) => inner.onTap = handler;
+  /// What the app does with a tap on the map, as the real map reports one:
+  /// a test that touches the map with a synthesised pointer calls it, since
+  /// that pointer never reaches the native view on iOS.
+  ValueChanged<LatLng>? tapHandler;
+
+  /// What the app does with a long press on the map; see [tapHandler].
+  ValueChanged<LatLng>? longPressHandler;
 
   @override
-  set onLongPress(ValueChanged<LatLng>? handler) => inner.onLongPress = handler;
+  set onTap(ValueChanged<LatLng>? handler) {
+    tapHandler = handler;
+    inner.onTap = handler;
+  }
+
+  @override
+  set onLongPress(ValueChanged<LatLng>? handler) {
+    longPressHandler = handler;
+    inner.onLongPress = handler;
+  }
 
   @override
   set onWaypointDragged(void Function(int index, LatLng position)? handler) =>
