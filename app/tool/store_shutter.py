@@ -166,23 +166,37 @@ class Android:
                 return line.split("mCurrentFocus=", 1)[1].strip()
         return ""
 
+    def system_dialogs(self) -> list[str]:
+        """The system's "isn't responding" and crash dialogs on screen, by
+        their window titles, whatever has the focus."""
+        shown = self.adb("shell", "dumpsys", "window", "windows").stdout.decode("utf-8", "replace")
+        return sorted({line.split("Window{", 1)[1].split("}", 1)[0]
+                       for line in shown.splitlines()
+                       if "Window{" in line and ("Application Not Responding" in line
+                                                 or "Application Error" in line)})
+
     def app_in_front(self) -> bool:
         """Whether the app's window is in front, nothing of the system's over
         it: a busy emulator's launcher once stopped answering, and its "isn't
         responding" dialog stood over every picture of a run that passed.
         Such a window is closed once; if it stays, the picture is refused."""
-        for attempt in range(3):
+        def clear(focus: str) -> bool:
+            # No window with the focus is fine: a CI emulator, with no window
+            # on a screen, reports none while the app is drawn. A dialog of
+            # the system's takes the focus when it comes.
+            return (BUNDLE in focus or focus in ("", "null")) and not self.system_dialogs()
+
+        for _ in range(3):
             focus = self.focus()
-            if BUNDLE in focus:
+            if clear(focus):
                 return True
-            print(f"store_shutter: {focus or 'nothing'} has the focus, not the app",
-                  file=sys.stderr)
-            if focus and "null" not in focus:
-                self.adb("shell", "am", "broadcast", "-a",
-                         "android.intent.action.CLOSE_SYSTEM_DIALOGS")
-                self.adb("shell", "input", "keyevent", "KEYCODE_BACK")
+            print(f"store_shutter: in front of the app: {focus}; dialogs: "
+                  f"{', '.join(self.system_dialogs()) or 'none'}", file=sys.stderr)
+            self.adb("shell", "am", "broadcast", "-a",
+                     "android.intent.action.CLOSE_SYSTEM_DIALOGS")
+            self.adb("shell", "input", "keyevent", "KEYCODE_BACK")
             time.sleep(1.5)
-        return BUNDLE in self.focus()
+        return clear(self.focus())
 
     def screenshot(self, target: str) -> None:
         png = self.adb("exec-out", "screencap", "-p", check=True).stdout
