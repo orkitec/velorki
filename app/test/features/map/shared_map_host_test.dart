@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/application/locate_on_open.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
+import 'package:velorki/features/map/presentation/first_start_location.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/puck_ownership.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
@@ -13,6 +15,7 @@ import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 
 import '../../support/app.dart';
+import '../recording/support/fakes.dart' show FakeLocationPermissionGateway;
 
 /// Stands in for the maplibre view: hands out its controller once, from
 /// its first build, and notes what the host put around it.
@@ -182,6 +185,7 @@ void main() {
       tester,
       maps: <FakeMapController>[],
       builds: <int>[],
+      stored: const <String, Object>{firstStartLocationAskedKey: true},
     );
     await tester.pump();
     final locate = container.read(locateOnOpenProvider) as _Locate;
@@ -207,5 +211,87 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     expect(locate.calls.skip(2), ['paused', 'paused', 'paused', 'resumed']);
+  });
+
+  group('the first start', () {
+    Future<(ProviderContainer, FakeLocationPermissionGateway)> start(
+      WidgetTester tester, {
+      LocationPermissionStatus status = LocationPermissionStatus.denied,
+      Map<String, Object> stored = const <String, Object>{},
+    }) async {
+      final gateway = FakeLocationPermissionGateway(status: status);
+      final container = await _pump(
+        tester,
+        maps: <FakeMapController>[],
+        builds: <int>[],
+        stored: stored,
+        overrides: [
+          locationPermissionGatewayProvider.overrideWithValue(gateway),
+        ],
+      );
+      await tester.pumpAndSettle();
+      return (container, gateway);
+    }
+
+    testWidgets('asks for the location, then goes to the rider', (
+      tester,
+    ) async {
+      final (container, gateway) = await start(tester);
+      expect(find.byType(AlertDialog), findsOneWidget);
+
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+
+      expect(gateway.requests, 1);
+      final locate = container.read(locateOnOpenProvider) as _Locate;
+      expect(locate.calls, ['opened']);
+    });
+
+    testWidgets('asks once: "Not now" is not asked again on the next start', (
+      tester,
+    ) async {
+      final (container, gateway) = await start(tester);
+      await tester.tap(find.byType(TextButton));
+      await tester.pumpAndSettle();
+      expect(gateway.requests, 0);
+      expect((container.read(locateOnOpenProvider) as _Locate).calls, [
+        'opened',
+      ]);
+
+      final prefs = container.read(sharedPreferencesProvider);
+      expect(prefs.getBool(firstStartLocationAskedKey), isTrue);
+      await tester.pumpWidget(const SizedBox());
+      await start(
+        tester,
+        stored: const <String, Object>{firstStartLocationAskedKey: true},
+      );
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('does not ask an install that has been used before', (
+      tester,
+    ) async {
+      final (_, gateway) = await start(
+        tester,
+        stored: const <String, Object>{
+          'map.camera.lat': 52.5,
+          'map.camera.lon': 13.4,
+          'map.camera.zoom': 12.0,
+        },
+      );
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(gateway.requests, 0);
+    });
+
+    testWidgets('does not ask when the location is already allowed', (
+      tester,
+    ) async {
+      final (_, gateway) = await start(
+        tester,
+        status: LocationPermissionStatus.granted,
+      );
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(gateway.requests, 0);
+    });
   });
 }
