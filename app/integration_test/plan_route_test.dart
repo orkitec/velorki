@@ -24,6 +24,9 @@ void main() {
 
   testWidgets('plans a route on Madeira through BRouter', (tester) async {
     final prefs = await SharedPreferences.getInstance();
+    // About the route: no stops or cycle map, nor their chips, in the way.
+    await prefs.setBool('map.stops.shown', false);
+    await prefs.setBool('map.cycle_map.shown', false);
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),

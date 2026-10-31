@@ -227,12 +227,12 @@ void main() {
   });
 
   group('MapStopsPreferences', () {
-    test('off, the five everyday kinds, along the route, until set', () async {
+    test('on, the five everyday kinds, along the route, until set', () async {
       final (container, _) = await _container();
 
       final stops = container.read(mapStopsPreferencesProvider);
 
-      expect(stops.shown, isFalse);
+      expect(stops.shown, isTrue);
       expect(stops.kinds, <String>{
         'drinking_water',
         'cafe',
@@ -241,6 +241,14 @@ void main() {
         'bicycle_repair_station',
       });
       expect(stops.alongRoute, isTrue);
+    });
+
+    test('a rider who switched the stops off keeps them off', () async {
+      final (container, _) = await _container(<String, Object>{
+        'map.stops.shown': false,
+      });
+
+      expect(container.read(mapStopsPreferencesProvider).shown, isFalse);
     });
 
     test('every choice is stored and read back on the next launch', () async {
@@ -288,11 +296,25 @@ void main() {
   });
 
   group('CycleMapPreferences', () {
-    test('off with the default parts on a fresh install', () async {
+    test('on with the default parts on a fresh install', () async {
       final (container, _) = await _container();
       final settings = container.read(cycleMapPreferencesProvider);
-      expect(settings.shown, isFalse);
+      expect(settings.shown, isTrue);
       expect(settings.parts, defaultCycleMapParts);
+    });
+
+    test('a rider who switched it off keeps it off', () async {
+      final (container, _) = await _container(<String, Object>{
+        'map.cycle_map.shown': false,
+      });
+      expect(container.read(cycleMapPreferencesProvider).shown, isFalse);
+    });
+
+    test('a rider on the CyclOSM overlay does not get both', () async {
+      final (container, _) = await _container(<String, Object>{
+        _cyclosmKey: true,
+      });
+      expect(container.read(cycleMapPreferencesProvider).shown, isFalse);
     });
 
     test('a part switched off stays off', () async {

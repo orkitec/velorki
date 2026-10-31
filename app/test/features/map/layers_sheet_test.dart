@@ -46,6 +46,7 @@ Future<SharedPreferences> _pump(
   bool stopsShown = false,
 }) async {
   SharedPreferences.setMockInitialValues(<String, Object>{
+    ...mapLayersOff,
     if (stopsShown) 'map.stops.shown': true,
   });
   final prefs = await SharedPreferences.getInstance();
@@ -388,7 +389,7 @@ void main() {
         overrides: [activeGuidedRouteProvider.overrideWithValue(_route)],
       );
       await _openSheet(tester);
-      expect(prefs.getBool('map.stops.shown'), isNull);
+      expect(prefs.getBool('map.stops.shown'), isFalse);
       // Off: no kinds and no choice of where to show them.
       expect(find.byType(FilterChip), findsNothing);
       expect(find.text(l10n.mapLayersInArea), findsNothing);

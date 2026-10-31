@@ -153,3 +153,11 @@ Future<void> searchOnlineFor(
   await tester.pumpAndSettle();
   await pickOnlineSearch(tester, text);
 }
+
+/// Preferences with the map's stops and cycle map switched off, which they
+/// are not by default: for tests about something other than those layers,
+/// so no stops lookup or not-downloaded chip comes into them.
+const Map<String, Object> mapLayersOff = <String, Object>{
+  'map.stops.shown': false,
+  'map.cycle_map.shown': false,
+};

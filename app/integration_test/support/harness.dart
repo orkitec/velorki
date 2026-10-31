@@ -45,6 +45,11 @@ Future<ProviderContainer> pumpApp(
   Duration warmUp = const Duration(seconds: 3),
 }) async {
   final prefs = await SharedPreferences.getInstance();
+  // The map's stops and cycle map start switched on for a rider who never
+  // chose; the flows here are about something else, and a chip such as "not
+  // downloaded" or the extra map load must not come into them.
+  await prefs.setBool('map.stops.shown', false);
+  await prefs.setBool('map.cycle_map.shown', false);
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),

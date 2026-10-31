@@ -187,7 +187,10 @@ Future<void> emitSnapshot(
 }
 
 Future<SharedPreferences> _prefs(Map<String, Object> initial) async {
-  SharedPreferences.setMockInitialValues(initial);
+  SharedPreferences.setMockInitialValues(<String, Object>{
+    ...mapLayersOff,
+    ...initial,
+  });
   return SharedPreferences.getInstance();
 }
 

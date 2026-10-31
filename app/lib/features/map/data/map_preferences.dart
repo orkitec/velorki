@@ -117,7 +117,7 @@ const Set<String> defaultStopKinds = <String>{
 class MapStopsSettings {
   /// Creates the preferences.
   const MapStopsSettings({
-    this.shown = false,
+    this.shown = true,
     this.kinds = defaultStopKinds,
     this.alongRoute = true,
   });
@@ -168,7 +168,7 @@ class MapStopsPreferences extends _$MapStopsPreferences {
     final prefs = ref.watch(sharedPreferencesProvider);
     final kinds = prefs.getStringList(_prefsStopsKinds);
     return MapStopsSettings(
-      shown: prefs.getBool(_prefsStopsShown) ?? false,
+      shown: prefs.getBool(_prefsStopsShown) ?? true,
       kinds: kinds == null ? defaultStopKinds : Set<String>.unmodifiable(kinds),
       alongRoute: prefs.getBool(_prefsStopsAlongRoute) ?? true,
     );
@@ -218,7 +218,11 @@ class CycleMapPreferences extends _$CycleMapPreferences {
     // they knew keeps their choice.
     final known = prefs.getStringList(_prefsCycleMapKnown) ?? names;
     return CycleMapSettings(
-      shown: prefs.getBool(_prefsCycleMapShown) ?? false,
+      // Shown until the rider says otherwise, unless they chose the CyclOSM
+      // overlay, which draws the same ways.
+      shown:
+          prefs.getBool(_prefsCycleMapShown) ??
+          !(prefs.getBool(_prefsCyclosm) ?? false),
       parts: names == null
           ? defaultCycleMapParts
           : Set<CycleMapPart>.unmodifiable(<CycleMapPart>{

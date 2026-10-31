@@ -40,7 +40,8 @@ import '../../navigation/presentation/navigation_toggles.dart';
 import '../../navigation/presentation/turn_banner.dart';
 import '../../map/domain/visible_map.dart';
 import '../../navigation/presentation/turn_phrases.dart';
-import '../../offline/presentation/offline_screen.dart';
+import '../../offline/application/area_download_activity.dart';
+import '../../offline/presentation/download_visible_area.dart';
 import '../../library/application/library_card.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
@@ -274,18 +275,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// the area on screen.
   late final MapStopsController _stops;
 
-  /// Opens the offline data screen for the area on screen, as the map's
-  /// download button does: where the stops are wanted but not downloaded.
-  void _openOfflineData() {
-    final map = _map;
-    if (map == null) return;
-    unawaited(
-      Navigator.of(context).push(
-        ColumnPageRoute<void>(
-          builder: (_) => OfflineScreen(mapController: map),
-        ),
-      ),
-    );
+  /// Downloads the area on screen where it is, on the map: where the stops
+  /// are wanted but not downloaded.
+  void _downloadArea() {
+    unawaited(downloadVisibleArea(context, ref, _map));
   }
 
   /// Closes the stops' not-downloaded chip for the area it speaks of, with
@@ -1828,6 +1821,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final stopsWanted = ref.watch(mapStopsPreferencesProvider);
     // The areas whose not-downloaded chip the rider closed this session.
     final dismissedAreas = ref.watch(areaHintDismissalsProvider);
+    final areaDownload = ref.watch(areaDownloadActivityProvider);
     final guided = ref.watch(activeGuidedRouteProvider);
     final stopsAlong = guided != null && stopsWanted.alongRoute;
     _stops.update(
@@ -2073,7 +2067,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                                             )
                                             ? const SizedBox.shrink()
                                             : StopsDownloadChip(
-                                                onDownload: _openOfflineData,
+                                                onDownload: _downloadArea,
+                                                downloading:
+                                                    areaDownload != null,
+                                                progress:
+                                                    areaDownload?.fraction,
                                                 onClose: _closeStopsHint,
                                               )
                                       : StopsAheadLine(

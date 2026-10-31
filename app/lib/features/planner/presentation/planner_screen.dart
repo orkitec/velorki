@@ -31,6 +31,8 @@ import '../../map/presentation/map_controls.dart'
     show mapControlButtonSize, mapControlsColumnHeight;
 import '../../map/presentation/visible_map_padding.dart';
 import '../../map/presentation/shared_map_host.dart';
+import '../../offline/application/area_download_activity.dart';
+import '../../offline/presentation/download_visible_area.dart';
 import '../../offline/presentation/offline_screen.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../search/domain/search_result.dart';
@@ -936,6 +938,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
   }
 
+  /// Downloads the area on screen where it is, on the map: what the
+  /// not-downloaded chips ask for.
+  void _downloadArea() {
+    unawaited(downloadVisibleArea(context, ref, _map));
+  }
+
   /// [place] is the destination; the ride starts where the rider is right
   /// now.
   Future<void> _rideFromPosition(SearchResult place) async {
@@ -1371,6 +1379,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
 
     final cycleMapMissing = ref.watch(sharedCycleMapMissingAreaProvider);
+    final areaDownload = ref.watch(areaDownloadActivityProvider);
     // The areas whose not-downloaded chips the rider closed this session.
     final dismissedAreas = ref.watch(areaHintDismissalsProvider);
     // What the chrome shows under its first rows, now and then.
@@ -1386,19 +1395,25 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           final Widget? chip =
               stopsMissing != null && !dismissedAreas.contains(stopsMissing)
               ? StopsDownloadChip(
-                  onDownload: _openOfflineData,
+                  onDownload: _downloadArea,
+                  downloading: areaDownload != null,
+                  progress: areaDownload?.fraction,
                   onClose: () => _closeAreaHint(stopsMissing),
                 )
               : cycleMapMissing != null &&
                     !dismissedAreas.contains(cycleMapMissing)
               ? StopsDownloadChip(
-                  onDownload: _openOfflineData,
+                  onDownload: _downloadArea,
+                  downloading: areaDownload != null,
+                  progress: areaDownload?.fraction,
                   message: l10n.mapCycleMapNotDownloaded,
                   onClose: () => _closeAreaHint(cycleMapMissing),
                 )
               : _areaHint.shownDespite(dismissedAreas)
               ? StopsDownloadChip(
-                  onDownload: _openOfflineData,
+                  onDownload: _downloadArea,
+                  downloading: areaDownload != null,
+                  progress: areaDownload?.fraction,
                   message: l10n.searchAreaNotDownloaded,
                   onClose: () => _closeAreaHint(_areaHint.missingArea),
                 )

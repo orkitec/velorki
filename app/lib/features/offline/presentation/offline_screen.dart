@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:velorki_brouter/velorki_brouter.dart';
 
 import '../../../app/platform_features.dart';
 import '../../../app/theme.dart';
@@ -14,8 +13,8 @@ import '../../routing_tiles/application/tile_download_controller.dart';
 import '../../routing_tiles/data/routing_tiles_repository.dart';
 import '../../routing_tiles/presentation/routing_tiles_screen.dart';
 import '../../shared/presentation/byte_size.dart';
-import '../../shared/presentation/error_text.dart';
 import '../../shared/presentation/wide_panel.dart';
+import 'download_visible_area.dart';
 
 /// Everything a ride without a signal needs, in one place: the map to look
 /// at and the routing data routes are computed from. One button downloads
@@ -39,7 +38,6 @@ class OfflineScreen extends ConsumerWidget {
     final tiles = ref.watch(routingTilesProvider).value ?? const [];
     final queue = ref.watch(tileDownloadQueueProvider);
     final mapProgress = ref.watch(offlineDownloadControllerProvider);
-    final bounds = mapController?.visibleBounds;
     // A browser keeps no map packs: only the routing data is offered there.
     final mapAreas = ref.watch(platformFeaturesProvider).offlineMapAreas;
 
@@ -54,7 +52,7 @@ class OfflineScreen extends ConsumerWidget {
 
     // The map pack is built from the base style, so the CyclOSM overlay
     // never comes along and does not have to block the download.
-    final String? blockedReason = bounds == null ? l10n.offlineNeedsMap : null;
+    final String? blockedReason = visibleAreaBlockedReason(l10n, mapController);
     final busy = mapProgress != null || queue.isRunning;
 
     return Scaffold(
@@ -130,100 +128,14 @@ class OfflineScreen extends ConsumerWidget {
               ),
               onPressed: blockedReason != null || busy
                   ? null
-                  : () => unawaited(_downloadVisibleArea(context, ref)),
+                  : () => unawaited(
+                      downloadVisibleArea(context, ref, mapController),
+                    ),
             ),
           ),
         ],
       ),
     );
-  }
-
-  /// One dialog for both kinds, then both downloads.
-  Future<void> _downloadVisibleArea(BuildContext context, WidgetRef ref) async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    final bounds = mapController?.visibleBounds;
-    if (bounds == null) return;
-    final mapAreas = ref.read(platformFeaturesProvider).offlineMapAreas;
-
-    final TileDownloadPlan plan;
-    try {
-      plan = await planTileDownload(ref, tilesForBounds(bounds));
-    } on Object catch (e) {
-      messenger?.showSnackBar(
-        SnackBar(
-          content: Text(l10n.routingTilesManifestFailed(errorText(l10n, e))),
-        ),
-      );
-      return;
-    }
-    if (plan.tooNew.isNotEmpty && plan.supported != null) {
-      if (!context.mounted) return;
-      await explainNewerTileFormat(
-        context,
-        ref,
-        plan.tooNew,
-        tileFormat: plan.tooNewFormat,
-        appFormat: plan.supported!,
-      );
-    }
-    if (!context.mounted) return;
-
-    final entries = plan.entries;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.offlineDialogTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            if (mapAreas) ...[
-              Text(l10n.offlineDialogMap),
-              const SizedBox(height: 8),
-            ],
-            if (entries.isEmpty)
-              Text(l10n.offlineDialogRoutingPresent)
-            else
-              for (final entry in entries)
-                Text('${entry.tile.name} · ${formatBytes(entry.bytes)}'),
-            const SizedBox(height: 12),
-            Text(l10n.routingTilesDataNotice),
-          ],
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.offlineDialogDownload),
-          ),
-        ],
-      ),
-    );
-    if (!(confirmed ?? false)) return;
-
-    if (entries.isNotEmpty || plan.gazetteers.isNotEmpty) {
-      await ref
-          .read(tileDownloadQueueProvider.notifier)
-          .enqueue(entries, gazetteersOnly: plan.gazetteers);
-    }
-    if (!mapAreas) return;
-    final existing = await ref.read(offlineRegionsRepositoryProvider).regions();
-    final spec = OfflineRegionSpec(
-      name: l10n.mapOfflineRegionName(existing.length + 1),
-      bounds: bounds,
-      styleUrl: ref.read(offlineStyleUrlProvider),
-    );
-    try {
-      await ref.read(offlineDownloadControllerProvider.notifier).download(spec);
-    } on Object catch (error) {
-      messenger?.showSnackBar(
-        SnackBar(content: Text(l10n.offlineMapFailed(errorText(l10n, error)))),
-      );
-    }
   }
 }
 

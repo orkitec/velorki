@@ -22,9 +22,11 @@ import 'package:velorki/features/library/presentation/route_detail_screen.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
+import 'package:velorki/features/routing_tiles/data/segments_manifest_service.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
+import 'package:velorki_brouter/velorki_brouter.dart' show SegmentsManifest;
 
 import '../../../support/app.dart';
 import '../../search/support/fake_http.dart';
@@ -209,6 +211,18 @@ class PlannerHarness {
   ];
 }
 
+/// A tile mirror that cannot be reached: a download started from a chip
+/// fails at once, where the real one would wait on the network.
+class NoMirror extends SegmentsManifestSource {
+  @override
+  Future<SegmentsManifest> build() async => throw StateError('no mirror');
+}
+
+/// Puts the tile mirror out of reach; see [NoMirror].
+final Override noMirrorOverride = segmentsManifestSourceProvider.overrideWith(
+  NoMirror.new,
+);
+
 /// What the shell puts around the tabs over the map and the cards' content,
 /// which have no scaffold of their own: the one that shows their snack bars
 /// and keeps them their full height under the keyboard. Every other screen
@@ -235,7 +249,7 @@ Future<PlannerHarness> pumpScreen(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   addTearDown(h.db.close);
 
-  SharedPreferences.setMockInitialValues(<String, Object>{});
+  SharedPreferences.setMockInitialValues(mapLayersOff);
   final prefs = await SharedPreferences.getInstance();
 
   await tester.pumpWidget(
@@ -262,7 +276,7 @@ Future<PlannerHarness> pumpApp(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   addTearDown(h.db.close);
 
-  SharedPreferences.setMockInitialValues(<String, Object>{});
+  SharedPreferences.setMockInitialValues(mapLayersOff);
   final prefs = await SharedPreferences.getInstance();
 
   await tester.pumpWidget(

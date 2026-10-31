@@ -37,6 +37,24 @@ SearchResult _stop(String name, LatLng at, String kind) => SearchResult(
   detail: kind,
 );
 
+/// A tap on the chip starts the download where the map is: the chip says it
+/// is downloading, no screen is pushed, and with no mirror to reach (as
+/// here) the failure comes up as a snackbar and the chip is as it was.
+Future<void> _downloadsInPlace(WidgetTester tester, Finder chip) async {
+  await tester.tap(chip);
+  final deadline = DateTime.now().add(const Duration(seconds: 15));
+  while (find.byType(SnackBar).evaluate().isEmpty &&
+      DateTime.now().isBefore(deadline)) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 5)),
+    );
+    await tester.pump(const Duration(milliseconds: 20));
+  }
+  expect(find.byType(SnackBar), findsOneWidget);
+  expect(find.byType(OfflineScreen), findsNothing);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('Plan: the stops in the area are drawn, a tap on one goes the '
       'way a searched place goes, and they leave with the tab', (tester) async {
@@ -50,6 +68,7 @@ void main() {
       tester,
       const PlannerScreen(),
       extraOverrides: [
+        noMirrorOverride,
         mapStopsFinderProvider.overrideWithValue((
           box,
           kinds,
@@ -110,6 +129,7 @@ void main() {
       tester,
       const PlannerScreen(),
       extraOverrides: [
+        noMirrorOverride,
         mapStopsFinderProvider.overrideWithValue(
           (box, kinds, limit, {ranked = false}) async => const <SearchResult>[],
         ),
@@ -152,6 +172,7 @@ void main() {
       const RecordingScreen(),
       preferences: const <String, Object>{'map.stops.shown': true},
       extraOverrides: [
+        noMirrorOverride,
         activeGuidedRouteProvider.overrideWithValue(
           GuidedRoute(key: 'r1', line: line, turns: const []),
         ),
@@ -250,6 +271,7 @@ void main() {
       // A small phone's width, where the chip has to fit in every language.
       surfaceSize: const Size(360, 780),
       extraOverrides: [
+        noMirrorOverride,
         mapStopsFinderProvider.overrideWithValue(
           (box, kinds, limit, {ranked = false}) async => const <SearchResult>[],
         ),
@@ -283,10 +305,7 @@ void main() {
     expect(find.text(l10n.mapStopsNotDownloaded), findsOneWidget);
     expectNoClippedText(tester);
 
-    await tester.tap(find.text(l10n.mapStopsDownload));
-    await tester.pumpAndSettle();
-    expect(find.byType(OfflineScreen), findsOneWidget);
-    await tapBack(tester);
+    await _downloadsInPlace(tester, find.text(l10n.mapStopsDownload));
 
     // The download finished: the store re-scanned and covers the area.
     harness.stopsCoverage.changed((_) => true);
@@ -360,6 +379,7 @@ void main() {
       tester,
       const PlannerScreen(),
       harness: harness,
+      extraOverrides: [noMirrorOverride],
       surfaceSize: const Size(360, 780),
     );
     h.map
@@ -380,10 +400,7 @@ void main() {
     expectNoClippedText(tester);
 
     // The whole chip opens the download.
-    await tester.tap(find.text(l10n.searchAreaNotDownloaded));
-    await tester.pumpAndSettle();
-    expect(find.byType(OfflineScreen), findsOneWidget);
-    await tapBack(tester);
+    await _downloadsInPlace(tester, find.text(l10n.searchAreaNotDownloaded));
 
     harness.stopsCoverage.changed((_) => true);
     await tester.pumpAndSettle();
@@ -398,6 +415,7 @@ void main() {
       tester,
       const PlannerScreen(),
       harness: harness,
+      extraOverrides: [noMirrorOverride],
       surfaceSize: const Size(360, 780),
     );
     Future<void> lookAt(double lon, double lat) async {
@@ -422,16 +440,12 @@ void main() {
     expectNoClippedText(tester);
 
     // The download is still the rest of the chip.
-    await tester.tap(find.text(l10n.mapStopsDownload));
-    await tester.pumpAndSettle();
-    expect(find.byType(OfflineScreen), findsOneWidget);
-    await tapBack(tester);
+    await _downloadsInPlace(tester, find.text(l10n.mapStopsDownload));
     expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
 
     await tester.tap(find.byTooltip(l10n.mapAreaHintHide));
     await tester.pumpAndSettle();
     expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
-    expect(find.byType(OfflineScreen), findsNothing);
 
     // Panned within the same downloadable area: still closed.
     await lookAt(13.8, 46.2);
@@ -454,6 +468,7 @@ void main() {
       harness: harness,
       surfaceSize: const Size(360, 780),
       extraOverrides: [
+        noMirrorOverride,
         mapStopsFinderProvider.overrideWithValue(
           (box, kinds, limit, {ranked = false}) async => const <SearchResult>[],
         ),
@@ -484,14 +499,10 @@ void main() {
     expect(find.byTooltip(l10n.mapAreaHintHide), findsOneWidget);
     expectNoClippedText(tester);
 
-    await tester.tap(find.text(l10n.mapStopsDownload));
-    await tester.pumpAndSettle();
-    expect(find.byType(OfflineScreen), findsOneWidget);
-    await tapBack(tester);
+    await _downloadsInPlace(tester, find.text(l10n.mapStopsDownload));
 
     await tester.tap(find.byTooltip(l10n.mapAreaHintHide));
     await tester.pumpAndSettle();
-    expect(find.byType(OfflineScreen), findsNothing);
     // No other chip about the same area takes its place.
     expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
     expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
@@ -517,6 +528,7 @@ void main() {
     await pumpScreen(
       tester,
       const PlannerScreen(),
+      extraOverrides: [noMirrorOverride],
       surfaceSize: const Size(360, 780),
     );
     final container = ProviderScope.containerOf(
@@ -533,10 +545,7 @@ void main() {
     expect(find.byTooltip(l10n.mapAreaHintHide), findsOneWidget);
     expectNoClippedText(tester);
 
-    await tester.tap(find.text(l10n.mapStopsDownload));
-    await tester.pumpAndSettle();
-    expect(find.byType(OfflineScreen), findsOneWidget);
-    await tapBack(tester);
+    await _downloadsInPlace(tester, find.text(l10n.mapStopsDownload));
 
     await tester.tap(find.byTooltip(l10n.mapAreaHintHide));
     await tester.pumpAndSettle();
@@ -578,6 +587,7 @@ void main() {
       surfaceSize: const Size(360, 780),
       preferences: const <String, Object>{'map.stops.shown': true},
       extraOverrides: [
+        noMirrorOverride,
         activeGuidedRouteProvider.overrideWithValue(
           GuidedRoute(key: 'r1', line: line, turns: const []),
         ),
@@ -592,10 +602,7 @@ void main() {
     expect(find.byType(StopsAheadLine), findsNothing);
     expectNoClippedText(tester);
 
-    await tester.tap(find.text(l10n.mapStopsDownload));
-    await tester.pumpAndSettle();
-    expect(find.byType(OfflineScreen), findsOneWidget);
-    await tapBack(tester);
+    await _downloadsInPlace(tester, find.text(l10n.mapStopsDownload));
 
     harness.planner.stopsCoverage.changed((_) => true);
     await tester.pumpAndSettle();
@@ -618,6 +625,7 @@ void main() {
       surfaceSize: const Size(360, 780),
       preferences: const <String, Object>{'map.stops.shown': true},
       extraOverrides: [
+        noMirrorOverride,
         activeGuidedRouteProvider.overrideWithValue(
           GuidedRoute(key: 'r1', line: line, turns: const []),
         ),
@@ -644,7 +652,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
     expect(find.byType(StopsAheadLine), findsNothing);
-    expect(find.byType(OfflineScreen), findsNothing);
     expect(
       container.read(areaHintDismissalsProvider),
       contains(const TileName(10, 45)),
