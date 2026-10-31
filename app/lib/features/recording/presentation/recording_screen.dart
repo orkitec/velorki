@@ -83,6 +83,7 @@ import 'live_figures_settings_screen.dart';
 import 'live_figures_view.dart';
 import 'recording_format.dart';
 import 'save_ride_sheet.dart';
+import 'stop_on_the_way.dart';
 
 /// Id of the followed route's line on the map.
 const String followedRouteLineId = 'follow';
@@ -300,14 +301,21 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   Future<void> _onStopTapped(SearchResult stop) async {
     if (!mounted) return;
     _stops.select(stop);
-    await showPlaceCard(
+    // Mid-ride, along a followed route, the stop can be taken into it.
+    final action = await showPlaceCard(
       context,
       place: stop,
+      actions: canAddStopMidRide(ref)
+          ? const [PlaceAction.addStop]
+          : const <PlaceAction>[],
       riderPosition: ref
           .read(recordingControllerProvider)
           .snapshot
           ?.lastPosition,
     );
+    if (action == PlaceAction.addStop && mounted) {
+      await addStopMidRide(context, ref, stop);
+    }
     // Unless another stop has been picked out since.
     if (mounted && _stops.selected == stop) _stops.select(null);
   }

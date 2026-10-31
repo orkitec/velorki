@@ -1491,6 +1491,22 @@
   "@recordingBatteryLater": {
     "description": "Button that skips the battery optimisation prompt"
   },
+  "recordingAddStopTitle": "Add to the route?",
+  "@recordingAddStopTitle": {
+    "description": "Title of the dialog that asks, mid-ride, whether a stop tapped on the map is to be added to the followed route"
+  },
+  "recordingAddStopBody": "The route is recalculated to take in this stop, and navigation follows the new route.",
+  "@recordingAddStopBody": {
+    "description": "Body of that dialog: the route is recalculated with the stop and navigation follows the new route"
+  },
+  "recordingAddStopSavedBody": "The saved route stays as it is: the changed route is on the Plan tab.",
+  "@recordingAddStopSavedBody": {
+    "description": "Second paragraph of that dialog when the ride follows a saved route: the saved route is not changed, the edited copy is on the Plan tab"
+  },
+  "recordingAddStopConfirm": "Add and recalculate",
+  "@recordingAddStopConfirm": {
+    "description": "Button of that dialog that adds the stop and recalculates the route"
+  },
   "recordingRecoveryTitle": "Unfinished ride",
   "@recordingRecoveryTitle": {
     "description": "Title of the dialog shown when a recording was interrupted"
