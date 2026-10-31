@@ -14,6 +14,7 @@ import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/testing/fake_stops_coverage.dart';
+import 'package:velorki/features/map/presentation/first_start_location.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
@@ -126,6 +127,19 @@ class StayPutOnOpen extends LocateOnOpen {
   void touched() => touches++;
 }
 
+/// The first start's question for the location, already answered: a Plan
+/// screen pumped without the shell has nobody to ask it.
+class AskedOnFirstStart extends FirstStartLocationAsk {
+  @override
+  bool build() => false;
+}
+
+/// The first start's question for the location, still to come.
+class _QuestionDue extends FirstStartLocationAsk {
+  @override
+  bool build() => true;
+}
+
 /// Everything a planner or library widget test needs.
 class PlannerHarness {
   /// Wires the fakes together.
@@ -134,6 +148,7 @@ class PlannerHarness {
     String photonBody = photonFixture,
     this.withRoutingBackend = true,
     this.withGeocoder = true,
+    this.locationQuestionDue = false,
     RoutingAvailability? routingAvailability,
   }) : routingAvailability =
            routingAvailability ??
@@ -155,6 +170,11 @@ class PlannerHarness {
   /// What the planner hears of routing: ready with a backend, else no map
   /// data, unless a test says otherwise.
   final RoutingAvailability routingAvailability;
+
+  /// Whether the first start's question for the location is still to come
+  /// when the screen opens; answered already by default, since a Plan screen
+  /// pumped without the shell has nobody to ask it.
+  final bool locationQuestionDue;
 
   /// Whether [photonClientProvider] answers with a client or with `null`,
   /// which is the "no Photon URL configured" case.
@@ -208,6 +228,9 @@ class PlannerHarness {
     velorkiDatabaseProvider.overrideWithValue(db),
     mapStopsCoverageProvider.overrideWithValue(stopsCoverage),
     dwdForecastClientProvider.overrideWithValue(dwd),
+    firstStartLocationAskProvider.overrideWith(
+      locationQuestionDue ? _QuestionDue.new : AskedOnFirstStart.new,
+    ),
   ];
 }
 

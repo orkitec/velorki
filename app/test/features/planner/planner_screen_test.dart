@@ -947,6 +947,8 @@ void main() {
     tester,
   ) async {
     await pumpScreen(tester, const PlannerScreen());
+    // The headline rises into its place first.
+    await tester.pumpAndSettle();
     final sheet = find.byType(DraggableScrollableSheet);
     final headline = find.text(l10n.plannerEmptyState);
     expect(headline, findsOneWidget);

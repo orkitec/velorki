@@ -30,6 +30,7 @@ import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/map/presentation/visible_map_padding.dart';
+import 'package:velorki/features/planner/presentation/first_action_cue.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/planner/presentation/profile_chip_row.dart';
 import 'package:velorki/features/map/data/offline_regions_repository.dart';
@@ -254,6 +255,8 @@ Future<StoreSession> startStoreApp(
     dwd: StoreDwdClient(),
     overrides: [
       ...storeWeatherOverrides(),
+      // No picture catches the empty plan's hint mid-way.
+      firstActionCueEnabledProvider.overrideWithValue(false),
       positionSourceProvider.overrideWithValue(positions),
       locationPermissionGatewayProvider.overrideWithValue(
         const GrantedLocationPermission(),
