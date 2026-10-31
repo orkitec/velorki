@@ -50,7 +50,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(h.map.waypoints, hasLength(3));
 
-    await tester.tap(find.widgetWithText(FilledButton, l10n.plannerSave));
+    await tester.tap(find.widgetWithText(OutlinedButton, l10n.plannerSave));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.descendant(
@@ -184,7 +184,7 @@ void main() {
 
     // Saved again and reopened: the names are the plan's own now, and the
     // castle is still the route's point of interest.
-    await tester.tap(find.widgetWithText(FilledButton, l10n.plannerSave));
+    await tester.tap(find.widgetWithText(OutlinedButton, l10n.plannerSave));
     await tester.pumpAndSettle();
     await tester.tap(
       find.descendant(

@@ -178,7 +178,7 @@
   "@profileShortest": {
     "description": "Routing profile that minimises distance regardless of comfort"
   },
-  "plannerEmptyState": "Tap the map to set a start.",
+  "plannerEmptyState": "Search for a place or tap the map.",
   "@plannerEmptyState": {
     "description": "Hint in the planner bottom sheet while no waypoint is set"
   },
@@ -257,6 +257,10 @@
   "plannerSave": "Save",
   "@plannerSave": {
     "description": "Planner button that stores the current route in the library"
+  },
+  "plannerRide": "Ride",
+  "@plannerRide": {
+    "description": "Planner button next to Save that starts recording a ride along the planned route"
   },
   "plannerMainRoute": "Main",
   "@plannerMainRoute": {
@@ -5817,6 +5821,26 @@
   "settingsShowPerformanceHint": "Frame rate, frame times and memory in a corner of the screen",
   "@settingsShowPerformanceHint": {
     "description": "Subtitle of the show performance switch"
+  },
+  "settingsResetApp": "Reset app",
+  "@settingsResetApp": {
+    "description": "Settings > About, development builds only: row that wipes all local data"
+  },
+  "settingsResetAppHint": "For development: back to a first start",
+  "@settingsResetAppHint": {
+    "description": "Caption under the reset app row"
+  },
+  "settingsResetAppTitle": "Reset the app?",
+  "@settingsResetAppTitle": {
+    "description": "Title of the reset app confirmation"
+  },
+  "settingsResetAppBody": "This deletes the settings, the library (routes and rides), downloaded areas and map packs, and the AI assistant's history. Copies in iCloud or Google Drive stay. The app closes afterwards and starts like a fresh install.",
+  "@settingsResetAppBody": {
+    "description": "Body of the reset app confirmation: what is deleted, that cloud copies stay and the app closes"
+  },
+  "settingsResetAppConfirm": "Reset",
+  "@settingsResetAppConfirm": {
+    "description": "Destructive button of the reset app confirmation"
   },
   "perfFps": "FPS",
   "@perfFps": {

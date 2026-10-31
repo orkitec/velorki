@@ -59,10 +59,10 @@ void main() {
     expect(find.text(l10n.commonSave), findsOneWidget);
     expect(
       tester
-          .widget<FilledButton>(
+          .widget<OutlinedButton>(
             find.ancestor(
               of: find.text(l10n.commonSave),
-              matching: find.byType(FilledButton),
+              matching: find.byType(OutlinedButton),
             ),
           )
           .onPressed,
@@ -80,7 +80,7 @@ void main() {
     );
     await _plotRoute(tester, h);
 
-    final save = find.widgetWithText(FilledButton, l10n.commonSave);
+    final save = find.widgetWithText(OutlinedButton, l10n.commonSave);
     final rect = tester.getRect(save);
     expect(rect.bottom, lessThanOrEqualTo(2400));
     expect(rect.top, greaterThanOrEqualTo(0));
@@ -89,7 +89,7 @@ void main() {
       find.byType(DraggableScrollableSheet),
     );
     expect(rect.top, greaterThan(2400 * (1 - sheet.initialChildSize)));
-    expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+    expect(tester.widget<OutlinedButton>(save).onPressed, isNotNull);
     await tester.tap(save);
     await tester.pumpAndSettle();
     expect(find.text(l10n.plannerSaveDialogTitle), findsOneWidget);

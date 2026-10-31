@@ -65,6 +65,7 @@ import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/swipe_pages.dart';
 import '../application/recording_controller.dart';
 import '../application/ride_finish_request.dart';
+import '../application/ride_start_request.dart';
 import '../data/battery_saver.dart';
 import '../data/follow_mode.dart';
 import '../data/recording_gateways.dart';
@@ -1737,6 +1738,26 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
           pointCount: snapshot.pointCount,
         );
 
+  // ------------------------------------------------------ start from afar
+
+  /// Runs the Start ride flow for a ride asked for from the Plan tab, once
+  /// this tab is the one showing so its prompts land on the right screen. A
+  /// ride already under way, or one being started, takes nothing.
+  void _handleStartRequest(bool requested, {required bool active}) {
+    if (!requested || !active || _startRequested) return;
+    _startRequested = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startRequested = false;
+      if (!mounted) return;
+      ref.read(rideStartRequestProvider.notifier).clear();
+      final state = ref.read(recordingControllerProvider);
+      if (state.isRecording || state.busy) return;
+      unawaited(_start());
+    });
+  }
+
+  bool _startRequested = false;
+
   // ----------------------------------------------------------------- build
 
   @override
@@ -1793,6 +1814,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       recordingSettingsProvider.select((s) => s.keepScreenOn),
     );
     final active = ref.watch(activeTabProvider) == recordingRoute;
+    _handleStartRequest(ref.watch(rideStartRequestProvider), active: active);
     // Awake through an auto-pause at the lights, not through the rider's
     // own pause.
     final awake =

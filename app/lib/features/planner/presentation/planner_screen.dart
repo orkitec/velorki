@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -39,6 +40,9 @@ import '../../search/domain/search_result.dart';
 import '../../search/presentation/place_card.dart';
 import '../../search/presentation/search_field.dart';
 import '../../settings/data/units.dart';
+import '../../recording/application/recording_controller.dart';
+import '../../recording/application/ride_start_request.dart';
+import '../../recording/domain/follow_choice.dart';
 import '../../shared/application/active_tab.dart';
 import '../../shared/application/covering_sheets.dart';
 import '../../shared/application/nav_bar_docking.dart';
@@ -1145,6 +1149,19 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     _openAssistant();
   }
 
+  /// Goes to the Record tab to ride the plan: the ride follows it and the
+  /// Record tab's own Start ride flow runs. The plan is left as it is. A ride
+  /// already under way is not started again, and its route is not changed:
+  /// the Record tab offers no such choice mid-ride either.
+  void _ride() {
+    if (!ref.read(recordingControllerProvider).isRecording) {
+      ref.read(recordingControllerProvider.notifier).choose(FollowChoice.plan);
+      ref.read(rideStartRequestProvider.notifier).raise();
+    }
+    ref.read(activeTabProvider.notifier).show(recordingRoute);
+    GoRouter.of(context).go(recordingRoute);
+  }
+
   Future<void> _save() async {
     final state = ref.read(plannerControllerProvider);
     final route = state.result;
@@ -1623,6 +1640,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                           onSmartLoop: _smartLoop,
                           onAsk: _ask,
                           onSave: _save,
+                          onRide: _ride,
                         ),
                         if (hasRoute)
                           Builder(
@@ -1973,6 +1991,7 @@ class _PlannerActions extends ConsumerWidget {
     required this.onSmartLoop,
     required this.onAsk,
     required this.onSave,
+    required this.onRide,
   });
 
   final PlannerState state;
@@ -1980,6 +1999,7 @@ class _PlannerActions extends ConsumerWidget {
   final Future<void> Function() onSmartLoop;
   final Future<void> Function() onAsk;
   final Future<void> Function() onSave;
+  final VoidCallback onRide;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2032,12 +2052,28 @@ class _PlannerActions extends ConsumerWidget {
       children: [
         Row(children: [for (final action in actions) Expanded(child: action)]),
         const SizedBox(height: 14),
+        // Save beside Ride, the pair the loop sheet makes of Another and
+        // Done: the secondary one outlined, the primary one filled.
         SizedBox(
           height: primaryButtonHeight,
-          child: FilledButton.icon(
-            onPressed: state.canSave ? () => unawaited(onSave()) : null,
-            icon: const Icon(Icons.bookmark_add_outlined),
-            label: Text(l10n.plannerSave),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: state.canSave ? () => unawaited(onSave()) : null,
+                  icon: const Icon(Icons.bookmark_add_outlined),
+                  label: Text(l10n.plannerSave),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: state.canSave ? onRide : null,
+                  icon: const Icon(Icons.fiber_manual_record_rounded),
+                  label: Text(l10n.plannerRide),
+                ),
+              ),
+            ],
           ),
         ),
       ],

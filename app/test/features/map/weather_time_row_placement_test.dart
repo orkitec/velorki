@@ -246,7 +246,7 @@ void main() {
             findsOneWidget,
           );
         }
-        final save = find.widgetWithText(FilledButton, l10n.plannerSave);
+        final save = find.widgetWithText(OutlinedButton, l10n.plannerSave);
         final order = [
           find.byType(StatRow).first,
           find.widgetWithText(LabeledIconButton, l10n.plannerUndo),
