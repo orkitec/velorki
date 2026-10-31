@@ -22,6 +22,7 @@ import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
+import 'package:velorki/features/map/presentation/first_start_location.dart';
 
 import 'fakes.dart';
 
@@ -50,6 +51,8 @@ Future<ProviderContainer> pumpApp(
   // downloaded" or the extra map load must not come into them.
   await prefs.setBool('map.stops.shown', false);
   await prefs.setBool('map.cycle_map.shown', false);
+  // The first start's location question is a test of its own.
+  await prefs.setBool(firstStartLocationAskedKey, true);
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
