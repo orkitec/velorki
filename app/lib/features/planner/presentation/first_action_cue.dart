@@ -12,9 +12,9 @@ part 'first_action_cue.g.dart';
 @Riverpod(keepAlive: true)
 bool firstActionCueEnabled(Ref ref) => true;
 
-// One after the other, with a breath between, so each is seen: the
-// headline, then the search field, then the map. Times from the start of
-// the cue.
+// One after the other, with a breath between, so each is seen, and each
+// in the same accent outline so they read as one hint: the headline, then
+// the search field, then the map. Times from the start of the cue.
 
 /// Before anything moves: the sheet has just settled.
 const Duration _revealStart = Duration(milliseconds: 600);
@@ -22,22 +22,33 @@ const Duration _revealStart = Duration(milliseconds: 600);
 /// The headline's fade and rise.
 const Duration _revealDuration = Duration(milliseconds: 700);
 
-/// The search field's two pulses, after the headline.
-const Duration _pulseStart = Duration(milliseconds: 1600);
-const Duration _pulseDuration = Duration(milliseconds: 1400);
+/// One pulse of outline: the headline's, then the search field's.
+const Duration _pulseDuration = Duration(milliseconds: 900);
 
-/// The ring's spread from the middle of the map, after the pulses.
-const Duration _ringStart = Duration(milliseconds: 3200);
+/// The headline's pulse, once it is in.
+const Duration _headlinePulseStart = Duration(milliseconds: 1300);
+
+/// The search field's pulse, after the headline's.
+const Duration _pulseStart = Duration(milliseconds: 2400);
+
+/// The ring's spread from the middle of the map, after the field.
+const Duration _ringStart = Duration(milliseconds: 3500);
 const Duration _ringDuration = Duration(milliseconds: 1100);
 
 /// The whole cue.
-const Duration _cueDuration = Duration(milliseconds: 4300);
+const Duration _cueDuration = Duration(milliseconds: 4600);
 
 /// How far below its place the headline starts.
 const double _revealRise = 16;
 
 /// How far the ring spreads.
 const double _ringRadius = 90;
+
+/// The pulse around the headline, while it is drawn.
+@visibleForTesting
+const Key firstActionCueHeadlinePulseKey = ValueKey<String>(
+  'firstActionCueHeadlinePulse',
+);
 
 /// The pulse around the search field, while it is drawn.
 @visibleForTesting
@@ -48,8 +59,8 @@ const Key firstActionCuePulseKey = ValueKey<String>('firstActionCuePulse');
 const Key firstActionCueRingKey = ValueKey<String>('firstActionCueRing');
 
 /// The empty Plan tab's one short hint at how to start, one part after the
-/// other: after a moment the headline fades in, then the search field
-/// pulses twice, then a ring spreads once from the middle of the map. One run, stopped at once by the rider's first
+/// other: after a moment the headline fades in and its outline pulses, then
+/// the search field's, then a ring spreads once from the middle of the map. One run, stopped at once by the rider's first
 /// touch anywhere; the parts listen to [progress].
 class FirstActionCue {
   /// Creates the cue, at rest.
@@ -121,8 +132,14 @@ class FirstActionCue {
     _local(t, _revealStart, _revealDuration).clamp(0.0, 1.0),
   );
 
-  /// How far through its two pulses the field is at [t], or `null` outside
-  /// them.
+  /// How far through its pulse the headline is at [t], or `null` outside
+  /// it.
+  static double? headlinePulseAt(double t) {
+    final local = _local(t, _headlinePulseStart, _pulseDuration);
+    return local < 0 || local >= 1 ? null : local;
+  }
+
+  /// How far through its pulse the field is at [t], or `null` outside it.
   static double? pulseAt(double t) {
     final local = _local(t, _pulseStart, _pulseDuration);
     return local < 0 || local >= 1 ? null : local;
@@ -170,16 +187,43 @@ class FirstActionCueReveal extends StatelessWidget {
     final cue = FirstActionCue.maybeOf(context);
     if (cue == null || MediaQuery.disableAnimationsOf(context)) return child;
     return AnimatedBuilder(
-      animation: cue.progress,
+      animation: Listenable.merge(<Listenable>[cue.running, cue.progress]),
       builder: (context, child) {
-        final shown = FirstActionCue.revealAt(cue.progress.value);
+        final t = cue.progress.value;
+        final shown = FirstActionCue.revealAt(t);
+        final pulse = cue.running.value
+            ? FirstActionCue.headlinePulseAt(t)
+            : null;
         return Opacity(
           opacity: shown,
           // Read out from the start, faded or not.
           alwaysIncludeSemantics: true,
           child: Transform.translate(
             offset: Offset(0, (1 - shown) * _revealRise),
-            child: child,
+            child: Stack(
+              fit: StackFit.passthrough,
+              clipBehavior: Clip.none,
+              children: [
+                child!,
+                if (pulse != null)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: ExcludeSemantics(
+                        child: CustomPaint(
+                          key: firstActionCueHeadlinePulseKey,
+                          painter: _PulsePainter(
+                            cue.progress,
+                            Theme.of(context).colorScheme.primary,
+                            FirstActionCue.headlinePulseAt,
+                            pad: 8,
+                            radius: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         );
       },
@@ -188,7 +232,7 @@ class FirstActionCueReveal extends StatelessWidget {
   }
 }
 
-/// [child], the search field, with the cue's two pulses of outline painted
+/// [child], the search field, with the cue's pulse of outline painted
 /// around it: over it and beyond its edge, taking no room and no touch.
 class FirstActionCuePulse extends StatelessWidget {
   /// Creates the pulse around [child].
@@ -220,7 +264,11 @@ class FirstActionCuePulse extends StatelessWidget {
                 child: ExcludeSemantics(
                   child: CustomPaint(
                     key: firstActionCuePulseKey,
-                    painter: _PulsePainter(cue.progress, colour),
+                    painter: _PulsePainter(
+                      cue.progress,
+                      colour,
+                      FirstActionCue.pulseAt,
+                    ),
                   ),
                 ),
               ),
@@ -233,23 +281,37 @@ class FirstActionCuePulse extends StatelessWidget {
 }
 
 class _PulsePainter extends CustomPainter {
-  _PulsePainter(this.progress, this.colour) : super(repaint: progress);
+  _PulsePainter(
+    this.progress,
+    this.colour,
+    this.phaseAt, {
+    this.pad = 0,
+    this.radius,
+  }) : super(repaint: progress);
 
   final Animation<double> progress;
   final Color colour;
 
+  /// Where in its pulse the outline is at the cue's progress.
+  final double? Function(double t) phaseAt;
+
+  /// How far outside the child the outline runs.
+  final double pad;
+
+  /// The outline's corner radius; a pill's when `null`.
+  final double? radius;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final pulse = FirstActionCue.pulseAt(progress.value);
-    if (pulse == null) return;
-    // Two pulses, each up and down again, growing a little outwards.
-    final phase = (pulse * 2) % 1;
+    final phase = phaseAt(progress.value);
+    if (phase == null) return;
+    // One pulse, up and down again, growing a little outwards.
     final strength = math.sin(math.pi * phase);
-    final spread = 1 + 3 * phase;
+    final spread = pad + 1 + 3 * phase;
     final rect = (Offset.zero & size).inflate(spread);
     final rrect = RRect.fromRectAndRadius(
       rect,
-      Radius.circular(math.min(28, size.height / 2) + spread),
+      Radius.circular((radius ?? math.min(28, size.height / 2)) + spread),
     );
     canvas
       ..drawRRect(
@@ -270,7 +332,10 @@ class _PulsePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_PulsePainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.colour != colour;
+      oldDelegate.progress != progress ||
+      oldDelegate.colour != colour ||
+      oldDelegate.pad != pad ||
+      oldDelegate.radius != radius;
 }
 
 /// The cue's ring over the map, spreading once from [centre] (in the

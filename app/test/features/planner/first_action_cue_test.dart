@@ -12,6 +12,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../support/app.dart';
 import 'support/pump.dart';
 
+final Finder _headlinePulse = find.byKey(firstActionCueHeadlinePulseKey);
 final Finder _pulse = find.byKey(firstActionCuePulseKey);
 final Finder _ring = find.byKey(firstActionCueRingKey);
 
@@ -30,8 +31,8 @@ PlannerController _planner(WidgetTester tester) =>
         .read(plannerControllerProvider.notifier);
 
 void main() {
-  testWidgets('after a moment the headline fades in, then the field pulses, '
-      'then a ring spreads, once', (tester) async {
+  testWidgets('after a moment the headline fades in and its outline pulses, '
+      'then the field\'s, then a ring spreads, once', (tester) async {
     await pumpScreen(tester, const PlannerScreen());
     await tester.pump(const Duration(milliseconds: 100));
     expect(_headlineOpacity(tester), 0);
@@ -41,14 +42,20 @@ void main() {
     expect(_headlineOpacity(tester), inExclusiveRange(0, 1));
     expect(_pulse, findsNothing);
 
-    // The field, the headline in place, the ring still to come.
-    await tester.pump(const Duration(milliseconds: 1100));
+    // The headline's outline, the headline in place.
+    await tester.pump(const Duration(milliseconds: 600));
     expect(_headlineOpacity(tester), 1);
+    expect(_headlinePulse, findsOneWidget);
+    expect(_pulse, findsNothing);
+
+    // Then the field's, the ring still to come.
+    await tester.pump(const Duration(milliseconds: 1300));
+    expect(_headlinePulse, findsNothing);
     expect(_pulse, findsOneWidget);
     expect(_ring, findsNothing);
 
     // Then the map, the field done.
-    await tester.pump(const Duration(milliseconds: 1600));
+    await tester.pump(const Duration(milliseconds: 1200));
     expect(_pulse, findsNothing);
     expect(_ring, findsOneWidget);
 
@@ -64,7 +71,7 @@ void main() {
 
   testWidgets('a touch on the map ends it at once', (tester) async {
     await pumpScreen(tester, const PlannerScreen());
-    await tester.pump(const Duration(milliseconds: 3500));
+    await tester.pump(const Duration(milliseconds: 4000));
     expect(_ring, findsOneWidget);
 
     await tester.tapAt(const Offset(400, 600));
@@ -100,10 +107,10 @@ void main() {
 
     _planner(tester).clear();
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 2000));
+    await tester.pump(const Duration(milliseconds: 2800));
     expect(find.text(l10n.plannerEmptyState), findsOneWidget);
     expect(_pulse, findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 1600));
+    await tester.pump(const Duration(milliseconds: 1200));
     expect(_ring, findsOneWidget);
     await tester.pumpAndSettle();
     expect(_ring, findsNothing);
@@ -151,7 +158,7 @@ void main() {
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await pumpScreen(tester, const PlannerScreen());
-    await tester.pump(const Duration(milliseconds: 3500));
+    await tester.pump(const Duration(milliseconds: 4000));
     final painter =
         tester.widget<CustomPaint>(_ring).painter! as FirstActionCueRingPainter;
     final element = tester.element(find.byType(PlannerScreen));
@@ -199,7 +206,7 @@ void main() {
     await closed;
     // The wait for the dialog, then the cue up to its ring.
     await tester.pump(const Duration(milliseconds: 600));
-    await tester.pump(const Duration(milliseconds: 3300));
+    await tester.pump(const Duration(milliseconds: 3800));
     expect(_ring, findsOneWidget);
     await tester.pumpAndSettle();
   });
