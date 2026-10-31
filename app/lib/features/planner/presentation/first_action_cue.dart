@@ -12,17 +12,29 @@ part 'first_action_cue.g.dart';
 @Riverpod(keepAlive: true)
 bool firstActionCueEnabled(Ref ref) => true;
 
+// One after the other, with a breath between, so each is seen: the
+// headline, then the search field, then the map. Times from the start of
+// the cue.
+
+/// Before anything moves: the sheet has just settled.
+const Duration _revealStart = Duration(milliseconds: 600);
+
 /// The headline's fade and rise.
-const Duration _revealDuration = Duration(milliseconds: 350);
+const Duration _revealDuration = Duration(milliseconds: 700);
 
 /// The search field's two pulses, after the headline.
+const Duration _pulseStart = Duration(milliseconds: 1600);
 const Duration _pulseDuration = Duration(milliseconds: 1400);
 
-/// The ring's spread from the middle of the map, beside the pulses.
-const Duration _ringDuration = Duration(milliseconds: 900);
+/// The ring's spread from the middle of the map, after the pulses.
+const Duration _ringStart = Duration(milliseconds: 3200);
+const Duration _ringDuration = Duration(milliseconds: 1100);
+
+/// The whole cue.
+const Duration _cueDuration = Duration(milliseconds: 4300);
 
 /// How far below its place the headline starts.
-const double _revealRise = 8;
+const double _revealRise = 16;
 
 /// How far the ring spreads.
 const double _ringRadius = 90;
@@ -35,16 +47,16 @@ const Key firstActionCuePulseKey = ValueKey<String>('firstActionCuePulse');
 @visibleForTesting
 const Key firstActionCueRingKey = ValueKey<String>('firstActionCueRing');
 
-/// The empty Plan tab's one short hint at how to start: the headline fades
-/// in, then the search field pulses twice while a ring spreads once from
-/// the middle of the map. One run, stopped at once by the rider's first
+/// The empty Plan tab's one short hint at how to start, one part after the
+/// other: after a moment the headline fades in, then the search field
+/// pulses twice, then a ring spreads once from the middle of the map. One run, stopped at once by the rider's first
 /// touch anywhere; the parts listen to [progress].
 class FirstActionCue {
   /// Creates the cue, at rest.
   FirstActionCue({required TickerProvider vsync})
     : _controller = AnimationController(
         vsync: vsync,
-        duration: _revealDuration + _pulseDuration,
+        duration: _cueDuration,
         value: 1,
       ) {
     _controller.addStatusListener((status) {
@@ -98,30 +110,27 @@ class FirstActionCue {
     _running.dispose();
   }
 
-  static final double _revealEnd =
-      _revealDuration.inMicroseconds /
-      (_revealDuration + _pulseDuration).inMicroseconds;
-
-  static double _after(double t, Duration length) {
-    final total = (_revealDuration + _pulseDuration).inMicroseconds;
-    final local = (t - _revealEnd) * total / length.inMicroseconds;
-    return local;
-  }
+  /// How far through the part that runs [length] from [start] the cue is
+  /// at [t], 0..1 of the whole: below 0 before it, 1 or more after it.
+  static double _local(double t, Duration start, Duration length) =>
+      (t * _cueDuration.inMicroseconds - start.inMicroseconds) /
+      length.inMicroseconds;
 
   /// The headline's share of its way in at [t], eased.
-  static double revealAt(double t) =>
-      Curves.easeOut.transform((t / _revealEnd).clamp(0.0, 1.0));
+  static double revealAt(double t) => Curves.easeOut.transform(
+    _local(t, _revealStart, _revealDuration).clamp(0.0, 1.0),
+  );
 
   /// How far through its two pulses the field is at [t], or `null` outside
   /// them.
   static double? pulseAt(double t) {
-    final local = _after(t, _pulseDuration);
+    final local = _local(t, _pulseStart, _pulseDuration);
     return local < 0 || local >= 1 ? null : local;
   }
 
   /// How far through its spread the ring is at [t], or `null` outside it.
   static double? ringAt(double t) {
-    final local = _after(t, _ringDuration);
+    final local = _local(t, _ringStart, _ringDuration);
     return local < 0 || local >= 1 ? null : local;
   }
 
@@ -194,15 +203,18 @@ class FirstActionCuePulse extends StatelessWidget {
     if (cue == null) return child;
     final colour = Theme.of(context).colorScheme.primary;
     final still = MediaQuery.disableAnimationsOf(context);
-    return ValueListenableBuilder<bool>(
-      valueListenable: cue.running,
-      builder: (context, running, child) => Stack(
+    return AnimatedBuilder(
+      // Rebuilt as the cue runs, so the pulse is there only in its turn.
+      animation: Listenable.merge(<Listenable>[cue.running, cue.progress]),
+      builder: (context, child) => Stack(
         // The field's own size and constraints, whatever the pulse paints.
         fit: StackFit.passthrough,
         clipBehavior: Clip.none,
         children: [
           child!,
-          if (running && !still)
+          if (cue.running.value &&
+              !still &&
+              FirstActionCue.pulseAt(cue.progress.value) != null)
             Positioned.fill(
               child: IgnorePointer(
                 child: ExcludeSemantics(
@@ -290,9 +302,13 @@ class _FirstActionCueRingState extends State<FirstActionCueRing> {
     return OverlayPortal(
       overlayLocation: OverlayChildLocation.rootOverlay,
       controller: _portal,
-      overlayChildBuilder: (context) => ValueListenableBuilder<bool>(
-        valueListenable: cue.running,
-        builder: (context, running, _) => !running || still
+      overlayChildBuilder: (context) => AnimatedBuilder(
+        // Rebuilt as the cue runs, so the ring is there only in its turn.
+        animation: Listenable.merge(<Listenable>[cue.running, cue.progress]),
+        builder: (context, _) =>
+            !cue.running.value ||
+                still ||
+                FirstActionCue.ringAt(cue.progress.value) == null
             ? const SizedBox.shrink()
             : IgnorePointer(
                 child: ExcludeSemantics(

@@ -30,15 +30,26 @@ PlannerController _planner(WidgetTester tester) =>
         .read(plannerControllerProvider.notifier);
 
 void main() {
-  testWidgets('the empty sheet fades in, then the field pulses and a ring '
-      'spreads, once', (tester) async {
+  testWidgets('after a moment the headline fades in, then the field pulses, '
+      'then a ring spreads, once', (tester) async {
     await pumpScreen(tester, const PlannerScreen());
     await tester.pump(const Duration(milliseconds: 100));
-    expect(_headlineOpacity(tester), inExclusiveRange(0, 1));
+    expect(_headlineOpacity(tester), 0);
+    expect(_pulse, findsNothing);
 
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 800));
+    expect(_headlineOpacity(tester), inExclusiveRange(0, 1));
+    expect(_pulse, findsNothing);
+
+    // The field, the headline in place, the ring still to come.
+    await tester.pump(const Duration(milliseconds: 1100));
     expect(_headlineOpacity(tester), 1);
     expect(_pulse, findsOneWidget);
+    expect(_ring, findsNothing);
+
+    // Then the map, the field done.
+    await tester.pump(const Duration(milliseconds: 1600));
+    expect(_pulse, findsNothing);
     expect(_ring, findsOneWidget);
 
     // Finite: it settles, and does not come back while the plan stays empty.
@@ -53,7 +64,7 @@ void main() {
 
   testWidgets('a touch on the map ends it at once', (tester) async {
     await pumpScreen(tester, const PlannerScreen());
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 3500));
     expect(_ring, findsOneWidget);
 
     await tester.tapAt(const Offset(400, 600));
@@ -89,9 +100,10 @@ void main() {
 
     _planner(tester).clear();
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 2000));
     expect(find.text(l10n.plannerEmptyState), findsOneWidget);
     expect(_pulse, findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1600));
     expect(_ring, findsOneWidget);
     await tester.pumpAndSettle();
     expect(_ring, findsNothing);
@@ -139,7 +151,7 @@ void main() {
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await pumpScreen(tester, const PlannerScreen());
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 3500));
     final painter =
         tester.widget<CustomPaint>(_ring).painter! as FirstActionCueRingPainter;
     final element = tester.element(find.byType(PlannerScreen));
@@ -185,8 +197,9 @@ void main() {
     navigator.pop();
     asking.done();
     await closed;
+    // The wait for the dialog, then the cue up to its ring.
     await tester.pump(const Duration(milliseconds: 600));
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 3300));
     expect(_ring, findsOneWidget);
     await tester.pumpAndSettle();
   });
