@@ -158,14 +158,6 @@ class Android:
         hours = "12" if locale.startswith("en") else "24"
         self.adb("shell", "settings", "put", "system", "time_12_24", hours, check=True)
 
-    def focus(self) -> str:
-        """The window that has the focus, as dumpsys names it."""
-        shown = self.adb("shell", "dumpsys", "window").stdout.decode("utf-8", "replace")
-        for line in shown.splitlines():
-            if "mCurrentFocus=" in line:
-                return line.split("mCurrentFocus=", 1)[1].strip()
-        return ""
-
     def system_dialogs(self) -> list[str]:
         """The system's "isn't responding" and crash dialogs on screen, by
         their window titles, whatever has the focus."""
@@ -176,27 +168,22 @@ class Android:
                                                  or "Application Error" in line)})
 
     def app_in_front(self) -> bool:
-        """Whether the app's window is in front, nothing of the system's over
-        it: a busy emulator's launcher once stopped answering, and its "isn't
+        """Whether no dialog of the system's stands over the app: a busy
+        emulator's launcher once stopped answering, and its "isn't
         responding" dialog stood over every picture of a run that passed.
-        Such a window is closed once; if it stays, the picture is refused."""
-        def clear(focus: str) -> bool:
-            # No window with the focus is fine: a CI emulator, with no window
-            # on a screen, reports none while the app is drawn. A dialog of
-            # the system's takes the focus when it comes.
-            return (BUNDLE in focus or focus in ("", "null")) and not self.system_dialogs()
-
+        Such a dialog is asked to close once (a broadcast the app does not
+        hear); if it stays, the picture is refused. Not the window with the
+        focus: a CI emulator reports none, and the app's own windows (a
+        native popup, a sheet) take it too."""
         for _ in range(3):
-            focus = self.focus()
-            if clear(focus):
+            dialogs = self.system_dialogs()
+            if not dialogs:
                 return True
-            print(f"store_shutter: in front of the app: {focus}; dialogs: "
-                  f"{', '.join(self.system_dialogs()) or 'none'}", file=sys.stderr)
+            print(f"store_shutter: over the app: {', '.join(dialogs)}", file=sys.stderr)
             self.adb("shell", "am", "broadcast", "-a",
                      "android.intent.action.CLOSE_SYSTEM_DIALOGS")
-            self.adb("shell", "input", "keyevent", "KEYCODE_BACK")
             time.sleep(1.5)
-        return clear(self.focus())
+        return not self.system_dialogs()
 
     def screenshot(self, target: str) -> None:
         png = self.adb("exec-out", "screencap", "-p", check=True).stdout
@@ -301,7 +288,7 @@ def main_android(serial: str, out: str) -> int:
                 device.status_bar(online=wanted[0])
                 bar = wanted
             if not device.app_in_front():
-                print(f"store_shutter: refusing {name}: a window of the system covers the app",
+                print(f"store_shutter: refusing {name}: a dialog of the system's covers the app",
                       file=sys.stderr)
                 return 1
             device.screenshot(target + ".png")
