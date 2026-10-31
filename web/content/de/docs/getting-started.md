@@ -10,7 +10,7 @@ Velorki ist ein kostenloser Routenplaner und Fahrtenschreiber fürs Rad, für iP
 
 - Ein iPhone mit iOS 15 oder neuer, oder ein Android-Handy mit Android 8.0 oder neuer.
 - Kein Konto. Velorki hat keine Registrierung, keinen Login und kein Passwort. Auf einem Server wird nichts über dich gespeichert.
-- Keine Verbindung, sobald ein Gebiet heruntergeladen ist. Planen, Routing, Ortssuche, Navigation und Aufnahme laufen alle auf dem Handy.
+- Keine Verbindung, sobald ein Gebiet heruntergeladen ist. Planen, Routing, Ortssuche, Navigation und Aufzeichnung laufen alle auf dem Handy.
 
 ## Installieren
 
@@ -42,15 +42,15 @@ Velorki zeigt zuerst einen eigenen Dialog mit dem Titel **Deine Position anzeige
 
 Mit der Berechtigung öffnet sich die Karte dort, wo du sie verlassen hast, und gleitet dann zu deiner Position: sofort dorthin, wo das Telefon dich zuletzt kannte, wenn das weniger als eine Stunde her ist, und zur ersten frischen Ortung, wenn nicht, oder wenn diese dich mehr als etwa 300 m davon entfernt zeigt, beim Start der App ebenso wie bei einer Rückkehr nach einer halben Stunde oder mehr. Sie bleibt, wo sie ist, solange eine Planung im Tab Planen liegt, eine Routen- oder Fahrtenkarte offen ist, eine Fahrt aufgezeichnet wird, du schon zu sehen bist oder du die Karte selbst bewegt hast.
 
-"Beim Verwenden der App" reicht. Unter Android fragt Velorki bewusst **nicht** nach dem Standort im Hintergrund: Die Aufnahme läuft stattdessen als Vordergrunddienst mit einer Mitteilung. Unter iOS deckt "Beim Verwenden" zusammen mit dem Hintergrund-Standortmodus eine Aufnahme bei ausgeschaltetem Bildschirm ab.
+"Beim Verwenden der App" reicht. Unter Android fragt Velorki bewusst **nicht** nach dem Standort im Hintergrund: Die Aufzeichnung läuft stattdessen als Vordergrunddienst mit einer Mitteilung. Unter iOS deckt "Beim Verwenden" zusammen mit dem Hintergrund-Standortmodus eine Aufzeichnung bei ausgeschaltetem Bildschirm ab.
 
 ### Mitteilungen (Android)
 
-Wird gefragt, sobald du zum ersten Mal eine Fahrt startest. Die Aufnahme läuft in einer Mitteilung, die Distanz und Zeit zeigt, und Android beendet die Aufnahme, wenn diese Mitteilung nicht angezeigt werden kann. Lehnst du ab, sagt Velorki das: "Ohne Benachrichtigungsberechtigung stoppt Android die Aufnahme, sobald du die App verlässt."
+Wird gefragt, sobald du zum ersten Mal eine Fahrt startest. Die Aufzeichnung läuft in einer Mitteilung, die Distanz und Zeit zeigt, und Android beendet die Aufzeichnung, wenn diese Mitteilung nicht angezeigt werden kann. Lehnst du ab, sagt Velorki das: "Ohne Benachrichtigungsberechtigung stoppt Android die Aufzeichnung, sobald du die App verlässt."
 
 ### Akku-Optimierung (Android)
 
-Wird ein einziges Mal gefragt, beim ersten Start einer Fahrt: **Im Hintergrund weiter aufzeichnen**: "Android kann die Aufnahme stoppen, während das Handy schläft. Wähl in den Akku-Einstellungen, die sich öffnen, Velorki und erlaube uneingeschränkte Akkunutzung (auf manchen Handys: nicht optimiert), dann bleibt der Track vollständig. Die Frage kommt nur einmal." Antworte **Einstellungen öffnen** oder **Jetzt nicht**; gefragt wird nie wieder.
+Wird ein einziges Mal gefragt, beim ersten Start einer Fahrt: **Im Hintergrund weiter aufzeichnen**: "Android kann die Aufzeichnung stoppen, während das Handy schläft. Wähl in den Akku-Einstellungen, die sich öffnen, Velorki und erlaube uneingeschränkte Akkunutzung (auf manchen Handys: nicht optimiert), dann bleibt der Track vollständig. Die Frage kommt nur einmal." Antworte **Einstellungen öffnen** oder **Jetzt nicht**; gefragt wird nie wieder.
 
 ### Dateien
 
@@ -65,9 +65,9 @@ Die Leiste am unteren Rand hat vier Tabs.
 | Tab | Was dort liegt |
 |---|---|
 | **Planen** | Die Karte, die Ortssuche, der Routenplaner, smarte Runden und der Assistent. |
-| **Aufnahme** | Fahrt starten, pausieren und beenden, die Zahlen währenddessen und deine letzten Fahrten. |
+| **Aufzeichnen** | Fahrt starten, pausieren und beenden, die Zahlen währenddessen und deine letzten Fahrten. |
 | **Bibliothek** | Alles Gespeicherte: **Routen** und **Fahrten**, mit Import und Export. |
-| **Einstellungen** | Darstellung, Einheiten und Sprache, Navigation und Aufnahme, Offline-Daten, Suche, Verbindungen, Abo und die Rechtstexte. |
+| **Einstellungen** | Darstellung, Einheiten und Sprache, Navigation und Aufzeichnung, Offline-Daten, Suche, Verbindungen, Abo und die Rechtstexte. |
 
 Die Leiste schwebt über dem Inhalt, Listen scrollen also darunter hindurch.
 
@@ -83,7 +83,7 @@ Bis du wählst, folgt Velorki dem Land des Handys: imperial nur dort, wo das Lan
 
 ## Wo was liegt
 
-- **Die Kartenbedienung** sitzt in einer Spalte rechts neben der Karte: **Meine Position anzeigen**, **Ebenen** ([die Radkarte](./map-layers) und [Stopps auf der Karte](./stops-on-the-map)), **Offline-Daten** (nicht auf einem kleinen Bildschirm wie dem iPhone SE), **Hineinzoomen** und **Herauszoomen**. Im Tab Aufnahme kommt eine Kompass-Schaltfläche dazu, die zwischen **Norden oben** und **Karte dreht mit** wechselt.
+- **Die Kartenbedienung** sitzt in einer Spalte rechts neben der Karte: **Meine Position anzeigen**, **Ebenen** ([die Radkarte](./map-layers) und [Stopps auf der Karte](./stops-on-the-map)), **Offline-Daten** (nicht auf einem kleinen Bildschirm wie dem iPhone SE), **Hineinzoomen** und **Herauszoomen**. Im Tab Aufzeichnen kommt eine Kompass-Schaltfläche dazu, die zwischen **Norden oben** und **Karte dreht mit** wechselt.
 - **Das Suchfeld** steht oben im Tab Planen.
 - **Das Radprofil** (Trekking, Rennrad, Gravel, MTB, Direkt) ist die Reihe von Chips unter dem Suchfeld.
 - **Die Routenübersicht** ist das Feld am unteren Rand des Tabs Planen. Zieh es nach oben für Höhenprofil und Belagsverteilung, nach unten für mehr Karte.

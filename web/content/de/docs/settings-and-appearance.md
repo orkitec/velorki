@@ -1,6 +1,6 @@
 ---
 title: Einstellungen und Darstellung
-description: Jede Einstellung in Velorki, von Design, Akzent, Einheiten und Sprache über Navigation, Aufnahme, Sensoren und Suche bis zu Offline-Daten, Verbindungen und Server-URLs.
+description: Jede Einstellung in Velorki, von Design, Akzent, Einheiten und Sprache über Navigation, Aufzeichnung, Sensoren und Suche bis zu Offline-Daten, Verbindungen und Server-URLs.
 order: 16
 ---
 
@@ -26,9 +26,9 @@ Der Tab Einstellungen ist eine einzige scrollende Seite mit einem Abschnitt je T
 
 ## Navigation
 
-Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufnahme.
+Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufzeichnen.
 
-**Abbiegehinweise**: "Nächste Abbiegung während der Aufnahme auf einer Route zeigen". Der Hauptschalter; der Rest des Abschnitts ist ausgegraut, solange er aus ist.
+**Abbiegehinweise**: "Nächste Abbiegung während der Aufzeichnung auf einer Route zeigen". Der Hauptschalter; der Rest des Abschnitts ist ausgegraut, solange er aus ist.
 
 **Stimme**: "Abbiegehinweise laut ansagen".
 
@@ -38,7 +38,7 @@ Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufnahme.
 
 **Wenn du die Route verlässt**: **Zurückführen**, "Die Planung behalten und den besten Weg zurück zeigen, vor dir"; **Neue Route zum Ziel**, "Von deinem Standort neu planen, mit den Stopps, die noch vor dir liegen"; oder **Nicht neu berechnen**, "Nur zeigen, wie weit die Route entfernt ist und in welcher Richtung". Was jede davon tut, steht unter [Navigation](./navigation#wenn-du-die-route-verlässt).
 
-## Aufnahme
+## Aufzeichnung
 
 **GPS-Genauigkeit**: **Energiesparen**, **Normal** oder **Genau**, mit dem Hinweis "Genau für Trails, Normal reicht für Straßen". Es entscheidet, wie hart der eine GPS-Client während einer Fahrt gefordert wird.
 
@@ -46,7 +46,7 @@ Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufnahme.
 
 **Energiesparen**: "Dunkle Karte, keine Animationen, nach 30 s eine schlichte Seite mit den Zahlen; der Bildschirm zieht den Akku leer". Das ganze Verhalten steht unter [Fahrt aufzeichnen](./recording-a-ride).
 
-**Bildschirm anlassen**: "Solange im Tab Aufnahme eine Fahrt läuft und nicht pausiert ist; derselbe Schalter wie dort". An, bis du es ausschaltest; ob hier oder in der Aufnahmeübersicht umgeschaltet, es ist derselbe Schalter.
+**Bildschirm anlassen**: "Solange im Tab Aufzeichnen eine Fahrt läuft und nicht pausiert ist; derselbe Schalter wie dort". An, bis du es ausschaltest; ob hier oder in der Aufzeichnungsübersicht umgeschaltet, es ist derselbe Schalter.
 
 **Fahrtwerte**: jeder Wert, den eine Fahrt zeigen kann, mit einem Griff zum Verschieben und einem Schalter zum Ausblenden. Die Übersicht zeigt sie in dieser Reihenfolge, die Leiste, in die sie sich faltet, die ersten vier, die Blickseite die ersten zwei neben der Zeit der Fahrt; ein Wert ohne Anzeige, ein nicht verbundener Sensor oder keine gefolgte Route, gibt seinen Platz an den nächsten ab. Einer bleibt mindestens an, die Schaltfläche zum Zurücksetzen oben rechts stellt die Voreinstellung wieder her, und **Zeit**, die die Übersicht ohnehin neben dem Status zeigt, ist aus, bis du sie einschaltest. **Werte bearbeiten** unter den Werten in der Übersicht öffnet dieselbe Liste.
 

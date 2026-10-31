@@ -4,7 +4,7 @@ description: Puls, Trittfrequenz und Leistung von einem Bluetooth-Sensor, einer 
 order: 18
 ---
 
-Velorki kann während der Aufnahme deinen Puls, deine Trittfrequenz und deine Leistung zeigen und alle drei danach bei der Fahrt behalten. Die Werte kommen von einem Bluetooth-Sensor, von einer Apple Watch oder von der Health-App des Handys, und das alles ist kostenlos und läuft auf dem Gerät.
+Velorki kann während der Aufzeichnung deinen Puls, deine Trittfrequenz und deine Leistung zeigen und alle drei danach bei der Fahrt behalten. Die Werte kommen von einem Bluetooth-Sensor, von einer Apple Watch oder von der Health-App des Handys, und das alles ist kostenlos und läuft auf dem Gerät.
 
 Nichts davon passiert, bevor du es einschaltest. Sind alle Quellen aus, fragt Velorki das Betriebssystem nach nichts, und kein Bildschirm erwähnt einen Sensor.
 
@@ -20,7 +20,7 @@ Melden zwei davon dasselbe zur selben Zeit, gewinnt die Uhr vor einem Bluetooth-
 
 ## Eine Quelle einschalten
 
-Alles steht unter **Einstellungen → Sensoren**, direkt unter **Aufnahme**:
+Alles steht unter **Einstellungen → Sensoren**, direkt unter **Aufzeichnung**:
 
 - **Apple Health** auf dem iPhone, **Health Connect** unter Android, mit der Zeile "Liest den Puls, den andere Apps in Health ablegen, etwa das Training der Uhr. Wird alle paar Sekunden abgefragt, hinkt also nach; ein Gurt oder die Velorki-Uhren-App übernimmt, sobald sie melden". Das Einschalten ist das Einzige in Velorki, was die Health-Abfrage auslösen kann. Lehnst du ab, sagt Velorki "Velorki hat keinen Zugriff auf deine Gesundheitsdaten bekommen." und lässt den Schalter aus.
 - **Fahrten in Health speichern** darunter, "Jede beendete Fahrt landet in Health als ein Radfahr-Training mit Start, Ende und Distanz", getrennt abschaltbar. Solange der Schalter darüber aus ist, tut er nichts.
@@ -36,7 +36,7 @@ Alles steht unter **Einstellungen → Sensoren**, direkt unter **Aufnahme**:
 3. Tippe unter **Gefunden** auf den Sensor, den du wiedererkennst. Jede Zeile trägt seinen Namen, kleine Symbole für das, was er misst, und seine Signalstärke in dBm; der lauteste steht oben.
 4. Velorki verbindet sich einmal, um das Gerät zu fragen, was es wirklich hat, legt es unter **Gekoppelt** ab und lässt es wieder los.
 
-Solange dieser Bildschirm offen ist, sind deine gekoppelten Sensoren verbunden, jede Zeile zeigt also statt **Verbunden**, **Wird verbunden…** oder **Nicht verbunden**, was der Sensor gerade sagt. Verlässt du den Bildschirm, werden sie wieder getrennt, außer es läuft eine Aufnahme. **Entkoppeln** im Menü rechts an einer gekoppelten Zeile entfernt einen Sensor.
+Solange dieser Bildschirm offen ist, sind deine gekoppelten Sensoren verbunden, jede Zeile zeigt also statt **Verbunden**, **Wird verbunden…** oder **Nicht verbunden**, was der Sensor gerade sagt. Verlässt du den Bildschirm, werden sie wieder getrennt, außer es läuft eine Aufzeichnung. **Entkoppeln** im Menü rechts an einer gekoppelten Zeile entfernt einen Sensor.
 
 ### Womit Velorki sich koppelt
 
@@ -52,7 +52,7 @@ Ein Gerät, das keines der drei spricht, wird nicht angeboten. Velorki koppelt s
 
 Ein Geschwindigkeitssensor zählt Radumdrehungen, Velorki muss also wissen, wie weit eine Umdrehung ist. Das Feld **Radumfang** erscheint unten auf dem Bildschirm, sobald ein gekoppelter Sensor Geschwindigkeit meldet, mit dem Hinweis "Millimeter pro Radumdrehung. 2105 ist ein 700x25c-Reifen." und **mm** hinter der Zahl.
 
-Solange ein Radsensor meldet, ersetzt seine Geschwindigkeit die GPS-Geschwindigkeit in der Aufnahmeübersicht, und genau darum geht es: Ein Rad stimmt im Schritttempo, unter Bäumen und im Tunnel, wo GPS das nicht tut. Sonst benutzt die Fahrt diesen Wert nirgends.
+Solange ein Radsensor meldet, ersetzt seine Geschwindigkeit die GPS-Geschwindigkeit in der Aufzeichnungsübersicht, und genau darum geht es: Ein Rad stimmt im Schritttempo, unter Bäumen und im Tunnel, wo GPS das nicht tut. Sonst benutzt die Fahrt diesen Wert nirgends.
 
 ### Wenn ein Sensor nicht gefunden wird
 
@@ -60,11 +60,11 @@ Solange ein Radsensor meldet, ersetzt seine Geschwindigkeit die GPS-Geschwindigk
 - **"Schalte Bluetooth ein, um deine Sensoren zu finden."** Das Funkmodul des Handys ist aus.
 - **"Velorki durfte Bluetooth nicht benutzen."** Die Berechtigung wurde abgelehnt. Erteile sie Velorki in den Einstellungen des Handys und scanne noch einmal.
 - **Der Sensor spricht mit etwas anderem.** Diese Sensoren bedienen jeweils ein Gerät. Schließe die andere App oder schalte den Radcomputer aus.
-- **Ein gekoppelter Sensor, der Nicht verbunden zeigt**, ist außer Reichweite, schläft oder ist leer. Velorki versucht es weiter, solange eine Aufnahme läuft oder der Bildschirm offen ist, und wartet nach jedem Versuch etwas länger.
+- **Ein gekoppelter Sensor, der Nicht verbunden zeigt**, ist außer Reichweite, schläft oder ist leer. Velorki versucht es weiter, solange eine Aufzeichnung läuft oder der Bildschirm offen ist, und wartet nach jedem Versuch etwas länger.
 
 ## Apple Watch
 
-Die App auf der Uhr ist Anzeige und Sensor, nie ein zweites Aufnahmegerät. Das Handy zeichnet die Fahrt auf; die Uhr schickt, was sie misst und was du tippst, und zeigt, was das Handy zurückmeldet.
+Die App auf der Uhr ist Anzeige und Sensor, nie ein zweites Aufzeichnungsgerät. Das Handy zeichnet die Fahrt auf; die Uhr schickt, was sie misst und was du tippst, und zeigt, was das Handy zurückmeldet.
 
 ### Die App auf die Uhr bekommen
 
@@ -84,13 +84,13 @@ Die eigenen Worte der Uhr, also die Knöpfe und die zwei Fußnoten, sind englisc
 
 | Knopf | Was er tut |
 |---|---|
-| **Fahrt starten** | startet die Aufnahme auf dem Handy |
+| **Fahrt starten** | startet die Aufzeichnung auf dem Handy |
 | **Pause**, **Fortsetzen** | pausieren und weiterfahren, wie am Handy |
-| **Beenden** | beendet die Aufnahme; "Nach „Beenden“ speicherst du die Fahrt auf dem Handy." |
+| **Beenden** | beendet die Aufzeichnung; "Nach „Beenden“ speicherst du die Fahrt auf dem Handy." |
 | **Pulsmessung beenden** | beendet das Messen auf der Uhr, während die Fahrt weiterläuft |
 | **Pulsmessung starten** | startet es wieder, oder startet es für eine Fahrt, in die die Uhren-App erst später geöffnet wurde |
 
-Startet eine Fahrt am Handy, öffnet sich die Uhren-App von selbst und beginnt zu messen, am Handgelenk ist also nichts zu tippen. Umgekehrt startet **Fahrt starten** auf der Uhr die Aufnahme auf dem Handy und bringt das Handy auf seinen Tab **Aufnahme**. Ein Handy in der Tasche, mit Velorki im Hintergrund, bekommt eine Mitteilung, "Ride started from your watch", und ein Tipp darauf öffnet die App; das zählt, weil iOS einer im Hintergrund geweckten App kein GPS gibt, bis sie einmal geöffnet wurde, der Track beginnt also dann. Eine App, die du ganz weggewischt hast, kann die Uhr gar nicht wecken, das ist eine Regel von iOS; nach ein paar Versuchen sagt die Uhr "Das Handy antwortet nicht. Öffne Velorki auf dem Handy und versuch es noch einmal." Eine Fahrt, die du am Handgelenk beendest, wird gespeichert wie jede andere: Die Aufnahme hört auf, und die Speichern-Übersicht wartet auf dem Handy, wenn du das nächste Mal hinsiehst.
+Startet eine Fahrt am Handy, öffnet sich die Uhren-App von selbst und beginnt zu messen, am Handgelenk ist also nichts zu tippen. Umgekehrt startet **Fahrt starten** auf der Uhr die Aufzeichnung auf dem Handy und bringt das Handy auf seinen Tab **Aufzeichnen**. Ein Handy in der Tasche, mit Velorki im Hintergrund, bekommt eine Mitteilung, "Ride started from your watch", und ein Tipp darauf öffnet die App; das zählt, weil iOS einer im Hintergrund geweckten App kein GPS gibt, bis sie einmal geöffnet wurde, der Track beginnt also dann. Eine App, die du ganz weggewischt hast, kann die Uhr gar nicht wecken, das ist eine Regel von iOS; nach ein paar Versuchen sagt die Uhr "Das Handy antwortet nicht. Öffne Velorki auf dem Handy und versuch es noch einmal." Eine Fahrt, die du am Handgelenk beendest, wird gespeichert wie jede andere: Die Aufzeichnung hört auf, und die Speichern-Übersicht wartet auf dem Handy, wenn du das nächste Mal hinsiehst.
 
 ### Akku am Handgelenk
 
@@ -102,7 +102,7 @@ Diese Quelle ist der Puls, den dein Handy ohnehin schon kennt: was eine Apple Wa
 
 ### Was gelesen und was geschrieben wird
 
-- **Gelesen**: der Puls, und sonst nichts. Während einer Aufnahme fragt Velorki alle fünf Sekunden nach neuen Messwerten, bei eingeschaltetem **Energiesparen** alle dreißig.
+- **Gelesen**: der Puls, und sonst nichts. Während einer Aufzeichnung fragt Velorki alle fünf Sekunden nach neuen Messwerten, bei eingeschaltetem **Energiesparen** alle dreißig.
 - **Danach ergänzt**: Beim Speichern der Fahrt füllen Messwerte aus dem Speicher die Punkte des Tracks, die keinen Puls tragen, sofern ein Wert höchstens eine halbe Minute daneben liegt, und die Zahlen der Fahrt werden neu berechnet. Ein Punkt, der seinen Wert live von einem Gurt oder einer Uhr bekommen hat, behält ihn.
 - **Geschrieben**: ein Radfahr-Training pro Fahrt, mit Start, Ende und Distanz, und nur mit eingeschaltetem **Fahrten in Health speichern**. Jede Fahrt wird einmal geschrieben. Ist der Schalter aus, liest Velorki nur.
 
@@ -110,7 +110,7 @@ Diese Quelle ist der Puls, den dein Handy ohnehin schon kennt: was eine Apple Wa
 
 ### Während der Fahrt
 
-In der Aufnahmeübersicht erscheint eine dritte Zeile mit dem, was in der Fahrt gemeldet wurde: **Herzfrequenz** mit dem **Ø Puls** der Fahrt darunter, **Trittfrequenz** und **Leistung**. Eine Uhr allein bringt also eine Kachel, und ohne Sensor steht dort gar nichts. Ein Sensor, der verstummt, behält seine Kachel, abgedunkelt und mit dem Zeichen für die unterbrochene Verbindung, bis die Fahrt endet. Auf dem iPhone kommt der Puls zu den Zahlen auf der Sperrbildschirm-Karte und in der Dynamic Island dazu.
+In der Aufzeichnungsübersicht erscheint eine dritte Zeile mit dem, was in der Fahrt gemeldet wurde: **Herzfrequenz** mit dem **Ø Puls** der Fahrt darunter, **Trittfrequenz** und **Leistung**. Eine Uhr allein bringt also eine Kachel, und ohne Sensor steht dort gar nichts. Ein Sensor, der verstummt, behält seine Kachel, abgedunkelt und mit dem Zeichen für die unterbrochene Verbindung, bis die Fahrt endet. Auf dem iPhone kommt der Puls zu den Zahlen auf der Sperrbildschirm-Karte und in der Dynamic Island dazu.
 
 ### Auf einer gespeicherten Fahrt
 

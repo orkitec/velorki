@@ -84,14 +84,14 @@
     },
     "free": {
       "title": "Alles auf dem Handy ist kostenlos",
-      "body": "Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Sensoren und Apple Watch, Fahrtstatistik, die Wetterkarte und das Wetter entlang der Route, GPX-, FIT- und TCX-Dateien, die Synchronisierung über deine eigene iCloud oder dein Google Drive und die Verbindungen zu Strava und Ride with GPS, für alle, für immer. Die Routing-Daten und den Suchindex spiegeln wir kostenlos für dich.",
+      "body": "Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufzeichnung, Sensoren und Apple Watch, Fahrtstatistik, die Wetterkarte und das Wetter entlang der Route, GPX-, FIT- und TCX-Dateien, die Synchronisierung über deine eigene iCloud oder dein Google Drive und die Verbindungen zu Strava und Ride with GPS, für alle, für immer. Die Routing-Daten und den Suchindex spiegeln wir kostenlos für dich.",
       "items": {
         "routing": "Routing auf dem Handy",
         "loops": "Runden",
         "search": "Offline-Suche",
         "maps": "Offline-Karten",
         "navigation": "Abbiegehinweise",
-        "recording": "Aufnahme",
+        "recording": "Aufzeichnung",
         "sensors": "Sensoren und Uhr",
         "files": "GPX, FIT und TCX",
         "sync": "Synchronisierung mit deiner Cloud",
@@ -135,19 +135,19 @@
       "navigate": {
         "eyebrow": "Navigation",
         "title": "Gesprochene Abbiegehinweise, auf dem Handy",
-        "body": "Ein Abbiegebanner und gesprochene Hinweise, während du eine Route fährst, und wenn du sie verlässt, nach deiner Wahl ein Weg zurück auf die Planung, eine neue Route zum Ziel oder nur die Richtung zurück, alles auf dem Handy berechnet. Folgemodus mit Kompass oder nach Norden ausgerichtet. Die Hinweise entstehen aus denselben Routing-Daten, die schon die Fahrt geplant haben, also funktionieren sie auch dort, wo kein Netz ist. Eine GPX-Route bringt ihr eigenes Cue Sheet und ihre Wegpunkte mit, und die Aufnahme-Karte zeigt als wischbare Seiten ein Höhenprofil mit dem Anstieg voraus, die Ankunftszeit und die Cue-Liste. Eine GPX ohne Abbiegungen bekommt sie auf dem Telefon aus der Karte erstellt.",
+        "body": "Ein Abbiegebanner und gesprochene Hinweise, während du eine Route fährst, und wenn du sie verlässt, nach deiner Wahl ein Weg zurück auf die Planung, eine neue Route zum Ziel oder nur die Richtung zurück, alles auf dem Handy berechnet. Folgemodus mit Kompass oder nach Norden ausgerichtet. Die Hinweise entstehen aus denselben Routing-Daten, die schon die Fahrt geplant haben, also funktionieren sie auch dort, wo kein Netz ist. Eine GPX-Route bringt ihr eigenes Cue Sheet und ihre Wegpunkte mit, und die Aufzeichnungskarte zeigt als wischbare Seiten ein Höhenprofil mit dem Anstieg voraus, die Ankunftszeit und die Cue-Liste. Eine GPX ohne Abbiegungen bekommt sie auf dem Telefon aus der Karte erstellt.",
         "bullets": {
           "one": "Abbiegebanner und Sprachhinweise, offline",
           "two": "Linie verlassen: zurückgeführt, neue Route oder nur die Richtung zurück",
-          "three": "Cue Sheet, Wegpunkte, Anstieg und Ankunftszeit auf der Aufnahme-Karte"
+          "three": "Cue Sheet, Wegpunkte, Anstieg und Ankunftszeit auf der Aufzeichnungskarte"
         }
       },
       "record": {
-        "eyebrow": "Aufnahme",
+        "eyebrow": "Aufzeichnung",
         "title": "Sie zeichnet weiter auf, auch wenn das Handy es nicht tut",
-        "body": "Die Aufnahme läuft im Hintergrund, mit einer Benachrichtigung im Vordergrund auf Android und einer Live-Aktivität auf iOS, und übersteht es, wenn die App beendet wird. Der Akkusparmodus dimmt den Bildschirm und macht das GPS gröber. Puls, Trittfrequenz und Leistung kommen von der Apple Watch, einem Bluetooth-Sensor oder deiner Health-App dazu, wenn du sie einschaltest. Danach gibt es Fahrtseiten mit Höhe, Geschwindigkeit, Puls, zur Fahrt passenden Splits, den gefahrenen Anstiegen, dem Belag unter deinen Reifen aus der Offline-Karte und einem nach Geschwindigkeit eingefärbten Track; auf Wunsch Kalorien, Puls- und Leistungszonen, normalisierte Leistung und eine geschätzte Leistung für Fahrten ohne Messgerät.",
+        "body": "Die Aufzeichnung läuft im Hintergrund, mit einer Benachrichtigung im Vordergrund auf Android und einer Live-Aktivität auf iOS, und übersteht es, wenn die App beendet wird. Der Akkusparmodus dimmt den Bildschirm und macht das GPS gröber. Puls, Trittfrequenz und Leistung kommen von der Apple Watch, einem Bluetooth-Sensor oder deiner Health-App dazu, wenn du sie einschaltest. Danach gibt es Fahrtseiten mit Höhe, Geschwindigkeit, Puls, zur Fahrt passenden Splits, den gefahrenen Anstiegen, dem Belag unter deinen Reifen aus der Offline-Karte und einem nach Geschwindigkeit eingefärbten Track; auf Wunsch Kalorien, Puls- und Leistungszonen, normalisierte Leistung und eine geschätzte Leistung für Fahrten ohne Messgerät.",
         "bullets": {
-          "one": "Aufnahme im Hintergrund, die das Beenden der App übersteht",
+          "one": "Aufzeichnung im Hintergrund, die das Beenden der App übersteht",
           "two": "Puls, Trittfrequenz und Leistung von Uhr oder Bluetooth-Sensor, alles optional",
           "three": "Fahrtseiten mit Splits, Anstiegen, Belag und eingefärbtem Track; Kalorien, Zonen und geschätzte Leistung, wenn du willst"
         }
@@ -155,7 +155,7 @@
       "sensors": {
         "eyebrow": "Sensoren",
         "title": "Sensoren und deine Uhr",
-        "body": "Puls, Trittfrequenz und Leistung kommen von einem Bluetooth-Sensor, von einem Brustgurt, einem Geschwindigkeits- und Trittfrequenzsensor oder einem Leistungsmesser: einmal gekoppelt, danach bei jeder Fahrt dabei, auf dem Aufnahme-Bildschirm während der Fahrt und danach bei der gespeicherten Fahrt. Die Velorki-App auf deiner Apple Watch zeigt die Fahrt am Handgelenk und schickt deinen Puls ans Handy; starten, pausieren und beenden geht von der Uhr aus, und sie misst durch deine Stopps hindurch weiter, oder ruht bei jedem Stopp, wenn du das lieber willst. Auch Apple Health und Health Connect können den Puls liefern, und das alles ist kostenlos, alles optional, und nichts passiert, bevor du eine Quelle einschaltest.",
+        "body": "Puls, Trittfrequenz und Leistung kommen von einem Bluetooth-Sensor, von einem Brustgurt, einem Geschwindigkeits- und Trittfrequenzsensor oder einem Leistungsmesser: einmal gekoppelt, danach bei jeder Fahrt dabei, auf dem Aufzeichnungsbildschirm während der Fahrt und danach bei der gespeicherten Fahrt. Die Velorki-App auf deiner Apple Watch zeigt die Fahrt am Handgelenk und schickt deinen Puls ans Handy; starten, pausieren und beenden geht von der Uhr aus, und sie misst durch deine Stopps hindurch weiter, oder ruht bei jedem Stopp, wenn du das lieber willst. Auch Apple Health und Health Connect können den Puls liefern, und das alles ist kostenlos, alles optional, und nichts passiert, bevor du eine Quelle einschaltest.",
         "bullets": {
           "one": "Brustgurte, Geschwindigkeits- und Trittfrequenzsensoren und Leistungsmesser über Bluetooth",
           "two": "Die Velorki-App auf deiner Apple Watch: die Fahrt am Handgelenk, ihr Puls ans Handy",
@@ -327,7 +327,7 @@
         },
         "price": {
           "q": "Was kostet Velorki?",
-          "a": "Alles, was auf dem Handy läuft, ist kostenlos: Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Puls, Trittfrequenz und Leistung von deinen Sensoren, Fahrtstatistik, die Wetterkarte, das Wetter entlang der Route aus einer öffentlichen Vorhersage, GPX-, FIT- und TCX-Dateien, die Synchronisierung über deine eigene iCloud oder dein Google Drive sowie die Verbindungen zu Strava und Ride with GPS. Velorki Plus ist ein Abo für die serverseitigen Funktionen; den Monats- und Jahrespreis pro Land, wie App Store und Google Play ihn zeigen, findest du auf der Plus-Seite."
+          "a": "Alles, was auf dem Handy läuft, ist kostenlos: Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufzeichnung, Puls, Trittfrequenz und Leistung von deinen Sensoren, Fahrtstatistik, die Wetterkarte, das Wetter entlang der Route aus einer öffentlichen Vorhersage, GPX-, FIT- und TCX-Dateien, die Synchronisierung über deine eigene iCloud oder dein Google Drive sowie die Verbindungen zu Strava und Ride with GPS. Velorki Plus ist ein Abo für die serverseitigen Funktionen; den Monats- und Jahrespreis pro Land, wie App Store und Google Play ihn zeigen, findest du auf der Plus-Seite."
         },
         "plus": {
           "q": "Was ist Velorki Plus?",
@@ -386,7 +386,7 @@
       }
     },
     "freeTitle": "Was kostenlos bleibt",
-    "freeBody": "Planen, Runden, Offline-Karten und -Routing, Suche, Abbiegenavigation, Aufnahme, Fahrtstatistik, die Wetterkarte, das Wetter entlang der Route aus einer gröberen öffentlichen Vorhersage (Wind, Regen, Temperatur, die beste Abfahrtszeit) mit der nach Steigung, Belag, Wind oder Regen eingefärbten Route, GPX-, FIT- und TCX-Dateien sowie die Verbindungen zu Strava und Ride with GPS bleiben kostenlos, mit oder ohne Plus.",
+    "freeBody": "Planen, Runden, Offline-Karten und -Routing, Suche, Abbiegenavigation, Aufzeichnung, Fahrtstatistik, die Wetterkarte, das Wetter entlang der Route aus einer gröberen öffentlichen Vorhersage (Wind, Regen, Temperatur, die beste Abfahrtszeit) mit der nach Steigung, Belag, Wind oder Regen eingefärbten Route, GPX-, FIT- und TCX-Dateien sowie die Verbindungen zu Strava und Ride with GPS bleiben kostenlos, mit oder ohne Plus.",
     "priceTitle": "Was es kostet",
     "priceBody": "Monatlich oder jährlich, gekauft im App Store oder bei Google Play, mit kostenloser Testphase. Das sind die Preise, die die Stores in jedem Land zeigen:",
     "prices": {
@@ -433,7 +433,7 @@
   "docs": {
     "meta": {
       "title": "Dokumentation",
-      "description": "Das Velorki-Handbuch: Planen, Runden, Offline-Karten und -Suche, Navigation, Aufnahme, Dateien, Teilen und Einstellungen."
+      "description": "Das Velorki-Handbuch: Planen, Runden, Offline-Karten und -Suche, Navigation, Aufzeichnung, Dateien, Teilen und Einstellungen."
     },
     "title": "Dokumentation",
     "lead": "Das Handbuch: wie du planst, fährst, aufzeichnest und deine Fahrten wieder herausbekommst.",

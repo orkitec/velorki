@@ -22,7 +22,7 @@ Ein Suchergebnis, ein [Stopp auf der Karte](./stops-on-the-map) oder ein Ort aus
 - **Nur ein Start**: **Als Ziel** macht ihn zum Ende der Route.
 - **Eine Route**: **Als Stopp einfügen** setzt ihn dort in die Route, wo er unterwegs liegt; **Als Ziel** hängt ihn ans Ende.
 
-Im Tab Aufnahme informiert die Karte nur, ohne Aktionen.
+Im Tab Aufzeichnen informiert die Karte nur, ohne Aktionen.
 
 Darunter:
 

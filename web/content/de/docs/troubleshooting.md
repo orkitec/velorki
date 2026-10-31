@@ -15,7 +15,7 @@ Die Anzeichen sind "Noch keine Position ermittelt.", eine Positions-Schaltfläch
 3. **Sind die Ortungsdienste auf dem Handy aus?** "Die Ortungsdienste sind auf diesem Gerät ausgeschaltet." betrifft das Handy, nicht Velorki. Die Aktion **Einstellungen** öffnet die richtige Stelle.
 4. **Drinnen, oder gerade erst eingeschaltet?** "Noch keine Position ermittelt." heißt oft, dass das Handy überhaupt noch keine Position hat. Geh nach draußen und gib ihm eine halbe Minute.
 
-Velorki braucht nie den Standort im Hintergrund. "Beim Verwenden der App" reicht, auch für die Aufnahme einer Fahrt.
+Velorki braucht nie den Standort im Hintergrund. "Beim Verwenden der App" reicht, auch für die Aufzeichnung einer Fahrt.
 
 ## Es erscheint keine Route
 
@@ -43,7 +43,7 @@ Prüf in dieser Reihenfolge:
 
 1. **Einstellungen → Navigation → Abbiegehinweise** an und **Stimme** an. Stimme ist ausgegraut, solange Abbiegehinweise aus ist.
 2. **Die Stummschalt-Schaltfläche im Abbiegeband.** Sie legt die Stimme nur für den Rest dieser Fahrt still. Tippe sie erneut an.
-3. **Folgst du einer Route?** Die Führung braucht eine unter **Einer Route folgen** im Tab Aufnahme gewählte Route und eine tatsächlich laufende Aufnahme.
+3. **Folgst du einer Route?** Die Führung braucht eine unter **Einer Route folgen** im Tab Aufzeichnen gewählte Route und eine tatsächlich laufende Aufzeichnung.
 4. **Die Lautstärke und der Stummschalter des Handys.**
 
 ### Auf einem iPhone
@@ -82,9 +82,9 @@ Velorki liest GPX, FIT und TCX und entscheidet nach den Bytes, nicht nach dem Da
 
 Wird eine Datei als falsche Art importiert, stell **Speichern als** auf dem Importbildschirm vor dem Speichern zwischen **Route** und **Fahrt** um. FIT-Strecken werden wegen ihrer Zeitstempel als Fahrten geraten.
 
-## Die Aufnahme hat von selbst aufgehört
+## Die Aufzeichnung hat von selbst aufgehört
 
-Antworte unter Android auf **Im Hintergrund weiter aufzeichnen** mit **Einstellungen öffnen**, erlaube Velorki dort uneingeschränkte Akkunutzung und erteile die Berechtigung für Mitteilungen; beides ist es, was das System davon abhält, die Aufnahme zu beenden, während das Handy schläft. Auf beiden Plattformen wird der Track fortlaufend geschrieben, wurde die App also beendet, bekommst du beim nächsten Start **Nicht beendete Fahrt** mit **Fortsetzen**, **Beenden** und **Verwerfen**. Siehe [Fahrt aufzeichnen](./recording-a-ride).
+Antworte unter Android auf **Im Hintergrund weiter aufzeichnen** mit **Einstellungen öffnen**, erlaube Velorki dort uneingeschränkte Akkunutzung und erteile die Berechtigung für Mitteilungen; beides ist es, was das System davon abhält, die Aufzeichnung zu beenden, während das Handy schläft. Auf beiden Plattformen wird der Track fortlaufend geschrieben, wurde die App also beendet, bekommst du beim nächsten Start **Nicht beendete Fahrt** mit **Fortsetzen**, **Beenden** und **Verwerfen**. Siehe [Fahrt aufzeichnen](./recording-a-ride).
 
 ## Ein Bluetooth-Sensor wird nicht gefunden
 
@@ -94,7 +94,7 @@ Antworte unter Android auf **Im Hintergrund weiter aufzeichnen** mit **Einstellu
 4. **Gib den Sensor frei.** Diese Sensoren bedienen jeweils ein Gerät, ein Radcomputer oder eine andere App, die deinen hält, macht ihn für Velorki unsichtbar.
 5. **Scanne noch einmal.** Ein Scan läuft etwa fünfzehn Sekunden und listet nur Geräte, die die Standardprofile für Puls, Geschwindigkeit und Trittfrequenz oder Leistung sprechen.
 
-Ein gekoppelter Sensor, der **Nicht verbunden** zeigt, ist außer Reichweite, schläft oder ist leer. Velorki versucht es weiter, solange eine Aufnahme läuft oder der Bildschirm **Bluetooth-Sensoren** offen ist. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
+Ein gekoppelter Sensor, der **Nicht verbunden** zeigt, ist außer Reichweite, schläft oder ist leer. Velorki versucht es weiter, solange eine Aufzeichnung läuft oder der Bildschirm **Bluetooth-Sensoren** offen ist. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
 
 ## Die Uhr verbindet sich nicht
 

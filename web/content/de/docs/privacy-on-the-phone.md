@@ -47,7 +47,7 @@ Einen kurzen Kartenlink, den du in Velorki teilst (`maps.app.goo.gl`, `maps.appl
 
 ### Während du aufzeichnest
 
-Gar nichts verlässt das Handy. Aufnahme, Statistik, Diagramme und Splits werden alle auf dem Gerät berechnet. Dasselbe gilt für Puls, Trittfrequenz und Leistung von einer Uhr, einem Bluetooth-Sensor oder deiner Health-App: Sie werden mit der Fahrt gespeichert und, wenn du Health eingeschaltet hast, auf dem Handy selbst mit Apple Health oder Health Connect ausgetauscht.
+Gar nichts verlässt das Handy. Aufzeichnung, Statistik, Diagramme und Splits werden alle auf dem Gerät berechnet. Dasselbe gilt für Puls, Trittfrequenz und Leistung von einer Uhr, einem Bluetooth-Sensor oder deiner Health-App: Sie werden mit der Fahrt gespeichert und, wenn du Health eingeschaltet hast, auf dem Handy selbst mit Apple Health oder Health Connect ausgetauscht.
 
 ### Wenn du den Assistenten fragst
 
