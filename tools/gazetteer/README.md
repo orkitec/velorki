@@ -531,6 +531,11 @@ runs exactly that on every push — it fetches the extract from Geofabrik as
 assert on) — then `check.py` and `sha256sum -c fixtures.sha256` over the
 committed fixtures. `.github/workflows/gazetteer-perf.yml` times the app's
 search against New York nightly; see `app/test/perf/gazetteer_perf_test.dart`.
+`.github/workflows/gazetteer-sample.yml` builds seven real extracts (Greek,
+Ukrainian and Serbian Cyrillic, Sinhala and Tamil, Japanese, Hebrew and Arabic,
+and the Düsseldorf Regierungsbezirk for volume) and runs `check.py` on every
+tile, weekly and on every push to main touching `tools/gazetteer/`, so a
+failure only real data provokes shows before the publish on the 1st.
 
 ## Mirror integration
 

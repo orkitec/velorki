@@ -184,7 +184,10 @@ changing structure.
   `locales.yml` (by hand: the widget suite once per language found in
   `app/lib/l10n/app_*.arb`; `app.yml` itself runs English and German),
   `gazetteer-perf.yml` (nightly, times the search against New York off the
-  mirror), `routing-scenarios.yml` (nightly, the routing scenarios over the
+  mirror), `gazetteer-sample.yml` (weekly and on pushes to main touching
+  `tools/gazetteer/`: builds seven real Geofabrik extracts, one per hard
+  script or volume case, and runs `check.py` on every tile, ahead of the
+  publish on the 1st), `routing-scenarios.yml` (nightly, the routing scenarios over the
   New York tile, cached per mirror snapshot), `brouter-oracle.yml` (weekly), `store-assets.yml` (by hand: the App Store screenshots (iPhone, iPad and the iPhone Duo's inner display, unfolded by `app/tool/duo_state.c`), slides and preview as an artifact, and from a `v*` tag, after approval in `release`, the screenshots onto an App Store version; the Google Play set from an Android emulator as an artifact, and with `upload`, after approval in `release`, onto the Play store listing), `web.yml` (every push touching
   `web/`: lint, typecheck, vitest, `check:deps`, the locale check,
   `npm audit --omit=dev` and `next build`). No rd5 comes off brouter.de; the oracle job
