@@ -89,7 +89,7 @@ jobs:
             translations=false
           fi
           echo "translations=$translations" >> "$GITHUB_OUTPUT"
-      - uses: crowdin/github-action@9c23991700c0ec5256fd41089b9d9d7d540e424e # v3.3.0
+      - uses: crowdin/github-action@959dc74ac104447731cba99a016f85d0ae719788 # v3.5.0
         with:
           upload_sources: true
           upload_translations: ${{ steps.mode.outputs.translations }}
@@ -121,7 +121,7 @@ jobs:
       # the translated ARB files lose the "@key" metadata Crowdin copies into
       # them from app_en.arb (it has no setting against it, and gen-l10n
       # reads metadata from the English template only).
-      - uses: crowdin/github-action@9c23991700c0ec5256fd41089b9d9d7d540e424e # v3.3.0
+      - uses: crowdin/github-action@959dc74ac104447731cba99a016f85d0ae719788 # v3.5.0
         with:
           upload_sources: false
           download_translations: true
