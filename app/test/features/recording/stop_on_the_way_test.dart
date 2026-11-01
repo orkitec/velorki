@@ -12,6 +12,8 @@ import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/search/presentation/place_card.dart';
+import 'package:velorki_brouter/velorki_brouter.dart'
+    show RoutingErrorKind, RoutingException;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
@@ -32,21 +34,22 @@ const _cafe = SearchResult(
   detail: 'cafe',
 );
 
-RecordingSnapshot _riding() => RecordingSnapshot(
-  rideId: 'ride-1',
-  status: RecordingStatus.active,
-  startedAt: DateTime.utc(2026, 9, 12, 10),
-  distanceM: 500,
-  elapsed: const Duration(minutes: 2),
-  moving: const Duration(minutes: 2),
-  speedMps: 5,
-  avgSpeedMps: 5,
-  ascentM: 0,
-  descentM: 0,
-  lastPosition: const LatLng(48.005, 11.005),
-  accuracyM: 4,
-  pointCount: 20,
-);
+RecordingSnapshot _riding({LatLng at = const LatLng(48.005, 11.005)}) =>
+    RecordingSnapshot(
+      rideId: 'ride-1',
+      status: RecordingStatus.active,
+      startedAt: DateTime.utc(2026, 9, 12, 10),
+      distanceM: 500,
+      elapsed: const Duration(minutes: 2),
+      moving: const Duration(minutes: 2),
+      speedMps: 5,
+      avgSpeedMps: 5,
+      ascentM: 0,
+      descentM: 0,
+      lastPosition: at,
+      accuracyM: 4,
+      pointCount: 20,
+    );
 
 /// The Record tab with the café among the stops on the map.
 Future<RecordingHarness> _pump(WidgetTester tester) => pumpRecordingScreen(
@@ -112,6 +115,41 @@ Future<void> _addCafe(
   await tester.pumpAndSettle();
   expect(find.text(l10n.recordingAddStopTitle), findsNothing);
 }
+
+/// Opens the café's card and confirms adding it, without waiting for the
+/// route.
+Future<void> _confirmCafe(WidgetTester tester, RecordingHarness h) async {
+  await _tapCafe(tester, h);
+  await tester.tap(_addStop);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(l10n.recordingAddStopConfirm));
+  await tester.pump();
+}
+
+/// Every guided route [container] goes through from now on, `null`s too.
+List<GuidedRoute?> _watchGuided(ProviderContainer container) {
+  final seen = <GuidedRoute?>[];
+  final sub = container.listen(
+    guidedRouteProvider,
+    (previous, next) => seen.add(next),
+  );
+  addTearDown(sub.close);
+  return seen;
+}
+
+/// The keys of [routes], each run of the same key once.
+List<String?> _keys(List<GuidedRoute?> routes) => [
+  for (final (i, r) in routes.indexed)
+    if (i == 0 || routes[i - 1]?.key != r?.key) r?.key,
+];
+
+const _noRoute = RoutingException(
+  kind: RoutingErrorKind.noRoute,
+  message: 'no way there',
+);
+
+/// The ride far along the route, past the café.
+RecordingSnapshot _farAlong() => _riding(at: const LatLng(48.035, 11.035));
 
 void main() {
   testWidgets('the card offers to add the stop only while a ride is recorded '
@@ -253,6 +291,165 @@ void main() {
     final stored = await tester.runAsync(() => repository.routeById(saved.id));
     expect(stored!.waypoints.map((w) => w.pos), [_start, _end]);
     expect(stored.updatedAt, saved.updatedAt);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('while the new route is routed, guidance carries on along the '
+      'route as it was, and moves to the new one once, when it is there', (
+    tester,
+  ) async {
+    final h = await _pump(tester);
+    await _plan(tester);
+    await emitSnapshot(tester, h, _riding());
+    await tester.pumpAndSettle();
+    final container = _container(tester);
+    final old = container.read(guidedRouteProvider)!;
+    final seen = _watchGuided(container);
+    final progress = <Object?>[];
+    final sub = container.listen(
+      navigationControllerProvider,
+      (previous, next) => progress.add(next),
+    );
+    addTearDown(sub.close);
+    h.planner.backend.delay = const Duration(seconds: 2);
+
+    await _confirmCafe(tester, h);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(seconds: 1));
+    // Routing still: the plan has the stop, the guidance the old route.
+    expect(container.read(plannerControllerProvider).route.isLoading, isTrue);
+    expect(container.read(guidedRouteProvider)?.key, old.key);
+    expect(container.read(activeGuidedRouteProvider)?.key, old.key);
+    expect(container.read(navigationControllerProvider), isNotNull);
+
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    final now = container.read(guidedRouteProvider)!;
+    expect(now.key, isNot(old.key));
+    expect(now.waypoints, [_start, _cafe.position, _end]);
+    expect(seen, isNot(contains(null)));
+    expect(_keys([old, ...seen]), [old.key, now.key]);
+    expect(progress, isNot(contains(null)));
+    expect(container.read(navigationControllerProvider), isNotNull);
+    expect(container.read(heldGuidedRouteProvider), isNull);
+    expect(find.text(l10n.recordingAddStopFailed), findsNothing);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('if the new route cannot be routed, the stop comes out again, '
+      'guidance stays on the route as it was, and the rider is told', (
+    tester,
+  ) async {
+    final h = await _pump(tester);
+    await _plan(tester);
+    await emitSnapshot(tester, h, _riding());
+    await tester.pumpAndSettle();
+    final container = _container(tester);
+    final old = container.read(guidedRouteProvider)!;
+    final seen = _watchGuided(container);
+    h.planner.backend.error = _noRoute;
+
+    await _addCafe(tester, h, confirm: true);
+
+    final plan = container.read(plannerControllerProvider);
+    expect(plan.waypoints.map((w) => w.pos), [_start, _end]);
+    expect(plan.result!.positions, old.line);
+    expect(container.read(guidedRouteProvider)?.key, old.key);
+    expect(seen, isNot(contains(null)));
+    expect(_keys([old, ...seen]), [old.key]);
+    expect(container.read(navigationControllerProvider), isNotNull);
+    expect(
+      container.read(recordingControllerProvider).follow,
+      FollowChoice.plan,
+    );
+    expect(find.text(l10n.recordingAddStopFailed), findsOneWidget);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a stop beside the part already ridden is not put behind the '
+      'rider: the route goes to it from where they are', (tester) async {
+    final h = await _pump(tester);
+    await _plan(tester);
+    await emitSnapshot(tester, h, _riding());
+    await tester.pumpAndSettle();
+    final container = _container(tester);
+
+    // The card opened near the café; the rider rides on past it before
+    // saying yes.
+    await _tapCafe(tester, h);
+    await tester.tap(_addStop);
+    await tester.pumpAndSettle();
+    await emitSnapshot(tester, h, _farAlong());
+    await tester.pump();
+    expect(
+      container.read(navigationControllerProvider.notifier).riddenAlongM,
+      greaterThan(4000),
+    );
+    await tester.tap(find.text(l10n.recordingAddStopConfirm));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    final waypoints = container
+        .read(plannerControllerProvider)
+        .waypoints
+        .map((w) => w.pos)
+        .toList();
+    expect(waypoints, hasLength(4));
+    expect(waypoints.first, _start);
+    expect(waypoints[2], _cafe.position);
+    expect(waypoints.last, _end);
+    // The point before the café is where the rider is, not the start.
+    expect(
+      haversineMeters(waypoints[1], _farAlong().lastPosition!),
+      lessThan(20),
+    );
+    expect(find.text(l10n.recordingAddStopFailed), findsNothing);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('following a saved route that cannot be routed with the stop, '
+      'the ride follows the saved route again', (tester) async {
+    final h = await _pump(tester);
+    final container = _container(tester);
+    final repository = container.read(routeRepositoryProvider);
+    final saved = await tester.runAsync(
+      () => repository.savePlannedRoute(
+        name: 'Isar loop',
+        route: syntheticRoute(),
+        waypoints: const [
+          Waypoint(pos: _start, kind: WaypointKind.start),
+          Waypoint(pos: _end, kind: WaypointKind.end),
+        ],
+        options: const RoutingOptions(),
+      ),
+    );
+    container
+        .read(recordingControllerProvider.notifier)
+        .choose(FollowSaved(saved!.id));
+    await settleAsync(tester);
+    await tester.pumpAndSettle();
+    await emitSnapshot(tester, h, _riding());
+    await tester.pumpAndSettle();
+    final seen = _watchGuided(container);
+    h.planner.backend.error = _noRoute;
+
+    await _addCafe(tester, h, confirm: true, savedRoute: true);
+    await settleAsync(tester);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    final recording = container.read(recordingControllerProvider);
+    expect(recording.follow, FollowSaved(saved.id));
+    expect(recording.isRecording, isTrue);
+    expect(container.read(guidedRouteProvider)?.key, 'saved:${saved.id}');
+    expect(seen, isNot(contains(null)));
+    expect(_keys(seen), everyElement('saved:${saved.id}'));
+    expect(container.read(navigationControllerProvider), isNotNull);
+    expect(find.text(l10n.recordingAddStopFailed), findsOneWidget);
 
     await unmountApp(tester);
   });

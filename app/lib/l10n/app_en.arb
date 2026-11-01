@@ -804,9 +804,41 @@
   "@searchKindBikeShop": {
     "description": "Second line of an offline search result that is a bicycle shop"
   },
+  "searchKindTubeVending": "Tube vending machine",
+  "@searchKindTubeVending": {
+    "description": "Second line of an offline search result that is a vending machine selling bicycle inner tubes; also its chip in the map Layers sheet"
+  },
+  "searchKindWordsTubeVending": "inner tube, bike tube",
+  "@searchKindWordsTubeVending": {
+    "description": "Not shown. Comma-separated words a rider types to find the nearest inner-tube vending machines, besides the label \"Tube vending machine\" (e.g. German \"Schlauch, Fahrradschlauch\")"
+  },
   "searchKindStation": "Station",
   "@searchKindStation": {
     "description": "Second line of an offline search result that is a train station"
+  },
+  "searchKindBusStop": "Bus stop",
+  "@searchKindBusStop": {
+    "description": "Second line of an offline search result that is a bus stop; also its chip in the map Layers sheet"
+  },
+  "searchKindTramStop": "Tram stop",
+  "@searchKindTramStop": {
+    "description": "Second line of an offline search result that is a tram stop; also its chip in the map Layers sheet"
+  },
+  "searchKindWordsStation": "train",
+  "@searchKindWordsStation": {
+    "description": "Not shown. Comma-separated words a rider types to find the nearest train stations, besides the label \"Station\" (e.g. German \"Zug, Bahn\"). Whole words, lower or upper case alike"
+  },
+  "searchKindWordsBusStop": "bus",
+  "@searchKindWordsBusStop": {
+    "description": "Not shown. Comma-separated words a rider types to find the nearest bus stops, besides the label \"Bus stop\" (e.g. German \"Bus, Haltestelle\"). A word may also be in the tram list"
+  },
+  "searchKindWordsTramStop": "tram, streetcar",
+  "@searchKindWordsTramStop": {
+    "description": "Not shown. Comma-separated words a rider types to find the nearest tram stops, besides the label \"Tram stop\" (e.g. German \"Tram, Straßenbahn, Haltestelle\"). A word may also be in the bus list"
+  },
+  "searchKindWordsFerry": "ferry",
+  "@searchKindWordsFerry": {
+    "description": "Not shown. Comma-separated words a rider types to find the nearest ferry terminals, besides the label \"Ferry terminal\" (e.g. German \"Fähre\")"
   },
   "searchKindViewpoint": "Viewpoint",
   "@searchKindViewpoint": {
@@ -1506,6 +1538,10 @@
   "recordingAddStopConfirm": "Add and recalculate",
   "@recordingAddStopConfirm": {
     "description": "Button of that dialog that adds the stop and recalculates the route"
+  },
+  "recordingAddStopFailed": "The stop could not be added to the route. Navigation carries on along the route as it was.",
+  "@recordingAddStopFailed": {
+    "description": "Brief message on the Record tab when a stop added mid-ride could not be routed: the stop is not added and navigation keeps following the route as it was"
   },
   "recordingRecoveryTitle": "Unfinished ride",
   "@recordingRecoveryTitle": {

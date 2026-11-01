@@ -11,6 +11,8 @@ import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/domain/planner_state.dart';
+import 'package:velorki/features/planner/domain/route_waypoints.dart'
+    show projectOnTrack;
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
@@ -1595,6 +1597,221 @@ void main() {
       expect(route.turns, turns);
       // The indices still point into the geometry that came back.
       expect(route.turns.last.pointIndex, lessThan(route.geometry.length));
+    });
+  });
+
+  group('a stop taken in mid-ride goes ahead of the rider', () {
+    // A file's line due north, a point every 55 m, 11 km long.
+    final track = <TrackPoint>[
+      for (var i = 0; i < 200; i++) TrackPoint(LatLng(48 + i * 0.0005, 11)),
+    ];
+    final positions = [for (final p in track) p.pos];
+    final along = cumulativeDistancesMeters(positions);
+
+    /// Beside the line, 75 m east of its point [i].
+    LatLng beside(int i) => LatLng(48 + i * 0.0005, 11.001);
+
+    ProviderContainer imported(FakeRoutingBackend backend) {
+      final container = _container(backend);
+      container
+          .read(plannerControllerProvider.notifier)
+          .loadSavedRoute(
+            SavedRoute(
+              id: 'gpx',
+              name: 'File',
+              source: RouteSource.importedGpx,
+              profile: RouteProfile.trekking,
+              createdAt: DateTime.utc(2026, 9, 12),
+              updatedAt: DateTime.utc(2026, 9, 12),
+              distanceM: along.last,
+              ascentM: 0,
+              descentM: 0,
+              bounds: BoundingBox.fromPoints(positions),
+              geometryBlob: PackedTrack.encode(track),
+              waypoints: [
+                Waypoint(pos: track.first.pos, kind: WaypointKind.start),
+                Waypoint(pos: track.last.pos, kind: WaypointKind.end),
+              ],
+              options: const RoutingOptions(),
+            ),
+          );
+      expect(container.read(plannerControllerProvider).legs.single!.kept, true);
+      return container;
+    }
+
+    testWidgets('on a file\'s line, a stop ahead re-routes only a window '
+        'around it, and the rest of the line stays the file\'s', (
+      tester,
+    ) async {
+      final backend = LineRoutingBackend();
+      final container = imported(backend);
+      final planner = container.read(plannerControllerProvider.notifier);
+
+      expect(
+        planner.insertStop(beside(150), aheadOfM: 2000, name: 'Café'),
+        isTrue,
+      );
+      var state = container.read(plannerControllerProvider);
+      expect(state.waypoints.map((w) => w.name), [
+        null,
+        null,
+        'Café',
+        null,
+        null,
+      ]);
+      final legs = state.planLegs;
+      expect(legs.map((l) => l?.kept), [true, null, null, true]);
+      // The kept pieces are the file's line up to the window and from it.
+      final a = positions.indexOf(state.waypoints[1].pos);
+      final b = positions.indexOf(state.waypoints[3].pos);
+      expect(along[a], closeTo(along[150] - keptWindowM, 60));
+      expect(along[b], closeTo(along[150] + keptWindowM, 60));
+      expect(legs.first!.geometry, track.sublist(0, a + 1));
+      expect(legs.last!.geometry, track.sublist(b));
+
+      await tester.pump(const Duration(milliseconds: 400));
+      state = container.read(plannerControllerProvider);
+      expect(backend.callCount, 2, reason: 'the window, either side');
+      final line = state.result!.positions;
+      expect(line.take(a + 1), positions.take(a + 1));
+      expect(line.skip(line.length - (200 - b)), positions.skip(b));
+    });
+
+    testWidgets('on a file\'s line, a stop beside the part ridden is the next '
+        'point, from where the rider is; nothing behind them changes', (
+      tester,
+    ) async {
+      final backend = LineRoutingBackend();
+      final container = imported(backend);
+      final planner = container.read(plannerControllerProvider.notifier);
+
+      expect(
+        planner.insertStop(beside(20), aheadOfM: 5000, name: 'Café'),
+        isTrue,
+      );
+      final state = container.read(plannerControllerProvider);
+      expect(state.waypoints, hasLength(5));
+      expect(state.waypoints[2].name, 'Café');
+      final rider = state.waypoints[1].pos;
+      // Cut exactly where the rider is, the line ridden kept as it was.
+      expect(projectOnTrack(positions, rider).alongM, closeTo(5000, 1));
+      expect(projectOnTrack(positions, rider).distanceM, lessThan(1));
+      final kept = state.planLegs.first!;
+      expect(kept.kept, isTrue);
+      expect(
+        kept.geometry.take(kept.geometry.length - 1),
+        track.where((p) => along[positions.indexOf(p.pos)] < 5000),
+      );
+      // On from the stop to a point a window ahead of the rider, then the
+      // file's line again.
+      expect(
+        projectOnTrack(positions, state.waypoints[3].pos).alongM,
+        closeTo(5000 + keptWindowM, 60),
+      );
+      expect(state.planLegs.map((l) => l?.kept), [true, null, null, true]);
+
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(backend.queries.first.points, [rider, beside(20)]);
+    });
+
+    group('on a planned route', () {
+      const a = LatLng(48.0, 11.0);
+      const b = LatLng(48.05, 11.0);
+      const c = LatLng(48.1, 11.0);
+
+      Future<ProviderContainer> planned(
+        WidgetTester tester,
+        FakeRoutingBackend backend,
+      ) async {
+        final container = _container(backend);
+        final planner = container.read(plannerControllerProvider.notifier);
+        planner.addWaypoint(a);
+        planner.addWaypoint(b);
+        planner.addWaypoint(c);
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(container.read(plannerControllerProvider).result, isNotNull);
+        return container;
+      }
+
+      testWidgets('a stop ahead goes into the leg ahead it lies beside', (
+        tester,
+      ) async {
+        final backend = LineRoutingBackend();
+        final container = await planned(tester, backend);
+        final before = container.read(plannerControllerProvider).planLegs;
+        const stop = LatLng(48.08, 11.001);
+
+        container
+            .read(plannerControllerProvider.notifier)
+            .insertStop(stop, aheadOfM: 2000);
+        final state = container.read(plannerControllerProvider);
+        expect(state.waypoints.map((w) => w.pos), [a, b, stop, c]);
+        expect(state.planLegs.first, same(before.first));
+        await tester.pump(const Duration(milliseconds: 400));
+      });
+
+      testWidgets('a stop ahead on the leg the rider is on goes in after '
+          'the rider, as on the Plan tab', (tester) async {
+        final container = await planned(tester, LineRoutingBackend());
+        const stop = LatLng(48.03, 11.001);
+
+        container
+            .read(plannerControllerProvider.notifier)
+            .insertStop(stop, aheadOfM: 2000);
+        expect(
+          container.read(plannerControllerProvider).waypoints.map((w) => w.pos),
+          [a, stop, b, c],
+        );
+        await tester.pump(const Duration(milliseconds: 400));
+      });
+
+      testWidgets('a stop beside a leg already ridden is not put behind the '
+          'rider: it is next, from where they are', (tester) async {
+        final backend = LineRoutingBackend();
+        final container = await planned(tester, backend);
+        final before = container.read(plannerControllerProvider).planLegs;
+        const stop = LatLng(48.01, 11.001);
+        final line = container
+            .read(plannerControllerProvider)
+            .result!
+            .positions;
+
+        container
+            .read(plannerControllerProvider.notifier)
+            .insertStop(stop, aheadOfM: 8000);
+        final state = container.read(plannerControllerProvider);
+        expect(state.waypoints, hasLength(5));
+        expect(state.waypoints.map((w) => w.pos).take(2), [a, b]);
+        expect(state.waypoints[3].pos, stop);
+        expect(state.waypoints.last.pos, c);
+        // The point it is ridden to from is where the rider is.
+        final from = projectOnTrack(line, state.waypoints[2].pos);
+        expect(from.alongM, closeTo(8000, 1));
+        expect(from.distanceM, lessThan(1));
+        // The leg ridden before is as it was; the one being ridden kept up
+        // to the rider; from there on to the stop and on to the end.
+        expect(state.planLegs[0], same(before[0]));
+        expect(state.planLegs.map((l) => l?.kept), [false, true, null, null]);
+
+        final queries = backend.callCount;
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(backend.callCount, queries + 2);
+        expect(backend.queries[queries].points, [state.waypoints[2].pos, stop]);
+      });
+
+      testWidgets('without a rider, a stop goes where the route passes it', (
+        tester,
+      ) async {
+        final container = await planned(tester, LineRoutingBackend());
+        const stop = LatLng(48.01, 11.001);
+
+        container.read(plannerControllerProvider.notifier).insertStop(stop);
+        expect(
+          container.read(plannerControllerProvider).waypoints.map((w) => w.pos),
+          [a, stop, b, c],
+        );
+        await tester.pump(const Duration(milliseconds: 400));
+      });
     });
   });
 }

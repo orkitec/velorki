@@ -167,6 +167,10 @@ GuidedRoute? guidedRoute(Ref ref) {
       pois: route.pois,
     );
   }
+  // A stop being taken into the route mid-ride: the rider is guided along
+  // the route as it was until the new one is there.
+  final held = ref.watch(heldGuidedRouteProvider);
+  if (held != null) return held;
   final result = ref.watch(plannerControllerProvider.select((s) => s.result));
   final planned = ref.watch(
     plannerControllerProvider.select((s) => s.waypoints),
@@ -183,6 +187,26 @@ GuidedRoute? guidedRoute(Ref ref) {
     waypoints: planned.map((w) => w.pos).toList(growable: false),
     options: options,
   );
+}
+
+/// The route a ride following the plan keeps being guided along while the
+/// plan is being changed under it, or `null` when [guidedRoute] follows the
+/// plan as it stands.
+///
+/// Set by the mid-ride "add as a stop" for as long as the planner is
+/// routing the new plan, so guidance, the voice and the line on the map carry
+/// on along the route as it was rather than pausing for the recalculation;
+/// the navigator starts over once, on the new route, when this is released.
+@Riverpod(keepAlive: true)
+class HeldGuidedRoute extends _$HeldGuidedRoute {
+  @override
+  GuidedRoute? build() => null;
+
+  /// Keeps [route] in the navigator's hands until [release].
+  void hold(GuidedRoute? route) => state = route;
+
+  /// Hands guidance back to the plan as it stands.
+  void release() => state = null;
 }
 
 /// The way back onto the route the controller worked out after the rider left
@@ -404,6 +428,15 @@ class NavigationController extends _$NavigationController {
   }
 
   void _refresh() => state = _compute();
+
+  /// How far along the route the rider chose they have ridden, in metres:
+  /// where they were last matched to it. `null` while nothing is being
+  /// guided, or while the ride follows a route re-planned to its destination
+  /// rather than the one chosen.
+  double? get riddenAlongM {
+    if (_planKey == null || _machineKey != _planKey) return null;
+    return _planAlongM;
+  }
 
   /// Works out the progress for whatever the recorder, the settings and the
   /// route say right now.

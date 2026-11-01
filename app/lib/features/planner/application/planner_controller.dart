@@ -59,6 +59,12 @@ const double keptWindowM = 1000;
 /// stretch routed again, in metres; a shorter one is routed with it.
 const double keptWindowMinPieceM = 200;
 
+/// How much further from a stop the route still ahead of a rider may pass it
+/// than the part already ridden does, in metres, for the stop to go into
+/// the part ahead where it passes; further than that, and the stop is the
+/// next point ahead, ridden to from where the rider is.
+const double stopAheadSlackM = 1000;
+
 /// Whether a stop can be put on the route of [plan], or a stretch of it kept
 /// off: there is a route on the map. One the plan cannot route leg by leg
 /// (a round trip that came with its start alone) is anchored to its own
@@ -231,10 +237,19 @@ class PlannerController extends _$PlannerController {
   /// whole leg anew would lose the course, and a round trip's one leg runs
   /// from its start back to it.
   ///
+  /// With [aheadOfM], how far along the route a rider has ridden, the stop
+  /// goes into the route still ahead of them: into the leg ahead it lies
+  /// beside, after the rider when that is the leg they are on. A stop beside
+  /// the part already ridden, and not near the part ahead (see
+  /// [stopAheadSlackM]), is the next point ahead instead, ridden to from
+  /// where the rider is: the leg they are on is cut there, the part ridden
+  /// kept as it is.
+  ///
   /// `false` when there is no route to put it on, and nothing changed.
   bool insertStop(
     LatLng pos, {
     double? alongM,
+    double? aheadOfM,
     String? name,
     PoiKind poiKind = PoiKind.generic,
   }) {
@@ -253,18 +268,91 @@ class PlannerController extends _$PlannerController {
       }
       on = TrackProjection(on.distanceM, along, track[i]);
     }
+    final rider = aheadOfM?.clamp(0, cumulative.last).toDouble();
+    var behind = false;
+    if (rider != null && on.alongM < rider) {
+      final ahead = _projectFrom(track, cumulative, pos, rider);
+      behind = ahead.distanceM > on.distanceM + stopAheadSlackM;
+      on = behind
+          ? TrackProjection(
+              on.distanceM,
+              rider,
+              _pointAt(track, cumulative, rider),
+            )
+          : ahead;
+    }
     final waypoints = [...state.waypoints];
     final legs = [...state.planLegs];
     var leg = _legAlong(route, track, cumulative, on) - 1;
-    final kept = legs[leg];
-    if (kept != null && kept.kept && route is PlannedRoute) {
-      final inLeg = on.alongM - cumulative[route.legStarts[leg]];
-      leg = _openWindow(waypoints, legs, leg, inLeg, inLeg);
+    final line = legs[leg];
+    if (line != null &&
+        (line.kept || behind) &&
+        route is PlannedRoute &&
+        leg < route.legStarts.length) {
+      final start = cumulative[route.legStarts[leg]];
+      final inLeg = on.alongM - start;
+      // Where the rider is on this leg, when it is the one they are on.
+      final riderIn = rider != null && rider > start ? rider - start : null;
+      if (line.kept) {
+        leg = _openWindow(
+          waypoints,
+          legs,
+          leg,
+          inLeg,
+          inLeg,
+          notBeforeM: riderIn,
+        );
+      } else if (behind && riderIn != null) {
+        leg = _openWindow(
+          waypoints,
+          legs,
+          leg,
+          riderIn,
+          double.infinity,
+          notBeforeM: riderIn,
+        );
+      }
     }
     waypoints.insert(leg + 1, Waypoint(pos: pos, name: name, poiKind: poiKind));
     legs.replaceRange(leg, leg + 1, [null, null]);
     _setWaypoints(waypoints, legs);
     return true;
+  }
+
+  /// Where [pos] is nearest to the part of [track] from [fromM] metres
+  /// along it on, measured from the start of the whole track.
+  static TrackProjection _projectFrom(
+    List<LatLng> track,
+    List<double> cumulative,
+    LatLng pos,
+    double fromM,
+  ) {
+    var k = 1;
+    while (k < track.length - 1 && cumulative[k] <= fromM) {
+      k++;
+    }
+    final rest = [_pointAt(track, cumulative, fromM), ...track.skip(k)];
+    final on = projectOnTrack(rest, pos);
+    return TrackProjection(on.distanceM, fromM + on.alongM, on.snapped);
+  }
+
+  /// The point [alongM] metres along [track].
+  static LatLng _pointAt(
+    List<LatLng> track,
+    List<double> cumulative,
+    double alongM,
+  ) {
+    var k = 1;
+    while (k < track.length - 1 && cumulative[k] < alongM) {
+      k++;
+    }
+    final a = track[k - 1];
+    final b = track[k];
+    final span = cumulative[k] - cumulative[k - 1];
+    final t = span <= 0
+        ? 0.0
+        : ((alongM - cumulative[k - 1]) / span).clamp(0.0, 1.0);
+    return LatLng(a.lat + t * (b.lat - a.lat), a.lon + t * (b.lon - a.lon));
   }
 
   /// Turns a route the plan cannot route leg by leg into one it can,
@@ -300,20 +388,58 @@ class PlannerController extends _$PlannerController {
   /// stretch starts and one where it ends, unless it reaches the leg's end
   /// anyway, and the rest of the line stays as it is. Answers the index of
   /// the leg left to route, which the caller marks so.
+  ///
+  /// The stretch starts no earlier than [notBeforeM] along the leg, where a
+  /// rider is: the part they have ridden is not routed again. Starting
+  /// there, it starts exactly there, not at the next point of the line.
   int _openWindow(
     List<Waypoint> waypoints,
     List<RouteLeg?> legs,
     int leg,
     double fromM,
-    double toM,
-  ) {
+    double toM, {
+    double? notBeforeM,
+  }) {
     final line = legs[leg]!;
-    final geometry = line.geometry;
-    final along = cumulativeDistancesMeters([for (final p in geometry) p.pos]);
+    var geometry = line.geometry;
+    var turns = line.result.turns;
+    var along = cumulativeDistancesMeters([for (final p in geometry) p.pos]);
+    final from = notBeforeM == null
+        ? fromM - keptWindowM
+        : math.max(fromM - keptWindowM, notBeforeM);
+    int? cut;
+    if (from == notBeforeM && from > keptWindowMinPieceM && from < along.last) {
+      var k = 1;
+      while (k < geometry.length - 1 && along[k] < from) {
+        k++;
+      }
+      if (along[k] > from) {
+        final a = geometry[k - 1];
+        final b = geometry[k];
+        final t = (from - along[k - 1]) / (along[k] - along[k - 1]);
+        final ele = a.ele == null || b.ele == null
+            ? null
+            : a.ele! + t * (b.ele! - a.ele!);
+        geometry = [...geometry]
+          ..insert(
+            k,
+            TrackPoint(
+              LatLng(
+                a.pos.lat + t * (b.pos.lat - a.pos.lat),
+                a.pos.lon + t * (b.pos.lon - a.pos.lon),
+              ),
+              ele: ele,
+            ),
+          );
+        turns = [for (final h in turns) h.pointIndex >= k ? h.shifted(1) : h];
+        along = cumulativeDistancesMeters([for (final p in geometry) p.pos]);
+      }
+      cut = k;
+    }
     final last = geometry.length - 1;
-    var a = 0;
-    if (fromM - keptWindowM > keptWindowMinPieceM) {
-      while (a < last && along[a] < fromM - keptWindowM) {
+    var a = cut ?? 0;
+    if (cut == null && from > keptWindowMinPieceM) {
+      while (a < last && along[a] < from) {
         a++;
       }
     }
@@ -325,7 +451,7 @@ class PlannerController extends _$PlannerController {
     }
     if (b <= a) return leg;
     final starts = <int>[0, if (a > 0) a, if (b < last) b];
-    final pieces = keptLegs(geometry, starts, turns: line.result.turns);
+    final pieces = keptLegs(geometry, starts, turns: turns);
     final window = a > 0 ? 1 : 0;
     legs.replaceRange(leg, leg + 1, [
       for (var i = 0; i < pieces.length; i++) i == window ? null : pieces[i],
