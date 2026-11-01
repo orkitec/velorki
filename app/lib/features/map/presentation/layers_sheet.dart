@@ -29,22 +29,33 @@ import 'rain_radar_dialog.dart';
 import 'weather_time_row.dart'
     show weatherClockTime, weatherRainAt, weatherRainLabel;
 
-/// The groups whose kinds the sheet offers as stops, in this order.
-const List<SearchGroup> stopGroups = <SearchGroup>[
-  SearchGroup.cyclingStops,
-  SearchGroup.overnight,
-  SearchGroup.landmarks,
-];
+/// The groups whose kinds the sheet offers as stops, in this order, each
+/// with the kinds of it that are stops, or `null` when all of them are: a
+/// pharmacy is a stop, a university is not.
+const Map<SearchGroup, Set<String>?> stopGroups = <SearchGroup, Set<String>?>{
+  SearchGroup.cyclingStops: null,
+  SearchGroup.overnight: null,
+  SearchGroup.nature: <String>{'picnic_site', 'viewpoint', 'beach'},
+  SearchGroup.transport: null,
+  SearchGroup.services: <String>{'pharmacy', 'hospital'},
+  SearchGroup.landmarks: null,
+};
 
-/// The kinds of [group] the sheet offers: every kind of the group this
-/// build has a label for, but a named building, which is no stop.
-List<String> stopKindsOf(AppLocalizations l10n, SearchGroup group) => <String>[
-  for (final entry in searchGroupOfPoiKind.entries)
-    if (entry.value == group &&
-        entry.key != 'building' &&
-        gazetteerPoiKindLabel(l10n, entry.key) != null)
-      entry.key,
-];
+/// The kinds of [group] the sheet offers: every kind of the group that
+/// [stopGroups] names (all of them when it names none) and this build has a
+/// label for, but a named building, which is no stop.
+List<String> stopKindsOf(AppLocalizations l10n, SearchGroup group) {
+  if (!stopGroups.containsKey(group)) return const <String>[];
+  final only = stopGroups[group];
+  return <String>[
+    for (final entry in searchGroupOfPoiKind.entries)
+      if (entry.value == group &&
+          entry.key != 'building' &&
+          (only == null || only.contains(entry.key)) &&
+          gazetteerPoiKindLabel(l10n, entry.key) != null)
+        entry.key,
+  ];
+}
 
 /// Switches the rain radar [on] or off. Each time a rider the store says
 /// has no Velorki Plus switches it on, in a build with the relay, a dialog
@@ -271,7 +282,7 @@ class LayersSheet extends ConsumerWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            for (final group in stopGroups)
+                            for (final group in stopGroups.keys)
                               if (stopKindsOf(l10n, group) case final kinds
                                   when kinds.isNotEmpty) ...[
                                 Padding(

@@ -169,6 +169,7 @@ const Map<String, String> sameAsEnglish = <String, String>{
   'importFormatGpx': 'file format',
   // Words the target languages borrowed.
   'commonOk': 'the same word in most languages',
+  'searchKindWordsStation': 'search words, not shown (French "train")',
   'shareLinkRowTitle': 'a borrowed word (link)',
   'settingsGroupApp': 'a borrowed word (app)',
   'importFormatFit': 'file format',

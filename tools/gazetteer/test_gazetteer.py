@@ -69,6 +69,7 @@ POI_KINDS = frozenset(
     attraction museum historic place_of_worship hospital university stadium
     mall airport ferry_terminal tower lighthouse water beach nature_reserve
     building
+    bicycle_tube_vending bus_stop tram_stop
     """.split()
 )
 
@@ -77,8 +78,12 @@ UNNAMED_KINDS = frozenset(
     """
     drinking_water toilets bicycle_repair_station shelter bicycle_rental
     charging_station picnic_site bicycle_parking compressed_air fuel
+    bicycle_tube_vending bus_stop tram_stop
     """.split()
 )
+
+# Found by their kind only, never by their name: not in the FTS index.
+UNINDEXED_KINDS = frozenset("bus_stop tram_stop".split())
 
 # Addendum 2's seven: where a tour sleeps, eats and crosses. Liechtenstein has
 # at least one of each.
@@ -455,6 +460,60 @@ class GazetteerTest(unittest.TestCase):
             ({"amenity": "fuel"}, "fuel"),
             ({"amenity": "compressed_air"}, "compressed_air"),
             ({"amenity": "fast_food"}, "fast_food"),
+            # A halt is a station to a rider; a bus or tram stop is a kind
+            # of its own.
+            ({"railway": "station"}, "station"),
+            ({"railway": "halt"}, "station"),
+            ({"highway": "bus_stop"}, "bus_stop"),
+            (
+                {"highway": "bus_stop", "public_transport": "platform", "bus": "yes"},
+                "bus_stop",
+            ),
+            ({"railway": "tram_stop"}, "tram_stop"),
+            (
+                {
+                    "railway": "tram_stop",
+                    "public_transport": "stop_position",
+                    "tram": "yes",
+                },
+                "tram_stop",
+            ),
+            # The same bus stop again on the road, or the platform's outline
+            # next to its node, is no second stop.
+            (
+                {"public_transport": "stop_position", "bus": "yes"},
+                None,
+            ),
+            (
+                {
+                    "highway": "bus_stop",
+                    "public_transport": "stop_position",
+                    "bus": "yes",
+                },
+                None,
+            ),
+            ({"public_transport": "platform", "bus": "yes"}, None),
+            ({"railway": "platform", "public_transport": "platform"}, None),
+            # A stop with a shelter of its own is still a stop; a shelter
+            # mapped as an amenity on the stop's node is the rider's kit first.
+            ({"highway": "bus_stop", "shelter": "yes"}, "bus_stop"),
+            ({"highway": "bus_stop", "amenity": "shelter"}, "shelter"),
+            # A station that also serves trams stays a station.
+            ({"railway": "station", "tram": "yes"}, "station"),
+            # A machine selling inner tubes, alone or among other goods; any
+            # other vending machine is no stop.
+            ({"amenity": "vending_machine", "vending": "bicycle_tube"}, "bicycle_tube_vending"),
+            (
+                {"amenity": "vending_machine", "vending": "bicycle_tube;bicycle_light"},
+                "bicycle_tube_vending",
+            ),
+            (
+                {"amenity": "vending_machine", "vending": "drinks; bicycle_tube"},
+                "bicycle_tube_vending",
+            ),
+            ({"amenity": "vending_machine", "vending": "drinks"}, None),
+            ({"amenity": "vending_machine"}, None),
+            ({"vending": "bicycle_tube"}, None),
             # A bar or a pub is no riding stop; one serving food is tagged
             # a restaurant.
             ({"amenity": "bar"}, None),
@@ -577,18 +636,54 @@ class GazetteerTest(unittest.TestCase):
         self.assertTrue(unnamed)
         self.assertEqual(indexed & unnamed, set(), "an unnamed row is in the index")
 
-        # And the index is exactly the named rows plus the aliases.
+        # And the index is exactly the named rows but the stops, plus the
+        # aliases.
         expected = sum(
             db.execute(sql).fetchone()[0]
             for sql in (
                 "SELECT count(*) FROM places",
                 "SELECT count(*) FROM streets",
-                "SELECT count(*) FROM pois WHERE name IS NOT NULL",
+                "SELECT count(*) FROM pois WHERE name IS NOT NULL"
+                " AND kind NOT IN ('bus_stop', 'tram_stop')",
                 "SELECT count(*) FROM aliases",
             )
         )
         self.assertEqual(len(indexed), expected)
         self.assertEqual(check.check(self.path()).search, expected)
+
+    def test_stops_are_rows_but_not_in_the_search_index(self) -> None:
+        """Liechtenstein's bus stops are rows, named or not, found by kind and
+        position only: none in the index, no aliases, one row a stop."""
+        self.assertEqual(build.UNINDEXED_KINDS, UNINDEXED_KINDS)
+        self.assertEqual(check.UNINDEXED_KINDS, UNINDEXED_KINDS)
+        self.assertEqual(build.UNNAMED_KINDS, UNNAMED_KINDS)
+        self.assertEqual(check.UNNAMED_KINDS, UNNAMED_KINDS)
+        db = self.open()
+        stops = {
+            row[0]
+            for row in db.execute("SELECT id FROM pois WHERE kind = 'bus_stop'")
+        }
+        self.assertGreater(len(stops), 100, "Liechtenstein's bus stops are missing")
+        named = db.execute(
+            "SELECT count(*) FROM pois WHERE kind = 'bus_stop' AND name IS NOT NULL"
+        ).fetchone()[0]
+        self.assertGreater(named, 0)
+        self.assertEqual(self.indexed_ids() & stops, set(), "a stop is in the index")
+        self.assertEqual(
+            db.execute(
+                "SELECT count(*) FROM aliases WHERE ref_id IN"
+                " (SELECT id FROM pois WHERE kind IN ('bus_stop', 'tram_stop'))"
+            ).fetchone()[0],
+            0,
+        )
+        # A stop's name finds nothing of it.
+        name = db.execute(
+            "SELECT name FROM pois WHERE kind = 'bus_stop' AND name IS NOT NULL"
+            " ORDER BY id LIMIT 1"
+        ).fetchone()[0]
+        self.assertTrue(
+            all(hit.kind != "bus_stop" for hit in query.search(db, name, 50))
+        )
 
     def test_a_dry_spring_is_not_a_water_stop(self) -> None:
         """Node 12899110144 is a `natural=spring` with `drinking_water=no`; its
@@ -1122,14 +1217,14 @@ class GazetteerTest(unittest.TestCase):
         self.addCleanup(db.close)
         names = [
             (rowid, name)
-            for table, column in (
-                ("places", "name"),
-                ("streets", "name"),
-                ("pois", "name"),
-                ("aliases", "name"),
+            for table, where in (
+                ("places", ""),
+                ("streets", ""),
+                ("pois", " AND kind NOT IN ('bus_stop', 'tram_stop')"),
+                ("aliases", ""),
             )
             for rowid, name in db.execute(
-                f"SELECT id, {column} FROM {table} WHERE {column} IS NOT NULL"
+                f"SELECT id, name FROM {table} WHERE name IS NOT NULL{where}"
             )
         ]
         letters = frozenset(translit.LETTERS) | frozenset(translit.LETTERS_UK)

@@ -34,7 +34,7 @@ from typing import Any, NamedTuple
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from check import GazetteerError, check  # noqa: E402
+from check import UNINDEXED_KINDS, GazetteerError, check  # noqa: E402
 from street_numbers import Point, decode, encode, split, thinned_blob  # noqa: E402
 from street_numbers import POINT_SCALE  # noqa: E402
 from translit import SEARCH_SCRIPT, index_text  # noqa: E402
@@ -497,7 +497,8 @@ def write_tile(path: str, tile: str, merged: Merged, meta: list[tuple[str, str]]
     db.executemany(
         "INSERT INTO street_numbers (street_id, data) VALUES (?,?)", merged.numbers
     )
-    # An unnamed utility row has nothing to match, so it stays out of the index.
+    # An unnamed utility row has nothing to match, so it stays out of the index,
+    # and a stop is found by its kind only (build.py gives it no aliases).
     # The index is rebuilt from the names, so it is transliterated whatever the
     # inputs' own indexes held.
     db.executemany(
@@ -507,6 +508,7 @@ def write_tile(path: str, tile: str, merged: Merged, meta: list[tuple[str, str]]
             for table in TABLES
             for row in merged.rows[table]
             if row[1] is not None
+            and not (table == "pois" and row[2] in UNINDEXED_KINDS)
         ]
         + [(row[0], index_text(row[2])) for row in merged.aliases],
     )

@@ -29,11 +29,11 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | Table | Rows | What it is |
 |---|---|---|
 | `places` | one per settlement | `place=city\|town\|village\|hamlet\|suburb\|neighbourhood\|locality\|island` nodes and areas, with population where OSM has it |
-| `pois` | one per feature and kind | what a rider needs on the road and what a rider searches for as a destination: the 38 kinds below, named — or unnamed for the eight utility kinds |
+| `pois` | one per feature and kind | what a rider needs on the road and what a rider searches for as a destination: the 46 kinds below, named — or unnamed for the utility kinds and the stops |
 | `streets` | one per street name per place | every named `highway=*` way but a platform, a bus stop, a planned road, a corridor, a lift or a service area; the many ways of one street merged into one row |
 | `aliases` | one per extra name | `name:en`, `int_name`, `alt_name`, `old_name`, `official_name`, `short_name` of a row above; for a place with `importance` and a POI with `importance` ≥ 10 also every `name:<lang>`, at most 80 |
 | `street_numbers` | one per street with addresses | its house numbers, odd and even side, thinned to the points that keep interpolation within 20 m, in one blob |
-| `search` | one per place, street, **named** poi and alias | the FTS5 index the search box queries, over the transliterated names |
+| `search` | one per place, street, **named** poi (but a stop) and alias | the FTS5 index the search box queries, over the transliterated names |
 | `vocab` | one per word of `search` | the word and how many rows hold it, copied from the index |
 | `meta` | seven | schema version, tile, build time, source, what is in the file, the index's script |
 
@@ -64,7 +64,10 @@ somebody types as a destination.
 | `charging_station` | `amenity=charging_station` with `bicycle=yes`, `bicycle:charging=yes` or a `socket:*` key naming a bicycle |
 | `picnic_site` | `tourism=picnic_site` |
 | `bicycle_shop` | `shop=bicycle` |
-| `station` | `railway=station` |
+| `bicycle_tube_vending` | `amenity=vending_machine` whose `vending` list holds `bicycle_tube`, named or not |
+| `station` | `railway=station\|halt` |
+| `bus_stop` | `highway=bus_stop`, but not on a `public_transport=stop_position` (the same stop again on the road), named or not; not in the FTS index |
+| `tram_stop` | `railway=tram_stop`, named or not; not in the FTS index |
 | `viewpoint` | `tourism=viewpoint` |
 | `peak` | `natural=peak` |
 | `park` | `leisure=park` |
@@ -92,13 +95,21 @@ somebody types as a destination.
 | `nature_reserve` | `leisure=nature_reserve`, `boundary=national_park\|protected_area` |
 | `building` | any other `building=*`, except `building=no` |
 
-**Unnamed rows.** `pois.name` is nullable, but only for the eight utility kinds
+**Unnamed rows.** `pois.name` is nullable, but only for the utility kinds
 `drinking_water`, `toilets`, `bicycle_repair_station`, `shelter`,
-`bicycle_rental`, `charging_station`, `picnic_site`, `bicycle_parking`: a tap or
+`bicycle_rental`, `charging_station`, `picnic_site`, `bicycle_parking`,
+`compressed_air`, `fuel`, `bicycle_tube_vending` and the stops `bus_stop`,
+`tram_stop`: a tap or
 a toilet is worth a row without a name because the app looks for the *nearest*
 one rather than typing for it. Such a row is **not** in the FTS index — there is
 nothing to match — and `idx_pois_pos` is how it is found. Every other kind is
 still stored only when it has a name.
+
+**Stops.** A `bus_stop` or `tram_stop` is never in the FTS index, named or not,
+and has no aliases: the app finds stops by their kind ("bus stop", nearest
+first) and draws them on the map, and thousands of stops named after their
+street would bury the streets and places a name query means. An app from
+before them never sees one in its name search.
 
 Names are trimmed, and a name with no letter in it is not a name: that is a
 house number somebody typed into the name field, or a numbered boundary stone,
@@ -145,8 +156,8 @@ CREATE TABLE streets (
 
 CREATE TABLE pois (
     id         INTEGER PRIMARY KEY,
-    name       TEXT,            -- NULL only on the eight utility kinds
-    kind       TEXT NOT NULL,   -- one of the 43 kinds, see "POI kinds" above
+    name       TEXT,            -- NULL only on the utility kinds and stops
+    kind       TEXT NOT NULL,   -- one of the 46 kinds, see "POI kinds" above
     lat        INTEGER NOT NULL,
     lon        INTEGER NOT NULL,
     place_id   INTEGER,

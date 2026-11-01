@@ -6,8 +6,8 @@
 Checks the schema version, that `meta.tile` matches the file name, that the
 FTS index actually answers a query, and reports the row counts. A POI may have
 a NULL name only when its kind is one of the unnamed utility kinds, and an
-unnamed row must not be in the FTS index, so the indexed count is the named
-rows plus the aliases. No two POI rows share an (osm_type, osm_id, kind). The
+unnamed row must not be in the FTS index, nor a bus or tram stop, so the
+indexed count is the named rows but the stops, plus the aliases. No two POI rows share an (osm_type, osm_id, kind). The
 optional `osm_type`/`osm_id` columns and the optional `aliases`,
 `street_numbers`, `vocab` and (older files) `house_numbers` tables are accepted
 whether or not a file has them; when a file does have them, every `ref_id` and
@@ -48,8 +48,13 @@ UNNAMED_KINDS = frozenset(
     """
     drinking_water toilets bicycle_repair_station shelter bicycle_rental
     charging_station picnic_site bicycle_parking compressed_air fuel
+    bicycle_tube_vending bus_stop tram_stop
     """.split()
 )
+
+# Must match build.py's UNINDEXED_KINDS: named or not, never in the FTS index,
+# because the app finds them by kind and position only.
+UNINDEXED_KINDS = frozenset("bus_stop tram_stop".split())
 
 
 class GazetteerError(Exception):
@@ -147,7 +152,7 @@ def check(path: str) -> Report:
         # A contentless FTS5 table cannot be scanned, so the indexed count is
         # worked out from the tables: every named row plus every alias. That
         # the named rows really made it in is what _check_query proves, and
-        # that no unnamed one did is _check_unnamed_are_not_indexed.
+        # that no unnamed one or stop did is _check_unindexed_are_not_indexed.
         counts = {
             table: db.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
             for table in ("places", "streets", "pois")
@@ -156,10 +161,12 @@ def check(path: str) -> Report:
             raise GazetteerError(f"{path}: holds no rows at all")
 
         counts["unnamed_pois"] = _check_names(db, path)
-        # An unnamed row has nothing to match, so it is not in the index.
+        # An unnamed row has nothing to match, so it is not in the index, and
+        # neither is a named stop.
         counts["search"] = (
             counts["places"] + counts["streets"] + counts["pois"]
             - counts["unnamed_pois"]
+            - _named_unindexed(db)
         )
 
         _check_osm_columns(db, path)
@@ -167,7 +174,7 @@ def check(path: str) -> Report:
         extra = _check_extra_tables(db, path)
         counts["search"] += extra["aliases"]
         counts.update(extra)
-        _check_unnamed_are_not_indexed(db, path)
+        _check_unindexed_are_not_indexed(db, path)
         latin = meta.get("search_script") == SEARCH_SCRIPT
         _check_query(db, path, latin)
         # Last, so a broken index is reported as what it is, not as a stale vocab.
@@ -409,8 +416,21 @@ def _check_vocab(db: sqlite3.Connection, path: str) -> int:
         db.execute("DROP TABLE temp.gaz_vocab")
 
 
-def _check_unnamed_are_not_indexed(db: sqlite3.Connection, path: str) -> None:
-    """An unnamed row has nothing to match, so it is not in the FTS index.
+def _unindexed_kinds_sql() -> str:
+    return ", ".join(f"'{kind}'" for kind in sorted(UNINDEXED_KINDS))
+
+
+def _named_unindexed(db: sqlite3.Connection) -> int:
+    """How many named POI rows are of a kind the index leaves out."""
+    return db.execute(
+        "SELECT count(*) FROM pois WHERE name IS NOT NULL AND name != '' "
+        f"AND kind IN ({_unindexed_kinds_sql()})"
+    ).fetchone()[0]
+
+
+def _check_unindexed_are_not_indexed(db: sqlite3.Connection, path: str) -> None:
+    """An unnamed row has nothing to match, so it is not in the FTS index, and
+    a stop, named or not, is found by its kind only.
 
     A contentless FTS5 table cannot be scanned, so its documents are reached
     through an `fts5vocab` instance table and intersected with the unnamed
@@ -426,11 +446,12 @@ def _check_unnamed_are_not_indexed(db: sqlite3.Connection, path: str) -> None:
     try:
         indexed = db.execute(
             "SELECT count(*) FROM (SELECT DISTINCT doc FROM temp.gaz_index)"
-            " WHERE doc IN (SELECT id FROM pois WHERE name IS NULL)"
+            " WHERE doc IN (SELECT id FROM pois WHERE name IS NULL"
+            f" OR kind IN ({_unindexed_kinds_sql()}))"
         ).fetchone()[0]
         if indexed:
             raise GazetteerError(
-                f"{path}: {indexed} unnamed poi row(s) are in the FTS index"
+                f"{path}: {indexed} unnamed or stop poi row(s) are in the FTS index"
             )
     finally:
         db.execute("DROP TABLE temp.gaz_index")
@@ -442,8 +463,11 @@ def _check_query(db: sqlite3.Connection, path: str, latin: bool = False) -> None
     A transliterated index is asked with the name transliterated.
     """
     for table in ("places", "pois", "streets"):
+        unindexed = (
+            f" AND kind NOT IN ({_unindexed_kinds_sql()})" if table == "pois" else ""
+        )
         row = db.execute(
-            f"SELECT id, name FROM {table} WHERE name IS NOT NULL LIMIT 1"
+            f"SELECT id, name FROM {table} WHERE name IS NOT NULL{unindexed} LIMIT 1"
         ).fetchone()
         if row is None:
             continue

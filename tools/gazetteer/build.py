@@ -106,8 +106,17 @@ UNNAMED_KINDS = frozenset(
     """
     drinking_water toilets bicycle_repair_station shelter bicycle_rental
     charging_station picnic_site bicycle_parking compressed_air fuel
+    bicycle_tube_vending bus_stop tram_stop
     """.split()
 )
+
+# The kinds found only by asking for the kind ("bus stop", nearest first) and
+# drawn on the map, never by their name: thousands of stops a tile, named after
+# the street they stand in, would bury every street and place a name query
+# means. So they stay out of the FTS index, with their aliases, which also
+# keeps them out of an app from before them, whose name search would show them
+# as unlabelled places.
+UNINDEXED_KINDS = frozenset("bus_stop tram_stop".split())
 
 # Still the rider's kit: where a tour stops for the night, restocks, or crosses
 # a ridge. Matched with the nine above, before any landmark, so a hotel in a
@@ -447,6 +456,15 @@ def is_bicycle_charging(tags) -> bool:
     )
 
 
+def is_tube_vending(tags) -> bool:
+    """A vending machine that sells inner tubes, among whatever else it sells:
+    `vending` is often a list ("bicycle_tube;bicycle_light")."""
+    if tags.get("amenity") != "vending_machine":
+        return False
+    goods = {value.strip() for value in (tags.get("vending") or "").split(";")}
+    return "bicycle_tube" in goods
+
+
 def poi_kind(tags) -> str | None:
     """The one primary kind an object gets, or None if it is not worth a row.
 
@@ -475,8 +493,25 @@ def poi_kind(tags) -> str | None:
         return "picnic_site"
     if shop == "bicycle":
         return "bicycle_shop"
-    if tags.get("railway") == "station":
+    if is_tube_vending(tags):
+        return "bicycle_tube_vending"
+    # A halt is a station too, to a rider: the small stops without a
+    # station building, most of the rail stops in the country.
+    if tags.get("railway") in ("station", "halt"):
         return "station"
+    # A tram stop is mapped on the track, so it is taken as it is. A bus stop
+    # is `highway=bus_stop` on the stop beside the road, the platform; the
+    # same stop mapped again as a `public_transport=stop_position` on the
+    # road, sometimes with `highway=bus_stop` as well, would be a second row
+    # for it, and a platform with no `highway=bus_stop` is nearly always the
+    # outline of one that has the node too.
+    if tags.get("railway") == "tram_stop":
+        return "tram_stop"
+    if (
+        tags.get("highway") == "bus_stop"
+        and tags.get("public_transport") != "stop_position"
+    ):
+        return "bus_stop"
     if tourism == "viewpoint":
         return "viewpoint"
     if natural == "peak":
@@ -1247,13 +1282,18 @@ def write_tile(
     db.executemany("INSERT INTO aliases (id, ref_id, name) VALUES (?,?,?)", aliases)
     db.executemany("INSERT INTO street_numbers (street_id, data) VALUES (?,?)", numbers)
 
-    # An unnamed utility row has nothing to match, so it stays out of the index.
-    # The index holds every name transliterated; the tables keep it as it is.
+    # An unnamed utility row has nothing to match, so it stays out of the index,
+    # as does a stop. The index holds every name transliterated; the tables
+    # keep it as it is.
     db.executemany(
         "INSERT INTO search(rowid, name) VALUES (?,?)",
         [(p.id, index_text(p.name)) for p in places]
         + [(s.id, index_text(s.name)) for s in streets]
-        + [(row[0], index_text(row[1])) for row in pois if row[1] is not None]
+        + [
+            (row[0], index_text(row[1]))
+            for row in pois
+            if row[1] is not None and row[2] not in UNINDEXED_KINDS
+        ]
         + [(row[0], index_text(row[2])) for row in aliases],
     )
 
@@ -1343,7 +1383,11 @@ def build_tile(
     for row, alts in (
         [(place.id, source_place.alts) for place, source_place in zip(places, raw_places)]
         + [(street.id, street.alts) for street in streets]
-        + [(poi[0], source_poi.alts) for poi, source_poi in zip(pois, raw_pois)]
+        + [
+            (poi[0], source_poi.alts)
+            for poi, source_poi in zip(pois, raw_pois)
+            if source_poi.kind not in UNINDEXED_KINDS
+        ]
     ):
         for alias in alts:
             aliases.append((next_id, row, alias))

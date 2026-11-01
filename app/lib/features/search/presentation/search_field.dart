@@ -847,7 +847,11 @@ IconData poiKindIcon(String? detail) => switch (detail) {
   'bicycle_repair_station' => Icons.build_outlined,
   'shelter' => Icons.house_siding_outlined,
   'bicycle_shop' => Icons.pedal_bike_outlined,
+  // Material has no inner tube; the ring is the closest thing to one.
+  'bicycle_tube_vending' => Icons.trip_origin,
   'station' => Icons.train_outlined,
+  'bus_stop' => Icons.directions_bus_outlined,
+  'tram_stop' => Icons.tram_outlined,
   'viewpoint' => Icons.landscape_outlined,
   'peak' => Icons.terrain_outlined,
   'park' => Icons.park_outlined,
@@ -935,7 +939,10 @@ String localResultSubtitle(
 }
 
 /// Every kind's localised label, lower case, mapped to the kind: the table the
-/// store matches a typed "drinking water" or "Trinkwasser" against.
+/// store matches a typed "drinking water" or "Trinkwasser" against. The other
+/// words a language asks for a kind with ("Zug", "Haltestelle") come along,
+/// and a word that asks for several kinds maps to all of them,
+/// space-separated (see `kindsForKeyword`).
 ///
 /// Built once per language \u2014 the labels do not change while the app runs, and
 /// this is asked for on every keystroke.
@@ -956,6 +963,23 @@ Map<String, String> localisedKindKeywords(AppLocalizations l10n) =>
         // The fallback label ("Place") names no kind in particular.
         if (label.isEmpty || label == l10n.searchKindPlace) continue;
         table.putIfAbsent(label.toLowerCase(), () => kind);
+      }
+      for (final (words, kind) in <(String, String)>[
+        (l10n.searchKindWordsStation, 'station'),
+        (l10n.searchKindWordsBusStop, 'bus_stop'),
+        (l10n.searchKindWordsTramStop, 'tram_stop'),
+        (l10n.searchKindWordsFerry, 'ferry_terminal'),
+        (l10n.searchKindWordsTubeVending, 'bicycle_tube_vending'),
+      ]) {
+        for (final word in words.split(',')) {
+          final key = word.trim().toLowerCase();
+          if (key.isEmpty) continue;
+          table.update(
+            key,
+            (kinds) => kinds.split(' ').contains(kind) ? kinds : '$kinds $kind',
+            ifAbsent: () => kind,
+          );
+        }
       }
       return table;
     });
@@ -1007,7 +1031,10 @@ String searchKindLabel(AppLocalizations l10n, SearchResult result) {
     'bicycle_repair_station' => l10n.searchKindBikeRepair,
     'shelter' => l10n.searchKindShelter,
     'bicycle_shop' => l10n.searchKindBikeShop,
+    'bicycle_tube_vending' => l10n.searchKindTubeVending,
     'station' => l10n.searchKindStation,
+    'bus_stop' => l10n.searchKindBusStop,
+    'tram_stop' => l10n.searchKindTramStop,
     'viewpoint' => l10n.searchKindViewpoint,
     'peak' => l10n.searchKindPeak,
     'park' => l10n.searchKindPark,

@@ -16,6 +16,7 @@ import 'package:velorki/features/map/presentation/visible_map_padding.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/search/domain/search_group.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/search/presentation/search_field.dart'
     show gazetteerPoiKindLabel;
@@ -420,6 +421,78 @@ void main() {
       );
       expect(tester.widget<FilterChip>(toilets).selected, isFalse);
     });
+  });
+
+  test('the sheet offers the stops of each group, not the rest of it', () {
+    expect(stopKindsOf(l10n, SearchGroup.services), <String>[
+      'hospital',
+      'pharmacy',
+    ]);
+    expect(stopKindsOf(l10n, SearchGroup.nature), <String>[
+      'viewpoint',
+      'beach',
+      'picnic_site',
+    ]);
+    expect(stopKindsOf(l10n, SearchGroup.transport), <String>[
+      'station',
+      'bus_stop',
+      'tram_stop',
+      'airport',
+      'ferry_terminal',
+    ]);
+    expect(
+      stopKindsOf(l10n, SearchGroup.cyclingStops),
+      contains('bicycle_tube_vending'),
+    );
+    expect(
+      stopKindsOf(l10n, SearchGroup.landmarks),
+      isNot(contains('building')),
+    );
+    expect(stopKindsOf(l10n, SearchGroup.places), isEmpty);
+    expect(stopKindsOf(l10n, SearchGroup.streets), isEmpty);
+    for (final kind in <String>[
+      'bus_stop',
+      'tram_stop',
+      'bicycle_tube_vending',
+      'pharmacy',
+      'hospital',
+      'picnic_site',
+      'viewpoint',
+      'beach',
+    ]) {
+      expect(defaultStopKinds, isNot(contains(kind)), reason: kind);
+    }
+  });
+
+  testWidgets('the new stop kinds are chips, off until picked', (tester) async {
+    await _screen(tester, const Size(411, 914));
+    await _pump(tester, stopsShown: true);
+    await _openSheet(tester);
+
+    for (final kind in <String>[
+      'bus_stop',
+      'tram_stop',
+      'bicycle_tube_vending',
+      'pharmacy',
+      'hospital',
+      'picnic_site',
+      'viewpoint',
+      'beach',
+    ]) {
+      final chip = find.widgetWithText(
+        FilterChip,
+        gazetteerPoiKindLabel(l10n, kind)!,
+      );
+      expect(chip, findsOneWidget, reason: kind);
+      expect(tester.widget<FilterChip>(chip).selected, isFalse, reason: kind);
+    }
+    for (final kind in <String>['park', 'university', 'peak', 'water']) {
+      expect(
+        find.widgetWithText(FilterChip, gazetteerPoiKindLabel(l10n, kind)!),
+        findsNothing,
+        reason: kind,
+      );
+    }
   });
 
   group('the stops ahead line', () {
