@@ -7,7 +7,7 @@ Reads `<dir>/manifest.json` (the file `brouter/updater/sync.sh` writes) and,
 for every tile entry, looks for `<dir>/<TILE>.gaz`:
 
   * present  -> validate it with check.py and set
-                `"gazetteer": {"bytes", "sha256", "updatedAt"}`
+                `"gazetteer": {"bytes", "sha256", "contentSha256", "updatedAt"}`
   * absent   -> remove any `gazetteer` object left over from an earlier run
 
 The manifest is written back with indent 1 and its key order untouched, so
@@ -28,6 +28,7 @@ from typing import Any
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from check import GazetteerError, check  # noqa: E402
+from digest import gazetteer_digest  # noqa: E402
 
 
 def sha256_of(path: str) -> str:
@@ -49,6 +50,7 @@ def gazetteer_entry(path: str) -> dict[str, Any]:
     return {
         "bytes": os.path.getsize(path),
         "sha256": sha256_of(path),
+        "contentSha256": gazetteer_digest(path),
         "updatedAt": updated_at(path),
     }
 

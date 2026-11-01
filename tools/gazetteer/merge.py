@@ -20,12 +20,18 @@ are remapped onto the surviving rows.
 A tile that only one input holds goes through the same path, so the output is
 always canonical.
 
+Tiles are merged one at a time, each input checked before and the output
+after. A tile that fails either is quarantined - left out, with the reason in
+`quarantine.json` - and the rest go on; exit status 3 says so. Only a run that
+has nothing to merge, merges nothing, or runs out of disk or memory fails (1).
+
 Standard library only: the merge job in CI must not need pyosmium.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sqlite3
 import sys
@@ -576,33 +582,109 @@ def group_by_tile(paths: list[str]) -> dict[str, list[str]]:
     return tiles
 
 
-def merge(out_dir: str, in_dirs: list[str], verbose: bool = True) -> list[TileResult]:
-    """Merge every tile found under `in_dirs` into `out_dir`.
+# Exit status of main(): every tile merged, or some quarantined and the rest
+# merged. Anything else (1) is a failure of the whole run.
+EXIT_QUARANTINED = 3
 
-    Raises GazetteerError when an input does not pass check.py; nothing is
-    written in that case.
+# SQLite's "database or disk is full" (SQLITE_FULL).
+SQLITE_FULL = 13
+
+
+class Quarantined(NamedTuple):
+    """A tile left out of the merge: one of its inputs or its output failed."""
+
+    tile: str
+    reason: str
+    inputs: list[str]
+
+
+class MergeOutcome(NamedTuple):
+    merged: list[TileResult]
+    quarantined: list[Quarantined]
+
+
+def is_global(error: BaseException) -> bool:
+    """Whether an error is about the machine rather than one tile's data.
+
+    A full disk or no memory stops every tile alike, so it stops the run
+    instead of quarantining tile after tile until none is left.
+    """
+    if isinstance(error, MemoryError):
+        return True
+    if isinstance(error, OSError):
+        return True
+    if isinstance(error, sqlite3.Error):
+        code = getattr(error, "sqlite_errorcode", None)
+        return code == SQLITE_FULL or "disk is full" in str(error)
+    return False
+
+
+def merge_one(out_dir: str, tile: str, paths: list[str], built_at: str) -> TileResult:
+    """Check a tile's inputs, merge them and check the result, or raise."""
+    for path in paths:
+        check(path)
+    result = merge_tile(out_dir, tile, paths, built_at)
+    check(os.path.join(out_dir, f"{tile}.gaz"))
+    return result
+
+
+def merge_all(out_dir: str, in_dirs: list[str], verbose: bool = True) -> MergeOutcome:
+    """Merge every tile found under `in_dirs` into `out_dir`, one at a time.
+
+    A tile whose inputs or output fail check.py, or whose merge raises, is
+    quarantined: its output is removed, the reason kept, and the next tile goes
+    on. One bad tile out of a thousand must not stop the other 999. Raises
+    GazetteerError when there is nothing to merge, and lets an error about the
+    machine (a full disk, no memory) through, since it would fail every tile.
     """
     inputs = find_inputs(in_dirs)
     if not inputs:
         raise GazetteerError(f"no .gaz files under {', '.join(in_dirs)}")
-    # Validate everything first: a half-written output directory is worse than
-    # no output at all.
-    for path in inputs:
-        check(path)
 
     os.makedirs(out_dir, exist_ok=True)
     built_at = build_time()
-    results = []
+    merged: list[TileResult] = []
+    quarantined: list[Quarantined] = []
     for tile, paths in sorted(group_by_tile(inputs).items()):
-        result = merge_tile(out_dir, tile, paths, built_at)
-        results.append(result)
+        try:
+            result = merge_one(out_dir, tile, paths, built_at)
+        except Exception as error:  # noqa: BLE001 - one tile, whatever broke
+            if is_global(error):
+                raise
+            output = os.path.join(out_dir, f"{tile}.gaz")
+            if os.path.exists(output):
+                os.remove(output)
+            reason = (str(error) or type(error).__name__).replace("\n", " ")[:500]
+            quarantined.append(Quarantined(tile, reason, paths))
+            print(f"QUARANTINED {tile}: {reason}", file=sys.stderr)
+            continue
+        merged.append(result)
         if verbose:
             print(
                 f"{result.tile:<12} {result.inputs:>2} input(s)  "
                 f"{result.rows_in:>8} -> {result.rows_out:>8} rows  "
                 f"{result.bytes / 1e6:>8.2f}M"
             )
-    return results
+    return MergeOutcome(merged, quarantined)
+
+
+def write_quarantine(path: str, outcome: MergeOutcome) -> None:
+    """The machine-readable result the mirror's publish job reads.
+
+    `outputsChecked` says every merged file has passed check.py already, so
+    the reader need not check them again.
+    """
+    data = {
+        "merged": len(outcome.merged),
+        "outputsChecked": True,
+        "quarantined": [
+            {"tile": q.tile, "reason": q.reason, "inputs": q.inputs}
+            for q in outcome.quarantined
+        ],
+    }
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, indent=1)
+        handle.write("\n")
 
 
 def main() -> int:
@@ -611,20 +693,42 @@ def main() -> int:
     parser.add_argument(
         "in_dirs", nargs="+", help="directories holding <TILE>.gaz files (searched recursively)"
     )
+    parser.add_argument(
+        "--quarantine",
+        help="where to write the JSON list of quarantined tiles"
+        " (default: quarantine.json in out_dir)",
+    )
     parser.add_argument("-q", "--quiet", action="store_true")
     args = parser.parse_args()
 
     try:
-        results = merge(args.out_dir, args.in_dirs, verbose=not args.quiet)
+        outcome = merge_all(args.out_dir, args.in_dirs, verbose=not args.quiet)
+        write_quarantine(
+            args.quarantine or os.path.join(args.out_dir, "quarantine.json"), outcome
+        )
     except GazetteerError as error:
         print(f"::error::{error}", file=sys.stderr)
         return 1
-    except (OSError, sqlite3.Error) as error:
+    except (OSError, sqlite3.Error, MemoryError) as error:
         print(f"::error::{error}", file=sys.stderr)
         return 1
+    if not outcome.merged:
+        print(
+            f"::error::every tile was quarantined ({len(outcome.quarantined)}):"
+            " the builder or its inputs are broken, not one tile",
+            file=sys.stderr,
+        )
+        return 1
     if not args.quiet:
-        total = sum(r.bytes for r in results)
-        print(f"{len(results)} tile(s), {total / 1e6:.2f}M in {args.out_dir}")
+        total = sum(r.bytes for r in outcome.merged)
+        print(f"{len(outcome.merged)} tile(s), {total / 1e6:.2f}M in {args.out_dir}")
+    if outcome.quarantined:
+        print(
+            f"{len(outcome.quarantined)} tile(s) quarantined:"
+            f" {' '.join(q.tile for q in outcome.quarantined)}",
+            file=sys.stderr,
+        )
+        return EXIT_QUARANTINED
     return 0
 
 

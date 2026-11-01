@@ -18,6 +18,7 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | `check.py` | validates one `.gaz` and prints a one-line summary |
 | `street_numbers.py` | the `street_numbers` blob: thinning, encoding, decoding, the lookup |
 | `translit.py`, `translit.json` | the text the index holds for a name: lower case, Cyrillic and Greek in Latin letters, Cyrillic spelled two ways; the table is shared with the app |
+| `digest.py` | the content digest of a `.gaz`: its rows without `built_at` |
 | `manifest.py` | adds the `gazetteer` object to a mirror's `manifest.json` |
 | `testset.py` | samples a `.gaz` into mistyped query/expected pairs for the search-quality scorer |
 | `test_gazetteer.py` | the tests, run against a Liechtenstein build |
@@ -450,8 +451,9 @@ merged:
 one directory per extract or the flat download of a CI matrix both work. Per
 tile it
 
-* validates every input with `check.py` and stops before writing anything if
-  one fails,
+* validates every input with `check.py` and, after merging, the output; a
+  tile where either fails is **quarantined** (see below) and the next tile
+  goes on,
 * drops rows that repeat an `(osm_type, osm_id)` — `(osm_type, osm_id, kind)`
   for a POI — already seen, and streets that
   repeat a name + place name + position rounded to 1e-3 degrees (~100 m),
@@ -478,6 +480,24 @@ tile it
 A tile only one input holds goes through the same path, so the output is always
 canonical. `merge.py` uses the standard library only — the merge job needs no
 pyosmium.
+
+**Quarantine.** One bad tile must not stop a planet merge. A tile whose input
+or output fails `check.py`, or whose merge raises, is left out: its output is
+deleted and it is listed in `quarantine.json` (in `out_dir`, or `--quarantine
+PATH`):
+
+```json
+{"merged": 1141, "outputsChecked": true,
+ "quarantined": [{"tile": "E80_N5", "reason": "…: search_script is 'latin' but the index holds 'μhotel'",
+                  "inputs": ["parts/gaz-g17/asia__sri-lanka/E80_N5.gaz"]}]}
+```
+
+The exit status is 0 when nothing was quarantined, 3 when some tiles were and
+the rest merged, and 1 for a failure of the whole run: no inputs, every tile
+quarantined, a full disk or no memory. The mirror's publish job puts last
+month's file in place of a quarantined tile and fails the run, so the owner
+hears of it while riders keep their search (velorki-data's README, "When a
+tile is quarantined").
 
 ## Fixtures
 
@@ -545,8 +565,13 @@ app falls back to online search.
 
 ```json
 { "tile": "W20_N30", "bytes": 1527283, "updatedAt": "...", "sha256": "...",
-  "gazetteer": { "bytes": 262144, "sha256": "<hex>", "updatedAt": "..." } }
+  "gazetteer": { "bytes": 262144, "sha256": "<hex>", "contentSha256": "<hex>", "updatedAt": "..." } }
 ```
+
+`contentSha256` is `digest.py`'s digest. `sha256` and `updatedAt` change with every
+monthly rebuild (`meta.built_at`, page layout) even when nothing else did; the
+digest changes only when the rows do, so the app compares it and riders fetch a
+file only when its content changed.
 
 `brouter/updater/sync.sh` writes it for any `.gaz` it finds beside an rd5 (always
 hashed — the files are small). For a mirror built some other way,
