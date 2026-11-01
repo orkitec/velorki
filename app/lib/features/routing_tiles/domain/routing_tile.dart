@@ -14,6 +14,8 @@ class RoutingTile {
     required this.updatedAt,
     required this.formatVersion,
     required this.state,
+    this.contentSha256,
+    this.gazetteerContentSha256,
   });
 
   /// Reads a database row.
@@ -23,6 +25,8 @@ class RoutingTile {
     updatedAt: row.updatedAt,
     formatVersion: row.formatVersion,
     state: row.state,
+    contentSha256: row.contentSha256,
+    gazetteerContentSha256: row.gazetteerContentSha256,
   );
 
   /// Which 5° × 5° tile this is.
@@ -40,6 +44,13 @@ class RoutingTile {
   /// Where the tile is in its life cycle.
   final RoutingTileState state;
 
+  /// Digest of the rd5's content, or `null` while not known (a tile from an
+  /// older version, until the backfill has read it).
+  final String? contentSha256;
+
+  /// The same for the tile's `.gaz`.
+  final String? gazetteerContentSha256;
+
   /// `E10_N45`.
   String get name => tile.name;
 
@@ -53,15 +64,40 @@ class RoutingTile {
   /// Whether a newer build is on the mirror.
   bool get isStale => state == RoutingTileState.stale;
 
-  /// Whether the mirror's [entry] is a newer build than this copy.
+  /// Whether the mirror's [entry] holds something this copy lacks: a changed
+  /// rd5 ([isRd5OutdatedBy]) or a changed gazetteer ([isGazetteerOutdatedBy]).
+  bool isOutdatedBy(SegmentEntry? entry) =>
+      isRd5OutdatedBy(entry) || isGazetteerOutdatedBy(entry);
+
+  /// Whether the mirror's rd5 differs from this copy.
   ///
-  /// The mirror's build date is the only field that can say so: a rebuilt tile
-  /// keeps its name, and its size may well come out the same. A tile the
-  /// manifest does not list any more, or lists without a date, is left alone —
-  /// there is nothing newer to fetch.
-  bool isOutdatedBy(SegmentEntry? entry) {
-    final mirror = entry?.updatedAt;
+  /// The mirror rebuilds every tile every month, so its build date says
+  /// nothing about whether the data changed: where the manifest carries a
+  /// content digest and this copy's is known, they are compared and nothing
+  /// else. A manifest digest against an unknown local one means the backfill
+  /// has not read the file yet; it decides, so the date does not. Only a
+  /// manifest without digests falls back to the date, as a mirror from before
+  /// them is all there is to go by. A tile the manifest does not list, or
+  /// lists without either, is left alone.
+  bool isRd5OutdatedBy(SegmentEntry? entry) {
+    if (entry == null) return false;
+    final mirrorDigest = entry.contentSha256;
+    if (mirrorDigest != null) {
+      final own = contentSha256;
+      return own != null && own != mirrorDigest;
+    }
+    final mirror = entry.updatedAt;
     return mirror != null && mirror.isAfter(updatedAt);
+  }
+
+  /// Whether the mirror's gazetteer differs from the one on the device.
+  ///
+  /// Only digests can say so; with either unknown there is nothing to go by
+  /// and the gazetteer is left alone.
+  bool isGazetteerOutdatedBy(SegmentEntry? entry) {
+    final mirror = entry?.gazetteer?.contentSha256;
+    final own = gazetteerContentSha256;
+    return mirror != null && own != null && mirror != own;
   }
 
   /// Whether a download is running for this tile.
@@ -74,6 +110,8 @@ class RoutingTile {
     updatedAt: updatedAt,
     formatVersion: formatVersion,
     state: state ?? this.state,
+    contentSha256: contentSha256,
+    gazetteerContentSha256: gazetteerContentSha256,
   );
 
   @override
@@ -83,10 +121,20 @@ class RoutingTile {
       other.bytes == bytes &&
       other.updatedAt == updatedAt &&
       other.formatVersion == formatVersion &&
-      other.state == state;
+      other.state == state &&
+      other.contentSha256 == contentSha256 &&
+      other.gazetteerContentSha256 == gazetteerContentSha256;
 
   @override
-  int get hashCode => Object.hash(tile, bytes, updatedAt, formatVersion, state);
+  int get hashCode => Object.hash(
+    tile,
+    bytes,
+    updatedAt,
+    formatVersion,
+    state,
+    contentSha256,
+    gazetteerContentSha256,
+  );
 
   @override
   String toString() => 'RoutingTile($name, $bytes B, ${state.name})';

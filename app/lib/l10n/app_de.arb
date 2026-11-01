@@ -932,6 +932,8 @@
   "mapLayersStops": "Stopps",
   "mapStopsNotDownloaded": "Keine Stopps hier – Gebiet nicht heruntergeladen",
   "mapStopsDownload": "Herunterladen",
+  "mapAreaUpdateAvailable": "Neue Kartendaten für dieses Gebiet",
+  "mapAreaUpdate": "Aktualisieren",
   "mapAreaHintHide": "Ausblenden",
   "mapLayersStopsPlanHint": "Sichtbar beim Hineinzoomen · antippen, um dorthin zu planen",
   "mapLayersStopsRideHint": "Antippen, um den Stopp auf der Karte zu sehen",

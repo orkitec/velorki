@@ -15,6 +15,9 @@ import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/data/offline_regions_repository.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/testing/testing.dart';
+import 'package:velorki/features/offline/presentation/area_update_chip.dart';
+import 'package:velorki/features/routing_tiles/application/tile_download_controller.dart';
+import 'package:velorki/features/routing_tiles/data/tile_downloader.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_assets.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_storage.dart';
 import 'package:velorki/features/routing_tiles/data/segments_manifest_service.dart';
@@ -156,6 +159,7 @@ Future<(_Harness, FakeMapController)> _pump(
   BoundingBox bounds = _overTyrol,
   PlatformFeatures features = PlatformFeatures.browser,
   Future<void> Function(_Harness harness)? seed,
+  List<Override> extraOverrides = const <Override>[],
 }) async {
   final h = _Harness();
   addTearDown(h.db.close);
@@ -175,12 +179,21 @@ Future<(_Harness, FakeMapController)> _pump(
         sharedPreferencesProvider.overrideWithValue(prefs),
         platformFeaturesProvider.overrideWithValue(features),
         ...h.overrides,
+        ...extraOverrides,
       ],
       child: testApp(
         home: Scaffold(
-          body: Align(
-            alignment: Alignment.topRight,
-            child: MapControls(controller: map),
+          body: Stack(
+            children: <Widget>[
+              Align(
+                alignment: Alignment.topRight,
+                child: MapControls(controller: map),
+              ),
+              Align(
+                alignment: Alignment.topLeft,
+                child: AreaUpdateChip(controller: map),
+              ),
+            ],
           ),
         ),
       ),
@@ -198,6 +211,19 @@ Future<void> _unmount(WidgetTester tester) async {
 Finder get _downloaded => find.byTooltip(l10n.offlineAreaDownloaded);
 Finder get _toDownload => find.byTooltip(l10n.offlineEntryTitle);
 Finder get _updates => find.byTooltip(l10n.offlineAreaUpdates);
+Finder get _updateChip => find.text(l10n.mapAreaUpdateAvailable);
+
+/// A queue that is mid-download of the tile under the view, until cancelled.
+class _RunningQueue extends TileDownloadQueue {
+  @override
+  TileDownloadQueueState build() => TileDownloadQueueState(
+    current: _tyrol,
+    progress: TileDownloadProgress(tile: _tyrol, received: 1, total: 4),
+  );
+
+  @override
+  void cancel() => state = const TileDownloadQueueState();
+}
 
 void main() {
   testWidgets('a view with nothing on the device opens the download', (
@@ -275,10 +301,10 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets('a tile the mirror has rebuilt is offered as an update', (
+  testWidgets('the button of a view with an update opens the offline page', (
     tester,
   ) async {
-    final (h, _) = await _pump(
+    await _pump(
       tester,
       seed: (h) => h.seedTile(
         _tyrol,
@@ -292,6 +318,29 @@ void main() {
     expect(find.byType(Badge), findsOneWidget);
 
     await tester.tap(_updates);
+    await tester.pumpAndSettle();
+    // The page, not an update started in place.
+    expect(find.text(l10n.offlineTitle), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+    await _unmount(tester);
+  });
+
+  testWidgets('a tile the mirror has rebuilt is offered as an update, on '
+      'the chip, in place', (tester) async {
+    final (h, _) = await _pump(
+      tester,
+      seed: (h) => h.seedTile(
+        _tyrol,
+        updatedAt: DateTime.utc(2026, 9),
+        state: RoutingTileState.stale,
+      ),
+    );
+
+    expect(_updateChip, findsOneWidget);
+    expect(find.text(l10n.mapAreaUpdate), findsOneWidget);
+    expect(find.text(l10n.mapStopsDownload), findsNothing);
+
+    await tester.tap(_updateChip);
     await _settle(tester);
     // The tiles screen's own update confirmation, for this tile.
     expect(find.text(l10n.routingTilesTitle), findsOneWidget);
@@ -307,9 +356,100 @@ void main() {
       await _settle(tester);
     }
     expect(_downloaded, findsOneWidget);
+    expect(_updateChip, findsNothing);
     expect(h.adapter.requests.where((r) => r.uri.path.endsWith('.rd5')), [
       isNotNull,
     ]);
+    await _unmount(tester);
+  });
+
+  testWidgets('the update chip is not there for a view that needs a '
+      'download, or has nothing to update', (tester) async {
+    await _pump(tester);
+    expect(_toDownload, findsOneWidget);
+    expect(_updateChip, findsNothing);
+    await _unmount(tester);
+
+    await _pump(tester, seed: (h) => h.seedTile(_tyrol));
+    expect(_downloaded, findsOneWidget);
+    expect(_updateChip, findsNothing);
+    await _unmount(tester);
+  });
+
+  testWidgets('the update chip follows the camera', (tester) async {
+    final (_, map) = await _pump(
+      tester,
+      bounds: _overSpain,
+      seed: (h) => h.seedTile(_tyrol, state: RoutingTileState.stale),
+    );
+    expect(_updateChip, findsNothing);
+
+    map.visibleBounds = _overTyrol;
+    map.emitCameraIdle();
+    await tester.pump();
+    expect(_updateChip, findsOneWidget);
+    await _unmount(tester);
+  });
+
+  testWidgets('closing the update chip hides it over that area', (
+    tester,
+  ) async {
+    final (_, map) = await _pump(
+      tester,
+      seed: (h) => h.seedTile(_tyrol, state: RoutingTileState.stale),
+    );
+    expect(_updateChip, findsOneWidget);
+
+    await tester.tap(find.byTooltip(l10n.mapAreaHintHide));
+    await tester.pump();
+    expect(_updateChip, findsNothing);
+    // The button still says there are updates.
+    expect(_updates, findsOneWidget);
+
+    map.visibleBounds = _overSpain;
+    map.emitCameraIdle();
+    await tester.pump();
+    map.visibleBounds = _overTyrol;
+    map.emitCameraIdle();
+    await tester.pump();
+    expect(_updateChip, findsNothing, reason: 'for the session');
+    await _unmount(tester);
+  });
+
+  testWidgets('while the update runs the chip shows it, the cancel stops it '
+      'and the chip comes back', (tester) async {
+    await _pump(
+      tester,
+      seed: (h) => h.seedTile(_tyrol, state: RoutingTileState.stale),
+      extraOverrides: <Override>[
+        tileDownloadQueueProvider.overrideWith(_RunningQueue.new),
+      ],
+    );
+
+    expect(find.text(l10n.mapOfflineDownloading), findsOneWidget);
+    expect(_updateChip, findsNothing, reason: 'it says downloading now');
+    expect(find.text(l10n.mapAreaUpdate), findsNothing);
+    final progress = tester.widget<CircularProgressIndicator>(
+      find.descendant(
+        of: find.byType(AreaUpdateChip),
+        matching: find.byType(CircularProgressIndicator),
+      ),
+    );
+    expect(progress.value, 0.25);
+
+    await tester.tap(find.byTooltip(l10n.routingTilesCancelDownload));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text(l10n.routingTilesCancelDownload),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.mapOfflineDownloading), findsNothing);
+    expect(find.text(l10n.mapAreaUpdate), findsOneWidget);
+    expect(_updateChip, findsOneWidget);
     await _unmount(tester);
   });
 

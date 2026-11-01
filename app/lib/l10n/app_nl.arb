@@ -932,6 +932,8 @@
   "mapLayersStops": "Stopplekken",
   "mapStopsNotDownloaded": "Geen stopplekken hier – gebied niet gedownload",
   "mapStopsDownload": "Downloaden",
+  "mapAreaUpdateAvailable": "Nieuwe kaartgegevens voor dit gebied",
+  "mapAreaUpdate": "Bijwerken",
   "mapAreaHintHide": "Verbergen",
   "mapLayersStopsPlanHint": "Zichtbaar als je inzoomt · tik erop om ernaartoe te plannen",
   "mapLayersStopsRideHint": "Tik erop om hem op de kaart te zien",

@@ -932,6 +932,8 @@
   "mapLayersStops": "Soste",
   "mapStopsNotDownloaded": "Nessuna sosta qui – area non scaricata",
   "mapStopsDownload": "Scarica",
+  "mapAreaUpdateAvailable": "Nuovi dati della mappa per quest'area",
+  "mapAreaUpdate": "Aggiorna",
   "mapAreaHintHide": "Nascondi",
   "mapLayersStopsPlanHint": "Visibili ingrandendo · toccane una per pianificare fin lì",
   "mapLayersStopsRideHint": "Toccane una per vederla sulla mappa",

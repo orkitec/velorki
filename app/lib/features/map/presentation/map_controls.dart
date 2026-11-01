@@ -5,22 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
-import '../../../app/platform_features.dart';
 import '../../../app/theme.dart';
-import '../../../core/db/database.dart';
 import '../../../core/permissions/location_permission.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../offline/application/visible_area_status.dart';
+import '../../offline/application/watch_visible_area_status.dart';
 import '../../offline/presentation/offline_screen.dart';
-import '../../routing_tiles/application/tile_download_controller.dart';
-import '../../routing_tiles/data/routing_tiles_repository.dart';
-import '../../routing_tiles/data/segments_manifest_service.dart';
-import '../../routing_tiles/domain/routing_tile.dart';
-import '../../routing_tiles/presentation/routing_tiles_screen.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/wide_panel.dart';
 import '../data/map_preferences.dart';
-import '../data/offline_regions_repository.dart';
 import '../data/position_provider.dart';
 import '../data/weather_map_preferences.dart';
 import '../domain/map_controller.dart';
@@ -386,30 +379,7 @@ class _DownloadButtonState extends ConsumerState<_DownloadButton> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final map = widget.controller;
-    final mapAreas = ref.watch(platformFeaturesProvider).offlineMapAreas;
-    final repository = ref.watch(routingTilesRepositoryProvider).value;
-    final status = visibleAreaStatus(
-      bounds: map?.visibleBounds,
-      tiles: ref.watch(routingTilesProvider).value ?? const <RoutingTile>[],
-      hasGazetteer: (tile) =>
-          repository?.gazetteerFileFor(tile).existsSync() ?? false,
-      queue: ref.watch(tileDownloadQueueProvider),
-      // Only a manifest already read this session: the button never asks
-      // the mirror itself. The camera's next rest picks one up.
-      manifest: ref.exists(segmentsManifestSourceProvider)
-          ? ref.watch(segmentsManifestSourceProvider).value
-          : null,
-      mapProgress: mapAreas
-          ? ref.watch(offlineDownloadControllerProvider)?.fraction
-          : null,
-      // Watched only when asked, once the routing data is all there: a map
-      // with nothing downloaded keeps no watch on the map areas.
-      regions: mapAreas
-          ? () =>
-                ref.watch(offlineRegionsProvider).value ??
-                const <OfflineRegionRow>[]
-          : null,
-    );
+    final status = watchVisibleAreaStatus(ref, map);
     final ring = _ControlSize.of(context) < mapControlButtonSize ? 16.0 : 18.0;
     return _ControlButton(
       icon: status.state == VisibleAreaState.downloaded
@@ -456,11 +426,9 @@ class _DownloadButtonState extends ConsumerState<_DownloadButton> {
             onPressed: () => _openOffline(navigator, map),
           ),
         );
-      case VisibleAreaState.update:
-        unawaited(
-          confirmTileDownload(context, ref, status.stale, refreshStale: true),
-        );
-      case VisibleAreaState.busy || VisibleAreaState.missing:
+      case VisibleAreaState.update ||
+          VisibleAreaState.busy ||
+          VisibleAreaState.missing:
         _openOffline(Navigator.of(context), map);
     }
   }

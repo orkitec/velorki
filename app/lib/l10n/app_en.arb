@@ -4735,6 +4735,14 @@
   "@mapStopsDownload": {
     "description": "Action at the end of the no-stops-here chip; opens the download for the area on screen"
   },
+  "mapAreaUpdateAvailable": "New map data for this area",
+  "@mapAreaUpdateAvailable": {
+    "description": "Chip over the map when everything for the area on screen is downloaded but the mirror has changed data for it; a tap offers the update"
+  },
+  "mapAreaUpdate": "Update",
+  "@mapAreaUpdate": {
+    "description": "Action at the end of the new-map-data chip; downloads the changed offline data for the area on screen"
+  },
   "mapAreaHintHide": "Hide",
   "@mapAreaHintHide": {
     "description": "Tooltip and screen-reader label of the close button on the area-not-downloaded chip over the map; hides the chip for that area until the app restarts"

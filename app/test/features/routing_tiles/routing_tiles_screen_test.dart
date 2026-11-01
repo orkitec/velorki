@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -30,15 +31,21 @@ final Uint8List _body = Uint8List.fromList(
 
 final Uint8List _gaz = Uint8List.fromList(utf8.encode('gazetteer-body'));
 
-Map<String, Object?> _manifest({bool gazetteer = false}) => <String, Object?>{
+Map<String, Object?> _manifest({
+  bool gazetteer = false,
+  String? contentSha256,
+  String? gazetteerContentSha256,
+}) => <String, Object?>{
   'formatVersion': '11.2',
   'tiles': <Object?>[
     <String, Object?>{
       'tile': 'E10_N45',
       'bytes': _body.length,
       'updatedAt': '2026-09-12T01:03:00Z',
+      'contentSha256': ?contentSha256,
       if (gazetteer)
         'gazetteer': <String, Object?>{
+          'contentSha256': ?gazetteerContentSha256,
           'bytes': _gaz.length,
           'sha256': (Sha256()..add(_gaz)).hexDigest(),
           'updatedAt': '2026-10-02T18:53:15Z',
@@ -57,18 +64,28 @@ Map<String, Object?> _manifest({bool gazetteer = false}) => <String, Object?>{
 class TilesHarness {
   /// Wires the fakes together; with [gazetteer] the mirror offers one for
   /// `E10_N45`.
-  TilesHarness({bool gazetteer = false})
-    : adapter = FakeSegmentsAdapter((options) {
-        if (options.uri.path.endsWith('manifest.json')) {
-          return FakeSegmentsResponse.json(_manifest(gazetteer: gazetteer));
-        }
-        return FakeSegmentsResponse.bytes(
-          options.uri.path.endsWith('.gaz') ? _gaz : _body,
-        );
-      }),
-      db = VelorkiDatabase.memory(),
-      storage = BrouterStorage(tempDir('velorki-screen')) {
+  TilesHarness({
+    bool gazetteer = false,
+    String? contentSha256,
+    String? gazetteerContentSha256,
+  }) : adapter = FakeSegmentsAdapter((options) {
+         if (options.uri.path.endsWith('manifest.json')) {
+           return FakeSegmentsResponse.json(
+             _manifest(
+               gazetteer: gazetteer,
+               contentSha256: contentSha256,
+               gazetteerContentSha256: gazetteerContentSha256,
+             ),
+           );
+         }
+         return FakeSegmentsResponse.bytes(
+           options.uri.path.endsWith('.gaz') ? _gaz : _body,
+         );
+       }),
+       db = VelorkiDatabase.memory(),
+       storage = BrouterStorage(tempDir('velorki-screen')) {
     storage.segments.createSync(recursive: true);
+    storage.gazetteer.createSync(recursive: true);
     storage.profiles.createSync(recursive: true);
   }
 
@@ -108,13 +125,19 @@ class TilesHarness {
     TileName tile, {
     String body = 'an-older-build',
     DateTime? updatedAt,
+    String? contentSha256,
+    String? gazetteerContentSha256,
+    bool withGazetteer = false,
   }) async {
     tileFile(tile).writeAsStringSync(body);
+    if (withGazetteer) gazetteerFile(tile).writeAsStringSync('an-older-gaz');
     await db.routingTilesDao.markReady(
       tile.name,
       bytes: body.length,
       updatedAt: updatedAt ?? DateTime.utc(2026, 9, 1),
       formatVersion: '11.2',
+      contentSha256: Value(contentSha256),
+      gazetteerContentSha256: Value(gazetteerContentSha256),
     );
   }
 }
@@ -126,8 +149,14 @@ Future<TilesHarness> pumpTiles(
   List<Override> extraOverrides = const <Override>[],
   Future<void> Function(TilesHarness harness)? seed,
   bool gazetteer = false,
+  String? contentSha256,
+  String? gazetteerContentSha256,
 }) async {
-  final harness = TilesHarness(gazetteer: gazetteer);
+  final harness = TilesHarness(
+    gazetteer: gazetteer,
+    contentSha256: contentSha256,
+    gazetteerContentSha256: gazetteerContentSha256,
+  );
   addTearDown(harness.db.close);
   await seed?.call(harness);
   await tester.binding.setSurfaceSize(const Size(1080, 2000));
@@ -343,6 +372,83 @@ void main() {
     expect(find.textContaining(l10n.routingTilesStateReady), findsOneWidget);
     expect(find.textContaining(l10n.routingTilesStateStale), findsNothing);
     expect(find.text(l10n.routingTilesUpdate), findsNothing);
+    await unmountTiles(tester);
+  });
+
+  testWidgets('a rebuilt mirror tile with the same content is no update', (
+    tester,
+  ) async {
+    // The mirror's build is newer than the copy's, as it is every month.
+    final harness = await pumpTiles(
+      tester,
+      contentSha256: 'aa',
+      seed: (harness) => harness.seedTile(_tile, contentSha256: 'aa'),
+    );
+
+    expect(find.textContaining(l10n.routingTilesStateReady), findsOneWidget);
+    expect(find.textContaining(l10n.routingTilesStateStale), findsNothing);
+    expect(find.text(l10n.routingTilesUpdate), findsNothing);
+    expect(harness.tileFile(_tile).readAsStringSync(), 'an-older-build');
+    await unmountTiles(tester);
+  });
+
+  testWidgets('a tile whose content differs from the mirror\'s is stale', (
+    tester,
+  ) async {
+    await pumpTiles(
+      tester,
+      contentSha256: 'bb',
+      seed: (harness) => harness.seedTile(
+        _tile,
+        contentSha256: 'aa',
+        // As new as the mirror: only the digest says it changed.
+        updatedAt: DateTime.utc(2026, 9, 12, 1, 3),
+      ),
+    );
+
+    expect(find.textContaining(l10n.routingTilesStateStale), findsOneWidget);
+    expect(find.text(l10n.routingTilesUpdate), findsOneWidget);
+    await unmountTiles(tester);
+  });
+
+  testWidgets('a changed gazetteer alone is updated without the tile', (
+    tester,
+  ) async {
+    final harness = await pumpTiles(
+      tester,
+      gazetteer: true,
+      contentSha256: 'aa',
+      gazetteerContentSha256: 'g2',
+      seed: (harness) => harness.seedTile(
+        _tile,
+        contentSha256: 'aa',
+        gazetteerContentSha256: 'g1',
+        withGazetteer: true,
+      ),
+    );
+
+    expect(find.textContaining(l10n.routingTilesStateStale), findsOneWidget);
+    await tester.tap(find.text(l10n.routingTilesUpdate));
+    await tester.pump();
+    await runDownloads(
+      tester,
+      until: () => find
+          .textContaining(l10n.routingTilesStateReady)
+          .evaluate()
+          .isNotEmpty,
+    );
+
+    // No dialog for a few megabytes, and the rd5 is left alone.
+    expect(
+      harness.adapter.requests.map((r) => r.uri.path.split('/').last),
+      isNot(contains('E10_N45.rd5')),
+    );
+    expect(harness.gazetteerFile(_tile).readAsBytesSync(), _gaz);
+    expect(harness.tileFile(_tile).readAsStringSync(), 'an-older-build');
+    expect(find.text(l10n.routingTilesUpdate), findsNothing);
+    final row = await harness.db.routingTilesDao.tileByName('E10_N45');
+    expect(row!.gazetteerContentSha256, 'g2');
+    expect(row.contentSha256, 'aa');
     await unmountTiles(tester);
   });
 

@@ -35,6 +35,7 @@ import '../../map/presentation/map_controls.dart'
 import '../../map/presentation/visible_map_padding.dart';
 import '../../map/presentation/shared_map_host.dart';
 import '../../offline/application/area_download_activity.dart';
+import '../../offline/presentation/area_update_chip.dart';
 import '../../offline/presentation/download_visible_area.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../search/domain/search_result.dart';
@@ -1597,7 +1598,15 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           }
           _chipShown = shown;
           return chip == null
-              ? const SizedBox.shrink()
+              // Nothing missing here: the area may still have changed data.
+              ? AreaUpdateChip(
+                  controller: _map,
+                  padding: EdgeInsetsDirectional.only(
+                    top: 10,
+                    start: controlsAtLeft ? besideControls : 0,
+                    end: controlsAtLeft ? 0 : besideControls,
+                  ),
+                )
               : Padding(
                   // Clear of the map's control column at the side: a long
                   // message wraps rather than run over its top button.

@@ -16,6 +16,7 @@ class StopsDownloadChip extends StatelessWidget {
     this.downloading = false,
     this.progress,
     this.message,
+    this.actionLabel,
     this.onClose,
     this.onCancel,
     super.key,
@@ -33,6 +34,9 @@ class StopsDownloadChip extends StatelessWidget {
   /// What is missing; the stops by default. The cycle map says the same of
   /// itself.
   final String? message;
+
+  /// The action beside the message; "Download" by default.
+  final String? actionLabel;
 
   /// Called by the close button; no close button when `null`.
   final VoidCallback? onClose;
@@ -92,7 +96,7 @@ class StopsDownloadChip extends StatelessWidget {
                     ),
                     if (!downloading)
                       Text(
-                        l10n.mapStopsDownload,
+                        actionLabel ?? l10n.mapStopsDownload,
                         style: theme.textTheme.labelLarge?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.w700,

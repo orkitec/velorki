@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart' show Value;
+import 'package:flutter/foundation.dart';
 import 'package:velorki_io/io.dart';
 
 import 'package:path/path.dart' as p;
@@ -10,6 +12,7 @@ import '../../../core/db/daos/routing_tiles_dao.dart';
 import '../../../core/db/database.dart';
 import '../domain/routing_tile.dart';
 import 'brouter_storage.dart';
+import 'content_digest.dart';
 
 part 'routing_tiles_repository.g.dart';
 
@@ -156,13 +159,45 @@ class RoutingTilesRepository {
   }
 
   /// Records a finished download of [entry]; [bytes] is the real file size.
-  Future<void> markReady(SegmentEntry entry, {required int bytes}) async {
+  ///
+  /// The entry's content digest is recorded with the tile, `null` when the
+  /// mirror has none. The gazetteer's is recorded only when [gazetteerFetched]:
+  /// otherwise the `.gaz` beside the tile is still the old one (or none), and
+  /// its digest stays as it was.
+  Future<void> markReady(
+    SegmentEntry entry, {
+    required int bytes,
+    bool gazetteerFetched = false,
+  }) async {
     await _dao.markReady(
       entry.tile.name,
       bytes: bytes,
       updatedAt: entry.updatedAt ?? DateTime.now().toUtc(),
       formatVersion: entry.formatVersion ?? '',
+      contentSha256: Value(entry.contentSha256),
+      gazetteerContentSha256: gazetteerFetched
+          ? Value(entry.gazetteer?.contentSha256)
+          : const Value.absent(),
     );
+    await load();
+  }
+
+  /// Records that [entry]'s gazetteer was fetched on its own, and clears the
+  /// tile's `stale` mark when that was all the mirror had newer.
+  Future<void> markGazetteerFetched(SegmentEntry entry) async {
+    await _dao.setGazetteerDigest(
+      entry.tile.name,
+      entry.gazetteer?.contentSha256,
+    );
+    final row = await _dao.tileByName(entry.tile.name);
+    if (row != null) {
+      final tile = RoutingTile.fromRow(row);
+      // Only ever clears the mark: whether the rd5 is outdated is the
+      // manifest's to say, not a gazetteer's arrival.
+      if (tile.isStale && !tile.isOutdatedBy(entry)) {
+        await _setStale(tile, false);
+      }
+    }
     await load();
   }
 
@@ -191,8 +226,9 @@ class RoutingTilesRepository {
     await load();
   }
 
-  /// Marks every usable tile the mirror has rebuilt since it was downloaded
-  /// as `stale`, and clears the mark again when it no longer applies.
+  /// Marks every usable tile whose content differs from the mirror's as
+  /// `stale`, and clears the mark again when it no longer applies (see
+  /// [RoutingTile.isOutdatedBy] for what counts).
   ///
   /// Returns the tiles that are now stale.
   Future<List<TileName>> applyManifest(SegmentsManifest manifest) async {
@@ -201,11 +237,63 @@ class RoutingTilesRepository {
       if (!tile.isUsable) continue;
       final outdated = tile.isOutdatedBy(manifest[tile.tile]);
       if (outdated) stale.add(tile.tile);
-      final wanted = outdated ? RoutingTileState.stale : RoutingTileState.ready;
-      if (tile.state != wanted) await _dao.setState(tile.name, wanted);
+      await _setStale(tile, outdated);
     }
     await load();
     return stale;
+  }
+
+  Future<void> _setStale(RoutingTile tile, bool outdated) async {
+    final wanted = outdated ? RoutingTileState.stale : RoutingTileState.ready;
+    if (tile.state != wanted) await _dao.setState(tile.name, wanted);
+  }
+
+  Future<void>? _backfill;
+
+  /// Works out the content digests the device does not know yet, for the
+  /// usable tiles whose [manifest] entry carries one: the digest of the rd5
+  /// and of the `.gaz` beside it, read from the files, once. Then the
+  /// manifest is applied again, since those digests are what decides.
+  ///
+  /// Meant to run in the background; a file that cannot be read keeps its
+  /// digest unknown and is tried again with the next manifest. Runs one at a
+  /// time: a call while another is running joins it.
+  Future<void> backfillDigests(SegmentsManifest manifest) =>
+      _backfill ??= _runBackfill(manifest).whenComplete(() => _backfill = null);
+
+  Future<void> _runBackfill(SegmentsManifest manifest) async {
+    var filled = false;
+    for (final tile in await tiles()) {
+      if (!tile.isUsable) continue;
+      final entry = manifest[tile.tile];
+      if (entry == null) continue;
+      String? rd5;
+      String? gaz;
+      try {
+        final file = fileFor(tile.tile);
+        if (tile.contentSha256 == null &&
+            entry.contentSha256 != null &&
+            file.existsSync()) {
+          rd5 = await rd5ContentDigest(file.path);
+        }
+        final gazFile = gazetteerFileFor(tile.tile);
+        if (tile.gazetteerContentSha256 == null &&
+            entry.gazetteer?.contentSha256 != null &&
+            gazFile.existsSync()) {
+          gaz = await gazetteerContentDigest(gazFile.path);
+        }
+      } on Object catch (e) {
+        debugPrint('velorki: no content digest for ${tile.tile}: $e');
+      }
+      if (rd5 == null && gaz == null) continue;
+      await _dao.fillDigests(
+        tile.name,
+        contentSha256: rd5,
+        gazetteerContentSha256: gaz,
+      );
+      filled = true;
+    }
+    if (filled) await applyManifest(manifest);
   }
 
   /// Stops watching the table.

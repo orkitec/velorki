@@ -138,6 +138,37 @@ void main() {
       expect(shard.withBaseUrl(null), plain);
     });
 
+    test('reads the content digests of a tile and of its gazetteer', () {
+      final e = SegmentsManifest.parse(
+        '[{"tile": "E5_N45", "bytes": 1, "sha256": "file", '
+        '"contentSha256": "aa", "gazetteer": {"bytes": 2, "sha256": "abc", '
+        '"contentSha256": "gg"}}]',
+      ).tiles.single;
+
+      expect(e.contentSha256, 'aa');
+      expect(e.gazetteer!.contentSha256, 'gg');
+      expect(e.withBaseUrl('https://mirror.test/s2').contentSha256, 'aa');
+      expect(
+        e,
+        isNot(
+          SegmentsManifest.parse(
+            '[{"tile": "E5_N45", "bytes": 1, "sha256": "file", '
+            '"gazetteer": {"bytes": 2, "sha256": "abc"}}]',
+          ).tiles.single,
+        ),
+      );
+    });
+
+    test('an older manifest has no digests', () {
+      final e = SegmentsManifest.parse(
+        '[{"tile": "E5_N45", "bytes": 1, "gazetteer": '
+        '{"bytes": 2, "sha256": "abc"}}]',
+      ).tiles.single;
+
+      expect(e.contentSha256, isNull);
+      expect(e.gazetteer!.contentSha256, isNull);
+    });
+
     test('a parsed manifest names no base URL of its own', () {
       final e = SegmentsManifest.parse(
         '[{"tile": "E5_N45", "bytes": 1, "gazetteer": '

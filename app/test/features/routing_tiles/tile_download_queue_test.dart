@@ -28,21 +28,28 @@ final Uint8List _body = Uint8List.fromList(utf8.encode('rd5-body'));
 
 final Uint8List _gaz = Uint8List.fromList(utf8.encode('gazetteer-body'));
 
-SegmentEntry _entry(TileName tile, {int? bytes, bool gazetteer = false}) =>
-    SegmentEntry(
-      tile: tile,
-      bytes: bytes ?? _body.length,
-      updatedAt: DateTime.utc(2026, 9, 1),
-      formatVersion: '11.2',
-      gazetteer: gazetteer
-          ? GazetteerEntry(
-              tile: tile,
-              bytes: _gaz.length,
-              sha256: (Sha256()..add(_gaz)).hexDigest(),
-              updatedAt: DateTime.utc(2026, 9, 16),
-            )
-          : null,
-    );
+SegmentEntry _entry(
+  TileName tile, {
+  int? bytes,
+  bool gazetteer = false,
+  String? contentSha256,
+  String? gazetteerContentSha256,
+}) => SegmentEntry(
+  tile: tile,
+  bytes: bytes ?? _body.length,
+  updatedAt: DateTime.utc(2026, 9, 1),
+  formatVersion: '11.2',
+  contentSha256: contentSha256,
+  gazetteer: gazetteer
+      ? GazetteerEntry(
+          tile: tile,
+          bytes: _gaz.length,
+          sha256: (Sha256()..add(_gaz)).hexDigest(),
+          updatedAt: DateTime.utc(2026, 9, 16),
+          contentSha256: gazetteerContentSha256,
+        )
+      : null,
+);
 
 /// A mirror that serves the tile and its gazetteer.
 FakeSegmentsAdapter _servingBoth() => FakeSegmentsAdapter(
@@ -417,6 +424,46 @@ void main() {
     final state = container.read(tileDownloadQueueProvider);
     expect(state.finished, <TileName>[_first]);
     expect(state.failure, isNull);
+  });
+
+  test('the content digests of what arrived are recorded with it', () async {
+    final container = await containerFor(_servingBoth());
+    final repository = await container.read(
+      routingTilesRepositoryProvider.future,
+    );
+
+    await container.read(tileDownloadQueueProvider.notifier).enqueue(
+      <SegmentEntry>[
+        _entry(
+          _first,
+          gazetteer: true,
+          contentSha256: 'aa',
+          gazetteerContentSha256: 'g1',
+        ),
+      ],
+    );
+    expect(repository.cached.single.contentSha256, 'aa');
+    expect(repository.cached.single.gazetteerContentSha256, 'g1');
+
+    await container
+        .read(tileDownloadQueueProvider.notifier)
+        .enqueue(
+          const <SegmentEntry>[],
+          gazetteersOnly: <SegmentEntry>[
+            _entry(
+              _first,
+              gazetteer: true,
+              contentSha256: 'bb',
+              gazetteerContentSha256: 'g2',
+            ),
+          ],
+        );
+    expect(repository.cached.single.gazetteerContentSha256, 'g2');
+    expect(
+      repository.cached.single.contentSha256,
+      'aa',
+      reason: 'the rd5 was not fetched',
+    );
   });
 
   test('a gazetteer-only fetch that fails changes nothing', () async {

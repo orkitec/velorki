@@ -932,6 +932,8 @@
   "mapLayersStops": "Paradas",
   "mapStopsNotDownloaded": "No hay paradas aquí – zona no descargada",
   "mapStopsDownload": "Descargar",
+  "mapAreaUpdateAvailable": "Nuevos datos de mapa para esta zona",
+  "mapAreaUpdate": "Actualizar",
   "mapAreaHintHide": "Ocultar",
   "mapLayersStopsPlanHint": "Visibles al acercar · toca una para planificar hasta ella",
   "mapLayersStopsRideHint": "Toca una para verla en el mapa",

@@ -41,6 +41,7 @@ import '../../navigation/presentation/turn_banner.dart';
 import '../../map/domain/visible_map.dart';
 import '../../navigation/presentation/turn_phrases.dart';
 import '../../offline/application/area_download_activity.dart';
+import '../../offline/presentation/area_update_chip.dart';
 import '../../offline/presentation/download_visible_area.dart';
 import '../../library/application/library_card.dart';
 import '../../planner/application/planner_controller.dart';
@@ -2114,6 +2115,22 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                                           onTap: _onStopAheadTapped,
                                         ),
                                 ),
+                              // Nothing missing here: the area may still have
+                              // changed data.
+                              ListenableBuilder(
+                                listenable: _stops,
+                                builder: (context, _) =>
+                                    (stopsAhead || stopsWanted.shown) &&
+                                        _stops.needsDownload &&
+                                        !dismissedAreas.contains(
+                                          _stops.missingArea,
+                                        )
+                                    ? const SizedBox.shrink()
+                                    : AreaUpdateChip(
+                                        controller: _map,
+                                        padding: const EdgeInsets.only(top: 8),
+                                      ),
+                              ),
                               const WeatherMapHints(
                                 padding: EdgeInsets.only(top: 8),
                               ),

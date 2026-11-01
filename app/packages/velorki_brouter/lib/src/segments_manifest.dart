@@ -15,6 +15,7 @@ class GazetteerEntry {
     required this.bytes,
     required this.sha256,
     this.updatedAt,
+    this.contentSha256,
   });
 
   /// The tile this gazetteer belongs to.
@@ -29,6 +30,11 @@ class GazetteerEntry {
   /// When the mirror last built the file, in UTC, or `null` when unknown.
   final DateTime? updatedAt;
 
+  /// Digest of what the file says rather than of its bytes (`built_at` and
+  /// page layout left out), or `null` when the mirror does not publish one.
+  /// It changes only when the content does.
+  final String? contentSha256;
+
   /// The `.gaz` file name.
   String get fileName => tile.gazetteerFileName;
 
@@ -39,10 +45,12 @@ class GazetteerEntry {
           other.tile == tile &&
           other.bytes == bytes &&
           other.sha256 == sha256 &&
-          other.updatedAt == updatedAt;
+          other.updatedAt == updatedAt &&
+          other.contentSha256 == contentSha256;
 
   @override
-  int get hashCode => Object.hash(tile, bytes, sha256, updatedAt);
+  int get hashCode =>
+      Object.hash(tile, bytes, sha256, updatedAt, contentSha256);
 
   @override
   String toString() => 'GazetteerEntry($fileName, $bytes B, $updatedAt)';
@@ -57,6 +65,7 @@ class SegmentEntry {
     this.updatedAt,
     this.formatVersion,
     this.sha256,
+    this.contentSha256,
     this.gazetteer,
     this.baseUrl,
   });
@@ -80,6 +89,11 @@ class SegmentEntry {
   /// Hex SHA-256 of the file, when the mirror publishes one
   /// (`MANIFEST_SHA256=1` in the updater).
   final String? sha256;
+
+  /// Digest of the tile's content with the rd5 header's creation time left
+  /// out, or `null` when the mirror does not publish one. A rebuild of
+  /// unchanged data keeps it, so it is what says an update is real.
+  final String? contentSha256;
 
   /// The offline gazetteer for this tile, when the mirror publishes one.
   ///
@@ -110,6 +124,7 @@ class SegmentEntry {
     updatedAt: updatedAt,
     formatVersion: formatVersion,
     sha256: sha256,
+    contentSha256: contentSha256,
     gazetteer: gazetteer,
     baseUrl: baseUrl,
   );
@@ -123,6 +138,7 @@ class SegmentEntry {
           other.updatedAt == updatedAt &&
           other.formatVersion == formatVersion &&
           other.sha256 == sha256 &&
+          other.contentSha256 == contentSha256 &&
           other.gazetteer == gazetteer &&
           other.baseUrl == baseUrl;
 
@@ -133,6 +149,7 @@ class SegmentEntry {
     updatedAt,
     formatVersion,
     sha256,
+    contentSha256,
     gazetteer,
     baseUrl,
   );
@@ -338,6 +355,7 @@ class SegmentsManifest {
           updatedAt: _dateTime(row['updatedAt'] ?? row['updated_at']),
           formatVersion: _string(row['formatVersion']) ?? fallback,
           sha256: _string(row['sha256']),
+          contentSha256: _string(row['contentSha256']),
           gazetteer: _gazetteer(tile, row['gazetteer']),
         ),
       );
@@ -360,6 +378,7 @@ class SegmentsManifest {
       bytes: _int(value['bytes'] ?? value['size']) ?? 0,
       sha256: sha,
       updatedAt: _dateTime(value['updatedAt'] ?? value['updated_at']),
+      contentSha256: _string(value['contentSha256']),
     );
   }
 

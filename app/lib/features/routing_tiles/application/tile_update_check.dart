@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -82,8 +84,10 @@ final tileUpdateCheckerProvider = Provider<TileUpdateChecker>(
     tiles: () async =>
         (await ref.read(routingTilesRepositoryProvider.future)).tiles(),
     fetch: () => ref.read(segmentsManifestServiceProvider).fetch(),
-    apply: (manifest) async =>
-        (await ref.read(routingTilesRepositoryProvider.future))
-            .applyManifest(manifest),
+    apply: (manifest) async {
+      final repository = await ref.read(routingTilesRepositoryProvider.future);
+      await repository.applyManifest(manifest);
+      unawaited(repository.backfillDigests(manifest));
+    },
   ),
 );

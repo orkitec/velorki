@@ -170,9 +170,10 @@ class TileDownloadQueue extends _$TileDownloadQueue {
 
         // Only the missing gazetteer: the rd5 and the row stay as they are.
         if (gazetteerOnly) {
-          await _fetchGazetteer(downloader, entry, token);
+          final fetched = await _fetchGazetteer(downloader, entry, token);
           if (_disposed) return;
           if (token.isCancelled) break;
+          if (fetched) await repository.markGazetteerFetched(entry);
           state = state.copyWith(
             finished: <TileName>[...state.finished, entry.tile],
           );
@@ -189,8 +190,12 @@ class TileDownloadQueue extends _$TileDownloadQueue {
         }
         try {
           final file = await downloader.download(entry, cancelToken: token);
-          await _fetchGazetteer(downloader, entry, token);
-          await repository.markReady(entry, bytes: await file.length());
+          final fetched = await _fetchGazetteer(downloader, entry, token);
+          await repository.markReady(
+            entry,
+            bytes: await file.length(),
+            gazetteerFetched: fetched,
+          );
           // A ride whose track the old tiles could not follow gets another
           // go with the new ones, next time its page opens.
           await ref.read(ridesDaoProvider).clearUnmatchedSurfaces();
@@ -227,16 +232,20 @@ class TileDownloadQueue extends _$TileDownloadQueue {
   /// `.rd5`. A failure is only logged: the tile itself is complete
   /// and routable, and place search simply stays online for that area.
   /// Downloading the same (already ready) tile again retries it.
-  Future<void> _fetchGazetteer(
+  ///
+  /// Returns whether the `.gaz` arrived.
+  Future<bool> _fetchGazetteer(
     TileDownloader downloader,
     SegmentEntry entry,
     CancelToken token,
   ) async {
-    if (entry.gazetteer == null) return;
+    if (entry.gazetteer == null) return false;
     try {
       await downloader.downloadGazetteer(entry, cancelToken: token);
+      return true;
     } on TileDownloadException catch (e) {
       debugPrint('velorki: no offline search for ${entry.tile}: ${e.message}');
+      return false;
     }
   }
 }
