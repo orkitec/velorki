@@ -149,6 +149,18 @@ const Map<String, String> transliteration = <String, String>{
   'κ': 'k',
   'λ': 'l',
   'μ': 'm',
+  // The micro sign, which names use for a Greek mu ("µHotel"); the
+  // index's tokenizer folds it to μ, so it is spelled as μ is.
+  'µ': 'm',
+  // Greek symbol forms the tokenizer folds to their letters.
+  '\u03d0': 'v',
+  '\u03d1': 'th',
+  '\u03d5': 'f',
+  '\u03d6': 'p',
+  '\u03f0': 'k',
+  '\u03f1': 'r',
+  '\u03f5': 'e',
+  '\u1fbe': 'i',
   'ν': 'n',
   'ξ': 'x',
   'ο': 'o',

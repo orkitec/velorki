@@ -1287,9 +1287,35 @@ class GazetteerTest(unittest.TestCase):
             ("Μπάρι Ντόρα", "bari dora"),
             ("Λάμπρος", "lampros"),
             ("Mühleholz St. Florin", "mühleholz st. florin"),
+            # The micro sign, which the tokenizer folds to a Greek mu: a
+            # Sri Lankan "µHotel" stopped the November 2026 publish.
+            ("Old Lanka µHotel", "old lanka mhotel"),
         ):
             self.assertEqual(translit.translit(name), latin, name)
         self.assertTrue(all(len(letter) == 1 for letter in translit.LETTERS))
+
+    def test_nothing_the_tokenizer_folds_escapes_the_table(self):
+        """A character the index's tokenizer folds to a letter of the table
+        (the micro sign to a Greek mu) must be in the table itself, or the
+        index holds a non-Latin term and check.py stops the publish."""
+        letters = set(translit.LETTERS) | set(translit.LETTERS_UK)
+        db = sqlite3.connect(":memory:")
+        db.execute(
+            "CREATE VIRTUAL TABLE w USING fts5(x, tokenize='unicode61 remove_diacritics 2')"
+        )
+        db.execute("CREATE VIRTUAL TABLE wv USING fts5vocab(w, 'row')")
+        escaped = []
+        # Latin-1 to Greek Extended: where such look-alikes live.
+        for cp in list(range(0x80, 0x530)) + list(range(0x1F00, 0x2000)):
+            c = chr(cp)
+            if c in letters:
+                continue
+            db.execute("DELETE FROM w")
+            db.execute("INSERT INTO w(x) VALUES (?)", ("a" + translit.translit(c) + "a",))
+            for (term,) in db.execute("SELECT term FROM wv"):
+                if not letters.isdisjoint(term):
+                    escaped.append(hex(cp))
+        self.assertEqual(escaped, [])
         self.assertTrue(all(letter == letter.lower() for letter in translit.LETTERS))
 
     def test_translit_alt_is_the_ukrainian_spelling(self) -> None:

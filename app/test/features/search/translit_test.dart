@@ -28,6 +28,11 @@ void main() {
     expect(foldForMatch('Ђурђевдан'), 'djurdjevdan');
     expect(foldForMatch('бул. Витоша'), 'bul. vitosha');
     expect(transliterate('vaduz'), 'vaduz', reason: 'Latin is left alone');
+    expect(
+      foldForMatch('Old Lanka µHotel'),
+      'old lanka mhotel',
+      reason: 'the micro sign is a mu',
+    );
   });
 
   test('a Ukrainian name reads both ways', () {
