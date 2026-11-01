@@ -132,7 +132,8 @@ class RoutingTilesScreen extends ConsumerWidget {
   }
 }
 
-/// Asks whether [wanted] should be downloaded and enqueues them.
+/// Asks whether [wanted] should be downloaded and enqueues them, returning
+/// once they are queued.
 ///
 /// What a download of [wanted] would fetch: the tiles not yet on the device
 /// that this build can read, those it cannot, and the gazetteers missing
@@ -314,8 +315,10 @@ Future<void> confirmTileDownload(
       ],
     ),
   );
+  // Returns once the tiles are queued, not when they are in: the queue's
+  // state carries the progress to whoever shows it.
   if (confirmed ?? false) {
-    await queue.enqueue(entries, gazetteersOnly: plan.gazetteers);
+    unawaited(queue.enqueue(entries, gazetteersOnly: plan.gazetteers));
   }
 }
 

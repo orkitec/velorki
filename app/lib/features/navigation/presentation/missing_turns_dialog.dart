@@ -7,16 +7,15 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../routing_tiles/application/tile_download_controller.dart';
 import '../../routing_tiles/presentation/routing_tiles_screen.dart';
-import '../../shared/presentation/wide_panel.dart';
 import '../application/route_turn_generator.dart';
 
 /// Before a ride on [route]: when it has no turn instructions, asks whether
 /// to make them from the map, makes them, and says whether the ride may
 /// start. `false` when the rider backed out.
 ///
-/// "Create" first offers the download of the route's region when its tiles
-/// are not on the phone, the screen the planner offers for a route it
-/// cannot work out, and carries on once the rider is back from it.
+/// "Create" first offers the download of the route's tiles when they are
+/// not on the phone, the same question the planner asks for a route it
+/// cannot work out, and waits for the download in place.
 Future<bool> confirmRouteTurns(
   BuildContext context,
   WidgetRef ref,
@@ -48,11 +47,7 @@ Future<bool> confirmRouteTurns(
 
   final missing = ref.read(routeTurnGeneratorProvider).missingTiles(route);
   if (missing != null && missing.isNotEmpty) {
-    await Navigator.of(context, rootNavigator: true).push(
-      ColumnPageRoute<void>(
-        builder: (_) => RoutingTilesScreen(preselected: missing),
-      ),
-    );
+    await confirmTileDownload(context, ref, missing);
     if (!context.mounted) return false;
   }
 
@@ -119,7 +114,7 @@ class _CreatingTurnsDialogState extends ConsumerState<_CreatingTurnsDialog> {
   }
 
   Future<RouteTurnsOutcome> _make() async {
-    // A download the rider started on the tiles screen is waited for.
+    // A download the rider has just started is waited for.
     var waited = false;
     while (ref.read(tileDownloadQueueProvider).isRunning) {
       if (!_downloading) setState(() => _downloading = true);
@@ -149,6 +144,7 @@ class _CreatingTurnsDialogState extends ConsumerState<_CreatingTurnsDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final download = ref.watch(tileDownloadQueueProvider).progress?.fraction;
     return AlertDialog(
       scrollable: true,
       content: Column(
@@ -161,8 +157,9 @@ class _CreatingTurnsDialogState extends ConsumerState<_CreatingTurnsDialog> {
           const SizedBox(height: 16),
           ValueListenableBuilder<double?>(
             valueListenable: _generator.progressOf(widget.route.id),
-            builder: (context, progress, _) =>
-                LinearProgressIndicator(value: _downloading ? null : progress),
+            builder: (context, progress, _) => LinearProgressIndicator(
+              value: _downloading ? download : progress,
+            ),
           ),
         ],
       ),
