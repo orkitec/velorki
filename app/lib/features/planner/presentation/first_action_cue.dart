@@ -65,7 +65,8 @@ const Key firstActionCueRingKey = ValueKey<String>('firstActionCueRing');
 /// spreads once from the middle of the map. Stopped at once by the rider's
 /// first touch anywhere; the parts listen to [progress]. A run that ends by
 /// itself can ask to be played again once nothing has touched the screen
-/// for [idleAgainAfter].
+/// for [idleAgainAfter]. A chip that comes only after the run has started
+/// is taken in or given a pulse of its own ([chipAppeared]).
 class FirstActionCue {
   /// Creates the cue, at rest.
   FirstActionCue({required TickerProvider vsync})
@@ -96,8 +97,13 @@ class FirstActionCue {
   final ValueNotifier<bool> _running = ValueNotifier<bool>(false);
 
   /// Whether this run pulses the not-downloaded chip too.
-  bool get withChip => _withChip;
   bool _withChip = false;
+
+  /// Whether this run is the chip's pulse alone ([chipAppeared]).
+  bool _chipOnly = false;
+
+  /// Whether the chip's own pulse follows this run when it ends by itself.
+  bool _chipAfter = false;
 
   /// The whole of this run.
   Duration get _total => _controller.duration!;
@@ -113,11 +119,58 @@ class FirstActionCue {
   /// it ends by itself and nothing touches the screen for [idleAgainAfter]
   /// after, [again] is called, once.
   void play({bool withChip = false, VoidCallback? again}) {
+    _run(chipOnly: false, withChip: withChip, again: again);
+  }
+
+  /// Tells the cue the not-downloaded chip has just come, after the run
+  /// started without it. A run that has not yet reached where the chip's
+  /// step would be takes it in, the ring after it as in a run started with
+  /// the chip; one further on is followed by the chip's pulse alone, as long
+  /// as its step, once it ends by itself; and a cue waiting to play again
+  /// plays the chip's pulse at once, the wait starting over after it.
+  /// Anything else (a run that has the chip, a cue stopped or done) is left
+  /// as it is. Whether the chip is going to pulse.
+  bool chipAppeared() {
+    if (_chipOnly && _running.value) return false;
+    if (_running.value) {
+      if (_withChip || _chipAfter) return false;
+      final elapsed = _total * _controller.value;
+      if (elapsed < _chipPulseStart) {
+        _withChip = true;
+        final total = _durationFor(withChip: true);
+        _controller.duration = total;
+        // Where it was, in the longer run. Never back to 0, which would
+        // end the run: still at its start, it simply runs on from there.
+        final from = elapsed.inMicroseconds / total.inMicroseconds;
+        if (from > 0) {
+          _controller.forward(from: from);
+        } else {
+          _controller.forward();
+        }
+      } else {
+        _chipAfter = true;
+      }
+      return true;
+    }
+    if (_idle == null) return false;
+    _run(chipOnly: true, withChip: true, again: _again);
+    return true;
+  }
+
+  void _run({
+    required bool chipOnly,
+    required bool withChip,
+    VoidCallback? again,
+  }) {
     _idle?.cancel();
     _idle = null;
     _again = null;
+    _chipAfter = false;
+    _chipOnly = chipOnly;
     _withChip = withChip;
-    _controller.duration = _durationFor(withChip: withChip);
+    _controller.duration = chipOnly
+        ? _pulseDuration
+        : _durationFor(withChip: withChip);
     // First, while the jump back to the start may still end a run.
     _controller.forward(from: 0);
     _again = again;
@@ -129,6 +182,7 @@ class FirstActionCue {
   /// it again.
   void stop() {
     _again = null;
+    _chipAfter = false;
     _idle?.cancel();
     _idle = null;
     if (_running.value) {
@@ -145,7 +199,11 @@ class FirstActionCue {
   void _end(AnimationStatus status) {
     _running.value = false;
     final again = _again;
-    if (status == AnimationStatus.completed && again != null) {
+    if (status == AnimationStatus.completed && _chipAfter) {
+      // Ended by itself, and the chip came during it: its pulse now, the
+      // wait to play again after that.
+      _run(chipOnly: true, withChip: true, again: again);
+    } else if (status == AnimationStatus.completed && again != null) {
       // Ended by itself: still listening, a touch while it waits stops it.
       _idle = Timer(idleAgainAfter, () {
         _idle = null;
@@ -174,6 +232,7 @@ class FirstActionCue {
   /// Lets go of the ticker, the pointer and the wait.
   void dispose() {
     _again = null;
+    _chipAfter = false;
     _idle?.cancel();
     _idle = null;
     _unlisten();
@@ -193,22 +252,27 @@ class FirstActionCue {
   /// How far through its pulse the headline is at [t], or `null` outside
   /// it.
   double? headlinePulseAt(double t) =>
-      _phase(t, _headlinePulseStart, _pulseDuration);
+      _chipOnly ? null : _phase(t, _headlinePulseStart, _pulseDuration);
 
   /// How far through its pulse the field is at [t], or `null` outside it.
-  double? pulseAt(double t) => _phase(t, _pulseStart, _pulseDuration);
+  double? pulseAt(double t) =>
+      _chipOnly ? null : _phase(t, _pulseStart, _pulseDuration);
 
   /// How far through its pulse the chip is at [t], or `null` outside it
-  /// and in a run without the chip.
-  double? chipPulseAt(double t) =>
-      _withChip ? _phase(t, _chipPulseStart, _pulseDuration) : null;
+  /// and in a run without the chip. The chip's pulse alone is the whole
+  /// run.
+  double? chipPulseAt(double t) => !_withChip
+      ? null
+      : _phase(t, _chipOnly ? Duration.zero : _chipPulseStart, _pulseDuration);
 
   /// How far through its spread the ring is at [t], or `null` outside it.
-  double? ringAt(double t) => _phase(
-    t,
-    _withChip ? _ringStartWithChip : _ringStartWithoutChip,
-    _ringDuration,
-  );
+  double? ringAt(double t) => _chipOnly
+      ? null
+      : _phase(
+          t,
+          _withChip ? _ringStartWithChip : _ringStartWithoutChip,
+          _ringDuration,
+        );
 
   /// The cue handed down from [FirstActionCueScope], if any.
   static FirstActionCue? maybeOf(BuildContext context) =>

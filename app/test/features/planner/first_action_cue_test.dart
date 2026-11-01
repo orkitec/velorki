@@ -10,6 +10,7 @@ import 'package:velorki/features/planner/presentation/profile_chip_row.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
+import 'support/fakes.dart';
 import 'support/pump.dart';
 
 final Finder _headlinePulse = find.byKey(firstActionCueHeadlinePulseKey);
@@ -52,6 +53,40 @@ Future<void> _waitForRepeat(WidgetTester tester) async {
   expect(_drawn(), isEmpty);
   expect(tester.binding.hasScheduledFrame, isFalse);
   await tester.pump(const Duration(milliseconds: 600));
+}
+
+/// A harness whose map rests, from the start, over an area that is not
+/// downloaded, so the not-downloaded chip is there from the first frames.
+PlannerHarness _chipHarness() {
+  final harness = PlannerHarness();
+  harness.stopsCoverage.covered = (_) => false;
+  harness.map
+    ..zoom = 13
+    ..center = const LatLng(48.05, 11.05)
+    ..visibleBounds = const BoundingBox(
+      south: 48.0,
+      west: 11.0,
+      north: 48.1,
+      east: 11.1,
+    );
+  return harness;
+}
+
+/// Brings [map] to rest at [zoom] over an area that is not downloaded:
+/// the chip shows from zoom 11.
+void _showChip(TestMapController map, {double zoom = 13}) {
+  map
+    ..zoom = zoom
+    ..center = const LatLng(48.05, 11.05)
+    ..visibleBounds = const BoundingBox(
+      south: 48.0,
+      west: 11.0,
+      north: 48.1,
+      east: 11.1,
+    );
+  for (final listener in [...map.cameraIdleListeners]) {
+    listener();
+  }
 }
 
 void main() {
@@ -163,6 +198,233 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     expect(_drawn(), isEmpty);
     expect(tester.binding.hasScheduledFrame, isFalse);
+  });
+
+  testWidgets('on a normal start with the chip over the map from the first '
+      'frames, the run has the chip\'s step', (tester) async {
+    final harness = _chipHarness();
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+    );
+    expect(h.map, same(harness.map));
+    await tester.pump();
+    expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
+
+    // pumpScreen has pumped one frame; times from there.
+    await tester.pump(const Duration(milliseconds: 900));
+    expect(_drawn(), ['headline']);
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['field']);
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['chip']);
+    // Painted, and nothing around the chip cuts it off.
+    expect(_chipPulse, paints..rrect());
+    // A clip around it (the screen's own) leaves room for the outline.
+    final outline = tester.getRect(_chipPulse).inflate(12);
+    final clips = find.ancestor(
+      of: _chipPulse,
+      matching: find.byWidgetPredicate(
+        (w) => w is ClipRect || w is ClipRRect || w is ClipPath,
+      ),
+    );
+    for (final element in clips.evaluate()) {
+      final clip = tester.getRect(find.byElementPredicate((e) => e == element));
+      expect(clip.intersect(outline), outline);
+    }
+    await tester.pump(const Duration(milliseconds: 1100));
+    expect(_drawn(), ['ring']);
+    await tester.pumpAndSettle();
+    expect(_drawn(), isEmpty);
+  });
+
+  testWidgets('a chip that comes before its step in the run is taken into '
+      'it, the ring after it', (tester) async {
+    final harness = PlannerHarness();
+    harness.stopsCoverage.covered = (_) => false;
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+    );
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['headline']);
+    _showChip(h.map);
+    // The frame that shows the chip, and the cue's next.
+    await tester.pump();
+    await tester.pump();
+    expect(_drawn(), ['headline']);
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['field']);
+    // 2.8–3.7 s the chip's, 3.9–5.0 s the ring.
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['chip']);
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['ring']);
+    await tester.pump(const Duration(milliseconds: 800));
+    expect(_drawn(), ['ring']);
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(_drawn(), isEmpty);
+    // No pulse of its own after.
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(_drawn(), isEmpty);
+    }
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('a chip that comes after the cue started gets a pulse of its '
+      'own once the run is over, and the ring is not played again', (
+    tester,
+  ) async {
+    final harness = PlannerHarness();
+    harness.stopsCoverage.covered = (_) => false;
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+    );
+    await tester.pump(const Duration(milliseconds: 3000));
+    expect(_drawn(), ['ring']);
+    _showChip(h.map);
+    await tester.pump();
+    expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
+
+    // The run goes on as it was: the ring to 3.9 s.
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(_drawn(), ['ring']);
+    // At 3.9 s the run ends; the chip's own pulse, 0.9 s, then nothing.
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(_drawn(), ['chip']);
+    expect(_chipPulse, paints..rrect());
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(_drawn(), ['chip']);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(_drawn(), isEmpty);
+    await tester.pump(const Duration(seconds: 10));
+    expect(_drawn(), isEmpty);
+    await tester.pumpAndSettle();
+    expect(_drawn(), isEmpty);
+  });
+
+  testWidgets('a chip that comes while the cue waits to play again pulses at '
+      'once, and the run again comes the idle wait after that', (tester) async {
+    final harness = PlannerHarness();
+    harness.stopsCoverage.covered = (_) => false;
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+    );
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 5));
+    _showChip(h.map);
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(_drawn(), ['chip']);
+    await tester.pump(const Duration(milliseconds: 900));
+    expect(_drawn(), isEmpty);
+
+    // 15 s from the pulse's end, not from the run's, which have passed.
+    await tester.pump(const Duration(seconds: 12));
+    expect(_drawn(), isEmpty);
+    await tester.pump(const Duration(milliseconds: 2500));
+    expect(_drawn(), isEmpty);
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['headline']);
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['field']);
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(_drawn(), ['chip']);
+    await tester.pump(const Duration(milliseconds: 1200));
+    expect(_drawn(), ['ring']);
+    await tester.pumpAndSettle();
+    expect(_drawn(), isEmpty);
+  });
+
+  testWidgets('a chip that comes after a touch gets no pulse', (tester) async {
+    final harness = PlannerHarness();
+    harness.stopsCoverage.covered = (_) => false;
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+    );
+    await tester.pump(const Duration(milliseconds: 1000));
+    await tester.tapAt(const Offset(180, 300));
+    await tester.pump();
+    _showChip(h.map);
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(_drawn(), isEmpty);
+    }
+    expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
+  });
+
+  testWidgets('a chip that goes and comes again gets one pulse of its own '
+      'per empty state', (tester) async {
+    final harness = PlannerHarness();
+    harness.stopsCoverage.covered = (_) => false;
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+    );
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 2));
+    _showChip(h.map);
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(_drawn(), ['chip']);
+    await tester.pump(const Duration(seconds: 1));
+    expect(_drawn(), isEmpty);
+
+    // Gone with a zoom out, back with a zoom in, while the cue waits.
+    _showChip(h.map, zoom: 8);
+    await tester.pump();
+    expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
+    _showChip(h.map);
+    await tester.pump();
+    expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(_drawn(), isEmpty);
+    }
+    await tester.pump(const Duration(seconds: 20));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('with animations off a late chip gets no pulse either', (
+    tester,
+  ) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    final harness = PlannerHarness();
+    harness.stopsCoverage.covered = (_) => false;
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+    );
+    await tester.pump(const Duration(milliseconds: 1000));
+    _showChip(h.map);
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(_drawn(), isEmpty);
+    }
   });
 
   testWidgets('left alone after it has played, it plays once more, and only '

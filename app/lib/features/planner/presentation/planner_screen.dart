@@ -471,12 +471,35 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     }
     if (!_active || ref.read(firstStartLocationAskProvider)) return;
     _cuePending = false;
-    if (!_covered()) _cue.play(withChip: _chipShown, again: _cueAgain);
+    if (_covered()) return;
+    _cue.play(withChip: _chipShown, again: _cueAgain);
+    _chipCued = _chipShown;
   }
 
   /// Whether the not-downloaded chip is over the map, as last built: the
   /// cue pulses it too.
   bool _chipShown = false;
+
+  /// Whether the chip has had its pulse in this appearance of the empty
+  /// state, in a run or alone.
+  bool _chipCued = false;
+
+  /// The chip has just come over the map, after the frame that shows it:
+  /// the cue under way, or waiting to play again, takes it in once per
+  /// appearance of the empty state ([FirstActionCue.chipAppeared]). A cue
+  /// stopped by a touch or never started does not.
+  void _onChipShown() {
+    if (!mounted ||
+        !_chipShown ||
+        _chipCued ||
+        !_active ||
+        !ref.read(firstActionCueEnabledProvider) ||
+        !ref.read(plannerControllerProvider).isEmpty ||
+        MediaQuery.disableAnimationsOf(context)) {
+      return;
+    }
+    if (_cue.chipAppeared()) _chipCued = true;
+  }
 
   /// Plays the cue once more after the rider has left the screen alone
   /// since it ended, if the empty state is still there and nothing is in
@@ -1568,7 +1591,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   onClose: () => _closeAreaHint(_areaHint.missingArea),
                 )
               : null;
-          _chipShown = chip != null;
+          final shown = chip != null;
+          if (shown && !_chipShown) {
+            WidgetsBinding.instance.addPostFrameCallback((_) => _onChipShown());
+          }
+          _chipShown = shown;
           return chip == null
               ? const SizedBox.shrink()
               : Padding(
