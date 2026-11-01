@@ -5,13 +5,20 @@
 // The touch on the map is a real pointer through Flutter, where the screen
 // learns that the search was under way when the finger came down. What the
 // native map makes of it differs: on iOS a synthesised pointer never reaches
-// the native view, on Android it does. So the pointer is put down and taken
-// back (cancelled, which no map reads as a tap), and the map's report of the
-// tap is made in between through the handler the app gave the map, as the
-// native view would make it.
+// the native view, so the pointer is put down and taken back, and the map's
+// report of the tap is made in between through the handler the app gave the
+// map, as the native view would make it. On Android a synthesised pointer
+// does reach the native view, whose own reports of it come at the
+// emulator's whim (one for a pointer taken back, none for a later whole
+// tap), so there the pointer's down and its cancel go only to Flutter's
+// pointer router, where the screen hears them, and the map's report is
+// made by hand as on iOS.
 //
 // A simulator or emulator with a hardware keyboard connected shows no soft
 // keyboard: the checks that need one are then skipped, and the log says so.
+import 'dart:io';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -167,7 +174,8 @@ void main() {
       return resting;
     }
 
-    /// A finger on the map, and the map's report of what it was.
+    /// A finger on the map, and the map's report of what it was, [report],
+    /// made by hand as the native view would.
     Future<void> touchMap(VoidCallback report) async {
       Offset? point;
       await waitUntil(
@@ -175,6 +183,16 @@ void main() {
         () => (point = _onTheMap(tester)) != null,
         describe: 'a free point on the map',
       );
+      if (Platform.isAndroid) {
+        final router = GestureBinding.instance.pointerRouter;
+        const pointer = 9001;
+        router.route(PointerDownEvent(pointer: pointer, position: point!));
+        await tester.pump(pumpStep);
+        report();
+        router.route(PointerCancelEvent(pointer: pointer, position: point!));
+        await pumpFor(tester, const Duration(milliseconds: 300));
+        return;
+      }
       final finger = await tester.startGesture(point!);
       await tester.pump(pumpStep);
       report();
