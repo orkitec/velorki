@@ -82,11 +82,12 @@ platform :android do
       json_key: ENV["PLAY_SERVICE_ACCOUNT_JSON_PATH"],
       release_status: "completed",
       # The listing is the store_listing lane's (store-assets.yml), not a
-      # release's.
+      # release's. The release notes are the release's: changelogs/default.txt
+      # per language, which a promotion to production copies along.
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true,
-      skip_upload_changelogs: true,
+      skip_upload_changelogs: false,
     )
   end
 

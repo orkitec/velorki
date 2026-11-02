@@ -475,7 +475,9 @@ uploaded language's phone screenshots, 7- and 10-inch tablet screenshots
 graphic and icon on the store listing (a type with no images in the set is
 left as it is); `metadata` also uploads the title and both descriptions of every
 language in `app/fastlane/metadata/android`. No build, track or release notes
-change (the Play release notes stay with the release). The changes are
+change (the Play release notes go up with the release, from
+`app/fastlane/metadata/android/<locale>/changelogs/default.txt`, and a
+promotion to production copies them). The changes are
 staged, not sent for review (`changes_not_sent_for_review`): sent one by one,
 each upload restarted a review already running. Send them for review with the
 release in the Play Console (Publishing overview → Send changes for review).
