@@ -34,7 +34,11 @@ export function SiteHeader({ locale }: { locale: string }) {
     // longer translation ever stops fitting, the page still must not scroll
     // sideways. `clip` rather than `hidden`, because the language menu and the
     // menu panel drop out of the header and only the horizontal axis is cut.
-    <header className="sticky top-0 z-50 overflow-x-clip border-b border-line-soft bg-canvas/85 backdrop-blur-lg">
+    <header className="sticky top-0 z-50 overflow-x-clip border-b border-line-soft">
+      {/* The frosted ground on a layer of its own: Safari on iOS cuts off
+          whatever overflows an element with a backdrop filter, and the menu
+          panel and the language menu drop out of the header. */}
+      <div aria-hidden className="absolute inset-0 -z-10 bg-canvas/85 backdrop-blur-lg" />
       <div className="shell flex h-16 items-center gap-2 md:gap-3">
         <Link href={home} aria-label={t('home')} className="flex shrink-0 items-center gap-2">
           <AppIcon size={32} />
