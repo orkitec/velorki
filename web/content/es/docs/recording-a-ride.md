@@ -27,7 +27,7 @@ Velorki se pausa sola tras unos diez segundos sin movimiento; la etiqueta dice e
 
 ### Añadir una parada por el camino
 
-Mientras sigues una ruta, toca una parada en el mapa y elige **Añadir como parada**: la ruta se recalcula para incluirla, por delante de donde estás, y la guía continúa sin interrupción. Consulta [navegación paso a paso](./navigation#anadir-una-parada-por-el-camino).
+Mientras sigues una ruta, toca una parada en el mapa y elige **Añadir como parada**: la ruta se recalcula para incluirla, por delante de donde estás, y la guía continúa sin interrupción. Consulta [navegación paso a paso](./navigation#añadir-una-parada-por-el-camino).
 
 ## Frecuencia cardiaca, cadencia y potencia
 

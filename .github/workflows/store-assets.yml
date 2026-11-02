@@ -290,8 +290,7 @@ jobs:
         working-directory: app
         run: |
           flutter pub get
-          dart run build_runner build
-          flutter gen-l10n
+          bash tool/gen.sh
 
       # New York's tile and gazetteer for the cycle map shots: the script
       # fetches them with curl from the tile mirror's current snapshot into
@@ -649,8 +648,7 @@ jobs:
         working-directory: app
         run: |
           flutter pub get
-          dart run build_runner build
-          flutter gen-l10n
+          bash tool/gen.sh
 
       # The Android Gradle plugin installs the NDK during the build with no
       # check: a download that arrived broken ("Error on ZipFile unknown

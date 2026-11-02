@@ -26,7 +26,7 @@ Si vous terminez sans rien avoir enregistré, Velorki indique « Rien n’a ét
 Velorki se met en pause tout seul après une dizaine de secondes sans mouvement ; la pastille affiche alors **PAUSE AUTO**. Contrairement à une pause manuelle, il reste à l’écoute, et le premier vrai mouvement relance l’enregistrement. Une pause manuelle arrête l’écoute jusqu’à ce que vous touchiez **Reprendre**.
 ### Ajouter une étape en chemin
 
-Pendant que vous suivez un itinéraire, touchez une étape sur la carte et choisissez **Ajouter comme étape** : l’itinéraire est recalculé pour la prendre en compte, devant vous, et le guidage continue sans interruption. Voir [la navigation guidée](./navigation#ajouter-une-etape-en-chemin).
+Pendant que vous suivez un itinéraire, touchez une étape sur la carte et choisissez **Ajouter comme étape** : l’itinéraire est recalculé pour la prendre en compte, devant vous, et le guidage continue sans interruption. Voir [la navigation guidée](./navigation#ajouter-une-étape-en-chemin).
 
 ## Fréquence cardiaque, cadence et puissance
 

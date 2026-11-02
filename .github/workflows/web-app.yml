@@ -19,6 +19,7 @@ on:
     branches: [production]
     paths:
       - 'app/**'
+      - 'web/content/*/docs/**'
       - 'deploy/cloudflare/**'
       - '.github/workflows/web-app.yml'
   workflow_dispatch:
@@ -103,8 +104,7 @@ jobs:
           flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
           cache: true
       - run: flutter pub get
-      - run: dart run build_runner build
-      - run: flutter gen-l10n
+      - run: bash tool/gen.sh
       - name: The web page's and the tile function's own tests
         working-directory: .
         run: node --test app/web_test/*.test.mjs deploy/cloudflare/test/*.test.mjs

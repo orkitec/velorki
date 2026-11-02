@@ -42,6 +42,9 @@ a language".
   each language's form of address, and how menu paths are written.
   Give an ARB key a `@key` description: it is the context a translator in
   Crowdin gets.
+- The guide (`web/content/<lang>/docs`) also ships inside the app
+  (Settings → Guide), copied by `app/tool/gen.sh`; a `./page` link must
+  name a page of the same language (`app/test/features/guide/guide_content_test.dart`).
 - Legal pages (imprint, privacy, terms) and the store texts get a person's
   read in each language before they go live.
 - Placeholders are ICU, as in the ARB (`{count}`, `{distance}`). They must

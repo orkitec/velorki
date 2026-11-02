@@ -86,6 +86,10 @@
   "@settingsLicensesSubtitle": {
     "description": "Subtitle of the open-source licences tile"
   },
+  "settingsGuide": "Guide",
+  "@settingsGuide": {
+    "description": "Row in the Settings overview's App group that opens the user guide bundled in the app (the website's guide, readable offline), and that page's title. Glossary term."
+  },
   "settingsLegalese": "Velorki is open source under the GNU Affero General Public License v3.0 only. Map data © OpenStreetMap contributors.",
   "@settingsLegalese": {
     "description": "Legal line at the bottom of the licence page"

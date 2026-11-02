@@ -45,8 +45,7 @@ jobs:
         working-directory: app
         run: |
           flutter pub get
-          dart run build_runner build
-          flutter gen-l10n
+          bash tool/gen.sh
 
       # The mirror is sharded across several releases; the pointer lists
       # every shard's base URL, and the tile is in one of them.

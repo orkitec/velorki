@@ -21,6 +21,7 @@ import '../../../features/subscription/presentation/plus_settings_section.dart';
 import '../../../features/sync/application/cloud_sync_controller.dart';
 import '../../../features/sync/presentation/cloud_sync_section.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../guide/presentation/guide_screen.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/wide_panel.dart';
 import '../data/appearance_controller.dart';
@@ -66,6 +67,9 @@ enum SettingsTopic {
   /// Offline areas, search, routing and the server URLs.
   mapsData,
 
+  /// The user guide, bundled for reading offline.
+  guide,
+
   /// Version, attribution, licences and the legal links.
   about,
 }
@@ -89,6 +93,7 @@ bool _offered(SettingsTopic topic, PlatformFeatures features, WidgetRef ref) =>
       SettingsTopic.appearance ||
       SettingsTopic.assistant ||
       SettingsTopic.mapsData ||
+      SettingsTopic.guide ||
       SettingsTopic.about => true,
     };
 
@@ -103,6 +108,7 @@ String _title(AppLocalizations l10n, SettingsTopic topic) => switch (topic) {
   SettingsTopic.appearance => l10n.settingsAppearance,
   SettingsTopic.assistant => l10n.settingsAi,
   SettingsTopic.mapsData => l10n.settingsMapsData,
+  SettingsTopic.guide => l10n.settingsGuide,
   SettingsTopic.about => l10n.settingsAbout,
 };
 
@@ -117,6 +123,7 @@ IconData _icon(SettingsTopic topic) => switch (topic) {
   SettingsTopic.appearance => Icons.palette_outlined,
   SettingsTopic.assistant => Icons.auto_awesome_outlined,
   SettingsTopic.mapsData => Icons.map_outlined,
+  SettingsTopic.guide => Icons.menu_book_outlined,
   SettingsTopic.about => Icons.info_outline,
 };
 
@@ -141,6 +148,7 @@ const List<(_Group, List<SettingsTopic>)> _groups = [
       SettingsTopic.appearance,
       SettingsTopic.assistant,
       SettingsTopic.mapsData,
+      SettingsTopic.guide,
       SettingsTopic.about,
     ],
   ),
@@ -254,7 +262,8 @@ class _TopicRow extends ConsumerWidget {
           SettingsTopic.rider ||
           SettingsTopic.sensors ||
           SettingsTopic.assistant ||
-          SettingsTopic.mapsData:
+          SettingsTopic.mapsData ||
+          SettingsTopic.guide:
         return null;
     }
   }
@@ -299,6 +308,7 @@ class SettingsTopicPage extends ConsumerWidget {
             if (features.routingServer) const _RoutingPreferenceSection(),
             const _ServerUrlsSection(),
           ],
+          SettingsTopic.guide => const [GuideContents()],
           SettingsTopic.about => const [AboutSection()],
         },
       ),

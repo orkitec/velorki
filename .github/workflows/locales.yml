@@ -45,6 +45,5 @@ jobs:
           flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
           cache: true
       - run: flutter pub get
-      - run: dart run build_runner build
-      - run: flutter gen-l10n
+      - run: bash tool/gen.sh
       - run: flutter test --dart-define=VELORKI_TEST_LOCALE=${{ matrix.locale }}

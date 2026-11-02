@@ -130,8 +130,7 @@ jobs:
         working-directory: app
         run: |
           flutter pub get
-          dart run build_runner build
-          flutter gen-l10n
+          bash tool/gen.sh
 
       # The Android Gradle plugin installs the NDK during the build with no
       # check: a download that arrived broken ("Error on ZipFile unknown

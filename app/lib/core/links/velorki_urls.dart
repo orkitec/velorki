@@ -26,13 +26,16 @@ const String velorkiSupportEmail = 'ride@velorki.com';
 /// English unprefixed, every other language under its code. Where the web
 /// planner sends a rider for what only the phone apps have.
 String velorkiDownloadUrl(String languageCode) =>
-    _sitePage(languageCode, 'download');
+    velorkiSiteUrl(languageCode, 'download');
 
 /// The imprint (§ 5 DDG) in [languageCode]. Linked from Settings → About and,
 /// on the web, from the map's attribution, so it is two taps from anywhere.
 String velorkiImprintUrl(String languageCode) =>
-    _sitePage(languageCode, 'imprint');
+    velorkiSiteUrl(languageCode, 'imprint');
 
-String _sitePage(String languageCode, String page) => languageCode == 'en'
-    ? 'https://velorki.com/$page'
-    : 'https://velorki.com/$languageCode/$page';
+/// The site's [path] (no leading slash) in [languageCode]: English
+/// unprefixed, every other language under its code, as the site routes them
+/// (`localePrefix: 'as-needed'`).
+String velorkiSiteUrl(String languageCode, String path) => languageCode == 'en'
+    ? 'https://velorki.com/$path'
+    : 'https://velorki.com/$languageCode/$path';

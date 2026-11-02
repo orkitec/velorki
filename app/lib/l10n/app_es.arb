@@ -20,6 +20,7 @@
   "settingsVersionUnknown": "Versión no disponible",
   "settingsLicenses": "Licencias de código abierto",
   "settingsLicensesSubtitle": "El software y los datos de mapa en los que se basa Velorki.",
+  "settingsGuide": "Guía de usuario",
   "settingsLegalese": "Velorki es código abierto bajo la GNU Affero General Public License v3.0 only. Datos del mapa © colaboradores de OpenStreetMap.",
   "settingsPrivacyPolicy": "Política de privacidad",
   "settingsTerms": "Condiciones de uso",
