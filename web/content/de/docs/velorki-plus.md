@@ -60,7 +60,7 @@ Wo ein Paket eine anbietet, beginnt das Abo mit einer kostenlosen Testphase, und
 
 Weil es kein Konto gibt, wird ein laufendes Abo über den Store erkannt. Auf einem neuen Handy, nach einer Neuinstallation, oder wenn die App schlicht den Faden verloren hat:
 
-1. Öffne **Einstellungen → Velorki Plus** oder die Abo-Seite.
+1. Öffne **Optionen → Velorki Plus** oder die Abo-Seite.
 2. Tippe auf **Käufe wiederherstellen**. "Schon abonniert? Wiederherstellen klappt ohne Konto."
 
 Velorki sagt dann "Das Abo wurde wiederhergestellt." oder "Der Store hat keinen Kauf zum Wiederherstellen gefunden.", falls die auf dem Handy angemeldete Apple-ID oder das Google-Konto keines besitzt. Ein in einem Store gekauftes Abo lässt sich nicht im anderen wiederherstellen.
@@ -69,11 +69,11 @@ Velorki sagt dann "Das Abo wurde wiederhergestellt." oder "Der Store hat keinen 
 
 Gekündigt wird im Store, nie in der App.
 
-1. **Einstellungen → Velorki Plus**.
+1. **Optionen → Velorki Plus**.
 2. Tippe auf **Verwalten**, was deine Abo-Seite im App Store oder in Google Play öffnet.
 3. Kündige dort.
 
-Plus bleibt bis zum Ende der bereits bezahlten Laufzeit aktiv. Die Zeile in den Einstellungen zeigt **Aktiv · Verlängert sich am 17. Okt. 2026**, solange es sich verlängert, und **Aktiv · Endet am 17. Okt. 2026**, sobald du gekündigt hast.
+Plus bleibt bis zum Ende der bereits bezahlten Laufzeit aktiv. Die Zeile in den Optionen zeigt **Aktiv · Verlängert sich am 17. Okt. 2026**, solange es sich verlängert, und **Aktiv · Endet am 17. Okt. 2026**, sobald du gekündigt hast.
 
 Erstattungen liegen bei Apple und Google, nach deren eigenen Regeln, denn sie haben die Zahlung entgegengenommen.
 
@@ -90,4 +90,4 @@ Ein ohne Store-Schlüssel gebautes Velorki sagt: "In diesem Velorki-Build ist ke
 - [Assistent](./assistant)
 - [Teilen](./sharing)
 - [Strava und Ride with GPS](./strava-and-ridewithgps)
-- [Einstellungen und Darstellung](./settings-and-appearance)
+- [Optionen und Darstellung](./settings-and-appearance)

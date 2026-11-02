@@ -33,11 +33,11 @@ Solange du einer Route folgst, tippe auf der Karte auf einen Stopp und wähle **
 
 Ist ein Sensor eingeschaltet, kommt in der Übersicht eine dritte Zeile mit dem dazu, was in dieser Fahrt gemeldet wurde: **Herzfrequenz**, **Trittfrequenz** und **Leistung**, eine Uhr allein bringt also eine Kachel. Unter der Herzfrequenz steht der **Ø Puls** der Fahrt. Ein Sensor, der mitten in der Fahrt verstummt, eine Uhr außer Reichweite oder ein verrutschter Gurt, behält seine Kachel mit dem letzten Wert, abgedunkelt und mit einem Zeichen für die unterbrochene Verbindung, damit zu sehen ist, dass etwas nicht mehr meldet; solange die Fahrt pausiert ist, ruht der Sensor absichtlich und nichts wird markiert. Sie können von einem Bluetooth-Sensor, von einer Apple Watch oder von der Health-App des Handys kommen, werden während der Fahrt in den Track geschrieben, und auf dem iPhone steht der Puls auch auf der Sperrbildschirm-Karte. Solange ein Radsensor meldet, ist seine Geschwindigkeit das, was **Tempo** zeigt.
 
-Ohne Sensor erscheint nichts davon, und eingeschaltet wird nichts, bevor du es unter **Einstellungen → Sensoren** tust. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
+Ohne Sensor erscheint nichts davon, und eingeschaltet wird nichts, bevor du es unter **Optionen → Sensoren** tust. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
 
 ## Das Höhenprofil und die Abbiegeliste
 
-Die Übersicht unter der Karte hat drei Seiten, einen Wisch auseinander, mit drei Punkten unter den Zahlen, die sagen, welche gerade oben ist. Eine neue Fahrt beginnt auf den Zahlen. Die Übersicht scrollt in jeder Höhe und bewegt sich am Griff oder am Titel, oder als Ganzes, wenn es nichts zu scrollen gibt, etwa während einer Fahrt. Vor einer Fahrt faltet sie sich, ganz nach unten gezogen, in die Navigationsleiste und lässt nur den Griff über den Tabs, damit die Karte frei ist; zieh den Griff nach oben, um sie zurückzuholen. Während einer Fahrt sind die Tabs weg, und die Übersicht faltet sich in eine gleich geformte Leiste mit den ersten vier Werten der Fahrt (voreingestellt Distanz, Tempo, Ø und Anstieg; die Reihenfolge wählst du, siehe [Einstellungen](./settings-and-appearance)), und die Karte darüber; ein Punkt darauf heißt pausiert. Sie hat keine Schaltflächen: Tippe darauf oder zieh sie nach oben, um die Übersicht zurückzuholen.
+Die Übersicht unter der Karte hat drei Seiten, einen Wisch auseinander, mit drei Punkten unter den Zahlen, die sagen, welche gerade oben ist. Eine neue Fahrt beginnt auf den Zahlen. Die Übersicht scrollt in jeder Höhe und bewegt sich am Griff oder am Titel, oder als Ganzes, wenn es nichts zu scrollen gibt, etwa während einer Fahrt. Vor einer Fahrt faltet sie sich, ganz nach unten gezogen, in die Navigationsleiste und lässt nur den Griff über den Tabs, damit die Karte frei ist; zieh den Griff nach oben, um sie zurückzuholen. Während einer Fahrt sind die Tabs weg, und die Übersicht faltet sich in eine gleich geformte Leiste mit den ersten vier Werten der Fahrt (voreingestellt Distanz, Tempo, Ø und Anstieg; die Reihenfolge wählst du, siehe [Optionen](./settings-and-appearance)), und die Karte darüber; ein Punkt darauf heißt pausiert. Sie hat keine Schaltflächen: Tippe darauf oder zieh sie nach oben, um die Übersicht zurückzuholen.
 
 **Das Höhenprofil**, einen Wisch nach links: die gefolgte Route als Höhe über Distanz, der schon gefahrene Teil in der Akzentfarbe gefüllt, die Straße voraus in Grau, eine Linie, wo du bist, und darüber, was noch kommt, "12,4 km übrig, 320 m Anstieg". An einer Steigung ab 3 % sagt eine zweite Zeile die Steigung und was bis oben bleibt, "6 % Steigung, 120 m bis oben", und sobald die Fahrt einen Schnitt hat, sagt dieselbe Zeile, wann du ankommst, "Ankunft 14:32". Ohne Route sagt die Seite es: "Folge einer Route, um hier ihr Höhenprofil zu sehen."
 
@@ -58,11 +58,11 @@ Der Track wird während der Fahrt auf das Handy geschrieben und alle paar Sekund
 - **Android**: Die Fahrt läuft als Vordergrunddienst mit einer laufenden Mitteilung namens **Fahrt wird aufgezeichnet**, deren zweite Zeile Distanz und Zeit trägt, und die nächste Abbiegung, wenn du einer Route folgst. Ein Tipper darauf bringt dich zurück in die App.
 - **iPhone**: Die Fahrt läuft mit gesperrtem Bildschirm weiter, und eine Live-Aktivität zeigt dieselben Zahlen auf dem Sperrbildschirm.
 
-**Bildschirm anlassen** in der Aufzeichnungsübersicht hält das Display wach, solange im Tab Aufzeichnen eine Fahrt läuft, was am Lenker praktisch und für den Akku teuer ist. Es ist an, bis du es ausschaltest, und deine Wahl gilt auch für die nächste Fahrt; unter **Einstellungen → Aufzeichnung** steht derselbe Schalter. Der Bildschirm darf wieder ausgehen, solange du die Fahrt pausierst (nicht, wenn sie bei einem Halt von selbst pausiert), wenn du zu einem anderen Tab wechselst und wenn die Fahrt endet.
+**Bildschirm anlassen** in der Aufzeichnungsübersicht hält das Display wach, solange im Tab Aufzeichnen eine Fahrt läuft, was am Lenker praktisch und für den Akku teuer ist. Es ist an, bis du es ausschaltest, und deine Wahl gilt auch für die nächste Fahrt; unter **Optionen → Aufzeichnung** steht derselbe Schalter. Der Bildschirm darf wieder ausgehen, solange du die Fahrt pausierst (nicht, wenn sie bei einem Halt von selbst pausiert), wenn du zu einem anderen Tab wechselst und wenn die Fahrt endet.
 
 ## Energiesparen
 
-Der Bildschirm ist es, der auf einer langen Fahrt den Akku leert, deshalb geht **Energiesparen** den Bildschirm an. Schalte es in der Aufzeichnungsübersicht oder unter **Einstellungen → Aufzeichnung** ein: "Dunkle Karte, keine Animationen, nach 30 s eine schlichte Seite mit den Zahlen; der Bildschirm zieht den Akku leer".
+Der Bildschirm ist es, der auf einer langen Fahrt den Akku leert, deshalb geht **Energiesparen** den Bildschirm an. Schalte es in der Aufzeichnungsübersicht oder unter **Optionen → Aufzeichnung** ein: "Dunkle Karte, keine Animationen, nach 30 s eine schlichte Seite mit den Zahlen; der Bildschirm zieht den Akku leer".
 
 Läuft eine Aufzeichnung mit eingeschaltetem Energiesparen, wird Velorki:
 
@@ -74,7 +74,7 @@ Läuft eine Aufzeichnung mit eingeschaltetem Energiesparen, wird Velorki:
 
 Berühre den Bildschirm irgendwo, und die Karte kommt zurück; der Countdown beginnt von vorn. Alles kehrt zurück, sobald die Fahrt endet oder Energiesparen ausgeht. Das Design, das du für den Rest der App gewählt hast, ändert Energiesparen nie.
 
-**GPS-Genauigkeit** unter **Einstellungen → Aufzeichnung** ist die andere Hälfte: **Energiesparen**, **Normal** oder **Genau**, mit dem Hinweis "Genau für Trails, Normal reicht für Straßen".
+**GPS-Genauigkeit** unter **Optionen → Aufzeichnung** ist die andere Hälfte: **Energiesparen**, **Normal** oder **Genau**, mit dem Hinweis "Genau für Trails, Normal reicht für Straßen".
 
 ## Wenn eine Fahrt unterbrochen wird
 
@@ -105,4 +105,4 @@ Unter **Letzte Fahrten** im Tab Aufzeichnen stehen deine letzten fünf, die neue
 - [Bibliothek](./library)
 - [Import und Export](./import-and-export)
 - [Strava und Ride with GPS](./strava-and-ridewithgps)
-- [Einstellungen und Darstellung](./settings-and-appearance)
+- [Optionen und Darstellung](./settings-and-appearance)

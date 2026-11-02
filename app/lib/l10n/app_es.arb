@@ -1157,7 +1157,7 @@
   "settingsResetApp": "Restablecer la app",
   "settingsResetAppHint": "Para desarrollo: volver al primer inicio",
   "settingsResetAppTitle": "¿Restablecer la app?",
-  "settingsResetAppBody": "Se borran los ajustes, la biblioteca (rutas y recorridos), las zonas descargadas y los paquetes de mapa, y el historial del asistente de IA. Las copias en iCloud o Google Drive se conservan. Después la app se cierra y arranca como recién instalada.",
+  "settingsResetAppBody": "Se borran los ajustes, la biblioteca (rutas y salidas), las zonas descargadas y los paquetes de mapa, y el historial del asistente de IA. Las copias en iCloud o Google Drive se conservan. Después la app se cierra y arranca como recién instalada.",
   "settingsResetAppConfirm": "Restablecer",
   "perfFps": "FPS",
   "perfUi": "UI",

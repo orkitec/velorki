@@ -6,4 +6,4 @@
 • Kartendaten werden nur aktualisiert, wenn sich in deinem Gebiet wirklich etwas geändert hat, und ein Hinweis über der Karte sagt es dir.
 • Ein Tipp auf die Karte während der Suche schließt nur die Suche.
 • Der Tab „Aufnahme“ heißt jetzt „Aufzeichnen“.
-• Impressum unter Einstellungen → Über.
+• Impressum unter Optionen → Über.

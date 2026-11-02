@@ -10,14 +10,14 @@ An keinen der beiden Dienste geht etwas, bevor du das Konto selbst verbunden und
 
 ## Ein Konto verbinden
 
-1. Öffne **Einstellungen → Verbindungen**.
+1. Öffne **Optionen → Verbindungen**.
 2. Tippe auf **Verbinden mit Strava** oder **Mit Ride with GPS verbinden**.
 3. Die Anmeldeseite des Dienstes öffnet sich im Browser. Melde dich dort an und bestätige den Zugriff.
 4. Du kommst zurück zu Velorki, und in der Zeile steht dein Name statt **Nicht verbunden**.
 
 Bei Strava kommt zuerst ein Hinweis, **Bevor du Strava verbindest**: was Velorki liest, was es schreibt, wie die Verbindung funktioniert und wie du sie trennst. Lies ihn und geh dann weiter zur Anmeldeseite.
 
-Velorki bittet Strava nur um zwei Berechtigungen: **read**, dein öffentliches Profil (deine ID und dein Name, in den Einstellungen angezeigt), und **activity:write**, um die Fahrten hochzuladen, die du hochladen willst. Es liest deine Aktivitäten nicht.
+Velorki bittet Strava nur um zwei Berechtigungen: **read**, dein öffentliches Profil (deine ID und dein Name, in den Optionen angezeigt), und **activity:write**, um die Fahrten hochzuladen, die du hochladen willst. Es liest deine Aktivitäten nicht.
 
 Dein Handy bewahrt den Zugriffstoken im sicheren Speicher des Handys auf, in einer Form, die nur der Velorki-Server öffnen kann, und nimmt ihn von Sicherungen aus. Von da an läuft jeder Upload und jeder Import über diesen Server: Er öffnet den Token für diese eine Anfrage und leitet sie weiter. Er behält weder die Datei noch den Token, auch keine Aufzeichnung des Aufrufs, und kann den Token allein nicht verwenden.
 
@@ -56,7 +56,7 @@ Eine Route aus Strava und jede Route, die du daraus bearbeitest, bleibt nur, sol
 
 Die Fußzeile sagt **Abgerufen 16. Sept. 2026**, also den Moment, in dem die Liste geholt wurde. Velorki hält die Liste höchstens 48 Stunden auf dem Handy vor, und **Aktualisieren** oben rechts holt sie erneut.
 
-Ist das Konto nicht verbunden, sagt der Bildschirm "Zuerst Strava unter Einstellungen → Verbindungen verbinden."
+Ist das Konto nicht verbunden, sagt der Bildschirm "Zuerst Strava unter Optionen → Verbindungen verbinden."
 
 ## Eine Route an Ride with GPS senden
 

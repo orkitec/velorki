@@ -59,8 +59,9 @@ changing structure.
 - Codegen: `bash tool/gen.sh` (riverpod, freezed, drift, gen-l10n). build_runner
   here has no `--delete-conflicting-outputs`.
 - Strings are written in `app/lib/l10n/app_en.arb` and translated into every
-  other `app_*.arb` in the same commit (by the agent, matching the terms
-  already in that file); run `gen.sh` after editing. The push uploads them
+  other `app_*.arb` in the same commit (by the agent, in the terms of
+  `docs/GLOSSARY.md`, which also covers the website, guide and store texts);
+  run `gen.sh` after editing. The push uploads them
   to Crowdin as approved; people's fixes there come back as a pull request
   on `l10n/crowdin`, which is merged before the next translation change.
 - Config is `--dart-define-from-file=env/<name>.json`. `env/local.json` and

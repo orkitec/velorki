@@ -96,5 +96,5 @@ Bis du wählst, folgt Velorki dem Land des Handys: imperial nur dort, wo das Lan
 - [Route planen](./planning-a-route)
 - [Offline-Karten und Routing](./offline-maps-and-routing)
 - [Fahrt aufzeichnen](./recording-a-ride)
-- [Einstellungen und Darstellung](./settings-and-appearance)
+- [Optionen und Darstellung](./settings-and-appearance)
 - [Datenschutz auf dem Handy](./privacy-on-the-phone)

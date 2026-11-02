@@ -10,7 +10,7 @@ Die Navigation ist kostenlos, läuft offline, wo du die Routing-Daten herunterge
 
 ## Einschalten
 
-Die Einstellungen liegen an zwei Stellen gleichzeitig und sind so oder so dieselben: unter **Einstellungen → Navigation** und in der Übersicht des Tabs Aufzeichnen unterhalb von **Bildschirm anlassen**.
+Die Einstellungen liegen an zwei Stellen gleichzeitig und sind so oder so dieselben: unter **Optionen → Navigation** und in der Übersicht des Tabs Aufzeichnen unterhalb von **Bildschirm anlassen**.
 
 1. **Abbiegehinweise**, "Nächste Abbiegung während der Aufzeichnung auf einer Route zeigen". Das ist der Hauptschalter; der Rest ist ausgegraut, solange er aus ist.
 2. **Stimme**, "Abbiegehinweise laut ansagen".
@@ -38,13 +38,13 @@ Am Ende der Route wird das Band grün und sagt **Ziel erreicht**.
 
 Mit eingeschalteter **Stimme** wird jede Abbiegung einmal bei der Annäherung angesagt und einmal an der Abbiegung selbst: "In 200 Metern links abbiegen", dann "Jetzt links abbiegen". Zwei dicht aufeinanderfolgende Abbiegungen kommen als eine Ansage, "links abbiegen, dann rechts abbiegen". Bei imperialen Einheiten heißt es "In 500 Fuß", "In einer Viertelmeile", "In einer halben Meile", "In einer Meile".
 
-**Abbiegehinweise ansagen** unter Einstellungen → Navigation legt fest, wie früh: Der Schieberegler zählt in Sekunden, und der Hinweis lautet "12 Sekunden vor der Abbiegung bei deinem Tempo, nie näher als 50 Meter". Weil in Sekunden gezählt wird statt in Metern, kommt die Ansage im selben Moment, ob du einen Berg hinaufkriechst oder hinunterfliegst.
+**Abbiegehinweise ansagen** unter Optionen → Navigation legt fest, wie früh: Der Schieberegler zählt in Sekunden, und der Hinweis lautet "12 Sekunden vor der Abbiegung bei deinem Tempo, nie näher als 50 Meter". Weil in Sekunden gezählt wird statt in Metern, kommt die Ansage im selben Moment, ob du einen Berg hinaufkriechst oder hinunterfliegst.
 
 Solange Stimme an ist, trägt das Band außerdem eine Schaltfläche zum **Stummschalten**. Sie legt die Stimme **nur für den Rest dieser Fahrt** still und rührt deine Einstellung nicht an; die nächste Fahrt beginnt wieder mit Ton.
 
 ## Eine Stimme wählen
 
-1. **Einstellungen → Navigation → Sprechstimme**.
+1. **Optionen → Navigation → Sprechstimme**.
 2. Die erste Zeile ist **Systemstandard**, "Die eigene Stimme des Handys für deine Sprache". Darunter steht jede auf dem Handy installierte Stimme, benannt etwa als "Stimme 2 (Weiblich, Vereinigtes Königreich)".
 3. Tippe auf eine Zeile, um sie zu wählen. Dabei spricht sie eine Kostprobe.
 4. Tippe in einer beliebigen Zeile auf **Anhören**, um sie zu hören, ohne sie zu wählen.
@@ -109,5 +109,5 @@ Solange eine Fahrt einer Route folgt, tippe auf der Karte auf einen Stopp (ein C
 - [Fahrt aufzeichnen](./recording-a-ride)
 - [Route planen](./planning-a-route)
 - [Offline-Karten und Routing](./offline-maps-and-routing)
-- [Einstellungen und Darstellung](./settings-and-appearance)
+- [Optionen und Darstellung](./settings-and-appearance)
 - [Fehlerbehebung](./troubleshooting)

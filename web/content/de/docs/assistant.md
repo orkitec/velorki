@@ -32,7 +32,7 @@ Drei Antworten:
 
 Was tatsächlich reist: dein Text, auf Wunsch die gerundete Position, deine Sprach- und Einheiteneinstellung, damit die Antwort passt, und bei einer Routenbeschreibung oder einer Frage zu einer Route eine Übersicht der Route (siehe unten). In die Anfrage kommt keine Kennung von dir oder deinem Handy.
 
-Du kannst es jederzeit unter **Einstellungen → KI-Assistent → Was gesendet wird** ändern; der Untertitel dort sagt immer, in welchem der vier Zustände du bist, mit einer Schaltfläche **Ändern** daneben.
+Du kannst es jederzeit unter **Optionen → KI-Assistent → Was gesendet wird** ändern; der Untertitel dort sagt immer, in welchem der vier Zustände du bist, mit einer Schaltfläche **Ändern** daneben.
 
 ## Nach etwas fragen
 
@@ -108,7 +108,7 @@ Der Assistent ist begrenzt: zwanzig Anfragen pro Stunde und hundert pro Tag.
 
 ## Eine schlechte Antwort melden
 
-**Einstellungen → KI-Assistent → KI-Antwort melden** öffnet eine Mail an uns: "Melde eine Antwort, die falsch oder unpassend war." Bitte nutze das. Falsche und unpassende Antworten sind der Weg, auf dem die Anfragen besser werden.
+**Optionen → KI-Assistent → KI-Antwort melden** öffnet eine Mail an uns: "Melde eine Antwort, die falsch oder unpassend war." Bitte nutze das. Falsche und unpassende Antworten sind der Weg, auf dem die Anfragen besser werden.
 
 ## Weiterlesen
 
