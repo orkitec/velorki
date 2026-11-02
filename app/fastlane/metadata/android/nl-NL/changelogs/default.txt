@@ -1,8 +1,7 @@
-• Synchroniseer routes, ritten en instellingen via je eigen Google Drive; ze blijven bij jou
-• Plan op app.velorki.com met hetzelfde Google-account, ook met Plus
-• Tablets en vouwtoestellen: de kaart over het scherm, de app ernaast
-• Instellingen: een overzicht, elke groep op een eigen pagina
-• De downloadknop toont of het gebied gedownload is
-• Weerlagen waarschuwen pas na pogingen en herstellen vanzelf
-• Donkere kaartstijlen tonen weer plaatsen
-• ‘Ongedaan maken’-meldingen sluiten vanzelf
+• Eerste start vraagt je locatie, opent boven je land, fietspaden en stops aan
+• ‘Rijden’ naast ‘Opslaan’ start de geplande route
+• Stop toevoegen onderweg; de navigatie gaat door
+• Stations, bus-, tram- en veerhaltes, apotheken, ziekenhuizen, uitzichtpunten en meer
+• Downloads op de kaart, met voortgang en stoppen
+• Kaartgegevens alleen bijgewerkt als ze echt veranderen
+• Een tik op de kaart sluit het zoeken

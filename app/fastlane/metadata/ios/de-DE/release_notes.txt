@@ -1,9 +1,9 @@
-• Synchronisiere deine Routen, Fahrten und Einstellungen über deine eigene iCloud oder dein Google Drive, zwischen iPhone, iPad und dem Web-Planer auf app.velorki.com. Deine Routen und Fahrten bleiben bei dir.
-• Im Browser planen auf app.velorki.com: Melde dich mit demselben iCloud- oder Google-Konto an, und deine Bibliothek ist da. Auch Plus funktioniert dort, sobald die App mit Plus mit demselben Konto synchronisiert.
-• Velorki auf dem iPad: die Karte über den ganzen Bildschirm, die App in einer Spalte daneben, auf der Seite deiner Wahl.
-• Die Einstellungen sind jetzt eine Übersicht, jede Gruppe auf ihrer eigenen Seite.
-• Der Download-Button zeigt, ob der sichtbare Kartenausschnitt schon heruntergeladen ist.
-• Wetterkarte: Eine Ebene gilt erst nach mehreren Versuchen als nicht verfügbar, und die Warnung verschwindet von selbst, sobald der Dienst wieder da ist.
-• Die dunklen Kartenstile zeigen wieder Ortspunkte.
-• Ein Hinweis, wenn eine neue Version von Velorki im App Store ist.
-• Kleine Korrekturen: „Rückgängig“-Meldungen schließen sich von selbst, und die Google-Anmeldung fragt nur noch einmal.
+• Leichter Einstieg: Velorki fragt nach deinem Standort, öffnet die Karte über deinem Land mit Radwegen und Stopps und zeigt, wo du anfängst.
+• Gleich losfahren: „Losfahren“ neben „Speichern“ startet die Aufzeichnung und führt dich die geplante Route entlang.
+• Stopp während der Fahrt: Tippe auf ein Café, einen Laden oder eine Wasserstelle auf der Karte und füge sie deiner Route hinzu. Die Führung läuft weiter, während die Route neu berechnet wird.
+• Mehr auf der Karte: Bahnhöfe, Bus-, Tram- und Fährhaltestellen, Apotheken, Krankenhäuser, Picknickplätze, Aussichtspunkte, Strände und Schlauchautomaten. Suche „Bus“, „Zug“ oder „Fähre“, um die nächste zu finden.
+• Downloads direkt auf der Karte: das Gebiet, die Suche und die Daten, die eine Route braucht, mit Fortschritt und Abbrechen.
+• Kartendaten werden nur aktualisiert, wenn sich in deinem Gebiet wirklich etwas geändert hat, und ein Hinweis über der Karte sagt es dir.
+• Ein Tipp auf die Karte während der Suche schließt nur die Suche.
+• Der Tab „Aufnahme“ heißt jetzt „Aufzeichnen“.
+• Impressum unter Einstellungen → Über.
