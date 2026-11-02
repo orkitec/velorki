@@ -1,0 +1,149 @@
+name: gazetteer-sample
+
+# Builds the gazetteer from a handful of real Geofabrik extracts and runs
+# check.py on every tile, so a failure that only real data provokes (a script
+# translit.py has not met, a broken multipolygon, a huge area, sheer volume)
+# shows here weeks before the monthly publish on the 1st (velorki-data's
+# publish-gazetteer) instead of stopping it. The committed fixtures and the
+# Liechtenstein job in app.yml cover the builder's logic; this covers the world.
+#
+# The extracts, each picked for one hard case and small enough that the whole
+# matrix runs in parallel in well under an hour:
+#   greece                Greek script, the Greek translit table
+#   ukraine               Cyrillic with the Ukrainian letters (є і ї ґ), the
+#                         biggest of the set (~0.9 GB); Geofabrik has no
+#                         Ukrainian sub-regions
+#   serbia                other Cyrillic (ђ ћ џ љ њ ј) mixed with Latin
+#   sri-lanka             Sinhala and Tamil, and the micro sign in names
+#   japan/kansai          CJK, dense (Osaka, Kyoto, Kobe)
+#   israel-and-palestine  Hebrew and Arabic, right to left
+#   duesseldorf-regbez    volume: the densest German Regierungsbezirk, house
+#                         numbers and streets by the hundred thousand
+#
+# Geofabrik gets one download per extract per run, with the project's
+# User-Agent; nothing is cached.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Sunday 02:17 UTC: off the 1st's publish window and the nightly jobs.
+    - cron: "17 2 * * 0"
+  push:
+    branches: [main]
+    paths:
+      - "tools/gazetteer/**"
+      - ".github/workflows/gazetteer-sample.yml"
+
+# Reads the repository and Geofabrik; writes nothing.
+permissions:
+  contents: read
+
+concurrency:
+  group: gazetteer-sample-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sample:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      # Every extract reports, whichever fails first.
+      fail-fast: false
+      matrix:
+        include:
+          - name: greece
+            region: europe/greece
+          - name: ukraine
+            region: europe/ukraine
+          - name: serbia
+            region: europe/serbia
+          - name: sri-lanka
+            region: asia/sri-lanka
+          - name: japan-kansai
+            region: asia/japan/kansai
+          - name: israel-and-palestine
+            region: asia/israel-and-palestine
+          - name: duesseldorf-regbez
+            region: europe/germany/nordrhein-westfalen/duesseldorf-regbez
+    env:
+      EXTRACT: ${{ matrix.name }}
+      REGION: ${{ matrix.region }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: pip install "osmium>=4,<5"
+
+      - name: Download ${{ matrix.region }}
+        run: |
+          pbf="$RUNNER_TEMP/$EXTRACT.osm.pbf"
+          curl --retry 3 --retry-all-errors --retry-delay 30 --fail --location --silent --show-error \
+            --user-agent "velorki-ci (+https://github.com/orkitec/velorki)" \
+            --output "$pbf" \
+            "https://download.geofabrik.de/$REGION-latest.osm.pbf"
+          # A missing extract redirects to Geofabrik's front page, which curl
+          # takes as a 200; a PBF starts with a BlobHeader naming OSMHeader.
+          if ! head -c 64 "$pbf" | grep -q OSMHeader; then
+            echo "::error title=gazetteer sample $EXTRACT::$REGION did not download as a PBF"
+            exit 1
+          fi
+          echo "PBF=$pbf" >> "$GITHUB_ENV"
+          echo "PBF_MB=$(( $(stat -c%s "$pbf") / 1000000 ))" >> "$GITHUB_ENV"
+
+      - name: Build
+        # TMPDIR keeps build.py's on-disk node cache (above 150 MB of PBF) on
+        # the runner's temp disk.
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          start=$(date +%s)
+          set +e
+          python3 tools/gazetteer/build.py "$PBF" --out "$RUNNER_TEMP/gaz" 2>&1 | tee "$RUNNER_TEMP/build.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "BUILD_S=$(( $(date +%s) - start ))" >> "$GITHUB_ENV"
+          if [ "$status" != 0 ]; then
+            last=$(grep -v '^\s*$' "$RUNNER_TEMP/build.log" | tail -1)
+            last=${last//'%'/'%25'}
+            echo "::error title=gazetteer sample $EXTRACT::build.py failed on $REGION: $last"
+            exit "$status"
+          fi
+
+      - name: Check every tile
+        run: |
+          failed=0
+          {
+            echo "### gazetteer sample: $EXTRACT"
+            echo
+            echo "\`$REGION\`, ${PBF_MB} MB of PBF, built in ${BUILD_S} s."
+            echo
+            echo "| tile | size | check |"
+            echo "|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          shopt -s nullglob
+          files=("$RUNNER_TEMP"/gaz/*.gaz)
+          if [ "${#files[@]}" = 0 ]; then
+            echo "::error title=gazetteer sample $EXTRACT::build.py wrote no .gaz for $REGION"
+            exit 1
+          fi
+          for gaz in "${files[@]}"; do
+            tile=$(basename "$gaz" .gaz)
+            mb=$(awk -v b="$(stat -c%s "$gaz")" 'BEGIN { printf "%.1f MB", b / 1e6 }')
+            if out=$(python3 tools/gazetteer/check.py "$gaz" 2>&1); then
+              echo "$out"
+              # The summary line minus the file name, tile and size it repeats.
+              counts=$(sed -E 's/^[^ ]+  [^ ]+  //; s/  [0-9.]+ MB.*//' <<< "$out")
+              echo "| $tile | $mb | $counts |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              failed=1
+              message=$(grep -m1 '^FAIL ' <<< "$out" || tail -1 <<< "$out")
+              message=${message#FAIL }
+              message=${message#"$gaz": }
+              echo "$out"
+              echo "::error title=gazetteer sample $EXTRACT::$tile: ${message//'%'/'%25'}"
+              echo "| $tile | $mb | **FAIL** ${message//|/\\|} |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          exit "$failed"

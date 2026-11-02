@@ -52,10 +52,23 @@ on:
         description: Also upload the store texts (fastlane/metadata/ios, /android)
         type: boolean
         default: false
+      # Off for a run that only brings the texts or the creative assets.
+      screenshots:
+        description: Upload the App Store screenshots (off to send only texts or creative assets)
+        type: boolean
+        default: true
+      creative:
+        description: Also place the creative assets (product page header, search results image); needs a fastlane with fastlane#30442
+        type: boolean
+        default: false
       app_version:
         description: App Store version to put them on, e.g. 1.0.1 (needed to upload iOS)
         type: string
         default: ""
+      verbose:
+        description: Keep flutter's verbose test log of each capture (an artifact)
+        type: boolean
+        default: false
       assets_run_id:
         description: Upload the set of this earlier run instead of capturing (its run id)
         type: string
@@ -74,16 +87,21 @@ env:
   FLUTTER_VERSION: "3.47.4"  # keep in sync with mise.toml and app/.fvmrc
 
 jobs:
-  # The languages as a list, one capture job each per platform: a language
-  # takes about half an hour on the simulator and close to an hour on the
-  # emulator, so all of them in one job ran for hours or past its limit.
+  # The languages, and the capture jobs. A job takes all its languages and
+  # both themes in one run of the app (the test switches them in place).
+  # On iOS English is a job of its own (the iPhone's in one, the iPad's
+  # and the Duo's in another), because the simulator's region, which decides
+  # the status bar's 9:41 AM or 09:41, changes only with a reboot: five
+  # macOS jobs, what a free account runs at once. Android takes a job per
+  # language and device, as the emulator draws slowly and Linux jobs are many.
   locales:
     if: ${{ (inputs.ios || inputs.android) && inputs.assets_run_id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       locales: ${{ steps.list.outputs.locales }}
-      pairs: ${{ steps.list.outputs.pairs }}
+      list: ${{ steps.list.outputs.list }}
+      ios_jobs: ${{ steps.list.outputs.ios_jobs }}
     steps:
       - id: list
         env:
@@ -94,25 +112,42 @@ jobs:
             || { echo "::error::ios_sets takes iphone, ipad and duo, comma-separated, not '$IOS_SETS'"; exit 1; }
           json=$(printf '%s' "$LOCALES" | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | jq -R . | jq -cs .)
           [ "$json" != "[]" ] || { echo "::error::no locales"; exit 1; }
-          echo "locales=$json" >> "$GITHUB_OUTPUT"
-          # The App Store sets two languages to a Mac: one build and one
-          # simulator boot for both, and with seven languages four runners,
-          # leaving one of the five a free account gets for a release.
-          pairs=$(printf '%s' "$json" | jq -c '[range(0; length; 2) as $i | .[$i:$i+2] | join(",")]')
-          echo "pairs=$pairs" >> "$GITHUB_OUTPUT"
+          echo "locales=$(printf '%s' "$json" | jq -r 'join(",")')" >> "$GITHUB_OUTPUT"
+          echo "list=$json" >> "$GITHUB_OUTPUT"
+          # {id, sets, locales} per macOS job: English on the iPhone (with the
+          # watch), English on the iPad and the Duo; the other languages per
+          # device. The two English jobs take about as long as the others.
+          jobs=$(jq -cn --argjson locales "$json" --arg sets "$IOS_SETS" '
+            ($sets | split(",")) as $sets
+            | ($locales | map(select(startswith("en")))) as $en
+            | ($locales | map(select(startswith("en") | not))) as $rest
+            | [ (if ($en | length) > 0 then
+                  (if ($sets | index("iphone")) then {id: "en", sets: "iphone", locales: ($en | join(","))} else empty end),
+                  ([$sets[] | select(. != "iphone")] as $s
+                   | if ($s | length) > 0 then {id: "en-tablets", sets: ($s | join(",")), locales: ($en | join(","))} else empty end)
+                else empty end),
+                (if ($rest | length) > 0 then
+                  ($sets[] | {id: ., sets: ., locales: ($rest | join(","))})
+                else empty end) ]')
+          echo "ios_jobs=$jobs" >> "$GITHUB_OUTPUT"
+          echo "$jobs" | jq .
 
   assets:
     needs: locales
     if: ${{ inputs.ios && inputs.assets_run_id == '' }}
     runs-on: xcode-27
-    # Two languages on the iPhone, the iPad and the Duo, each with a
-    # simulator reboot, and the preview records them again.
-    timeout-minutes: 300
+    # The job's languages and both themes on each of its devices; with the
+    # iPhone also the watch shots and, when asked for, the preview, recorded
+    # once per language.
+    timeout-minutes: 240
+    name: assets (${{ matrix.job.id }})
     strategy:
       fail-fast: false
       matrix:
-        locale: ${{ fromJSON(needs.locales.outputs.pairs) }}
+        job: ${{ fromJSON(needs.locales.outputs.ios_jobs) }}
     env:
+      LOCALES: ${{ matrix.job.locales }}
+      VELORKI_STORE_VERBOSE: ${{ inputs.verbose && '1' || '' }}
       # store_screenshots.sh prints memory, disk, the busiest processes, the
       # booted simulators and the test's last line every three minutes.
       VELORKI_STORE_MONITOR: "180"
@@ -148,6 +183,7 @@ jobs:
       # The watch shots need a watchOS simulator runtime for that Xcode; the
       # image usually has one, and a download is a few GB when it has not.
       - name: watchOS simulator runtime
+        if: ${{ contains(format(',{0},', matrix.job.sets), ',iphone,') }}
         run: |
           if xcrun simctl list runtimes | grep -q '^watchOS'; then
             xcrun simctl list runtimes | grep '^watchOS'
@@ -156,6 +192,41 @@ jobs:
             xcodebuild -downloadPlatform watchOS
             xcrun simctl list runtimes | grep '^watchOS' \
               || { echo "::error::still no watchOS simulator runtime"; exit 1; }
+          fi
+
+      # Flutter has xcodebuild resolve the Swift packages before every build,
+      # which asked each package's remote for news and took five minutes on
+      # a runner although the checkouts are cached: resolved from the
+      # committed Package.resolved and the cache only, no update checks, and
+      # with the system's git rather than Xcode's own.
+      - name: Swift packages from the lock file
+        run: |
+          defaults write com.apple.dt.Xcode IDEPackageOnlyUseVersionsFromResolvedFile -bool YES
+          defaults write com.apple.dt.Xcode IDEDisableAutomaticPackageResolution -bool YES
+          defaults write com.apple.dt.Xcode IDESkipPackageUpdates -bool YES
+          defaults write com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM -bool NO
+
+      # The Duo needs an iOS 27.1 simulator runtime; the image may carry only
+      # 27.0. Downloaded (several GB) for the Xcode selected above when no
+      # installed runtime has the device, as the watchOS step does.
+      - name: iOS simulator runtime for the iPhone Duo
+        if: ${{ contains(format(',{0},', matrix.job.sets), ',duo,') }}
+        run: |
+          has_duo() {
+            xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          sys.exit(not any(r["isAvailable"] and any(d["identifier"].endswith(".iPhone-Duo")
+                                                    for d in r.get("supportedDeviceTypes", []))
+                           for r in json.load(sys.stdin)["runtimes"]))'
+          }
+          xcrun simctl list runtimes | grep '^iOS'
+          df -h / "$HOME"
+          if ! has_duo; then
+            echo "::notice::no iOS runtime with the iPhone Duo on the image; downloading the one for this Xcode"
+            xcodebuild -downloadPlatform iOS
+            xcrun simctl list runtimes | grep '^iOS'
+            df -h / "$HOME"
+            has_duo || { echo "::error::still no iOS simulator runtime with the iPhone Duo"; exit 1; }
           fi
 
       # store_slides.py drives headless Chrome, which the image ships;
@@ -205,6 +276,16 @@ jobs:
           restore-keys: |
             derived-xcode27-${{ env.FLUTTER_VERSION }}-${{ hashFiles('app/ios/Podfile.lock') }}-
 
+      # The Swift packages Xcode clones into app/build/ios (Flutter's place
+      # for them, not the derived data), under integration-ios.yml's key:
+      # fetched fresh, every package was cloned and compiled again.
+      - name: Swift packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: app/build/ios/SourcePackages
+          key: swiftpm-xcode27-${{ hashFiles('app/ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: swiftpm-xcode27-
+
       - name: Prepare the app package
         working-directory: app
         run: |
@@ -234,12 +315,16 @@ jobs:
 
       - name: Screenshots and slides
         id: iphone
-        if: ${{ contains(format(',{0},', inputs.ios_sets), ',iphone,') }}
+        # A hung capture fails here with its log, not with the job's limit.
+        timeout-minutes: 60
+        if: ${{ contains(format(',{0},', matrix.job.sets), ',iphone,') }}
         working-directory: app
         env:
-          LOCALES: ${{ matrix.locale }}
           # The runner's first build of the test app alone takes eight minutes.
           VELORKI_STORE_START_TIMEOUT: "1500"
+          # The App Store's creative assets (the product page header and the
+          # search results image), made while the watch is shot.
+          VELORKI_STORE_CREATIVE: "1"
         run: tool/store_screenshots.sh --locales "$LOCALES"
 
       # Each platform's set is kept as soon as it is made, in an artifact of
@@ -248,94 +333,112 @@ jobs:
       # from before its first wildcard, so `?pad` keeps the `ipad/` folder (a
       # one-letter `[i]` counts as a literal there).
       - name: Keep the iPhone set
+        id: keep_iphone
+        # GitHub's artifact service now and then times out; once more below.
+        continue-on-error: true
         if: ${{ !cancelled() && steps.iphone.outcome != 'skipped' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-assets-ios-${{ matrix.locale }}
+          name: store-assets-ios-iphone-${{ matrix.job.id }}
           path: |
             app/build/store_screenshots/slides/set
             app/build/store_screenshots/watch
+            app/build/store_screenshots/creative
           if-no-files-found: ${{ steps.iphone.outcome == 'success' && 'error' || 'warn' }}
+          retention-days: 30
+
+      - name: Keep the iPhone set, once more
+        if: ${{ !cancelled() && steps.iphone.outcome != 'skipped' && steps.keep_iphone.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-iphone-${{ matrix.job.id }}
+          path: |
+            app/build/store_screenshots/slides/set
+            app/build/store_screenshots/watch
+            app/build/store_screenshots/creative
+          if-no-files-found: ${{ steps.iphone.outcome == 'success' && 'error' || 'warn' }}
+          overwrite: true
           retention-days: 30
 
       - name: iPad screenshots and slides
         id: ipad
-        # Each platform's set stands on its own: one failing keeps the others.
-        if: ${{ !cancelled() && contains(format(',{0},', inputs.ios_sets), ',ipad,') }}
+        # A hung capture fails here with its log, not with the job's limit.
+        timeout-minutes: 60
+        # Each device's set stands on its own: one failing keeps the others.
+        if: ${{ !cancelled() && contains(format(',{0},', matrix.job.sets), ',ipad,') }}
         working-directory: app
         env:
-          LOCALES: ${{ matrix.locale }}
           VELORKI_STORE_START_TIMEOUT: "1500"
-        # The simulators of the steps before (the iPhone's, the watch's) are
-        # shut down first, here and below: one at a time on a 7 GB runner.
+        # The iPhone's and the watch's simulators, when this job had them, are
+        # shut down first: one at a time on a 7 GB runner.
         run: |
           xcrun simctl shutdown all || true
           tool/store_screenshots.sh --platform ipad --locales "$LOCALES"
 
       - name: Keep the iPad set
+        id: keep_ipad
+        # GitHub's artifact service now and then times out; once more below.
+        continue-on-error: true
         if: ${{ !cancelled() && steps.ipad.outcome != 'skipped' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-assets-ios-ipad-${{ matrix.locale }}
+          name: store-assets-ios-ipad-${{ matrix.job.id }}
           path: app/build/store_screenshots/?pad/slides/set
           if-no-files-found: ${{ steps.ipad.outcome == 'success' && 'error' || 'warn' }}
           retention-days: 30
 
-      # The Duo needs an iOS 27.1 simulator runtime; the image may carry only
-      # 27.0. Downloaded (several GB) for the Xcode selected above when no
-      # installed runtime has the device, as the watchOS step does.
-      - name: iOS simulator runtime for the iPhone Duo
-        if: ${{ !cancelled() && contains(format(',{0},', inputs.ios_sets), ',duo,') }}
-        run: |
-          has_duo() {
-            xcrun simctl list runtimes -j | python3 -c '
-          import json, sys
-          sys.exit(not any(r["isAvailable"] and any(d["identifier"].endswith(".iPhone-Duo")
-                                                    for d in r.get("supportedDeviceTypes", []))
-                           for r in json.load(sys.stdin)["runtimes"]))'
-          }
-          xcrun simctl list runtimes | grep '^iOS'
-          df -h / "$HOME"
-          if ! has_duo; then
-            echo "::notice::no iOS runtime with the iPhone Duo on the image; downloading the one for this Xcode"
-            xcodebuild -downloadPlatform iOS
-            xcrun simctl list runtimes | grep '^iOS'
-            df -h / "$HOME"
-            has_duo || { echo "::error::still no iOS simulator runtime with the iPhone Duo"; exit 1; }
-          fi
+      - name: Keep the iPad set, once more
+        if: ${{ !cancelled() && steps.ipad.outcome != 'skipped' && steps.keep_ipad.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-ipad-${{ matrix.job.id }}
+          path: app/build/store_screenshots/?pad/slides/set
+          if-no-files-found: ${{ steps.ipad.outcome == 'success' && 'error' || 'warn' }}
+          overwrite: true
+          retention-days: 30
 
       # The Duo's inner display, unfolded (tool/duo_state.c), on a simulator
       # the script creates on the newest runtime that has the device.
       - name: iPhone Duo screenshots and slides
         id: duo
-        # Each platform's set stands on its own: one failing keeps the others.
-        if: ${{ !cancelled() && contains(format(',{0},', inputs.ios_sets), ',duo,') }}
-        # About 25 minutes on a Mac, the iPad's 40 here: a run past this is
-        # stuck, and ends with a log rather than with the runner.
-        timeout-minutes: 75
+        # A hung capture fails here with its log, not with the job's limit.
+        timeout-minutes: 60
+        if: ${{ contains(format(',{0},', matrix.job.sets), ',duo,') }}
         working-directory: app
         env:
-          LOCALES: ${{ matrix.locale }}
           VELORKI_STORE_START_TIMEOUT: "1500"
+        # The iPad's simulator, when this job had it, is shut down first.
         run: |
           xcrun simctl shutdown all || true
           tool/store_screenshots.sh --platform duo --locales "$LOCALES"
 
       - name: Keep the iPhone Duo set
+        id: keep_duo
+        # GitHub's artifact service now and then times out; once more below.
+        continue-on-error: true
         if: ${{ !cancelled() && steps.duo.outcome != 'skipped' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-assets-ios-duo-${{ matrix.locale }}
+          name: store-assets-ios-duo-${{ matrix.job.id }}
           path: app/build/store_screenshots/?uo/slides/set
           if-no-files-found: ${{ steps.duo.outcome == 'success' && 'error' || 'warn' }}
           retention-days: 30
 
+      - name: Keep the iPhone Duo set, once more
+        if: ${{ !cancelled() && steps.duo.outcome != 'skipped' && steps.keep_duo.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-ios-duo-${{ matrix.job.id }}
+          path: app/build/store_screenshots/?uo/slides/set
+          if-no-files-found: ${{ steps.duo.outcome == 'success' && 'error' || 'warn' }}
+          overwrite: true
+          retention-days: 30
+
       - name: Preview video
         id: preview
-        if: ${{ !cancelled() && inputs.preview }}
+        if: ${{ !cancelled() && inputs.preview && contains(format(',{0},', matrix.job.sets), ',iphone,') }}
         working-directory: app
         env:
-          LOCALES: ${{ matrix.locale }}
           VELORKI_STORE_START_TIMEOUT: "1500"
         run: |
           xcrun simctl shutdown all || true
@@ -345,7 +448,7 @@ jobs:
         if: ${{ !cancelled() && steps.preview.outcome != 'skipped' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: store-assets-ios-preview-${{ matrix.locale }}
+          name: store-assets-ios-preview-${{ matrix.job.id }}
           path: |
             app/build/store_screenshots/?review/*/preview*.mp4
             app/build/store_screenshots/?review/*/poster*.png
@@ -355,6 +458,15 @@ jobs:
       - name: Mirror log
         if: failure()
         run: cat mirror.log || true
+
+      - name: Keep the verbose logs
+        if: ${{ !cancelled() && inputs.verbose }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-logs-ios-${{ matrix.job.id }}
+          path: app/build/store_screenshots/**/logs
+          if-no-files-found: ignore
+          retention-days: 7
 
   upload:
     needs: assets
@@ -394,8 +506,8 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      # One artifact per language and set (store-assets-ios-<locale>, -ipad-,
-      # -duo-, -preview-<locale>), merged into one tree.
+      # One artifact per set and job (store-assets-ios-iphone-en,
+      # -ipad-ipad, -duo-en-duo, ...), merged into one tree.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: store-assets-ios-*
@@ -428,6 +540,9 @@ jobs:
           ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
           APP_VERSION: ${{ inputs.app_version }}
           UPLOAD_METADATA: ${{ inputs.metadata }}
+          UPLOAD_CREATIVE: ${{ inputs.creative }}
+          UPLOAD_SCREENSHOTS: ${{ inputs.screenshots }}
+          CREATIVE_PATH: ${{ runner.temp }}/assets/creative
           STORE_SETS: ${{ inputs.ios_sets }}
           FASTLANE_SKIP_UPDATE_CHECK: "1"
           FASTLANE_OPT_OUT_USAGE: "YES"
@@ -452,11 +567,11 @@ jobs:
     if: ${{ inputs.android && inputs.assets_run_id == '' }}
     runs-on: ubuntu-latest
     # The tablet has 1.6 times the phone's pixels for Lavapipe to draw.
-    timeout-minutes: ${{ matrix.device == 'tablet' && 150 || 120 }}
+    timeout-minutes: ${{ matrix.device == 'tablet' && 120 || 90 }}
     strategy:
       fail-fast: false
       matrix:
-        locale: ${{ fromJSON(needs.locales.outputs.locales) }}
+        locale: ${{ fromJSON(needs.locales.outputs.list) }}
         device: [phone, tablet]
         include:
           - device: phone
@@ -537,6 +652,32 @@ jobs:
           dart run build_runner build
           flutter gen-l10n
 
+      # The Android Gradle plugin installs the NDK during the build with no
+      # check: a download that arrived broken ("Error on ZipFile unknown
+      # archive") failed a build. So it is installed here first, the version
+      # Flutter's Gradle plugin asks for, verified by the file the plugin
+      # looks for, and fetched again on a bad archive.
+      - name: Install the NDK
+        run: |
+          sdk="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          root="$(dirname "$(dirname "$(command -v flutter)")")"
+          ver="$(sed -n 's/.*val ndkVersion: String = "\([^"]*\)".*/\1/p' \
+            "$root/packages/flutter_tools/gradle/src/main/kotlin/FlutterExtension.kt")"
+          [ -n "$ver" ] || { echo "::error::no ndkVersion in Flutter's FlutterExtension.kt"; exit 1; }
+          for try in 1 2 3; do
+            printf 'y\n%.0s' {1..30} \
+              | "$sdk/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ver" || true
+            if [ -f "$sdk/ndk/$ver/source.properties" ]; then
+              echo "==> ndk;$ver in place"
+              exit 0
+            fi
+            echo "==> ndk;$ver did not install cleanly (try $try of 3); fetching it again"
+            rm -rf "$sdk/ndk/$ver" "$sdk/.temp"
+            sleep 20
+          done
+          echo "::error::ndk;$ver could not be installed"
+          exit 1
+
       # As in integration.yml: installed and checked here, so the emulator
       # action finds it in place.
       - name: Install the system image
@@ -594,6 +735,10 @@ jobs:
 
       - name: Screenshots and slides
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        # A capture takes about half an hour; a stuck test stops itself after
+        # seven silent minutes and runs once more (tool/store_screenshots.sh),
+        # this is the backstop.
+        timeout-minutes: 80
         env:
           LOCALES: ${{ matrix.locale }}
           PLATFORM: ${{ matrix.platform }}
@@ -622,11 +767,25 @@ jobs:
           # once this step ends.
           script: tool/store_screenshots.sh --platform "$PLATFORM" --locales "$LOCALES" || { timeout 60 adb -s emulator-5554 logcat -d > build/logcat.txt; exit 1; }
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - name: Keep the set
+        id: keep_set
+        # GitHub's artifact service now and then times out; once more below.
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ${{ matrix.artifact }}-${{ matrix.locale }}
           path: ${{ matrix.set }}
           if-no-files-found: error
+          retention-days: 30
+
+      - name: Keep the set, once more
+        if: ${{ steps.keep_set.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ${{ matrix.artifact }}-${{ matrix.locale }}
+          path: ${{ matrix.set }}
+          if-no-files-found: error
+          overwrite: true
           retention-days: 30
 
       - name: Mirror log
@@ -676,7 +835,7 @@ jobs:
 
       # One artifact per language and device (store-assets-android-<locale>,
       # store-assets-android-tablet-<locale> with its tablet/ folder), or one
-      # for all from a run before the split; merged into one set.
+      # per device from an earlier run; merged into one set.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: store-assets-android*

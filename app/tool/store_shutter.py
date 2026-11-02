@@ -151,6 +151,40 @@ class Android:
     def status_bar(self, online: bool) -> None:
         android_status_bar(self.serial, online)
 
+    def clock_format(self, locale: str) -> None:
+        """The 12- or 24-hour clock of [locale]'s region: the emulator stays
+        in one language for every locale of a run, and the setting decides
+        how the status bar shows 9:41."""
+        hours = "12" if locale.startswith("en") else "24"
+        self.adb("shell", "settings", "put", "system", "time_12_24", hours, check=True)
+
+    def system_dialogs(self) -> list[str]:
+        """The system's "isn't responding" and crash dialogs on screen, by
+        their window titles, whatever has the focus."""
+        shown = self.adb("shell", "dumpsys", "window", "windows").stdout.decode("utf-8", "replace")
+        return sorted({line.split("Window{", 1)[1].split("}", 1)[0]
+                       for line in shown.splitlines()
+                       if "Window{" in line and ("Application Not Responding" in line
+                                                 or "Application Error" in line)})
+
+    def app_in_front(self) -> bool:
+        """Whether no dialog of the system's stands over the app: a busy
+        emulator's launcher once stopped answering, and its "isn't
+        responding" dialog stood over every picture of a run that passed.
+        Such a dialog is asked to close once (a broadcast the app does not
+        hear); if it stays, the picture is refused. Not the window with the
+        focus: a CI emulator reports none, and the app's own windows (a
+        native popup, a sheet) take it too."""
+        for _ in range(3):
+            dialogs = self.system_dialogs()
+            if not dialogs:
+                return True
+            print(f"store_shutter: over the app: {', '.join(dialogs)}", file=sys.stderr)
+            self.adb("shell", "am", "broadcast", "-a",
+                     "android.intent.action.CLOSE_SYSTEM_DIALOGS")
+            time.sleep(1.5)
+        return not self.system_dialogs()
+
     def screenshot(self, target: str) -> None:
         png = self.adb("exec-out", "screencap", "-p", check=True).stdout
         with open(target, "wb") as f:
@@ -176,8 +210,7 @@ def android_status_bar(serial: str, online: bool) -> None:
             command, *extras)
 
     def in_demo_mode() -> bool:
-        state = adb("dumpsys", "activity", "service", "com.android.systemui").stdout
-        return "isInDemoMode=true" in state
+        return android_in_demo_mode(serial)
 
     for attempt in range(1, 6):
         adb("settings", "put", "global", "sysui_demo_allowed", "1")
@@ -202,10 +235,22 @@ def android_status_bar(serial: str, online: bool) -> None:
     raise RuntimeError(f"SystemUI on {serial} never entered demo mode")
 
 
+def android_in_demo_mode(serial: str) -> bool:
+    """Whether SystemUI still shows the demo mode's bar: a tenth of a second
+    to ask, where setting the bar afresh takes seconds."""
+    state = subprocess.run(["adb", "-s", serial, "shell", "dumpsys", "activity", "service",
+                            "com.android.systemui"], capture_output=True, text=True).stdout
+    return "isInDemoMode=true" in state
+
+
 def main_android(serial: str, out: str) -> int:
     device = Android(serial)
     last = None
     started = False
+    # The bar as the last picture left it, (online, 12/24-hour clock): set
+    # again only when a picture wants another, or SystemUI dropped the demo
+    # mode (on a CI emulator it did, between boot and the first picture).
+    bar = None
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     while True:
         fields = device.request()
@@ -232,7 +277,20 @@ def main_android(serial: str, out: str) -> int:
         elif action in ("record-start", "record-stop"):
             print(f"store_shutter: no recording on Android, skipping {name}", file=sys.stderr)
         else:
-            device.status_bar(online=fields.get("status") != "offline")
+            locale = name.split("/")[1]
+            wanted = (fields.get("status") != "offline", locale.startswith("en"))
+            if bar != wanted or not android_in_demo_mode(serial):
+                if bar is None or bar[1] != wanted[1]:
+                    device.clock_format(locale)
+                # Set after the clock, which the demo mode's 9:41 is drawn
+                # in; the seconds it takes also let the app redraw its own
+                # times in that clock.
+                device.status_bar(online=wanted[0])
+                bar = wanted
+            if not device.app_in_front():
+                print(f"store_shutter: refusing {name}: a dialog of the system's covers the app",
+                      file=sys.stderr)
+                return 1
             device.screenshot(target + ".png")
             print(f"store_shutter: {target}.png", flush=True)
         device.ack(token)
@@ -260,6 +318,8 @@ def main() -> int:
     last = None
     started = False
     recorder = None
+    # The bar as the last picture left it: None until the first sets it.
+    bar = None
 
     def quit_(*_):
         # A recording left running would keep the simulator busy for good.
@@ -306,21 +366,20 @@ def main() -> int:
             shutil.copyfile(os.path.join(folder, "data.json"), target + ".json")
             print(f"store_shutter: {target}.json", flush=True)
         else:
-            offline = fields.get("status") == "offline"
-            # Every picture from a bar set afresh: once a ride has run, iOS
-            # now and then keeps the icons out of order (the battery before
-            # the bars, no wifi) for the rest of the run.
-            status_bar(udid, OFFLINE if offline else ONLINE)
-            try:
-                subprocess.run(
-                    ["xcrun", "simctl", "io", udid, "screenshot", "--type=png", *display,
-                     target + ".png"],
-                    check=True,
-                    capture_output=True,
-                )
-            finally:
-                if offline:
-                    status_bar(udid, ONLINE)
+            # The bar is set only when it changes: setting it takes five
+            # seconds, and a run takes some two hundred pictures in a row.
+            # (Setting it afresh for every picture did not cure iOS keeping
+            # the icons out of order while a ride records.)
+            wanted = OFFLINE if fields.get("status") == "offline" else ONLINE
+            if bar is not wanted:
+                status_bar(udid, wanted)
+                bar = wanted
+            subprocess.run(
+                ["xcrun", "simctl", "io", udid, "screenshot", "--type=png", *display,
+                 target + ".png"],
+                check=True,
+                capture_output=True,
+            )
             print(f"store_shutter: {target}.png", flush=True)
         with open(os.path.join(folder, "shot.ack"), "w") as f:
             f.write(token)

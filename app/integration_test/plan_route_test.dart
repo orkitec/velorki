@@ -17,6 +17,7 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/map/presentation/map_view.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
+import 'package:velorki/features/map/presentation/first_start_location.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 void main() {
@@ -24,6 +25,11 @@ void main() {
 
   testWidgets('plans a route on Madeira through BRouter', (tester) async {
     final prefs = await SharedPreferences.getInstance();
+    // About the route: no stops or cycle map, nor their chips, in the way.
+    await prefs.setBool('map.stops.shown', false);
+    await prefs.setBool('map.cycle_map.shown', false);
+    // The first start's location question is a test of its own.
+    await prefs.setBool(firstStartLocationAskedKey, true);
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),

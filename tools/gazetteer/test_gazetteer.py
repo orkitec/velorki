@@ -27,6 +27,7 @@ sys.path.insert(0, HERE)
 
 import build  # noqa: E402
 import check  # noqa: E402
+import digest  # noqa: E402
 import manifest  # noqa: E402
 import merge  # noqa: E402
 import query  # noqa: E402
@@ -69,6 +70,7 @@ POI_KINDS = frozenset(
     attraction museum historic place_of_worship hospital university stadium
     mall airport ferry_terminal tower lighthouse water beach nature_reserve
     building
+    bicycle_tube_vending bus_stop tram_stop
     """.split()
 )
 
@@ -77,8 +79,12 @@ UNNAMED_KINDS = frozenset(
     """
     drinking_water toilets bicycle_repair_station shelter bicycle_rental
     charging_station picnic_site bicycle_parking compressed_air fuel
+    bicycle_tube_vending bus_stop tram_stop
     """.split()
 )
+
+# Found by their kind only, never by their name: not in the FTS index.
+UNINDEXED_KINDS = frozenset("bus_stop tram_stop".split())
 
 # Addendum 2's seven: where a tour sleeps, eats and crosses. Liechtenstein has
 # at least one of each.
@@ -455,6 +461,60 @@ class GazetteerTest(unittest.TestCase):
             ({"amenity": "fuel"}, "fuel"),
             ({"amenity": "compressed_air"}, "compressed_air"),
             ({"amenity": "fast_food"}, "fast_food"),
+            # A halt is a station to a rider; a bus or tram stop is a kind
+            # of its own.
+            ({"railway": "station"}, "station"),
+            ({"railway": "halt"}, "station"),
+            ({"highway": "bus_stop"}, "bus_stop"),
+            (
+                {"highway": "bus_stop", "public_transport": "platform", "bus": "yes"},
+                "bus_stop",
+            ),
+            ({"railway": "tram_stop"}, "tram_stop"),
+            (
+                {
+                    "railway": "tram_stop",
+                    "public_transport": "stop_position",
+                    "tram": "yes",
+                },
+                "tram_stop",
+            ),
+            # The same bus stop again on the road, or the platform's outline
+            # next to its node, is no second stop.
+            (
+                {"public_transport": "stop_position", "bus": "yes"},
+                None,
+            ),
+            (
+                {
+                    "highway": "bus_stop",
+                    "public_transport": "stop_position",
+                    "bus": "yes",
+                },
+                None,
+            ),
+            ({"public_transport": "platform", "bus": "yes"}, None),
+            ({"railway": "platform", "public_transport": "platform"}, None),
+            # A stop with a shelter of its own is still a stop; a shelter
+            # mapped as an amenity on the stop's node is the rider's kit first.
+            ({"highway": "bus_stop", "shelter": "yes"}, "bus_stop"),
+            ({"highway": "bus_stop", "amenity": "shelter"}, "shelter"),
+            # A station that also serves trams stays a station.
+            ({"railway": "station", "tram": "yes"}, "station"),
+            # A machine selling inner tubes, alone or among other goods; any
+            # other vending machine is no stop.
+            ({"amenity": "vending_machine", "vending": "bicycle_tube"}, "bicycle_tube_vending"),
+            (
+                {"amenity": "vending_machine", "vending": "bicycle_tube;bicycle_light"},
+                "bicycle_tube_vending",
+            ),
+            (
+                {"amenity": "vending_machine", "vending": "drinks; bicycle_tube"},
+                "bicycle_tube_vending",
+            ),
+            ({"amenity": "vending_machine", "vending": "drinks"}, None),
+            ({"amenity": "vending_machine"}, None),
+            ({"vending": "bicycle_tube"}, None),
             # A bar or a pub is no riding stop; one serving food is tagged
             # a restaurant.
             ({"amenity": "bar"}, None),
@@ -577,18 +637,54 @@ class GazetteerTest(unittest.TestCase):
         self.assertTrue(unnamed)
         self.assertEqual(indexed & unnamed, set(), "an unnamed row is in the index")
 
-        # And the index is exactly the named rows plus the aliases.
+        # And the index is exactly the named rows but the stops, plus the
+        # aliases.
         expected = sum(
             db.execute(sql).fetchone()[0]
             for sql in (
                 "SELECT count(*) FROM places",
                 "SELECT count(*) FROM streets",
-                "SELECT count(*) FROM pois WHERE name IS NOT NULL",
+                "SELECT count(*) FROM pois WHERE name IS NOT NULL"
+                " AND kind NOT IN ('bus_stop', 'tram_stop')",
                 "SELECT count(*) FROM aliases",
             )
         )
         self.assertEqual(len(indexed), expected)
         self.assertEqual(check.check(self.path()).search, expected)
+
+    def test_stops_are_rows_but_not_in_the_search_index(self) -> None:
+        """Liechtenstein's bus stops are rows, named or not, found by kind and
+        position only: none in the index, no aliases, one row a stop."""
+        self.assertEqual(build.UNINDEXED_KINDS, UNINDEXED_KINDS)
+        self.assertEqual(check.UNINDEXED_KINDS, UNINDEXED_KINDS)
+        self.assertEqual(build.UNNAMED_KINDS, UNNAMED_KINDS)
+        self.assertEqual(check.UNNAMED_KINDS, UNNAMED_KINDS)
+        db = self.open()
+        stops = {
+            row[0]
+            for row in db.execute("SELECT id FROM pois WHERE kind = 'bus_stop'")
+        }
+        self.assertGreater(len(stops), 100, "Liechtenstein's bus stops are missing")
+        named = db.execute(
+            "SELECT count(*) FROM pois WHERE kind = 'bus_stop' AND name IS NOT NULL"
+        ).fetchone()[0]
+        self.assertGreater(named, 0)
+        self.assertEqual(self.indexed_ids() & stops, set(), "a stop is in the index")
+        self.assertEqual(
+            db.execute(
+                "SELECT count(*) FROM aliases WHERE ref_id IN"
+                " (SELECT id FROM pois WHERE kind IN ('bus_stop', 'tram_stop'))"
+            ).fetchone()[0],
+            0,
+        )
+        # A stop's name finds nothing of it.
+        name = db.execute(
+            "SELECT name FROM pois WHERE kind = 'bus_stop' AND name IS NOT NULL"
+            " ORDER BY id LIMIT 1"
+        ).fetchone()[0]
+        self.assertTrue(
+            all(hit.kind != "bus_stop" for hit in query.search(db, name, 50))
+        )
 
     def test_a_dry_spring_is_not_a_water_stop(self) -> None:
         """Node 12899110144 is a `natural=spring` with `drinking_water=no`; its
@@ -1122,14 +1218,14 @@ class GazetteerTest(unittest.TestCase):
         self.addCleanup(db.close)
         names = [
             (rowid, name)
-            for table, column in (
-                ("places", "name"),
-                ("streets", "name"),
-                ("pois", "name"),
-                ("aliases", "name"),
+            for table, where in (
+                ("places", ""),
+                ("streets", ""),
+                ("pois", " AND kind NOT IN ('bus_stop', 'tram_stop')"),
+                ("aliases", ""),
             )
             for rowid, name in db.execute(
-                f"SELECT id, {column} FROM {table} WHERE {column} IS NOT NULL"
+                f"SELECT id, name FROM {table} WHERE name IS NOT NULL{where}"
             )
         ]
         letters = frozenset(translit.LETTERS) | frozenset(translit.LETTERS_UK)
@@ -1192,9 +1288,35 @@ class GazetteerTest(unittest.TestCase):
             ("Μπάρι Ντόρα", "bari dora"),
             ("Λάμπρος", "lampros"),
             ("Mühleholz St. Florin", "mühleholz st. florin"),
+            # The micro sign, which the tokenizer folds to a Greek mu: a
+            # Sri Lankan "µHotel" stopped the November 2026 publish.
+            ("Old Lanka µHotel", "old lanka mhotel"),
         ):
             self.assertEqual(translit.translit(name), latin, name)
         self.assertTrue(all(len(letter) == 1 for letter in translit.LETTERS))
+
+    def test_nothing_the_tokenizer_folds_escapes_the_table(self):
+        """A character the index's tokenizer folds to a letter of the table
+        (the micro sign to a Greek mu) must be in the table itself, or the
+        index holds a non-Latin term and check.py stops the publish."""
+        letters = set(translit.LETTERS) | set(translit.LETTERS_UK)
+        db = sqlite3.connect(":memory:")
+        db.execute(
+            "CREATE VIRTUAL TABLE w USING fts5(x, tokenize='unicode61 remove_diacritics 2')"
+        )
+        db.execute("CREATE VIRTUAL TABLE wv USING fts5vocab(w, 'row')")
+        escaped = []
+        # Latin-1 to Greek Extended: where such look-alikes live.
+        for cp in list(range(0x80, 0x530)) + list(range(0x1F00, 0x2000)):
+            c = chr(cp)
+            if c in letters:
+                continue
+            db.execute("DELETE FROM w")
+            db.execute("INSERT INTO w(x) VALUES (?)", ("a" + translit.translit(c) + "a",))
+            for (term,) in db.execute("SELECT term FROM wv"):
+                if not letters.isdisjoint(term):
+                    escaped.append(hex(cp))
+        self.assertEqual(escaped, [])
         self.assertTrue(all(letter == letter.lower() for letter in translit.LETTERS))
 
     def test_translit_alt_is_the_ukrainian_spelling(self) -> None:
@@ -2278,6 +2400,23 @@ class GazetteerTest(unittest.TestCase):
             self.assertEqual(a.read(), b.read())
         self.assertEqual(self.meta_of(first)["built_at"], "2025-10-01T10:24:01Z")
 
+    def test_rebuilds_differ_in_sha256_but_not_in_digest(self) -> None:
+        extract = find_extract()
+        assert extract is not None
+        paths = []
+        for epoch in ("1759314241", "1769314241"):
+            out = tempfile.mkdtemp(prefix="gaz-epoch-", dir=self.tmp)
+            self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+            subprocess.run(
+                [sys.executable, os.path.join(HERE, "build.py"), extract, "--out", out],
+                check=True,
+                capture_output=True,
+                env={**os.environ, "SOURCE_DATE_EPOCH": epoch},
+            )
+            paths.append(os.path.join(out, f"{TILE}.gaz"))
+        self.assertNotEqual(manifest.sha256_of(paths[0]), manifest.sha256_of(paths[1]))
+        self.assertEqual(digest.gazetteer_digest(paths[0]), digest.gazetteer_digest(paths[1]))
+
     def test_build_time_reads_source_date_epoch(self) -> None:
         for module in (build, merge):
             with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "0"}):
@@ -2302,15 +2441,115 @@ class GazetteerTest(unittest.TestCase):
         self.assertEqual(self.meta_of(merged)["has_streets"], "0")
         check.check(merged)
 
-    def test_merge_fails_on_a_broken_input(self) -> None:
-        inputs = self.copies(self.path(), self.path(streets=False))
-        broken = os.path.join(inputs[1], f"{TILE}.gaz")
-        db = sqlite3.connect(broken)
+    @staticmethod
+    def break_schema(path: str) -> None:
+        """Make a file that check.py refuses: a schema version from the future."""
+        db = sqlite3.connect(path)
         db.execute("UPDATE meta SET value = '2' WHERE key = 'schema_version'")
         db.commit()
         db.close()
+
+    def other_tile(self) -> str:
+        """A second tile to merge beside TILE: the committed W20_N30 fixture."""
+        fixture = os.path.join(HERE, "fixtures", "W20_N30.gaz")
+        if not os.path.isfile(fixture):
+            self.skipTest("W20_N30 fixture not present")
+        return fixture
+
+    def quarantine_of(self, merged: str) -> dict:
+        with open(os.path.join(os.path.dirname(merged), "quarantine.json")) as handle:
+            return json.load(handle)
+
+    def test_merge_quarantines_a_tile_whose_input_fails_check(self) -> None:
+        inputs = self.copies(self.path(), self.path(streets=False))
+        broken = os.path.join(inputs[1], f"{TILE}.gaz")
+        self.break_schema(broken)
+        other = tempfile.mkdtemp(prefix="gaz-other-", dir=self.tmp)
+        shutil.copy(self.other_tile(), other)
+
+        merged = self.run_merge(*inputs, other, expect=merge.EXIT_QUARANTINED)
+        self.assertFalse(os.path.exists(merged), "a quarantined tile was written")
+        # The other tile is merged and checked as if nothing had happened.
+        check.check(os.path.join(os.path.dirname(merged), "W20_N30.gaz"))
+        report = self.quarantine_of(merged)
+        self.assertEqual(report["merged"], 1)
+        self.assertTrue(report["outputsChecked"])
+        [entry] = report["quarantined"]
+        self.assertEqual(entry["tile"], TILE)
+        self.assertIn(broken, entry["reason"])
+        self.assertIn("schema_version", entry["reason"])
+        # Every input of the tile is named, not only the broken one.
+        self.assertEqual(
+            sorted(entry["inputs"]),
+            sorted(os.path.join(d, f"{TILE}.gaz") for d in inputs),
+        )
+
+    def test_merge_fails_when_every_tile_is_quarantined(self) -> None:
+        inputs = self.copies(self.path(), self.path(streets=False))
+        self.break_schema(os.path.join(inputs[1], f"{TILE}.gaz"))
         merged = self.run_merge(*inputs, expect=1)
         self.assertFalse(os.path.exists(merged), "a failed merge wrote a tile anyway")
+        self.assertEqual(
+            [q["tile"] for q in self.quarantine_of(merged)["quarantined"]], [TILE]
+        )
+
+    def test_a_clean_merge_writes_an_empty_quarantine(self) -> None:
+        merged = self.run_merge(*self.copies(self.path()))
+        self.assertEqual(
+            self.quarantine_of(merged),
+            {"merged": 1, "outputsChecked": True, "quarantined": []},
+        )
+
+    def test_merge_quarantines_a_tile_whose_output_fails_check(self) -> None:
+        inputs = self.copies(self.path())
+        other = tempfile.mkdtemp(prefix="gaz-other-", dir=self.tmp)
+        shutil.copy(self.other_tile(), other)
+        out = tempfile.mkdtemp(prefix="gaz-merged-", dir=self.tmp)
+        real_check = merge.check
+
+        def refuse_merged_e5(path: str) -> check.Report:
+            if path == os.path.join(out, f"{TILE}.gaz"):
+                raise check.GazetteerError(f"{path}: refused for the test")
+            return real_check(path)
+
+        with mock.patch.object(merge, "check", side_effect=refuse_merged_e5):
+            outcome = merge.merge_all(out, inputs + [other], verbose=False)
+        self.assertEqual([r.tile for r in outcome.merged], ["W20_N30"])
+        self.assertEqual([q.tile for q in outcome.quarantined], [TILE])
+        self.assertIn("refused for the test", outcome.quarantined[0].reason)
+        self.assertFalse(os.path.exists(os.path.join(out, f"{TILE}.gaz")))
+
+    def test_merge_quarantines_a_tile_whose_merge_raises(self) -> None:
+        inputs = self.copies(self.path())
+        other = tempfile.mkdtemp(prefix="gaz-other-", dir=self.tmp)
+        shutil.copy(self.other_tile(), other)
+        out = tempfile.mkdtemp(prefix="gaz-merged-", dir=self.tmp)
+        real_merge = merge.merge_tile
+
+        def fail_e5(out_dir, tile, paths, built_at):
+            if tile == TILE:
+                raise ValueError("a row the merge cannot place")
+            return real_merge(out_dir, tile, paths, built_at)
+
+        with mock.patch.object(merge, "merge_tile", side_effect=fail_e5):
+            outcome = merge.merge_all(out, inputs + [other], verbose=False)
+        self.assertEqual([r.tile for r in outcome.merged], ["W20_N30"])
+        self.assertEqual(
+            [(q.tile, q.reason) for q in outcome.quarantined],
+            [(TILE, "a row the merge cannot place")],
+        )
+
+    def test_a_full_disk_stops_the_merge(self) -> None:
+        inputs = self.copies(self.path())
+        out = tempfile.mkdtemp(prefix="gaz-merged-", dir=self.tmp)
+        for error in (
+            sqlite3.OperationalError("database or disk is full"),
+            OSError(28, "No space left on device"),
+            MemoryError(),
+        ):
+            with mock.patch.object(merge, "merge_tile", side_effect=error):
+                with self.assertRaises(type(error)):
+                    merge.merge_all(out, inputs, verbose=False)
 
     def test_merge_writes_the_same_schema_as_build(self) -> None:
         merged = self.run_merge(*self.copies(self.path()))
@@ -2382,6 +2621,70 @@ def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     d_lambda = math.radians(lon2 - lon1)
     a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
     return 2 * 6371000 * math.asin(math.sqrt(a))
+
+
+REF_DIGESTS = {
+    "E5_N45.gaz": "77d62adfdcf821cad6d3b3d34e868d36a4e24cd8c3786295ba108f0b967d67f3",
+    "W20_N30.gaz": "e17f98de90b4b3f47702ec9f8eccc0cde06ef90c18c2e473a4beeb5fd58961e0",
+}
+
+
+class DigestTest(unittest.TestCase):
+    """The content digest, on the committed fixtures (no extract needed)."""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.mkdtemp(prefix="gaz-digest-")
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+    def copy(self, name: str) -> str:
+        dst = os.path.join(self.tmp, f"copy-{len(os.listdir(self.tmp))}-{name}")
+        shutil.copy(os.path.join(HERE, "fixtures", name), dst)
+        return dst
+
+    def edit(self, path: str, sql: str) -> None:
+        db = sqlite3.connect(path)
+        db.execute(sql)
+        db.commit()
+        db.close()
+
+    def test_reference_values(self) -> None:
+        for name, want in REF_DIGESTS.items():
+            self.assertEqual(digest.gazetteer_digest(os.path.join(HERE, "fixtures", name)), want)
+
+    def test_built_at_alone_keeps_the_digest(self) -> None:
+        path = self.copy("E5_N45.gaz")
+        self.edit(path, "UPDATE meta SET value = '2030-01-01T00:00:00Z' WHERE key = 'built_at'")
+        self.assertEqual(digest.gazetteer_digest(path), REF_DIGESTS["E5_N45.gaz"])
+        self.assertNotEqual(manifest.sha256_of(path), manifest.sha256_of(os.path.join(HERE, "fixtures", "E5_N45.gaz")))
+
+    def test_another_meta_value_changes_the_digest(self) -> None:
+        path = self.copy("E5_N45.gaz")
+        self.edit(path, "UPDATE meta SET value = value || 'x' WHERE key = 'source'")
+        self.assertNotEqual(digest.gazetteer_digest(path), REF_DIGESTS["E5_N45.gaz"])
+
+    def test_a_changed_place_changes_the_digest(self) -> None:
+        path = self.copy("W20_N30.gaz")
+        self.edit(path, "UPDATE places SET name = name || 'x' WHERE rowid = (SELECT min(rowid) FROM places)")
+        self.assertNotEqual(digest.gazetteer_digest(path), REF_DIGESTS["W20_N30.gaz"])
+
+    def test_vacuum_keeps_the_digest(self) -> None:
+        path = self.copy("W20_N30.gaz")
+        db = sqlite3.connect(path)
+        db.execute("VACUUM")
+        db.close()
+        self.assertEqual(digest.gazetteer_digest(path), REF_DIGESTS["W20_N30.gaz"])
+
+    def test_manifest_writes_content_sha256(self) -> None:
+        mirror = os.path.join(self.tmp, "mirror")
+        os.makedirs(mirror)
+        shutil.copy(os.path.join(HERE, "fixtures", "E5_N45.gaz"), mirror)
+        with open(os.path.join(mirror, "manifest.json"), "w") as out:
+            json.dump({"tiles": [{"tile": "E5_N45", "bytes": 1, "updatedAt": "x"}]}, out)
+        manifest.update_manifest(mirror, verbose=False)
+        with open(os.path.join(mirror, "manifest.json")) as handle:
+            entry = json.load(handle)["tiles"][0]["gazetteer"]
+        self.assertEqual(entry["contentSha256"], REF_DIGESTS["E5_N45.gaz"])
+        self.assertEqual(entry["sha256"], manifest.sha256_of(os.path.join(mirror, "E5_N45.gaz")))
 
 
 class TestsetTest(unittest.TestCase):

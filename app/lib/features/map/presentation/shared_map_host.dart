@@ -16,6 +16,7 @@ import '../application/weather_map_binding.dart';
 import '../data/map_preferences.dart';
 import '../domain/map_controller.dart';
 import 'map_attribution.dart' show shellAttributionFloor;
+import 'first_start_location.dart';
 import 'map_chrome.dart';
 import 'puck_ownership.dart';
 import '../../shared/presentation/wide_panel.dart';
@@ -98,8 +99,11 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
     _locate = ref.read(locateOnOpenProvider);
     WidgetsBinding.instance.addObserver(this);
     // A cold start: the remembered view is on screen from the first frame,
-    // and the rider's position follows once there is a fix.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // and the rider's position follows once there is a fix. The very first
+    // start asks for the location before that (askLocationOnFirstStart).
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await askLocationOnFirstStart(context, ref);
       if (mounted) unawaited(_locate.opened());
     });
   }

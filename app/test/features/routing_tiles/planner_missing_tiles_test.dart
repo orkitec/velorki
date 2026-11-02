@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/platform_features.dart';
+import 'package:velorki/features/offline/application/area_download_activity.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/routing_tiles/application/tile_download_controller.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_assets.dart';
@@ -66,11 +68,15 @@ void main() {
         message: 'no tiles for this route',
         missingTiles: <TileName>[_tile],
       );
+    final queue = _RecordingQueue();
     final h = await pumpScreen(
       tester,
       const PlannerScreen(),
       harness: PlannerHarness(backend: backend),
-      extraOverrides: _overrides(storage),
+      extraOverrides: [
+        ..._overrides(storage),
+        tileDownloadQueueProvider.overrideWith(() => queue),
+      ],
     );
 
     h.map.onTap!(_a);
@@ -89,9 +95,43 @@ void main() {
     await tester.tap(find.text(l10n.routingTilesDownloadCount(1, '145 MB')));
     await tester.pumpAndSettle();
 
-    expect(find.byType(RoutingTilesScreen), findsOneWidget);
-    expect(find.text(l10n.routingTilesRouteTitle), findsOneWidget);
-    expect(find.text('E10_N45'), findsOneWidget);
+    // The download runs in place, over the map: the tiles' own question,
+    // then the progress where the button was. No page to go to.
+    expect(find.byType(RoutingTilesScreen), findsNothing);
+    expect(find.text('E10_N45 · 145 MB'), findsOneWidget);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text(l10n.routingTilesDownloadCount(1, '145 MB')),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(queue.asked, <TileName>[_tile]);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text(l10n.plannerFetchingTiles('145 MB')), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(
+      find.text(l10n.routingTilesDownloadCount(1, '145 MB')),
+      findsNothing,
+    );
+    // The map's download chip reads the same queue, so it shows the
+    // download too, and its Cancel stops it.
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    expect(container.read(areaDownloadActivityProvider), isNotNull);
+
+    // Cancelled there: the card offers the download again.
+    container.read(tileDownloadQueueProvider.notifier).cancel();
+    await tester.pumpAndSettle();
+    expect(container.read(areaDownloadActivityProvider), isNull);
+    expect(
+      find.text(l10n.routingTilesDownloadCount(1, '145 MB')),
+      findsOneWidget,
+    );
+    expect(find.text(l10n.plannerFetchingTiles('145 MB')), findsNothing);
 
     await unmountApp(tester);
   });
@@ -181,4 +221,7 @@ class _RecordingQueue extends TileDownloadQueue {
     asked.addAll(entries.map((e) => e.tile));
     state = state.copyWith(current: asked.first);
   }
+
+  @override
+  void cancel() => state = const TileDownloadQueueState();
 }

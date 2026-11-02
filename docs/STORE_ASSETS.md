@@ -20,10 +20,27 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
 ```
 
 1. **Capture.** On the iOS simulator "Velorki Shots 6.9" (an iPhone 17 Pro
-   Max, created on the first run), once per language: the simulator's
-   language and region are set, the status bar reads 9:41, and
+   Max, created on the first run), set to a language's language and region
+   (English on its own, then the other languages together: the region
+   decides the status bar's 9:41 AM or 09:41, and only a reboot changes
+   it), the status bar at 9:41,
    `app/integration_test/store/store_screenshots_test.dart` takes every screen
-   the slides use, in each theme: the offline cycle map with stops and the
+   the slides use in one run of the app, each set up once and then shot in
+   every theme and language by switching them in the app's settings (the
+   AI prompt, the paywall's prices and the imported ride's name are redone
+   per language; the ride under way stands still meanwhile, since the
+   recorder's clock moves only with the fixes). Nothing waits a fixed
+   time: a picture is taken once Flutter has nothing left to draw and,
+   after a change on the map, once MapLibre reports the map idle (every
+   tile and layer drawn, `MapDrawn`), the old fixed holds kept only as
+   limits. `VELORKI_STORE_LATE_CHECK=true` takes every picture again four
+   seconds later as `<screen>-late.png`, to compare. Only the pictures the
+   platform's slide set uses are taken, each in the theme its slide shows
+   (`app/tool/store_need.py`: on the iPhone also those of the creative
+   assets, on Android those the website takes), screens no set uses are not
+   even set up, the watch is shot in its slide's theme, and the slides are
+   drawn in the set's style only; `--all-shots` takes every screen in every
+   theme and draws both styles. The screens: the offline cycle map with stops and the
    Layers sheet over it, the plan, its variants, the plan under the rain
    (the weather of `store_weather.dart`, the same on every run, the clock
    at 9:41), the stops beside a route under a status bar with no signal (in
@@ -171,10 +188,15 @@ app/tool/store_creative.py [--locales en]
 ```
 
 The App Store's universal creative asset (iOS 27: the product page header,
-search results and featuring), 5244 × 2950 per language, uploaded by hand to
-the Asset Library. Only Apple's art safe area, 1402 × 962 at (1921, 660) in
-its Figma template, is sure to show, so the rain on the route fills it; the
-cycle map and the stops sit behind as backdrop, and there is no text. Writes
+search results and featuring), 5244 × 2950 per language. The store-assets
+run makes it beside the slides; `creative` places it and the search results
+image on the App Store version once deliver can (fastlane/fastlane#30442,
+not yet released: until then the lane says so and they are uploaded by hand
+from the artifact's `creative/`). Only Apple's art safe area, 1402 × 962 at (1921, 660) in
+its Figma template, is sure to show: the `universal` line of
+`app/store/creative_<lang>.json` fills its top in two lines at most (no price
+word: Apple's rules for these images exclude pricing), the rain on the route
+in the dark phone under it, the light cycle map and stops either side. Writes
 `creative/<locale>/universal.png` and a `universal-debug.png` with the safe
 area and the crops outlined.
 
@@ -183,7 +205,7 @@ The search results get their own image, 3840 × 2560 (safe area 2168 × 1030 at
 the dark ride view on the left, the light weather phone, the dark cycle map
 and the light ride stats on the right, over the weather screen's rain map
 blurred, with the time control and the rain key cut out of the real screen
-(found per language from the Save button; needs ffmpeg). Writes
+(found per language from the Save button, read through sips). Writes
 `creative/<locale>/search.png` and `search-debug.png`.
 
 ## Gallery
@@ -225,12 +247,20 @@ OpenGL renderer draws no labels, icons or dashed lines (cf. maplibre-native
 the emulator with `-gpu software` and builds the app with MapLibre's Vulkan
 renderer (`ORG_GRADLE_PROJECT_velorkiMapVulkan=true`, see
 `android/app/build.gradle.kts`); riders' builds stay on OpenGL.
-`VELORKI_STORE_EMULATOR` names its adb serial when more than one runs. Per
-language the script sets the emulator's locale (`adb root`, then a reboot
-when it changes), switches on the hole-punch cutout and gesture navigation,
-and the shutter sets SystemUI's demo mode before every shot, checked with
-`dumpsys`: 9:41, full wifi, a full battery, no notification icons, and no
-network at all for the offline shot. The demo mode's
+`VELORKI_STORE_EMULATOR` names its adb serial when more than one runs. The
+emulator keeps its own language: the app switches its own, and nothing of
+the system's in the pictures has words (switching it took a reboot or a
+framework restart per job, which now and then never came back on a
+runner). The shutter sets each picture's language's 12- or 24-hour clock,
+the script switches on the hole-punch cutout and gesture navigation and
+hides the system's error and "isn't responding" dialogs, and the shutter
+sets SystemUI's demo mode before every shot, checked with `dumpsys`: 9:41,
+full wifi, a full battery, no notification icons, and no network at all
+for the offline shot. It refuses a picture while the window list holds a
+system "isn't responding" or crash dialog, after asking it once to close
+(a busy emulator's launcher once stopped answering, and its dialog stood
+over every picture of a run that passed). The focused window is no guide:
+a CI emulator reports none, and the app's own popups take it. The demo mode's
 mobile icon is left out: on API 35 it keeps a stale "3G" and the wrong tint.
 `tool/store_shutter.py --android` answers the test through `adb shell run-as`
 (the request lies in the app's `files/itest/`) and takes the pictures with
@@ -391,22 +421,27 @@ against it, to see which converts better.
 
 `.github/workflows/store-assets.yml`, started by hand (Actions → store assets
 → Run workflow), runs `store_screenshots.sh` and then `--platform ipad` and `--platform duo` for the
-`locales` given, and with `preview` the preview too, on a macOS runner, one job
-per language (about half an hour per device). Each device's set is kept as
-an artifact as soon as it is made, so a failure or a dying runner loses only
-the rest: `store-assets-ios-<locale>` (`slides/set/`, both sizes and the
-contact sheet, and `watch/`), `store-assets-ios-ipad-<locale>`
-(`ipad/slides/set/`), `store-assets-ios-duo-<locale>` (`duo/slides/set/`) and
-`store-assets-ios-preview-<locale>` (`preview/<locale>/preview.mp4` with its
-poster), all merged into one tree for the upload. Before the iPad, the Duo and
-the preview the simulators of the step before are shut down, and every three
+`locales` given, and with `preview` the preview too, on five macOS runners:
+English on the iPhone, English on the iPad and the Duo, and the other
+languages on each device (the simulator's region, which decides the status
+bar's clock, changes only with a reboot, so English runs apart; a shut-down
+simulator gets its region written before it boots). Each job draws its own
+languages' slides, six at a time (`VELORKI_SLIDES_JOBS`); the iPhone's jobs
+also shoot the watch and make the creative assets in their languages. Each
+device's set is kept as an artifact as soon as it is made,
+`store-assets-ios-<set>-<job>`: the iPhone's (`slides/set/`, both sizes and
+the contact sheet, `watch/` and `creative/`), the iPad's (`ipad/slides/set/`),
+the Duo's (`duo/slides/set/`) and the preview's (`preview/<locale>/preview.mp4`
+with its poster, recorded in the iPhone's jobs), all merged into one tree for
+the upload. Xcode resolves the Swift packages from `Package.resolved` only,
+without update checks. Every three
 minutes the script logs memory, disk, the busiest processes and the booted
 simulators (`VELORKI_STORE_MONITOR`, seconds). The `ios` and `android` inputs
 choose the sets (`ios` the iPhone's, the iPad's and the Duo's, narrowed by
 `ios_sets`, e.g. `ipad`); `android` (off by default) runs
 `--platform android` and `--platform android-tablet` on API 35 emulators on
 Ubuntu (Pixel 6 and Pixel Tablet profiles), one job per language and device
-(close to an hour each) into the artifacts `store-assets-android-<locale>`
+into the artifacts `store-assets-android-<locale>`
 and `store-assets-android-tablet-<locale>` (its `tablet/` folder),
 drawn with MapLibre's Vulkan renderer (see above). The runner's
 simulator has no GPU and drops frames of the moving map (a third in the

@@ -11,6 +11,7 @@ import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki/features/map/data/cyclosm_tone.dart';
 import 'package:velorki/features/map/data/geojson.dart';
 import 'package:velorki/features/map/data/heading_cone.dart';
+import 'package:velorki/features/map/application/map_drawn.dart';
 import 'package:velorki/features/map/data/maplibre_map_controller.dart';
 import 'package:velorki/features/map/data/marker_glyph.dart';
 import 'package:velorki/features/map/data/marker_layers.dart';
@@ -680,6 +681,26 @@ void main() {
         },
       );
 
+      test('a route line that lands after dispose is not counted as drawn '
+          '(the style it went on is gone)', () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        final gate = Completer<void>();
+        ops.nextSourceIdsGate = gate;
+
+        final drawing = adapter.setRouteLine('main', const [
+          LatLng(48, 11),
+          LatLng(48.1, 11.1),
+          LatLng(48.2, 11.2),
+        ]);
+        adapter.dispose();
+        gate.complete();
+        await drawing;
+
+        expect(MapDrawn.hasRouteLineOf(3), isFalse);
+      });
+
       test('turn markers too', () async {
         final ops = RecordingStyleOps();
         final adapter = _adapter(ops);
@@ -1033,6 +1054,31 @@ void main() {
   });
 
   group('setRouteLine', () {
+    test('a variant removed while a new palette is applied is skipped, and '
+        'the recolour goes on', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine('main', _points);
+      await adapter.setRouteLine('main-2', _points);
+      ops
+        ..clearCalls()
+        ..beforeLayerProperties = (layerId) async {
+          if (layerId == MapLayerIds.routeCasingLayer('main')) {
+            ops.beforeLayerProperties = null;
+            await adapter.removeRouteLine('main-2');
+          }
+        };
+
+      await adapter.setPalette(_repainted);
+
+      final recoloured = ops
+          .callsNamed('setLayerProperties')
+          .map((c) => c.id)
+          .toList();
+      expect(recoloured, contains(MapLayerIds.routeLayer('main')));
+      expect(recoloured, isNot(contains(MapLayerIds.routeLayer('main-2'))));
+    });
     test(
       'a line the style kept through a reload is refreshed, not re-added',
       () async {

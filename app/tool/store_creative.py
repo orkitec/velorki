@@ -10,10 +10,11 @@ template) is sure to be seen; everything else is cropped per device or lies
 under the store's own UI, so it only carries the backdrop on.
 
 * universal.png (5244x2950, dark): behind the product page's header and in
-  the featuring. The route coloured by the rain under the radar in front,
-  the cycle map and the stops behind it to either side. The front phone's
-  map fills the safe area (1402x962 at 1921,660); there is no text, which
-  would cover the map it is about.
+  the featuring. One line of copy ("universal" in creative_<locale>.json,
+  a **phrase** in the accent) at the top of the safe area (1402x962 at
+  1921,660), the route coloured by the rain under the radar in the dark
+  phone below it, the light cycle map and stops to either side. Apple's
+  rules for these images allow no price word, so "free" stays out of it.
 * search.png (3840x2560, light): in the search results, in place of the
   first three screenshots, so it says what the app is. The copy of
   store/creative_<locale>.json ("search": chip, headline with a **phrase**
@@ -23,14 +24,14 @@ under the store's own UI, so it only carries the backdrop on.
   ride's charts behind it; left of the copy the ride under way; under the
   copy the time control and the rain's key, cut out of the real screen.
 
-Input:  build/store_screenshots/raw/dark/<locale>/{weather,cyclemap,stops,
-        navigation}.png, build/store_screenshots/raw/light/<locale>/{weather,ride}.png
+Input:  build/store_screenshots/raw/dark/<locale>/{weather,cyclemap,navigation}.png,
+        build/store_screenshots/raw/light/<locale>/{weather,ride,cyclemap,stops}.png
 Output: build/store_screenshots/creative/<locale>/universal.png and
         search.png, and each with -debug beside it: the safe area outlined,
         on the universal one also the 3:2 and 2.33:1 crops (centred).
 
-Needs Google Chrome (CHROME overrides its path), and ffmpeg for the search
-image's cut-outs.
+Needs Google Chrome (CHROME overrides its path) and, for the search image's
+cut-outs, sips (macOS).
 """
 import argparse
 import html
@@ -62,7 +63,12 @@ FRONT_SCALE = 1.0
 SHOWN_TOP = 310
 
 CSS = """
+@font-face { font-family: Barlow; src: url('FONTS/BarlowCondensed-Bold.ttf'); font-weight: 700; }
 html, body { margin: 0; width: %(w)dpx; height: %(h)dpx; overflow: hidden; }
+.htext { position: absolute; z-index: 5; text-align: center; color: var(--fg); }
+.htext h1 { font-family: Barlow; font-weight: 700; font-size: 270px; line-height: 0.93; margin: 0;
+  letter-spacing: 0.005em; text-wrap: balance; }
+.htext h1 em { font-style: normal; color: var(--accent); }
 body { position: relative;
   background:
     radial-gradient(1500px 1100px at 50%% 38%%, var(--glow), transparent 70%%),
@@ -95,13 +101,13 @@ body { position: relative; font-family: Manrope, sans-serif; color: var(--fg);
 .text { position: absolute; display: flex; flex-direction: column; justify-content: center; }
 .copy { display: flex; flex-direction: column; }
 .chip { align-self: flex-start; display: inline-flex; align-items: center; gap: 22px;
-  padding: 20px 42px 20px 34px; border-radius: 999px; background: var(--chip);
-  font-size: 52px; font-weight: 600; margin-bottom: 48px; }
-.chip i { width: 26px; height: 26px; border-radius: 50%%; background: var(--accent); }
-h1 { font-family: Barlow; font-weight: 700; font-size: 200px; line-height: 0.95; margin: 0;
+  padding: 24px 52px 24px 40px; border-radius: 999px; background: var(--chip);
+  font-size: 74px; font-weight: 600; margin-bottom: 56px; }
+.chip i { width: 34px; height: 34px; border-radius: 50%%; background: var(--accent); }
+h1 { font-family: Barlow; font-weight: 700; font-size: 260px; line-height: 0.93; margin: 0;
   letter-spacing: 0.005em; text-wrap: balance; }
 h1 em { font-style: normal; color: var(--accent); }
-p { font-size: 62px; line-height: 1.3; font-weight: 700; color: var(--muted); margin: 52px 0 0;
+p { font-size: 84px; line-height: 1.25; font-weight: 700; color: var(--muted); margin: 40px 0 0;
   text-wrap: pretty; }
 p b { color: var(--fg); }
 .phone { position: absolute; padding: 18px; border-radius: 110px;
@@ -165,20 +171,36 @@ def universal_page(raw: str, locale: str, debug: bool) -> tuple[str, list]:
     def shot(screen: str) -> str:
         return os.path.join(raw, style, locale, f"{screen}.png")
 
-    front, left, right = shot("weather"), shot("cyclemap"), shot("stops")
+    english = load_json(os.path.join(STORE, "creative_en.json")).get("universal", {})
+    copy = load_json(os.path.join(STORE, f"creative_{locale}.json")).get("universal", english)
+    front = shot("weather")
+    left = os.path.join(raw, "light", locale, "cyclemap.png")
+    right = os.path.join(raw, "light", locale, "stops.png")
     x, y, w, _ = SAFE
+    # The copy at the top of the safe area, as large as two lines of the
+    # area's width allow, and the front phone starting under it. On a phone the
+    # safe area is the copy and the top of the phone; wider crops show the
+    # maps.
+    text = (f'<div class="htext" style="left:{x}px;top:{y + 20}px;width:{w}px">'
+            f'<h1>{headline(copy.get("headline", ""))}</h1></div>'
+            # Measured once the fonts are in: the fallback face is wider.
+            '<script>document.fonts.ready.then(() => {'
+            'const h = document.querySelector(".htext h1"); let size = 270;'
+            # Two line boxes plus the ascenders that overflow them.
+            'const wraps = () => h.scrollWidth > h.clientWidth + 1 || h.scrollHeight > parseFloat(getComputedStyle(h).fontSize) * (0.93 * 2 + 0.5);'
+            'while (wraps() && size > 120) { size -= 2; h.style.fontSize = size + "px"; } });</script>')
     pad = 26
     width = SCREEN_W * FRONT_SCALE + 2 * pad
     front_left = x + w / 2 - width / 2
-    front_top = y - pad - SHOWN_TOP * FRONT_SCALE
+    front_top = y + 560
     back_width = width * 0.86
-    stage = (phone(left, back_width, front_left - 900, front_top + 260, -7, 1, back=True)
+    stage = (phone(left, back_width, front_left - 900, front_top + 260, -7, 1)
              + phone(right, back_width, front_left + width - back_width + 900, front_top + 260,
-                     7, 1, back=True)
+                     7, 1)
              + phone(front, width, front_left, front_top, 0, 2))
-    css = CSS % {"w": W, "h": H}
+    css = (CSS % {"w": W, "h": H}).replace("FONTS", "file://" + FONTS)
     body = (f'<!doctype html><meta charset="utf-8"><style>{css}</style>'
-            f'<body style="{tokens}">{contours(style)}{stage}'
+            f'<body style="{tokens}">{contours(style)}{text}{stage}'
             f'{boxes() if debug else ""}</body>')
     return body, [front, left, right]
 
@@ -194,17 +216,35 @@ def save_bottom(src: str) -> int:
     """The last row of the Save button on a light planner screen: where the
     sheet's content under it starts, which a longer header in some languages
     pushes down."""
-    column = subprocess.run(
-        ["ffmpeg", "-v", "error", "-i", src, "-vf", f"crop=1:{SCREEN_H}:{SCREEN_W // 2}:0",
-         "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
-        check=True, capture_output=True).stdout
+    column = pixel_column(src, SCREEN_W // 2)
     # The light accent, #3f7a00.
-    rows = [i for i in range(1200, 2400)
-            if abs(column[3 * i] - 0x3f) < 25 and abs(column[3 * i + 1] - 0x7a) < 25
-            and column[3 * i + 2] < 40]
+    rows = [i for i, (r, g, b) in enumerate(column)
+            if 1200 <= i < 2400 and abs(r - 0x3f) < 25 and abs(g - 0x7a) < 25 and b < 40]
     if not rows:
         raise RuntimeError(f"no Save button found on {src}")
     return rows[-1]
+
+
+def pixel_column(src: str, x: int) -> list:
+    """The pixels of column [x] of a PNG, top to bottom, as (r, g, b): the
+    file converted to an uncompressed BMP by sips, which every Mac has (the
+    runner has no ffmpeg unless the preview is recorded)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        bmp = os.path.join(tmp, "column.bmp")
+        subprocess.run(["sips", "-s", "format", "bmp", src, "--out", bmp],
+                       check=True, capture_output=True)
+        with open(bmp, "rb") as f:
+            data = f.read()
+    offset = int.from_bytes(data[10:14], "little")
+    width = int.from_bytes(data[18:22], "little", signed=True)
+    height = int.from_bytes(data[22:26], "little", signed=True)
+    bpp = int.from_bytes(data[28:30], "little") // 8
+    stride = (width * bpp + 3) // 4 * 4
+    # Rows are stored bottom-up unless the height is negative; BGR(A).
+    rows = range(abs(height))
+    order = reversed(rows) if height > 0 else rows
+    return [(data[offset + r * stride + x * bpp + 2], data[offset + r * stride + x * bpp + 1],
+             data[offset + r * stride + x * bpp]) for r in order]
 
 
 def below_save(crop: tuple, src: str) -> tuple:
@@ -238,20 +278,23 @@ def search_page(raw: str, locale: str, debug: bool) -> tuple[str, list]:
     # The copy in the left half of the safe area, a margin inside it.
     margin = 60
     text = (f'<div class="text" style="left:{x + margin}px;top:{y + margin}px;'
-            f'width:1090px;height:{h - 2 * margin}px"><div class="copy">'
+            f'width:1240px;height:{h - 2 * margin}px"><div class="copy">'
             f'<div class="chip"><i></i>{html.escape(copy["chip"])}</div>'
             f'<h1>{headline(copy["headline"])}</h1><p>{subline(copy["subline"])}</p></div></div>'
             # A language whose copy runs long has it set smaller until it
-            # fits the box, the headline no smaller than 160 px.
-            '<script>const box = document.querySelector(".text");'
+            # fits the box, the headline no smaller than 230 px: on a phone
+            # the safe area shows at about a fifth of this size, so the
+            # headline is the one line sure to be read there.
+            '<script>document.fonts.ready.then(() => { const box = document.querySelector(".text");'
             'const copy = box.firstElementChild;'
             'const h1 = copy.querySelector("h1"), p = copy.querySelector("p");'
-            'let hs = 200, ps = 62;'
-            'while (copy.offsetHeight > box.clientHeight && hs > 160) {'
-            'hs -= 4; ps = Math.max(48, ps - 1.5);'
+            'const lines = () => h1.scrollWidth > h1.clientWidth + 1 || h1.scrollHeight > parseFloat(getComputedStyle(h1).fontSize) * (0.93 * 2 + 0.5);'
+            'let hs = 260, ps = 84;'
+            'while ((copy.offsetHeight > box.clientHeight || lines()) && hs > 200) {'
+            'hs -= 4; ps = Math.max(64, ps - 1.5);'
             'h1.style.fontSize = hs + "px"; p.style.fontSize = ps + "px"; }'
-            'while (copy.offsetHeight > box.clientHeight && ps > 40) {'
-            'ps -= 1; p.style.fontSize = ps + "px"; }</script>')
+            'while (copy.offsetHeight > box.clientHeight && ps > 52) {'
+            'ps -= 1; p.style.fontSize = ps + "px"; } });</script>')
     # The front phone's map, enlarged and soft, behind everything, fading out
     # under the copy.
     crop_x, crop_y, crop_w = 0, 560, 1150
@@ -266,7 +309,7 @@ def search_page(raw: str, locale: str, debug: bool) -> tuple[str, list]:
     pad = 18
     scale = 0.66
     width = SCREEN_W * scale + 2 * pad
-    front_left = x + w - width - 40
+    front_left = x + w - width + 40
     front_top = y - 60
     stage = (phone(charts, width, front_left + 960, front_top + 170, 10, 0)
              + phone(back, width, front_left + 480, front_top - 40, 5, 1)
@@ -275,8 +318,8 @@ def search_page(raw: str, locale: str, debug: bool) -> tuple[str, list]:
              # Under the copy, across the safe area's lower edge, clear of
              # the front phone beside them: the time control and the rain's
              # key.
-             + badge(front, below_save(TIME_CONTROL, front), 0.85, x + margin, y + h - 40, -2)
-             + badge(front, below_save(RAIN_KEY, front), 1.25, x + margin + 260, y + h + 230, 2))
+             + badge(front, below_save(TIME_CONTROL, front), 0.85, x + margin, y + h + 30, -2)
+             + badge(front, below_save(RAIN_KEY, front), 1.25, x + margin + 260, y + h + 300, 2))
     css = (SEARCH_CSS % {"w": SEARCH_W, "h": SEARCH_H}).replace("FONTS", "file://" + FONTS)
     rings = contours(style, SEARCH_W, SEARCH_H, ((3300, 400, 160), (300, 2500, 220)),
                      step=250, reach=2000)
@@ -306,6 +349,7 @@ def main() -> int:
               "to a Chrome or Chromium binary.", file=sys.stderr)
         return 1
     missing = set()
+    failed = []
     with tempfile.TemporaryDirectory() as work:
         for locale in args.locales.split(","):
             out = os.path.join(args.out, locale)
@@ -323,12 +367,26 @@ def main() -> int:
                     with open(page_file, "w", encoding="utf-8") as f:
                         f.write(html_text)
                     target = os.path.join(out, f"{name}.png")
-                    photograph(page_file, target, w, h, work)
-                    print(target)
+                    # Now and then Chrome writes nothing in time on a busy
+                    # runner: tried three times, and one picture that never
+                    # comes costs only itself, not the languages after it.
+                    for attempt in range(3):
+                        try:
+                            photograph(page_file, target, w, h, work)
+                            print(target)
+                            break
+                        except RuntimeError as error:
+                            if attempt == 2:
+                                failed.append(f"{target}: {error}")
     if missing:
         print("store_creative: missing input, those images were skipped:", file=sys.stderr)
         for path in sorted(missing):
             print(f"  {path}", file=sys.stderr)
+        return 1
+    if failed:
+        print("store_creative: these could not be drawn:", file=sys.stderr)
+        for line in failed:
+            print(f"  {line}", file=sys.stderr)
         return 1
     return 0
 

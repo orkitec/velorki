@@ -1,8 +1,7 @@
-• Synchronisez itinéraires, sorties et réglages via votre Google Drive ; ils restent à vous
-• Planifiez sur app.velorki.com avec le même compte Google, Plus aussi
-• Tablettes et pliables : carte plein écran, app à côté
-• Réglages : une vue d’ensemble, un groupe par page
-• Le bouton de téléchargement indique si la zone est chargée
-• Couches météo : alerte après plusieurs essais, levée d’elle-même
-• Les cartes sombres affichent de nouveau les localités
-• Les messages « Annuler » se ferment seuls
+• Au premier lancement : votre position, la carte sur votre pays, pistes et arrêts affichés
+• « Rouler » à côté d’« Enregistrer » lance l’itinéraire prévu
+• Ajoutez un arrêt en route ; le guidage continue
+• Gares, arrêts de bus, tram et ferry, pharmacies, hôpitaux, points de vue et plus
+• Téléchargements sur la carte, avec progression et annulation
+• Données de carte mises à jour seulement si elles changent
+• Toucher la carte ferme la recherche

@@ -593,6 +593,9 @@ void main() {
       await tester.tap(find.text(l10n.searchAreaDownload));
       await tester.pumpAndSettle();
       expect(taps, 1);
+      // The results make way for the map, where the download shows.
+      expect(title, findsNothing);
+      expect(error, findsNothing);
     });
 
     testWidgets('the online results offer the way back to the local ones', (

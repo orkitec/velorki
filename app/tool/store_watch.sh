@@ -42,12 +42,23 @@ print(found[-1] if found else "")
 ')"
 fi
 if [ -z "$udid" ]; then
-  runtime="$(xcrun simctl list runtimes -j | python3 -c '
+  # Asked up to three times: on a busy runner the simulator service has
+  # answered with nothing, which read as no runtime installed although the
+  # job had just listed it.
+  runtime=""
+  for _ in 1 2 3; do
+    runtime="$(xcrun simctl list runtimes -j 2> /dev/null | python3 -c '
 import json, sys
 watch = [r for r in json.load(sys.stdin)["runtimes"] if r["platform"] == "watchOS" and r["isAvailable"]]
 print(max(watch, key=lambda r: [int(p) for p in r["version"].split(".")])["identifier"] if watch else "")
-')"
-  [ -n "$runtime" ] || die "no watchOS simulator runtime is installed (xcodebuild -downloadPlatform watchOS)"
+' 2> /dev/null)" || runtime=""
+    [ -z "$runtime" ] || break
+    sleep 10
+  done
+  if [ -z "$runtime" ]; then
+    xcrun simctl list runtimes >&2 || true
+    die "no available watchOS simulator runtime (the list above; xcodebuild -downloadPlatform watchOS installs one)"
+  fi
   udid="$(xcrun simctl create "Apple Watch Ultra 3 (49mm)" \
     com.apple.CoreSimulator.SimDeviceType.Apple-Watch-Ultra-3-49mm "$runtime")"
   printf '==> created Apple Watch Ultra 3 (49mm) (%s) on %s\n' "$udid" "$runtime"

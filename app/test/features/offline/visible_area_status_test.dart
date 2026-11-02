@@ -146,6 +146,42 @@ void main() {
     expect(status.stale, [_b]);
   });
 
+  test('with only the map area missing, the routing update is still named', () {
+    // Tiles fetched for a route come without a map area; their update is
+    // offered all the same.
+    final status = visibleAreaStatus(
+      bounds: _inA,
+      tiles: [_tile(_a, state: RoutingTileState.stale)],
+      hasGazetteer: (_) => true,
+      queue: const TileDownloadQueueState(),
+      regions: () => const [],
+    );
+    expect(status.state, VisibleAreaState.missing);
+    expect(status.stale, [_a]);
+  });
+
+  test('an update running keeps the stale tiles in the status', () {
+    final status = visibleAreaStatus(
+      bounds: _inA,
+      tiles: [_tile(_a, state: RoutingTileState.stale)],
+      hasGazetteer: (_) => true,
+      queue: const TileDownloadQueueState(current: _a),
+    );
+    expect(status.state, VisibleAreaState.busy);
+    expect(status.stale, [_a]);
+
+    // A first download has none.
+    expect(
+      visibleAreaStatus(
+        bounds: _inA,
+        tiles: const <RoutingTile>[],
+        hasGazetteer: (_) => false,
+        queue: const TileDownloadQueueState(current: _a),
+      ).stale,
+      isEmpty,
+    );
+  });
+
   test('a running download for the view is busy, with its progress', () {
     final status = visibleAreaStatus(
       bounds: _inA,

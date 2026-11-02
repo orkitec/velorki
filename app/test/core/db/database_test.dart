@@ -116,6 +116,11 @@ CREATE TABLE rides (
 const String _offlineRegionsV1Ddl =
     'CREATE TABLE offline_regions (id TEXT NOT NULL, name TEXT NOT NULL, bbox_min_lat REAL NOT NULL, bbox_min_lon REAL NOT NULL, bbox_max_lat REAL NOT NULL, bbox_max_lon REAL NOT NULL, maplibre_region_id INTEGER NULL, size_bytes INTEGER NOT NULL, PRIMARY KEY (id))';
 
+/// The `routing_tiles` table as schemas 1 to 11 had it, before the content
+/// digests.
+const String _routingTilesV11Ddl =
+    'CREATE TABLE routing_tiles (name TEXT NOT NULL, bytes INTEGER NOT NULL, updated_at TEXT NOT NULL, format_version TEXT NOT NULL, state TEXT NOT NULL, PRIMARY KEY (name))';
+
 /// `routes` and `rides` as schema 10 left them: everything but the sync
 /// outbox.
 List<String> _v10Ddl() => [
@@ -145,6 +150,7 @@ List<String> _v10Ddl() => [
   ])
     'ALTER TABLE rides ADD COLUMN $column',
   _offlineRegionsV1Ddl,
+  _routingTilesV11Ddl,
 ];
 
 void main() {
@@ -153,8 +159,37 @@ void main() {
   setUp(() => db = VelorkiDatabase.memory());
   tearDown(() => db.close());
 
-  test('schema version is 11', () {
-    expect(db.schemaVersion, 11);
+  test('schema version is 12', () {
+    expect(db.schemaVersion, 12);
+  });
+
+  test('a schema 11 database gains the content digests of its tiles, '
+      'unknown until recorded', () async {
+    await db.close();
+
+    final v11 = VelorkiDatabase(
+      NativeDatabase.memory(
+        setup: (raw) {
+          for (final statement in _v10Ddl()) {
+            raw.execute(statement);
+          }
+          raw
+            ..execute(
+              "INSERT INTO routing_tiles VALUES ('E10_N45', 1000, "
+              "'2026-09-12T10:00:00.000Z', '11.2', 'ready')",
+            )
+            ..userVersion = 11;
+        },
+      ),
+    );
+    addTearDown(v11.close);
+
+    final row = await v11.routingTilesDao.tileByName('E10_N45');
+
+    expect(row, isNotNull);
+    expect(row!.state, RoutingTileState.ready);
+    expect(row.contentSha256, isNull);
+    expect(row.gazetteerContentSha256, isNull);
   });
 
   test('a schema 10 database gains the iCloud outbox, with its library '
@@ -214,6 +249,7 @@ void main() {
           raw
             ..execute(_routesV1Ddl)
             ..execute(_ridesV3Ddl)
+            ..execute(_routingTilesV11Ddl)
             ..execute('ALTER TABLE routes ADD COLUMN turns_json TEXT NULL')
             ..execute('ALTER TABLE routes ADD COLUMN pois_json TEXT NULL')
             ..execute('ALTER TABLE routes ADD COLUMN link TEXT NULL')
@@ -260,6 +296,7 @@ void main() {
             ..execute(_routesV1Ddl)
             ..execute(_offlineRegionsV1Ddl)
             ..execute(_ridesV3Ddl)
+            ..execute(_routingTilesV11Ddl)
             ..execute(
               "INSERT INTO routes VALUES ('old', 'Before the upgrade', NULL, "
               "'planned', 'trekking', '2026-09-12T10:00:00.000Z', "
@@ -298,6 +335,7 @@ void main() {
               ..execute('ALTER TABLE routes ADD COLUMN turns_json TEXT NULL')
               ..execute(_offlineRegionsV1Ddl)
               ..execute(_ridesV3Ddl)
+              ..execute(_routingTilesV11Ddl)
               ..execute(
                 "INSERT INTO offline_regions VALUES ('area', 'Old area', "
                 '47.0, 8.0, 47.5, 8.6, 7, 4096)',
@@ -330,6 +368,7 @@ void main() {
               'ALTER TABLE offline_regions ADD COLUMN downloaded_at TEXT NULL',
             )
             ..execute(_ridesV3Ddl)
+            ..execute(_routingTilesV11Ddl)
             ..execute(
               "INSERT INTO rides VALUES ('old', 'Before the upgrade', "
               "'2026-09-12T08:00:00.000Z', '2026-09-12T10:00:00.000Z', "
@@ -369,6 +408,7 @@ void main() {
               'ALTER TABLE offline_regions ADD COLUMN downloaded_at TEXT NULL',
             )
             ..execute(_ridesV3Ddl)
+            ..execute(_routingTilesV11Ddl)
             ..execute(
               'ALTER TABLE rides ADD COLUMN avg_heart_rate_bpm INT NULL',
             )

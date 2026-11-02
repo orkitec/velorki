@@ -4,6 +4,7 @@
 library;
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
@@ -21,6 +22,7 @@ import 'package:velorki/features/assistant/domain/ai_consent.dart';
 import 'package:velorki/features/assistant/domain/intent_resolver.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/import_export/application/incoming_import_listener.dart';
+import 'package:velorki/features/map/application/map_drawn.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/data/weather_map_preferences.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
@@ -80,9 +82,102 @@ const String storeOrientation = String.fromEnvironment(
   'VELORKI_STORE_ORIENTATION',
 );
 
+/// Pumps until Flutter has nothing more to draw, at most [cap]. With
+/// [margin], a moment more for the last frame to reach the screen, before a
+/// picture; [label] logs how long it took.
+Future<void> settleFrames(
+  WidgetTester tester, {
+  Duration cap = const Duration(seconds: 3),
+  bool margin = false,
+  String? label,
+}) async {
+  final clock = Stopwatch()..start();
+  var idle = 0;
+  while (idle < 2 && clock.elapsed < cap) {
+    await tester.pump(const Duration(milliseconds: 50));
+    idle = tester.binding.hasScheduledFrame ? 0 : idle + 1;
+  }
+  if (label != null) {
+    debugPrint(
+      'VELORKI_STORE $label settled in ${clock.elapsedMilliseconds} ms'
+      '${idle < 2 ? ' (cap)' : ''}',
+    );
+  }
+  if (margin) await pumpFor(tester, const Duration(milliseconds: 300));
+}
+
+int _mapMark = 0;
+
+/// Notes that the test is about to change the map (move it, load a route,
+/// switch its colours): [waitForMapDrawn] waits for the map to have drawn
+/// what came after this.
+void markMapChange() => _mapMark = MapDrawn.now;
+
+/// Waits until the map has drawn everything written to it since the last
+/// [markMapChange]: no write under way and MapLibre's idle after the app's
+/// last write (MapDrawn.drawnSince), and that for [quiet] with no new
+/// write, as the app draws a screen in steps (the route's lines after its
+/// style, the stops after the camera has moved). Fails the test when the
+/// map is not drawn after [cap], unless [lenient] (a wait that only lets an
+/// earlier move finish). [label] logs how long it took.
+Future<void> waitForMapDrawn(
+  WidgetTester tester, {
+  required Duration cap,
+  Duration? quiet,
+  String? label,
+  bool lenient = false,
+}) async {
+  final still =
+      quiet ?? Duration(milliseconds: Platform.isAndroid ? 1500 : 800);
+  final since = _mapMark;
+  final clock = Stopwatch()..start();
+  Duration? drawnAt;
+  while (clock.elapsed < cap) {
+    if (MapDrawn.drawnSince(since)) {
+      drawnAt ??= clock.elapsed;
+      if (clock.elapsed - drawnAt >= still) break;
+    } else {
+      drawnAt = null;
+    }
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+  final drawn = MapDrawn.drawnSince(since);
+  if (label != null) {
+    debugPrint(
+      'VELORKI_STORE $label map drawn in ${clock.elapsedMilliseconds} ms'
+      '${drawn ? '' : ' (not drawn)'}',
+    );
+  }
+  if (!drawn &&
+      !lenient &&
+      MapDrawn.writesSettled(const Duration(seconds: 5))) {
+    // The app has long finished writing, and MapLibre never said the map was
+    // idle: on the CI emulator its software renderer never does over New
+    // York's cycle map. The picture is taken, and the run says so where it
+    // shows (a GitHub warning); a write still under way fails below.
+    debugPrint(
+      '::warning::VELORKI_STORE no map idle${label == null ? '' : ' for $label'}'
+      ' after ${cap.inSeconds} s, the app done writing: ${MapDrawn.describe()}',
+    );
+    return;
+  }
+  if (!drawn && !lenient) {
+    fail(
+      'the map was not drawn within ${cap.inSeconds} s'
+      '${label == null ? '' : ' for $label'}: ${MapDrawn.describe()}',
+    );
+  }
+}
+
 /// The app as a test left it for the pictures.
 class StoreSession {
-  StoreSession(this.container, this.positions, this.clock, this.relay);
+  StoreSession(
+    this.container,
+    this.positions,
+    this.clock,
+    this.relay,
+    this.subscriptions,
+  );
 
   /// The app's providers.
   final ProviderContainer container;
@@ -96,6 +191,9 @@ class StoreSession {
   /// The relay the app talks to: mocked in the test process, so the AI
   /// answers the same on every run and nothing leaves the device.
   final MockRelay relay;
+
+  /// The store the paywall asks; its offering is set per language.
+  final FakeSubscriptionService subscriptions;
 }
 
 /// Boots the app for the store pictures in [locale] and [mode], with the
@@ -144,6 +242,7 @@ Future<StoreSession> startStoreApp(
   // card, the Live Activity and the watch agrees with the others.
   final ride = RideClock();
   final relay = MockRelay();
+  final subscriptions = FakeSubscriptionService(offering: plusOffering(locale));
   // The loop sheet opens at the distance last asked for.
   final prefs = await SharedPreferences.getInstance();
   await prefs.setDouble('loop.distance_km', storeLoopKm);
@@ -177,9 +276,7 @@ Future<StoreSession> startStoreApp(
       // The paywall sells what the stores sell, at their prices, and lists
       // every feature a release build delivers (this one has no partner
       // client ids).
-      subscriptionServiceProvider.overrideWithValue(
-        FakeSubscriptionService(offering: plusOffering(locale)),
-      ),
+      subscriptionServiceProvider.overrideWithValue(subscriptions),
       offeredPlusFeaturesProvider.overrideWithValue([
         for (final feature in PlusFeature.values)
           if (gatedFeatures.contains(feature)) feature,
@@ -229,8 +326,8 @@ Future<StoreSession> startStoreApp(
   await weather.setClouds(false);
   await weather.setWind(false);
   container.read(weatherRadarOffsetProvider.notifier).set(0);
-  await pumpFor(tester, const Duration(seconds: 2));
-  return StoreSession(container, positions, ride, relay);
+  await settleFrames(tester);
+  return StoreSession(container, positions, ride, relay, subscriptions);
 }
 
 /// Opens the assistant to the rider: Velorki Plus held, consent given, and
@@ -244,7 +341,7 @@ Future<void> grantAssistant(
   await container
       .read(aiConsentControllerProvider.notifier)
       .set(AiConsent.textOnly);
-  await pumpFor(tester, const Duration(milliseconds: 300));
+  await settleFrames(tester);
 }
 
 /// Names resolved by the region's offline gazetteer.
@@ -289,7 +386,7 @@ Future<SavedRoute> seedLibrary(
     );
   }
   container.read(plannerControllerProvider.notifier).clear();
-  await pumpFor(tester, const Duration(milliseconds: 500));
+  await settleFrames(tester);
   return featured;
 }
 
@@ -303,7 +400,6 @@ Future<RouteResult> planRoute(
   for (final point in waypoints) {
     planner.addWaypoint(point);
   }
-  await pumpFor(tester, const Duration(milliseconds: 400));
   await waitUntil(
     tester,
     () {
@@ -312,7 +408,9 @@ Future<RouteResult> planRoute(
       return state.result != null && !state.isRouting;
     },
     describe: 'a route through $waypoints',
-    timeout: const Duration(seconds: 90),
+    // Right after an emulator boots, while Android still compiles the new
+    // app, a route took 14 to 90 s instead of two.
+    timeout: const Duration(minutes: 3),
     onTimeout: () => '${container.read(plannerControllerProvider).route}',
   );
   return container.read(plannerControllerProvider).result!;
@@ -389,8 +487,9 @@ Future<void> frameRoute(
   List<TrackPoint> line, {
   Finder? handle,
 }) async {
-  // The planner's own fit goes first; this one lands after it.
-  await pumpFor(tester, const Duration(seconds: 2));
+  // The planner's own fit goes first, drawn; this one lands after it.
+  await waitForMapDrawn(tester, cap: const Duration(seconds: 2), lenient: true);
+  markMapChange();
   final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
   final wide = _widePadding(tester);
   if (wide != null) {
@@ -441,7 +540,14 @@ Future<void> frameArea(
   double zoom, {
   Duration? glide,
 }) async {
-  if (glide == null) await pumpFor(tester, const Duration(seconds: 1));
+  if (glide == null) {
+    await waitForMapDrawn(
+      tester,
+      cap: const Duration(seconds: 1),
+      lenient: true,
+    );
+  }
+  markMapChange();
   final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
   final wide = _widePadding(tester);
   final EdgeInsets padding;
@@ -500,7 +606,9 @@ Future<Future<void> Function()> showRouteRain(
   final colouringOn = container.read(routeColouringOnProvider);
   final weatherMap = container.read(weatherMapPreferencesProvider.notifier);
   final planner = container.read(plannerControllerProvider.notifier);
-  // The weather first, so the frames are loading while the route comes in.
+  final frames = MapDrawn.weatherFrames.value;
+  // The weather first, so the frames are loading while the route comes in;
+  // the picture waits for the map to have drawn them.
   planner.clear();
   await container
       .read(routeOverlayChoiceProvider.notifier)
@@ -508,28 +616,11 @@ Future<Future<void> Function()> showRouteRain(
   await container.read(routeColouringOnProvider.notifier).set(on: true);
   await weatherMap.setRadar(true);
   container.read(weatherRadarOffsetProvider.notifier).set(offsetMinutes);
-  await pumpFor(tester, const Duration(seconds: 3));
+  await settleFrames(tester);
   planner.loadSavedRoute(route);
-  await pumpFor(tester, const Duration(seconds: 1));
-  final handle = tester.getRect(
-    find
-        .descendant(
-          of: find.byType(PlannerScreen),
-          matching: find.byType(SheetHandle),
-        )
-        .first,
-  );
-  final button = tester.getRect(find.widgetWithText(FilledButton, save).first);
-  final list = tester
-      .stateList<ScrollableState>(
-        find.descendant(
-          of: find.byType(PlannerScreen),
-          matching: find.byType(Scrollable),
-        ),
-      )
-      .firstWhere((s) => s.position.axis == Axis.vertical)
-      .position;
-  list.jumpTo(list.pixels + button.top - handle.bottom - 2);
+  // The sheet laid out with the route, before it is measured.
+  await settleFrames(tester);
+  scrollPlannerSheetTo(tester, save);
   await frameRoute(tester, container, route.geometry);
   await waitUntil(
     tester,
@@ -539,6 +630,15 @@ Future<Future<void> Function()> showRouteRain(
         .isNotEmpty,
     describe: 'the route coloured by the rain',
   );
+  // The rain's frames on the map: the map can go idle before their images
+  // are in, and a picture then had no rain.
+  await waitUntil(
+    tester,
+    () => MapDrawn.weatherFrames.value > frames,
+    describe: 'the rain drawn on the map',
+    timeout: const Duration(seconds: 60),
+  );
+  markMapChange();
   return () async {
     await weatherMap.setRadar(false);
     container.read(weatherRadarOffsetProvider.notifier).set(0);
@@ -629,6 +729,31 @@ class DeviceFinger {
   }
 }
 
+/// Scrolls the planner's sheet until the button labelled [label] sits just
+/// under its handle, so what follows it shows at the sheet's height. Again
+/// after a change of language, whose texts are of other heights.
+void scrollPlannerSheetTo(WidgetTester tester, String label) {
+  final handle = tester.getRect(
+    find
+        .descendant(
+          of: find.byType(PlannerScreen),
+          matching: find.byType(SheetHandle),
+        )
+        .first,
+  );
+  final button = tester.getRect(find.widgetWithText(FilledButton, label).first);
+  final list = tester
+      .stateList<ScrollableState>(
+        find.descendant(
+          of: find.byType(PlannerScreen),
+          matching: find.byType(Scrollable),
+        ),
+      )
+      .firstWhere((s) => s.position.axis == Axis.vertical)
+      .position;
+  list.jumpTo(list.pixels + button.top - handle.bottom - 2);
+}
+
 /// Scrolls every list in the planner's sheet back to its top.
 void scrollSheetToTop(WidgetTester tester) {
   final lists = find.descendant(
@@ -677,6 +802,7 @@ class Rider {
   final List<TrackPoint> points;
   int _next = 0;
   double alongM = 0;
+  int _km = 0;
 
   bool get done => _next >= points.length;
 
@@ -687,8 +813,27 @@ class Rider {
     }
   }
 
+  /// Rides on to [metres] along the ride without drawing in between, for
+  /// pictures that only show where the ride got to. Each fix reaches the
+  /// recorder before the clock moves on (it stamps the heart rate by the
+  /// clock), so the ride is recorded as [step] records it; the screen
+  /// catches up once the recorder's next tick, a second later, publishes
+  /// it.
+  Future<void> fastForwardTo(WidgetTester tester, double metres) async {
+    while (!done && alongM < metres) {
+      _push();
+      await Future<void>(() {});
+    }
+    await tester.pump(const Duration(milliseconds: 1100));
+  }
+
   /// Pushes the next fix and pumps [pump].
   Future<void> step(WidgetTester tester, Duration pump) async {
+    _push();
+    await tester.pump(pump);
+  }
+
+  void _push() {
     final point = points[_next];
     final previous = _next == 0 ? null : points[_next - 1];
     final seconds = point.time!.difference(points.first.time!).inSeconds;
@@ -714,6 +859,11 @@ class Rider {
       ),
     );
     _next++;
-    await tester.pump(pump);
+    // A line a kilometre: the ride takes minutes on an emulator, and the
+    // driver stops a test that prints nothing for seven of them as stuck.
+    if (alongM ~/ 1000 > _km) {
+      _km = alongM ~/ 1000;
+      debugPrint('VELORKI_ITEST rider at $_km km');
+    }
   }
 }

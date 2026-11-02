@@ -1,12 +1,16 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/domain/search_group.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/search/domain/street_numbers.dart';
+import 'package:velorki/features/search/presentation/search_field.dart'
+    show localisedKindKeywords;
+import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -1228,6 +1232,99 @@ void main() {
       // nothing, so it stays one row.
       final byKind = await store.search('drinking water', near: centre);
       expect(byKind.where((r) => r.name == 'Brunnen Mühleholz'), hasLength(1));
+    });
+  });
+
+  group('bus and tram stops', () {
+    const LatLng centre = LatLng(47.1410, 9.5209);
+
+    /// A latitude [meters] north of [centre].
+    double north(double meters) => centre.lat + meters / 111320;
+
+    /// Stops named like the square they stand on, and streets whose names
+    /// hold a transport word. The fixture indexes the stops' names, as a
+    /// file from another builder might: the app must still keep them out.
+    void buildStops() {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        streets: <GazStreet>[
+          GazStreet(1, 'Buschgasse', north(2000), centre.lon),
+          GazStreet(2, 'Bahnhofstraße', north(2100), centre.lon),
+          GazStreet(3, 'Trainstraße', north(2200), centre.lon),
+        ],
+        pois: <GazPoi>[
+          GazPoi(10, 'Marktplatz', 'bus_stop', north(300), centre.lon),
+          GazPoi(11, 'Marktplatz', 'tram_stop', north(100), centre.lon),
+          GazPoi.unnamed(12, 'bus_stop', north(200), centre.lon),
+          GazPoi(13, 'Marktplatz', 'cafe', north(500), centre.lon),
+          GazPoi(14, 'Vaduz Bahnhof', 'station', north(400), centre.lon),
+        ],
+      );
+    }
+
+    test('a name query never returns a stop of that name', () async {
+      buildStops();
+      final store = await openStore();
+
+      final found = await store.search('Marktplatz', near: centre);
+      expect(found.single.detail, 'cafe');
+    });
+
+    test('the kind finds them, nearest first', () async {
+      buildStops();
+      final store = await openStore();
+
+      final buses = await store.search('bus stop', near: centre);
+      expect(buses.map((r) => r.detail), <String>['bus_stop', 'bus_stop']);
+      expect(buses.first.name, isEmpty, reason: 'the nearest is unnamed');
+      expect(buses.first.distanceMeters, closeTo(200, 5));
+      expect(buses.last.name, 'Marktplatz');
+
+      expect(
+        (await store.search('tram', near: centre)).single.detail,
+        'tram_stop',
+      );
+
+      final german = localisedKindKeywords(
+        lookupAppLocalizations(const Locale('de')),
+      );
+      final any = await store.search(
+        'Haltestelle',
+        near: centre,
+        keywords: german,
+      );
+      expect(any.map((r) => r.detail), <String>[
+        'tram_stop',
+        'bus_stop',
+        'bus_stop',
+      ]);
+      expect(
+        (await store.search(
+          'Zug',
+          near: centre,
+          keywords: german,
+        )).first.detail,
+        'station',
+      );
+    });
+
+    test('a name holding a transport word is still a name', () async {
+      buildStops();
+      final store = await openStore();
+      final german = localisedKindKeywords(
+        lookupAppLocalizations(const Locale('de')),
+      );
+
+      for (final name in <String>['Busch', 'Bahnhofstraße', 'Trainstraße']) {
+        final found = await store.search(name, near: centre, keywords: german);
+        expect(found.first.kind, SearchKind.street, reason: name);
+        expect(
+          found.every((r) => r.distanceMeters == null),
+          isTrue,
+          reason: '$name is no kind search',
+        );
+      }
     });
   });
 

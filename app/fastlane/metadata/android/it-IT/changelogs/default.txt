@@ -1,8 +1,7 @@
-• Sincronizza percorsi, giri e impostazioni con il tuo Google Drive; restano con te
-• Pianifica su app.velorki.com con lo stesso account Google, anche con Plus
-• Tablet e pieghevoli: la mappa sullo schermo, l'app accanto
-• Impostazioni: una panoramica, ogni gruppo nella sua pagina
-• Il pulsante di download indica se la zona è scaricata
-• Livelli meteo: avviso dopo più tentativi, sparisce da solo
-• Le mappe scure mostrano di nuovo le località
-• I messaggi «Annulla» si chiudono da soli
+• Al primo avvio: la tua posizione, la mappa sul tuo paese, ciclabili e soste visibili
+• «Parti» accanto a «Salva» avvia il percorso pianificato
+• Aggiungi una sosta durante il giro; la navigazione continua
+• Stazioni, fermate di bus, tram e traghetti, farmacie, ospedali, panorami e altro
+• Download sulla mappa, con avanzamento e annulla
+• Dati della mappa aggiornati solo se cambiano davvero
+• Un tocco sulla mappa chiude la ricerca

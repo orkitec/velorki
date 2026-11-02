@@ -37,7 +37,7 @@ class VelorkiDatabase extends _$VelorkiDatabase {
   factory VelorkiDatabase.open() => VelorkiDatabase(openVelorkiDatabase());
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   /// The generated rules, and that a write to `routes` or `rides` is a write
   /// to `sync_records`: the triggers of [createSyncTriggers] keep it, out
@@ -109,6 +109,12 @@ class VelorkiDatabase extends _$VelorkiDatabase {
         await m.createTable(syncRecords);
         await createSyncTriggers(this);
         await markLibraryUnsynced(this);
+      }
+      // 12 added the content digests of a tile and its gazetteer, which say
+      // whether the mirror's rebuild changed anything; null until recorded.
+      if (from < 12) {
+        await m.addColumn(routingTiles, routingTiles.contentSha256);
+        await m.addColumn(routingTiles, routingTiles.gazetteerContentSha256);
       }
     }),
     onCreate: (m) => _migrate(() async {

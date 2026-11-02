@@ -1,9 +1,8 @@
-• Sync your routes, rides and settings through your own iCloud or Google Drive, between iPhone, iPad and the web planner at app.velorki.com. Your routes and rides stay with you.
-• Plan in the browser at app.velorki.com: sign in with the same iCloud or Google account and your library is there. Plus works there too, once the app with Plus syncs to the same account.
-• Velorki on iPad: the map across the whole screen, the app in a column beside it, on the side you choose.
-• Settings are now an overview, each group on its own page.
-• The download button shows whether the area in view is already downloaded.
-• Weather map: a layer only shows as unavailable after several tries, and the warning clears by itself once the service is back.
-• Dark map styles show town dots again.
-• A notice when a new version of Velorki is in the App Store.
-• Small fixes: "Undo" messages close by themselves, and Google sign-in asks only once.
+• An easier first start: Velorki asks for your location, opens the map over your country with bike lanes and stops shown, and points out where to begin.
+• Ride straight away: Ride beside Save starts recording and guides you along the route you planned.
+• Add a stop during a ride: tap a café, shop or water point on the map and add it to your route. Guidance carries on while the route is worked out again.
+• More on the map: train stations, bus, tram and ferry stops, pharmacies, hospitals, picnic sites, viewpoints, beaches and inner-tube vending machines. Search "bus", "train" or "ferry" to find the nearest.
+• Downloads happen right on the map: the area, the search and the data a route needs, with progress and a way to cancel.
+• Map data is updated only when something in your area has really changed, and a note over the map tells you.
+• A tap on the map while searching just closes the search.
+• Imprint in Settings → About.

@@ -1,9 +1,8 @@
-• Sincronizza percorsi, giri e impostazioni con il tuo iCloud o Google Drive, tra iPhone, iPad e il planner web su app.velorki.com. I tuoi percorsi e giri restano con te.
-• Pianifica nel browser su app.velorki.com: accedi con lo stesso account iCloud o Google e trovi la tua libreria. Anche Plus funziona lì, appena l'app con Plus si sincronizza con lo stesso account.
-• Velorki su iPad: la mappa su tutto lo schermo, l'app in una colonna accanto, dal lato che preferisci.
-• Le impostazioni ora sono una panoramica, ogni gruppo nella sua pagina.
-• Il pulsante di download indica se la zona visibile è già scaricata.
-• Mappa meteo: un livello risulta non disponibile solo dopo più tentativi, e l'avviso sparisce da solo quando il servizio torna.
-• Gli stili di mappa scuri mostrano di nuovo i punti delle località.
-• Un avviso quando c'è una nuova versione di Velorki sull'App Store.
-• Piccole correzioni: i messaggi «Annulla» si chiudono da soli, e l'accesso con Google lo chiede una volta sola.
+• Un primo avvio più semplice: Velorki chiede la tua posizione, apre la mappa sul tuo paese con piste ciclabili e punti di sosta e ti mostra da dove iniziare.
+• Parti subito: «Parti» accanto a «Salva» avvia la registrazione e ti guida lungo il percorso pianificato.
+• Aggiungi una sosta durante il giro: tocca un bar, un negozio o una fontanella sulla mappa e aggiungila al percorso. La navigazione continua mentre il percorso viene ricalcolato.
+• Più cose sulla mappa: stazioni, fermate di bus, tram e traghetti, farmacie, ospedali, aree picnic, punti panoramici, spiagge e distributori di camere d'aria. Cerca «bus», «treno» o «traghetto» per trovare il più vicino.
+• I download avvengono direttamente sulla mappa: la zona, la ricerca e i dati che servono a un percorso, con l'avanzamento e un modo per annullare.
+• I dati della mappa si aggiornano solo quando nella tua zona è cambiato davvero qualcosa, e un avviso sulla mappa te lo dice.
+• Un tocco sulla mappa durante la ricerca chiude solo la ricerca.
+• Note legali in Impostazioni → Info.

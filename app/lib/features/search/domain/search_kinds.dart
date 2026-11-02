@@ -11,6 +11,7 @@ const List<String> searchPoiKinds = <String>[
   'toilets',
   'bicycle_repair_station',
   'bicycle_shop',
+  'bicycle_tube_vending',
   'bicycle_rental',
   'bicycle_parking',
   'charging_station',
@@ -30,6 +31,8 @@ const List<String> searchPoiKinds = <String>[
   'hostel',
   'alpine_hut',
   'station',
+  'bus_stop',
+  'tram_stop',
   'airport',
   'ferry_terminal',
   'hospital',
@@ -75,6 +78,12 @@ const Map<String, List<String>> englishKindKeywords = <String, List<String>>{
     'repair station',
   ],
   'bicycle_shop': <String>['bike shop', 'bicycle shop', 'bike store'],
+  'bicycle_tube_vending': <String>[
+    'tube vending machine',
+    'inner tube',
+    'bike tube',
+    'bicycle tube',
+  ],
   'bicycle_rental': <String>['bike rental', 'bicycle rental', 'bike hire'],
   'bicycle_parking': <String>['bike parking', 'bicycle parking'],
   'charging_station': <String>[
@@ -97,7 +106,10 @@ const Map<String, List<String>> englishKindKeywords = <String, List<String>>{
   'hotel': <String>['hotel'],
   'hostel': <String>['hostel'],
   'alpine_hut': <String>['mountain hut', 'alpine hut'],
+  // "train", "bus", "tram", "ferry" start these, so the one word is enough.
   'station': <String>['train station', 'railway station'],
+  'bus_stop': <String>['bus stop'],
+  'tram_stop': <String>['tram stop', 'streetcar stop'],
   'airport': <String>['airport'],
   'ferry_terminal': <String>['ferry terminal'],
   'hospital': <String>['hospital'],
@@ -119,13 +131,22 @@ const Map<String, List<String>> englishKindKeywords = <String, List<String>>{
   'lighthouse': <String>['lighthouse'],
 };
 
+/// The kinds found only by asking for them ("bus stop", nearest first), never
+/// in the name matches: a tile holds thousands of stops named after the street
+/// they stand in, and they would bury the streets and places a name query
+/// means. The builder keeps them out of the name index for that reason too.
+const Set<String> kindSearchOnlyPoiKinds = <String>{'bus_stop', 'tram_stop'};
+
 /// The kinds [text] asks for: the ones with a keyword that [text] is, or
 /// starts.
 ///
-/// [keywords] is the localised table — the label of every kind, lower case,
-/// mapped to the kind — which the widget builds from `AppLocalizations`; the
-/// English words above are always searched as well. "bike" names four kinds
-/// and gets all four, nearest first; "bakery" names one.
+/// [keywords] is the localised table — the label of every kind and the other
+/// words that ask for it, lower case, mapped to the kind, or to the kinds,
+/// space-separated, for a word that names several ("Haltestelle") — which the
+/// widget builds from `AppLocalizations`; the English words above are always
+/// searched as well. "bike" names four kinds and gets all four, nearest
+/// first; "bakery" names one. Only the whole text is matched against a
+/// keyword, so "Busch" and "bus marktplatz" stay name searches.
 List<String> kindsForKeyword(String text, Map<String, String> keywords) {
   final typed = foldSearchTerm(text.trim());
   if (typed.isEmpty) return const <String>[];
@@ -141,7 +162,9 @@ List<String> kindsForKeyword(String text, Map<String, String> keywords) {
     }
   }
   for (final entry in keywords.entries) {
-    consider(entry.key, entry.value);
+    for (final kind in entry.value.split(' ')) {
+      consider(entry.key, kind);
+    }
   }
   return <String>[
     for (final kind in searchPoiKinds)

@@ -1,8 +1,7 @@
-• Sync routes, rides and settings via your own Google Drive; they stay with you
-• Plan at app.velorki.com with the same Google account, Plus too
-• Tablets and foldables: the map across the screen, the app beside it
-• Settings: an overview, each group on its own page
-• Download button shows if the area in view is downloaded
-• Weather layers warn only after retries; the warning clears by itself
-• Dark map styles show town dots again
-• "Undo" messages close by themselves
+• First start asks for your location and opens over your country, lanes and stops on
+• Ride beside Save starts the planned route
+• Add a stop during a ride; guidance carries on
+• Train, bus, tram and ferry stops, pharmacies, hospitals, viewpoints and more on the map
+• Downloads right on the map, with progress and Cancel
+• Map data updates only when it really changed
+• A map tap while searching just closes the search

@@ -64,11 +64,22 @@ jobs:
           if d.get("baseUrl") and d["baseUrl"] not in urls:
               urls.insert(0, d["baseUrl"])
           print(" ".join(urls))')
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "bases=$bases" >> "$GITHUB_OUTPUT"
+          generated=$(printf '%s' "$pointer" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("generatedAt", ""))')
+          {
+            echo "tag=$tag"
+            echo "bases=$bases"
+            echo "generated=$generated"
+          } >> "$GITHUB_OUTPUT"
           echo "Gazetteer snapshot: $tag" >> "$GITHUB_STEP_SUMMARY"
 
+      # The tiles are published first and the gazetteers after them, which
+      # takes hours: a snapshot younger than 36 h without its gazetteer is
+      # one still being published, and the measurement waits for the next
+      # night with a warning. An older one without it fails the run.
       - name: Download the New York gazetteer
+        id: download
+        env:
+          GENERATED: ${{ steps.snapshot.outputs.generated }}
         run: |
           set -euo pipefail
           found=""
@@ -80,11 +91,21 @@ jobs:
               break
             fi
           done
-          test -n "$found" || { echo "$PERF_TILE.gaz is in no shard of the mirror"; exit 1; }
+          if [ -z "$found" ]; then
+            age=$(( $(date -u +%s) - $(date -u -d "${GENERATED:-1970-01-01T00:00:00Z}" +%s) ))
+            if [ "$age" -lt $(( 36 * 3600 )) ]; then
+              echo "::warning::$PERF_TILE.gaz is not in the snapshot published $GENERATED yet (its gazetteers are still being built); no measurement tonight"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::error::$PERF_TILE.gaz is in no shard of the mirror, $(( age / 3600 )) h after the snapshot was published"
+            exit 1
+          fi
           echo "Shard: $found" >> "$GITHUB_STEP_SUMMARY"
           ls -l "$RUNNER_TEMP/$PERF_TILE.gaz"
 
       - name: Measure
+        if: ${{ steps.download.outputs.skip != 'true' }}
         working-directory: app
         run: |
           set -euo pipefail

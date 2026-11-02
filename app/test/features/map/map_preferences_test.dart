@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/features/map/data/country_map_views.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
+import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/map/domain/cycle_map.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -13,11 +15,15 @@ const String _cyclosmKey = 'map.cyclosm_overlay';
 
 Future<(ProviderContainer, SharedPreferences)> _container([
   Map<String, Object> stored = const <String, Object>{},
+  String? country,
 ]) async {
   SharedPreferences.setMockInitialValues(stored);
   final prefs = await SharedPreferences.getInstance();
   final container = ProviderContainer(
-    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      localeCountryProvider.overrideWithValue(country),
+    ],
   );
   addTearDown(container.dispose);
   return (container, prefs);
@@ -67,11 +73,91 @@ void main() {
     });
   });
 
+  group('countryMapViews', () {
+    test('every entry is a real place and a phone-sized zoom', () {
+      expect(countryMapViews.length, greaterThanOrEqualTo(249));
+      countryMapViews.forEach((code, view) {
+        expect(code, matches(RegExp(r'^[A-Z]{2}$')));
+        expect(view.lat, inInclusiveRange(-90, 90), reason: code);
+        expect(view.lon, inInclusiveRange(-180, 180), reason: code);
+        expect(view.zoom, inInclusiveRange(1.5, 12.5), reason: code);
+      });
+    });
+
+    test('the common countries are all there', () {
+      const common = [
+        // The EU.
+        'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE',
+        'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT',
+        'RO', 'SK', 'SI', 'ES', 'SE',
+        'US', 'CA', 'GB', 'CH', 'NO', 'AU', 'NZ', 'JP', 'BR',
+      ];
+      for (final code in common) {
+        expect(countryMapViews, contains(code));
+      }
+    });
+
+    test('small countries are closer than big ones', () {
+      expect(
+        countryMapViews['LU']!.zoom,
+        greaterThan(countryMapViews['DE']!.zoom),
+      );
+      expect(
+        countryMapViews['DE']!.zoom,
+        greaterThan(countryMapViews['US']!.zoom),
+      );
+      expect(
+        countryMapViews['US']!.zoom,
+        greaterThan(countryMapViews['RU']!.zoom),
+      );
+    });
+  });
+
   group('LastMapCamera', () {
-    test('a fresh install opens on the default view', () async {
-      final (container, _) = await _container();
+    test(
+      'a fresh install with no known country opens on the default view',
+      () async {
+        final (container, _) = await _container();
+
+        expect(container.read(lastMapCameraProvider), defaultMapCamera);
+        expect(
+          hasStoredMapCamera(container.read(sharedPreferencesProvider)),
+          isFalse,
+        );
+      },
+    );
+
+    test('a fresh install opens over the phone\'s country', () async {
+      for (final code in ['DE', 'US', 'LU']) {
+        final (container, _) = await _container(const <String, Object>{}, code);
+        final view = countryMapViews[code]!;
+
+        expect(
+          container.read(lastMapCameraProvider),
+          MapCamera(center: LatLng(view.lat, view.lon), zoom: view.zoom),
+          reason: code,
+        );
+      }
+    });
+
+    test('a country without an entry opens on the default view', () async {
+      final (container, _) = await _container(const <String, Object>{}, 'ZZ');
 
       expect(container.read(lastMapCameraProvider), defaultMapCamera);
+    });
+
+    test('the camera the map was left at wins over the country', () async {
+      final (container, prefs) = await _container(<String, Object>{
+        _latKey: 48.1374,
+        _lonKey: 11.5755,
+        _zoomKey: 13.25,
+      }, 'US');
+
+      expect(
+        container.read(lastMapCameraProvider),
+        const MapCamera(center: LatLng(48.1374, 11.5755), zoom: 13.25),
+      );
+      expect(hasStoredMapCamera(prefs), isTrue);
     });
 
     test('the camera the map was left at is where it opens', () async {
@@ -227,12 +313,12 @@ void main() {
   });
 
   group('MapStopsPreferences', () {
-    test('off, the five everyday kinds, along the route, until set', () async {
+    test('on, the five everyday kinds, along the route, until set', () async {
       final (container, _) = await _container();
 
       final stops = container.read(mapStopsPreferencesProvider);
 
-      expect(stops.shown, isFalse);
+      expect(stops.shown, isTrue);
       expect(stops.kinds, <String>{
         'drinking_water',
         'cafe',
@@ -241,6 +327,14 @@ void main() {
         'bicycle_repair_station',
       });
       expect(stops.alongRoute, isTrue);
+    });
+
+    test('a rider who switched the stops off keeps them off', () async {
+      final (container, _) = await _container(<String, Object>{
+        'map.stops.shown': false,
+      });
+
+      expect(container.read(mapStopsPreferencesProvider).shown, isFalse);
     });
 
     test('every choice is stored and read back on the next launch', () async {
@@ -288,11 +382,25 @@ void main() {
   });
 
   group('CycleMapPreferences', () {
-    test('off with the default parts on a fresh install', () async {
+    test('on with the default parts on a fresh install', () async {
       final (container, _) = await _container();
       final settings = container.read(cycleMapPreferencesProvider);
-      expect(settings.shown, isFalse);
+      expect(settings.shown, isTrue);
       expect(settings.parts, defaultCycleMapParts);
+    });
+
+    test('a rider who switched it off keeps it off', () async {
+      final (container, _) = await _container(<String, Object>{
+        'map.cycle_map.shown': false,
+      });
+      expect(container.read(cycleMapPreferencesProvider).shown, isFalse);
+    });
+
+    test('a rider on the CyclOSM overlay does not get both', () async {
+      final (container, _) = await _container(<String, Object>{
+        _cyclosmKey: true,
+      });
+      expect(container.read(cycleMapPreferencesProvider).shown, isFalse);
     });
 
     test('a part switched off stays off', () async {

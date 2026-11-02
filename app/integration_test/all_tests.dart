@@ -57,6 +57,7 @@ import 'on_device_route_test.dart' as on_device_route;
 import 'orientation_test.dart' as orientation;
 import 'record_ride_test.dart' as record_ride;
 import 'save_library_detail_test.dart' as save_library_detail;
+import 'search_dismiss_test.dart' as search_dismiss;
 import 'search_to_destination_test.dart' as search_to_destination;
 
 void main() {
@@ -83,5 +84,6 @@ void main() {
   group('orientation_test.dart', orientation.main);
   group('record_ride_test.dart', record_ride.main);
   group('save_library_detail_test.dart', save_library_detail.main);
+  group('search_dismiss_test.dart', search_dismiss.main);
   group('search_to_destination_test.dart', search_to_destination.main);
 }

@@ -2133,7 +2133,9 @@ class _Pool {
     for (final row in rows) {
       final key = '${file.tile}#${row.id}';
       if (_rows.containsKey(key)) continue;
-      if (!preferences.isEnabled(row.group)) {
+      // A stop is found by asking for its kind, never by its name.
+      if (!preferences.isEnabled(row.group) ||
+          kindSearchOnlyPoiKinds.contains(row.kind)) {
         _rows[key] = null;
         continue;
       }

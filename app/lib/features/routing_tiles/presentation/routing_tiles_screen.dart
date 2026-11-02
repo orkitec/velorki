@@ -132,7 +132,8 @@ class RoutingTilesScreen extends ConsumerWidget {
   }
 }
 
-/// Asks whether [wanted] should be downloaded and enqueues them.
+/// Asks whether [wanted] should be downloaded and enqueues them, returning
+/// once they are queued.
 ///
 /// What a download of [wanted] would fetch: the tiles not yet on the device
 /// that this build can read, those it cannot, and the gazetteers missing
@@ -181,8 +182,9 @@ class TileDownloadPlan {
 /// With [refreshStale] the rider asked for an update rather than for the tiles
 /// they are missing, so a tile the mirror has rebuilt since it was downloaded
 /// counts as something to fetch; everything else on the device is still
-/// dropped. Without it — the visible area, a route's missing tiles — a tile
-/// that is on the device is enough, however old it is.
+/// dropped. A tile whose rd5 is current but whose gazetteer changed gets the
+/// gazetteer alone. Without it — the visible area, a route's missing tiles — a
+/// tile that is on the device is enough, however old it is.
 Future<TileDownloadPlan> planTileDownload(
   WidgetRef ref,
   List<TileName> wanted, {
@@ -201,10 +203,12 @@ Future<TileDownloadPlan> planTileDownload(
   for (final tile in wanted) {
     final onDevice = present[tile];
     if (onDevice != null &&
-        !(refreshStale && onDevice.isOutdatedBy(manifest[tile]))) {
+        !(refreshStale && onDevice.isRd5OutdatedBy(manifest[tile]))) {
       final entry = manifest[tile];
+      // A gazetteer the mirror changed (an update) or the device lacks.
       if (entry?.gazetteer != null &&
-          !repository.gazetteerFileFor(tile).existsSync()) {
+          (!repository.gazetteerFileFor(tile).existsSync() ||
+              (refreshStale && onDevice.isGazetteerOutdatedBy(entry)))) {
         gazetteers.add(entry!);
       }
       continue;
@@ -266,6 +270,7 @@ Future<void> confirmTileDownload(
     );
     if (entries.isEmpty || !context.mounted) return;
   }
+  if (entries.isEmpty && refreshStale && plan.gazetteers.isNotEmpty) return;
   if (entries.isEmpty) {
     if (refreshStale) {
       // Nothing newer on the mirror after all: whatever marked the tile stale
@@ -314,8 +319,10 @@ Future<void> confirmTileDownload(
       ],
     ),
   );
+  // Returns once the tiles are queued, not when they are in: the queue's
+  // state carries the progress to whoever shows it.
   if (confirmed ?? false) {
-    await queue.enqueue(entries, gazetteersOnly: plan.gazetteers);
+    unawaited(queue.enqueue(entries, gazetteersOnly: plan.gazetteers));
   }
 }
 

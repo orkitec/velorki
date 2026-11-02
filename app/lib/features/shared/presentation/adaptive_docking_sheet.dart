@@ -435,6 +435,65 @@ class _AdaptiveDockingSheetState extends ConsumerState<AdaptiveDockingSheet> {
   /// stops it had then; `null` while it has not been lowered for one.
   (double, SheetStops)? _beforeCover;
 
+  /// Fingers on the sheet right now.
+  int _pointers = 0;
+
+  /// Runs once the sheet has kept still for [_settleAfter].
+  Timer? _settle;
+
+  /// How long the sheet has to keep still before [_settleInBand] looks.
+  static const Duration _settleAfter = Duration(milliseconds: 400);
+
+  void _armSettle() {
+    _settle?.cancel();
+    if (_pointers > 0) return;
+    _settle = Timer(_settleAfter, _settleInBand);
+  }
+
+  /// A sheet left part way into its morph to the bar, with nobody holding
+  /// it, goes to the nearer end of it. A drag snaps when it lets go, but a
+  /// move of the app's own cut short by another (a cover lifting while the
+  /// keyboard goes) can stop anywhere, and there the content stays half
+  /// faded out.
+  void _settleInBand() {
+    final controller = widget.controller;
+    if (!mounted || _pointers > 0 || !controller.isAttached) return;
+    // Under the keyboard the sheet is where its screen put it, out of the
+    // way: the keyboard hides the bar and its safe area, the docked extent
+    // drops by that much, and a sheet parked at the old one sits part way
+    // into the new band. Its screen brings it back once the keyboard goes,
+    // and the going re-arms this.
+    if (_keyboardUp) return;
+    final t = DockingSheetShell.dockedFraction(
+      extent: controller.size,
+      collapsedExtent: widget.collapsedExtent,
+      dockedRange: widget.dockedRange,
+      docks: widget.docks,
+    );
+    if (t <= 0.02 || t >= 0.98) return;
+    final bandTop = widget.collapsedExtent + widget.dockedRange;
+    final resting = widget.restingExtent;
+    _move(
+      t >= 0.5
+          ? widget.collapsedExtent
+          : (resting >= bandTop ? resting : bandTop),
+    );
+  }
+
+  /// Whether the keyboard was up at the last build.
+  bool _keyboardUp = false;
+
+  void _lift() {
+    if (_pointers > 0) _pointers--;
+    _armSettle();
+  }
+
+  @override
+  void dispose() {
+    _settle?.cancel();
+    super.dispose();
+  }
+
   void _onCovering(int? previous, int next) {
     final before = previous ?? 0;
     if (before == 0 && next > 0) {
@@ -500,6 +559,10 @@ class _AdaptiveDockingSheetState extends ConsumerState<AdaptiveDockingSheet> {
     final layout = ShellLayout.of(context);
     final turns = shellQuarterTurns(layout);
     final screen = MediaQuery.sizeOf(context);
+    final keyboardUp = MediaQuery.viewInsetsOf(context).bottom > 0;
+    // The keyboard gone: a sheet nobody moved back looks again.
+    if (_keyboardUp && !keyboardUp) _armSettle();
+    _keyboardUp = keyboardUp;
     final view = View.of(context);
     final safe = EdgeInsets.fromViewPadding(
       view.viewPadding,
@@ -575,29 +638,43 @@ class _AdaptiveDockingSheetState extends ConsumerState<AdaptiveDockingSheet> {
     );
     return QuarterTurnedFrame(
       quarterTurns: turns,
-      child: DraggableScrollableSheet(
-        key: widget.sheetKey,
-        controller: widget.controller,
-        initialChildSize: widget.initialExtent,
-        minChildSize: widget.collapsedExtent,
-        maxChildSize: widget.maxExtent,
-        snap: true,
-        snapSizes: widget.snapSizes,
-        builder: (context, scrollController) => DockingSheet(
-          key: widget.boxKey,
-          controller: scrollController,
-          gripDp: widget.gripDp,
-          initialExtent: widget.initialExtent,
-          collapsedExtent: widget.collapsedExtent,
-          dockedRange: widget.dockedRange,
-          docks: widget.docks,
-          dockedBottomInset: widget.dockedBottomInset,
-          onDocked: widget.onDocked,
-          onExtent: widget.onExtent,
-          currentExtent: () =>
-              widget.controller.isAttached ? widget.controller.size : null,
-          handle: const SheetHandle(),
-          child: content,
+      child: Listener(
+        onPointerDown: (_) {
+          _pointers++;
+          _settle?.cancel();
+        },
+        onPointerUp: (_) => _lift(),
+        onPointerCancel: (_) => _lift(),
+        child: NotificationListener<DraggableScrollableNotification>(
+          onNotification: (_) {
+            _armSettle();
+            return false;
+          },
+          child: DraggableScrollableSheet(
+            key: widget.sheetKey,
+            controller: widget.controller,
+            initialChildSize: widget.initialExtent,
+            minChildSize: widget.collapsedExtent,
+            maxChildSize: widget.maxExtent,
+            snap: true,
+            snapSizes: widget.snapSizes,
+            builder: (context, scrollController) => DockingSheet(
+              key: widget.boxKey,
+              controller: scrollController,
+              gripDp: widget.gripDp,
+              initialExtent: widget.initialExtent,
+              collapsedExtent: widget.collapsedExtent,
+              dockedRange: widget.dockedRange,
+              docks: widget.docks,
+              dockedBottomInset: widget.dockedBottomInset,
+              onDocked: widget.onDocked,
+              onExtent: widget.onExtent,
+              currentExtent: () =>
+                  widget.controller.isAttached ? widget.controller.size : null,
+              handle: const SheetHandle(),
+              child: content,
+            ),
+          ),
         ),
       ),
     );

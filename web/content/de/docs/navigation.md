@@ -1,22 +1,22 @@
 ---
 title: Navigation mit Abbiegehinweisen
-description: Einer Route während der Aufnahme folgen, mit Abbiegeband und Sprachansagen, und sehen, was Velorki tut, wenn du die Route verlässt.
+description: Einer Route während der Aufzeichnung folgen, mit Abbiegeband und Sprachansagen, und sehen, was Velorki tut, wenn du die Route verlässt.
 order: 8
 ---
 
-Velorki führt dich während einer laufenden Aufnahme an einer Route entlang: Ein Band über der Karte zeigt die nächste Abbiegung, und eine Stimme sagt sie an. Schalte die Navigation ein, wähle im Tab Aufnahme eine Route zum Folgen und starte die Fahrt.
+Velorki führt dich während einer laufenden Aufzeichnung an einer Route entlang: Ein Band über der Karte zeigt die nächste Abbiegung, und eine Stimme sagt sie an. Schalte die Navigation ein, wähle im Tab Aufzeichnen eine Route zum Folgen und starte die Fahrt.
 
 Die Navigation ist kostenlos, läuft offline, wo du die Routing-Daten heruntergeladen hast, und braucht kein Konto.
 
 ## Einschalten
 
-Die Einstellungen liegen an zwei Stellen gleichzeitig und sind so oder so dieselben: unter **Einstellungen → Navigation** und in der Übersicht des Tabs Aufnahme unterhalb von **Bildschirm anlassen**.
+Die Einstellungen liegen an zwei Stellen gleichzeitig und sind so oder so dieselben: unter **Einstellungen → Navigation** und in der Übersicht des Tabs Aufzeichnen unterhalb von **Bildschirm anlassen**.
 
-1. **Abbiegehinweise**, "Nächste Abbiegung während der Aufnahme auf einer Route zeigen". Das ist der Hauptschalter; der Rest ist ausgegraut, solange er aus ist.
+1. **Abbiegehinweise**, "Nächste Abbiegung während der Aufzeichnung auf einer Route zeigen". Das ist der Hauptschalter; der Rest ist ausgegraut, solange er aus ist.
 2. **Stimme**, "Abbiegehinweise laut ansagen".
 3. **Wenn du die Route verlässt**: **Zurückführen**, **Neue Route zum Ziel** oder **Nicht neu berechnen**. Siehe [Wenn du die Route verlässt](#wenn-du-die-route-verlässt).
 
-Wähle dann im Tab **Aufnahme** etwas unter **Einer Route folgen**: **Die Route im Tab Planen**, wenn der Planer eine Route enthält, oder eine beliebige Route aus deiner Bibliothek. Starte die Fahrt, und das Band erscheint.
+Wähle dann im Tab **Aufzeichnen** etwas unter **Einer Route folgen**: **Die Route im Tab Planen**, wenn der Planer eine Route enthält, oder eine beliebige Route aus deiner Bibliothek. Starte die Fahrt, und das Band erscheint.
 
 ## Das Abbiegeband
 

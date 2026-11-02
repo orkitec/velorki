@@ -74,7 +74,7 @@ void main() {
     addTearDown(routes.close);
 
     // ------------------------------------------------------------ the dialog
-    await tapAndPump(tester, find.widgetWithText(FilledButton, 'Save'));
+    await tapAndPump(tester, find.widgetWithText(OutlinedButton, 'Save'));
     await waitForWidget(tester, find.byType(AlertDialog));
     expect(find.text('Save route'), findsOneWidget);
 

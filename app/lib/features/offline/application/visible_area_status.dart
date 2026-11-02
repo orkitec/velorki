@@ -36,7 +36,8 @@ class VisibleAreaStatus {
   final VisibleAreaState state;
 
   /// The tiles in view with an update on the mirror, for
-  /// [VisibleAreaState.update].
+  /// [VisibleAreaState.update], while it runs [VisibleAreaState.busy], and
+  /// [VisibleAreaState.missing] when only the map area is missing.
   final List<TileName> stale;
 
   /// How far the running download is, 0..1, while [VisibleAreaState.busy];
@@ -80,6 +81,12 @@ VisibleAreaStatus visibleAreaStatus({
       wanted.any((t) => t == queue.current || queue.queued.contains(t))) {
     return VisibleAreaStatus(
       VisibleAreaState.busy,
+      // An update keeps its tiles `stale` until it is in place, which is how
+      // a chip tells an update running from a first download.
+      stale: <TileName>[
+        for (final tile in tiles)
+          if (tile.isStale && wanted.contains(tile.tile)) tile.tile,
+      ],
       progress: queue.progress?.fraction,
     );
   }
@@ -105,7 +112,9 @@ VisibleAreaStatus visibleAreaStatus({
     if (usable[name]!.isStale) stale.add(name);
   }
   if (regions != null && !regions().any((r) => _covers(r, bounds))) {
-    return missing;
+    // The map area is what is missing; the routing data in view may still
+    // have an update, which is offered on its own.
+    return VisibleAreaStatus(VisibleAreaState.missing, stale: stale);
   }
   if (stale.isNotEmpty) {
     return VisibleAreaStatus(VisibleAreaState.update, stale: stale);

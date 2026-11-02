@@ -1,8 +1,7 @@
-• Sincroniza rutas, salidas y ajustes con tu propio Google Drive; se quedan contigo
-• Planifica en app.velorki.com con la misma cuenta de Google, también con Plus
-• Tabletas y plegables: el mapa en la pantalla, la app al lado
-• Ajustes: un resumen, cada grupo en su página
-• El botón de descarga indica si la zona está descargada
-• Las capas del tiempo avisan tras reintentos y se recuperan solas
-• Los mapas oscuros vuelven a mostrar localidades
-• Los mensajes «Deshacer» se cierran solos
+• Al primer inicio: tu ubicación, el mapa de tu país, carriles bici y paradas visibles
+• «Salir» junto a «Guardar» inicia la ruta planificada
+• Añade una parada durante la salida; la navegación sigue
+• Estaciones, paradas de bus, tranvía y ferri, farmacias, hospitales, miradores y más
+• Descargas en el mapa, con progreso y cancelar
+• Datos del mapa actualizados solo si cambian de verdad
+• Tocar el mapa cierra la búsqueda

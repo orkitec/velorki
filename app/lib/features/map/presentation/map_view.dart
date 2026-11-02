@@ -10,6 +10,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/app_config.dart';
 import '../../recording/data/battery_saver.dart';
+import '../application/map_drawn.dart';
 import '../application/web_storage_notice.dart';
 import '../../settings/data/appearance_controller.dart';
 import '../data/cyclosm_tone.dart';
@@ -247,6 +248,7 @@ class _MapViewState extends ConsumerState<MapView> {
     // wait for the next one, which is up to five metres of riding away.
     final known = ref.read(devicePositionProvider).value;
     if (known != null) _pushPosition(known);
+    MapDrawn.styles.value++;
   }
 
   /// The map look on screen right now, resolved.
@@ -396,6 +398,7 @@ class _MapViewState extends ConsumerState<MapView> {
         onMapLongClick: (_, coordinates) =>
             _adapter?.handleMapLongClick(coordinates),
         onCameraIdle: _onCameraIdle,
+        onMapIdle: MapDrawn.idle,
       ),
     );
 

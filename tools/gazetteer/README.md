@@ -18,6 +18,7 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | `check.py` | validates one `.gaz` and prints a one-line summary |
 | `street_numbers.py` | the `street_numbers` blob: thinning, encoding, decoding, the lookup |
 | `translit.py`, `translit.json` | the text the index holds for a name: lower case, Cyrillic and Greek in Latin letters, Cyrillic spelled two ways; the table is shared with the app |
+| `digest.py` | the content digest of a `.gaz`: its rows without `built_at` |
 | `manifest.py` | adds the `gazetteer` object to a mirror's `manifest.json` |
 | `testset.py` | samples a `.gaz` into mistyped query/expected pairs for the search-quality scorer |
 | `test_gazetteer.py` | the tests, run against a Liechtenstein build |
@@ -29,11 +30,11 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | Table | Rows | What it is |
 |---|---|---|
 | `places` | one per settlement | `place=city\|town\|village\|hamlet\|suburb\|neighbourhood\|locality\|island` nodes and areas, with population where OSM has it |
-| `pois` | one per feature and kind | what a rider needs on the road and what a rider searches for as a destination: the 38 kinds below, named — or unnamed for the eight utility kinds |
+| `pois` | one per feature and kind | what a rider needs on the road and what a rider searches for as a destination: the 46 kinds below, named — or unnamed for the utility kinds and the stops |
 | `streets` | one per street name per place | every named `highway=*` way but a platform, a bus stop, a planned road, a corridor, a lift or a service area; the many ways of one street merged into one row |
 | `aliases` | one per extra name | `name:en`, `int_name`, `alt_name`, `old_name`, `official_name`, `short_name` of a row above; for a place with `importance` and a POI with `importance` ≥ 10 also every `name:<lang>`, at most 80 |
 | `street_numbers` | one per street with addresses | its house numbers, odd and even side, thinned to the points that keep interpolation within 20 m, in one blob |
-| `search` | one per place, street, **named** poi and alias | the FTS5 index the search box queries, over the transliterated names |
+| `search` | one per place, street, **named** poi (but a stop) and alias | the FTS5 index the search box queries, over the transliterated names |
 | `vocab` | one per word of `search` | the word and how many rows hold it, copied from the index |
 | `meta` | seven | schema version, tile, build time, source, what is in the file, the index's script |
 
@@ -64,7 +65,10 @@ somebody types as a destination.
 | `charging_station` | `amenity=charging_station` with `bicycle=yes`, `bicycle:charging=yes` or a `socket:*` key naming a bicycle |
 | `picnic_site` | `tourism=picnic_site` |
 | `bicycle_shop` | `shop=bicycle` |
-| `station` | `railway=station` |
+| `bicycle_tube_vending` | `amenity=vending_machine` whose `vending` list holds `bicycle_tube`, named or not |
+| `station` | `railway=station\|halt` |
+| `bus_stop` | `highway=bus_stop`, but not on a `public_transport=stop_position` (the same stop again on the road), named or not; not in the FTS index |
+| `tram_stop` | `railway=tram_stop`, named or not; not in the FTS index |
 | `viewpoint` | `tourism=viewpoint` |
 | `peak` | `natural=peak` |
 | `park` | `leisure=park` |
@@ -92,13 +96,21 @@ somebody types as a destination.
 | `nature_reserve` | `leisure=nature_reserve`, `boundary=national_park\|protected_area` |
 | `building` | any other `building=*`, except `building=no` |
 
-**Unnamed rows.** `pois.name` is nullable, but only for the eight utility kinds
+**Unnamed rows.** `pois.name` is nullable, but only for the utility kinds
 `drinking_water`, `toilets`, `bicycle_repair_station`, `shelter`,
-`bicycle_rental`, `charging_station`, `picnic_site`, `bicycle_parking`: a tap or
+`bicycle_rental`, `charging_station`, `picnic_site`, `bicycle_parking`,
+`compressed_air`, `fuel`, `bicycle_tube_vending` and the stops `bus_stop`,
+`tram_stop`: a tap or
 a toilet is worth a row without a name because the app looks for the *nearest*
 one rather than typing for it. Such a row is **not** in the FTS index — there is
 nothing to match — and `idx_pois_pos` is how it is found. Every other kind is
 still stored only when it has a name.
+
+**Stops.** A `bus_stop` or `tram_stop` is never in the FTS index, named or not,
+and has no aliases: the app finds stops by their kind ("bus stop", nearest
+first) and draws them on the map, and thousands of stops named after their
+street would bury the streets and places a name query means. An app from
+before them never sees one in its name search.
 
 Names are trimmed, and a name with no letter in it is not a name: that is a
 house number somebody typed into the name field, or a numbered boundary stone,
@@ -145,8 +157,8 @@ CREATE TABLE streets (
 
 CREATE TABLE pois (
     id         INTEGER PRIMARY KEY,
-    name       TEXT,            -- NULL only on the eight utility kinds
-    kind       TEXT NOT NULL,   -- one of the 43 kinds, see "POI kinds" above
+    name       TEXT,            -- NULL only on the utility kinds and stops
+    kind       TEXT NOT NULL,   -- one of the 46 kinds, see "POI kinds" above
     lat        INTEGER NOT NULL,
     lon        INTEGER NOT NULL,
     place_id   INTEGER,
@@ -439,8 +451,9 @@ merged:
 one directory per extract or the flat download of a CI matrix both work. Per
 tile it
 
-* validates every input with `check.py` and stops before writing anything if
-  one fails,
+* validates every input with `check.py` and, after merging, the output; a
+  tile where either fails is **quarantined** (see below) and the next tile
+  goes on,
 * drops rows that repeat an `(osm_type, osm_id)` — `(osm_type, osm_id, kind)`
   for a POI — already seen, and streets that
   repeat a name + place name + position rounded to 1e-3 degrees (~100 m),
@@ -467,6 +480,24 @@ tile it
 A tile only one input holds goes through the same path, so the output is always
 canonical. `merge.py` uses the standard library only — the merge job needs no
 pyosmium.
+
+**Quarantine.** One bad tile must not stop a planet merge. A tile whose input
+or output fails `check.py`, or whose merge raises, is left out: its output is
+deleted and it is listed in `quarantine.json` (in `out_dir`, or `--quarantine
+PATH`):
+
+```json
+{"merged": 1141, "outputsChecked": true,
+ "quarantined": [{"tile": "E80_N5", "reason": "…: search_script is 'latin' but the index holds 'μhotel'",
+                  "inputs": ["parts/gaz-g17/asia__sri-lanka/E80_N5.gaz"]}]}
+```
+
+The exit status is 0 when nothing was quarantined, 3 when some tiles were and
+the rest merged, and 1 for a failure of the whole run: no inputs, every tile
+quarantined, a full disk or no memory. The mirror's publish job puts last
+month's file in place of a quarantined tile and fails the run, so the owner
+hears of it while riders keep their search (velorki-data's README, "When a
+tile is quarantined").
 
 ## Fixtures
 
@@ -520,6 +551,11 @@ runs exactly that on every push — it fetches the extract from Geofabrik as
 assert on) — then `check.py` and `sha256sum -c fixtures.sha256` over the
 committed fixtures. `.github/workflows/gazetteer-perf.yml` times the app's
 search against New York nightly; see `app/test/perf/gazetteer_perf_test.dart`.
+`.github/workflows/gazetteer-sample.yml` builds seven real extracts (Greek,
+Ukrainian and Serbian Cyrillic, Sinhala and Tamil, Japanese, Hebrew and Arabic,
+and the Düsseldorf Regierungsbezirk for volume) and runs `check.py` on every
+tile, weekly and on every push to main touching `tools/gazetteer/`, so a
+failure only real data provokes shows before the publish on the 1st.
 
 ## Mirror integration
 
@@ -529,8 +565,13 @@ app falls back to online search.
 
 ```json
 { "tile": "W20_N30", "bytes": 1527283, "updatedAt": "...", "sha256": "...",
-  "gazetteer": { "bytes": 262144, "sha256": "<hex>", "updatedAt": "..." } }
+  "gazetteer": { "bytes": 262144, "sha256": "<hex>", "contentSha256": "<hex>", "updatedAt": "..." } }
 ```
+
+`contentSha256` is `digest.py`'s digest. `sha256` and `updatedAt` change with every
+monthly rebuild (`meta.built_at`, page layout) even when nothing else did; the
+digest changes only when the rows do, so the app compares it and riders fetch a
+file only when its content changed.
 
 `brouter/updater/sync.sh` writes it for any `.gaz` it finds beside an rd5 (always
 hashed — the files are small). For a mirror built some other way,

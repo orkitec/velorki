@@ -91,6 +91,7 @@ class PlannerMapBinding {
     // A tap on the route line puts a point on it there; anywhere else
     // adds one at the end.
     map.onTap = (pos) {
+      if (_taken()) return;
       final zoom = map.zoom;
       planner.tapAt(
         pos,
@@ -101,14 +102,24 @@ class PlannerMapBinding {
     };
     // A long press marks a place rather than routing through it; the screen
     // opens the sheet for it.
-    map.onLongPress = (pos) => onLongPress?.call(pos);
+    map.onLongPress = (pos) {
+      if (!_taken()) onLongPress?.call(pos);
+    };
     map.onWaypointDragged = planner.moveWaypoint;
-    map.onWaypointTapped = (index) => onWaypointTap?.call(index);
+    map.onWaypointTapped = (index) {
+      if (!_taken()) onWaypointTap?.call(index);
+    };
     // A place only shown is not one of the plan's to edit.
     map.onPoiTapped = (index) {
-      if (index < _poiCount) onPoiTap?.call(index);
+      if (!_taken() && index < _poiCount) onPoiTap?.call(index);
     };
   }
+
+  /// The screen's first say over a tap or a press on the map: `true` when
+  /// it took it for itself (to end a search), and the plan is left alone.
+  bool Function()? takesTap;
+
+  bool _taken() => takesTap?.call() ?? false;
 
   /// A place to mark beside the plan's own for the moment — what the
   /// assistant was asked to show — drawn with its kind's icon, selected.

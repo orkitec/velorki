@@ -9,6 +9,9 @@
 #   tool/store_screenshots.sh --skip-capture           # slides from the last capture
 #   tool/store_screenshots.sh --shots dark             # both slide styles show the dark app
 #   tool/store_screenshots.sh --until variants         # capture only up to that screen
+#   tool/store_screenshots.sh --all-shots              # every screen in every theme
+#   tool/store_screenshots.sh --no-slides              # the pictures (and the watch) only
+#   tool/store_screenshots.sh --watch-locales en,de    # the watch in these languages ('none': not at all)
 #   tool/store_screenshots.sh --preview                # the preview video instead (store/preview_set.json)
 #   tool/store_screenshots.sh --platform ipad          # the iPad set; see below
 #   tool/store_screenshots.sh --platform duo           # the iPhone Duo set; see below
@@ -34,11 +37,14 @@
 #   a mirror already answers on the port, and stops it again at the end; beside
 #   them New York's W75_N40 tile and gazetteer for the cycle map shots, fetched
 #   once from the tile mirror into VELORKI_STORE_TILES (~/.cache/velorki-tiles/store);
-# * per locale, sets the simulator's language and region (the region decides
-#   the clock format, in the app and in the status bar) and reboots it, sets
-#   the status bar to 9:41 with full bars, and runs
-#   integration_test/store/store_screenshots_test.dart once, which takes every
-#   theme asked for; tool/store_shutter.py takes the pictures it asks for;
+# * sets the simulator's language and region and reboots it if they differ,
+#   sets the status bar to 9:41 with full bars, and runs
+#   integration_test/store/store_screenshots_test.dart, which takes every
+#   screen in every language and theme of the run, switching them in the
+#   app: on iOS once for English and once for the other languages, whose
+#   region shows the status bar's clock another way (see below); on Android
+#   once. tool/store_shutter.py takes the pictures it asks for. The preview
+#   is recorded once per language, the device set to each;
 # * tool/store_watch.sh shoots the watch app with the figures the phone
 #   showed, on the watch simulator;
 # * then tool/store_slides.py makes the slides.
@@ -64,9 +70,10 @@
 # --platform android takes the screens the Play set uses (store/
 # slide_set_android.json) on an Android emulator: VELORKI_STORE_EMULATOR names
 # its adb serial, else the one emulator running is taken (start one first: a
-# Pixel 6 profile, 1080x2400). Per locale the emulator's language is set (adb
-# root, a reboot when it changes), gestural navigation and a hole-punch cutout
-# are switched on, and SystemUI's demo mode shows 9:41 and full wifi; the
+# Pixel 6 profile, 1080x2400). The emulator keeps its own language (the app
+# switches its own), gestural navigation and a hole-punch cutout are switched
+# on, the system's error dialogs hidden, and SystemUI's demo mode shows 9:41
+# and full wifi; the
 # mirror is reached as 10.0.2.2. No watch, Lock Screen or preview. Output
 # under android/: raw/<theme>/<locale>/<screen>.png and slides/ (see
 # tool/store_slides.py --platform android).
@@ -97,6 +104,9 @@ THEMES=light,dark
 SHOTS=same
 CAPTURE=1
 UNTIL=
+ALL_SHOTS=0
+SLIDES=1
+WATCH_LOCALES=
 PREVIEW=0
 PLATFORM=ios
 ORIENTATION=
@@ -107,6 +117,9 @@ while [ $# -gt 0 ]; do
     --shots) SHOTS="$2"; shift ;;
     --skip-capture) CAPTURE=0 ;;
     --until) UNTIL="$2"; shift ;;
+    --all-shots) ALL_SHOTS=1 ;;
+    --no-slides) SLIDES=0 ;;
+    --watch-locales) WATCH_LOCALES="$2"; shift ;;
     --preview) PREVIEW=1 ;;
     --platform) PLATFORM="$2"; shift ;;
     -h | --help) sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//;$d'; exit 0 ;;
@@ -187,8 +200,29 @@ print(max(ios, key=lambda r: [int(p) for p in r["version"].split(".")])["identif
   echo "$udid"
 }
 
+shut_down() {  # shut_down <udid>: whether the simulator is shut down
+  xcrun simctl list devices -j | python3 -c '
+import json, sys
+udid = sys.argv[1]
+sys.exit(not any(d["udid"] == udid and d["state"] == "Shutdown"
+                 for ds in json.load(sys.stdin)["devices"].values() for d in ds))' "$1"
+}
+
+write_region() {  # write_region <udid> <language> <region>, the simulator shut down
+  local prefs="$HOME/Library/Developer/CoreSimulator/Devices/$1/data/Library/Preferences/.GlobalPreferences.plist"
+  mkdir -p "$(dirname "$prefs")"
+  [ -f "$prefs" ] || plutil -create binary1 "$prefs"
+  plutil -replace AppleLanguages -json "[\"$2\"]" "$prefs"
+  plutil -replace AppleLocale -string "$3" "$prefs"
+}
+
 boot() {  # boot <udid> <language> <region>
   local udid=$1 language=$2 region=$3
+  # Shut down, the simulator's language and region go straight into its
+  # preferences, so it boots in them once instead of booting, being told
+  # and booting again (minutes on a runner); the check below stays for a
+  # simulator already running, or one that ignored the file.
+  if shut_down "$udid"; then write_region "$udid" "$language" "$region"; fi
   xcrun simctl boot "$udid" 2> /dev/null || true
   xcrun simctl bootstatus "$udid" -b > /dev/null
   local current
@@ -264,32 +298,40 @@ emulator_serial() {
   echo "$found"
 }
 
-wait_for_boot() {  # wait_for_boot <serial>
-  adb -s "$1" wait-for-device
-  for _ in $(seq 1 180); do
-    [ "$(adb -s "$1" shell getprop sys.boot_completed 2> /dev/null | tr -d '\r')" = 1 ] && return 0
-    sleep 1
-  done
-  die "$1 did not finish booting"
+# bounded <seconds> <command...>: the command, killed after that long (an adb
+# call to an emulator that went down for a reboot and never came back waits
+# for good). perl's alarm survives the exec; macOS has no timeout(1).
+bounded() {
+  perl -e 'alarm shift @ARGV; exec @ARGV or exit 127' "$@"
 }
 
-android_boot() {  # android_boot <serial> <language-tag>
-  local serial=$1 tag=$2 current
+booted() {  # booted <serial>: whether it is up within three minutes
+  bounded 180 adb -s "$1" wait-for-device || return 1
+  for _ in $(seq 1 180); do
+    [ "$(bounded 10 adb -s "$1" shell getprop sys.boot_completed 2> /dev/null | tr -d '\r')" = 1 ] && return 0
+    sleep 1
+  done
+  return 1
+}
+
+wait_for_boot() {  # wait_for_boot <serial>
+  booted "$1" || die "$1 did not finish booting"
+}
+
+# The emulator keeps the language it has: the app is shown in each locale by
+# its own setting, and nothing of the system's in the pictures has words
+# (SystemUI's demo mode draws the bar). Switching it took a reboot or a
+# framework restart per job, and on a runner those now and then never came
+# back.
+android_boot() {  # android_boot <serial>
+  local serial=$1
   wait_for_boot "$serial"
-  current="$(adb -s "$serial" shell getprop persist.sys.locale | tr -d '\r')"
-  if [ "$current" != "$tag" ]; then
-    say "switching the emulator to $tag"
-    if adb -s "$serial" root > /dev/null 2>&1; then
-      sleep 2
-      wait_for_boot "$serial"
-      adb -s "$serial" shell setprop persist.sys.locale "$tag"
-      adb -s "$serial" reboot
-      sleep 5
-      wait_for_boot "$serial"
-    else
-      say "no adb root on $serial; the status bar keeps the language $current"
-    fi
-  fi
+  # No "isn't responding" or crash dialog of the system's over the app: a
+  # busy emulator's launcher stopped answering once, and its dialog stood
+  # over every picture of the run. (The shutter still refuses a picture
+  # with anything of the system's in front.)
+  bounded 10 adb -s "$serial" shell settings put global hide_error_dialogs 1 || true
+  bounded 10 adb -s "$serial" shell settings put global anr_show_background 0 || true
   # A Pixel's gesture bar and, on the phone, its hole-punch, whatever the
   # image defaults to: both decide where the app's chrome sits. The Pixel
   # Tablet's camera is in its bezel.
@@ -366,36 +408,108 @@ for name, want in files:
 PY
 }
 
-# Runs the test for one locale. Right after the simulator boots, flutter test
+# Runs the test: for the screenshots once with every locale, for the preview
+# with the one given. Right after the simulator boots, flutter test
 # now and then installs and launches the app and then never attaches to it,
 # with the app on its splash screen for good; a run that has not started its
-# first test within VELORKI_STORE_START_TIMEOUT seconds (ten minutes; the
-# build alone takes eight on a CI runner) is stopped and tried once more. The
-# expanded reporter names a test when it starts, not when it ends.
+# first test within VELORKI_STORE_ATTACH_TIMEOUT seconds (four minutes) of
+# the build being done, or within VELORKI_STORE_START_TIMEOUT seconds (ten
+# minutes) at all, is stopped and tried once more. The expanded reporter
+# names a test when it starts, not when it ends.
 capture() {
-  local locale=$1 log="$WORK/test-$1.log" attempt pid started
+  local locale=$1 log="$WORK/test-${1//,/-}.log" attempt pid started
   local test=store_screenshots_test.dart first='store screenshots, '
   if [ "$PREVIEW" = 1 ]; then test=store_preview_test.dart first='store preview, '; fi
   for attempt in 1 2; do
     flutter test "integration_test/store/$test" -d "$DEVICE" --reporter expanded \
+      ${VELORKI_STORE_VERBOSE:+-v} \
       --dart-define-from-file="$DEFINES" \
       --dart-define=VELORKI_STORE_LOCALE="$locale" \
+      --dart-define=VELORKI_STORE_LOCALES="$locale" \
       --dart-define=VELORKI_STORE_THEMES="$THEMES" \
       --dart-define=VELORKI_STORE_UNTIL="$UNTIL" \
+      --dart-define=VELORKI_STORE_NEED="$NEED" \
+      --dart-define=VELORKI_STORE_LATE_CHECK="${VELORKI_STORE_LATE_CHECK:-false}" \
       --dart-define=VELORKI_STORE_ORIENTATION="$ORIENTATION" \
       --dart-define=VELORKI_PREVIEW_SET="$PREVIEW_SET" > "$log" 2>&1 &
     pid=$!
-    started=0
-    for _ in $(seq 1 "${VELORKI_STORE_START_TIMEOUT:-600}"); do
+    started=0 built=""
+    for second in $(seq 1 "${VELORKI_STORE_START_TIMEOUT:-600}"); do
       kill -0 "$pid" 2> /dev/null || break
-      if [ "$started" = 0 ] && grep -qE "$first|VELORKI_STORE" "$log"; then started=1; fi
+      # The reporter's line for the test (a verbose log also prints the
+      # command line, with every VELORKI_STORE define in it).
+      if [ "$started" = 0 ] && grep -qE "[0-9]+:[0-9]+ \+[0-9]+.*: $first|VELORKI_STORE (shot|data|recording)" "$log"; then started=1; fi
       [ "$started" = 1 ] && break
+      if [ -z "$built" ] && grep -qE 'Xcode build done|Built build/app' "$log"; then built=$second; fi
+      if [ -n "$built" ] && [ $((second - built)) -ge "${VELORKI_STORE_ATTACH_TIMEOUT:-240}" ]; then break; fi
       sleep 1
     done
     if [ "$started" = 1 ] || ! kill -0 "$pid" 2> /dev/null; then
-      if wait "$pid"; then
-        grep -E 'VELORKI_STORE|All tests passed' "$log" || true
+      local status=0 shown=0 quiet=0 size=-1 now_size
+      # Each picture's line as it comes, so the job's log shows how far the
+      # test got; a test that prints nothing for VELORKI_STORE_STALL_TIMEOUT
+      # seconds (seven minutes; its longest wait is three, then a minute for
+      # the map) is stuck: it is stopped with its log's end rather than left
+      # to the job's limit, then run once more from the start (it clears the
+      # library as it starts).
+      # On the CI emulator the app now and then stops drawing for good as a
+      # second map view opens (the import's preview): no frame, so the
+      # test's next pump never returns.
+      while kill -0 "$pid" 2> /dev/null; do
+        sleep 5
+        now_size=$(wc -c < "$log")
+        if [ "$now_size" = "$size" ]; then quiet=$((quiet + 5)); else quiet=0 size=$now_size; fi
+        local total
+        total=$(wc -l < "$log")
+        if [ "$total" -gt "$shown" ]; then
+          sed -n "$((shown + 1)),${total}p" "$log" | grep -E 'VELORKI_STORE' || true
+          shown=$total
+        fi
+        if [ "$quiet" -ge "${VELORKI_STORE_STALL_TIMEOUT:-420}" ]; then
+          echo "::error::the capture for $locale printed nothing for $quiet s; its log ends:" >&2
+          tail -n 60 "$log" >&2
+          kill "$pid" 2> /dev/null || true
+          break
+        fi
+      done
+      wait "$pid" || status=$?
+      if [ "$quiet" -ge "${VELORKI_STORE_STALL_TIMEOUT:-420}" ]; then
+        if [ "$attempt" = 1 ]; then
+          echo "::warning::the capture for $locale stalled; trying again from the start" >&2
+          continue
+        fi
+        die "the capture for $locale stalled twice"
+      fi
+      # VELORKI_STORE_VERBOSE keeps flutter's whole log (-v), timestamped by
+      # the monitor's ticks, under logs/ for the artifact.
+      if [ -n "${VELORKI_STORE_VERBOSE:-}" ]; then
+        mkdir -p "$OUT/logs"
+        cp "$log" "$OUT/logs/test-${locale//,/-}-$attempt.log"
+      fi
+      if [ "$status" = 0 ]; then
+        sed -n "$((shown + 1)),\$p" "$log" | grep -E 'VELORKI_STORE' || true
+        grep -E 'All tests passed' "$log" || true
         return 0
+      fi
+      # On a loaded runner the connection to the device now and then drops
+      # mid-run (adb took the emulator for offline while it ran on): the
+      # test ends "did not complete", and the shutter with it. Once more from
+      # the start (the test clears the library first), with the device back
+      # and a shutter running.
+      if [ "$attempt" = 1 ] && grep -q 'did not complete' "$log"; then
+        echo "::warning::the capture for $locale lost the device; trying again from the start" >&2
+        tail -n 20 "$log" >&2
+        if [ "$ANDROID" = 1 ]; then wait_for_boot "$DEVICE"; fi
+        if [ -z "$SHUTTER_PID" ] || ! kill -0 "$SHUTTER_PID" 2> /dev/null; then start_shutter; fi
+        continue
+      fi
+      # On a loaded runner Xcode's build settings query now and then gives
+      # up ("No Xcode build settings have been found"), and the app is never
+      # built: that is tried once more, like a test that never started.
+      if [ "$attempt" = 1 ] && ! grep -q 'VELORKI_STORE' "$log" \
+        && grep -qE 'Could not build the application|Unable to start the app on the device' "$log"; then
+        say "the app was not built; trying again"
+        continue
       fi
       cat "$log" >&2
       die "the capture for $locale failed"
@@ -408,16 +522,38 @@ capture() {
 }
 
 # The theme of each preview clip, as `clip:theme` pairs for the test.
+# The screens, each in the themes, the platform's slide set uses (a split
+# slide both, and the dark one in its other accent too), with on the iPhone
+# those of the App Store's creative assets (tool/store_creative.py) and on
+# Android those the website takes from here (tool/screenshots.sh): the test
+# shoots only these, as `screen:theme` pairs. --all-shots takes every screen
+# in every theme, and the slides in both styles. WATCH_THEME is the theme of
+# the watch slide, the only one the watch is shot in.
+NEED="" WATCH_THEME=""
+if [ "$ALL_SHOTS" = 0 ] && [ "$PREVIEW" = 0 ]; then
+  read -r NEED WATCH_THEME < <(python3 "$APP/tool/store_need.py" "$PLATFORM")
+  [ "$WATCH_THEME" != "-" ] || WATCH_THEME=""
+fi
+
 PREVIEW_SET="$(python3 -c '
 import json, sys
 print(",".join(c["clip"] + ":" + c["theme"] for c in json.load(open(sys.argv[1]))["clips"]))
 ' "$APP/store/preview_set.json")"
 
 MIRROR_PID=""
+CREATIVE_PID=""
+PLIST_BACKUP=""
 SHUTTER_PID=""
+SHUTTER_ARGS=()
 MONITOR_PID=""
 DEMO_SERIAL=""
 WORK="$(mktemp -d)"
+# Starts tool/store_shutter.py for the run (SHUTTER_ARGS), in the background.
+start_shutter() {
+  python3 "$APP/tool/store_shutter.py" "${SHUTTER_ARGS[@]}" &
+  SHUTTER_PID=$!
+}
+
 cleanup() {
   if [ -n "$MONITOR_PID" ]; then
     kill "$MONITOR_PID" 2> /dev/null || true
@@ -535,13 +671,35 @@ defines.update({
 json.dump(defines, open(sys.argv[2], "w"))
 PY
 
+  # The screenshots in as few runs as the status bar allows, each switching
+  # its languages in the app. On iOS the region the simulator booted with
+  # decides the status bar's clock and date (9:41 AM Sat Sep 12, or 09:41
+  # Sat 12 Sep), and only a reboot changes it: so English runs on its own,
+  # the other languages together. On Android the shutter sets the clock per
+  # picture, so one run takes them all. The preview runs once per language.
   IFS=, read -r -a locales <<< "$LOCALES"
-  for locale in "${locales[@]}"; do
-    region="$(region_of "$locale")"
+  if [ "$PREVIEW" = 1 ]; then
+    runs=("${locales[@]}")
+  elif [ "$ANDROID" = 1 ]; then
+    runs=("$LOCALES")
+  else
+    twelve="" others=""
+    for locale in "${locales[@]}"; do
+      case "$locale" in
+        en*) twelve="${twelve:+$twelve,}$locale" ;;
+        *) others="${others:+$others,}$locale" ;;
+      esac
+    done
+    runs=()
+    if [ -n "$twelve" ]; then runs+=("$twelve"); fi
+    if [ -n "$others" ]; then runs+=("$others"); fi
+  fi
+  for run in "${runs[@]}"; do
+    region="$(region_of "${run%%,*}")"
     if [ "$ANDROID" = 1 ]; then
-      android_boot "$DEVICE" "${region/_/-}"
+      android_boot "$DEVICE"
       DEMO_SERIAL="$DEVICE"
-      python3 "$APP/tool/store_shutter.py" --android "$DEVICE" "$OUT/raw" &
+      SHUTTER_ARGS=(--android "$DEVICE" "$OUT/raw")
     else
       boot "$UDID" "${region/_/-}" "$region"
       display=()
@@ -550,11 +708,11 @@ PY
         [ -n "$inner" ] || die "no 2007x2853 display on $UDID; is it an iPhone Duo?"
         display=(--display "$inner")
       fi
-      python3 "$APP/tool/store_shutter.py" ${display[@]+"${display[@]}"} "$UDID" "$OUT/raw" &
+      SHUTTER_ARGS=(${display[@]+"${display[@]}"} "$UDID" "$OUT/raw")
     fi
-    SHUTTER_PID=$!
-    if [ "$PREVIEW" = 1 ]; then say "recording $locale"; else say "capturing $locale ($THEMES)"; fi
-    capture "$locale"
+    start_shutter
+    if [ "$PREVIEW" = 1 ]; then say "recording $run"; else say "capturing $run ($THEMES)"; fi
+    capture "$run"
     kill "$SHUTTER_PID" 2> /dev/null || true
     wait "$SHUTTER_PID" 2> /dev/null || true
     SHUTTER_PID=""
@@ -589,10 +747,33 @@ sys.exit(1 if bad else 0)
 PY
   fi
 
-  # The watch takes the figures of the ride, which comes last.
-  if [ -z "$UNTIL" ] && [ "$PREVIEW" = 0 ] && [ "$PLATFORM" = ios ]; then
+  # The simulator is done with: shut down, so the watch's simulator has its
+  # memory (a 7 GB runner with it, the watch's and Chrome at once stopped
+  # answering).
+  if [ "$ANDROID" = 0 ] && [ "$PREVIEW" = 0 ]; then
+    xcrun simctl shutdown "$UDID" 2> /dev/null || true
+  fi
+
+  # The watch takes the figures of the ride, which comes last. The test
+  # writes them for every language the store has, so --watch-locales can
+  # shoot the watch for languages this run did not take.
+  if [ -z "$UNTIL" ] && [ "$PREVIEW" = 0 ] && [ "$PLATFORM" = ios ] \
+    && [ "${WATCH_LOCALES:-$LOCALES}" != none ]; then
     say "the watch, with the phone's figures"
-    bash "$APP/tool/store_watch.sh" "$OUT/raw" "$OUT/watch" "$LOCALES" "$THEMES"
+    bash "$APP/tool/store_watch.sh" "$OUT/raw" "$OUT/watch" "${WATCH_LOCALES:-$LOCALES}" "${WATCH_THEME:-$THEMES}"
+  fi
+
+  # VELORKI_STORE_CREATIVE=1: the App Store's creative assets
+  # (tool/store_creative.py) from the iPhone's pictures, made after the
+  # watch: drawn beside the watch's simulator, a runner stopped answering
+  # for a quarter of an hour and Chrome missed its pictures. They are done
+  # before the slides, whose six Chromes at once left one of its pictures
+  # unwritten, and uploaded with the set, so a failure fails the run.
+  if [ "${VELORKI_STORE_CREATIVE:-0}" = 1 ] && [ "$PLATFORM" = ios ] && [ -z "$UNTIL" ] \
+    && [ "$PREVIEW" = 0 ]; then
+    say "the creative assets"
+    python3 "$APP/tool/store_creative.py" --locales "$LOCALES" > "$WORK/creative.log" 2>&1 &
+    CREATIVE_PID=$!
   fi
 fi
 
@@ -603,11 +784,31 @@ if [ "$PREVIEW" = 1 ]; then
   exit 0
 fi
 
+# Waits for the creative assets begun after the capture, if any.
+creative_done() {
+  [ -n "$CREATIVE_PID" ] || return 0
+  local pid=$CREATIVE_PID
+  CREATIVE_PID=""
+  if wait "$pid"; then
+    tail -n 2 "$WORK/creative.log"
+  else
+    cat "$WORK/creative.log" >&2
+    die "the creative assets failed"
+  fi
+}
+
+creative_done
+
+# --no-slides stops here: the pictures (and the watch) only.
+if [ "$SLIDES" = 0 ]; then
+  exit 0
+fi
+
 say "making the slides"
 if [ "$PLATFORM" != ios ]; then
-  python3 "$APP/tool/store_slides.py" --platform "$PLATFORM" --locales "$LOCALES" \
+  python3 "$APP/tool/store_slides.py" --platform "$PLATFORM" --locales "$LOCALES" ${NEED:+--set-only} \
     --shots "$SHOTS" --raw "$OUT/raw" --out "$OUT/slides" | tail -1
   exit 0
 fi
-python3 "$APP/tool/store_slides.py" --locales "$LOCALES" --shots "$SHOTS" \
+python3 "$APP/tool/store_slides.py" --locales "$LOCALES" --shots "$SHOTS" ${NEED:+--set-only} \
   --raw "$OUT/raw" --watch "$OUT/watch" --out "$OUT/slides" | tail -1

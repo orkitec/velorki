@@ -324,7 +324,7 @@ void main() {
     }) async {
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
-      SharedPreferences.setMockInitialValues(<String, Object>{});
+      SharedPreferences.setMockInitialValues(mapLayersOff);
       final prefs = await SharedPreferences.getInstance();
       final router = GoRouter(
         routes: [

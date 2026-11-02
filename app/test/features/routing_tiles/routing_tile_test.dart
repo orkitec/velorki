@@ -10,12 +10,16 @@ RoutingTileRow _row({
   DateTime? updatedAt,
   String formatVersion = '11.2',
   RoutingTileState state = RoutingTileState.ready,
+  String? contentSha256,
+  String? gazetteerContentSha256,
 }) => RoutingTileRow(
   name: name,
   bytes: bytes,
   updatedAt: updatedAt ?? DateTime.utc(2026, 9, 12, 1, 3),
   formatVersion: formatVersion,
   state: state,
+  contentSha256: contentSha256,
+  gazetteerContentSha256: gazetteerContentSha256,
 );
 
 RoutingTile _tile({
@@ -24,6 +28,8 @@ RoutingTile _tile({
   DateTime? updatedAt,
   String formatVersion = '11.2',
   RoutingTileState state = RoutingTileState.ready,
+  String? contentSha256,
+  String? gazetteerContentSha256,
 }) => RoutingTile.fromRow(
   _row(
     name: name,
@@ -31,6 +37,8 @@ RoutingTile _tile({
     updatedAt: updatedAt,
     formatVersion: formatVersion,
     state: state,
+    contentSha256: contentSha256,
+    gazetteerContentSha256: gazetteerContentSha256,
   ),
 );
 
@@ -147,6 +155,100 @@ void main() {
       expect(
         _tile(state: RoutingTileState.downloading).isOutdatedBy(newer),
         isTrue,
+      );
+    });
+  });
+
+  group('whether the mirror has different content', () {
+    final newer = DateTime.utc(2026, 10, 12);
+
+    SegmentEntry entry({
+      String? content,
+      String? gazetteerContent,
+      DateTime? updatedAt,
+    }) => SegmentEntry(
+      tile: const TileName(10, 45),
+      bytes: 1,
+      updatedAt: updatedAt,
+      contentSha256: content,
+      gazetteer: gazetteerContent == null
+          ? null
+          : GazetteerEntry(
+              tile: const TileName(10, 45),
+              bytes: 1,
+              sha256: 'file',
+              contentSha256: gazetteerContent,
+            ),
+    );
+
+    test('the same content under a newer date is no update', () {
+      final tile = _tile(contentSha256: 'aa');
+
+      expect(
+        tile.isOutdatedBy(entry(content: 'aa', updatedAt: newer)),
+        isFalse,
+      );
+    });
+
+    test('other content is an update, whatever the dates say', () {
+      final tile = _tile(contentSha256: 'aa');
+
+      expect(tile.isOutdatedBy(entry(content: 'bb', updatedAt: newer)), isTrue);
+      expect(tile.isOutdatedBy(entry(content: 'bb')), isTrue);
+      expect(tile.isRd5OutdatedBy(entry(content: 'bb')), isTrue);
+    });
+
+    test('a digest the device has not worked out yet waits for the backfill, '
+        'it is not decided by the date', () {
+      final tile = _tile();
+
+      expect(
+        tile.isOutdatedBy(entry(content: 'aa', updatedAt: newer)),
+        isFalse,
+      );
+    });
+
+    test('a manifest without digests falls back to the date', () {
+      expect(_tile().isOutdatedBy(entry(updatedAt: newer)), isTrue);
+      expect(
+        _tile(contentSha256: 'aa').isOutdatedBy(entry(updatedAt: newer)),
+        isTrue,
+        reason: 'the mirror says nothing about content',
+      );
+      expect(
+        _tile().isOutdatedBy(entry(updatedAt: DateTime.utc(2026))),
+        isFalse,
+      );
+    });
+
+    test('a gazetteer is outdated by its digest only', () {
+      final tile = _tile(contentSha256: 'aa', gazetteerContentSha256: 'g1');
+
+      expect(
+        tile.isOutdatedBy(entry(content: 'aa', gazetteerContent: 'g1')),
+        isFalse,
+      );
+      final changed = entry(content: 'aa', gazetteerContent: 'g2');
+      expect(tile.isOutdatedBy(changed), isTrue);
+      expect(tile.isRd5OutdatedBy(changed), isFalse);
+      expect(tile.isGazetteerOutdatedBy(changed), isTrue);
+    });
+
+    test('a gazetteer digest unknown on either side says nothing', () {
+      expect(
+        _tile(contentSha256: 'aa').isOutdatedBy(
+          entry(content: 'aa', gazetteerContent: 'g2', updatedAt: newer),
+        ),
+        isFalse,
+        reason: 'the device has not worked its own out yet',
+      );
+      expect(
+        _tile(
+          contentSha256: 'aa',
+          gazetteerContentSha256: 'g1',
+        ).isOutdatedBy(entry(content: 'aa', updatedAt: newer)),
+        isFalse,
+        reason: 'the mirror publishes none',
       );
     });
   });

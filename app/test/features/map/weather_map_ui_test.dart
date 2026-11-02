@@ -20,7 +20,10 @@ Future<(SharedPreferences, ProviderContainer)> _pump(
 }) async {
   await tester.binding.setSurfaceSize(const Size(411, 1400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  SharedPreferences.setMockInitialValues(prefs);
+  SharedPreferences.setMockInitialValues(<String, Object>{
+    ...mapLayersOff,
+    ...prefs,
+  });
   final preferences = await SharedPreferences.getInstance();
   final container = ProviderContainer(
     overrides: [sharedPreferencesProvider.overrideWithValue(preferences)],

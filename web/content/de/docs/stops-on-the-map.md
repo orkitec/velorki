@@ -8,7 +8,7 @@ Velorki kann die Orte, an denen eine Fahrt hält, auf der Karte zeichnen: Trinkw
 
 ## Die Schaltfläche Ebenen
 
-**Ebenen** sitzt in der Spalte rechts neben der Karte, im Tab Planen und im Tab Aufnahme. Das Fenster enthält die Radkarten, siehe [Ebenen auf der Karte](./map-layers), und die Stopps:
+**Ebenen** sitzt in der Spalte rechts neben der Karte, im Tab Planen und im Tab Aufzeichnen. Das Fenster enthält die Radkarten, siehe [Ebenen auf der Karte](./map-layers), und die Stopps:
 
 - **Stopps**, ein Schalter, aus, bis du ihn einschaltest. Darunter die Arten, die gezeigt werden, nach Gruppen: **Stopps unterwegs**, **Übernachten** und **Sehenswürdigkeiten**. Tippe auf eine Art, um sie zu zeigen oder zu verbergen. Beim ersten Mal sind Trinkwasser, Cafés, Bäckereien, Toiletten und Fahrrad-Reparaturstationen gewählt. Bei ausgeschaltetem Schalter klappen die Arten ein; deine Wahl bleibt für das nächste Mal.
 
@@ -22,7 +22,7 @@ Ist das Gebiet nicht heruntergeladen, steht stattdessen **Keine Stopps hier – 
 
 ## Entlang der Route voraus
 
-Ist im Tab Aufnahme unter **Einer Route folgen** eine Route gewählt, sind die Stopps die höchstens 300 m neben der Route, die noch vor dir liegt, bis zu 50 km weit, bei jeder Zoomstufe. Eine Zeile über der Karte nennt den nächsten jeder Art mit seiner Entfernung entlang der Route, "Trinkwasser · 2,4 km"; tippe auf einen Eintrag, um den Stopp auf der Karte zu sehen. Folgt die Karte dir auf einer Fahrt, bleibt sie bei dir und der Stopp wird nur hervorgehoben.
+Ist im Tab Aufzeichnen unter **Einer Route folgen** eine Route gewählt, sind die Stopps die höchstens 300 m neben der Route, die noch vor dir liegt, bis zu 50 km weit, bei jeder Zoomstufe. Eine Zeile über der Karte nennt den nächsten jeder Art mit seiner Entfernung entlang der Route, "Trinkwasser · 2,4 km"; tippe auf einen Eintrag, um den Stopp auf der Karte zu sehen. Folgt die Karte dir auf einer Fahrt, bleibt sie bei dir und der Stopp wird nur hervorgehoben.
 
 Ist von den nächsten 50 km der Route nichts heruntergeladen, tritt derselbe Chip an die Stelle dieser Zeile.
 
@@ -30,7 +30,7 @@ Ist von den nächsten 50 km der Route nichts heruntergeladen, tritt derselbe Chi
 
 ## Einen Stopp antippen
 
-Ein Stopp öffnet seine Ortskarte, dieselbe Karte, die ein Suchergebnis öffnet: Name, Art, Ort, wie weit von dir und, mit einer Route, wie weit daneben. Im Tab Planen bietet sie an, was sich mit dem Ort tun lässt, **Route hierher**, **Hier starten**, **Als Stopp einfügen** oder **Als Ziel**; im Tab Aufnahme informiert sie nur. **Details** und **Öffnen in…** gibt es in beiden. Siehe [die Ortskarte](./search#die-ortskarte).
+Ein Stopp öffnet seine Ortskarte, dieselbe Karte, die ein Suchergebnis öffnet: Name, Art, Ort, wie weit von dir und, mit einer Route, wie weit daneben. Im Tab Planen bietet sie an, was sich mit dem Ort tun lässt, **Route hierher**, **Hier starten**, **Als Stopp einfügen** oder **Als Ziel**; im Tab Aufzeichnen informiert sie nur. **Details** und **Öffnen in…** gibt es in beiden. Siehe [die Ortskarte](./search#die-ortskarte).
 
 ## Weiterlesen
 

@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +9,7 @@ import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/recording/application/recording_controller.dart';
 import 'package:velorki/features/recording/domain/follow_choice.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
+import 'package:velorki/features/routing_tiles/application/tile_download_controller.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_assets.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_storage.dart';
 import 'package:velorki/features/routing_tiles/data/segments_manifest_service.dart';
@@ -76,8 +76,8 @@ class _Setup {
   Future<SavedRoute> saved() async => (await routes.routeById(route.id))!;
 }
 
-/// What the tiles screen needs to show the tiles a route is missing.
-List<Override> _tilesScreen(BrouterStorage storage) => <Override>[
+/// What the download question needs to name the tiles a route is missing.
+List<Override> _tiles(BrouterStorage storage) => <Override>[
   appConfigProvider.overrideWithValue(
     const AppConfig(segmentsUrl: 'https://mirror.test/segments4'),
   ),
@@ -175,23 +175,38 @@ void main() {
         ..profiles.createSync(recursive: true);
     });
 
-    testWidgets('"Create" offers the download first and carries on once the '
-        'tiles are there', (tester) async {
+    testWidgets('"Create" offers the download in place and carries on once '
+        'the tiles are there', (tester) async {
       final s = _Setup()..missing = const <TileName>[_tile];
-      await s.pump(tester, extra: _tilesScreen(storage));
+      final queue = _HeldQueue();
+      await s.pump(
+        tester,
+        extra: [
+          ..._tiles(storage),
+          tileDownloadQueueProvider.overrideWith(() => queue),
+        ],
+      );
 
       await tester.tap(find.text(l10n.recordingStart));
       await tester.pumpAndSettle();
       await tester.tap(find.text(l10n.turnsMissingCreate));
       await tester.pumpAndSettle();
 
-      expect(find.byType(RoutingTilesScreen), findsOneWidget);
-      expect(find.text('E10_N45'), findsOneWidget);
+      // The tiles' own question, over the ride screen: no page to go to.
+      expect(find.byType(RoutingTilesScreen), findsNothing);
+      expect(find.text('E10_N45 · 125 MB'), findsOneWidget);
+      await tester.tap(find.text(l10n.routingTilesDownloadCount(1, '125 MB')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(queue.asked, <TileName>[_tile]);
+      expect(find.text(l10n.turnsWaitingForDownload), findsOneWidget);
       expect(s.harness.service.calls, isEmpty);
 
-      // Downloaded, and back.
+      // Downloaded.
       s.missing = const <TileName>[];
-      await _back(tester);
+      queue.finish();
+      await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
 
       expect((await s.saved()).turnsGenerated, isTrue);
@@ -199,16 +214,16 @@ void main() {
       await unmountApp(tester);
     });
 
-    testWidgets('back without the download, the rider is told and may still '
-        'ride without', (tester) async {
+    testWidgets('without the download, the rider is told and may still ride '
+        'without', (tester) async {
       final s = _Setup()..missing = const <TileName>[_tile];
-      await s.pump(tester, extra: _tilesScreen(storage));
+      await s.pump(tester, extra: _tiles(storage));
 
       await tester.tap(find.text(l10n.recordingStart));
       await tester.pumpAndSettle();
       await tester.tap(find.text(l10n.turnsMissingCreate));
       await tester.pumpAndSettle();
-      await _back(tester);
+      await tester.tap(find.text(l10n.commonCancel));
       await tester.pumpAndSettle();
 
       expect(find.text(l10n.turnsCreateNoRegion), findsOneWidget);
@@ -242,8 +257,19 @@ void main() {
   });
 }
 
-/// Back from the tiles screen, as the back arrow does in any language.
-Future<void> _back(WidgetTester tester) async {
-  Navigator.of(tester.element(find.byType(RoutingTilesScreen))).pop();
-  await tester.pump();
+/// A download queue that records what it is asked for and runs until
+/// [finish], downloading nothing.
+class _HeldQueue extends TileDownloadQueue {
+  final List<TileName> asked = <TileName>[];
+
+  @override
+  Future<void> enqueue(
+    Iterable<SegmentEntry> entries, {
+    Iterable<SegmentEntry> gazetteersOnly = const <SegmentEntry>[],
+  }) async {
+    asked.addAll(entries.map((e) => e.tile));
+    state = state.copyWith(current: asked.first);
+  }
+
+  void finish() => state = const TileDownloadQueueState();
 }

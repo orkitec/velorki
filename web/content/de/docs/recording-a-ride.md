@@ -4,13 +4,13 @@ description: Eine Fahrt starten, pausieren und beenden, mit ausgeschaltetem Bild
 order: 9
 ---
 
-Der Tab Aufnahme zeichnet deine Fahrt auf und speichert sie am Ende in der Bibliothek. Er zeichnet mit ausgeschaltetem Bildschirm und mit der App im Hintergrund weiter, und er übersteht es, wenn die App geschlossen oder beendet wird.
+Der Tab Aufzeichnen zeichnet deine Fahrt auf und speichert sie am Ende in der Bibliothek. Er zeichnet mit ausgeschaltetem Bildschirm und mit der App im Hintergrund weiter, und er übersteht es, wenn die App geschlossen oder beendet wird.
 
-Die Aufnahme ist kostenlos und funktioniert ganz ohne Verbindung.
+Die Aufzeichnung ist kostenlos und funktioniert ganz ohne Verbindung.
 
 ## Starten, pausieren, beenden
 
-1. Öffne den Tab **Aufnahme**. Dort steht **Bereit zur Fahrt**, mit einem kurzen Tipp darunter.
+1. Öffne den Tab **Aufzeichnen**. Dort steht **Bereit zur Fahrt**, mit einem kurzen Tipp darunter.
 2. Wähle unter **Einer Route folgen**, wem die Fahrt folgt: **Keine Route**, **Die Route im Tab Planen** (angeboten, solange es eine gibt) oder einer deiner gespeicherten Routen. Eine Route schaltet die Führung aus [Navigation mit Abbiegehinweisen](./navigation) ein. Bis du wählst, schlägt der Tab die Route vor, von der du kommst: die Route, deren Karte du in der Bibliothek offen hattest, oder den Plan im Tab Planen; deine eigene Wahl gilt dann bis zum Neustart der App.
 3. Tippe auf **Fahrt starten**.
 4. Während der Fahrt zeigt die Übersicht eine Zustandsplakette, die laufende Uhr und die Zahlen: **Distanz**, **Tempo**, **Ø**, dann **Anstieg**, **Abstieg**, **Fahrzeit**. Solange du einer Route folgst, kommt eine Zeile **Übrig** und **Ankunft** dazu: die noch zu fahrende Distanz und wann du bei deinem bisherigen Schnitt ankommst, zwei Striche, bis die Fahrt einen Schnitt hat.
@@ -42,7 +42,7 @@ Die Übersicht unter der Karte hat drei Seiten, einen Wisch auseinander, mit dre
 Die erste Fahrt löst bis zu drei Abfragen aus, ausführlich beschrieben unter [Erste Schritte](./getting-started):
 
 - **Standort**, mit Velorkis eigener Erklärung vorweg.
-- **Mitteilungen** unter Android, weil die Aufnahme in einer davon lebt. Lehnst du ab, warnt Velorki: "Ohne Benachrichtigungsberechtigung stoppt Android die Aufnahme, sobald du die App verlässt."
+- **Mitteilungen** unter Android, weil die Aufzeichnung in einer davon lebt. Lehnst du ab, warnt Velorki: "Ohne Benachrichtigungsberechtigung stoppt Android die Aufzeichnung, sobald du die App verlässt."
 - **Akku-Optimierung** unter Android, ein einziges Mal: **Einstellungen öffnen** führt in die Akku-Einstellungen, wo du Velorki wählst und uneingeschränkte Akkunutzung erlaubst.
 
 ## Bildschirm aus, App geschlossen
@@ -52,13 +52,13 @@ Der Track wird während der Fahrt auf das Handy geschrieben und alle paar Sekund
 - **Android**: Die Fahrt läuft als Vordergrunddienst mit einer laufenden Mitteilung namens **Fahrt wird aufgezeichnet**, deren zweite Zeile Distanz und Zeit trägt, und die nächste Abbiegung, wenn du einer Route folgst. Ein Tipper darauf bringt dich zurück in die App.
 - **iPhone**: Die Fahrt läuft mit gesperrtem Bildschirm weiter, und eine Live-Aktivität zeigt dieselben Zahlen auf dem Sperrbildschirm.
 
-**Bildschirm anlassen** in der Aufnahmeübersicht hält das Display wach, solange im Tab Aufnahme eine Fahrt läuft, was am Lenker praktisch und für den Akku teuer ist. Es ist an, bis du es ausschaltest, und deine Wahl gilt auch für die nächste Fahrt; unter **Einstellungen → Aufnahme** steht derselbe Schalter. Der Bildschirm darf wieder ausgehen, solange du die Fahrt pausierst (nicht, wenn sie bei einem Halt von selbst pausiert), wenn du zu einem anderen Tab wechselst und wenn die Fahrt endet.
+**Bildschirm anlassen** in der Aufzeichnungsübersicht hält das Display wach, solange im Tab Aufzeichnen eine Fahrt läuft, was am Lenker praktisch und für den Akku teuer ist. Es ist an, bis du es ausschaltest, und deine Wahl gilt auch für die nächste Fahrt; unter **Einstellungen → Aufzeichnung** steht derselbe Schalter. Der Bildschirm darf wieder ausgehen, solange du die Fahrt pausierst (nicht, wenn sie bei einem Halt von selbst pausiert), wenn du zu einem anderen Tab wechselst und wenn die Fahrt endet.
 
 ## Energiesparen
 
-Der Bildschirm ist es, der auf einer langen Fahrt den Akku leert, deshalb geht **Energiesparen** den Bildschirm an. Schalte es in der Aufnahmeübersicht oder unter **Einstellungen → Aufnahme** ein: "Dunkle Karte, keine Animationen, nach 30 s eine schlichte Seite mit den Zahlen; der Bildschirm zieht den Akku leer".
+Der Bildschirm ist es, der auf einer langen Fahrt den Akku leert, deshalb geht **Energiesparen** den Bildschirm an. Schalte es in der Aufzeichnungsübersicht oder unter **Einstellungen → Aufzeichnung** ein: "Dunkle Karte, keine Animationen, nach 30 s eine schlichte Seite mit den Zahlen; der Bildschirm zieht den Akku leer".
 
-Läuft eine Aufnahme mit eingeschaltetem Energiesparen, wird Velorki:
+Läuft eine Aufzeichnung mit eingeschaltetem Energiesparen, wird Velorki:
 
 - das dunkle Design und eine schwarze Karte erzwingen,
 - nur einen schlichten Positionspunkt zeichnen, ohne Genauigkeitsring und ohne Richtungskegel,
@@ -68,14 +68,14 @@ Läuft eine Aufnahme mit eingeschaltetem Energiesparen, wird Velorki:
 
 Berühre den Bildschirm irgendwo, und die Karte kommt zurück; der Countdown beginnt von vorn. Alles kehrt zurück, sobald die Fahrt endet oder Energiesparen ausgeht. Das Design, das du für den Rest der App gewählt hast, ändert Energiesparen nie.
 
-**GPS-Genauigkeit** unter **Einstellungen → Aufnahme** ist die andere Hälfte: **Energiesparen**, **Normal** oder **Genau**, mit dem Hinweis "Genau für Trails, Normal reicht für Straßen".
+**GPS-Genauigkeit** unter **Einstellungen → Aufzeichnung** ist die andere Hälfte: **Energiesparen**, **Normal** oder **Genau**, mit dem Hinweis "Genau für Trails, Normal reicht für Straßen".
 
 ## Wenn eine Fahrt unterbrochen wird
 
 Velorki schreibt den Track unterwegs in eine Journaldatei, ein Absturz, ein erzwungenes Beenden oder ein leerer Akku kostet die Fahrt also nicht.
 
-- Lebt der Aufnahmedienst noch, wenn du zurückkommst, öffnet die App auf dem Tab Aufnahme, hängt sich still wieder an und macht weiter.
-- Lebt er nicht mehr, öffnet die App auf dem Tab Aufnahme und fragt sofort, **Nicht beendete Fahrt**: "Eine Fahrt vom 16. Sept. 2026 wurde nie beendet. 42,1 km und 2 h 10 min sind gespeichert. Jetzt fortsetzen oder beenden?" mit drei Antworten:
+- Lebt der Aufzeichnungsdienst noch, wenn du zurückkommst, öffnet die App auf dem Tab Aufzeichnen, hängt sich still wieder an und macht weiter.
+- Lebt er nicht mehr, öffnet die App auf dem Tab Aufzeichnen und fragt sofort, **Nicht beendete Fahrt**: "Eine Fahrt vom 16. Sept. 2026 wurde nie beendet. 42,1 km und 2 h 10 min sind gespeichert. Jetzt fortsetzen oder beenden?" mit drei Antworten:
   - **Fortsetzen** nimmt die Fahrt dort auf, wo sie stehen blieb,
   - **Beenden** speichert, was da ist, und öffnet das Blatt der Fahrt im Tab Bibliothek,
   - **Verwerfen** wirft sie weg.
@@ -84,13 +84,13 @@ Der Dialog lässt sich nicht ohne Antwort schließen, eine wiederhergestellte Fa
 
 ## Eine beendete Fahrt fortsetzen
 
-Eine bereits beendete Fahrt lässt sich weiterführen: Öffne sie aus der Bibliothek und wähle im Menü oben rechts **Fahrt fortsetzen**. "Die Aufnahme läuft auf dieser Fahrt weiter: Track, Distanz, Zeit und Anstieg setzen dort an, wo sie aufgehört haben, und die Zeit bis jetzt zählt als Pause."
+Eine bereits beendete Fahrt lässt sich weiterführen: Öffne sie aus der Bibliothek und wähle im Menü oben rechts **Fahrt fortsetzen**. "Die Aufzeichnung läuft auf dieser Fahrt weiter: Track, Distanz, Zeit und Anstieg setzen dort an, wo sie aufgehört haben, und die Zeit bis jetzt zählt als Pause."
 
-Läuft gerade eine andere Aufnahme, wird sie zuerst beendet und gespeichert, und war diese Fahrt schon zu Strava oder Ride with GPS hochgeladen, wirst du darauf hingewiesen, dass die fortgesetzte Fahrt erneut gesendet werden muss.
+Läuft gerade eine andere Aufzeichnung, wird sie zuerst beendet und gespeichert, und war diese Fahrt schon zu Strava oder Ride with GPS hochgeladen, wirst du darauf hingewiesen, dass die fortgesetzte Fahrt erneut gesendet werden muss.
 
 ## Letzte Fahrten
 
-Unter **Letzte Fahrten** im Tab Aufnahme stehen deine letzten fünf, die neueste zuerst, jede mit Datum, Distanz und Fahrzeit. Wisch eine Zeile nach links, um sie zu löschen, mit einem **Rückgängig** in der Meldung danach. Die vollständige Liste steht in der [Bibliothek](./library).
+Unter **Letzte Fahrten** im Tab Aufzeichnen stehen deine letzten fünf, die neueste zuerst, jede mit Datum, Distanz und Fahrzeit. Wisch eine Zeile nach links, um sie zu löschen, mit einem **Rückgängig** in der Meldung danach. Die vollständige Liste steht in der [Bibliothek](./library).
 
 ## Weiterlesen
 

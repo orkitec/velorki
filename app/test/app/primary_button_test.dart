@@ -32,9 +32,10 @@ void main() {
     await pumpApp(tester, initialLocation: plannerRoute, harness: h);
     await tester.pumpAndSettle();
 
-    double heightOf(String label) =>
-        tester.getSize(find.widgetWithText(FilledButton, label)).height;
-    expect(heightOf(l10n.plannerSave), primaryButtonHeight);
+    double heightOf(String label, [Type type = FilledButton]) =>
+        tester.getSize(find.widgetWithText(type, label)).height;
+    expect(heightOf(l10n.plannerSave, OutlinedButton), primaryButtonHeight);
+    expect(heightOf(l10n.plannerRide), primaryButtonHeight);
 
     await tester.tap(
       find.widgetWithText(NavigationDestination, l10n.tabRecord),

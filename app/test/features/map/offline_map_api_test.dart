@@ -283,4 +283,39 @@ void main() {
 
     expect(await api.regionIds(), [3, 9]);
   });
+
+  test('a download that stops making progress is given up and its pack '
+      'deleted, so MapLibre stops retrying', () async {
+    const impatient = MaplibreOfflineMapApi(
+      stallTimeout: Duration(milliseconds: 200),
+    );
+    final pending = impatient.download(_spec);
+    final failed = expectLater(
+      pending,
+      throwsA(isA<OfflineDownloadException>()),
+    );
+    await pumpEventQueue();
+    native.emitProgress(30, bytes: 512);
+
+    await failed;
+    expect(
+      native.calls.where((c) => c.method == 'deleteOfflineRegion'),
+      hasLength(1),
+    );
+  });
+
+  test('progress keeps a slow download alive', () async {
+    const impatient = MaplibreOfflineMapApi(
+      stallTimeout: Duration(milliseconds: 200),
+    );
+    final pending = impatient.download(_spec);
+    await pumpEventQueue();
+    for (var i = 0; i < 4; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      native.emitProgress(20.0 * i, bytes: 100 * i);
+    }
+    native.emitSuccess();
+    final result = await pending;
+    expect(result.maplibreRegionId, native.regionId);
+  });
 }

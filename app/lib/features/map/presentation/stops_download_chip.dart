@@ -5,34 +5,54 @@ import '../../shared/presentation/stat_tile.dart';
 
 /// The chip over the map while stops are switched on but the area they are
 /// wanted in is not downloaded, so there are none to show: it says so, and
-/// a tap opens the download for the area on screen.
+/// a tap downloads the area on screen, and while that runs the chip says so.
 class StopsDownloadChip extends StatelessWidget {
-  /// Creates the chip; [onDownload] opens the download, and [onClose], where
-  /// given, puts a close button at its end.
+  /// Creates the chip; [onDownload] starts the download, and [onClose], where
+  /// given, puts a close button at its end. While [downloading] the chip says
+  /// so, with [progress] where it is known, and a tap does nothing; the
+  /// button at its end is then [onCancel]'s, which stops the download.
   const StopsDownloadChip({
     required this.onDownload,
+    this.downloading = false,
+    this.progress,
     this.message,
+    this.actionLabel,
     this.onClose,
+    this.onCancel,
     super.key,
   });
 
   /// Called by a tap.
   final VoidCallback onDownload;
 
+  /// Whether the download is running.
+  final bool downloading;
+
+  /// How far the running download is, 0..1; `null` when it cannot say.
+  final double? progress;
+
   /// What is missing; the stops by default. The cycle map says the same of
   /// itself.
   final String? message;
 
+  /// The action beside the message; "Download" by default.
+  final String? actionLabel;
+
   /// Called by the close button; no close button when `null`.
   final VoidCallback? onClose;
+
+  /// Called by the button at the chip's end while it downloads; no button
+  /// then when `null`. Closing the chip would hide the only sign that the
+  /// download is running, so the button stops it instead.
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final onClose = this.onClose;
+    final onClose = downloading ? onCancel : this.onClose;
     final download = InkWell(
-      onTap: onDownload,
+      onTap: downloading ? null : onDownload,
       customBorder: const StadiumBorder(),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 44),
@@ -41,11 +61,20 @@ class StopsDownloadChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.download_outlined,
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
+              if (downloading)
+                SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    value: progress,
+                  ),
+                )
+              else
+                Icon(
+                  Icons.download_outlined,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
               const SizedBox(width: 8),
               // The action beside the message where there is room, on
               // a line of its own under it where there is not: a long
@@ -58,18 +87,21 @@ class StopsDownloadChip extends StatelessWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
-                      message ?? l10n.mapStopsNotDownloaded,
+                      downloading
+                          ? l10n.mapOfflineDownloading
+                          : message ?? l10n.mapStopsNotDownloaded,
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: theme.colorScheme.onSurface,
                       ),
                     ),
-                    Text(
-                      l10n.mapStopsDownload,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w700,
+                    if (!downloading)
+                      Text(
+                        actionLabel ?? l10n.mapStopsDownload,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -90,7 +122,9 @@ class StopsDownloadChip extends StatelessWidget {
                   Flexible(child: download),
                   IconButton(
                     onPressed: onClose,
-                    tooltip: l10n.mapAreaHintHide,
+                    tooltip: downloading
+                        ? l10n.routingTilesCancelDownload
+                        : l10n.mapAreaHintHide,
                     icon: const Icon(Icons.close_rounded, size: 20),
                     color: theme.colorScheme.onSurfaceVariant,
                     constraints: const BoxConstraints(

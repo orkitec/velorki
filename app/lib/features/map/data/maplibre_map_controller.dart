@@ -11,6 +11,7 @@ import 'package:flutter/services.dart'
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../application/map_drawn.dart';
 import '../../../app/theme.dart';
 import '../domain/cycle_map.dart';
 import '../domain/map_controller.dart';
@@ -646,7 +647,13 @@ abstract class MapLibreStyleOps {
 /// when a style reload kept a source or layer the adapter had written off.
 /// All used to surface as unhandled exceptions from fire-and-forget calls
 /// and take an integration test down; none is worth reporting.
-Future<void> tolerateMapGone(Future<void> Function() op) async {
+Future<void> tolerateMapGone(
+  Future<void> Function() op, [
+  String what = 'write',
+]) async {
+  // Every write to a map goes through here: the store pictures wait for no
+  // write under way and the map gone idle after the last one (MapDrawn).
+  final write = MapDrawn.writing(what);
   try {
     await op();
   } on MissingPluginException {
@@ -664,6 +671,8 @@ Future<void> tolerateMapGone(Future<void> Function() op) async {
     // still matters for the fakes that stand in for the plugin.)
     if (isStyleGoneError(e)) return;
     rethrow;
+  } finally {
+    MapDrawn.changed(write);
   }
 }
 
@@ -674,6 +683,21 @@ bool isStyleGoneError(PlatformException e) {
   final code = e.code.toLowerCase();
   return code.contains('notfound') || code.contains('not_found');
 }
+
+/// How long a read of the style ([styleRead]) is given.
+const Duration styleReadTimeout = Duration(seconds: 10);
+
+/// [call], a read of the style's sources or layers, or the error a style
+/// that is gone answers with if it has not answered in [styleReadTimeout].
+///
+/// The iOS plugin answers those two reads not at all while the map has no
+/// style (a change of look, between the old style and the new), which left
+/// a Dart future pending for good: the stops drawn then never were, and a
+/// store picture waited out its limit on them.
+Future<T> styleRead<T>(Future<T> call) => call.timeout(
+  styleReadTimeout,
+  onTimeout: () => throw PlatformException(code: 'styleNotFound'),
+);
 
 /// [MapLibreStyleOps] forwarding one for one to a real plugin controller.
 ///
@@ -712,6 +736,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
             promoteId: promotedIdProperty,
           )
         : map.addGeoJsonSource(sourceId, geojson),
+    'addGeoJsonSource $sourceId',
   );
 
   @override
@@ -723,6 +748,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       sourceId,
       kIsWeb ? withPromotedIds(geojson) : geojson,
     ),
+    'setGeoJsonSource $sourceId',
   );
 
   @override
@@ -742,6 +768,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
                 )
               : properties,
         ),
+        'addSource $sourceId',
       );
 
   @override
@@ -765,7 +792,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
         ],
       ),
     );
-  });
+  }, 'addImageSource $sourceId');
 
   @override
   Future<void> addLayer(
@@ -786,16 +813,22 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       filter: filter,
       minzoom: minzoom,
     ),
+    'addLayer $layerId',
+  );
+
+  // The two reads the adapter makes on its way to a write count as one
+  // under way too (MapDrawn): a route line asks for the sources first.
+  @override
+  Future<List<String>> getLayerIds() => MapDrawn.busy(
+    'getLayerIds',
+    () async => <String>[
+      for (final id in await styleRead(map.getLayerIds())) id as String,
+    ],
   );
 
   @override
-  Future<List<String>> getLayerIds() async => <String>[
-    for (final id in await map.getLayerIds()) id as String,
-  ];
-
-  @override
   Future<void> removeLayer(String layerId) =>
-      tolerateMapGone(() => map.removeLayer(layerId));
+      tolerateMapGone(() => map.removeLayer(layerId), 'removeLayer $layerId');
 
   @override
   Future<void> removeSource(String sourceId) => tolerateMapGone(() async {
@@ -805,20 +838,27 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       final url = _imageUrls.remove(sourceId);
       if (url != null) releaseLocalFileUrl(url);
     }
-  });
+  }, 'removeSource $sourceId');
 
   @override
   Future<void> setLayerProperties(
     String layerId,
     ml.LayerProperties properties,
-  ) => tolerateMapGone(() => map.setLayerProperties(layerId, properties));
+  ) => tolerateMapGone(
+    () => map.setLayerProperties(layerId, properties),
+    'setLayerProperties $layerId',
+  );
 
   @override
   Future<void> setLayerVisibility(String layerId, bool visible) =>
-      tolerateMapGone(() => map.setLayerVisibility(layerId, visible));
+      tolerateMapGone(
+        () => map.setLayerVisibility(layerId, visible),
+        'setLayerVisibility $layerId',
+      );
 
   @override
-  Future<List<String>> getSourceIds() => map.getSourceIds();
+  Future<List<String>> getSourceIds() =>
+      MapDrawn.busy('getSourceIds', () => styleRead(map.getSourceIds()));
 
   @override
   Future<void> addImage(String name, Uint8List bytes, {bool sdf = false}) =>
@@ -828,15 +868,19 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
           imagePixelRatio,
           () => map.addImage(name, bytes, sdf),
         ),
+        'addImage $name',
       );
 
   @override
   Future<void> animateCamera(ml.CameraUpdate update, {Duration? duration}) =>
-      tolerateMapGone(() => map.animateCamera(update, duration: duration));
+      tolerateMapGone(
+        () => map.animateCamera(update, duration: duration),
+        'animateCamera',
+      );
 
   @override
   Future<void> moveCamera(ml.CameraUpdate update) =>
-      tolerateMapGone(() => map.moveCamera(update));
+      tolerateMapGone(() => map.moveCamera(update), 'moveCamera');
 
   @override
   ml.CameraPosition? get cameraPosition => map.cameraPosition;
@@ -1125,11 +1169,15 @@ class MaplibreMapControllerAdapter implements MapController {
   /// replaced its own, draws everything. A late write that finds its source
   /// gone must not rebuild the layers onto that successor's style in the
   /// middle of the successor's own attach.
-  Future<void> attachToStyle() async {
+  Future<void> attachToStyle() =>
+      MapDrawn.busy('attachToStyle', () => _attachToStyleNow());
+
+  Future<void> _attachToStyleNow() async {
     if (_disposed) return;
     _attached = false;
     _coneRegistered = false;
     _routeLines.clear();
+    MapDrawn.routeLinesOn(this, const <int>[]);
     // A fresh style holds no cycle map; the replay adds the last one.
     _cycleGenerations.clear();
     _cycleUrls.values.forEach(releaseLocalFileUrl);
@@ -1807,6 +1855,8 @@ class MaplibreMapControllerAdapter implements MapController {
       } on PlatformException catch (e) {
         if (!isStyleGoneError(e)) rethrow;
       }
+    } finally {
+      _publishRouteLines();
     }
   }
 
@@ -1853,10 +1903,25 @@ class MaplibreMapControllerAdapter implements MapController {
     return _queuedRouteLine(id, () => _removeRouteLineNow(id));
   }
 
+  /// The point count of each route line written to the map.
+  /// Tells [MapDrawn] which route lines this map has. A write that ends
+  /// after [dispose] (a theme change swaps the style, and with it the
+  /// adapter) says nothing: its line is on a style that is gone, and a stale
+  /// entry would count as the new style's line.
+  void _publishRouteLines() {
+    if (_disposed) return;
+    MapDrawn.routeLinesOn(this, _drawnRouteLengths());
+  }
+
+  List<int> _drawnRouteLengths() => <int>[
+    for (final id in _routeLines.keys) _routePoints[id]?.length ?? 0,
+  ];
+
   Future<void> _removeRouteLineNow(String id) async {
     // Set again while this waited its turn: the write after it draws.
     if (_routePoints.containsKey(id)) return;
     if (!_attached || _routeLines.remove(id) == null) return;
+    _publishRouteLines();
     await _ops.removeLayer(MapLayerIds.routeLayer(id));
     await _ops.removeLayer(MapLayerIds.routeCasingLayer(id));
     await _ops.removeSource(MapLayerIds.routeSource(id));
@@ -1989,7 +2054,10 @@ class MaplibreMapControllerAdapter implements MapController {
 
   /// Recolours every layer for [palette], e.g. after the accent changed
   /// without a style reload.
-  Future<void> setPalette(MapPalette palette) async {
+  Future<void> setPalette(MapPalette palette) =>
+      MapDrawn.busy('setPalette', () => _setPaletteNow(palette));
+
+  Future<void> _setPaletteNow(MapPalette palette) async {
     if (palette == _palette) return;
     _palette = palette;
     // A disposed adapter's layers belong to the adapter that replaced it.
@@ -2020,14 +2088,18 @@ class MaplibreMapControllerAdapter implements MapController {
     if (_windAdded) {
       await _ops.setLayerProperties(MapLayerIds.windLayer, _windProperties());
     }
-    for (final entry in _routeLines.entries) {
+    // A copy: the variants can come or go during the awaits below. A line
+    // gone meanwhile is skipped, one still there drawn as it is now.
+    for (final key in List<String>.of(_routeLines.keys)) {
+      final line = _routeLines[key];
+      if (line == null) continue;
       await _ops.setLayerProperties(
-        MapLayerIds.routeCasingLayer(entry.key),
-        _casingProperties(entry.value),
+        MapLayerIds.routeCasingLayer(key),
+        _casingProperties(line),
       );
       await _ops.setLayerProperties(
-        MapLayerIds.routeLayer(entry.key),
-        _lineProperties(entry.value, entry.key),
+        MapLayerIds.routeLayer(key),
+        _lineProperties(line, key),
       );
     }
   }
@@ -2198,7 +2270,10 @@ class MaplibreMapControllerAdapter implements MapController {
   // -------------------------------------------------------------- features
 
   @override
-  Future<void> setWaypoints(List<MapWaypoint> waypoints) async {
+  Future<void> setWaypoints(List<MapWaypoint> waypoints) =>
+      MapDrawn.busy('setWaypoints', () => _setWaypointsNow(waypoints));
+
+  Future<void> _setWaypointsNow(List<MapWaypoint> waypoints) async {
     _waypoints = List<MapWaypoint>.unmodifiable(waypoints);
     final call = ++_waypointsCall;
     if (!_attached) return;
@@ -2237,7 +2312,10 @@ class MaplibreMapControllerAdapter implements MapController {
   }
 
   @override
-  Future<void> setPois(List<MapPoi> pois) async {
+  Future<void> setPois(List<MapPoi> pois) =>
+      MapDrawn.busy('setPois', () => _setPoisNow(pois));
+
+  Future<void> _setPoisNow(List<MapPoi> pois) async {
     _pois = List<MapPoi>.unmodifiable(pois);
     final call = ++_poisCall;
     if (!_attached) return;
@@ -2253,6 +2331,11 @@ class MaplibreMapControllerAdapter implements MapController {
 
   @override
   Future<void> setStops(
+    List<MapPoi> stops, {
+    List<String> groups = const <String>[],
+  }) => MapDrawn.busy('setStops', () => _setStopsNow(stops, groups: groups));
+
+  Future<void> _setStopsNow(
     List<MapPoi> stops, {
     List<String> groups = const <String>[],
   }) async {
@@ -2795,6 +2878,7 @@ class MaplibreMapControllerAdapter implements MapController {
     }
     final old = List<int>.of(_cycleGenerations);
     _cycleGenerations.add(generation);
+    MapDrawn.cycleMaps.value++;
     if (old.isEmpty) return;
     await Future<void>.delayed(cycleMapSwapDelay);
     if (!_attached || _disposed) return;
@@ -2939,6 +3023,7 @@ class MaplibreMapControllerAdapter implements MapController {
           MapLayerIds.weatherLayer(layer.id, generation.n),
           _weatherProperties(frame, shown: shown),
         );
+        if (shown) MapDrawn.weatherFrames.value++;
       }
       // Frames no longer asked for: a shown one under a new frame stays
       // until that has loaded; the rest go now.
@@ -3037,6 +3122,7 @@ class MaplibreMapControllerAdapter implements MapController {
     (_weatherDrawn[layer.id] ??= <_WeatherGeneration>[]).add(
       _WeatherGeneration(n, layer, shown: shown),
     );
+    if (shown) MapDrawn.weatherFrames.value++;
   }
 
   /// The layer the weather goes under: the cycle map's lowest, else the
@@ -3207,15 +3293,24 @@ class MaplibreMapControllerAdapter implements MapController {
   }
 
   /// Paints the weather for a dark map look or a light one.
-  Future<void> setWeatherDark(bool dark) async {
+  Future<void> setWeatherDark(bool dark) =>
+      MapDrawn.busy('setWeatherDark', () => _setWeatherDarkNow(dark));
+
+  Future<void> _setWeatherDarkNow(bool dark) async {
     if (dark == _weatherDark) return;
     _weatherDark = dark;
     if (!_attached || _disposed) return;
     try {
-      for (final entry in _weatherDrawn.entries) {
-        for (final generation in entry.value) {
+      // Copies: frames come and go during the awaits below (the radar
+      // loads its frames while the theme changes). A frame gone meanwhile
+      // is skipped.
+      for (final id in List<String>.of(_weatherDrawn.keys)) {
+        final drawn = _weatherDrawn[id];
+        if (drawn == null) continue;
+        for (final generation in List<_WeatherGeneration>.of(drawn)) {
+          if (!(_weatherDrawn[id]?.contains(generation) ?? false)) continue;
           await _ops.setLayerProperties(
-            MapLayerIds.weatherLayer(entry.key, generation.n),
+            MapLayerIds.weatherLayer(id, generation.n),
             _weatherProperties(generation.layer, shown: generation.shown),
           );
         }
@@ -3650,6 +3745,7 @@ class MaplibreMapControllerAdapter implements MapController {
   /// by the widget that owns it.
   void dispose() {
     _disposed = true;
+    MapDrawn.routeLinesOn(this, const <int>[]);
     _puckWalk?.cancel();
     _puckWalk = null;
     _ops.onFeatureDrag.remove(_handleFeatureDrag);

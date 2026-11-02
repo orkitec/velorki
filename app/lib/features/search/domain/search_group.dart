@@ -16,8 +16,9 @@ enum SearchGroup {
   /// Attractions, museums, historic sites, churches, towers, named buildings.
   landmarks,
 
-  /// What a rider stops for: taps, cafes, bike shops, repair stations, rental,
-  /// parking, charging, shelters, bakeries, supermarkets, toilets.
+  /// What a rider stops for: taps, cafes, bike shops, tube vending machines,
+  /// repair stations, rental, parking, charging, shelters, bakeries,
+  /// supermarkets, toilets.
   cyclingStops,
 
   /// Campsites, hotels, hostels, mountain huts.
@@ -26,7 +27,7 @@ enum SearchGroup {
   /// Peaks, passes, viewpoints, parks, water, beaches, reserves, picnic sites.
   nature,
 
-  /// Stations, airports, ferry terminals.
+  /// Stations, bus and tram stops, airports, ferry terminals.
   transport,
 
   /// Hospitals, pharmacies, universities, sports venues, shopping centres.
@@ -65,6 +66,7 @@ const Map<String, SearchGroup> searchGroupOfPoiKind = <String, SearchGroup>{
   'drinking_water': SearchGroup.cyclingStops,
   'bicycle_repair_station': SearchGroup.cyclingStops,
   'bicycle_shop': SearchGroup.cyclingStops,
+  'bicycle_tube_vending': SearchGroup.cyclingStops,
   'bicycle_rental': SearchGroup.cyclingStops,
   'bicycle_parking': SearchGroup.cyclingStops,
   'charging_station': SearchGroup.cyclingStops,
@@ -88,6 +90,8 @@ const Map<String, SearchGroup> searchGroupOfPoiKind = <String, SearchGroup>{
   'picnic_site': SearchGroup.nature,
   // Transport.
   'station': SearchGroup.transport,
+  'bus_stop': SearchGroup.transport,
+  'tram_stop': SearchGroup.transport,
   'airport': SearchGroup.transport,
   'ferry_terminal': SearchGroup.transport,
   // Services.

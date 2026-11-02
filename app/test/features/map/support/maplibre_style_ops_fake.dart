@@ -338,11 +338,16 @@ class RecordingStyleOps implements MapLibreStyleOps {
     calls.add(RecordedStyleCall('removeSource', id: sourceId));
   }
 
+  /// Called with each layer before its properties are set, for a test that
+  /// changes the map in the middle of a recolour.
+  Future<void> Function(String layerId)? beforeLayerProperties;
+
   @override
   Future<void> setLayerProperties(
     String layerId,
     ml.LayerProperties properties,
   ) async {
+    await beforeLayerProperties?.call(layerId);
     final error = layerPropertiesError;
     if (error != null) {
       layerPropertiesError = null;

@@ -54,6 +54,8 @@ class RoutingTilesDao extends DatabaseAccessor<VelorkiDatabase>
     required int bytes,
     required DateTime updatedAt,
     required String formatVersion,
+    Value<String?> contentSha256 = const Value.absent(),
+    Value<String?> gazetteerContentSha256 = const Value.absent(),
   }) => upsertTile(
     RoutingTilesCompanion.insert(
       name: name,
@@ -61,8 +63,40 @@ class RoutingTilesDao extends DatabaseAccessor<VelorkiDatabase>
       updatedAt: updatedAt,
       formatVersion: formatVersion,
       state: RoutingTileState.ready,
+      contentSha256: contentSha256,
+      gazetteerContentSha256: gazetteerContentSha256,
     ),
   );
+
+  /// Records the digest of [name]'s gazetteer after it alone was fetched.
+  Future<int> setGazetteerDigest(String name, String? digest) =>
+      (update(routingTiles)..where((t) => t.name.equals(name))).write(
+        RoutingTilesCompanion(gazetteerContentSha256: Value(digest)),
+      );
+
+  /// Fills the digests of [name] that are still unknown, leaving any that a
+  /// download recorded meanwhile.
+  Future<void> fillDigests(
+    String name, {
+    String? contentSha256,
+    String? gazetteerContentSha256,
+  }) async {
+    if (contentSha256 != null) {
+      await (update(routingTiles)
+            ..where((t) => t.name.equals(name) & t.contentSha256.isNull()))
+          .write(RoutingTilesCompanion(contentSha256: Value(contentSha256)));
+    }
+    if (gazetteerContentSha256 != null) {
+      await (update(routingTiles)..where(
+            (t) => t.name.equals(name) & t.gazetteerContentSha256.isNull(),
+          ))
+          .write(
+            RoutingTilesCompanion(
+              gazetteerContentSha256: Value(gazetteerContentSha256),
+            ),
+          );
+    }
+  }
 
   /// Moves [name] to [state] without touching its size or date.
   Future<int> setState(String name, RoutingTileState state) =>

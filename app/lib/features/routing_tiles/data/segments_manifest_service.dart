@@ -364,6 +364,8 @@ class SegmentsManifestSource extends _$SegmentsManifestSource {
     final manifest = await ref.watch(segmentsManifestServiceProvider).fetch();
     final repository = await ref.read(routingTilesRepositoryProvider.future);
     await repository.applyManifest(manifest);
+    // Digests of the files already on the phone, worked out behind it.
+    unawaited(repository.backfillDigests(manifest));
     return manifest;
   }
 

@@ -115,7 +115,7 @@ List<TileName> tilesForBounds(BoundingBox bounds);
 List<TileName> tilesForRoute(List<LatLng> points,
     {double expandFraction = 0.2, double minExpandMeters = 10000});
 
-class SegmentEntry { TileName tile; int bytes; DateTime? updatedAt; String? formatVersion, sha256; }
+class SegmentEntry { TileName tile; int bytes; DateTime? updatedAt; String? formatVersion, sha256, contentSha256; }
 class SegmentsManifest {
   factory SegmentsManifest.parse(Object? json);              // manifest.json
   factory SegmentsManifest.parseDirectoryListing(String html); // brouter.de

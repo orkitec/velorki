@@ -40,7 +40,9 @@ import '../../navigation/presentation/navigation_toggles.dart';
 import '../../navigation/presentation/turn_banner.dart';
 import '../../map/domain/visible_map.dart';
 import '../../navigation/presentation/turn_phrases.dart';
-import '../../offline/presentation/offline_screen.dart';
+import '../../offline/application/area_download_activity.dart';
+import '../../offline/presentation/area_update_chip.dart';
+import '../../offline/presentation/download_visible_area.dart';
 import '../../library/application/library_card.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
@@ -64,6 +66,7 @@ import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/swipe_pages.dart';
 import '../application/recording_controller.dart';
 import '../application/ride_finish_request.dart';
+import '../application/ride_start_request.dart';
 import '../data/battery_saver.dart';
 import '../data/follow_mode.dart';
 import '../data/recording_gateways.dart';
@@ -81,6 +84,7 @@ import 'live_figures_settings_screen.dart';
 import 'live_figures_view.dart';
 import 'recording_format.dart';
 import 'save_ride_sheet.dart';
+import 'stop_on_the_way.dart';
 
 /// Id of the followed route's line on the map.
 const String followedRouteLineId = 'follow';
@@ -274,18 +278,14 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// the area on screen.
   late final MapStopsController _stops;
 
-  /// Opens the offline data screen for the area on screen, as the map's
-  /// download button does: where the stops are wanted but not downloaded.
-  void _openOfflineData() {
-    final map = _map;
-    if (map == null) return;
-    unawaited(
-      Navigator.of(context).push(
-        ColumnPageRoute<void>(
-          builder: (_) => OfflineScreen(mapController: map),
-        ),
-      ),
-    );
+  /// Downloads the area on screen where it is, on the map: where the stops
+  /// are wanted but not downloaded.
+  void _downloadArea() {
+    unawaited(downloadVisibleArea(context, ref, _map));
+  }
+
+  void _cancelAreaDownload() {
+    unawaited(cancelVisibleAreaDownload(context, ref));
   }
 
   /// Closes the stops' not-downloaded chip for the area it speaks of, with
@@ -302,14 +302,21 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   Future<void> _onStopTapped(SearchResult stop) async {
     if (!mounted) return;
     _stops.select(stop);
-    await showPlaceCard(
+    // Mid-ride, along a followed route, the stop can be taken into it.
+    final action = await showPlaceCard(
       context,
       place: stop,
+      actions: canAddStopMidRide(ref)
+          ? const [PlaceAction.addStop]
+          : const <PlaceAction>[],
       riderPosition: ref
           .read(recordingControllerProvider)
           .snapshot
           ?.lastPosition,
     );
+    if (action == PlaceAction.addStop && mounted) {
+      await addStopMidRide(context, ref, stop);
+    }
     // Unless another stop has been picked out since.
     if (mounted && _stops.selected == stop) _stops.select(null);
   }
@@ -1744,6 +1751,26 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
           pointCount: snapshot.pointCount,
         );
 
+  // ------------------------------------------------------ start from afar
+
+  /// Runs the Start ride flow for a ride asked for from the Plan tab, once
+  /// this tab is the one showing so its prompts land on the right screen. A
+  /// ride already under way, or one being started, takes nothing.
+  void _handleStartRequest(bool requested, {required bool active}) {
+    if (!requested || !active || _startRequested) return;
+    _startRequested = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startRequested = false;
+      if (!mounted) return;
+      ref.read(rideStartRequestProvider.notifier).clear();
+      final state = ref.read(recordingControllerProvider);
+      if (state.isRecording || state.busy) return;
+      unawaited(_start());
+    });
+  }
+
+  bool _startRequested = false;
+
   // ----------------------------------------------------------------- build
 
   @override
@@ -1800,6 +1827,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       recordingSettingsProvider.select((s) => s.keepScreenOn),
     );
     final active = ref.watch(activeTabProvider) == recordingRoute;
+    _handleStartRequest(ref.watch(rideStartRequestProvider), active: active);
     // Awake through an auto-pause at the lights, not through the rider's
     // own pause.
     final awake =
@@ -1828,6 +1856,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final stopsWanted = ref.watch(mapStopsPreferencesProvider);
     // The areas whose not-downloaded chip the rider closed this session.
     final dismissedAreas = ref.watch(areaHintDismissalsProvider);
+    final areaDownload = ref.watch(areaDownloadActivityProvider);
     final guided = ref.watch(activeGuidedRouteProvider);
     final stopsAlong = guided != null && stopsWanted.alongRoute;
     _stops.update(
@@ -2073,14 +2102,35 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                                             )
                                             ? const SizedBox.shrink()
                                             : StopsDownloadChip(
-                                                onDownload: _openOfflineData,
+                                                onDownload: _downloadArea,
+                                                downloading:
+                                                    areaDownload != null,
+                                                progress:
+                                                    areaDownload?.fraction,
                                                 onClose: _closeStopsHint,
+                                                onCancel: _cancelAreaDownload,
                                               )
                                       : StopsAheadLine(
                                           entries: _stops.nextPerKind(),
                                           onTap: _onStopAheadTapped,
                                         ),
                                 ),
+                              // Nothing missing here: the area may still have
+                              // changed data.
+                              ListenableBuilder(
+                                listenable: _stops,
+                                builder: (context, _) =>
+                                    (stopsAhead || stopsWanted.shown) &&
+                                        _stops.needsDownload &&
+                                        !dismissedAreas.contains(
+                                          _stops.missingArea,
+                                        )
+                                    ? const SizedBox.shrink()
+                                    : AreaUpdateChip(
+                                        controller: _map,
+                                        padding: const EdgeInsets.only(top: 8),
+                                      ),
+                              ),
                               const WeatherMapHints(
                                 padding: EdgeInsets.only(top: 8),
                               ),

@@ -104,6 +104,10 @@ class SearchFieldState extends ConsumerState<SearchField> {
   double _fieldWidth = 0;
   bool _dismissed = false;
 
+  /// Whether the results were put away with the search ([dismiss]): they
+  /// come back with the field's focus, or with what is typed next.
+  bool _closed = false;
+
   /// Where the field's bottom edge was on the screen at the last frame, so
   /// the list can end above the keyboard: a phone turned sideways with the
   /// keyboard up leaves it little more than a row or two.
@@ -138,8 +142,26 @@ class SearchFieldState extends ConsumerState<SearchField> {
 
   void _onFocus() {
     widget.onFocusChanged?.call(_focusNode.hasFocus);
-    // A narrow field puts its trailing button away while the rider types.
-    if (widget.trailing != null) setState(() {});
+    // Back in the field, the results put away with the search come back.
+    if (_focusNode.hasFocus && _closed) {
+      setState(() => _closed = false);
+    } else if (widget.trailing != null) {
+      // A narrow field puts its trailing button away while the rider types.
+      setState(() {});
+    }
+  }
+
+  /// Whether the search is under way: the field has the focus (and the
+  /// keyboard), or its results are open.
+  bool get active => _focusNode.hasFocus || _results.isShowing;
+
+  /// Ends the search for now, as a tap on the map does: the field lets go
+  /// of the focus, the keyboard goes and the results close. What was typed
+  /// stays, and the results come back with the field's focus.
+  void dismiss() {
+    _focusNode.unfocus();
+    if (_results.isShowing) _results.hide();
+    setState(() => _closed = true);
   }
 
   @override
@@ -154,7 +176,9 @@ class SearchFieldState extends ConsumerState<SearchField> {
   }
 
   bool get _showResults =>
-      !_dismissed && _controller.text.trim().length >= searchMinChars;
+      !_dismissed &&
+      !_closed &&
+      _controller.text.trim().length >= searchMinChars;
 
   void _syncResults() {
     // The field moves when the phone turns, from one row to another, and
@@ -175,7 +199,10 @@ class SearchFieldState extends ConsumerState<SearchField> {
     // Typing over a picked result unpicks it: the pin on the map must not
     // outlive the words that put it there.
     if (_dismissed) widget.onCleared?.call();
-    setState(() => _dismissed = false);
+    setState(() {
+      _dismissed = false;
+      _closed = false;
+    });
     ref
         .read(placeSearchProvider.notifier)
         .query(
@@ -228,6 +255,14 @@ class SearchFieldState extends ConsumerState<SearchField> {
             keywords: localisedKindKeywords(AppLocalizations.of(context)),
           ),
     );
+  }
+
+  /// The results make way for the map, where the download shows its
+  /// progress, and the download starts.
+  void _downloadArea() {
+    _focusNode.unfocus();
+    setState(() => _dismissed = true);
+    widget.onDownloadArea?.call();
   }
 
   void _select(SearchResult result) {
@@ -327,7 +362,9 @@ class SearchFieldState extends ConsumerState<SearchField> {
                   onSelected: _select,
                   onSearchOnline: _searchOnline,
                   onSearchOffline: _searchOffline,
-                  onDownloadArea: widget.onDownloadArea,
+                  onDownloadArea: widget.onDownloadArea == null
+                      ? null
+                      : _downloadArea,
                 ),
               ),
             ),
@@ -810,7 +847,11 @@ IconData poiKindIcon(String? detail) => switch (detail) {
   'bicycle_repair_station' => Icons.build_outlined,
   'shelter' => Icons.house_siding_outlined,
   'bicycle_shop' => Icons.pedal_bike_outlined,
+  // Material has no inner tube; the ring is the closest thing to one.
+  'bicycle_tube_vending' => Icons.trip_origin,
   'station' => Icons.train_outlined,
+  'bus_stop' => Icons.directions_bus_outlined,
+  'tram_stop' => Icons.tram_outlined,
   'viewpoint' => Icons.landscape_outlined,
   'peak' => Icons.terrain_outlined,
   'park' => Icons.park_outlined,
@@ -898,7 +939,10 @@ String localResultSubtitle(
 }
 
 /// Every kind's localised label, lower case, mapped to the kind: the table the
-/// store matches a typed "drinking water" or "Trinkwasser" against.
+/// store matches a typed "drinking water" or "Trinkwasser" against. The other
+/// words a language asks for a kind with ("Zug", "Haltestelle") come along,
+/// and a word that asks for several kinds maps to all of them,
+/// space-separated (see `kindsForKeyword`).
 ///
 /// Built once per language \u2014 the labels do not change while the app runs, and
 /// this is asked for on every keystroke.
@@ -919,6 +963,23 @@ Map<String, String> localisedKindKeywords(AppLocalizations l10n) =>
         // The fallback label ("Place") names no kind in particular.
         if (label.isEmpty || label == l10n.searchKindPlace) continue;
         table.putIfAbsent(label.toLowerCase(), () => kind);
+      }
+      for (final (words, kind) in <(String, String)>[
+        (l10n.searchKindWordsStation, 'station'),
+        (l10n.searchKindWordsBusStop, 'bus_stop'),
+        (l10n.searchKindWordsTramStop, 'tram_stop'),
+        (l10n.searchKindWordsFerry, 'ferry_terminal'),
+        (l10n.searchKindWordsTubeVending, 'bicycle_tube_vending'),
+      ]) {
+        for (final word in words.split(',')) {
+          final key = word.trim().toLowerCase();
+          if (key.isEmpty) continue;
+          table.update(
+            key,
+            (kinds) => kinds.split(' ').contains(kind) ? kinds : '$kinds $kind',
+            ifAbsent: () => kind,
+          );
+        }
       }
       return table;
     });
@@ -970,7 +1031,10 @@ String searchKindLabel(AppLocalizations l10n, SearchResult result) {
     'bicycle_repair_station' => l10n.searchKindBikeRepair,
     'shelter' => l10n.searchKindShelter,
     'bicycle_shop' => l10n.searchKindBikeShop,
+    'bicycle_tube_vending' => l10n.searchKindTubeVending,
     'station' => l10n.searchKindStation,
+    'bus_stop' => l10n.searchKindBusStop,
+    'tram_stop' => l10n.searchKindTramStop,
     'viewpoint' => l10n.searchKindViewpoint,
     'peak' => l10n.searchKindPeak,
     'park' => l10n.searchKindPark,

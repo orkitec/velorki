@@ -1,9 +1,8 @@
-• Synchronisez vos itinéraires, sorties et réglages avec votre propre iCloud ou Google Drive, entre iPhone, iPad et le planificateur web sur app.velorki.com. Vos itinéraires et sorties restent chez vous.
-• Planifiez dans le navigateur sur app.velorki.com : connectez-vous avec le même compte iCloud ou Google et votre bibliothèque y est. Plus y fonctionne aussi, dès que l’app avec Plus synchronise avec le même compte.
-• Velorki sur iPad : la carte sur tout l’écran, l’app dans une colonne à côté, du côté de votre choix.
-• Les réglages sont désormais une vue d’ensemble, chaque groupe sur sa propre page.
-• Le bouton de téléchargement indique si la zone affichée est déjà téléchargée.
-• Carte météo : une couche n’apparaît indisponible qu’après plusieurs essais, et l’alerte disparaît d’elle-même dès que le service revient.
-• Les styles de carte sombres affichent de nouveau les points des localités.
-• Un avis quand une nouvelle version de Velorki est sur l’App Store.
-• Petites corrections : les messages « Annuler » se ferment d’eux-mêmes, et la connexion Google ne demande plus qu’une fois.
+• Un premier lancement plus simple : Velorki demande votre position, ouvre la carte sur votre pays avec les pistes cyclables et les arrêts, et montre par où commencer.
+• Partez tout de suite : « Rouler » à côté d’« Enregistrer » lance l’enregistrement et vous guide le long de l’itinéraire prévu.
+• Ajoutez un arrêt en route : touchez un café, un magasin ou un point d’eau sur la carte et ajoutez-le à votre itinéraire. Le guidage continue pendant le nouveau calcul.
+• Plus d’informations sur la carte : gares, arrêts de bus, de tram et de ferry, pharmacies, hôpitaux, aires de pique-nique, points de vue, plages et distributeurs de chambres à air. Cherchez « bus », « train » ou « ferry » pour trouver le plus proche.
+• Les téléchargements se font sur la carte : la zone, la recherche et les données d’un itinéraire, avec la progression et un bouton pour annuler.
+• Les données de carte ne sont mises à jour que si quelque chose a vraiment changé dans votre zone, et un avis sur la carte vous le signale.
+• Toucher la carte pendant une recherche ferme simplement la recherche.
+• Mentions légales dans Réglages → À propos.

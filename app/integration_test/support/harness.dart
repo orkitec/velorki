@@ -18,10 +18,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/map/presentation/map_view.dart';
+import 'package:velorki/features/planner/presentation/first_action_cue.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
+import 'package:velorki/features/map/presentation/first_start_location.dart';
 
 import 'fakes.dart';
 
@@ -45,6 +47,13 @@ Future<ProviderContainer> pumpApp(
   Duration warmUp = const Duration(seconds: 3),
 }) async {
   final prefs = await SharedPreferences.getInstance();
+  // The map's stops and cycle map start switched on for a rider who never
+  // chose; the flows here are about something else, and a chip such as "not
+  // downloaded" or the extra map load must not come into them.
+  await prefs.setBool('map.stops.shown', false);
+  await prefs.setBool('map.cycle_map.shown', false);
+  // The first start's location question is a test of its own.
+  await prefs.setBool(firstStartLocationAskedKey, true);
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
@@ -53,6 +62,10 @@ Future<ProviderContainer> pumpApp(
       localeCountryProvider.overrideWithValue(null),
       // No DWD on the emulator: see OfflineDwdClient.
       dwdForecastClientProvider.overrideWithValue(dwd),
+      // The empty plan's hint plays, and again after a quiet while, on a
+      // timer of its own; flows that drive the app without touching the
+      // screen must not have it start in the middle of them.
+      firstActionCueEnabledProvider.overrideWithValue(false),
       if (realMap)
         mapViewBuilderProvider.overrideWithValue(
           (onReady) => MapView(onControllerReady: onReady),

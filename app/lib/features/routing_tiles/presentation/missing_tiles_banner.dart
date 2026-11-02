@@ -8,7 +8,6 @@ import '../../../app/platform_features.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/presentation/byte_size.dart';
 import '../../shared/presentation/error_text.dart';
-import '../../shared/presentation/wide_panel.dart';
 import '../application/tile_download_controller.dart';
 import '../data/segments_manifest_service.dart';
 import 'routing_tiles_screen.dart';
@@ -18,10 +17,12 @@ import 'routing_tiles_screen.dart';
 ///
 /// The composite backend then fails with [RoutingErrorKind.missingTiles] and
 /// names the tiles; this turns that into the one action that helps, with the
-/// download size taken from the manifest. Where there is no routing server
-/// at all ([PlatformFeatures.routingServer], the browser) the tiles are
-/// fetched at once instead, with their progress; the planner routes again
-/// when they are in ([_FetchingTiles]).
+/// download size taken from the manifest. The download runs in place, over
+/// the map: the button asks the one question every tile download asks and
+/// the card then shows the progress the map's download chip shows too.
+/// Where there is no routing server at all ([PlatformFeatures.routingServer],
+/// the browser) the tiles are fetched at once instead ([_FetchingTiles]).
+/// Either way the planner routes again when they are in.
 class MissingTilesBanner extends ConsumerWidget {
   /// Creates the banner for [tiles].
   const MissingTilesBanner({required this.tiles, super.key});
@@ -38,6 +39,25 @@ class MissingTilesBanner extends ConsumerWidget {
     final theme = Theme.of(context);
     final manifest = ref.watch(segmentsManifestSourceProvider).value;
     final bytes = manifest?.bytesFor(tiles) ?? 0;
+    final queue = ref.watch(tileDownloadQueueProvider);
+    final mine = tiles.toSet();
+    if (mine.contains(queue.current) || queue.queued.any(mine.contains)) {
+      return _ProgressCard(
+        text: l10n.plannerFetchingTiles(formatBytes(bytes)),
+        progress: mine.contains(queue.current)
+            ? queue.progress?.fraction
+            : null,
+      );
+    }
+    // The download stopped short: said here, where it was started, with the
+    // same way to start it again.
+    final failure = queue.isRunning ? null : queue.failure;
+    if (failure != null) {
+      return _ProgressCard(
+        text: l10n.routingTilesDownloadFailed(failure.describe(l10n)),
+        retry: () => unawaited(confirmTileDownload(context, ref, tiles)),
+      );
+    }
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -66,11 +86,8 @@ class MissingTilesBanner extends ConsumerWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: FilledButton.tonal(
-                onPressed: () => Navigator.of(context).push(
-                  ColumnPageRoute<void>(
-                    builder: (_) => RoutingTilesScreen(preselected: tiles),
-                  ),
-                ),
+                onPressed: () =>
+                    unawaited(confirmTileDownload(context, ref, tiles)),
                 child: Text(
                   l10n.routingTilesDownloadCount(
                     tiles.length,
@@ -142,7 +159,6 @@ class _FetchingTilesState extends ConsumerState<_FetchingTiles> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final manifest = ref.watch(segmentsManifestSourceProvider);
     final queue = ref.watch(tileDownloadQueueProvider);
     final mine = widget.tiles.toSet();
@@ -164,6 +180,31 @@ class _FetchingTilesState extends ConsumerState<_FetchingTiles> {
         formatBytes(manifest.value?.bytesFor(widget.tiles) ?? 0),
       );
     }
+    return _ProgressCard(
+      text: text,
+      progress: running ? queue.progress?.fraction : null,
+      retry: retry,
+    );
+  }
+}
+
+/// A download under way for the tiles a route needs, or what went wrong
+/// with it and a way to try again ([retry]).
+class _ProgressCard extends StatelessWidget {
+  const _ProgressCard({required this.text, this.progress, this.retry});
+
+  final String text;
+
+  /// How far the download is, 0..1; `null` when it cannot say.
+  final double? progress;
+
+  final VoidCallback? retry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final retry = this.retry;
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -189,9 +230,7 @@ class _FetchingTilesState extends ConsumerState<_FetchingTiles> {
             ),
             const SizedBox(height: 14),
             if (retry == null)
-              LinearProgressIndicator(
-                value: running ? queue.progress?.fraction : null,
-              )
+              LinearProgressIndicator(value: progress)
             else
               Align(
                 alignment: Alignment.centerLeft,

@@ -82,7 +82,7 @@ Future<(RecordingHarness, ProviderContainer)> _launch(
   addTearDown(h.planner.db.close);
   addTearDown(h.service.dispose);
   addTearDown(h.cleanUp);
-  SharedPreferences.setMockInitialValues(<String, Object>{});
+  SharedPreferences.setMockInitialValues(mapLayersOff);
   final prefs = await SharedPreferences.getInstance();
   final router = createRouter(initialLocation: from);
   final container = ProviderContainer(

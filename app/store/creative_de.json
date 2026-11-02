@@ -3,5 +3,8 @@
     "chip": "Kostenlos · Funktioniert offline",
     "headline": "Fahr dort, wo der **Empfang endet**",
     "subline": "Plane und navigiere ohne Netz und sieh Regenradar und Wind entlang deiner Route."
+  },
+  "universal": {
+    "headline": "Fahrradcomputer & **Routenplaner**"
   }
 }

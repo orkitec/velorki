@@ -13,6 +13,7 @@ import 'package:velorki/features/planner/application/incoming_place.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
 import 'package:velorki/features/search/presentation/place_card.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
+import 'package:velorki/features/planner/presentation/first_action_cue.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
@@ -65,6 +66,8 @@ Future<PlannerHarness> _pumpApp(WidgetTester tester, _Sources sources) async {
   final container = ProviderContainer(
     overrides: [
       ...h.overrides(prefs),
+      // Its 4 s would outlast the snack bars these tests read.
+      firstActionCueEnabledProvider.overrideWithValue(false),
       routerProvider.overrideWithValue(router),
       recordingRecoveryProvider.overrideWith((ref) async => const NoRecovery()),
       incomingFileServiceProvider.overrideWithValue(

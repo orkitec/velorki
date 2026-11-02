@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart' show GestureBinding;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -26,17 +28,23 @@ import '../../map/presentation/weather_time_row.dart';
 import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
+import '../../map/presentation/first_start_location.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../map/presentation/map_controls.dart'
     show mapControlButtonSize, mapControlsColumnHeight;
 import '../../map/presentation/visible_map_padding.dart';
 import '../../map/presentation/shared_map_host.dart';
-import '../../offline/presentation/offline_screen.dart';
+import '../../offline/application/area_download_activity.dart';
+import '../../offline/presentation/area_update_chip.dart';
+import '../../offline/presentation/download_visible_area.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../search/domain/search_result.dart';
 import '../../search/presentation/place_card.dart';
 import '../../search/presentation/search_field.dart';
 import '../../settings/data/units.dart';
+import '../../recording/application/recording_controller.dart';
+import '../../recording/application/ride_start_request.dart';
+import '../../recording/domain/follow_choice.dart';
 import '../../shared/application/active_tab.dart';
 import '../../shared/application/covering_sheets.dart';
 import '../../shared/application/nav_bar_docking.dart';
@@ -58,6 +66,7 @@ import '../domain/planner_state.dart';
 import '../domain/route_waypoints.dart' show projectOnTrack;
 import '../domain/routing_options.dart';
 import 'avoided_stretches_chip.dart';
+import 'first_action_cue.dart';
 import 'original_route_chip.dart';
 import 'profile_chip_row.dart';
 import 'route_format.dart';
@@ -88,7 +97,7 @@ class PlannerScreen extends ConsumerStatefulWidget {
 }
 
 class _PlannerScreenState extends ConsumerState<PlannerScreen>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   /// The shared map, while it can be driven.
   MapController? _map;
 
@@ -415,6 +424,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     // The keyboard's going is what brings the sheet back; the window does
     // not rebuild this screen by itself, so metrics changes are listened for.
     WidgetsBinding.instance.addObserver(this);
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
     _active = ref.read(activeTabProvider) == plannerRoute;
     _map = ref.read(sharedMapControllerProvider);
     _stops = MapStopsController(
@@ -435,6 +445,105 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     )..onStopTapped = _onStopTapped;
     _areaHint = AreaDownloadHint(ref.read(mapStopsCoverageProvider));
     _updateMapUse();
+    _cuePending = ref.read(plannerControllerProvider).isEmpty;
+    _tryCue();
+  }
+
+  /// The empty sheet's hint at how to start ([FirstActionCue]).
+  late final FirstActionCue _cue = FirstActionCue(vsync: this);
+
+  /// Whether the empty state has appeared and its cue has neither run nor
+  /// been given up for this appearance.
+  bool _cuePending = false;
+
+  /// Runs the cue for the empty state now, if it is waiting and nothing is
+  /// in its way. It waits while the tab is away and while the first
+  /// start's question for the location is still to come, and runs when
+  /// they are done; anything else over the tab (a page, a dialog, a sheet)
+  /// gives it up for this appearance.
+  /// How long the first start's location dialog takes to leave.
+  static const Duration _cueAfterDialog = Duration(milliseconds: 400);
+
+  void _tryCue() {
+    if (!_cuePending || !mounted) return;
+    if (!ref.read(firstActionCueEnabledProvider)) {
+      _cuePending = false;
+      return;
+    }
+    if (!_active || ref.read(firstStartLocationAskProvider)) return;
+    _cuePending = false;
+    if (_covered()) return;
+    _cue.play(withChip: _chipShown, again: _cueAgain);
+    _chipCued = _chipShown;
+  }
+
+  /// Whether the not-downloaded chip is over the map, as last built: the
+  /// cue pulses it too.
+  bool _chipShown = false;
+
+  /// Whether the chip has had its pulse in this appearance of the empty
+  /// state, in a run or alone.
+  bool _chipCued = false;
+
+  /// The chip has just come over the map, after the frame that shows it:
+  /// the cue under way, or waiting to play again, takes it in once per
+  /// appearance of the empty state ([FirstActionCue.chipAppeared]). A cue
+  /// stopped by a touch or never started does not.
+  void _onChipShown() {
+    if (!mounted ||
+        !_chipShown ||
+        _chipCued ||
+        !_active ||
+        !ref.read(firstActionCueEnabledProvider) ||
+        !ref.read(plannerControllerProvider).isEmpty ||
+        MediaQuery.disableAnimationsOf(context)) {
+      return;
+    }
+    if (_cue.chipAppeared()) _chipCued = true;
+  }
+
+  /// Plays the cue once more after the rider has left the screen alone
+  /// since it ended, if the empty state is still there and nothing is in
+  /// its way; this run asks for no other after it.
+  void _cueAgain() {
+    if (!mounted ||
+        !ref.read(firstActionCueEnabledProvider) ||
+        !ref.read(plannerControllerProvider).isEmpty ||
+        !_active ||
+        ref.read(firstStartLocationAskProvider) ||
+        MediaQuery.disableAnimationsOf(context) ||
+        _covered()) {
+      return;
+    }
+    _cue.play(withChip: _chipShown);
+  }
+
+  /// Whether a navigator around this tab has anything over it.
+  bool _covered() {
+    var navigator = context.findAncestorStateOfType<NavigatorState>();
+    while (navigator != null) {
+      if (navigator.canPop()) return true;
+      navigator = navigator.context.findAncestorStateOfType<NavigatorState>();
+    }
+    return false;
+  }
+
+  /// Where the cue's ring spreads from: the middle of the map this tab
+  /// leaves visible, in the window, the point a camera move aims for.
+  Offset _cueRingCentre() {
+    // The map's size, as [visibleMapPadding] measures it: upright this
+    // screen's, which is the window's; sideways and in a wide window the
+    // window's, beside the rail or the column.
+    final layout = ShellLayout.of(context);
+    final window = layout.sideRail || layout.widePanel
+        ? MediaQueryData.fromView(View.of(context)).size
+        : MediaQuery.sizeOf(context);
+    final padding = _visiblePadding();
+    final visible = padding.deflateSize(window);
+    return Offset(
+      padding.left + visible.width / 2,
+      padding.top + visible.height / 2,
+    );
   }
 
   /// Whether the map is over an area that is not downloaded, whatever
@@ -446,7 +555,41 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
 
   /// A stop tapped on the map: its card, the map kept at its zoom, since
   /// the rider is looking at the stop already.
-  void _onStopTapped(SearchResult stop) => unawaited(_openPlace(stop));
+  void _onStopTapped(SearchResult stop) {
+    if (_endSearchForMapTap()) return;
+    unawaited(_openPlace(stop));
+  }
+
+  /// Whether the search was under way when the last finger went down,
+  /// anywhere on the screen.
+  bool _searchActiveAtDown = false;
+
+  /// Every pointer that goes down, before anything acts on it: the field
+  /// may let go of the focus for that very touch, and the map's tap comes
+  /// later, once the map knows it was a tap.
+  void _onPointer(PointerEvent event) {
+    if (event is! PointerDownEvent) return;
+    _searchActiveAtDown = _searchActive;
+  }
+
+  /// Whether the search field has the focus or its results are open.
+  bool get _searchActive {
+    final search = _searchKey.currentState;
+    return search is SearchFieldState && search.active;
+  }
+
+  /// A tap or a press on the map while the search is under way only ends
+  /// the search: the field lets go, the keyboard and the results go, and
+  /// the sheet comes back. The next one sets a point as always. Answers
+  /// whether the tap was taken for that.
+  bool _endSearchForMapTap() {
+    final wasActive = _searchActiveAtDown;
+    _searchActiveAtDown = false;
+    if (!wasActive && !_searchActive) return false;
+    final search = _searchKey.currentState;
+    if (search is SearchFieldState) search.dismiss();
+    return true;
+  }
 
   bool _searchFocused = false;
   bool _keyboardUp = false;
@@ -542,6 +685,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_onPointer);
     _binding?.detach();
     _cursor.dispose();
     _chartWindow.dispose();
@@ -549,6 +693,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     _areaHint.dispose();
     _sheet.dispose();
     _assistantSlide.dispose();
+    _cue.dispose();
     if (_docked) {
       // Deferred: the tree is locked while a widget goes, and the shell
       // would rebuild for this.
@@ -742,6 +887,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         // map between this tab's chrome and its sheet.
         fitPadding: _visiblePadding,
       );
+      binding.takesTap = _endSearchForMapTap;
       binding.onWaypointTap = (index) {
         unawaited(_editWaypoint(index));
       };
@@ -828,8 +974,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
 
   /// A place picked in the search (or sent by another app, which goes the
   /// same way): its card, the map zoomed in on it.
-  void _onPlaceSelected(SearchResult result) =>
-      unawaited(_openPlace(result, fromSearch: true, zoom: 13));
+  void _onPlaceSelected(SearchResult result) {
+    // The search ended with the pick, not for a tap on the map.
+    _searchActiveAtDown = false;
+    unawaited(_openPlace(result, fromSearch: true, zoom: 13));
+  }
 
   /// What the pin on the map says: the place's name, or what it is.
   String _placeLabel(SearchResult place) => place.name.isNotEmpty
@@ -921,19 +1070,15 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     ref.read(areaHintDismissalsProvider.notifier).dismiss(area);
   }
 
-  /// Opens the offline data screen for the area on screen, which is what the
-  /// map's download button opens: "Download for the visible area" is then one
-  /// tap away from a search that had nothing to answer with.
-  void _openOfflineData() {
-    final map = _map;
-    if (map == null) return;
-    unawaited(
-      Navigator.of(context).push(
-        ColumnPageRoute<void>(
-          builder: (_) => OfflineScreen(mapController: map),
-        ),
-      ),
-    );
+  /// Downloads the area on screen where it is, on the map: what the
+  /// not-downloaded chips ask for.
+  void _downloadArea() {
+    _searchActiveAtDown = false;
+    unawaited(downloadVisibleArea(context, ref, _map));
+  }
+
+  void _cancelAreaDownload() {
+    unawaited(cancelVisibleAreaDownload(context, ref));
   }
 
   /// [place] is the destination; the ride starts where the rider is right
@@ -1137,6 +1282,19 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     _openAssistant();
   }
 
+  /// Goes to the Record tab to ride the plan: the ride follows it and the
+  /// Record tab's own Start ride flow runs. The plan is left as it is. A ride
+  /// already under way is not started again, and its route is not changed:
+  /// the Record tab offers no such choice mid-ride either.
+  void _ride() {
+    if (!ref.read(recordingControllerProvider).isRecording) {
+      ref.read(recordingControllerProvider.notifier).choose(FollowChoice.plan);
+      ref.read(rideStartRequestProvider.notifier).raise();
+    }
+    ref.read(activeTabProvider.notifier).show(recordingRoute);
+    GoRouter.of(context).go(recordingRoute);
+  }
+
   Future<void> _save() async {
     final state = ref.read(plannerControllerProvider);
     final route = state.result;
@@ -1213,6 +1371,15 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       }
     }
     ref.listen(plannerControllerProvider, (previous, next) {
+      // The empty state comes back, after Clear, say: its cue with it; and
+      // goes with the first point, the cue too.
+      if (!next.isEmpty) {
+        _cuePending = false;
+        _cue.stop();
+      } else if (previous != null && !previous.isEmpty) {
+        _cuePending = true;
+        _tryCue();
+      }
       // Only while this tab's layers are on the map; a plan that changes
       // while the tab is away is drawn whole when it comes back.
       if (_drawing) unawaited(_binding?.sync(next));
@@ -1298,8 +1465,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         _updateMapUse();
         _takeOverControls();
         _takeOverSheet();
+        _tryCue();
       } else if (previous == plannerRoute && next != plannerRoute) {
         _active = false;
+        _cue.stop();
         _updateMapUse();
         // The next tab tells the column its own wants; this one tells it
         // again, from scratch, when it comes back.
@@ -1355,22 +1524,33 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     // Keyed, so a search under way survives the phone turning, which moves
     // the field from its own row into the row with the controls. Sideways
     // the profile menu is at its end, where upright the chips are a row.
-    final search = SearchField(
-      key: _searchKey,
-      onSelected: _onPlaceSelected,
-      onFocusChanged: _onSearchFocus,
-      bias: () => _map?.center,
-      onDownloadArea: _openOfflineData,
-      trailing: sideways || compactColumn
-          ? ({required compact}) => ProfileDropdown(
-              selected: state.options.profile,
-              onSelected: setProfile,
-              compact: compact,
-            )
-          : null,
+    ref.listen(firstStartLocationAskProvider, (_, asking) {
+      // The question is answered as its dialog starts to close, and a
+      // dialog on its way out still counts as covering the tab: after it
+      // has gone.
+      if (!asking) {
+        unawaited(Future<void>.delayed(_cueAfterDialog, _tryCue));
+      }
+    });
+    final search = FirstActionCuePulse(
+      child: SearchField(
+        key: _searchKey,
+        onSelected: _onPlaceSelected,
+        onFocusChanged: _onSearchFocus,
+        bias: () => _map?.center,
+        onDownloadArea: _downloadArea,
+        trailing: sideways || compactColumn
+            ? ({required compact}) => ProfileDropdown(
+                selected: state.options.profile,
+                onSelected: setProfile,
+                compact: compact,
+              )
+            : null,
+      ),
     );
 
     final cycleMapMissing = ref.watch(sharedCycleMapMissingAreaProvider);
+    final areaDownload = ref.watch(areaDownloadActivityProvider);
     // The areas whose not-downloaded chips the rider closed this session.
     final dismissedAreas = ref.watch(areaHintDismissalsProvider);
     // What the chrome shows under its first rows, now and then.
@@ -1386,25 +1566,47 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           final Widget? chip =
               stopsMissing != null && !dismissedAreas.contains(stopsMissing)
               ? StopsDownloadChip(
-                  onDownload: _openOfflineData,
+                  onDownload: _downloadArea,
+                  downloading: areaDownload != null,
+                  progress: areaDownload?.fraction,
+                  onCancel: _cancelAreaDownload,
                   onClose: () => _closeAreaHint(stopsMissing),
                 )
               : cycleMapMissing != null &&
                     !dismissedAreas.contains(cycleMapMissing)
               ? StopsDownloadChip(
-                  onDownload: _openOfflineData,
+                  onDownload: _downloadArea,
+                  downloading: areaDownload != null,
+                  progress: areaDownload?.fraction,
+                  onCancel: _cancelAreaDownload,
                   message: l10n.mapCycleMapNotDownloaded,
                   onClose: () => _closeAreaHint(cycleMapMissing),
                 )
               : _areaHint.shownDespite(dismissedAreas)
               ? StopsDownloadChip(
-                  onDownload: _openOfflineData,
+                  onDownload: _downloadArea,
+                  downloading: areaDownload != null,
+                  progress: areaDownload?.fraction,
+                  onCancel: _cancelAreaDownload,
                   message: l10n.searchAreaNotDownloaded,
                   onClose: () => _closeAreaHint(_areaHint.missingArea),
                 )
               : null;
+          final shown = chip != null;
+          if (shown && !_chipShown) {
+            WidgetsBinding.instance.addPostFrameCallback((_) => _onChipShown());
+          }
+          _chipShown = shown;
           return chip == null
-              ? const SizedBox.shrink()
+              // Nothing missing here: the area may still have changed data.
+              ? AreaUpdateChip(
+                  controller: _map,
+                  padding: EdgeInsetsDirectional.only(
+                    top: 10,
+                    start: controlsAtLeft ? besideControls : 0,
+                    end: controlsAtLeft ? 0 : besideControls,
+                  ),
+                )
               : Padding(
                   // Clear of the map's control column at the side: a long
                   // message wraps rather than run over its top button.
@@ -1418,7 +1620,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   ),
                   child: Align(
                     alignment: AlignmentDirectional.centerStart,
-                    child: chip,
+                    child: FirstActionCueChipPulse(child: chip),
                   ),
                 );
         },
@@ -1487,172 +1689,178 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     // shell's map. A transparent material is what the buttons need and
     // lets the touch pass; the shell's scaffold shows the snack bars and
     // keeps the screen its full height under the keyboard.
-    return Material(
-      type: MaterialType.transparency,
-      child: SizedBox.expand(
-        child: Stack(
-          children: [
-            TabChromeSlide(
-              active: active,
-              child: sideways
-                  ? _sidewaysChrome(context, search: search, below: below)
-                  : SafeArea(
-                      bottom: false,
-                      child: Padding(
-                        // In a wide window flush with the column's edge,
-                        // as the controls and the card are.
-                        padding: wideChromeMargin(
-                          context,
-                          const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                        ),
-                        child: Column(
-                          key: _chromeKey,
-                          // Only as tall as its rows, so its height is the
-                          // chrome's.
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Column(
-                              key: _acrossKey,
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                search,
-                                // In a compact column the profiles are the
-                                // menu at the search's end, as sideways.
-                                if (!compactColumn) ...[
-                                  const SizedBox(height: 10),
-                                  ProfileChipRow(
-                                    glass: true,
-                                    selected: state.options.profile,
-                                    onSelected: setProfile,
-                                  ),
-                                ],
-                              ],
-                            ),
-                            ...below,
-                          ],
-                        ),
-                      ),
-                    ),
-            ),
-            // Where it is, as it is, while the AI's card is over it, but
-            // neither touched nor read out meanwhile: nothing of it is moved
-            // or pressed from under that card, and the map around them stays
-            // the map.
-            IgnorePointer(
-              ignoring: _assistantOpen,
-              child: ExcludeSemantics(
-                excluding: _assistantOpen,
-                child: AdaptiveDockingSheet(
-                  controller: _sheet,
-                  // Enough for the headline, the toolbar and Save above the
-                  // floating navigation bar on a 20:9 phone. The shared
-                  // resting size, not the one grown for the time control:
-                  // an untouched sheet given a new initial size jumps to it
-                  // at its next build, whatever that build is for. The
-                  // growth moves the sheet itself ([_measureRestingContent]).
-                  initialExtent: geometry.resting,
-                  collapsedExtent: collapsedSheetSize,
-                  maxExtent: _maxSheetSize,
-                  // One resting height, not one per state: with two in the list
-                  // a pull down from the top settled on the higher one and a pull
-                  // up from the handle on the lower one, a chip row apart.
-                  snapSizes: _snapSizesFor(restingSheetSize),
-                  gripDp: sheetGripWithTitleDp,
-                  dockedRange: dockedRange,
-                  docks: true,
-                  dockedBottomInset: bottomInset,
-                  onDocked: _reportDocked,
-                  // Down out from behind a sheet opened over the tab, and
-                  // back where it was, or, parked under the keyboard for a
-                  // search, where the search took it from.
-                  collapseWhenCovered: active,
-                  coveredReturnExtent: _sheetReturnExtent,
-                  // Under the AI's card, the map is fitted to that card.
-                  onExtent: (extent) {
-                    if (!_assistantOpen) _onSheetExtent(extent);
-                  },
-                  // Its own scrolling, at any height of the sheet; the
-                  // sheet moves by its handle.
-                  child: Builder(
-                    // Looked up from inside the shell, which hands the controller down.
-                    builder: (context) => ListView(
-                      controller: SheetContentScroll.maybeOf(context),
-                      padding: EdgeInsets.fromLTRB(
-                        20,
-                        0,
-                        20,
-                        MediaQuery.paddingOf(context).bottom + 24,
-                      ),
-                      children: [
-                        _SheetHeader(state: state),
-                        // The time control, while the rain or the wind is
-                        // on, right under the hint without a route; with one
-                        // under Save, where it is the route's departure,
-                        // always shown, and the colours and the weather the
-                        // sheet shows follow it. In view at the resting
-                        // height either way.
-                        if (!hasRoute) const _PlannerTimeRow(),
-                        const SizedBox(height: 14),
-                        // The variants right under the figures, where the sheet
-                        // grows to show them; then the actions, so Loop and Save
-                        // are visible at the sheet's resting height.
-                        if (hasVariants) ...[
-                          _AlternativeChips(state: state),
-                          const SizedBox(height: 12),
-                        ],
-                        _PlannerActions(
-                          state: state,
-                          onAlternatives: _loadAlternatives,
-                          onSmartLoop: _smartLoop,
-                          onAsk: _ask,
-                          onSave: _save,
-                        ),
-                        if (hasRoute)
-                          Builder(
-                            builder: (context) {
-                              _restingEnd = context;
-                              return const _PlannerTimeRow();
-                            },
+    return FirstActionCueScope(
+      cue: _cue,
+      child: Material(
+        type: MaterialType.transparency,
+        child: SizedBox.expand(
+          child: Stack(
+            children: [
+              // Lays out as nothing: the ring is drawn over the whole window.
+              FirstActionCueRing(centre: _cueRingCentre),
+              TabChromeSlide(
+                active: active,
+                child: sideways
+                    ? _sidewaysChrome(context, search: search, below: below)
+                    : SafeArea(
+                        bottom: false,
+                        child: Padding(
+                          // In a wide window flush with the column's edge,
+                          // as the controls and the card are.
+                          padding: wideChromeMargin(
+                            context,
+                            const EdgeInsets.fromLTRB(12, 8, 12, 0),
                           ),
-                        const SizedBox(height: 16),
-                        _SheetBody(
-                          state: state,
-                          cursor: _cursor,
-                          window: _chartWindow,
+                          child: Column(
+                            key: _chromeKey,
+                            // Only as tall as its rows, so its height is the
+                            // chrome's.
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Column(
+                                key: _acrossKey,
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  search,
+                                  // In a compact column the profiles are the
+                                  // menu at the search's end, as sideways.
+                                  if (!compactColumn) ...[
+                                    const SizedBox(height: 10),
+                                    ProfileChipRow(
+                                      glass: true,
+                                      selected: state.options.profile,
+                                      onSelected: setProfile,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              ...below,
+                            ],
+                          ),
                         ),
-                      ],
+                      ),
+              ),
+              // Where it is, as it is, while the AI's card is over it, but
+              // neither touched nor read out meanwhile: nothing of it is moved
+              // or pressed from under that card, and the map around them stays
+              // the map.
+              IgnorePointer(
+                ignoring: _assistantOpen,
+                child: ExcludeSemantics(
+                  excluding: _assistantOpen,
+                  child: AdaptiveDockingSheet(
+                    controller: _sheet,
+                    // Enough for the headline, the toolbar and Save above the
+                    // floating navigation bar on a 20:9 phone. The shared
+                    // resting size, not the one grown for the time control:
+                    // an untouched sheet given a new initial size jumps to it
+                    // at its next build, whatever that build is for. The
+                    // growth moves the sheet itself ([_measureRestingContent]).
+                    initialExtent: geometry.resting,
+                    collapsedExtent: collapsedSheetSize,
+                    maxExtent: _maxSheetSize,
+                    // One resting height, not one per state: with two in the list
+                    // a pull down from the top settled on the higher one and a pull
+                    // up from the handle on the lower one, a chip row apart.
+                    snapSizes: _snapSizesFor(restingSheetSize),
+                    gripDp: sheetGripWithTitleDp,
+                    dockedRange: dockedRange,
+                    docks: true,
+                    dockedBottomInset: bottomInset,
+                    onDocked: _reportDocked,
+                    // Down out from behind a sheet opened over the tab, and
+                    // back where it was, or, parked under the keyboard for a
+                    // search, where the search took it from.
+                    collapseWhenCovered: active,
+                    coveredReturnExtent: _sheetReturnExtent,
+                    // Under the AI's card, the map is fitted to that card.
+                    onExtent: (extent) {
+                      if (!_assistantOpen) _onSheetExtent(extent);
+                    },
+                    // Its own scrolling, at any height of the sheet; the
+                    // sheet moves by its handle.
+                    child: Builder(
+                      // Looked up from inside the shell, which hands the controller down.
+                      builder: (context) => ListView(
+                        controller: SheetContentScroll.maybeOf(context),
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          0,
+                          20,
+                          MediaQuery.paddingOf(context).bottom + 24,
+                        ),
+                        children: [
+                          _SheetHeader(state: state),
+                          // The time control, while the rain or the wind is
+                          // on, right under the hint without a route; with one
+                          // under Save, where it is the route's departure,
+                          // always shown, and the colours and the weather the
+                          // sheet shows follow it. In view at the resting
+                          // height either way.
+                          if (!hasRoute) const _PlannerTimeRow(),
+                          const SizedBox(height: 14),
+                          // The variants right under the figures, where the sheet
+                          // grows to show them; then the actions, so Loop and Save
+                          // are visible at the sheet's resting height.
+                          if (hasVariants) ...[
+                            _AlternativeChips(state: state),
+                            const SizedBox(height: 12),
+                          ],
+                          _PlannerActions(
+                            state: state,
+                            onAlternatives: _loadAlternatives,
+                            onSmartLoop: _smartLoop,
+                            onAsk: _ask,
+                            onSave: _save,
+                            onRide: _ride,
+                          ),
+                          if (hasRoute)
+                            Builder(
+                              builder: (context) {
+                                _restingEnd = context;
+                                return const _PlannerTimeRow();
+                              },
+                            ),
+                          const SizedBox(height: 16),
+                          _SheetBody(
+                            state: state,
+                            cursor: _cursor,
+                            window: _chartWindow,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            // The AI's card, over the planner's: no barrier, so the map
-            // above it is the planner's map as ever. Kept while it slides out.
-            if (_assistantOpen || !_assistantSlide.isDismissed)
-              Positioned.fill(
-                child: SheetSlide(
-                  hidden: _assistantOut,
-                  distance: () => _assistantExtent * _sheetLength + 24,
-                  child: IgnorePointer(
-                    // On its way out it takes no more touches.
-                    ignoring: !_assistantOpen,
-                    child: AssistantSheet(
-                      key: ValueKey<int>(_assistantSession),
-                      map: _map,
-                      chromeTop: _ownControlsTop,
-                      onClose: _closeAssistant,
-                      openFull: _assistantFull,
-                      onExtent: (extent) {
-                        _assistantExtent = extent;
-                        _onSheetExtent(extent);
-                      },
+              // The AI's card, over the planner's: no barrier, so the map
+              // above it is the planner's map as ever. Kept while it slides out.
+              if (_assistantOpen || !_assistantSlide.isDismissed)
+                Positioned.fill(
+                  child: SheetSlide(
+                    hidden: _assistantOut,
+                    distance: () => _assistantExtent * _sheetLength + 24,
+                    child: IgnorePointer(
+                      // On its way out it takes no more touches.
+                      ignoring: !_assistantOpen,
+                      child: AssistantSheet(
+                        key: ValueKey<int>(_assistantSession),
+                        map: _map,
+                        chromeTop: _ownControlsTop,
+                        onClose: _closeAssistant,
+                        openFull: _assistantFull,
+                        onExtent: (extent) {
+                          _assistantExtent = extent;
+                          _onSheetExtent(extent);
+                        },
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1713,13 +1921,18 @@ class _SheetHeader extends ConsumerWidget {
     final units = ref.watch(unitSystemProvider);
 
     if (state.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l10n.plannerEmptyState, style: theme.textTheme.headlineSmall),
-          const SizedBox(height: 6),
-          Text(l10n.plannerEmptyStateDetail, style: theme.textTheme.bodySmall),
-        ],
+      return FirstActionCueHeadline(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.plannerEmptyState, style: theme.textTheme.headlineSmall),
+            const SizedBox(height: 6),
+            Text(
+              l10n.plannerEmptyStateDetail,
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+        ),
       );
     }
     if (!state.isRoutable) {
@@ -1958,6 +2171,7 @@ class _PlannerActions extends ConsumerWidget {
     required this.onSmartLoop,
     required this.onAsk,
     required this.onSave,
+    required this.onRide,
   });
 
   final PlannerState state;
@@ -1965,6 +2179,7 @@ class _PlannerActions extends ConsumerWidget {
   final Future<void> Function() onSmartLoop;
   final Future<void> Function() onAsk;
   final Future<void> Function() onSave;
+  final VoidCallback onRide;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2017,12 +2232,28 @@ class _PlannerActions extends ConsumerWidget {
       children: [
         Row(children: [for (final action in actions) Expanded(child: action)]),
         const SizedBox(height: 14),
+        // Save beside Ride, the pair the loop sheet makes of Another and
+        // Done: the secondary one outlined, the primary one filled.
         SizedBox(
           height: primaryButtonHeight,
-          child: FilledButton.icon(
-            onPressed: state.canSave ? () => unawaited(onSave()) : null,
-            icon: const Icon(Icons.bookmark_add_outlined),
-            label: Text(l10n.plannerSave),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: state.canSave ? () => unawaited(onSave()) : null,
+                  icon: const Icon(Icons.bookmark_add_outlined),
+                  label: Text(l10n.plannerSave),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: state.canSave ? onRide : null,
+                  icon: const Icon(Icons.fiber_manual_record_rounded),
+                  label: Text(l10n.plannerRide),
+                ),
+              ),
+            ],
           ),
         ),
       ],

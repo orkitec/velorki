@@ -14,6 +14,7 @@ import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/application/map_stops_controller.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/testing/fake_stops_coverage.dart';
+import 'package:velorki/features/map/presentation/first_start_location.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
@@ -22,9 +23,11 @@ import 'package:velorki/features/library/presentation/route_detail_screen.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
+import 'package:velorki/features/routing_tiles/data/segments_manifest_service.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/weather/data/dwd_route_forecast.dart';
+import 'package:velorki_brouter/velorki_brouter.dart' show SegmentsManifest;
 
 import '../../../support/app.dart';
 import '../../search/support/fake_http.dart';
@@ -124,6 +127,19 @@ class StayPutOnOpen extends LocateOnOpen {
   void touched() => touches++;
 }
 
+/// The first start's question for the location, already answered: a Plan
+/// screen pumped without the shell has nobody to ask it.
+class AskedOnFirstStart extends FirstStartLocationAsk {
+  @override
+  bool build() => false;
+}
+
+/// The first start's question for the location, still to come.
+class _QuestionDue extends FirstStartLocationAsk {
+  @override
+  bool build() => true;
+}
+
 /// Everything a planner or library widget test needs.
 class PlannerHarness {
   /// Wires the fakes together.
@@ -132,6 +148,7 @@ class PlannerHarness {
     String photonBody = photonFixture,
     this.withRoutingBackend = true,
     this.withGeocoder = true,
+    this.locationQuestionDue = false,
     RoutingAvailability? routingAvailability,
   }) : routingAvailability =
            routingAvailability ??
@@ -153,6 +170,11 @@ class PlannerHarness {
   /// What the planner hears of routing: ready with a backend, else no map
   /// data, unless a test says otherwise.
   final RoutingAvailability routingAvailability;
+
+  /// Whether the first start's question for the location is still to come
+  /// when the screen opens; answered already by default, since a Plan screen
+  /// pumped without the shell has nobody to ask it.
+  final bool locationQuestionDue;
 
   /// Whether [photonClientProvider] answers with a client or with `null`,
   /// which is the "no Photon URL configured" case.
@@ -206,8 +228,23 @@ class PlannerHarness {
     velorkiDatabaseProvider.overrideWithValue(db),
     mapStopsCoverageProvider.overrideWithValue(stopsCoverage),
     dwdForecastClientProvider.overrideWithValue(dwd),
+    firstStartLocationAskProvider.overrideWith(
+      locationQuestionDue ? _QuestionDue.new : AskedOnFirstStart.new,
+    ),
   ];
 }
+
+/// A tile mirror that cannot be reached: a download started from a chip
+/// fails at once, where the real one would wait on the network.
+class NoMirror extends SegmentsManifestSource {
+  @override
+  Future<SegmentsManifest> build() async => throw StateError('no mirror');
+}
+
+/// Puts the tile mirror out of reach; see [NoMirror].
+final Override noMirrorOverride = segmentsManifestSourceProvider.overrideWith(
+  NoMirror.new,
+);
 
 /// What the shell puts around the tabs over the map and the cards' content,
 /// which have no scaffold of their own: the one that shows their snack bars
@@ -235,7 +272,7 @@ Future<PlannerHarness> pumpScreen(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   addTearDown(h.db.close);
 
-  SharedPreferences.setMockInitialValues(<String, Object>{});
+  SharedPreferences.setMockInitialValues(mapLayersOff);
   final prefs = await SharedPreferences.getInstance();
 
   await tester.pumpWidget(
@@ -262,7 +299,7 @@ Future<PlannerHarness> pumpApp(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   addTearDown(h.db.close);
 
-  SharedPreferences.setMockInitialValues(<String, Object>{});
+  SharedPreferences.setMockInitialValues(mapLayersOff);
   final prefs = await SharedPreferences.getInstance();
 
   await tester.pumpWidget(
