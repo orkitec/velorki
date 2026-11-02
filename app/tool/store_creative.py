@@ -215,14 +215,17 @@ RAIN_KEY = (40, 541, 660, 66)
 def save_bottom(src: str) -> int:
     """The last row of the Save button on a light planner screen: where the
     sheet's content under it starts, which a longer header in some languages
-    pushes down."""
-    column = pixel_column(src, SCREEN_W // 2)
-    # The light accent, #3f7a00.
-    rows = [i for i, (r, g, b) in enumerate(column)
-            if 1200 <= i < 2400 and abs(r - 0x3f) < 25 and abs(g - 0x7a) < 25 and b < 40]
+    pushes down. Save is outlined beside the filled Ride button, whose bottom
+    is the same row; the middle column is read too, for a filled Save."""
+    rows = []
+    for x in (SCREEN_W * 3 // 4, SCREEN_W // 2):
+        column = pixel_column(src, x)
+        # The light accent, #3f7a00.
+        rows += [i for i, (r, g, b) in enumerate(column)
+                 if 1200 <= i < 2400 and abs(r - 0x3f) < 25 and abs(g - 0x7a) < 25 and b < 40]
     if not rows:
         raise RuntimeError(f"no Save button found on {src}")
-    return rows[-1]
+    return max(rows)
 
 
 def pixel_column(src: str, x: int) -> list:
