@@ -1,6 +1,6 @@
 ---
 title: Dépannage
-description: "Solutions aux problèmes courants : pas de position, pas d’itinéraire, la bannière de tuiles manquantes, une voix muette sur iOS, des téléchargements bloqués et des liens qui ne s’ouvrent pas."
+description: "Solutions aux problèmes courants : pas de position, pas d’itinéraire, bannière de tuiles, voix muette sur iOS, téléchargements bloqués, liens."
 order: 19
 ---
 
@@ -10,7 +10,7 @@ Les problèmes les plus fréquents, et que faire pour chacun. Si le vôtre n’y
 
 Les symptômes sont « Pas encore de position. », un bouton de localisation qui ne fait rien, ou « Activez la localisation ou touchez la carte pour placer le départ. »
 
-1. **L’autorisation a-t-elle été refusée ?** Velorki demande avec sa propre boîte de dialogue, **Afficher votre position ?**, avant celle du système. Si vous avez répondu **Plus tard**, touchez à nouveau le bouton de localisation et répondez **Continuer**.
+1. **L’autorisation a-t-elle été refusée ?** Velorki la demande de lui-même au premier démarrage, avec sa propre boîte de dialogue, **Afficher votre position ?**, avant celle du système. Sur Android, si vous avez répondu **Plus tard**, touchez à nouveau le bouton de localisation et répondez **Continuer**. Sur un iPhone, la boîte n’a que **Continuer** et l’alerte du système tranche ; si vous avez refusé là, passez à l’étape suivante.
 2. **Est-elle désactivée pour Velorki ?** « La localisation est désactivée pour Velorki. Activez-la dans les réglages du système. » s’accompagne d’une action **Réglages** qui vous y mène directement. Accordez « Lorsque l’app est active » ou « Pendant l’utilisation de l’app ».
 3. **Les services de localisation sont-ils désactivés sur le téléphone ?** « Les services de localisation sont désactivés sur cet appareil. » concerne le téléphone, pas Velorki. L’action **Réglages** ouvre le bon endroit.
 4. **À l’intérieur, ou à peine allumé ?** « Pas encore de position. » signifie souvent que le téléphone n’a pas encore de signal GPS. Sortez et laissez-lui une demi-minute.
@@ -19,23 +19,25 @@ Velorki n’a jamais besoin de la localisation en arrière-plan. « Lorsque l�
 
 ## Aucun itinéraire n’apparaît
 
-**« Cet itinéraire nécessite des tuiles de routage absentes de cet appareil. »** Votre téléphone n’a pas de données de routage pour la zone et il n’y a pas de serveur de routage de secours. Touchez le bouton, qui compte les tuiles et leur taille, et téléchargez-les. Voir [cartes hors ligne et routage](./offline-maps-and-routing).
+**« Cet itinéraire nécessite des tuiles de routage absentes de cet appareil. »** Votre téléphone n’a pas de données de routage pour la zone. Touchez le bouton, qui compte les tuiles et leur taille, et téléchargez-les ; le téléchargement se déroule sur place. Voir [cartes hors ligne et routage](./offline-maps-and-routing).
 
-**« Aucun serveur de routage configuré, définissez-en un dans Réglages → Avancé. »** Cette version ne contient aucune adresse de serveur. Téléchargez les tuiles de routage de l’endroit où vous êtes et calculez l’itinéraire sur le téléphone.
+**« Le calcul d’itinéraire n’est pas disponible pour le moment. »** Le calcul sur l’appareil est encore en train de démarrer, ou n’a pas pu démarrer (« Le calcul d’itinéraire n’a pas pu démarrer sur cet appareil. »), ou cette version n’a pas de données cartographiques pour cela (« Cette version de Velorki n’a pas de données cartographiques pour le calcul d’itinéraire. »). Patientez un instant, puis téléchargez les tuiles de routage de l’endroit où vous êtes.
 
-**Réglages → Avancé → Routage est sur « Sur l’appareil uniquement ».** Dans ce cas, Velorki n’interrogera jamais de serveur, par conception. Passez sur **Automatique** ou téléchargez les tuiles.
+**Réglages → Cartes et données → Routage est sur « Sur l’appareil uniquement ».** Dans ce cas, Velorki n’interrogera jamais de serveur, par conception. Passez sur **Automatique** ou téléchargez les tuiles.
 
-**« Échec du calcul : » suivi d’une raison.** Le plus souvent, le serveur était injoignable. Réessayez, et vérifiez qu’un point de passage n’est pas tombé en mer ou sur une autoroute où les vélos sont interdits. Déplacer le point fautif de quelques mètres sur une vraie route règle généralement le problème.
+**« Échec du calcul : » suivi d’une raison.** Le plus souvent, le serveur était injoignable. Réessayez, et vérifiez qu’un point de passage n’est pas tombé en mer ou sur une autoroute où les vélos sont interdits. Déplacer le point fautif de quelques mètres sur une vraie route règle généralement le problème.
 
 ## La bannière de tuiles manquantes ne disparaît pas
 
 La bannière s’affiche dans le planificateur chaque fois que l’itinéraire traverse une zone dont la tuile de routage n’est pas sur le téléphone. Velorki ne calcule jamais un itinéraire sur une couverture partielle, car le routeur traiterait la tuile manquante comme une terre vide et renverrait discrètement un itinéraire faux.
 
-1. Touchez le bouton de la bannière. Il ouvre **Données de routage hors ligne** avec exactement les tuiles dont l’itinéraire a besoin déjà sélectionnées.
-2. Téléchargez-les. Les tuiles pèsent de 125 à 250 Mo chacune, soyez donc en Wi-Fi.
+1. Touchez le bouton de téléchargement de la bannière. Il compte les tuiles dont l’itinéraire a besoin et leur taille, et le téléchargement se déroule sur place : la bannière montre sa progression et la pastille de téléchargement sur la carte suit le même téléchargement.
+2. Les tuiles pèsent de 125 à 250 Mo chacune, soyez donc en Wi-Fi.
 3. Quand une tuile arrive, le planificateur recalcule tout seul et la bannière est remplacée par les chiffres de l’itinéraire.
 
-Si les tuiles dont vous avez besoin indiquent **Mise à jour : nouvelle version requise**, mettez d’abord l’app à jour ; la boîte de dialogue en explique la raison.
+S’il s’arrête en route, la bannière indique « Le téléchargement a échoué : » avec la raison et **Réessayer**. Pour l’arrêter vous-même, touchez le bouton de fermeture de la pastille et confirmez **Arrêter le téléchargement ?** avec **Annuler le téléchargement** ; une tuile à moitié reçue garde ce qu’elle a.
+
+Si les tuiles dont vous avez besoin indiquent **Mise à jour : nouvelle version requise**, mettez d’abord l’app à jour ; la boîte de dialogue en explique la raison.
 
 ## La voix ne dit rien
 
@@ -57,11 +59,13 @@ Si la voix choisie est marquée **Nécessite Internet**, elle est générée sur
 ## Un téléchargement est bloqué ou échoue
 
 - **Les téléchargements ne se déroulent que lorsque l’app est ouverte.** Laissez Velorki au premier plan pour une grosse tuile. S’il s’arrête, la partie reçue est conservée et la tentative suivante reprend à partir de là.
-- **« Le téléchargement a échoué : »** suivi d’une raison. Touchez à nouveau la tuile pour réessayer. Un téléchargement repris ne repart pas de zéro.
-- **« La liste des tuiles n’a pas pu être chargée : »** signifie que le miroir est injoignable. **Réessayer** est affiché à l’écran.
+- **« Le téléchargement a échoué : »** suivi d’une raison. Touchez **Réessayer**, ou la tuile à nouveau sur la page **Données de routage hors ligne**. Un téléchargement repris ne repart pas de zéro.
+- **La partie carte abandonne d’elle-même.** Un téléchargement de carte qui ne progresse plus pendant environ une minute est arrêté ; le message est « La carte n’a pas pu être téléchargée : » avec « Vérifiez la connexion et l’espace libre, puis réessayez. » Ce qui était arrivé est supprimé, relancez donc le téléchargement.
+- **« La liste des tuiles n’a pas pu être chargée : »** signifie que le miroir est injoignable. **Réessayer** est affiché à l’écran.
 - **Vérifiez l’espace libre sur le téléphone.** Une tuile de routage de 250 Mo demande 250 Mo, et la zone de carte s’y ajoute.
-- **Annulez et relancez** avec le bouton de fermeture de l’en-tête de progression si un téléchargement est manifestement bloqué.
-- Velorki ne sait pas distinguer le Wi-Fi des données mobiles : il avertit plutôt que de bloquer. Lancez vous-même les gros téléchargements en Wi-Fi.
+- **Annulez et relancez** si un téléchargement est manifestement bloqué : le bouton de fermeture de la pastille sur la carte demande **Arrêter le téléchargement ?**, et **Annuler le téléchargement** l’arrête. La zone compte alors comme non téléchargée et la pastille la propose à nouveau.
+- **« Nouvelles données cartographiques pour cette zone »** sur la carte n’est pas une panne. Le miroir a des données modifiées pour la zone à l’écran ; touchez **Mettre à jour** pour les télécharger, ou ignorez-le.
+- Velorki ne sait pas distinguer le Wi-Fi des données mobiles : il avertit plutôt que de bloquer. Lancez vous-même les gros téléchargements en Wi-Fi.
 
 ## Un lien de partage ne s’ouvre pas dans l’app
 
@@ -116,7 +120,7 @@ Un capteur associé qui indique **Non connecté** est hors de portée, en veille
 
 - **« Non disponible dans cette version »** sur une ligne de connexion, ou sur la page d’abonnement, signifie que cette copie de Velorki a été compilée sans les clés de ce service ou de ce store. C’est l’aspect d’une version compilée par vos soins.
 - **Le bouton Demander ou le bouton Partager un lien est absent** dans une version sans serveur Velorki configuré.
-- **Tout le reste** devrait indiquer « … fait partie de Velorki Plus » et proposer la page d’abonnement. Si vous avez un abonnement et que ce n’est pas le cas, touchez **Restaurer les achats** dans **Réglages → Abonnement**.
+- **Tout le reste** devrait indiquer « … fait partie de Velorki Plus » et proposer la page d’abonnement. Si vous avez un abonnement et que ce n’est pas le cas, touchez **Restaurer les achats** dans **Réglages → Velorki Plus**.
 
 ## Signaler un bug
 

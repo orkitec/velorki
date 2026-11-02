@@ -55,6 +55,7 @@ The loop sheet has no field for a place to ride past, and no hill or surface pre
 
 ## When it finds nothing
 
+- **"This route needs routing tiles that are not on this device."** The routing data for the area is not on the phone. Under the message, the **Download 2 tiles (14 MB)** button fetches it right there, with the progress shown in the sheet and on the map; the search can start once it is in.
 - **"No loop found here, try another distance."** Some places, an island or a dead-end valley, simply have no road network for a circle of that length. Move the distance up or down by a good margin, or start somewhere else.
 - **"Turn on location or tap the map to set a start."** No start point could be worked out. Allow location, or tap the map first.
 - **"Finding a loop took too long on this phone. Try a shorter distance."** The search gave up after 30 minutes.

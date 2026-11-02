@@ -4,21 +4,19 @@ description: Affichez l’eau potable, les cafés, les toilettes, la réparation
 order: 5
 ---
 
-Velorki peut dessiner sur la carte les lieux où l’on s’arrête en sortie : eau potable, cafés, boulangeries, toilettes, stations de réparation vélo et plus. Ils viennent de l’index des lieux des données de routage sur le téléphone ; il faut donc avoir téléchargé la zone (voir [cartes et routage hors ligne](./offline-maps-and-routing)), cela marche sans réseau et n’envoie rien nulle part.
+Velorki peut dessiner sur la carte les lieux où l’on s’arrête en sortie : eau potable, cafés, boulangeries, toilettes, stations de réparation vélo, gares et arrêts de bus, pharmacies et plus. Ils viennent de l’index des lieux des données de routage sur le téléphone ; il faut donc avoir téléchargé la zone (voir [cartes et routage hors ligne](./offline-maps-and-routing)), cela marche sans réseau et n’envoie rien nulle part.
 
 ## Le bouton Calques
 
 **Calques** se trouve dans la colonne de boutons à droite de la carte, dans l’onglet Planifier comme dans l’onglet Rouler. Sa feuille contient :
 
-- **Haltes**, un interrupteur, désactivé tant que vous ne l’activez pas. Dessous, les types à afficher, par groupe : **Haltes à vélo**, **Hébergement** et **Points d’intérêt**. Touchez un type pour l’afficher ou le masquer. La première fois, l’eau potable, les cafés, les boulangeries, les toilettes et les stations de réparation vélo sont choisis. Interrupteur désactivé, les types se replient ; votre choix est conservé pour la fois suivante.
+- **Haltes**, un interrupteur, activé tant que vous ne le désactivez pas. Dessous, les types à afficher, par groupe : **Haltes à vélo**, **Hébergement**, **Nature**, **Transports**, **Services** et **Points d’intérêt**. Touchez un type pour l’afficher ou le masquer. La première fois, l’eau potable, les cafés, les boulangeries, les toilettes et les stations de réparation vélo sont choisis ; les autres types sont désactivés. **Haltes à vélo** comprend le distributeur de chambres à air, **Nature** l’aire de pique-nique, le point de vue et la plage, **Transports** les gares (haltes ferroviaires comprises), les arrêts de bus et de tram, les terminaux de ferry et les aéroports, et **Services** la pharmacie et l’hôpital. Interrupteur désactivé, les types se replient ; votre choix est conservé pour la fois suivante.
 
 ## Dans la zone que vous regardez
 
-Avec **Haltes** activé, les haltes de la partie visible de la carte apparaissent à partir du zoom 11. De loin, les haltes proches sont regroupées en bulles avec un nombre ; à partir du zoom 15, elles se séparent en haltes isolées avec leurs icônes. Touchez une bulle pour zoomer là où elle se sépare. Toutes les haltes des types choisis dans la vue sont chargées, aucune n’est laissée de côté.
+Avec **Haltes** activé, les haltes de la partie visible de la carte apparaissent à partir du zoom 11. De loin, les haltes proches sont regroupées en bulles avec un nombre ; à partir du zoom 15, elles se séparent en haltes isolées avec leurs icônes. Touchez une bulle pour zoomer là où elle se sépare. Toutes les haltes des types choisis dans la vue sont chargées, aucune n’est laissée de côté. Plus loin que le zoom 11, aucune n’est dessinée.
 
-Plus loin que cela, une pastille indique **Zoomez pour voir les haltes** ; touchez-la et la carte zoome là où elles s’affichent.
-
-Quand la zone n’est pas téléchargée, la pastille indique à la place **Pas de haltes ici – zone non téléchargée**, avec **Télécharger** ; un toucher ouvre le téléchargement de la zone visible.
+Quand la zone n’est pas téléchargée, une pastille indique **Pas de haltes ici – zone non téléchargée**, avec **Télécharger**. Un toucher demande ce qui sera récupéré, puis télécharge la zone sur place ; la pastille affiche la progression, et son **X** devient **Annuler le téléchargement** (avec demande de confirmation avant l’arrêt). Hors téléchargement, le **X** masque la pastille pour cette zone jusqu’au redémarrage de l’app.
 
 ## Le long de l’itinéraire à venir
 
@@ -30,7 +28,7 @@ Quand rien des 50 prochains km de l’itinéraire n’est téléchargé, la mêm
 
 ## Toucher une halte
 
-Une halte ouvre sa fiche du lieu, la même que celle d’un résultat de recherche : nom, type, ville, distance par rapport à vous et, avec un itinéraire, distance par rapport à celui-ci. Dans l’onglet Planifier, elle propose quoi faire du lieu, **Itinéraire jusqu’ici**, **Partir d’ici**, **Ajouter comme étape** ou **Arrivée** ; dans l’onglet Rouler, elle ne fait qu’informer. **Détails** et **Ouvrir dans…** sont dans les deux. Voir [la fiche du lieu](./search#la-fiche-du-lieu).
+Une halte ouvre sa fiche du lieu, la même que celle d’un résultat de recherche : nom, type, ville, distance par rapport à vous et, avec un itinéraire, distance par rapport à celui-ci. Dans l’onglet Planifier, elle propose quoi faire du lieu, **Itinéraire jusqu’ici**, **Partir d’ici**, **Ajouter comme étape** ou **Arrivée** ; dans l’onglet Rouler, elle ne fait qu’informer, sauf pendant une sortie qui suit un itinéraire : là, **Ajouter comme étape** insère la halte dans la partie de l’itinéraire devant vous, après une question et avec un recalcul, et le guidage continue sur l’ancien itinéraire jusqu’à ce que le nouveau soit prêt. **Détails** et **Ouvrir dans…** sont dans les deux. Voir [la fiche du lieu](./search#la-fiche-du-lieu).
 
 ## Voir aussi
 

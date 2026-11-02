@@ -20,7 +20,7 @@ Quando due di loro riportano la stessa cosa nello stesso momento, l'orologio vin
 
 ## Attivare una sorgente
 
-Tutto si trova in **Opzioni → Sensori**, subito sotto **Registrazione**:
+Tutto si trova in **Opzioni → Sensori**, sotto **Ciclista e bici**:
 
 - **Apple Health** su iPhone, **Health Connect** su Android, con la riga "Legge la frequenza cardiaca che altre app salvano in Health, come l'app Allenamento dell'orologio. Viene controllata ogni pochi secondi, quindi è in ritardo; una fascia o l'app Velorki per l'orologio prende il posto appena trasmette". Attivarlo è l'unica cosa in Velorki che può far comparire la richiesta di autorizzazione per i dati di salute. Se la rifiuti, Velorki dice "Velorki non ha ottenuto l'accesso ai tuoi dati sulla salute." e lascia l'interruttore spento.
 - **Salva i giri in Health** sotto di esso, "Ogni giro concluso finisce in Health come un allenamento in bici con inizio, fine e distanza", che puoi disattivare da solo. Non fa nulla finché l'interruttore sopra è spento.

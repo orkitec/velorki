@@ -47,7 +47,7 @@ Aprire un percorso lo disegna sulla mappa, adattato alla parte dello schermo sop
 Le azioni:
 
 - **Apri nel pianificatore** lo carica nella scheda Pianifica con tutti i suoi punti, punti intermedi con nomi, tipi e note compresi, dove puoi modificarlo e salvarlo di nuovo. Un percorso importato invece che pianificato si apre con la linea esatta del file e con punti solo alle estremità e sui punti del file che stanno sulla traccia, che arrivano con il loro tipo e la loro nota; una modifica ricalcola solo i tratti accanto, e la linea del file resta ovunque altrove. La linea del file viene conservata con il percorso attraverso ogni modifica e salvataggio, così **Ripristina** nel pianificatore può rimetterla al suo posto. I punti fuori dalla traccia arrivano come luoghi accanto al percorso, dove possono ricevere un nome, un tipo, essere spostati sul percorso o rimossi come qualsiasi altro punto. Il prossimo salvataggio scrive entrambi gli insiemi, quindi un luogo che elimini nel pianificatore sparisce anche dal pannello.
-- **Esporta** offre **Percorso GPX** e **Percorso FIT**, vedi [importazione ed esportazione](./import-and-export).
+- **Esporta** offre **Percorso GPX**, **Percorso FIT** e **Percorso TCX**, vedi [importazione ed esportazione](./import-and-export).
 - **Condividi** apre la scheda di condivisione: un **Link** al percorso, **Ride with GPS** e **Strava**, vedi [condividere](./sharing) e [Strava e Ride with GPS](./strava-and-ridewithgps).
 - **Descrivi questo percorso** chiede all'assistente di scrivere un paragrafo su di esso, vedi [assistente](./assistant).
 
@@ -74,7 +74,7 @@ Un giro registrato con una fascia cardio, un Apple Watch o un misuratore di pote
 
 ### Calorie, zone di frequenza cardiaca, zone di potenza e potenza stimata
 
-Tutte e quattro sono disattivate finché non le accendi in Opzioni → Ciclista, e tutte e quattro sono calcolate sul telefono dai punti del giro stesso, quindi le ricevono anche i giri più vecchi.
+Tutte e quattro sono disattivate finché non le accendi in Opzioni → Ciclista e bici, e tutte e quattro sono calcolate sul telefono dai punti del giro stesso, quindi le ricevono anche i giri più vecchi.
 
 **Calorie** è una stima, e la piccola riga sotto il valore dice su cosa si basa. Con un misuratore di potenza per tutto il giro è il lavoro svolto, "dalla potenza": un chilojoule di pedalata è quasi esattamente una chilocaloria bruciata. Altrimenti, con una frequenza cardiaca per tutto il giro e il tuo peso, anno di nascita e sesso, è "dal battito". Altrimenti, con **Stima potenza** attivo, è "dalla potenza stim.", di nuovo il lavoro stimato in chilojoule. Altrimenti è "dalla velocità", dal tuo peso e da quanto veloce hai pedalato. In ogni caso serve il tuo peso.
 
@@ -82,7 +82,7 @@ Tutte e quattro sono disattivate finché non le accendi in Opzioni → Ciclista,
 
 **Zone di frequenza cardiaca** è una barra sotto il grafico della frequenza cardiaca, divisa in cinque zone della tua frequenza cardiaca massima, con una riga per zona: il suo intervallo, il tempo passato lì e la quota del tempo con frequenza cardiaca del giro. La zona 1 è tutto sotto il 60 %, la zona 5 tutto dal 90 % in su. La didascalia indica il massimo usato: quello che hai inserito, oppure 220 meno la tua età.
 
-**Zone di potenza** è la stessa barra per i giri con misuratore di potenza, divisa in sette zone della tua potenza di soglia: sotto il 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 e dal 150 % in su. Ogni secondo del giro va nella zona della lettura del misuratore in quel momento; il tempo da fermo non conta da nessuna parte. La didascalia indica la soglia, "Zone di potenza · soglia 250 W". Richiede l'interruttore e la tua potenza di soglia in Opzioni → Ciclista, e mette il valore **Intensità** tra i riquadri.
+**Zone di potenza** è la stessa barra per i giri con misuratore di potenza, divisa in sette zone della tua potenza di soglia: sotto il 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 e dal 150 % in su. Ogni secondo del giro va nella zona della lettura del misuratore in quel momento; il tempo da fermo non conta da nessuna parte. La didascalia indica la soglia, "Zone di potenza · soglia 250 W". Richiede l'interruttore e la tua potenza di soglia in Opzioni → Ciclista e bici, e mette il valore **Intensità** tra i riquadri.
 
 ### Parziali
 
@@ -102,7 +102,7 @@ Sotto le salite, una barra **Fondo** come quella sul pannello di un percorso: qu
 
 ### Azioni di un giro
 
-- Il menu a destra dell'intestazione del pannello: **Esporta traccia GPX**, **Esporta attività FIT**, **Continua questo giro**, **Rinomina**, **Elimina**.
+- Il menu a destra dell'intestazione del pannello: **Esporta traccia GPX**, **Esporta attività FIT**, **Esporta attività TCX**, **Continua questo giro**, **Rinomina**, **Elimina**.
 - In fondo: le stesse due esportazioni e **Condividi**, che apre la scheda di condivisione con **Link**, **Ride with GPS** e **Strava**, vedi [condividere](./sharing).
 
 ## Far entrare file e percorsi
@@ -116,11 +116,11 @@ Entrambi sono descritti in [importazione ed esportazione](./import-and-export) e
 
 ## Sincronizzazione con iCloud o Google Drive
 
-I tuoi percorsi salvati e i tuoi giri registrati, con traccia, note, cifre, lap e letture dei sensori di ogni giro, possono essere sincronizzati tra i tuoi dispositivi tramite il tuo cloud. **Opzioni → Sincronizza con** ne sceglie uno per dispositivo: **iCloud** (iPhone e iPad con iOS 17 o successivo, e il pianificatore nel browser), **Google** (iPhone, iPad, Android e il browser) o **Disattivato**. Su un iPhone o un iPad iCloud è attivo per impostazione predefinita; su Android e nel browser la sincronizzazione resta disattivata finché non scegli un cloud. Google conserva i dati in una cartella nascosta di Velorki nel tuo Google Drive; Velorki può aprire quella cartella e nient'altro nel tuo Drive.
+I tuoi percorsi salvati e i tuoi giri registrati, con traccia, note, cifre, lap e letture dei sensori di ogni giro, possono essere sincronizzati tra i tuoi dispositivi tramite il tuo cloud. **Opzioni → Sincronizzazione**, sotto **Sincronizza con**, ne sceglie uno per dispositivo: **iCloud** (iPhone e iPad con iOS 17 o successivo, e il pianificatore nel browser), **Google** (iPhone, iPad, Android e il browser) o **Disattivato**. Su un iPhone o un iPad iCloud è attivo per impostazione predefinita; su Android e nel browser la sincronizzazione resta disattivata finché non scegli un cloud. Google conserva i dati in una cartella nascosta di Velorki nel tuo Google Drive; Velorki può aprire quella cartella e nient'altro nel tuo Drive.
 
 Con loro viaggiano poche impostazioni: tema, colore d'accento, aspetto della mappa, aspetto del radar della pioggia, stile della barra, lato della colonna, unità e le impostazioni di svolta, vocali e di ricalcolo del percorso. Nel browser con iCloud, le impostazioni restano nel browser. Velorki non gestisce alcun server per questo e non può leggere ciò che è salvato; vedi l'[informativa sulla privacy](/privacy).
 
-Eliminare un percorso o un giro lo elimina anche sugli altri tuoi dispositivi. Scegliere **Disattivato**, uscire dall'account o passare all'altro cloud non elimina nulla: ciò che è già in iCloud resta lì finché non lo elimini nelle impostazioni iCloud di un dispositivo Apple, e ciò che è in Google Drive resta lì finché non lo elimini in Google Drive sul web, in Impostazioni → Gestisci app → Velorki → Opzioni → Elimina dati app nascosti. Una riga di stato in Opzioni dice a che punto è, per esempio **Sincronizzato ora**, **Sincronizzazione…**, **Lo spazio di iCloud è pieno** o **Accesso a Google non effettuato**.
+Eliminare un percorso o un giro lo elimina anche sugli altri tuoi dispositivi. Scegliere **Disattivato**, uscire dall'account o passare all'altro cloud non elimina nulla: ciò che è già in iCloud resta lì finché non lo elimini nelle impostazioni iCloud di un dispositivo Apple, e ciò che è in Google Drive resta lì finché non lo elimini in Google Drive sul web, in Impostazioni → Gestisci app → Velorki → Opzioni → Elimina dati app nascosti. Una riga di stato nelle opzioni di Sincronizzazione dice a che punto è, per esempio **Sincronizzato ora**, **Sincronizzazione…**, **Lo spazio di iCloud è pieno** o **Accesso a Google non effettuato**.
 
 I percorsi letti da Strava e i percorsi modificati a partire da essi restano sul telefono, così come i link Strava dei giri; neppure i link dei caricamenti su Ride with GPS vengono sincronizzati. Le mappe scaricate e i riquadri di routing non vengono sincronizzati.
 

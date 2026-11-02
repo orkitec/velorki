@@ -21,18 +21,19 @@ Die Routing-Daten tragen auch den Ortsindex, ein heruntergeladenes Gebiet sucht 
 ## Ein Gebiet herunterladen
 
 1. Verschiebe im Tab **Planen** die Karte so, dass das gewünschte Gebiet den Bildschirm ausfüllt. Zoom nicht weiter heraus als nötig: Der Kartendownload folgt genau dem, was auf dem Bildschirm zu sehen ist.
-2. Tippe in der Spalte rechts neben der Karte auf **Offline-Daten**. Auf einem kleinen Bildschirm wie dem iPhone SE hat die Spalte dafür keinen Platz: Tippe dort im Hinweis oben in den Suchergebnissen oder im Chip über der Karte auf **Herunterladen** oder auf die Download-Schaltfläche unter einer Route, der Kacheln fehlen, und verwalte, was du hast, unter **Einstellungen → Offline-Daten**.
-3. Lies die beiden Karten und tippe unten auf **Sichtbares Gebiet herunterladen**.
-4. Der Dialog **Sichtbares Gebiet herunterladen** listet auf, was du gleich holst: "Karte des sichtbaren Gebiets · Größe erst nach dem Download bekannt" für die Karte, dann eine Zeile je Routing-Kachel mit ihrer Größe, zum Beispiel `E5_N45 · 187 MB`, oder "Routing-Daten für dieses Gebiet sind schon auf dem Gerät".
-5. Tippe auf **Herunterladen**.
+2. Starte den Download dort, wo er angeboten wird. Alle stellen dieselbe eine Frage und laden an Ort und Stelle über der Karte herunter:
+   - **Herunterladen** im Chip über der Karte. Ab Zoom 11, sobald die Mitte der Karte im Tab Planen über einem nicht heruntergeladenen Gebiet liegt, steht dort **Dieses Gebiet ist nicht heruntergeladen**; bei eingeschalteten [Stopps](./stops-on-the-map) stattdessen "Keine Stopps hier – Gebiet nicht heruntergeladen", bei eingeschalteter Radkarte "Keine Radkarte hier – Gebiet nicht heruntergeladen".
+   - **Herunterladen** im Hinweis oben in den Suchergebnissen.
+   - **3 Kacheln herunterladen (412 MB)** unter einer Route, der Kacheln fehlen.
+   - Die runde Download-Schaltfläche in der Spalte rechts neben der Karte, die den Bildschirm **Offline** öffnet: Lies die beiden Karten und tippe unten auf **Sichtbares Gebiet herunterladen**. Auf einem kleinen Bildschirm wie dem iPhone SE hat die Spalte dafür keinen Platz; verwalte, was du hast, unter **Optionen → Karten & Daten → Offline-Daten**. Die Schaltfläche zeigt ein gefülltes Symbol, sobald das sichtbare Gebiet heruntergeladen ist (ein Tipp sagt "Dieses Gebiet ist heruntergeladen", mit **Verwalten**), ein Abzeichen bei Updates und einen Ladekreis während des Downloads.
+3. Der Dialog **Sichtbares Gebiet herunterladen** listet auf, was du gleich holst: "Karte des sichtbaren Gebiets · Größe erst nach dem Download bekannt" für die Karte, dann eine Zeile je Routing-Kachel mit ihrer Größe, zum Beispiel `E5_N45 · 187 MB`, oder "Routing-Daten für dieses Gebiet sind schon auf dem Gerät".
+4. Tippe auf **Herunterladen**.
 
-Ab Zoom 11 zeigt ein Chip über der Karte **Dieses Gebiet ist nicht heruntergeladen** mit **Herunterladen**, sobald die Mitte der Karte im Tab Planen über einem nicht heruntergeladenen Gebiet liegt. Ein Tipp irgendwo auf den Chip öffnet den Offline-Bildschirm für das sichtbare Gebiet. Bei eingeschalteten [Stopps](./stops-on-the-map) steht stattdessen "Keine Stopps hier – Gebiet nicht heruntergeladen", bei eingeschalteter Radkarte "Keine Radkarte hier – Gebiet nicht heruntergeladen". Der Chip verschwindet, sobald das Gebiet heruntergeladen ist.
-
-Beide Downloads laufen, solange die App offen ist. Die Karten zeigen **Karte wird heruntergeladen…** und **E5_N45 wird heruntergeladen…** mit Fortschrittsbalken.
+Beide Downloads laufen, solange die App offen ist. Der Chip und die Karte, von der du gestartet hast, zeigen den Fortschritt; auf dem Offline-Bildschirm zeigen die Karten **Karte wird heruntergeladen…** und **E5_N45 wird heruntergeladen…** mit Fortschrittsbalken. Das **X** des Chips ist während des Downloads **Download abbrechen**: Es fragt "Download abbrechen?", und **Download abbrechen** stoppt Karte und Routing-Kacheln, entfernt das unfertige Kartenpaket und bietet das Gebiet wieder an. **Weiter herunterladen** macht weiter. Der Chip verschwindet, sobald das Gebiet heruntergeladen ist. Ein Kartendownload, der keinen Fortschritt mehr macht, wird aufgegeben.
 
 Der Bildschirm warnt aus gutem Grund: "Kacheln sind groß, oft 125–250 MB pro Stück, und Velorki kann Wi-Fi nicht von mobilen Daten unterscheiden. Starte einen Download am besten im Wi-Fi."
 
-Du erreichst diesen Bildschirm auch über **Einstellungen → Offline-Daten**, aber so geöffnet liegt keine Karte dahinter, die Download-Schaltfläche ist also gesperrt und der Hinweis lautet "Öffne diesen Bildschirm von der Karte aus, um das sichtbare Gebiet herunterzuladen."
+Du erreichst diesen Bildschirm auch über **Optionen → Karten & Daten → Offline-Daten**, aber so geöffnet liegt keine Karte dahinter, die Download-Schaltfläche ist also gesperrt und der Hinweis lautet "Öffne diesen Bildschirm von der Karte aus, um das sichtbare Gebiet herunterzuladen."
 
 ## Die Kartengebiete verwalten
 
@@ -65,11 +66,11 @@ Ebenfalls auf dem Bildschirm:
 - Eine Schaltfläche **Löschen** in jeder Zeile, mit der Warnung "Die Kachel wird von diesem Gerät entfernt. Routen in diesem Gebiet brauchen dann wieder den Routing-Server."
 - Eine Schaltfläche **Download abbrechen** im Fortschrittskopf, solange einer läuft.
 
-Velorki prüft wöchentlich, ob der Mirror etwas neu gebaut hat, was du besitzt. Ist das der Fall, wird die Zeile **Offline-Daten** in den Einstellungen orange, zeigt "Für 2 Kacheln gibt es Updates" und setzt eine Zahl an den Pfeil.
+Velorki prüft wöchentlich, ob der Mirror etwas neu gebaut hat, was du besitzt. Eine Kachel gilt nur dann als aktualisiert, wenn sich ihr Inhalt geändert hat, nicht bei jedem Lauf des Mirrors. Ist das der Fall, zeigt ein Chip über der Karte **Neue Kartendaten für dieses Gebiet** mit **Aktualisieren**, die Download-Schaltfläche bekommt ein Abzeichen, und die Zeile **Offline-Daten** unter **Optionen → Karten & Daten** wird orange, zeigt "Für 2 Kacheln gibt es Updates" und setzt eine Zahl an den Pfeil. **Aktualisieren** im Chip stellt die übliche Frage und lädt dann die geänderten Kacheln neu; sein **X** verbirgt den Chip für dieses Gebiet, bis du die App neu startest.
 
 ## Das Ortsverzeichnis, also der Suchindex
 
-Zu jeder Routing-Kachel, die der Mirror veröffentlicht, liegt ein kleiner Suchindex daneben, und Velorki lädt beide zusammen herunter. Nichts davon ist als eigene Einstellung oder eigener Download sichtbar.
+Zu jeder Routing-Kachel, die der Mirror veröffentlicht, liegt ein kleiner Suchindex daneben, und Velorki lädt beide zusammen herunter. Nichts davon ist als eigene Einstellung sichtbar. Hat sich nur der Suchindex einer Kachel geändert, ist das Update ein kleiner Download allein des Index, nicht der Kachel.
 
 Schlägt der Download des Index fehl, ist die Kachel selbst trotzdem in Ordnung: Das Gebiet bleibt routingfähig und seine Suche geht einfach online. Dasselbe gilt für einen Index in einem Format, das diese App-Version nicht liest; er wird übersprungen, die anderen Gebiete antworten weiter offline, und dieses Gebiet sucht online.
 

@@ -12,16 +12,22 @@ La registrazione è gratuita e funziona anche senza alcuna connessione.
 
 1. Apri la scheda **Registra**. Il pannello dice **Pronto a partire**, con un breve suggerimento sotto.
 2. Sotto **Segui un percorso** scegli cosa segue il giro: **Nessun percorso**, **Il percorso nella scheda Pianifica** (offerto finché ce n'è uno) oppure uno dei tuoi percorsi salvati. Un percorso attiva la guida descritta in [navigazione svolta per svolta](./navigation). Finché non scegli, la scheda propone il percorso da cui arrivi: il percorso di cui avevi la scheda aperta nella Libreria, o il piano nella scheda Pianifica; la tua scelta vale poi fino al riavvio dell'app.
-3. Tocca **Inizia giro**.
-4. Durante il giro il pannello mostra un'etichetta di stato, il cronometro e i numeri: **Distanza**, **Velocità**, **Media**, poi **Dislivello**, **Discesa**, **In movimento**. Mentre segui un percorso si aggiunge una riga **Rimanenti** e **Arrivo**: la distanza ancora da pedalare e quando arriverai alla tua velocità media finora, due trattini finché il giro non ha una media.
+3. Tocca **Inizia giro**. Se il percorso non ha indicazioni di svolta, Velorki propone prima di crearle, e se la sua regione non è sul telefono chiede di scaricarla lì stesso e aspetta; vedi [navigazione svolta per svolta](./navigation).
+4. Durante il giro il pannello mostra un'etichetta di stato, il cronometro e i numeri (**Modifica dati** sceglie quali e in che ordine): **Distanza**, **Velocità**, **Media**, poi **Dislivello**, **Discesa**, **In movimento**. Mentre segui un percorso si aggiunge una riga **Rimanenti** e **Arrivo**: la distanza ancora da pedalare e quando arriverai alla tua velocità media finora, due trattini finché il giro non ha una media.
 5. **Pausa** ferma la traccia dove sei; **Riprendi** continua. L'interruzione appare come un vuoto nella traccia. In pausa i numeri si attenuano e l'etichetta diventa **IN PAUSA**, così lo stato è chiaro a colpo d'occhio.
 6. **Termina** salva il giro con un nome predefinito come **Giro 17 set 2026** e apre la sua pagina.
+
+Hai pianificato un percorso e vuoi pedalarlo? **Parti** accanto a **Salva** nella scheda Pianifica apre la scheda Registra con il piano scelto e avvia il giro allo stesso modo, con gli stessi avvisi. Con un giro già in corso passa soltanto alla scheda Registra.
 
 Se termini senza aver registrato nulla, Velorki dice "Non è stato registrato nulla." e non salva alcun giro.
 
 ### Pausa automatica
 
 Velorki si mette in pausa da solo dopo circa dieci secondi senza movimento; l'etichetta dice allora **PAUSA AUTOMATICA**. A differenza di una pausa manuale continua ad ascoltare, e il primo movimento vero la fa riprendere. Una pausa manuale smette di ascoltare finché non premi **Riprendi**.
+
+### Aggiungere una sosta lungo la strada
+
+Mentre segui un percorso, tocca una sosta sulla mappa e scegli **Aggiungi come sosta**: il percorso viene ricalcolato per passare da lì, davanti a dove sei, e la guida continua senza interruzioni. Vedi [navigazione svolta per svolta](./navigation#aggiungere-una-sosta-lungo-la-strada).
 
 ## Frequenza cardiaca, cadenza e potenza
 

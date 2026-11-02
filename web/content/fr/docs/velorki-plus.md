@@ -1,6 +1,6 @@
 ---
 title: Velorki Plus
-description: Tout ce qui tourne sur votre téléphone est gratuit, et les connexions à Strava et Ride with GPS aussi. Plus est un petit abonnement pour les fonctions qui nécessitent nos serveurs.
+description: Tout ce qui tourne sur le téléphone est gratuit, Strava et Ride with GPS compris. Plus est un petit abonnement pour ce qui passe par nos serveurs.
 order: 15
 ---
 
@@ -23,6 +23,7 @@ Gratuit, pour tout le monde, pour de bon :
 - la carte météo : radar de pluie, nuages et vent, avec le curseur de temps,
 - la météo le long de l’itinéraire d’une prévision publique plus grossière, le modèle ICON du Deutscher Wetterdienst : vent, pluie, température, une ligne qui les résume et la meilleure heure de départ, et l’itinéraire coloré selon la pente, le revêtement, le vent ou la pluie,
 - les connexions à Strava et Ride with GPS : téléverser des sorties, importer des itinéraires, envoyer des itinéraires vers Ride with GPS (voir [Strava et Ride with GPS](./strava-and-ridewithgps)),
+- la synchronisation de vos itinéraires, sorties et de quelques réglages entre vos appareils par votre propre iCloud ou Google Drive,
 - l’ouverture du lien de partage de quelqu’un d’autre.
 
 Les données de routage et l’index de recherche sont mis en miroir pour vous gratuitement.
@@ -33,7 +34,7 @@ Trois fonctions, telles qu’elles figurent sur la page d’abonnement :
 
 | Fonction | De quoi s’agit-il |
 |---|---|
-| **Assistant IA** | « Décrivez la sortie souhaitée ; Velorki en fait un itinéraire et le calcule sur votre téléphone. » |
+| **Assistant IA** | « Décrivez la sortie souhaitée ; Velorki en fait un itinéraire et le calcule sur votre appareil. » |
 | **Partage de lien** | « Transformez un itinéraire ou une sortie en lien que chacun peut ouvrir dans un navigateur. » |
 | **Météo plus fine sur l’itinéraire et radar de pluie** | « Une météo plus fine le long de l’itinéraire par des services météo locaux, avec rafales et probabilité de pluie, et un vrai radar de pluie dans toute l’Europe. » |
 
@@ -43,13 +44,13 @@ La météo plus fine sur l’itinéraire vient du National Weather Service aux �
 
 ## S’abonner
 
-1. Ouvrez **Réglages**, trouvez **Abonnement**, touchez **Velorki Plus**. La page d’abonnement s’ouvre aussi depuis les boutons **Découvrir Velorki Plus** répartis près des fonctions réservées.
-2. Choisissez une formule. Chaque tuile affiche son prix et sa période, et un essai gratuit est signalé sous le prix : « Commence par 7 jours d’essai gratuit. »
+1. Ouvrez **Réglages**, touchez **Velorki Plus**, puis la ligne **Velorki Plus**. La page d’abonnement s’ouvre aussi depuis les boutons **Découvrir Velorki Plus** répartis près des fonctions réservées.
+2. Choisissez une formule. Chaque tuile affiche son prix et sa période, et un essai gratuit est signalé sous le prix : « Gratuit pendant 7 jours, puis … Résiliez au moins 24 heures avant la fin de l’essai et rien ne vous sera facturé. »
 3. Touchez **S’abonner** et confirmez dans la fenêtre propre au store.
 
 Vous obtenez « Velorki Plus est actif. Merci ! » et toutes les fonctions réservées se débloquent d’un coup. Annuler la fenêtre du store n’affiche rien et ne change rien.
 
-La page affiche toujours les conditions du store : « L’abonnement se renouvelle automatiquement à la fin de chaque période, sauf s’il est résilié au moins 24 heures avant. Le paiement est prélevé par l’App Store ou Google Play, où l’abonnement peut être géré ou résilié à tout moment. Un essai gratuit qui n’est pas résilié devient un abonnement payant. »
+La page se termine par les conditions du store. Sur un iPhone, le paiement est débité sur votre compte Apple et l’abonnement se renouvelle automatiquement, sauf s’il est résilié au moins 24 heures avant la fin de la période. Sur Android, il est débité sur votre compte Google Play et se renouvelle, sauf s’il est résilié avant la fin de la période. Dans les deux cas, il peut être géré ou résilié à tout moment dans le store, et un essai gratuit qui n’est pas résilié devient un abonnement payant.
 
 ## L’essai
 
@@ -59,7 +60,7 @@ Lorsqu’une formule en propose un, l’abonnement commence par un essai gratuit
 
 Comme il n’y a pas de compte, un abonnement actif est reconnu via le store. Sur un nouveau téléphone, après une réinstallation, ou si l’app a simplement perdu le fil :
 
-1. Ouvrez **Réglages → Abonnement**, ou la page d’abonnement.
+1. Ouvrez **Réglages → Velorki Plus**, ou la page d’abonnement.
 2. Touchez **Restaurer les achats**. « Déjà abonné ? La restauration fonctionne sans compte. »
 
 Velorki affiche alors « Votre abonnement a été restauré. », ou « La boutique n’a trouvé aucun achat à restaurer. » si l’identifiant Apple ou le compte Google connecté sur le téléphone n’en possède pas. Un abonnement acheté sur un store ne peut pas être restauré sur l’autre.
@@ -68,13 +69,17 @@ Velorki affiche alors « Votre abonnement a été restauré. », ou « La bou
 
 La résiliation se fait dans le store, jamais dans l’app.
 
-1. **Réglages → Abonnement**.
+1. **Réglages → Velorki Plus**.
 2. Touchez **Gérer**, qui ouvre votre page d’abonnement dans l’App Store ou dans Google Play.
 3. Résiliez-y.
 
 Plus reste actif jusqu’à la fin de la période déjà payée. La ligne des Réglages affiche **Actif · Renouvellement le 17 oct. 2026** tant que l’abonnement se renouvelle, et **Actif · Prend fin le 17 oct. 2026** une fois résilié.
 
 Les remboursements dépendent d’Apple et de Google, selon leurs propres politiques, puisque ce sont eux qui ont prélevé le paiement.
+
+## Dans le navigateur
+
+Plus ne peut pas être acheté dans le planificateur web. Si vous l’avez acheté dans l’app iPhone ou Android et synchronisez avec iCloud ou Google, connectez-vous au planificateur avec ce même compte (« Connectez-vous avec iCloud ou Google pour utiliser votre Plus ») et Plus y fonctionne aussi. Sans Plus sur ce compte, le planificateur affiche « Pour l’instant, uniquement dans les apps iPhone et Android ».
 
 ## « Non disponible dans cette version »
 

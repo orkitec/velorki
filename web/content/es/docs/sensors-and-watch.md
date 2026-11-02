@@ -20,7 +20,7 @@ Cuando dos de ellas informan de lo mismo a la vez, el reloj gana a un sensor Blu
 
 ## Activar una fuente
 
-Todo está en **Ajustes → Sensores**, justo debajo de **Grabación**:
+Todo está en **Ajustes → Sensores**, bajo **Ciclista y bici**:
 
 - **Apple Health** en un iPhone, **Health Connect** en Android, con la línea «Lee el pulso que otras apps guardan en Salud, como la app Entreno del reloj. Se consulta cada pocos segundos, así que va con retraso; una banda o la app de Velorki para el reloj toman el relevo cuando envían datos». Activarlo es lo único de Velorki que puede mostrar la solicitud de permiso de salud. Si la rechazas, Velorki dice «Velorki no tiene acceso a tus datos de salud.» y deja el interruptor apagado.
 - **Guardar salidas en Salud** debajo, «Cada salida terminada se guarda en Salud como un entrenamiento de ciclismo con su inicio, final y distancia», que puedes desactivar por separado. No hace nada mientras el interruptor de encima está apagado.

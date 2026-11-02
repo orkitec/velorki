@@ -1,6 +1,6 @@
 ---
 title: Confidentialité sur le téléphone
-description: "En termes de cycliste : ce qui reste sur votre téléphone, ce qui en sort, quand et vers qui. Il n’y a pas de compte et rien ne nous parvient sans que vous le demandiez."
+description: Ce qui reste sur votre téléphone, ce qui en sort, quand et vers qui. Il n’y a pas de compte, et rien ne nous parvient sans votre demande.
 order: 17
 ---
 
@@ -11,13 +11,13 @@ Velorki n’a pas de compte : il n’y a donc rien à quoi se connecter et rie
 Tout ce que vous créez et tout ce que vous téléchargez :
 
 - les itinéraires planifiés, les sorties enregistrées et leurs traces GPS,
-- vos réglages, y compris les unités et la voix que vous avez choisies, ainsi que le poids, l’année de naissance, le sexe, la fréquence cardiaque maximale, le poids du vélo, le type de vélo et la puissance seuil que vous pouvez saisir dans Réglages → Cycliste : ce sont des réglages du téléphone, qui ne sont jamais envoyés nulle part,
+- vos réglages, y compris les unités et la voix que vous avez choisies, ainsi que le poids, l’année de naissance, le sexe, la fréquence cardiaque maximale, le poids du vélo, le type de vélo et la puissance seuil que vous pouvez saisir dans Réglages → Cycliste et vélo : ce sont des réglages du téléphone, qui ne sont jamais envoyés nulle part,
 - les zones de carte hors ligne téléchargées,
 - les tuiles de routage téléchargées et les index de recherche de lieux qui les accompagnent,
 - les jetons d’accès à Strava et Ride with GPS si vous les connectez, qui vont dans le stockage sécurisé du téléphone sous une forme que seul le relais Velorki peut ouvrir, et sont exclus des sauvegardes,
 - ce que vous récupérez de Strava : votre nom Strava, la liste de vos itinéraires Strava pendant 48 heures au plus, les itinéraires que vous importez et les liens entre les sorties téléversées et leurs activités Strava. La déconnexion supprime tout cela.
 
-Rien de tout cela n’est téléversé où que ce soit sans que vous le demandiez. La seule exception est la synchronisation dans le cloud : vos itinéraires, vos sorties et quelques réglages vont dans votre propre iCloud ou votre propre Google Drive, jamais chez nous, et les données Strava restent sur le téléphone. Sur un iPhone ou un iPad, iCloud est activé par défaut ; sur Android, la synchronisation est désactivée tant que vous ne choisissez pas de cloud. **Réglages → Synchroniser avec** choisit le cloud ou désactive la synchronisation, voir [la bibliothèque](./library#synchronisation-avec-icloud-ou-google-drive).
+Rien de tout cela n’est téléversé où que ce soit sans que vous le demandiez. La seule exception est la synchronisation dans le cloud : vos itinéraires, vos sorties et quelques réglages vont dans votre propre iCloud ou votre propre Google Drive, jamais chez nous, et les données Strava restent sur le téléphone. Sur un iPhone ou un iPad, iCloud est activé par défaut ; sur Android, la synchronisation est désactivée tant que vous ne choisissez pas de cloud. **Réglages → Synchronisation → Synchroniser avec** choisit le cloud ou désactive la synchronisation, voir [la bibliothèque](./library#synchronisation-avec-icloud-ou-google-drive).
 
 Sur Android, Velorki est volontairement exclu de la sauvegarde cloud de Google et du transfert d’appareil à appareil : vos sorties ne sont donc pas non plus copiées hors du téléphone par le système. Pour passer à un nouveau téléphone, activez la synchronisation avec Google, ou exportez ce que vous voulez garder en fichiers GPX, FIT ou TCX, voir [import et export](./import-and-export).
 
@@ -27,11 +27,19 @@ Sur Android, Velorki est volontairement exclu de la sauvegarde cloud de Google e
 
 Les tuiles de carte sont récupérées auprès d’OpenFreeMap, et de CyclOSM si vous activez **Carte vélo en ligne** sous **Calques**. La **Carte vélo** est dessinée sur le téléphone et ne demande rien à aucun serveur. Demander une tuile indique au serveur de tuiles quel carré du monde vous regardez, et fait intervenir votre adresse IP, comme toute requête. Une zone que vous avez téléchargée est servie depuis le téléphone et ne demande rien.
 
+### Météo
+
+La carte météo (pluie, nuages, vent) et un itinéraire coloré selon le vent ou la pluie récupèrent des images et des données de prévision directement auprès de services météo publics, comme le Deutscher Wetterdienst, la NOAA, le KNMI, la NASA et EUMETSAT. Chaque requête nomme une partie de la carte, ou un cadre autour de votre itinéraire, et une heure, et implique votre adresse IP ; ni l’itinéraire lui-même, ni vos sorties, ni votre identité ne sont envoyés. Avec Velorki Plus, la prévision plus fine et le radar de pluie passent en revanche par le relais de Velorki : pour la prévision, les points le long de l’itinéraire, arrondis à une grille d’environ 2,5 km, avec les heures où vous y roulez ; pour le radar, la partie de la carte que vous regardez et une heure. Les services météo voient notre serveur, pas votre téléphone.
+
+### Quand vous téléchargez une zone
+
+Les zones de carte hors ligne viennent d’OpenFreeMap, comme la carte elle-même. Les tuiles de routage et l’index de recherche qui les accompagne viennent du miroir de tuiles sur GitHub ; GitHub apprend quelles tuiles vous téléchargez et votre adresse IP. Pour savoir s’il y a de nouvelles données cartographiques, Velorki interroge ce même miroir ; rien ne part au-delà de cette requête.
+
 ### Quand vous planifiez
 
 Le routage s’effectue sur votre téléphone partout où vous avez les tuiles de routage. Pour une zone que vous n’avez pas téléchargée, les points de passage sont envoyés à un serveur de routage, qui renvoie l’itinéraire. Il reçoit les points de passage, rien d’autre : pas d’identité, pas d’autres itinéraires, pas de sorties.
 
-**Réglages → Avancé → Routage → Sur l’appareil uniquement** désactive entièrement le serveur ; Velorki propose alors le téléchargement au lieu de calculer l’itinéraire.
+**Réglages → Cartes et données → Routage → Sur l’appareil uniquement** désactive entièrement le serveur ; Velorki propose alors le téléchargement au lieu de calculer l’itinéraire.
 
 ### Quand vous cherchez
 
@@ -48,6 +56,8 @@ Un lien de carte court que vous partagez vers Velorki (`maps.app.goo.gl`, `maps.
 ### Quand vous enregistrez
 
 Absolument rien ne quitte le téléphone. L’enregistrement, les statistiques, les graphiques et les tronçons sont tous calculés sur l’appareil. Il en va de même pour la fréquence cardiaque, la cadence et la puissance provenant d’une montre, d’un capteur Bluetooth ou de votre app de santé : elles sont stockées avec la sortie et, si vous avez activé Santé, échangées avec Apple Santé ou Health Connect sur le téléphone lui-même.
+
+Votre position centre la carte et enregistre vos sorties, et reste sur le téléphone. Velorki demande l’autorisation une fois, au premier démarrage. Elle ne quitte le téléphone que dans deux cas, tous deux quand vous les déclenchez : arrondie à environ un kilomètre vers l’assistant, si vous l’avez autorisé, et comme position approximative vers Photon quand vous cherchez en ligne.
 
 ### Quand vous interrogez l’assistant
 
@@ -68,6 +78,10 @@ Cet itinéraire ou cette sortie, avec sa trace, son nom et ses chiffres, est cop
 ### Quand vous achetez Velorki Plus
 
 Le store gère le paiement et nous ne voyons jamais votre carte. L’abonnement est vérifié à l’aide d’un identifiant aléatoire anonyme qui n’est lié ni à un nom, ni à une adresse e-mail, ni à un identifiant d’appareil. Si la synchronisation est activée, l’app place aussi cet identifiant dans votre propre cloud, pour que le planificateur dans le navigateur, connecté au même compte, puisse utiliser votre Plus.
+
+### Avis de mise à jour et évaluations
+
+Sur un iPhone, Velorki interroge la recherche publique de l’App Store pour savoir s’il existe une version plus récente, avec l’identifiant de bundle de l’app, votre pays et votre langue ; sur Android, c’est Google Play qui le lui dit. La fenêtre d’évaluation est celle du système, Apple ou Google décident si et quand elle s’affiche, et une évaluation ne nous parvient jamais.
 
 ## Ce que Velorki ne fait jamais
 

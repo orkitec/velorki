@@ -9,7 +9,7 @@ La scheda Pianifica trasforma i tocchi sulla mappa in un percorso in bici, calco
 ## Imposta la partenza e la destinazione
 
 1. Apri la scheda **Pianifica** e sposta la mappa dove vuoi partire.
-2. **Tocca la mappa** per impostare la partenza. Il pannello in basso dice "Tocca di nuovo la mappa per aggiungere una destinazione."
+2. **Tocca la mappa** per impostare la partenza. Il pannello vuoto dice "Cerca un luogo o tocca la mappa."; con una partenza dice "Tocca di nuovo la mappa per aggiungere una destinazione."
 3. **Tocca di nuovo** per il punto successivo. Ogni tocco aggiunge un punto alla fine del percorso, e l'ultimo, la destinazione, porta una bandierina. Per inserire invece un punto nel mezzo, **tocca la linea del percorso** dove deve andare: il punto si posa lì sulla linea, e puoi trascinarlo come qualsiasi altro.
 4. Velorki aspetta un momento dopo la tua ultima modifica e poi calcola. Mentre lavora il pannello mostra una rotellina e **Calcolo del percorso…**; poi compaiono i numeri.
 
@@ -86,7 +86,7 @@ La fila di pulsanti dentro il pannello del percorso:
 - **Anello** apre il pannello degli anelli intelligenti, descritto in [anelli](./loops).
 - **Chiedi** apre l'[assistente](./assistant). C'è solo quando la build parla con un server Velorki.
 
-Sotto la fila c'è il pulsante **Salva** a tutta larghezza.
+Sotto la fila ci sono **Salva** e **Parti**. **Parti** va al tab Registra, segue il piano e avvia la registrazione, con le stesse domande di **Inizia giro** lì; con un giro già in corso cambia solo tab.
 
 ## Varianti
 
@@ -128,8 +128,8 @@ Ricevi "Percorso salvato", e il percorso è in **Libreria → Percorsi**. Salvar
 
 ## Quando non calcola
 
-- **"Questo percorso richiede riquadri di routing che non sono su questo dispositivo."** compare al posto dei numeri quando il tuo telefono non ha dati di routing per la zona e nessun server di routing su cui ripiegare. Il pulsante sotto conta i riquadri e la loro dimensione, per esempio **Scarica 3 riquadri (412 MB)**, e apre la schermata offline con esattamente quei riquadri selezionati. Vedi [mappe offline e calcolo del percorso](./offline-maps-and-routing).
-- **"Nessun server di routing configurato, impostane uno in Opzioni → Avanzate."** è una scheda sotto i chip della bici, e significa che questa build non ha alcun indirizzo di server.
+- **"Questo percorso richiede riquadri di routing che non sono su questo dispositivo."** compare al posto dei numeri quando il tuo telefono non ha dati di routing per la zona. Il pulsante sotto conta i riquadri e la loro dimensione, per esempio **Scarica 3 riquadri (412 MB)**. Toccalo, conferma la domanda, e la scheda mostra l'avanzamento mentre il chip sulla mappa segue lo stesso download; la **X** del chip diventa intanto **Annulla download** e chiede conferma prima di fermarsi. Vedi [mappe offline e calcolo del percorso](./offline-maps-and-routing).
+- **"Questa versione di Velorki non ha dati della mappa per il calcolo dei percorsi."** è un banner, e significa una build compilata dal sorgente senza alcun mirror di riquadri.
 - Tutto il resto compare come **Calcolo del percorso non riuscito:** con il motivo.
 
 ## Vedi anche

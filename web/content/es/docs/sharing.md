@@ -14,6 +14,8 @@ Compartir enlaces forma parte de [Velorki Plus](./velorki-plus). Abrir el enlace
 2. Toca **Compartir** abajo en la tarjeta. La tarjeta para compartir muestra **Enlace**, **Ride with GPS** y **Strava**.
 3. En la fila **Enlace** toca **Compartir enlace**. Velorki sube el track y pasa el enlace al menú de compartir del teléfono. La fila dice entonces «Funciona hasta el 17 sept 2027.». Antes dice «Cualquiera con el enlace puede verlo en un mapa y descargar el GPX.»
 
+Una ruta que viene de Strava no tiene enlace: su fila dice «No disponible para rutas de Strava».
+
 Sin Plus, la fila **Enlace** lleva la marca **Velorki Plus** y conduce a la página de la suscripción. Las filas de Strava y Ride with GPS son gratis.
 
 ## Lo que ve quien lo abre

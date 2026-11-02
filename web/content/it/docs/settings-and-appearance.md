@@ -1,28 +1,22 @@
 ---
 title: Impostazioni e aspetto
-description: Ogni impostazione di Velorki, da tema, accento, unità e lingua a navigazione, registrazione, sensori, ricerca, dati offline, connessioni e URL dei server.
+description: "Ogni impostazione di Velorki: sincronizzazione, Plus, connessioni, navigazione, registrazione, sensori, tema, unità, lingua e dati offline."
 order: 16
 ---
 
-Il tab Opzioni è un'unica pagina scorrevole con una sezione per argomento. Questa pagina la percorre dall'alto in basso, così trovi l'interruttore che cerchi e sai cosa fa.
+Il tab Opzioni è una panoramica di righe in tre gruppi, **Sincronizzazione e Plus**, **In bici** e **App**, e ogni riga apre la sua pagina. Una riga manca dove non avrebbe senso sul telefono, come **Sensori** senza un'app di salute. Questa pagina percorre le righe in ordine, così trovi l'interruttore che cerchi e sai cosa fa.
 
-## Aspetto
+## Sincronizzazione
 
-**Tema**: **Sistema**, **Chiaro** o **Scuro**. Sistema segue il telefono.
+**Sincronizza con**: **iCloud**, **Google** o **Disattivato**, quello che offre il telefono. I tuoi percorsi, giri e alcune impostazioni ti seguono così sugli altri dispositivi tramite il tuo iCloud o il tuo Google Drive, mai tramite noi. Una riga sotto la scelta dice a che punto è, per esempio "Sincronizzato ora" o "In attesa di connessione". Con Google la pagina mostra anche l'account, con **Accedi** o **Esci**. Su un iPhone o un iPad iCloud è attivo per impostazione predefinita; su Android la sincronizzazione resta disattivata finché non scegli un cloud. I percorsi da Strava restano sul dispositivo. I dettagli sono in [sincronizzazione con iCloud o Google Drive](./library#sincronizzazione-con-icloud-o-google-drive).
 
-**Mappa**: come viene disegnata la mappa stessa, indipendentemente dal tema dell'app, un segmento ciascuna: **Segue il tema**, **Chiara**, **Notte** o **Nera**. **Nera** è quella per un giro al buio con lo schermo attenuato, ed è quella che il risparmio batteria impone comunque.
+## Velorki Plus
 
-**Mappa ciclabile online su mappe scure**: cosa fare della **Mappa ciclabile online** di **Livelli** quando la mappa sotto è scura: **Invertito**, **Attenuato** o **Invariato**. Quella mappa arriva come immagini disegnate per uno sfondo chiaro, quindi su una mappa notturna ha bisogno di aiuto. La **Mappa ciclabile** offline ha i propri colori per le mappe scure e non ne è influenzata.
+**Velorki Plus** con **Attivo** o **Non attivo** sotto, e la data di rinnovo o di fine quando c'è. Toccandolo si apre la pagina dell'abbonamento. Sotto ci sono, finché Plus è attivo, **Gestisci**, che apre la pagina degli abbonamenti dello store, e **Ripristina acquisti**. In una build senza store non c'è né l'uno né l'altro. Vedi [Velorki Plus](./velorki-plus).
 
-**Vetro**: quanta mappa si vede attraverso la barra delle schede e i comandi sulla mappa: **Opaca**, **Trasparente**, **Vetro leggero** o **Vetro chiaro**, quella predefinita.
+## Connessioni
 
-**Radar pioggia**: come viene disegnato il radar pioggia dei **Livelli**: **Morbido**, quello predefinito, con bordi sfumati e la pioggia debole più tenue di quella forte, o **Come misurato**, ogni immagine della pioggia (radar, satellite, previsione) così come la forniscono i servizi meteo, il radar nelle sue celle di 1 km.
-
-**Accento**: cinque combinazioni di colore: **Volt**, **Brace**, **Ghiacciaio**, **Lampone** e **Foresta**. L'accento colora i pulsanti, i grafici e la linea del percorso sulla mappa.
-
-**Unità**: **Metrico** o **Imperiale**, usate da ogni cifra, cursore, asse dei grafici, banner di svolta e indicazione vocale dell'app. Finché non scegli, Velorki segue il paese del telefono.
-
-**Lingua**: **Sistema**, English, Deutsch, Español, Français, Italiano o Nederlands, ciascuna nella propria lingua. **Sistema** segue le lingue del telefono nell'ordine impostato lì, e ripiega sull'inglese. Da Android 13 le impostazioni del telefono possono anche fissare una lingua per la sola Velorki (Impostazioni → App → Velorki → Lingua), che **Sistema** allora segue. Anche le svolte a voce seguono la stessa scelta.
+Una riga per **Strava** e una per **Ride with GPS**, ognuna con **Non connesso**, il tuo nome una volta connesso, oppure **Non disponibile in questa build**. **Connetti con Strava** e **Connetti Ride with GPS** stanno sotto quelle non connesse, **Disconnetti** accanto a quelle connesse. Entrambe le connessioni sono gratuite. Vedi [Strava e Ride with GPS](./strava-and-ridewithgps).
 
 ## Navigazione
 
@@ -50,9 +44,9 @@ I tre interruttori qui sono gli stessi del pannello del tab Registra.
 
 **Dati del giro**: ogni valore che un giro può mostrare, con una maniglia per trascinarlo al suo posto e un interruttore per spegnerlo. Il pannello li mostra in quest'ordine, la barra in cui il pannello si ripiega i primi quattro, la pagina a colpo d'occhio i primi due accanto al tempo del giro; un valore senza nulla da mostrare, un sensore non connesso o nessun percorso seguito, cede il posto al successivo. Almeno uno resta acceso, il pulsante di ripristino in alto a destra rimette il predefinito, e **Tempo**, che il pannello mostra comunque accanto allo stato, è spento finché non lo accendi. **Modifica dati** sotto i valori nel pannello apre lo stesso elenco.
 
-## Ciclista
+## Ciclista e bici
 
-Tre interruttori, tutti spenti per impostazione predefinita, e i campi di cui hanno bisogno.
+Quattro interruttori, tutti spenti per impostazione predefinita, e i campi di cui hanno bisogno.
 
 **Stima calorie** mette un valore **Calorie** sulla scheda di ogni giro: dal tuo misuratore di potenza se ne hai uno, altrimenti dalla frequenza cardiaca, altrimenti dalla velocità. Serve il tuo peso; la stima dalla frequenza cardiaca richiede anche l'anno di nascita e il sesso.
 
@@ -74,21 +68,37 @@ Con un interruttore qualsiasi attivo compaiono i campi: **Peso** (kg, o lb con l
 
 **Sensori Bluetooth**: "Fasce cardio, sensori di velocità e cadenza, misuratori di potenza", oppure quanti sensori sono associati. Apre la schermata in cui **Cerca** li trova. Tutto questo è spiegato passo passo in [sensori e il tuo orologio](./sensors-and-watch).
 
-## Abbonamento
+## Aspetto
 
-**Velorki Plus** con **Attivo** o **Non attivo** sotto, e la data di rinnovo o di fine quando c'è. Toccandolo si apre la pagina dell'abbonamento. Sotto ci sono **Gestisci**, che apre la pagina degli abbonamenti dello store, e **Ripristina acquisti**. Vedi [Velorki Plus](./velorki-plus).
+Questa pagina contiene alla fine anche **Unità** e **Lingua**.
 
-## Connessioni
+**Tema**: **Sistema**, **Chiaro** o **Scuro**. Sistema segue il telefono.
 
-Una riga per **Strava** e una per **Ride with GPS**, ognuna con **Non connesso**, il tuo nome una volta connesso, oppure **Non disponibile in questa build**. **Connetti con Strava** e **Connetti Ride with GPS** stanno sotto quelle non connesse, **Disconnetti** accanto a quelle connesse. Entrambe le connessioni sono gratuite. Vedi [Strava e Ride with GPS](./strava-and-ridewithgps).
+**Mappa**: come viene disegnata la mappa stessa, indipendentemente dal tema dell'app, un segmento ciascuna: **Segue il tema**, **Chiara**, **Notte** o **Nera**. **Nera** è quella per un giro al buio con lo schermo attenuato, ed è quella che il risparmio batteria impone comunque.
+
+**Mappa ciclabile online su mappe scure**: cosa fare della **Mappa ciclabile online** di **Livelli** quando la mappa sotto è scura: **Invertito**, **Attenuato** o **Invariato**. Quella mappa arriva come immagini disegnate per uno sfondo chiaro, quindi su una mappa notturna ha bisogno di aiuto. La **Mappa ciclabile** offline ha i propri colori per le mappe scure e non ne è influenzata.
+
+**Vetro**: quanta mappa si vede attraverso la barra delle schede e i comandi sulla mappa: **Opaca**, **Trasparente**, **Vetro leggero** o **Vetro chiaro**, quella predefinita. Diventa opaca da sola mentre il telefono risparmia energia e nei giri con risparmio batteria, e lo dice sotto la scelta.
+
+**Lato sui grandi schermi**: **Sinistra** o **Destra**. C'è solo su un tablet o sullo schermo interno di un pieghevole, dove Velorki sta in una colonna sopra la mappa; sceglie il lato di quella colonna.
+
+**Radar pioggia**: come viene disegnato il radar pioggia dei **Livelli**: **Morbido**, quello predefinito, con bordi sfumati e la pioggia debole più tenue di quella forte, o **Come misurato**, ogni immagine della pioggia (radar, satellite, previsione) così come la forniscono i servizi meteo, il radar nelle sue celle di 1 km.
+
+**Accento**: cinque combinazioni di colore: **Volt**, **Brace**, **Ghiacciaio**, **Lampone** e **Foresta**. L'accento colora i pulsanti, i grafici e la linea del percorso sulla mappa.
+
+**Unità**: **Metrico** o **Imperiale**, usate da ogni cifra, cursore, asse dei grafici, banner di svolta e indicazione vocale dell'app. Finché non scegli, Velorki segue il paese del telefono.
+
+**Lingua**: **Sistema**, English, Deutsch, Español, Français, Italiano o Nederlands, ciascuna nella propria lingua. **Sistema** segue le lingue del telefono nell'ordine impostato lì, e ripiega sull'inglese. Da Android 13 le impostazioni del telefono possono anche fissare una lingua per la sola Velorki (Impostazioni → App → Velorki → Lingua), che **Sistema** allora segue. Anche le svolte a voce seguono la stessa scelta.
 
 ## Assistente IA
 
-**Cosa viene inviato** dice sempre quale consenso hai dato: "Non ti è ancora stato chiesto.", "Niente. L'assistente è disattivato.", "Solo il tuo testo." oppure "Il tuo testo e la tua posizione approssimativa (circa 1 km)." **Cambia** accanto riapre la finestra del consenso.
+**Cosa viene inviato** dice sempre quale consenso hai dato: "Non ti è ancora stato chiesto.", "Niente. L'assistente è disattivato.", "Solo il tuo testo. Senza la tua posizione i suggerimenti sono meno precisi." oppure "Il tuo testo e la tua posizione approssimativa (circa 1 km)." **Cambia** accanto riapre la finestra del consenso.
 
 **Segnala risposta IA**: "Raccontaci di una risposta sbagliata o inappropriata." Apre una mail a noi.
 
-## Avanzate
+## Mappe e dati
+
+Quattro voci: **Dati offline**, **Ricerca**, **Calcolo percorso** e **URL dei server**.
 
 **Dati offline**: "Mappe e dati di routing per giri senza segnale". Quando il mirror ha ricostruito riquadri che possiedi, il sottotitolo diventa arancione e li conta. Vedi [mappe offline e calcolo del percorso](./offline-maps-and-routing).
 
@@ -107,8 +117,9 @@ Una riga per **Strava** e una per **Ride with GPS**, ognuna con **Non connesso**
 - **Velorki**, con il numero di versione.
 - **© collaboratori di OpenStreetMap**.
 - **Licenze open source**: "Il software e i dati cartografici su cui si basa Velorki."
-- **Informativa sulla privacy** e **Condizioni d'uso**, che si aprono nel browser.
+- **Informativa sulla privacy**, **Condizioni d'uso** e **Note legali**, che si aprono nel browser.
 - **Segnala un problema**: "Apri una segnalazione su GitHub."
+- **Mostra prestazioni**: "Fotogrammi al secondo, tempi dei fotogrammi e memoria in un angolo dello schermo".
 
 ## Vedi anche
 

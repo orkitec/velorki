@@ -12,6 +12,8 @@ Il campo di ricerca in alto nel tab Pianifica trova città, vie, numeri civici e
 2. Digita almeno tre caratteri. I risultati compaiono in una scheda sotto il campo mentre scrivi.
 3. Tocca un risultato. La mappa si sposta sul luogo, lo segna con uno spillo e ne apre la scheda.
 
+Finché la ricerca è aperta, un tocco sulla mappa la chiude soltanto; il tocco successivo imposta un punto.
+
 Le coordinate scritte o incollate nel campo, `40.71747, -73.94840` o `40,71747° N, 73,94840° W` come le copiano le app di mappe, sono il luogo stesso: un solo risultato in quel punto, senza cercare né inviare nulla. Un luogo condiviso da un'altra app si apre allo stesso modo, vedi [importazione ed esportazione](./import-and-export#un-luogo-da-unaltra-app).
 
 ## La scheda del luogo
@@ -22,7 +24,7 @@ Un risultato di ricerca, una [sosta sulla mappa](./stops-on-the-map) o un luogo 
 - **Solo una partenza**: **Destinazione** lo rende la fine del percorso.
 - **Un percorso**: **Aggiungi come sosta** lo inserisce nel percorso dove si trova lungo la strada; **Destinazione** lo aggiunge in fondo.
 
-Nel tab Registra la scheda informa soltanto, senza azioni.
+Nel tab Registra la scheda informa soltanto, senza azioni, tranne durante un giro che segue un percorso: lì **Aggiungi come sosta** chiede "Aggiungere al percorso?" e, con **Aggiungi e ricalcola**, inserisce il luogo nella parte di percorso ancora davanti a te. La guida continua sul vecchio percorso finché il nuovo non è pronto, e la registrazione non si interrompe. Un percorso salvato resta com'è; la copia modificata è nel tab Pianifica. Se il nuovo percorso non si può calcolare, ti viene detto e la navigazione prosegue come prima.
 
 Sotto:
 
@@ -36,7 +38,7 @@ Chiudere la scheda (la **X**, uno scorrimento verso il basso o un tocco sulla ma
 Velorki decide in base al **centro della mappa**, non alla tua connessione. Ogni riquadro di routing scaricato porta con sé un indice di ricerca della sua area.
 
 - **Centro della mappa su un'area scaricata**: la richiesta viene risolta sul telefono. L'ultima riga della scheda dei risultati, **Cerca online "…"**, esegue lo stesso testo online.
-- **Altrove** (centro della mappa su un'area non scaricata, niente scaricato o nessun centro della mappa): non si cerca nulla e nulla lascia il telefono finché non scegli **Cerca online "…"** o, se hai aree scaricate, **Cerca nelle aree scaricate**, che le cerca tutte, prima la più vicina alla mappa. La tua scelta vale per i tasti seguenti finché non svuoti la ricerca. Con un centro della mappa l'elenco mostra anche un avviso, **Quest'area non è scaricata**, una riga che ne dice il motivo e un pulsante **Scarica** che apre la schermata offline per l'area visibile. I risultati online stanno sotto l'intestazione **Risultati online**, e l'ultima riga, **Mostra risultati offline**, passa alle aree scaricate; i risultati del telefono finiscono con **Cerca online "…"**.
+- **Altrove** (centro della mappa su un'area non scaricata, niente scaricato o nessun centro della mappa): non si cerca nulla e nulla lascia il telefono finché non scegli **Cerca online "…"** o, se hai aree scaricate, **Cerca nelle aree scaricate**, che le cerca tutte, prima la più vicina alla mappa. La tua scelta vale per i tasti seguenti finché non svuoti la ricerca. Con un centro della mappa l'elenco mostra anche un avviso, **Quest'area non è scaricata**, una riga che ne dice il motivo e un pulsante **Scarica**. Chiude i risultati, pone l'unica domanda su cosa verrà scaricato, poi mostra l'avanzamento nel chip sulla mappa. I risultati online stanno sotto l'intestazione **Risultati online**, e l'ultima riga, **Mostra risultati offline**, passa alle aree scaricate; i risultati del telefono finiscono con **Cerca online "…"**.
 - **Nessuna ricerca online configurata**: rispondono le aree scaricate.
 
 L'avviso resta visibile mentre scorri l'elenco e, se la ricerca non è riuscita, sta sopra il messaggio di errore, dove conta di più.
@@ -45,14 +47,16 @@ L'avviso resta visibile mentre scorri l'elenco e, se la ricerca non è riuscita,
 
 - **Luoghi**: città, paesi, villaggi, frazioni, sobborghi, quartieri, località e isole.
 - **Vie**, con i numeri civici.
-- **Punti di interesse**, ognuno con la sua icona e la sua etichetta: Caffè, Ristorante, Fast food, Gelateria, Distributore, Pompa per bici, Acqua potabile, Bagni, Stazione di riparazione bici, Negozio di bici, Noleggio bici, Parcheggio bici, Ricarica e-bike, Riparo, Campeggio, Hotel, Ostello, Rifugio, Supermercato, Panetteria, Farmacia, Area picnic, Stazione, Terminal traghetti, Aeroporto, Punto panoramico, Vetta, Passo, Parco, Spiaggia, Acqua, Riserva naturale, Attrazione, Museo, Sito storico, Luogo di culto, Ospedale, Università, Impianto sportivo, Centro commerciale, Torre, Faro, Edificio.
+- **Punti di interesse**, ognuno con la sua icona e la sua etichetta: Caffè, Ristorante, Fast food, Gelateria, Distributore, Pompa per bici, Acqua potabile, Bagni, Stazione di riparazione bici, Negozio di bici, Distributore di camere d'aria, Noleggio bici, Parcheggio bici, Ricarica e-bike, Riparo, Campeggio, Hotel, Ostello, Rifugio, Supermercato, Panetteria, Farmacia, Area picnic, Stazione, Fermata dell'autobus, Fermata del tram, Terminal traghetti, Aeroporto, Punto panoramico, Vetta, Passo, Parco, Spiaggia, Acqua, Riserva naturale, Attrazione, Museo, Sito storico, Luogo di culto, Ospedale, Università, Impianto sportivo, Centro commerciale, Torre, Faro, Edificio.
 - **Luoghi noti nella tua lingua**: "Parigi" trova Parigi, e un luogo famoso viene prima dei suoi omonimi.
 
 Le righe offline mostrano il tipo, la distanza e la città sotto il nome, per quanto ciascuno sia noto: "Acqua potabile · 350 m", "Via · Manhattan". Una fontanella, un bagno, un riparo o una rastrelliera senza un nome proprio è elencato sotto il suo tipo.
 
 ## Cercare per tipo
 
-Digita il nome di un tipo anziché il nome di un luogo. "acqua potabile", "panetteria", "bagni" e tutti gli altri funzionano, nella lingua in cui gira l'app.
+Digita il nome di un tipo anziché il nome di un luogo. "acqua potabile", "panetteria", "bagni" e tutti gli altri funzionano, nella lingua in cui gira l'app. Per i trasporti pubblici basta una parola: "autobus", "bus", "tram", "treno" o "traghetto" trova le fermate, le stazioni e i terminal traghetti più vicini; "camera d'aria" trova i distributori di camere d'aria. Conta solo il testo intero, quindi "Busch" e "bus marktplatz" restano ricerche per nome.
+
+Le fermate di autobus e tram si trovano solo così. Non compaiono mai tra le corrispondenze per nome, dove migliaia di fermate che portano il nome della loro via sommergerebbero le vie e i luoghi che intendi.
 
 L'elenco si apre allora con i cinque più vicini di quel tipo al centro della mappa, ognuno con la sua distanza, e sotto seguono le normali corrispondenze per nome. Velorki cerca in un'area che cresce da 5 a 50 km intorno al centro della mappa finché non ne ha abbastanza. È il modo veloce per rispondere a "dov'è la fontanella più vicina" nel mezzo di un giro.
 
@@ -73,7 +77,7 @@ La ricerca offline perdona una lettera o due sbagliate, una parola scritta unita
 I risultati offline sono raggruppati, e decidi tu quali gruppi compaiono e in che ordine.
 
 1. Apri **Opzioni**.
-2. Tocca **Ricerca**, con il sottotitolo "Cosa mostra la ricerca offline, e in che ordine. Trascina per cambiare la priorità."
+2. Apri **Mappe e dati**, poi tocca **Ricerca**, con il sottotitolo "Cosa mostra la ricerca offline, e in che ordine. Trascina per cambiare la priorità."
 3. Trascina una riga dalla sua maniglia per spostarla in su o in giù. Usa l'interruttore a destra per disattivare un gruppo.
 
 Gli otto gruppi, nell'ordine predefinito: **Luoghi**, **Vie e indirizzi**, **Punti di riferimento**, **Soste in bici**, **Pernottamento**, **Natura**, **Trasporti**, **Servizi**.
@@ -84,7 +88,7 @@ Non c'è un pulsante di salvataggio; le modifiche hanno effetto al prossimo tast
 
 - **"Nessun risultato."** Il testo non corrisponde a nulla, né offline né online. Prova la riga in fondo per cambiare sorgente, o meno parole.
 - **"Ricerca non riuscita."** con un motivo significa che il geocoder online non era raggiungibile. La ricerca offline continua a funzionare dove hai scaricato un'area.
-- **"Nessun server di ricerca configurato, impostane uno in Opzioni → Avanzate."** significa che questa build non ha né un indirizzo del geocoder né alcun indice scaricato. Il campo è disabilitato finché non ne esiste uno.
+- **"Questa versione di Velorki non ha dati della mappa per la ricerca."** è il suggerimento del campo in una build compilata dal sorgente senza geocoder, senza mirror di riquadri e senza nulla di scaricato. Il campo resta disabilitato.
 
 ## Vedi anche
 

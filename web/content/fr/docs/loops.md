@@ -55,6 +55,7 @@ La feuille de boucle n’a aucun champ pour un lieu à longer, ni préférence d
 
 ## Quand il ne trouve rien
 
+- **« Cet itinéraire nécessite des tuiles de routage absentes de cet appareil. »** Les données de routage de la zone ne sont pas sur le téléphone. Sous le message, le bouton **Télécharger 2 tuiles (14 Mo)** les récupère sur place, avec la progression affichée dans la feuille et sur la carte ; la recherche peut commencer une fois qu’elles sont là.
 - **« Aucune boucle trouvée ici, essayez une autre distance. »** Certains endroits, une île ou une vallée en cul-de-sac, n’ont simplement pas de réseau routier pour un cercle de cette longueur. Augmentez ou réduisez nettement la distance, ou partez d’ailleurs.
 - **« Activez la localisation ou touchez la carte pour placer le départ. »** Aucun point de départ n’a pu être déterminé. Autorisez la localisation, ou touchez d’abord la carte.
 - **« La recherche de boucle a pris trop de temps sur ce téléphone. Essayez une distance plus courte. »** La recherche a abandonné au bout de 30 minutes.

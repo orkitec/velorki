@@ -12,6 +12,8 @@ Das Suchfeld oben im Tab Planen findet Städte, Straßen, Hausnummern und Ziele 
 2. Tippe mindestens drei Zeichen ein. Die Ergebnisse erscheinen während des Tippens in einer Karte unter dem Feld.
 3. Tippe auf ein Ergebnis. Die Karte fährt zum Ort, setzt eine Nadel und öffnet seine Ortskarte.
 
+Solange die Suche offen ist, schließt ein Tipp auf die Karte nur die Suche; erst der nächste setzt einen Punkt.
+
 Koordinaten, die du ins Feld tippst oder einfügst, `40.71747, -73.94840` oder `40,71747° N, 73,94840° W`, wie Karten-Apps sie kopieren, sind der Ort selbst: ein Ergebnis an dieser Stelle, nichts wird nachgeschlagen und nichts gesendet. Ein Ort aus einer anderen App öffnet sich genauso, siehe [Import und Export](./import-and-export#ein-ort-aus-einer-anderen-app).
 
 ## Die Ortskarte
@@ -22,7 +24,7 @@ Ein Suchergebnis, ein [Stopp auf der Karte](./stops-on-the-map) oder ein Ort aus
 - **Nur ein Start**: **Als Ziel** macht ihn zum Ende der Route.
 - **Eine Route**: **Als Stopp einfügen** setzt ihn dort in die Route, wo er unterwegs liegt; **Als Ziel** hängt ihn ans Ende.
 
-Im Tab Aufzeichnen informiert die Karte nur, ohne Aktionen.
+Im Tab Aufzeichnen informiert die Karte nur, ohne Aktionen, außer bei einer Fahrt, die einer Route folgt: Dort fragt **Als Stopp einfügen** "Zur Route hinzufügen?" und setzt den Ort bei **Hinzufügen und neu berechnen** in den Teil der Route, der noch vor dir liegt. Die Führung läuft auf der alten Route weiter, bis die neue fertig ist, und die Aufzeichnung wird nicht unterbrochen. Eine gespeicherte Route bleibt, wie sie ist; die geänderte Kopie liegt im Tab Planen. Lässt sich die neue Route nicht berechnen, wirst du informiert und die Navigation läuft wie zuvor weiter.
 
 Darunter:
 
@@ -36,7 +38,7 @@ Die Ortskarte zu schließen (das **X**, nach unten wischen oder auf die Karte ti
 Velorki entscheidet nach der **Kartenmitte**, nicht nach deiner Verbindung. Jede heruntergeladene Routing-Kachel bringt einen Suchindex ihres Gebiets mit.
 
 - **Kartenmitte über einem heruntergeladenen Gebiet**: Die Anfrage wird auf dem Handy beantwortet. Die letzte Zeile der Ergebniskarte, **Online nach „…“ suchen**, sucht denselben Text online.
-- **Überall sonst** (Kartenmitte über einem nicht heruntergeladenen Gebiet, gar nichts heruntergeladen oder keine Kartenmitte): Es wird nichts gesucht und nichts verlässt das Handy, bis du **Online nach „…“ suchen** oder, wenn du Gebiete heruntergeladen hast, **In heruntergeladenen Gebieten suchen** wählst; das durchsucht jedes davon, das der Karte nächste zuerst. Deine Wahl gilt für die folgenden Tastendrücke, bis du die Suche leerst. Mit einer Kartenmitte zeigt die Liste außerdem einen Hinweis, **Dieses Gebiet ist nicht heruntergeladen**, eine Zeile mit dem Grund und die Schaltfläche **Herunterladen**, die den Offline-Bildschirm für das sichtbare Gebiet öffnet. Online-Ergebnisse stehen unter der Überschrift **Online-Ergebnisse**, und die letzte Zeile, **Offline-Ergebnisse anzeigen**, wechselt zu den heruntergeladenen Gebieten; Ergebnisse vom Handy enden mit **Online nach „…“ suchen**.
+- **Überall sonst** (Kartenmitte über einem nicht heruntergeladenen Gebiet, gar nichts heruntergeladen oder keine Kartenmitte): Es wird nichts gesucht und nichts verlässt das Handy, bis du **Online nach „…“ suchen** oder, wenn du Gebiete heruntergeladen hast, **In heruntergeladenen Gebieten suchen** wählst; das durchsucht jedes davon, das der Karte nächste zuerst. Deine Wahl gilt für die folgenden Tastendrücke, bis du die Suche leerst. Mit einer Kartenmitte zeigt die Liste außerdem einen Hinweis, **Dieses Gebiet ist nicht heruntergeladen**, eine Zeile mit dem Grund und die Schaltfläche **Herunterladen**. Sie schließt die Ergebnisse, stellt die eine Frage, was geholt wird, und zeigt dann den Fortschritt im Chip über der Karte. Online-Ergebnisse stehen unter der Überschrift **Online-Ergebnisse**, und die letzte Zeile, **Offline-Ergebnisse anzeigen**, wechselt zu den heruntergeladenen Gebieten; Ergebnisse vom Handy enden mit **Online nach „…“ suchen**.
 - **Keine Online-Suche eingerichtet**: Die heruntergeladenen Gebiete antworten.
 
 Der Hinweis bleibt beim Scrollen durch die Liste sichtbar, und ist die Suche fehlgeschlagen, steht er über der Fehlermeldung, wo er am meisten zählt.
@@ -45,14 +47,16 @@ Der Hinweis bleibt beim Scrollen durch die Liste sichtbar, und ist die Suche feh
 
 - **Orte**: Städte, Kleinstädte, Dörfer, Weiler, Stadtteile, Viertel, Ortslagen und Inseln.
 - **Straßen**, mit Hausnummern.
-- **Sonderziele**, jedes mit eigenem Symbol und eigener Beschriftung: Café, Restaurant, Imbiss, Eisdiele, Tankstelle, Luftpumpe, Trinkwasser, Toiletten, Fahrrad-Reparaturstation, Fahrradladen, Fahrradverleih, Fahrradparkplatz, E-Bike-Ladestation, Schutzhütte, Campingplatz, Hotel, Hostel, Berghütte, Supermarkt, Bäckerei, Apotheke, Picknickplatz, Bahnhof, Fähranleger, Flughafen, Aussichtspunkt, Gipfel, Pass, Park, Strand, Gewässer, Naturschutzgebiet, Sehenswürdigkeit, Museum, Historische Stätte, Gotteshaus, Krankenhaus, Universität, Sportstätte, Einkaufszentrum, Turm, Leuchtturm, Gebäude.
+- **Sonderziele**, jedes mit eigenem Symbol und eigener Beschriftung: Café, Restaurant, Imbiss, Eisdiele, Tankstelle, Luftpumpe, Trinkwasser, Toiletten, Fahrrad-Reparaturstation, Fahrradladen, Schlauchautomat, Fahrradverleih, Fahrradparkplatz, E-Bike-Ladestation, Schutzhütte, Campingplatz, Hotel, Hostel, Berghütte, Supermarkt, Bäckerei, Apotheke, Picknickplatz, Bahnhof, Bushaltestelle, Straßenbahnhaltestelle, Fähranleger, Flughafen, Aussichtspunkt, Gipfel, Pass, Park, Strand, Gewässer, Naturschutzgebiet, Sehenswürdigkeit, Museum, Historische Stätte, Gotteshaus, Krankenhaus, Universität, Sportstätte, Einkaufszentrum, Turm, Leuchtturm, Gebäude.
 - **Bekannte Orte in deiner Sprache**: „Parigi“ findet Paris, und eine berühmte Sehenswürdigkeit kommt vor ihren Namensvettern.
 
 Offline-Zeilen zeigen unter dem Namen die Art, die Entfernung und den Ort, soweit jeweils bekannt: "Trinkwasser · 350 m", "Straße · Manhattan". Ein Wasserhahn, eine Toilette, eine Schutzhütte oder ein Fahrradständer ohne eigenen Namen steht stattdessen unter seiner Art.
 
 ## Nach Art suchen
 
-Tippe den Namen einer Art ein statt den Namen eines Orts. "Trinkwasser", "Bäckerei", "Toiletten" und alle anderen funktionieren, in der Sprache, in der die App läuft.
+Tippe den Namen einer Art ein statt den Namen eines Orts. "Trinkwasser", "Bäckerei", "Toiletten" und alle anderen funktionieren, in der Sprache, in der die App läuft. Für den öffentlichen Verkehr genügt ein Wort: "Bus", "Tram", "Zug" oder "Fähre" findet die nächsten Haltestellen, Bahnhöfe und Fähranleger; "Schlauch" findet Schlauchautomaten. Es zählt nur der ganze Text, "Busch" und "bus marktplatz" bleiben also Namenssuchen.
+
+Bus- und Straßenbahnhaltestellen findest du nur so. Unter den Namenstreffern tauchen sie nie auf, wo Tausende nach ihrer Straße benannte Haltestellen die Straßen und Orte, die du meinst, verdecken würden.
 
 Die Liste beginnt dann mit den fünf nächstgelegenen dieser Art rund um die Kartenmitte, jede mit ihrer Entfernung, und die gewöhnlichen Namenstreffer folgen darunter. Velorki schaut in einem Kasten nach, der von 5 auf 50 km um die Kartenmitte wächst, bis es genug hat. Das ist der schnelle Weg zur Antwort auf "wo ist der nächste Wasserhahn" mitten in einer Fahrt.
 
@@ -72,8 +76,8 @@ Die Offline-Suche verzeiht ein oder zwei falsche Buchstaben, ein zusammen oder g
 
 Offline-Ergebnisse sind gruppiert, und du entscheidest, welche Gruppen erscheinen und in welcher Reihenfolge.
 
-1. Öffne **Einstellungen**.
-2. Tippe auf **Suche**, mit dem Untertitel "Was die Offline-Suche zeigt und in welcher Reihenfolge. Zum Ändern der Priorität ziehen."
+1. Öffne **Optionen**.
+2. Öffne **Karten & Daten** und tippe auf **Suche**, mit dem Untertitel "Was die Offline-Suche zeigt und in welcher Reihenfolge. Zum Ändern der Priorität ziehen."
 3. Zieh eine Zeile an ihrem Griff nach oben oder unten. Mit dem Schalter rechts schaltest du eine Gruppe aus.
 
 Die acht Gruppen in ihrer voreingestellten Reihenfolge: **Orte**, **Straßen und Adressen**, **Sehenswürdigkeiten**, **Stopps unterwegs**, **Übernachten**, **Natur**, **Verkehr**, **Einrichtungen**.
@@ -84,7 +88,7 @@ Es gibt keine Schaltfläche zum Speichern; die Änderungen greifen beim nächste
 
 - **"Nichts gefunden."** Der Text passte zu nichts, weder offline noch online. Nimm die Zeile am Ende, um die Quelle zu wechseln, oder weniger Wörter.
 - **"Suche fehlgeschlagen."** mit einem Grund heißt, dass der Online-Geocoder nicht erreichbar war. Die Offline-Suche läuft weiter, wo du ein Gebiet heruntergeladen hast.
-- **"Kein Suchserver konfiguriert, einen unter Einstellungen → Erweitert festlegen."** heißt, dass dieser Build weder eine Geocoder-Adresse noch einen heruntergeladenen Index hat. Das Feld ist gesperrt, bis es eines von beidem gibt.
+- **"Diese Velorki-Version hat keine Kartendaten für die Suche."** ist der Hinweis im Feld bei einem aus dem Quellcode gebauten Build ohne Geocoder, ohne Kachel-Mirror und ohne Heruntergeladenes. Das Feld bleibt gesperrt.
 
 ## Weiterlesen
 

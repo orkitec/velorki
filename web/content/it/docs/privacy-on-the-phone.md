@@ -11,13 +11,13 @@ Velorki non ha account, quindi non c'è nulla a cui accedere e nulla su di te su
 Tutto ciò che crei e tutto ciò che scarichi:
 
 - i percorsi pianificati, i giri registrati e le loro tracce GPS,
-- le tue impostazioni, comprese le unità e la voce che hai scelto, e il peso, l'anno di nascita, il sesso, la frequenza cardiaca massima, il peso della bici, il tipo di bici e la potenza di soglia che puoi inserire in Opzioni → Ciclista, che sono impostazioni sul telefono e non vengono mai inviate da nessuna parte,
+- le tue impostazioni, comprese le unità e la voce che hai scelto, e il peso, l'anno di nascita, il sesso, la frequenza cardiaca massima, il peso della bici, il tipo di bici e la potenza di soglia che puoi inserire in Opzioni → Ciclista e bici, che sono impostazioni sul telefono e non vengono mai inviate da nessuna parte,
 - le aree di mappa offline scaricate,
 - i riquadri di routing scaricati e gli indici di ricerca dei luoghi che li accompagnano,
 - i token di accesso per Strava e Ride with GPS se li colleghi, che vanno nell'archivio sicuro del telefono in una forma che solo il relay di Velorki può aprire, e sono esclusi dai backup,
 - ciò che prendi da Strava: il tuo nome su Strava, l'elenco dei tuoi percorsi Strava per al massimo 48 ore, i percorsi che importi e i collegamenti dai giri caricati alle rispettive attività Strava. Disconnettere elimina tutto questo.
 
-Nulla di tutto questo viene caricato da nessuna parte se non lo chiedi. L'unica eccezione è la sincronizzazione con il cloud: i tuoi percorsi, giri e alcune impostazioni vanno nel tuo iCloud o nel tuo Google Drive, mai a noi, e i dati di Strava restano sul telefono. Su un iPhone o un iPad iCloud è attivo per impostazione predefinita; su Android la sincronizzazione resta disattivata finché non scegli un cloud. **Opzioni → Sincronizza con** sceglie il cloud o disattiva la sincronizzazione, vedi [la libreria](./library#sincronizzazione-con-icloud-o-google-drive).
+Nulla di tutto questo viene caricato da nessuna parte se non lo chiedi. L'unica eccezione è la sincronizzazione con il cloud: i tuoi percorsi, giri e alcune impostazioni vanno nel tuo iCloud o nel tuo Google Drive, mai a noi, e i dati di Strava restano sul telefono. Su un iPhone o un iPad iCloud è attivo per impostazione predefinita; su Android la sincronizzazione resta disattivata finché non scegli un cloud. **Opzioni → Sincronizzazione → Sincronizza con** sceglie il cloud o disattiva la sincronizzazione, vedi [la libreria](./library#sincronizzazione-con-icloud-o-google-drive).
 
 Su Android, Velorki è deliberatamente escluso dal backup cloud di Google e dal trasferimento da dispositivo a dispositivo, così i tuoi giri non vengono copiati fuori dal telefono nemmeno dal sistema. Per passare a un nuovo telefono, attiva la sincronizzazione con Google, oppure esporta quello che vuoi conservare come file GPX, FIT o TCX, vedi [importa ed esporta](./import-and-export).
 
@@ -27,11 +27,19 @@ Su Android, Velorki è deliberatamente escluso dal backup cloud di Google e dal 
 
 I riquadri della mappa vengono scaricati da OpenFreeMap, e da CyclOSM se attivi **Mappa ciclabile online** sotto **Livelli**. La **Mappa ciclabile** è disegnata sul telefono e non chiede nulla a nessun server. Chiedere un riquadro dice al server dei riquadri quale quadrato del mondo stai guardando, e comporta il tuo indirizzo IP, come ogni richiesta. Un'area che hai scaricato viene servita dal telefono e non chiede nulla.
 
+### Meteo
+
+La mappa meteo (pioggia, nuvole, vento) e un percorso colorato per vento o pioggia prendono immagini e dati di previsione direttamente da servizi meteo pubblici, come il Deutscher Wetterdienst, la NOAA, il KNMI, la NASA e EUMETSAT. Ogni richiesta indica una parte della mappa, o un riquadro attorno al tuo percorso, e un orario, e coinvolge il tuo indirizzo IP; il percorso in sé, i tuoi giri e la tua identità non vengono inviati. Con Velorki Plus, la previsione più precisa e il radar pioggia passano invece dal relay di Velorki: per la previsione i punti lungo il percorso, arrotondati a una griglia di circa 2,5 km, con le ore in cui ci passi; per il radar la parte di mappa che guardi e un orario. I servizi meteo vedono il nostro server, non il tuo telefono.
+
+### Quando scarichi un'area
+
+Le aree di mappa offline vengono da OpenFreeMap, come la mappa stessa. I riquadri di routing e l'indice di ricerca accanto vengono dal mirror dei riquadri su GitHub; GitHub viene a sapere quali riquadri scarichi e il tuo indirizzo IP. Se ci sono nuovi dati di mappa, Velorki lo chiede allo stesso mirror; oltre a quella richiesta non esce nulla.
+
 ### Mentre pianifichi
 
 Il calcolo del percorso avviene sul tuo telefono ovunque tu abbia i riquadri. Per un'area che non hai scaricato, i punti vanno a un server di routing, che rimanda il percorso. Riceve i punti, nient'altro: nessuna identità, nessun altro percorso, nessun giro.
 
-**Opzioni → Avanzate → Calcolo percorso → Solo sul dispositivo** disattiva del tutto il server; Velorki allora offre il download invece di calcolare.
+**Opzioni → Mappe e dati → Calcolo percorso → Solo sul dispositivo** disattiva del tutto il server; Velorki allora offre il download invece di calcolare.
 
 ### Mentre cerchi
 
@@ -48,6 +56,8 @@ Un link breve a una mappa che condividi in Velorki (`maps.app.goo.gl`, `maps.app
 ### Mentre registri
 
 Nulla lascia il telefono. La registrazione, le statistiche, i grafici e i parziali sono tutti calcolati sul dispositivo. Lo stesso vale per frequenza cardiaca, cadenza e potenza da un orologio, un sensore Bluetooth o la tua app salute: vengono salvati con il giro e, se hai attivato Salute, scambiati con Apple Health o Health Connect sul telefono stesso.
+
+La tua posizione centra la mappa e registra i tuoi giri, e resta sul telefono. Velorki chiede il permesso una volta, al primo avvio. Lascia il telefono solo in due casi, entrambi quando li attivi tu: arrotondata a circa un chilometro verso l'assistente, se lo hai consentito, e come posizione approssimativa verso Photon quando cerchi online.
 
 ### Quando chiedi all'assistente
 
@@ -68,6 +78,10 @@ Quel percorso o giro, con la sua traccia, il suo nome e i suoi numeri, viene cop
 ### Quando acquisti Velorki Plus
 
 Lo store gestisce il pagamento e noi non vediamo mai la tua carta. L'abbonamento viene verificato con un id casuale anonimo che non è collegato a un nome, a un indirizzo email o a un identificativo del dispositivo. Con la sincronizzazione attiva, l'app mette quell'id anche nel tuo cloud, così che il pianificatore nel browser, collegato allo stesso account, possa usare il tuo Plus.
+
+### Avvisi di aggiornamento e valutazioni
+
+Su un iPhone Velorki interroga la ricerca pubblica dell'App Store per sapere se esiste una versione più recente, con l'identificativo del bundle dell'app, il tuo paese e la tua lingua; su Android lo dice Google Play. La finestra di valutazione è quella del sistema, Apple o Google decidono se e quando compare, e una valutazione non ci arriva mai.
 
 ## Cosa Velorki non fa mai
 

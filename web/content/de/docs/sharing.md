@@ -14,6 +14,8 @@ Links teilen gehört zu [Velorki Plus](./velorki-plus). Den Link von jemand ande
 2. Tippe unten im Blatt auf **Teilen**. Die Teilen-Karte zeigt **Link**, **Ride with GPS** und **Strava**.
 3. Tippe in der Zeile **Link** auf **Link teilen**. Velorki lädt den Track hoch und übergibt den Link an das Teilen-Menü des Telefons. Die Zeile sagt dann "Funktioniert bis 17. Sept. 2027." Vorher steht dort "Jeder mit dem Link kann es auf einer Karte sehen und die GPX herunterladen."
 
+Eine Route, die von Strava kam, hat keinen Link: Ihre Zeile sagt "Für Routen von Strava nicht verfügbar."
+
 Ohne Plus trägt die Zeile **Link** die Markierung **Velorki Plus** und führt zur Abo-Seite. Die Zeilen für Strava und Ride with GPS sind kostenlos.
 
 ## Was die Person sieht, die ihn öffnet

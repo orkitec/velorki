@@ -1,6 +1,6 @@
 ---
 title: Assistent
-description: Beschrijf in één zin de rit die je wilt en Velorki maakt er een route van, met je toestemming, hooguit een afgeronde positie en zonder routegeschiedenis te versturen.
+description: Beschrijf de rit die je wilt in één zin en Velorki maakt er een route van, met je toestemming, hooguit een afgeronde positie en geen geschiedenis.
 order: 14
 ---
 
@@ -10,7 +10,7 @@ De assistent hoort bij [Velorki Plus](./velorki-plus).
 
 ## Openen
 
-Tik op **Vragen** in de werkbalk van het routepaneel op het tabblad **Plannen**. De kaart van de assistent neemt de plaats van het routepaneel in, met de titel **Vraag om een route**: "Beschrijf de rit die je in gedachten hebt. Velorki maakt er een verzoek van en plant de route op je telefoon." De kaart erboven blijft de kaart: verschuif, zoom en tik erop zoals met het routepaneel open. Veeg de kaart naar beneden of ga terug, en het routepaneel is er weer zoals je het verliet; wat je typte en de antwoorden blijven staan voor de volgende keer.
+Tik op **Vragen** in de werkbalk van het routepaneel op het tabblad **Plannen**. De kaart van de assistent neemt de plaats van het routepaneel in, met de titel **Vraag om een route**: "Beschrijf de rit die je in gedachten hebt. Velorki maakt er een verzoek van en plant de route op dit apparaat." De kaart erboven blijft de kaart: verschuif, zoom en tik erop zoals met het routepaneel open. Veeg de kaart naar beneden of ga terug, en het routepaneel is er weer zoals je het verliet; wat je typte en de antwoorden blijven staan voor de volgende keer.
 
 Met een route op de kaart opent het paneel in plaats daarvan op **Deze route**, een vraag over die route (zie [Vraag over deze route](#vraag-over-deze-route)); **Nieuwe route** erboven schakelt terug.
 
@@ -20,9 +20,9 @@ Staat de knop **Vragen** er niet, dan heeft deze build van Velorki helemaal geen
 
 De eerste keer dat je iets verstuurt, toont Velorki **Voordat de assistent iets vraagt**:
 
-> Wat je typt, gaat naar de Velorki-server, die het doorstuurt naar onze AI-aanbieder. Verder gaat er niets mee: geen naam, geen account, geen routegeschiedenis.
+> Wat je typt, en een route waarover je iets vraagt, gaat naar de Velorki-server, die het doorstuurt naar onze AI-aanbieder. Verder gaat er niets mee: geen naam, geen account, geen routegeschiedenis.
 >
-> Als je het toestaat, wordt ook je positie verstuurd, afgerond op ongeveer een kilometer, zodat "vanaf hier" iets betekent.
+> Als je het toestaat, wordt ook je positie verstuurd, afgerond op ongeveer een kilometer. Zonder weet de assistent niet waar je bent, en zijn voorstellen worden minder nauwkeurig.
 
 Drie antwoorden:
 

@@ -47,7 +47,7 @@ Opening a route draws it on the map, fitted to the part of the screen above the 
 The actions:
 
 - **Open in planner** loads it into the Plan tab with every one of its points, via points and their names, types and notes included, where you can edit it and save it again. A route that was imported rather than planned opens with the file's exact line and points only at its ends and at the file's own points that lie on the track, which come along with their type and note; an edit routes only the stretches beside it, and the file's line stays everywhere else. The file's line is kept with the route through every edit and save, so **Restore** in the planner can put it back. The points off the track come along as places beside the route, where they can be named, given a type, moved onto the route or removed like any other point. The next Save writes both sets back, so a place you delete in the planner is gone from the card too.
-- **Export** offers **GPX route** and **FIT course**, see [import and export](./import-and-export).
+- **Export** offers **GPX route**, **FIT course** and **TCX course**, see [import and export](./import-and-export).
 - **Share** opens the share card: a **Link** to the route, **Ride with GPS** and **Strava**, see [sharing](./sharing) and [Strava and Ride with GPS](./strava-and-ridewithgps).
 - **Describe this route** asks the assistant to write a paragraph about it, see [assistant](./assistant).
 
@@ -74,7 +74,7 @@ A ride recorded with a heart-rate strap, an Apple Watch or a power meter carries
 
 ### Calories, heart-rate zones, power zones and estimated power
 
-All four are off until you switch them on under Settings → Rider, and all four are computed on the phone from the ride's own points, so older rides get them too.
+All four are off until you switch them on under Settings → Rider & bike, and all four are computed on the phone from the ride's own points, so older rides get them too.
 
 **Calories** is an estimate, and the small line under the figure says what it rests on. With a power meter over the ride it is the work done, "from power": a kilojoule of pedalling is very nearly a kilocalorie burned. Else, with a heart rate over the ride and your weight, year of birth and sex, it is "from heart rate". Else, with **Estimate power** on, it is "from est. power", the estimated work in kilojoules again. Else it is "from speed", from your weight and how fast you rode. It needs your weight in every case.
 
@@ -82,7 +82,7 @@ All four are off until you switch them on under Settings → Rider, and all four
 
 **Heart-rate zones** is a bar under the heart-rate chart, cut into five zones of your maximum heart rate, with a row per zone: its range, the time in it and the share of the ride's heart-rate time. Zone 1 is everything below 60 %, zone 5 everything from 90 %. The caption names the maximum used: the one you entered, or 220 minus your age.
 
-**Power zones** is the same bar for rides with a power meter, cut into seven zones of your threshold power: below 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 and from 150 %. Each second of the ride goes to the zone of the meter's reading at that moment; time stood still counts nowhere. The caption names the threshold, "Power zones · threshold 250 W". It needs the switch and your threshold power under Settings → Rider, and it puts the **Intensity** figure among the tiles.
+**Power zones** is the same bar for rides with a power meter, cut into seven zones of your threshold power: below 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 and from 150 %. Each second of the ride goes to the zone of the meter's reading at that moment; time stood still counts nowhere. The caption names the threshold, "Power zones · threshold 250 W". It needs the switch and your threshold power under Settings → Rider & bike, and it puts the **Intensity** figure among the tiles.
 
 ### Splits
 
@@ -102,7 +102,7 @@ Under the climbs, a **Surface** bar like the one on a route card: how much of th
 
 ### Ride actions
 
-- The menu at the right of the card's header: **Export GPX track**, **Export FIT activity**, **Continue this ride**, **Rename**, **Delete**.
+- The menu at the right of the card's header: **Export GPX track**, **Export FIT activity**, **Export TCX activity**, **Continue this ride**, **Rename**, **Delete**.
 - At the bottom: the same two exports and **Share**, which opens the share card with **Link**, **Ride with GPS** and **Strava**, see [sharing](./sharing).
 
 ## Getting files and routes in
@@ -116,11 +116,11 @@ Both are covered in [import and export](./import-and-export) and [Strava and Rid
 
 ## Syncing with iCloud or Google Drive
 
-Your saved routes and recorded rides, with each ride's track, notes, figures, laps and sensor readings, can sync between your own devices through your own cloud. **Settings → Sync with** picks one per device: **iCloud** (iPhone and iPad with iOS 17 or later, and the planner in the browser), **Google** (iPhone, iPad, Android and the browser) or **Off**. On an iPhone or iPad iCloud is on by default; on Android and in the browser sync is off until you choose a cloud. Google keeps the data in a hidden Velorki folder in your Google Drive; Velorki can open that folder and nothing else in your Drive.
+Your saved routes and recorded rides, with each ride's track, notes, figures, laps and sensor readings, can sync between your own devices through your own cloud. **Settings → Sync**, under **Sync with**, picks one per device: **iCloud** (iPhone and iPad with iOS 17 or later, and the planner in the browser), **Google** (iPhone, iPad, Android and the browser) or **Off**. On an iPhone or iPad iCloud is on by default; on Android and in the browser sync is off until you choose a cloud. Google keeps the data in a hidden Velorki folder in your Google Drive; Velorki can open that folder and nothing else in your Drive.
 
 A few settings go along: theme, accent colour, map look, the rain radar's look, bar style, column side, units, and the turn, voice and rerouting settings. In the browser with iCloud, settings stay in the browser. Velorki runs no server for it and cannot read what is stored; see the [privacy policy](/privacy).
 
-Deleting a route or a ride deletes it on your other devices too. Choosing **Off**, signing out or switching to the other cloud deletes nothing: what is already in iCloud stays until you delete it in iCloud settings on an Apple device, and what is in Google Drive stays until you delete it in Google Drive on the web, under Settings → Manage apps → Velorki → Options → Delete hidden app data. A status line in Settings says where it stands, for example **Synced just now**, **Syncing…**, **iCloud storage is full** or **Not signed in to Google**.
+Deleting a route or a ride deletes it on your other devices too. Choosing **Off**, signing out or switching to the other cloud deletes nothing: what is already in iCloud stays until you delete it in iCloud settings on an Apple device, and what is in Google Drive stays until you delete it in Google Drive on the web, under Settings → Manage apps → Velorki → Options → Delete hidden app data. A status line in the Sync settings says where it stands, for example **Synced just now**, **Syncing…**, **iCloud storage is full** or **Not signed in to Google**.
 
 Routes read from Strava, and routes edited from them, stay on the phone, and so do the Strava links of rides; links of uploads to Ride with GPS are not synced either. Downloaded maps and routing tiles are not synced.
 

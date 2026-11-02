@@ -4,7 +4,7 @@ description: Die Radkarte offline und ihre Teile, die Online-Radkarte, Regenrada
 order: 6
 ---
 
-**Ebenen** sitzt in der Spalte rechts neben der Karte, im Tab Planen und im Tab Aufzeichnen. Das Fenster enthält die Radkarte, die Online-Radkarte, das Regenradar, die Wolken, den Wind und die Stopps. Die Schaltfläche ist hervorgehoben, solange eine davon an ist.
+**Ebenen** sitzt in der Spalte rechts neben der Karte, im Tab Planen und im Tab Aufzeichnen. Das Fenster enthält die Radkarte, die Online-Radkarte, das Regenradar, die Wolken, den Wind und die Stopps. Die Schaltfläche ist hervorgehoben, solange eine davon an ist. Beim ersten Start sind Radkarte und Stopps schon an; deine Wahl bleibt erhalten.
 
 <!-- screenshot: layers -->
 
@@ -28,9 +28,9 @@ Die Radkarte blendet zwischen Zoomstufe 12 und 13 ein und beim Herauszoomen wied
 | **Mountainbike** | Schwierigkeitsstriche auf Trails ab Zoomstufe 14: blau für leicht (S0–S1), rot für S2, schwarz für S3 und schwerer (auf der Nachtkarte weiß); Mountainbike-Routen als oranger Hof |
 | **Steigungen** | Steile Stücke der für Räder erlaubten Wege als Band: gelb ab 6 %, orange ab 10 %, rot ab 15 %; Winkel zeigen ab Zoomstufe 15 bergauf. Die Höhen stammen aus dem Geländemodell in den Routingdaten. Eine Steigung zählt nur, wenn sie mindestens 150 m lang ist und 10 m Höhe überwindet; kurze Rampen fehlen deshalb. In Innenstädten mit hohen Gebäuden kann sie dennoch eine Steigung zeigen, die es nicht gibt, oder eine übersehen. Brücken und Tunnel bleiben ausgespart. In den dichten Kernen der größten Städte, wo die Höhen die der Gebäude sind, werden keine Steigungen gezeigt. |
 
-Zu Beginn sind alle Teile an außer **Unbefestigt & holprig**, **Einbahnstraßen**, **Ruhige Straßen**, **Mountainbike** und **Steigungen**. Ein Teil, der in einer späteren Version dazukommt, startet mit seiner Voreinstellung; frühere Entscheidungen bleiben erhalten.
+Die Radkarte ist an, bis du sie ausschaltest, außer du hast die Online-Radkarte gewählt, die dann statt ihrer bleibt. Zu Beginn sind alle Teile an außer **Unbefestigt & holprig**, **Einbahnstraßen**, **Ruhige Straßen**, **Mountainbike** und **Steigungen**. Ein Teil, der in einer späteren Version dazukommt, startet mit seiner Voreinstellung; frühere Entscheidungen bleiben erhalten.
 
-Im Tab Planen sagt ein Chip bei eingeschalteter Radkarte über einem nicht heruntergeladenen Gebiet **Keine Radkarte hier – Gebiet nicht heruntergeladen**, mit **Herunterladen**; ein Tipp öffnet den Download für das sichtbare Gebiet. Gilt auch der Chip der Stopps, steht er vorn.
+Im Tab Planen sagt ein Chip bei eingeschalteter Radkarte über einem nicht heruntergeladenen Gebiet **Keine Radkarte hier – Gebiet nicht heruntergeladen**, mit **Herunterladen**; ein Tipp fragt, was geholt wird, und lädt das Gebiet an Ort und Stelle herunter, mit dem Fortschritt im Chip. Gilt auch der Chip der Stopps, steht er vorn.
 
 ## Online-Radkarte
 
@@ -38,7 +38,7 @@ Im Tab Planen sagt ein Chip bei eingeschalteter Radkarte über einem nicht herun
 
 ## Regenradar und Wolken
 
-**Regenradar**: "Jetzt: Radar in Deutschland, den Niederlanden, Finnland und den USA, sonst in Europa und Afrika eine Schätzung aus Satellitendaten. Voraus: Radarprognose für 2 Stunden in Deutschland, Modellvorhersage bis 24 Stunden (in Europa stündlich, sonst alle 6 Stunden)". **Wolken**: "Europa, Afrika und Amerika · in Europa stündlich aktualisiert". Beide sind kostenlos, aus, bis du sie einschaltest, und brauchen eine Verbindung.
+**Regenradar**: "Jetzt: Radar in Deutschland, den Niederlanden, Finnland und den USA, sonst in Europa und Afrika eine Schätzung aus Satellitendaten. Voraus: Radarprognose für 2 Stunden in Deutschland, Modellvorhersage bis 24 Stunden (in Europa stündlich, sonst alle 6 Stunden)". **Wolken**: "Europa, Afrika und Amerika · in Europa stündlich aktualisiert". Beide sind kostenlos, aus, bis du sie einschaltest, und brauchen eine Verbindung. Ist eines an, erscheint unter seinem Schalter ein Regler **Deckkraft**.
 
 Der Regen kommt aus drei Arten von Quellen. Jetzt: Radar vom Deutschen Wetterdienst über Deutschland und seinen Nachbargebieten vom US-Wetterdienst (National Weather Service) über den USA, vom KNMI über den Niederlanden und vom Finnischen Meteorologischen Institut über Finnland, und rundherum, über dem übrigen Europa, Afrika und dem Atlantik, Regen, den H SAF von EUMETSAT aus dem Meteosat-Satelliten schätzt, alle zehn Minuten. Eine Schätzung aus Satellitendaten ist gröber als Radar und übersieht manchen leichten Regen; über den Gebieten der Radare wird sie nie gezeichnet, also widersprechen sich die beiden auf der Karte nie. Mit Velorki Plus tritt echtes Radar von EUMETNET OPERA, dem europäischen Radarverbund, und von Radar-DPC (Italien), dem Radar des italienischen Zivilschutzes, überall an die Stelle des Satelliten, wo es misst, etwa in Frankreich, Spanien, Italien, Großbritannien, der Schweiz und Skandinavien: 1-km-Zellen, alle fünf Minuten ein neues Bild, die letzten zwei Stunden, keine Prognose. Die nächsten zwei Stunden: in Deutschland die Radarprognose des Deutschen Wetterdiensts, der Regen des Radars in Viertelstunden weitergeschoben; überall sonst, und ab drei Stunden überall, die Vorhersage seines Wettermodells ICON, über Europa Stunde für Stunde und anderswo in Sechs-Stunden-Schritten. Alle fünf Minuten schaut die App nach neueren Bildern. Der Regen wird bei jedem Zoom gezeichnet, bis hinaus zur ganzen Welt, wo seine Bilder gröber sind. Wo das Gebiet des Radars endet, gehen das Radar und der Satellit oder die Vorhersage daneben über etwa 25 km ineinander über, statt hart aneinanderzustoßen.
 
@@ -58,4 +58,4 @@ Der Zeitregler des Regenradars bewegt auch den Wind, Stunde für Stunde: **Jetzt
 
 ## Stopps
 
-**Stopps** ist ein Schalter im selben Fenster, aus, bis du ihn einschaltest. Er zeichnet Trinkwasser, Cafés, Toiletten, Fahrrad-Reparaturstationen und mehr aus dem Ortsindex auf dem Handy. Die Arten, das Gebiet, das du ansiehst, und die Route voraus stehen unter [Stopps auf der Karte](./stops-on-the-map).
+**Stopps** ist ein Schalter im selben Fenster, an, bis du ihn ausschaltest. Er zeichnet Trinkwasser, Cafés, Toiletten, Fahrrad-Reparaturstationen, Bahnhöfe, Bushaltestellen, Apotheken und mehr aus dem Ortsindex auf dem Handy. Die Arten, das Gebiet, das du ansiehst, und die Route voraus stehen unter [Stopps auf der Karte](./stops-on-the-map).

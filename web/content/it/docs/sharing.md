@@ -14,6 +14,8 @@ La condivisione dei link fa parte di [Velorki Plus](./velorki-plus). Aprire il l
 2. Tocca **Condividi** in fondo al pannello. La scheda di condivisione elenca **Link**, **Ride with GPS** e **Strava**.
 3. Sulla riga **Link** tocca **Condividi link**. Velorki carica la traccia e passa il link al menu di condivisione del telefono. La riga dice poi "Funziona fino al 17 set 2027." Prima dice "Chiunque abbia il link può vederlo su una mappa e scaricare il GPX."
 
+Un percorso arrivato da Strava non ha un link: la sua riga dice "Non disponibile per i percorsi da Strava."
+
 Senza Plus la riga **Link** porta l'indicazione **Velorki Plus** e rimanda alla pagina dell'abbonamento. Le righe di Strava e Ride with GPS sono gratis.
 
 ## Cosa vede chi lo apre

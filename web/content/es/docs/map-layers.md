@@ -4,7 +4,7 @@ description: El mapa ciclista sin conexión y sus partes, el mapa ciclista en l�
 order: 6
 ---
 
-**Capas** está en la columna de botones a la derecha del mapa, en las pestañas Planificar y Grabar. Su panel contiene el mapa ciclista, el mapa ciclista en línea, el radar de lluvia, las nubes, el viento y las paradas. El botón se resalta mientras uno de ellos está activo.
+**Capas** está en la columna de botones a la derecha del mapa, en las pestañas Planificar y Grabar. Su panel contiene el mapa ciclista, el mapa ciclista en línea, el radar de lluvia, las nubes, el viento y las paradas. El botón se resalta mientras uno de ellos está activo. En el primer inicio el mapa ciclista y las paradas ya están activados; tu elección se conserva.
 
 <!-- screenshot: layers -->
 
@@ -28,9 +28,9 @@ El mapa ciclista aparece gradualmente entre el zoom 12 y 13, y se desvanece al a
 | **Bici de montaña**                                           | Marcas de dificultad en los senderos desde el zoom 14: azul para fácil (S0–S1), rojo para S2, negro para S3 y más difícil (blanco en el mapa nocturno); rutas de bici de montaña como un halo naranja                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **Subidas**                                                   | Tramos empinados de las vías que puede usar una bici, como una banda: amarillo desde el 6 %, naranja desde el 10 %, rojo desde el 15 %; las flechas apuntan cuesta arriba desde el zoom 15. Las alturas vienen del modelo del terreno de los datos de rutas. Una subida solo cuenta si dura al menos 150 m y 10 m de desnivel, así que las rampas cortas no salen; en centros urbanos con edificios altos aún puede mostrar una subida que no existe o no ver una. Puentes y túneles quedan fuera. En los centros densos de las ciudades más grandes, donde las alturas son las de los edificios, no se dibujan subidas. |
 
-Al principio todas las partes están activas salvo **Sin asfaltar y bacheado**, **Calles de sentido único**, **Calles tranquilas**, **Bici de montaña** y **Subidas**. Una parte añadida en una versión posterior empieza con su valor por defecto; las elecciones anteriores se conservan.
+El mapa ciclista está activado hasta que lo desactives, salvo que hayas elegido el mapa ciclista en línea, que entonces se queda en su lugar. Al principio todas las partes están activas salvo **Sin asfaltar y bacheado**, **Calles de sentido único**, **Calles tranquilas**, **Bici de montaña** y **Subidas**. Una parte añadida en una versión posterior empieza con su valor por defecto; las elecciones anteriores se conservan.
 
-En la pestaña Planificar, con el mapa ciclista activo sobre una zona no descargada, un chip dice **No hay mapa ciclista aquí – zona no descargada**, con **Descargar**; al tocarlo se abre la descarga de la zona visible. Si también vale el chip de las paradas, este va primero.
+En la pestaña Planificar, con el mapa ciclista activo sobre una zona no descargada, un chip dice **No hay mapa ciclista aquí – zona no descargada**, con **Descargar**; al tocarlo pregunta qué se va a descargar y descarga la zona en el sitio, con el progreso en el chip. Si también vale el chip de las paradas, este va primero.
 
 ## Mapa ciclista en línea
 
@@ -38,7 +38,7 @@ En la pestaña Planificar, con el mapa ciclista activo sobre una zona no descarg
 
 ## Radar de lluvia y nubes
 
-**Radar de lluvia**: "Ahora: radar en Alemania, los Países Bajos, Finlandia y EE. UU., en el resto de Europa y África una estimación por satélite. Después: previsión radar de 2 horas en Alemania, previsión de modelo hasta 24 horas (cada hora en Europa, cada 6 horas en el resto)". **Nubes**: "Europa, África y América · cada hora en Europa". Los dos son gratis, están desactivados hasta que los activas y necesitan conexión.
+**Radar de lluvia**: "Ahora: radar en Alemania, los Países Bajos, Finlandia y EE. UU., en el resto de Europa y África una estimación por satélite. Después: previsión radar de 2 horas en Alemania, previsión de modelo hasta 24 horas (cada hora en Europa, cada 6 horas en el resto)". **Nubes**: "Europa, África y América · cada hora en Europa". Los dos son gratis, están desactivados hasta que los activas y necesitan conexión. Con cualquiera de ellos activado, aparece un control deslizante **Opacidad** bajo su interruptor.
 
 La lluvia viene de tres tipos de fuente. Ahora: el radar del servicio meteorológico alemán (Deutscher Wetterdienst) sobre Alemania y sus alrededores, del servicio meteorológico de EE. UU. (National Weather Service) sobre EE. UU., del KNMI sobre los Países Bajos y del Instituto Meteorológico de Finlandia sobre Finlandia, y alrededor, sobre el resto de Europa, África y el Atlántico, la lluvia que H SAF de EUMETSAT estima a partir del satélite Meteosat, cada diez minutos. Una estimación por satélite es más tosca que el radar y no ve parte de la lluvia débil; nunca se dibuja sobre las zonas de los radares, así que los dos nunca se contradicen en el mapa. Con Velorki Plus, el radar real de EUMETNET OPERA, la red europea de radares, y el de Radar-DPC (Italia), de la Protección Civil italiana, ocupan el lugar del satélite allí donde mide, como en Francia, España, Italia, el Reino Unido, Suiza y Escandinavia: celdas de 1 km, una imagen nueva cada cinco minutos, las últimas dos horas, sin previsión. Las próximas dos horas: en Alemania la previsión radar del Deutscher Wetterdienst, la lluvia del radar desplazada en cuartos de hora; en todas partes, y a partir de tres horas en todas, la previsión de su modelo meteorológico ICON, hora a hora sobre Europa y en pasos de seis horas en el resto. La app busca imágenes más nuevas cada cinco minutos. La lluvia se dibuja con cualquier zoom, hasta el mundo entero, donde sus imágenes son más toscas. Donde termina la zona del radar, el radar y el satélite o la previsión de alrededor se funden a lo largo de unos 25 km en vez de chocar en un borde nítido.
 
@@ -58,4 +58,4 @@ El control de tiempo del radar de lluvia mueve también el viento, hora a hora: 
 
 ## Paradas
 
-**Paradas** es un interruptor en el mismo panel, desactivado hasta que lo actives. Dibuja agua potable, cafés, aseos, estaciones de reparación de bicis y más a partir del índice de lugares del teléfono. Los tipos, la zona que miras y la ruta por delante se describen en [paradas en el mapa](./stops-on-the-map).
+**Paradas** es un interruptor en el mismo panel, activado hasta que lo desactives. Dibuja agua potable, cafés, aseos, estaciones de reparación de bicis, estaciones, paradas de autobús, farmacias y más a partir del índice de lugares del teléfono. Los tipos, la zona que miras y la ruta por delante se describen en [paradas en el mapa](./stops-on-the-map).

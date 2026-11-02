@@ -1,6 +1,6 @@
 ---
 title: Problemen oplossen
-description: "Oplossingen voor de gewone problemen: geen positie, geen route, de banner over ontbrekende tegels, een stille stem op iOS, vastgelopen downloads en links die niet openen."
+description: "Oplossingen voor veelvoorkomende problemen: geen positie, geen route, de tegelbanner, een stille stem op iOS, vastlopende downloads en links."
 order: 19
 ---
 
@@ -10,7 +10,7 @@ Wat het vaakst misgaat, en wat je er telkens aan doet. Staat je probleem er niet
 
 De symptomen zijn "Nog geen positie bepaald.", een locatieknop die niets doet, of "Zet je locatie aan of tik op de kaart om een start te kiezen."
 
-1. **Is de toestemming geweigerd?** Velorki vraagt het met een eigen venster, **Je positie tonen?**, vóór dat van het systeem. Antwoordde je **Niet nu**, tik dan nog eens op de locatieknop en antwoord **Doorgaan**.
+1. **Is de toestemming geweigerd?** Velorki vraagt er bij de eerste start zelf om, met een eigen venster, **Je positie tonen?**, vóór dat van het systeem. Antwoordde je op Android **Niet nu**, tik dan nog eens op de locatieknop en antwoord **Doorgaan**. Op een iPhone heeft het venster alleen **Doorgaan** en beslist de melding van het systeem; heb je daar geweigerd, ga dan naar de volgende stap.
 2. **Staat het uit voor Velorki?** "Locatietoestemming staat uit voor Velorki. Zet die aan in de systeeminstellingen." komt met een actie **Instellingen** die je er direct heen brengt. Kies "Alleen toestaan bij gebruik van de app" of "Bij gebruik van app".
 3. **Staan de locatievoorzieningen op de telefoon uit?** "Locatievoorzieningen staan uit op dit apparaat." gaat over de telefoon, niet over Velorki. De actie **Instellingen** opent de juiste plek.
 4. **Binnen, of net aangezet?** "Nog geen positie bepaald." betekent vaak dat de telefoon nog helemaal geen positie heeft. Ga naar buiten en geef hem een halve minuut.
@@ -19,11 +19,11 @@ Velorki heeft nooit locatie op de achtergrond nodig. "Bij gebruik van de app" is
 
 ## Er verschijnt geen route
 
-**"Deze route heeft routeringstegels nodig die niet op dit apparaat staan."** Je telefoon heeft geen routeringsgegevens voor het gebied en er is geen routeringsserver om op terug te vallen. Tik op de knop, die de tegels en hun grootte telt, en download ze. Zie [offline kaarten en routering](./offline-maps-and-routing).
+**"Deze route heeft routeringstegels nodig die niet op dit apparaat staan."** Je telefoon heeft geen routeringsgegevens voor het gebied. Tik op de knop, die de tegels en hun grootte telt, en download ze; de download loopt direct daar. Zie [offline kaarten en routering](./offline-maps-and-routing).
 
-**"Geen routeringsserver ingesteld, stel er een in onder Instellingen → Geavanceerd."** Deze build levert geen serveradres mee. Download de routeringstegels voor waar je bent en routeer in plaats daarvan op de telefoon.
+**"Routeren is op dit moment niet beschikbaar."** Routeren op het apparaat is nog aan het starten, of kon niet starten ("Routeren kon op dit apparaat niet starten."), of deze build heeft er geen kaartgegevens voor ("Deze versie van Velorki heeft geen kaartgegevens om te routeren."). Wacht even en download dan de routeringstegels voor waar je bent.
 
-**Instellingen → Geavanceerd → Routering staat op "Alleen op het apparaat".** Dan vraagt Velorki met opzet nooit een server. Zet het op **Automatisch** of download de tegels.
+**Instellingen → Kaarten en gegevens → Routering staat op "Alleen op het apparaat".** Dan vraagt Velorki met opzet nooit een server. Zet het op **Automatisch** of download de tegels.
 
 **"Route berekenen mislukt:" met een reden.** Meestal was de server niet bereikbaar. Probeer het opnieuw, en controleer dat er geen routepunt in zee is beland of op een snelweg waar geen fiets mag komen. Het lastige punt een paar meter naar een echte weg schuiven lost het meestal op.
 
@@ -31,9 +31,11 @@ Velorki heeft nooit locatie op de achtergrond nodig. "Bij gebruik van de app" is
 
 De banner staat in de planner zodra de route door een gebied gaat waarvan de routeringstegel niet op de telefoon staat. Velorki routeert nooit op gedeeltelijke dekking, omdat de router de ontbrekende tegel als leeg land zou behandelen en stilletjes een verkeerde route zou teruggeven.
 
-1. Tik op de knop op de banner. Die opent **Offline routeringsgegevens** met precies de tegels die de route nodig heeft al uitgekozen.
-2. Download ze. Tegels zijn 125 tot 250 MB per stuk, dus zorg dat je op wifi zit.
+1. Tik op de downloadknop op de banner. Die telt de tegels die de route nodig heeft en hun grootte, en de download loopt direct daar: de banner toont de voortgang en de downloadchip op de kaart volgt dezelfde download.
+2. Tegels zijn 125 tot 250 MB per stuk, dus zorg dat je op wifi zit.
 3. Als een tegel binnen is, routeert de planner vanzelf opnieuw en wordt de banner vervangen door de waarden van de route.
+
+Stopt hij halverwege, dan zegt de banner "De download is mislukt:" met de reden en **Opnieuw proberen**. Wil je hem zelf stoppen, tik dan op de sluitknop van de chip en bevestig **Download stoppen?** met **Download annuleren**; een halve tegel houdt wat hij heeft.
 
 Tonen de tegels die je nodig hebt **Update vraagt een nieuwere Velorki**, werk dan eerst de app bij; het venster legt uit waarom.
 
@@ -57,10 +59,12 @@ Is de gekozen stem gemarkeerd met **Heeft internet nodig**, dan wordt hij op een
 ## Een download loopt vast of mislukt
 
 - **Downloads lopen alleen zolang de app open is.** Laat Velorki op de voorgrond staan voor een grote tegel. Stopt hij, dan blijft wat binnen was bewaard en gaat de volgende poging vanaf daar verder.
-- **"De download is mislukt:"** met een reden. Tik nog eens op de tegel om het opnieuw te proberen. Een hervatte download begint niet bij nul.
+- **"De download is mislukt:"** met een reden. Tik op **Opnieuw proberen**, of nog eens op de tegel op de pagina **Offline routeringsgegevens**. Een hervatte download begint niet bij nul.
+- **Het kaartdeel geeft zelf op.** Een kaartdownload die ongeveer een minuut niet vordert, wordt gestopt; de melding is "De kaart kon niet worden gedownload:" met "Controleer de verbinding en de vrije ruimte en probeer het dan opnieuw." Wat al binnen was, wordt verwijderd, dus start de download opnieuw.
 - **"De tegellijst kon niet worden geladen:"** betekent dat de mirror niet bereikbaar was. **Opnieuw proberen** staat op het scherm.
 - **Controleer de vrije ruimte op de telefoon.** Een routeringstegel van 250 MB heeft 250 MB nodig, en het kaartgebied komt daar nog bij.
-- **Annuleer en start opnieuw** met de sluitknop in de voortgangskop als een download duidelijk stilstaat.
+- **Annuleer en start opnieuw** als een download duidelijk stilstaat: de sluitknop van de chip op de kaart vraagt **Download stoppen?**, en **Download annuleren** stopt hem. Het gebied telt dan als niet gedownload en de chip biedt het opnieuw aan.
+- **"Nieuwe kaartgegevens voor dit gebied"** op de kaart is geen storing. De mirror heeft gewijzigde gegevens voor het gebied op het scherm; tik op **Bijwerken** om ze te downloaden, of negeer het.
 - Velorki kan wifi niet van mobiele data onderscheiden, dus het waarschuwt in plaats van te blokkeren. Start grote downloads zelf op wifi.
 
 ## Een deellink opent niet in de app
@@ -116,7 +120,7 @@ Een gekoppelde sensor die **Niet verbonden** zegt, is buiten bereik, slaapt of i
 
 - **"Niet beschikbaar in deze build"** op een rij bij de koppelingen, of op de abonnementspagina, betekent dat deze kopie van Velorki is gebouwd zonder de sleutels voor die dienst of store. Zo ziet een zelfgebouwde kopie eruit.
 - **De knop Vragen of de knop Link delen is er helemaal niet** in een build zonder ingestelde Velorki-server.
-- **Al het andere** zou "… hoort bij Velorki Plus" moeten zeggen en de abonnementspagina moeten aanbieden. Heb je een abonnement en gebeurt dat niet, tik dan op **Aankopen herstellen** in **Instellingen → Abonnement**.
+- **Al het andere** zou "… hoort bij Velorki Plus" moeten zeggen en de abonnementspagina moeten aanbieden. Heb je een abonnement en gebeurt dat niet, tik dan op **Aankopen herstellen** in **Instellingen → Velorki Plus**.
 
 ## Een bug melden
 

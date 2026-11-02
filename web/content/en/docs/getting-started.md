@@ -21,24 +21,26 @@ Velorki is open source. If you would rather build it yourself, or run your own s
 
 ## First launch
 
-Velorki opens on the **Plan** tab, showing a world map. Nothing is downloaded yet and no permission has been asked for yet.
+Velorki opens on the **Plan** tab. The first time, it asks for your location before anything else (see below), then shows the map where you are, or over your phone's country if you decline. Bike lanes and [stops](./stops-on-the-map) are already drawn; turn them off in **Layers** if you would rather not see them. Nothing is downloaded yet.
+
+The empty plan says "Search for a place or tap the map." A short animation points at that line, at the search field and, if your area is not downloaded, at the download chip. It plays once and stops at your first touch.
 
 A good first session:
 
 1. Move the map to where you ride and pinch to zoom in.
 2. Tap the map to set a start, tap again to add a destination. A route appears within a moment.
-3. Tap the download button on the right of the map (**Offline data**) and download the area, so that the map and the routing keep working when the signal does not. See [offline maps and routing](./offline-maps-and-routing) for what the two downloads are and how large they get.
+3. Download the area, so that the map and the routing keep working when the signal does not: tap **Download** in the chip over the map, or the round download button on the right of the map. Confirm the one question it asks and watch the progress in the chip. See [offline maps and routing](./offline-maps-and-routing) for what the two downloads are and how large they get.
 4. Set your units under **Settings → Appearance → Units** if the app guessed wrong.
 
 ## The permissions it asks for, and why
 
-Velorki asks for nothing at launch. Each permission is requested at the moment it is first needed, and each one is explained before the system dialog appears.
+Velorki asks for your location when you first open it, and for everything else at the moment it is first needed. Each permission is explained before the system dialog appears.
 
 ### Location
 
-Asked the first time you tap **Show my position**, start a ride, or ask for a loop from where you are.
+Asked when you first open the app, and after that the first time you tap **Show my position**, start a ride, or ask for a loop from where you are.
 
-Velorki shows its own dialog first, titled **Show your position?**: "Velorki uses your location to centre the map on you and to record rides. The position stays on this device; it is never uploaded." You can answer **Not now** and keep using the app; only the features that need to know where you are stop working.
+Velorki shows its own dialog first, titled **Show your position?**: "Velorki uses your location to centre the map on you and to record rides. The position stays on this device; it is never uploaded." Tap **Continue** for the system dialog. On Android you can also answer **Not now** and keep using the app; only the features that need to know where you are stop working. On iPhone the dialog has only **Continue**, and the system dialog that follows is where you decide. Refused at the first start, the map opens over your phone's country, and Velorki does not ask again until you tap **Show my position**.
 
 With the permission given, the map opens where you left it and then glides to your position: at once to where the phone last knew you were if that is under an hour old, and to the first fresh fix when it is not, or when that fix puts you more than about 300 m from there, both when the app starts and when you come back to it after half an hour or more. It stays put while a plan is on the Plan tab, a route or ride card is open, a ride is being recorded, you are already in view, or you have moved the map yourself.
 
@@ -67,7 +69,7 @@ The bar at the bottom has four tabs.
 | **Plan** | The map, the place search, the route planner, smart loops and the assistant. |
 | **Record** | Starting, pausing and finishing a ride, the live figures, and your recent rides. |
 | **Library** | Everything you saved: **Routes** and **Rides**, with import and export. |
-| **Settings** | Appearance, units and language, navigation and recording options, offline data, search, connections, subscription and the legal pages. |
+| **Settings** | A list of pages: Sync, Velorki Plus and Connections; Navigation, Recording, Rider & bike and Sensors; Appearance (theme, units, language), AI assistant, Maps & data (offline data, search) and About with the legal pages. |
 
 The bar floats over the content, so lists scroll underneath it.
 
@@ -83,7 +85,7 @@ Until you choose, Velorki follows the phone's country: imperial only where the c
 
 ## Where things are
 
-- **The map controls** sit in a column on the right of the map: **Show my position**, **Layers** ([the cycle map](./map-layers) and [stops on the map](./stops-on-the-map)), **Offline data** (not on a small screen such as an iPhone SE), **Zoom in** and **Zoom out**. On the Record tab a compass button joins them, which swaps between **North up** and **Map turns with you**.
+- **The map controls** sit in a column on the right of the map: **Show my position**, **Layers** ([the cycle map](./map-layers) and [stops on the map](./stops-on-the-map)), **Offline data** (the download button; not on a small screen such as an iPhone SE), **Zoom in** and **Zoom out**. On the Record tab a compass button joins them, which swaps between **North up** and **Map turns with you**.
 - **The search field** is at the top of the Plan tab.
 - **The bike profile** (Touring, Road, Gravel, MTB, Direct) is the row of chips under the search field.
 - **The route sheet** is the panel at the bottom of the Plan tab. Drag it up for the elevation profile and the surface breakdown, down to see more map.

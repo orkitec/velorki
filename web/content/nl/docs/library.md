@@ -47,7 +47,7 @@ Een route openen tekent hem op de landkaart, passend in het deel van het scherm 
 De acties:
 
 - **Openen in planner** laadt hem in het tabblad Plannen met al zijn punten, viapunten en hun namen, soorten en notities inbegrepen, waar je hem kunt bewerken en opnieuw opslaan. Een route die geïmporteerd is in plaats van gepland, opent met de exacte lijn van het bestand en punten alleen aan de uiteinden en op de eigen punten van het bestand die op de track liggen, die met hun soort en notitie meekomen; een bewerking berekent alleen de stukken ernaast opnieuw, en overal elders blijft de lijn van het bestand staan. De lijn van het bestand blijft bij elke bewerking en elke keer opslaan bij de route, zodat **Herstellen** in de planner hem kan terugzetten. De punten naast de track komen mee als plekken naast de route, waar ze een naam en een soort kunnen krijgen, op de route kunnen worden gezet of verwijderd zoals elk ander punt. De volgende keer opslaan schrijft beide sets terug, dus een plek die je in de planner verwijdert, is ook van de kaart verdwenen.
-- **Exporteren** biedt **GPX-route** en **FIT-course**, zie [importeren en exporteren](./import-and-export).
+- **Exporteren** biedt **GPX-route**, **FIT-course** en **TCX-course**, zie [importeren en exporteren](./import-and-export).
 - **Delen** opent de deelkaart: een **Link** naar de route, **Ride with GPS** en **Strava**, zie [delen](./sharing) en [Strava en Ride with GPS](./strava-and-ridewithgps).
 - **Deze route beschrijven** vraagt de assistent er een alinea over te schrijven, zie [assistent](./assistant).
 
@@ -74,7 +74,7 @@ Een rit die is opgenomen met een hartslagband, een Apple Watch of een vermogensm
 
 ### Calorieën, hartslagzones, vermogenszones en geschat vermogen
 
-Alle vier staan uit tot je ze aanzet onder Instellingen → Fietser, en alle vier worden op de telefoon berekend uit de eigen punten van de rit, dus oudere ritten krijgen ze ook.
+Alle vier staan uit tot je ze aanzet onder Instellingen → Fietser en fiets, en alle vier worden op de telefoon berekend uit de eigen punten van de rit, dus oudere ritten krijgen ze ook.
 
 **Calorieën** is een schatting, en de kleine regel onder de waarde zegt waarop die berust. Met een vermogensmeter over de rit is het de geleverde arbeid, "uit vermogen": een kilojoule trappen is vrijwel precies een verbrande kilocalorie. Anders, met een hartslag over de rit en je gewicht, geboortejaar en geslacht, is het "uit hartslag". Anders, met **Vermogen schatten** aan, is het "uit geschat vermogen", weer de geschatte arbeid in kilojoules. Anders is het "uit snelheid", op basis van je gewicht en hoe snel je reed. Het heeft in alle gevallen je gewicht nodig.
 
@@ -82,7 +82,7 @@ Alle vier staan uit tot je ze aanzet onder Instellingen → Fietser, en alle vie
 
 **Hartslagzones** is een balk onder de hartslaggrafiek, verdeeld in vijf zones van je maximale hartslag, met een rij per zone: het bereik, de tijd erin en het aandeel van de hartslagtijd van de rit. Zone 1 is alles onder 60 %, zone 5 alles vanaf 90 %. Het bijschrift noemt het gebruikte maximum: het maximum dat je hebt ingevoerd, of 220 min je leeftijd.
 
-**Vermogenszones** is dezelfde balk voor ritten met een vermogensmeter, verdeeld in zeven zones van je drempelvermogen: onder 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 en vanaf 150 %. Elke seconde van de rit gaat naar de zone van de meting van de meter op dat moment; stilstaan telt nergens mee. Het bijschrift noemt de drempel, "Vermogenszones · drempel 250 W". Het heeft de schakelaar en je drempelvermogen onder Instellingen → Fietser nodig, en het zet de waarde **Intensiteit** tussen de tegels.
+**Vermogenszones** is dezelfde balk voor ritten met een vermogensmeter, verdeeld in zeven zones van je drempelvermogen: onder 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 en vanaf 150 %. Elke seconde van de rit gaat naar de zone van de meting van de meter op dat moment; stilstaan telt nergens mee. Het bijschrift noemt de drempel, "Vermogenszones · drempel 250 W". Het heeft de schakelaar en je drempelvermogen onder Instellingen → Fietser en fiets nodig, en het zet de waarde **Intensiteit** tussen de tegels.
 
 ### Splits
 
@@ -102,7 +102,7 @@ Onder de klimmen een balk **Ondergrond** zoals die op de kaart van een route: ho
 
 ### Acties voor een rit
 
-- Het menu rechts in de kop van de kaart: **GPX-track exporteren**, **FIT-activiteit exporteren**, **Deze rit voortzetten**, **Naam wijzigen**, **Verwijderen**.
+- Het menu rechts in de kop van de kaart: **GPX-track exporteren**, **FIT-activiteit exporteren**, **TCX-activiteit exporteren**, **Deze rit voortzetten**, **Naam wijzigen**, **Verwijderen**.
 - Onderaan: dezelfde twee exports en **Delen**, dat de deelkaart opent met **Link**, **Ride with GPS** en **Strava**, zie [delen](./sharing).
 
 ## Bestanden en routes binnenhalen
@@ -116,11 +116,11 @@ Beide worden behandeld in [importeren en exporteren](./import-and-export) en [St
 
 ## Synchroniseren met iCloud of Google Drive
 
-Je opgeslagen routes en opgenomen ritten, met de track, de notities, de cijfers, de ronden en de sensorwaarden van elke rit, kunnen via je eigen cloud tussen je eigen apparaten worden gesynchroniseerd. **Instellingen → Synchroniseren met** kiest er per apparaat één: **iCloud** (iPhone en iPad met iOS 17 of nieuwer, en de planner in de browser), **Google** (iPhone, iPad, Android en de browser) of **Uit**. Op een iPhone of iPad staat iCloud standaard aan; op Android en in de browser staat synchronisatie uit totdat je een cloud kiest. Google bewaart de gegevens in een verborgen Velorki-map in je Google Drive; Velorki kan die map openen en verder niets in je Drive.
+Je opgeslagen routes en opgenomen ritten, met de track, de notities, de cijfers, de ronden en de sensorwaarden van elke rit, kunnen via je eigen cloud tussen je eigen apparaten worden gesynchroniseerd. **Instellingen → Synchronisatie** kiest, onder **Synchroniseren met**, er per apparaat één: **iCloud** (iPhone en iPad met iOS 17 of nieuwer, en de planner in de browser), **Google** (iPhone, iPad, Android en de browser) of **Uit**. Op een iPhone of iPad staat iCloud standaard aan; op Android en in de browser staat synchronisatie uit totdat je een cloud kiest. Google bewaart de gegevens in een verborgen Velorki-map in je Google Drive; Velorki kan die map openen en verder niets in je Drive.
 
 Een paar instellingen gaan mee: thema, accentkleur, kaartstijl, de stijl van de regenradar, balkstijl, kant van de kolom, eenheden, en de instellingen voor afslagen, spraak en herberekenen. In de browser met iCloud blijven de instellingen in de browser. Velorki heeft hiervoor geen server en kan niet lezen wat er is opgeslagen; zie de [privacyverklaring](/privacy).
 
-Een route of een rit verwijderen verwijdert hem ook op je andere apparaten. **Uit** kiezen, afmelden of overstappen naar de andere cloud verwijdert niets: wat al in iCloud staat, blijft daar totdat je het verwijdert in de iCloud-instellingen op een Apple-apparaat, en wat in Google Drive staat, blijft daar totdat je het verwijdert in Google Drive op het web, onder Instellingen → Apps beheren → Velorki → Opties → Verborgen app-gegevens verwijderen. Een statusregel in Instellingen laat zien hoe het ervoor staat, bijvoorbeeld **Zojuist gesynchroniseerd**, **Bezig met synchroniseren…**, **De iCloud-opslag is vol** of **Niet aangemeld bij Google**.
+Een route of een rit verwijderen verwijdert hem ook op je andere apparaten. **Uit** kiezen, afmelden of overstappen naar de andere cloud verwijdert niets: wat al in iCloud staat, blijft daar totdat je het verwijdert in de iCloud-instellingen op een Apple-apparaat, en wat in Google Drive staat, blijft daar totdat je het verwijdert in Google Drive op het web, onder Instellingen → Apps beheren → Velorki → Opties → Verborgen app-gegevens verwijderen. Een statusregel in de instellingen voor Synchronisatie laat zien hoe het ervoor staat, bijvoorbeeld **Zojuist gesynchroniseerd**, **Bezig met synchroniseren…**, **De iCloud-opslag is vol** of **Niet aangemeld bij Google**.
 
 Routes die uit Strava zijn gelezen en routes die daaruit zijn bewerkt, blijven op de telefoon, net als de Strava-links van ritten; ook de links van uploads naar Ride with GPS worden niet gesynchroniseerd. Gedownloade kaarten en routeringstegels worden niet gesynchroniseerd.
 

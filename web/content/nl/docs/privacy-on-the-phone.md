@@ -11,13 +11,13 @@ Velorki heeft geen account, dus er is niets om op in te loggen en niets over jou
 Alles wat je maakt en alles wat je downloadt:
 
 - geplande routes, opgenomen ritten en hun GPS-tracks,
-- je instellingen, waaronder welke eenheden en welke stem je koos, en het gewicht, geboortejaar, geslacht, de maximale hartslag, het fietsgewicht, het fietstype en het drempelvermogen die je misschien invult onder Instellingen → Fietser; dat zijn instellingen op de telefoon en ze worden nergens heen gestuurd,
+- je instellingen, waaronder welke eenheden en welke stem je koos, en het gewicht, geboortejaar, geslacht, de maximale hartslag, het fietsgewicht, het fietstype en het drempelvermogen die je misschien invult onder Instellingen → Fietser en fiets; dat zijn instellingen op de telefoon en ze worden nergens heen gestuurd,
 - gedownloade offline kaartgebieden,
 - gedownloade routeringstegels en de zoekindexen voor plaatsen die erbij horen,
 - de toegangstokens voor Strava en Ride with GPS als je die koppelt, die in de beveiligde opslag van de telefoon gaan in een vorm die alleen de Velorki-relay kan openen, en buiten back-ups worden gehouden.
 - wat je van Strava neemt: je Strava-naam, de lijst met je Strava-routes gedurende hooguit 48 uur, de routes die je importeert en de koppelingen van geüploade ritten naar hun Strava-activiteiten. Ontkoppelen verwijdert dat allemaal.
 
-Niets daarvan wordt ergens heen geüpload, tenzij je erom vraagt. De enige uitzondering is cloudsynchronisatie: je routes, ritten en een paar instellingen gaan naar je eigen iCloud of je eigen Google Drive, nooit naar ons, en Strava-gegevens blijven op de telefoon. Op een iPhone of iPad staat iCloud standaard aan; op Android staat synchronisatie uit totdat je een cloud kiest. **Instellingen → Synchroniseren met** kiest de cloud of zet synchronisatie uit, zie [de bibliotheek](./library#synchroniseren-met-icloud-of-google-drive).
+Niets daarvan wordt ergens heen geüpload, tenzij je erom vraagt. De enige uitzondering is cloudsynchronisatie: je routes, ritten en een paar instellingen gaan naar je eigen iCloud of je eigen Google Drive, nooit naar ons, en Strava-gegevens blijven op de telefoon. Op een iPhone of iPad staat iCloud standaard aan; op Android staat synchronisatie uit totdat je een cloud kiest. **Instellingen → Synchronisatie → Synchroniseren met** kiest de cloud of zet synchronisatie uit, zie [de bibliotheek](./library#synchroniseren-met-icloud-of-google-drive).
 
 Op Android is Velorki bewust uitgesloten van de cloudback-up van Google en van overzetten van apparaat naar apparaat, dus ook het systeem kopieert je ritten niet van de telefoon af. Om over te stappen op een nieuwe telefoon zet je synchronisatie met Google aan, of exporteer je wat je wilt houden als GPX-, FIT- of TCX-bestanden, zie [importeren en exporteren](./import-and-export).
 
@@ -27,11 +27,19 @@ Op Android is Velorki bewust uitgesloten van de cloudback-up van Google en van o
 
 Kaarttegels worden opgehaald bij OpenFreeMap, en bij CyclOSM als je **Online fietskaart** aanzet onder **Kaartlagen**. De **Fietskaart** wordt op de telefoon getekend en vraagt bij geen enkele server iets op. Een tegel opvragen vertelt de tegelserver naar welk vierkant van de wereld je kijkt, en daarbij hoort je IP-adres, zoals bij elk verzoek. Een gebied dat je hebt gedownload, komt van de telefoon en vraagt nergens om.
 
+### Weer
+
+De weerkaart (regen, wolken, wind) en een route die op wind of regen is ingekleurd, halen beelden en voorspellingsgegevens rechtstreeks bij openbare weerdiensten, zoals de Deutscher Wetterdienst, NOAA, het KNMI, NASA en EUMETSAT. Elk verzoek noemt een deel van de kaart, of een kader rond je route, en een tijdstip, en betreft je IP-adres; de route zelf, je ritten en je identiteit worden niet verstuurd. Met Velorki Plus lopen de fijnere voorspelling en de regenradar in plaats daarvan via de Velorki-relay: voor de voorspelling de punten langs de route, afgerond op een raster van ongeveer 2,5 km, met de uren waarop je er rijdt; voor de radar het deel van de kaart dat je bekijkt en een tijdstip. De weerdiensten zien onze server, niet je telefoon.
+
+### Als je een gebied downloadt
+
+Offline kaartgebieden komen van OpenFreeMap, net als de kaart zelf. Routeringstegels en de zoekindex ernaast komen van de tegelmirror op GitHub; GitHub ziet welke tegels je downloadt en je IP-adres. Of er nieuwe kaartgegevens zijn, vraagt Velorki aan dezelfde mirror; behalve dat verzoek gaat er niets uit.
+
 ### Terwijl je plant
 
 Routering gebeurt op je telefoon overal waar je de routeringstegels hebt. Voor een gebied dat je niet hebt gedownload, gaan de routepunten naar een routeringsserver, die de route terugstuurt. Die krijgt de routepunten en verder niets: geen identiteit, geen andere routes, geen ritten.
 
-**Instellingen → Geavanceerd → Routering → Alleen op het apparaat** zet de server helemaal uit; Velorki biedt dan de download aan in plaats van te routeren.
+**Instellingen → Kaarten en gegevens → Routering → Alleen op het apparaat** zet de server helemaal uit; Velorki biedt dan de download aan in plaats van te routeren.
 
 ### Terwijl je zoekt
 
@@ -48,6 +56,8 @@ Een korte kaartlink die je met Velorki deelt (`maps.app.goo.gl`, `maps.apple/p`,
 ### Terwijl je opneemt
 
 Er verlaat helemaal niets de telefoon. De opname, de statistieken, de grafieken en de splits worden allemaal op het apparaat berekend. Hetzelfde geldt voor hartslag, cadans en vermogen van een horloge, een Bluetooth-sensor of je gezondheidsapp: ze worden bij de rit bewaard en, als je Gezondheid hebt aangezet, op de telefoon zelf uitgewisseld met Apple Health of Health Connect.
+
+Je positie centreert de kaart en neemt je ritten op, en blijft op de telefoon. Velorki vraagt één keer om toestemming, bij de eerste start. Ze verlaat de telefoon in slechts twee gevallen, beide wanneer jij ze in gang zet: afgerond op ongeveer een kilometer naar de assistent, als je dat hebt toegestaan, en als globale positie naar Photon wanneer je online zoekt.
 
 ### Als je de assistent iets vraagt
 
@@ -68,6 +78,10 @@ Die route of rit, met track, naam en waarden, wordt naar onze server gekopieerd 
 ### Als je Velorki Plus koopt
 
 De store regelt de betaling en wij zien je kaart nooit. Het abonnement wordt gecontroleerd tegen een anonieme willekeurige id die niet gekoppeld is aan een naam, een e-mailadres of een apparaat-id. Met synchronisatie aan zet de app die id ook in je eigen cloud, zodat de planner in de browser, aangemeld bij hetzelfde account, je Plus kan gebruiken.
+
+### Updatemeldingen en beoordelingen
+
+Op een iPhone vraagt Velorki de openbare opzoeking van de App Store of er een nieuwere versie is, met de bundle-id van de app, je land en je taal; op Android zegt Google Play het. Het beoordelingsvenster is dat van het systeem, Apple of Google bepaalt of en wanneer het verschijnt, en een beoordeling bereikt ons nooit.
 
 ## Wat Velorki nooit doet
 

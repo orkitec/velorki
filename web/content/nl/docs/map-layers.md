@@ -4,7 +4,7 @@ description: De offline fietskaart en zijn onderdelen, de online fietskaart, de 
 order: 6
 ---
 
-**Kaartlagen** staat in de kolom knoppen rechts op de kaart, op het tabblad Plannen en Opnemen. Het paneel bevat de fietskaart, de online fietskaart, de regenradar, de wolken, de wind en de stopplekken. De knop is gemarkeerd zolang een van die aan staat.
+**Kaartlagen** staat in de kolom knoppen rechts op de kaart, op het tabblad Plannen en Opnemen. Het paneel bevat de fietskaart, de online fietskaart, de regenradar, de wolken, de wind en de stopplekken. De knop is gemarkeerd zolang een van die aan staat. Bij de eerste start staan de fietskaart en de stopplekken al aan; een keuze die je maakt, blijft bewaard.
 
 <!-- screenshot: layers -->
 
@@ -28,9 +28,9 @@ De fietskaart vervaagt in tussen zoomniveau 12 en 13 en weer uit bij uitzoomen. 
 | **Mountainbike**                                               | Moeilijkheidsstreepjes op paden vanaf zoomniveau 14: blauw voor makkelijk (S0–S1), rood voor S2, zwart voor S3 en zwaarder (wit op de nachtkaart); mountainbikeroutes als oranje gloed                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | **Hellingen**                                                  | Steile stukken van de wegen die een fiets mag gebruiken, als band: geel vanaf 6 %, oranje vanaf 10 %, rood vanaf 15 %; chevrons wijzen vanaf zoomniveau 15 bergop. De hoogtes komen uit het terreinmodel in de routeringsdata. Een helling telt alleen mee als die minstens 150 m doorloopt en 10 m hoogteverschil heeft, dus korte hellinkjes ontbreken; in stadscentra met hoge gebouwen kan er toch een helling verschijnen die er niet is, of een gemist worden. Bruggen en tunnels blijven weg. In de dichte kernen van de grootste steden, waar de hoogtes die van de gebouwen zijn, worden geen hellingen getekend. |
 
-In het begin staan alle onderdelen aan behalve **Onverhard & hobbelig**, **Eenrichtingsstraten**, **Rustige straten**, **Mountainbike** en **Hellingen**. Een onderdeel dat in een latere versie wordt toegevoegd, begint met zijn standaard; eerdere keuzes blijven bewaard.
+De fietskaart staat aan tot je hem uitzet, tenzij je de online fietskaart koos; die blijft dan in plaats daarvan staan. In het begin staan alle onderdelen aan behalve **Onverhard & hobbelig**, **Eenrichtingsstraten**, **Rustige straten**, **Mountainbike** en **Hellingen**. Een onderdeel dat in een latere versie wordt toegevoegd, begint met zijn standaard; eerdere keuzes blijven bewaard.
 
-Op het tabblad Plannen zegt een chip, met de fietskaart aan boven een niet-gedownload gebied, **Geen fietskaart hier – gebied niet gedownload**, met **Downloaden**; een tik opent de download voor het zichtbare gebied. Geldt ook de chip van de stopplekken, dan gaat die voor.
+Op het tabblad Plannen zegt een chip, met de fietskaart aan boven een niet-gedownload gebied, **Geen fietskaart hier – gebied niet gedownload**, met **Downloaden**; een tik vraagt wat er wordt opgehaald en downloadt het gebied ter plekke, met de voortgang in de chip. Geldt ook de chip van de stopplekken, dan gaat die voor.
 
 ## Online fietskaart
 
@@ -38,7 +38,7 @@ Op het tabblad Plannen zegt een chip, met de fietskaart aan boven een niet-gedow
 
 ## Regenradar en wolken
 
-**Regenradar**: "Nu: radar in Duitsland, Nederland, Finland en de VS, elders in Europa en Afrika een schatting via satelliet. Vooruit: radarverwachting voor 2 uur in Duitsland, modelverwachting tot 24 uur (per uur in Europa, elders elke 6 uur)". **Wolken**: "Europa, Afrika en Amerika · elk uur bijgewerkt in Europa". Beide zijn gratis, staan uit tot je ze aanzet, en hebben een verbinding nodig.
+**Regenradar**: "Nu: radar in Duitsland, Nederland, Finland en de VS, elders in Europa en Afrika een schatting via satelliet. Vooruit: radarverwachting voor 2 uur in Duitsland, modelverwachting tot 24 uur (per uur in Europa, elders elke 6 uur)". **Wolken**: "Europa, Afrika en Amerika · elk uur bijgewerkt in Europa". Beide zijn gratis, staan uit tot je ze aanzet, en hebben een verbinding nodig. Staat een van beide aan, dan verschijnt onder de schakelaar een schuifregelaar **Dekking**.
 
 De regen komt uit drie soorten bronnen. Nu: radar van de Duitse weerdienst (Deutscher Wetterdienst) boven Duitsland en omgeving, van de Amerikaanse weerdienst (National Weather Service) boven de VS, van het KNMI boven Nederland en van het Finse Meteorologisch Instituut boven Finland, en daaromheen, boven de rest van Europa, Afrika en de Atlantische Oceaan, regen die H SAF van EUMETSAT uit de Meteosat-satelliet schat, elke tien minuten. Een schatting via satelliet is grover dan radar en mist een deel van de lichte regen; boven de gebieden van de radars wordt ze nooit getekend, dus de twee spreken elkaar op de kaart nooit tegen. Met Velorki Plus neemt echte radar van EUMETNET OPERA, het Europese radarnetwerk, en van Radar-DPC (Italië), de radar van de Italiaanse Civiele Bescherming, de plaats van de satelliet in overal waar die meet, zoals in Frankrijk, Spanje, Italië, het Verenigd Koninkrijk, Zwitserland en Scandinavië: cellen van 1 km, elke vijf minuten een nieuw beeld, de laatste twee uur, geen verwachting. De komende twee uur: in Duitsland de radarverwachting van de Deutscher Wetterdienst, de regen van de radar per kwartier verder geschoven; overal elders, en vanaf drie uur overal, de verwachting van zijn weermodel ICON, boven Europa uur voor uur en elders in stappen van zes uur. De app kijkt elke vijf minuten of er nieuwere beelden zijn. De regen wordt bij elk zoomniveau getekend, tot de hele wereld, waar de beelden grover zijn. Waar het gebied van de radar ophoudt, lopen de radar en de satelliet of de verwachting eromheen over ongeveer 25 km in elkaar over in plaats van hard tegen elkaar te stoten.
 
@@ -58,4 +58,4 @@ De tijdregelaar van de regenradar verschuift ook de wind, uur voor uur: **Nu** i
 
 ## Stopplekken
 
-**Stopplekken** is een schakelaar in hetzelfde paneel, uit tot je hem aanzet. Hij tekent drinkwater, cafés, toiletten, fietsreparatiepunten en meer uit de plaatsindex op de telefoon. De soorten, het gebied waar je naar kijkt en de route vooruit staan in [stopplekken op de kaart](./stops-on-the-map).
+**Stopplekken** is een schakelaar in hetzelfde paneel, aan tot je hem uitzet. Hij tekent drinkwater, cafés, toiletten, fietsreparatiepunten, stations, bushaltes, apotheken en meer uit de plaatsindex op de telefoon. De soorten, het gebied waar je naar kijkt en de route vooruit staan in [stopplekken op de kaart](./stops-on-the-map).

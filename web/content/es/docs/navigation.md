@@ -16,7 +16,9 @@ Los ajustes están en dos sitios a la vez, y son el mismo ajuste en ambos: en **
 2. **Voz**, "Anuncia los giros en voz alta".
 3. **Cuando te sales de la ruta**: **Guiarme de vuelta**, **Nueva ruta al destino** o **No recalcular**. Consulta [cuando te sales de la ruta](#cuando-te-sales-de-la-ruta).
 
-Después, en la pestaña **Grabar**, elige algo en **Seguir una ruta**: **La ruta de la pestaña Planificar** si el planificador tiene una ruta, o cualquier ruta de tu biblioteca. Empieza la salida y aparece el banner.
+Después, en la pestaña **Grabar**, elige algo en **Seguir una ruta**: **La ruta de la pestaña Planificar** si el planificador tiene una ruta, o cualquier ruta de tu biblioteca. Empieza la salida y aparece el banner. Desde la pestaña Planificar, **Salir** junto a **Guardar** hace estos pasos de una vez: abre la pestaña Grabar con el plan elegido y empieza la salida.
+
+Si la ruta no tiene indicaciones de giro, al empezar la salida aparece **Sin indicaciones de giro**: **Crear** las genera a partir del mapa, **Rodar sin ellas** prescinde de ellas. Si la región de la ruta aún no está en el teléfono, Velorki ofrece descargarla allí mismo y espera mostrando el progreso de la descarga, «Esperando a que se descargue la región…», y luego «Creando indicaciones de giro…».
 
 ## El banner de giros
 
@@ -81,6 +83,16 @@ Solo el banner naranja, con la distancia a la ruta y la dirección para volver a
 El banner dice **Recalculando…** mientras se calcula un camino de vuelta o una ruta nueva, y **Ruta recalculada** cuando llega una ruta nueva. **Nueva ruta desde aquí**, un botón junto al banner naranja, planifica al momento desde donde estás hasta el destino, sea cual sea el ajuste.
 
 Todas las distancias anteriores crecen cuanto peor es tu posición GPS, aproximadamente el doble con la precisión indicada, para que un teléfono bajo los árboles no te dé por perdido una y otra vez. Dejan de crecer a 100 metros de precisión, para que un teléfono que ha perdido por completo el cielo no pueda desactivar la detección de salida de ruta.
+
+## Añadir una parada por el camino
+
+Mientras una salida sigue una ruta, toca una parada en el mapa (un café, una fuente, una tienda) y su ficha ofrece **Añadir como parada**. Velorki pregunta **¿Añadir a la ruta?**: «La ruta se recalcula para pasar por esta parada, y la navegación sigue la nueva ruta.» Confirma con **Añadir y recalcular**.
+
+- La parada entra en la parte de la ruta que aún tienes por delante, nunca detrás. Una parada junto a lo que ya has recorrido pasa a ser el siguiente punto.
+- La guía sigue por la ruta anterior hasta que la nueva está lista, así que ni la voz ni el banner se detienen. La salida sigue grabando todo el tiempo.
+- En una ruta importada solo se vuelve a calcular el tramo alrededor de la parada; la línea del propio archivo se mantiene en el resto.
+- Si sigues una ruta guardada, esta no cambia: la ruta modificada está en la pestaña Planificar y la salida sigue esa.
+- Si la parada no se puede enrutar, se quita de nuevo y ves «No se pudo añadir la parada a la ruta. La navegación sigue la ruta de antes.»
 
 ## El mapa mientras navegas
 

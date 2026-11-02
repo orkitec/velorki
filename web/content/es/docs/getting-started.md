@@ -21,24 +21,26 @@ Velorki es de código abierto. Si prefieres compilarlo tú mismo, o tener tus pr
 
 ## El primer inicio
 
-Velorki se abre en la pestaña **Planificar**, con un mapa del mundo. Todavía no se ha descargado nada ni se ha pedido ningún permiso.
+Velorki se abre en la pestaña **Planificar**. La primera vez te pide la ubicación antes que nada (véase más abajo) y luego muestra el mapa donde estás, o sobre el país de tu teléfono si la rechazas. Los carriles bici y las [paradas](./stops-on-the-map) ya están dibujados; desactívalos en **Capas** si prefieres no verlos. Todavía no se ha descargado nada.
+
+La planificación vacía dice "Busca un lugar o toca el mapa." Una breve animación señala esa línea, el campo de búsqueda y, si tu zona no está descargada, el chip de descarga. Se reproduce una vez y se detiene al primer toque.
 
 Una buena primera sesión:
 
 1. Mueve el mapa hasta donde sales en bici y pellizca para acercar.
 2. Toca el mapa para fijar el inicio y vuelve a tocar para añadir un destino. En un momento aparece una ruta.
-3. Toca el botón de descarga a la derecha del mapa (**Datos sin conexión**) y descarga la zona, para que el mapa y el enrutamiento sigan funcionando cuando no haya cobertura. Consulta [mapas y enrutamiento sin conexión](./offline-maps-and-routing) para saber qué son las dos descargas y cuánto ocupan.
+3. Descarga la zona, para que el mapa y el enrutamiento sigan funcionando cuando no haya cobertura: toca **Descargar** en el chip sobre el mapa, o el botón redondo de descarga a la derecha del mapa. Confirma la única pregunta que hace y sigue el progreso en el chip. Consulta [mapas y enrutamiento sin conexión](./offline-maps-and-routing) para saber qué son las dos descargas y cuánto ocupan.
 4. Configura tus unidades en **Ajustes → Apariencia → Unidades** si la app no acertó.
 
 ## Los permisos que pide, y por qué
 
-Velorki no pide nada al arrancar. Cada permiso se solicita en el momento en que se necesita por primera vez, y cada uno se explica antes de que aparezca el diálogo del sistema.
+Velorki te pide la ubicación al abrirlo por primera vez, y todo lo demás en el momento en que se necesita por primera vez. Cada permiso se explica antes de que aparezca el diálogo del sistema.
 
 ### Ubicación
 
-Se pide la primera vez que tocas **Mostrar mi posición**, empiezas una salida o pides una ruta circular desde donde estás.
+Se pide al abrir la app por primera vez, y después la primera vez que tocas **Mostrar mi posición**, empiezas una salida o pides una ruta circular desde donde estás.
 
-Velorki muestra primero su propio diálogo, titulado **¿Mostrar tu posición?**: "Velorki usa tu ubicación para centrar el mapa en ti y para grabar salidas. La posición se queda en este dispositivo; nunca se sube." Puedes responder **Ahora no** y seguir usando la app; solo dejan de funcionar las funciones que necesitan saber dónde estás.
+Velorki muestra primero su propio diálogo, titulado **¿Mostrar tu posición?**: "Velorki usa tu ubicación para centrar el mapa en ti y para grabar salidas. La posición se queda en este dispositivo; nunca se sube." Toca **Continuar** para pasar al diálogo del sistema. En Android también puedes responder **Ahora no** y seguir usando la app; solo dejan de funcionar las funciones que necesitan saber dónde estás. En iPhone el diálogo solo tiene **Continuar**, y es el diálogo del sistema que sigue donde decides. Si la rechazas en el primer inicio, el mapa se abre sobre el país de tu teléfono, y Velorki no vuelve a preguntar hasta que toques **Mostrar mi posición**.
 
 Con el permiso concedido, el mapa se abre donde lo dejaste y luego se desliza hasta tu posición: enseguida hasta donde el teléfono te situó por última vez si eso fue hace menos de una hora, y hasta la primera posición nueva si no, o si esa posición te sitúa a más de unos 300 m de allí, tanto al arrancar la app como al volver a ella tras media hora o más. No se mueve mientras haya una planificación en la pestaña Planificar, una tarjeta de ruta o de salida abierta, una salida en grabación, ya estés a la vista o hayas movido tú el mapa.
 
@@ -67,7 +69,7 @@ La barra de abajo tiene cuatro pestañas.
 | **Planificar** | El mapa, la búsqueda de lugares, el planificador de rutas, las rutas circulares inteligentes y el asistente. |
 | **Grabar** | Empezar, pausar y terminar una salida, las cifras en directo y tus salidas recientes. |
 | **Biblioteca** | Todo lo que has guardado: **Rutas** y **Salidas**, con importación y exportación. |
-| **Ajustes** | Apariencia, unidades e idioma, opciones de navegación y grabación, datos sin conexión, búsqueda, conexiones, suscripción y las páginas legales. |
+| **Ajustes** | Una lista de páginas: Sincronización, Velorki Plus y Conexiones; Navegación, Grabación, Ciclista y bici y Sensores; Apariencia (tema, unidades, idioma), Asistente de IA, Mapas y datos (datos sin conexión, búsqueda) y Acerca de, con las páginas legales. |
 
 La barra flota sobre el contenido, así que las listas se desplazan por debajo.
 
@@ -83,7 +85,7 @@ Hasta que elijas, Velorki sigue el país del teléfono: imperial solo donde el p
 
 ## Dónde está cada cosa
 
-- **Los controles del mapa** están en una columna a la derecha del mapa: **Mostrar mi posición**, **Capas** ([el mapa ciclista](./map-layers) y las [paradas en el mapa](./stops-on-the-map)), **Datos sin conexión** (no en una pantalla pequeña como la de un iPhone SE), **Acercar** y **Alejar**. En la pestaña Grabar se les suma un botón de brújula, que alterna entre **Norte arriba** y **El mapa gira contigo**.
+- **Los controles del mapa** están en una columna a la derecha del mapa: **Mostrar mi posición**, **Capas** ([el mapa ciclista](./map-layers) y las [paradas en el mapa](./stops-on-the-map)), **Datos sin conexión** (el botón de descarga; no en una pantalla pequeña como la de un iPhone SE), **Acercar** y **Alejar**. En la pestaña Grabar se les suma un botón de brújula, que alterna entre **Norte arriba** y **El mapa gira contigo**.
 - **El campo de búsqueda** está arriba en la pestaña Planificar.
 - **El perfil de bici** (Trekking, Carretera, Gravel, MTB, Directo) es la fila de chips bajo el campo de búsqueda.
 - **El panel de ruta** es el panel de la parte inferior de la pestaña Planificar. Arrástralo hacia arriba para ver el perfil de altitud y el desglose de superficies, hacia abajo para ver más mapa.

@@ -14,6 +14,8 @@ Links delen hoort bij [Velorki Plus](./velorki-plus). De link van iemand anders 
 2. Tik onderaan de kaart op **Delen**. De deelkaart toont **Link**, **Ride with GPS** en **Strava**.
 3. Tik in de rij **Link** op **Link delen**. Velorki uploadt de track en geeft de link aan het deelmenu van de telefoon. De rij zegt daarna "Werkt tot 17 sep. 2027." Daarvoor staat er "Iedereen met de link kan het op een kaart zien en de GPX downloaden."
 
+Een route die van Strava komt, heeft geen link: de rij zegt "Niet beschikbaar voor routes van Strava."
+
 Zonder Plus draagt de rij **Link** het label **Velorki Plus** en leidt ze naar de abonnementspagina. De rijen voor Strava en Ride with GPS zijn gratis.
 
 ## Wat degene die hem opent ziet

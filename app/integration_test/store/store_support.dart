@@ -741,7 +741,15 @@ void scrollPlannerSheetTo(WidgetTester tester, String label) {
         )
         .first,
   );
-  final button = tester.getRect(find.widgetWithText(FilledButton, label).first);
+  // Any kind of button: Save is an outlined one beside the filled Ride.
+  final button = tester.getRect(
+    find
+        .ancestor(
+          of: find.text(label),
+          matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+        )
+        .first,
+  );
   final list = tester
       .stateList<ScrollableState>(
         find.descendant(

@@ -1,6 +1,6 @@
 ---
 title: Strava and Ride with GPS
-description: Velorki works with Strava and Ride with GPS, for free. Connect an account to upload recorded rides and import routes, and see why sending a route to Strava is a file.
+description: Velorki works with Strava and Ride with GPS, for free. Connect an account to upload rides and import routes; a route goes to Strava as a file.
 order: 13
 ---
 
@@ -10,10 +10,12 @@ Nothing is sent to either service until you connect the account yourself and the
 
 ## Connect an account
 
-1. Open **Settings** and find the **Connections** section.
+1. Open **Settings → Connections**.
 2. Tap **Connect with Strava** or **Connect with Ride with GPS**.
 3. The service's own sign-in page opens in a browser. Sign in there and approve the access.
 4. You come back to Velorki, and the row shows your name instead of **Not connected**.
+
+For Strava a note comes first, **Before you connect Strava**: what Velorki reads, what it writes, how the connection works and how to disconnect. Read it, then go on to the sign-in page.
 
 Velorki asks Strava for two permissions only: **read**, your public profile (your id and name, shown in Settings), and **activity:write**, to upload the rides you choose to upload. It does not read your activities.
 

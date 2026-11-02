@@ -1,6 +1,6 @@
 ---
 title: Strava und Ride with GPS
-description: Velorki funktioniert kostenlos mit Strava und Ride with GPS. Verbinde ein Konto, um Fahrten hochzuladen und Routen zu importieren, und sieh, warum eine Route an Strava eine Datei ist.
+description: Velorki arbeitet kostenlos mit Strava und Ride with GPS. Verbinde ein Konto, um Fahrten hochzuladen und Routen zu importieren; zu Strava geht eine Datei.
 order: 13
 ---
 
@@ -10,10 +10,12 @@ An keinen der beiden Dienste geht etwas, bevor du das Konto selbst verbunden und
 
 ## Ein Konto verbinden
 
-1. Öffne die **Einstellungen** und such den Abschnitt **Verbindungen**.
+1. Öffne **Einstellungen → Verbindungen**.
 2. Tippe auf **Verbinden mit Strava** oder **Mit Ride with GPS verbinden**.
 3. Die Anmeldeseite des Dienstes öffnet sich im Browser. Melde dich dort an und bestätige den Zugriff.
 4. Du kommst zurück zu Velorki, und in der Zeile steht dein Name statt **Nicht verbunden**.
+
+Bei Strava kommt zuerst ein Hinweis, **Bevor du Strava verbindest**: was Velorki liest, was es schreibt, wie die Verbindung funktioniert und wie du sie trennst. Lies ihn und geh dann weiter zur Anmeldeseite.
 
 Velorki bittet Strava nur um zwei Berechtigungen: **read**, dein öffentliches Profil (deine ID und dein Name, in den Einstellungen angezeigt), und **activity:write**, um die Fahrten hochzuladen, die du hochladen willst. Es liest deine Aktivitäten nicht.
 

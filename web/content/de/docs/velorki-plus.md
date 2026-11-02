@@ -1,6 +1,6 @@
 ---
 title: Velorki Plus
-description: Alles, was auf dem Handy läuft, ist kostenlos, ebenso die Verbindungen zu Strava und Ride with GPS. Plus ist ein kleines Abo für die Funktionen, die unsere Server brauchen.
+description: Alles, was auf dem Handy läuft, ist kostenlos, ebenso die Strava- und Ride-with-GPS-Verbindungen. Plus ist ein kleines Abo für das, was unsere Server braucht.
 order: 15
 ---
 
@@ -23,6 +23,7 @@ Kostenlos, für alle, auf Dauer:
 - die Wetterkarte: Regenradar, Wolken und Wind, mit dem Zeitregler,
 - das Wetter entlang der Route aus einer gröberen öffentlichen Vorhersage, dem ICON-Modell des Deutschen Wetterdienstes: Wind, Regen, Temperatur, eine Zeile, die sie zusammenfasst, die beste Zeit zum Losfahren und die Route nach Steigung, Belag, Wind oder Regen eingefärbt,
 - die Verbindungen zu Strava und Ride with GPS: Fahrten hochladen, Routen importieren, Routen an Ride with GPS senden (siehe [Strava und Ride with GPS](./strava-and-ridewithgps)),
+- das Synchronisieren deiner Routen, Fahrten und einiger Einstellungen zwischen deinen Geräten über dein eigenes iCloud oder Google Drive,
 - den Teilen-Link von jemand anderem öffnen.
 
 Die Routing-Daten und der Suchindex werden für dich kostenlos gespiegelt.
@@ -33,7 +34,7 @@ Drei Funktionen, wie auf der Abo-Seite aufgeführt:
 
 | Funktion | Was sie ist |
 |---|---|
-| **KI-Assistent** | "Beschreibe die gewünschte Fahrt; Velorki macht daraus eine Route und plant sie auf dem Handy." |
+| **KI-Assistent** | "Beschreibe die gewünschte Fahrt; Velorki macht daraus eine Route und plant sie auf deinem Gerät." |
 | **Links teilen** | "Aus einer Route oder Fahrt einen Link machen, den jeder im Browser öffnen kann." |
 | **Genaueres Wetter auf der Route und Regenradar** | "Genaueres Wetter entlang der Route von lokalen Wetterdiensten, mit Böen und Regenwahrscheinlichkeit, und echtes Regenradar in ganz Europa." |
 
@@ -43,13 +44,13 @@ Das genauere Wetter auf der Route kommt vom US National Weather Service, aus den
 
 ## Abonnieren
 
-1. Öffne **Einstellungen**, such **Abo** und tippe auf **Velorki Plus**. Die Abo-Seite öffnet sich auch über die Schaltflächen **Velorki Plus ansehen**, die bei den kostenpflichtigen Funktionen verstreut sind.
-2. Wähle ein Paket. Jede Kachel zeigt Preis und Laufzeit, und eine kostenlose Testphase steht unter dem Preis: "Startet mit 7 Tagen kostenloser Testphase."
+1. Öffne **Optionen**, tippe auf **Velorki Plus** und dann auf die Zeile **Velorki Plus**. Die Abo-Seite öffnet sich auch über die Schaltflächen **Velorki Plus ansehen**, die bei den kostenpflichtigen Funktionen verstreut sind.
+2. Wähle ein Paket. Jede Kachel zeigt Preis und Laufzeit, und eine kostenlose Testphase steht unter dem Preis: "7 Tage kostenlos, danach … Kündigst du spätestens 24 Stunden vor Ende der Testphase, wird nichts berechnet."
 3. Tippe auf **Abonnieren** und bestätige im Fenster des Stores.
 
 Du bekommst "Velorki Plus ist aktiv. Danke!", und alle gesperrten Funktionen gehen auf einmal auf. Brichst du das Store-Fenster ab, sagt es nichts und ändert nichts.
 
-Die Seite zeigt immer die Bedingungen des Stores: "Das Abo verlängert sich automatisch zum Ende jeder Laufzeit, sofern es nicht mindestens 24 Stunden vorher gekündigt wird. Die Zahlung läuft über den App Store oder Google Play, dort lässt sich das Abo jederzeit verwalten oder kündigen. Eine kostenlose Testphase, die nicht gekündigt wird, geht in ein kostenpflichtiges Abo über."
+Die Seite endet mit den Bedingungen des Stores. Auf einem iPhone wird die Zahlung deinem Apple Account belastet, und das Abo verlängert sich automatisch, sofern es nicht mindestens 24 Stunden vor Ende der Laufzeit gekündigt wird. Unter Android wird sie deinem Google-Play-Konto belastet, und das Abo verlängert sich, sofern es nicht vor Ende der Laufzeit gekündigt wird. Bei beiden lässt es sich jederzeit im Store verwalten oder kündigen, und eine kostenlose Testphase, die nicht gekündigt wird, geht in ein kostenpflichtiges Abo über.
 
 ## Die Testphase
 
@@ -59,7 +60,7 @@ Wo ein Paket eine anbietet, beginnt das Abo mit einer kostenlosen Testphase, und
 
 Weil es kein Konto gibt, wird ein laufendes Abo über den Store erkannt. Auf einem neuen Handy, nach einer Neuinstallation, oder wenn die App schlicht den Faden verloren hat:
 
-1. Öffne **Einstellungen → Abo** oder die Abo-Seite.
+1. Öffne **Einstellungen → Velorki Plus** oder die Abo-Seite.
 2. Tippe auf **Käufe wiederherstellen**. "Schon abonniert? Wiederherstellen klappt ohne Konto."
 
 Velorki sagt dann "Das Abo wurde wiederhergestellt." oder "Der Store hat keinen Kauf zum Wiederherstellen gefunden.", falls die auf dem Handy angemeldete Apple-ID oder das Google-Konto keines besitzt. Ein in einem Store gekauftes Abo lässt sich nicht im anderen wiederherstellen.
@@ -68,13 +69,17 @@ Velorki sagt dann "Das Abo wurde wiederhergestellt." oder "Der Store hat keinen 
 
 Gekündigt wird im Store, nie in der App.
 
-1. **Einstellungen → Abo**.
+1. **Einstellungen → Velorki Plus**.
 2. Tippe auf **Verwalten**, was deine Abo-Seite im App Store oder in Google Play öffnet.
 3. Kündige dort.
 
 Plus bleibt bis zum Ende der bereits bezahlten Laufzeit aktiv. Die Zeile in den Einstellungen zeigt **Aktiv · Verlängert sich am 17. Okt. 2026**, solange es sich verlängert, und **Aktiv · Endet am 17. Okt. 2026**, sobald du gekündigt hast.
 
 Erstattungen liegen bei Apple und Google, nach deren eigenen Regeln, denn sie haben die Zahlung entgegengenommen.
+
+## Im Browser
+
+Im Web-Planer lässt sich Plus nicht kaufen. Hast du es in der App für iPhone oder Android gekauft und synchronisierst mit iCloud oder Google, melde dich im Planer mit demselben Konto an ("Mit iCloud oder Google anmelden, um dein Plus zu nutzen"), dann gilt Plus auch dort. Ohne Plus in diesem Konto sagt der Planer "Vorerst nur in den Apps für iPhone und Android".
 
 ## "In diesem Build nicht verfügbar"
 

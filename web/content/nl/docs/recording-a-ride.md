@@ -12,16 +12,22 @@ Opnemen is gratis en werkt helemaal zonder verbinding.
 
 1. Open het tabblad **Opnemen**. Het paneel zegt **Klaar om te rijden**, met een korte tip eronder.
 2. Kies onder **Een route volgen** wat de rit volgt: **Geen route**, **De route op het tabblad Plannen** (zolang er een is) of een van je opgeslagen routes. Een route zet de begeleiding aan die beschreven staat in [navigatie met afslagaanwijzingen](./navigation). Zolang je niets kiest, stelt het tabblad de route voor waar je vandaan kwam: de route waarvan je de kaart open had in de Bibliotheek, of het plan op het tabblad Plannen; je eigen keuze blijft daarna staan tot de app opnieuw start.
-3. Tik op **Rit starten**.
-4. Tijdens het rijden toont het paneel een statuslabel, de verstreken tijd en de waarden: **Afstand**, **Snelheid**, **Gem.**, dan **Stijging**, **Daling**, **Rijtijd**. Volg je een route, dan komt er een rij **Resterend** en **Aankomst** bij: de afstand die je nog moet rijden en wanneer je aankomt met je gemiddelde snelheid tot nu toe, twee streepjes zolang de rit nog geen gemiddelde heeft.
+3. Tik op **Rit starten**. Heeft de route geen afslaginstructies, dan biedt Velorki aan ze eerst te maken, en staat de regio niet op de telefoon, dan vraagt het hem meteen te downloaden en wacht erop; zie [navigatie met afslagaanwijzingen](./navigation).
+4. Tijdens het rijden toont het paneel een statuslabel, de verstreken tijd en de waarden (**Waarden bewerken** kiest welke en in welke volgorde): **Afstand**, **Snelheid**, **Gem.**, dan **Stijging**, **Daling**, **Rijtijd**. Volg je een route, dan komt er een rij **Resterend** en **Aankomst** bij: de afstand die je nog moet rijden en wanneer je aankomt met je gemiddelde snelheid tot nu toe, twee streepjes zolang de rit nog geen gemiddelde heeft.
 5. **Pauze** stopt de track waar je bent; **Hervatten** gaat verder. De onderbreking is te zien als een gat in de track. Tijdens de pauze vervagen de waarden en wordt het label **GEPAUZEERD**, zodat je de toestand in één oogopslag ziet.
 6. **Beëindigen** slaat de rit op onder een standaardnaam zoals **Rit 17 sep 2026** en opent de pagina ervan.
+
+Route gepland en wil je hem rijden? **Rijden** naast **Opslaan** op het tabblad Plannen opent het tabblad Opnemen met het plan gekozen en start de rit op dezelfde manier, met dezelfde vragen. Loopt er al een rit, dan schakelt het alleen over naar het tabblad Opnemen.
 
 Beëindig je zonder iets te hebben opgenomen, dan zegt Velorki "Er is niets opgenomen." en wordt er geen rit opgeslagen.
 
 ### Auto-pauze
 
 Velorki pauzeert zichzelf na ongeveer tien seconden zonder beweging; het label toont dan **AUTO-PAUZE**. Anders dan bij een handmatige pauze blijft het luisteren, en de eerste echte beweging hervat de opname. Een handmatige pauze luistert niet meer tot je op **Hervatten** drukt.
+
+### Een tussenstop toevoegen onderweg
+
+Volg je een route, tik dan op de kaart op een stop en kies **Als tussenstop**: de route wordt opnieuw berekend met de stop erin, vóór waar je nu bent, en de begeleiding gaat zonder onderbreking door. Zie [navigatie met afslagaanwijzingen](./navigation#een-tussenstop-toevoegen-onderweg).
 
 ## Hartslag, cadans en vermogen
 

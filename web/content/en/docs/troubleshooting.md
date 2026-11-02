@@ -10,7 +10,7 @@ The things that go wrong most often, and what to do about each. If your problem 
 
 The symptoms are "No position fix yet.", a locate button that does nothing, or "Turn on location or tap the map to set a start."
 
-1. **Was the permission refused?** Velorki asks with its own dialog, **Show your position?**, before the system one. If you answered **Not now**, tap the locate button again and answer **Continue**.
+1. **Was the permission refused?** Velorki asks by itself on the first start, with its own dialog, **Show your position?**, before the system's. On Android, if you answered **Not now**, tap the locate button again and answer **Continue**. On an iPhone the dialog has only **Continue** and the system's alert decides; if you refused there, use the next step.
 2. **Is it switched off for Velorki?** "Location permission is turned off for Velorki. Enable it in the system settings." comes with a **Settings** action that takes you straight there. Grant "While using the app" or "When In Use".
 3. **Are location services off on the phone?** "Location services are switched off on this device." is about the phone, not about Velorki. The **Settings** action opens the right place.
 4. **Indoors, or just switched on?** "No position fix yet." often means the phone has no fix yet at all. Go outside and give it half a minute.
@@ -19,11 +19,11 @@ Velorki never needs background location. "While using the app" is enough, includ
 
 ## No route appears
 
-**"This route needs routing tiles that are not on this device."** Your phone has no routing data for the area and there is no routing server to fall back on. Tap the button, which counts the tiles and their size, and download them. See [offline maps and routing](./offline-maps-and-routing).
+**"This route needs routing tiles that are not on this device."** Your phone has no routing data for the area. Tap the button, which counts the tiles and their size, and download them; the download runs right there. See [offline maps and routing](./offline-maps-and-routing).
 
-**"No routing server configured, set one in Settings → Advanced."** This build ships no server address. Download the routing tiles for where you are and route on the phone instead.
+**"Routing isn't available right now."** On-device routing is still starting, or it could not start ("Routing could not start on this device."), or this build has no map data for it ("This build of Velorki has no map data for routing."). Wait a moment, then download the routing tiles for where you are.
 
-**Settings → Advanced → Routing is on "On device only".** Then Velorki will never ask a server, by design. Switch it to **Automatic** or download the tiles.
+**Settings → Maps & data → Routing is on "On device only".** Then Velorki will never ask a server, by design. Switch it to **Automatic** or download the tiles.
 
 **"Routing failed:" with a reason.** Usually the server was unreachable. Try again, and check that a waypoint has not landed in the sea or on a motorway where no bike may go. Moving the offending point a few metres onto a real road usually fixes it.
 
@@ -31,9 +31,11 @@ Velorki never needs background location. "While using the app" is enough, includ
 
 The banner is in the planner whenever the route crosses an area whose routing tile is not on the phone. Velorki never routes on partial coverage, because the router would treat the missing tile as empty land and quietly hand back a wrong route.
 
-1. Tap the button on the banner. It opens **Offline routing data** with exactly the tiles the route needs already picked out.
-2. Download them. Tiles are 125 to 250 MB each, so be on Wi-Fi.
+1. Tap the download button on the banner. It counts the tiles the route needs and their size, and the download runs right there: the banner shows its progress, and the download chip over the map follows the same download.
+2. Tiles are 125 to 250 MB each, so be on Wi-Fi.
 3. When a tile lands, the planner routes again by itself and the banner is replaced by the route's figures.
+
+If it stops short, the banner says "The download failed:" with the reason and **Try again**. To stop it yourself, tap the chip's close button and confirm **Stop the download?** with **Cancel download**; a tile part way keeps what it has.
 
 If the tiles you need show **Update needs a newer Velorki**, update the app first; the dialog explains why.
 
@@ -57,10 +59,12 @@ If the chosen voice is marked **Needs internet**, it is generated on a server: w
 ## A download is stuck or fails
 
 - **Downloads only run while the app is open.** Leave Velorki in the foreground for a big tile. If it stops, the part that arrived is kept and the next attempt resumes from there.
-- **"The download failed:"** with a reason. Tap the tile again to retry. A resumed download does not start from zero.
+- **"The download failed:"** with a reason. Tap **Try again**, or the tile again on the **Offline routing data** page. A resumed download does not start from zero.
+- **The map part gives up by itself.** A map download that makes no progress for about a minute is stopped; the message reads "The map could not be downloaded:" with "Check the connection and the free space, then try again." What had come in is removed, so start the download again.
 - **"The tile list could not be loaded:"** means the mirror could not be reached. **Try again** is on the screen.
 - **Check the free space on the phone.** A routing tile of 250 MB needs 250 MB, and the map area on top of that.
-- **Cancel and restart** with the close button in the progress header if a download has clearly stalled.
+- **Cancel and restart** if a download has clearly stalled: the chip's close button over the map asks **Stop the download?**, and **Cancel download** stops it. The area then counts as not downloaded and the chip offers it again.
+- **"New map data for this area"** over the map is not a fault. The mirror has changed data for the area on screen; tap **Update** to download it, or ignore it.
 - Velorki cannot tell Wi-Fi from mobile data, so it warns rather than blocking. Start big downloads on Wi-Fi yourself.
 
 ## A share link will not open in the app
@@ -116,7 +120,7 @@ A paired sensor that says **Not connected** is out of range, asleep or flat. Vel
 
 - **"Not available in this build"** on a connection row, or on the subscription page, means this copy of Velorki was compiled without the keys for that service or store. That is what a self-built copy looks like.
 - **The Ask button or the Share link button is not there at all** in a build with no Velorki server configured.
-- **Everything else** should say "… is part of Velorki Plus" and offer the subscription page. If you have a subscription and it does not, tap **Restore purchases** in **Settings → Subscription**.
+- **Everything else** should say "… is part of Velorki Plus" and offer the subscription page. If you have a subscription and it does not, tap **Restore purchases** in **Settings → Velorki Plus**.
 
 ## Report a bug
 

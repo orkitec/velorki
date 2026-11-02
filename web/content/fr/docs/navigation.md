@@ -16,7 +16,9 @@ Les réglages se trouvent à deux endroits à la fois, et c’est le même régl
 2. **Voix**, « Annoncer les directions à voix haute ».
 3. **Hors itinéraire** : **Me guider pour revenir**, **Nouvel itinéraire vers l’arrivée** ou **Ne pas recalculer**. Voir [quand vous quittez l’itinéraire](#quand-vous-quittez-litinéraire).
 
-Ensuite, dans l’onglet **Rouler**, choisissez quelque chose sous **Itinéraire suivi** : **L’itinéraire de l’onglet Planifier** si le planificateur contient un itinéraire, ou n’importe quel itinéraire de votre bibliothèque. Démarrez la sortie et la bannière apparaît.
+Ensuite, dans l’onglet **Rouler**, choisissez quelque chose sous **Itinéraire suivi** : **L’itinéraire de l’onglet Planifier** si le planificateur contient un itinéraire, ou n’importe quel itinéraire de votre bibliothèque. Démarrez la sortie et la bannière apparaît. Depuis l’onglet Planifier, **Rouler** à côté d’**Enregistrer** fait tout cela d’un coup : il ouvre l’onglet Rouler avec le plan choisi et démarre la sortie.
+
+Si l’itinéraire n’a pas d’indications de direction, le démarrage de la sortie demande **Aucune indication de direction** : **Créer** les produit à partir de la carte, **Rouler sans** s’en passe. Quand la région de l’itinéraire n’est pas encore sur le téléphone, Velorki propose de la télécharger sur place et attend en montrant la progression du téléchargement, « En attente du téléchargement de la région… », puis « Création des indications de direction… ».
 
 ## La bannière de virage
 
@@ -81,6 +83,16 @@ Seulement la bannière orange, avec la distance à l’itinéraire et la directi
 La bannière indique **Recalcul…** pendant qu’un chemin de retour ou un nouvel itinéraire est calculé, et **Itinéraire recalculé** quand un nouvel itinéraire arrive. **Nouvel itinéraire d’ici**, un bouton à côté de la bannière orange, planifie aussitôt depuis l’endroit où vous vous trouvez jusqu’à l’arrivée, quel que soit le réglage.
 
 Toutes les distances ci-dessus augmentent avec la mauvaise qualité de votre signal GPS, en gros elles doublent avec la précision annoncée, afin qu’un téléphone sous les arbres ne vous déclare pas perdu en permanence. Elles cessent d’augmenter à 100 mètres de précision, si bien qu’un téléphone qui a complètement perdu le ciel ne peut pas désactiver la détection de sortie d’itinéraire.
+
+## Ajouter une étape en chemin
+
+Pendant qu’une sortie suit un itinéraire, touchez une étape sur la carte (un café, une fontaine, un magasin) et sa fiche propose **Ajouter comme étape**. Velorki demande **Ajouter à l’itinéraire ?** : « L’itinéraire est recalculé pour passer par cette étape, et la navigation suit le nouvel itinéraire. » Confirmez avec **Ajouter et recalculer**.
+
+- L’étape est insérée dans la partie de l’itinéraire qui reste devant vous, jamais derrière. Une étape à côté de ce que vous avez déjà parcouru devient le prochain point.
+- Le guidage continue sur l’ancien itinéraire jusqu’à ce que le nouveau soit prêt, si bien que la voix et la bannière ne s’interrompent pas. La sortie reste enregistrée tout du long.
+- Sur un itinéraire importé, seul le tronçon autour de l’étape est recalculé ; la ligne du fichier reste telle quelle partout ailleurs.
+- Si vous suivez un itinéraire enregistré, il ne change pas : l’itinéraire modifié se trouve dans l’onglet Planifier et la sortie suit celui-là.
+- Si l’étape ne peut pas être routée, elle est retirée et vous voyez « Impossible d’ajouter cette étape à l’itinéraire. La navigation continue sur l’itinéraire précédent. »
 
 ## La carte pendant la navigation
 

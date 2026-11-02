@@ -4,7 +4,7 @@ description: The offline cycle map and its parts, the online cycle map, rain rad
 order: 6
 ---
 
-**Layers** sits in the button column on the right of the map, on the Plan and the Record tab. Its sheet holds the cycle map, the online cycle map, the rain radar, the clouds, the wind and the stops. The button is highlighted while one of them is on.
+**Layers** sits in the button column on the right of the map, on the Plan and the Record tab. Its sheet holds the cycle map, the online cycle map, the rain radar, the clouds, the wind and the stops. The button is highlighted while one of them is on. On a first start the cycle map and the stops are already on; a choice you make is kept.
 
 <!-- screenshot: layers -->
 
@@ -28,9 +28,9 @@ The cycle map fades in between zoom 12 and 13, and out again when you zoom out. 
 | **Mountain bike** | Difficulty ticks on trails from zoom 14: blue for easy (S0–S1), red for S2, black for S3 and harder (white on the night map); mountain-bike routes as an orange halo |
 | **Climbs** | Steep pieces of the ways a bike may use, as a band: yellow from 6 %, orange from 10 %, red from 15 %; chevrons point uphill from zoom 15. The heights come from the terrain model in the routing data. A climb only counts when it keeps going for at least 150 m and 10 m of height, so short ramps are left out; in city centres with tall buildings it can still show a climb that isn't there or miss one. Bridges and tunnels are left out. In the dense cores of the biggest cities, where the heights are the buildings', no climbs are drawn. |
 
-All parts are on by default except **Unpaved & bumpy**, **One-way streets**, **Calm streets**, **Mountain bike** and **Climbs**. A part added in a later version starts as its default; choices made before are kept.
+The cycle map is on until you turn it off, unless you chose the online cycle map, which then stays instead of it. All parts are on by default except **Unpaved & bumpy**, **One-way streets**, **Calm streets**, **Mountain bike** and **Climbs**. A part added in a later version starts as its default; choices made before are kept.
 
-On the Plan tab, with the cycle map on over an area that is not downloaded, a chip says **No cycle map here — area not downloaded**, with **Download**; a tap opens the download for the visible area. If the stops chip applies too, it comes first.
+On the Plan tab, with the cycle map on over an area that is not downloaded, a chip says **No cycle map here — area not downloaded**, with **Download**; a tap asks what will be fetched and downloads the area in place, with the progress in the chip. If the stops chip applies too, it comes first.
 
 ## Online cycle map
 
@@ -38,7 +38,7 @@ On the Plan tab, with the cycle map on over an area that is not downloaded, a ch
 
 ## Rain radar and clouds
 
-**Rain radar**: "Now: radar in Germany, the Netherlands, Finland and the US, a satellite estimate elsewhere in Europe and Africa. Ahead: radar forecast for 2 hours in Germany, model forecast up to 24 hours (hourly in Europe, every 6 hours elsewhere)". **Clouds**: "Europe, Africa and the Americas · updated hourly in Europe". Both are free, off until you turn them on, and need a connection.
+**Rain radar**: "Now: radar in Germany, the Netherlands, Finland and the US, a satellite estimate elsewhere in Europe and Africa. Ahead: radar forecast for 2 hours in Germany, model forecast up to 24 hours (hourly in Europe, every 6 hours elsewhere)". **Clouds**: "Europe, Africa and the Americas · updated hourly in Europe". Both are free, off until you turn them on, and need a connection. With either on, an **Opacity** slider appears under its switch.
 
 The rain comes from three kinds of source. Now: radar from the Deutscher Wetterdienst over Germany and its borders from the US National Weather Service over the US, from KNMI over the Netherlands and from the Finnish Meteorological Institute over Finland, and around them, over the rest of Europe, Africa and the Atlantic, rain estimated from the Meteosat satellite by EUMETSAT's H SAF, every ten minutes. A satellite estimate is coarser than radar and misses some light rain; it never covers the radars' areas, so the two never disagree on the map. With Velorki Plus, real radar from EUMETNET OPERA, the European radar network, and from Radar-DPC (Italy), the Italian Civil Protection Department's, takes the satellite's place wherever it measures, such as in France, Spain, Italy, the UK, Switzerland and Scandinavia: 1 km cells, a new image every five minutes, the last two hours, no forecast. The next two hours: in Germany the Deutscher Wetterdienst's nowcast, the radar's rain moved on in quarter hours; everywhere else, and from three hours on everywhere, the forecast of its ICON weather model, hour by hour over Europe and in six-hour steps elsewhere. The app looks for newer images every five minutes. The rain is drawn at every zoom, out to the whole world, where its images are coarser. Where the radar's area ends, the radar and the satellite or the forecast around it blend into each other over about 25 km instead of meeting at a hard edge.
 
@@ -58,4 +58,4 @@ The rain radar's time control moves the wind too, hour by hour: **Now** is the c
 
 ## Stops
 
-**Stops** is a switch in the same sheet, off until you turn it on. It draws drinking water, cafés, toilets, bike repair stations and more from the place index on the phone. The kinds, the area you look at and the route ahead are described in [stops on the map](./stops-on-the-map).
+**Stops** is a switch in the same sheet, on until you turn it off. It draws drinking water, cafés, toilets, bike repair stations, stations, bus stops, pharmacies and more from the place index on the phone. The kinds, the area you look at and the route ahead are described in [stops on the map](./stops-on-the-map).

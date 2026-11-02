@@ -1,6 +1,6 @@
 ---
 title: Strava en Ride with GPS
-description: Velorki werkt gratis met Strava en Ride with GPS. Koppel een account om opgenomen ritten te uploaden en routes te importeren, en lees waarom een route naar Strava sturen een bestand is.
+description: Velorki werkt gratis met Strava en Ride with GPS. Koppel een account om ritten te uploaden en routes te importeren; naar Strava gaat een bestand.
 order: 13
 ---
 
@@ -10,10 +10,12 @@ Er wordt niets naar een van beide diensten gestuurd tot je het account zelf kopp
 
 ## Een account koppelen
 
-1. Open **Instellingen** en zoek het onderdeel **Koppelingen**.
+1. Open **Instellingen → Koppelingen**.
 2. Tik op **Koppelen met Strava** of **Koppelen met Ride with GPS**.
 3. De eigen aanmeldpagina van de dienst opent in een browser. Meld je daar aan en geef toegang.
 4. Je komt terug in Velorki, en de rij toont je naam in plaats van **Niet gekoppeld**.
+
+Bij Strava komt eerst een bericht, **Voordat je Strava koppelt**: wat Velorki leest, wat het schrijft, hoe de koppeling werkt en hoe je haar verbreekt. Lees het en ga dan door naar de inlogpagina.
 
 Velorki vraagt Strava maar om twee machtigingen: **read**, je openbare profiel (je id en naam, getoond in Instellingen), en **activity:write**, om de ritten te uploaden die jij wilt uploaden. Je activiteiten leest het niet.
 

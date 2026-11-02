@@ -12,16 +12,22 @@ Recording is free and works with no connection at all.
 
 1. Open the **Record** tab. The sheet says **Ready to ride**, with a short tip under it.
 2. Under **Follow a route** choose what the ride follows: **No route**, **The route on the Plan tab** (offered while there is one) or one of your saved routes. A route turns on the guidance described in [turn-by-turn navigation](./navigation). Until you choose, the tab proposes the route you came from: the route whose card you had open in the Library, or the plan on the Plan tab; your own pick then holds until the app is restarted.
-3. Tap **Start ride**.
-4. While riding the sheet shows a status pill, the elapsed clock, and the figures: **Distance**, **Speed**, **Avg**, then **Ascent**, **Descent**, **Moving**. While you follow a route a row **Left** and **Arrival** joins them: the distance still to ride and when you will arrive at your average speed so far, two dashes until the ride has an average.
+3. Tap **Start ride**. If the route has no turn instructions, Velorki offers to create them first, and if its region is not on the phone it asks to download it in place and waits for it; see [turn-by-turn navigation](./navigation).
+4. While riding the sheet shows a status pill, the elapsed clock, and the figures (**Edit figures** chooses which and in what order): **Distance**, **Speed**, **Avg**, then **Ascent**, **Descent**, **Moving**. While you follow a route a row **Left** and **Arrival** joins them: the distance still to ride and when you will arrive at your average speed so far, two dashes until the ride has an average.
 5. **Pause** stops the track where you are; **Resume** carries on. The break shows as a gap in the track. While paused the figures fade and the pill turns to **PAUSED**, so the state is plain at a glance.
 6. **Finish** saves the ride under a default name like **Ride 17 Sept 2026** and opens its page.
+
+Planned a route and want to ride it? **Ride** beside **Save** on the Plan tab opens the Record tab with the plan chosen and starts the ride the same way, with the same prompts. With a ride already running it only switches to the Record tab.
 
 If you finish having recorded nothing, Velorki says "Nothing was recorded." and saves no ride.
 
 ### Auto-pause
 
 Velorki pauses itself after about ten seconds without movement; the pill then reads **AUTO-PAUSED**. Unlike a manual pause it keeps listening, and the first proper movement resumes it. A manual pause stops listening until you press **Resume**.
+
+### Adding a stop on the way
+
+While you follow a route, tap a stop on the map and choose **Add as a stop**: the route is recalculated to take it in, ahead of where you are, and guidance carries on without a gap. See [turn-by-turn navigation](./navigation#adding-a-stop-on-the-way).
 
 ## Heart rate, cadence and power
 

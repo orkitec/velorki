@@ -47,7 +47,7 @@ Eine geöffnete Route wird auf die Karte gezeichnet, eingepasst in den Teil des 
 Die Aktionen:
 
 - **Im Planer öffnen** lädt sie mit all ihren Punkten in den Tab Planen, Zwischenpunkte samt Namen, Art und Notizen eingeschlossen, wo du sie bearbeiten und erneut speichern kannst. Eine importierte statt geplante Route öffnet sich mit der genauen Linie der Datei und Punkten nur an ihren Enden und an den Punkten der Datei, die auf dem Track liegen, die mit Art und Notiz mitkommen; eine Änderung berechnet nur die Abschnitte daneben neu, überall sonst bleibt die Linie der Datei. Die Linie der Datei bleibt bei der Route über jede Änderung und jedes Speichern hinweg, sodass **Wiederherstellen** im Planer sie zurückholen kann. Die Punkte abseits des Tracks kommen als Orte neben der Route mit, wo sie sich wie jeder andere Punkt benennen, mit einer Art versehen, auf die Route stellen oder entfernen lassen. Das nächste Speichern schreibt beide Mengen zurück, ein im Planer gelöschter Ort ist also auch von der Karte weg.
-- **Export** bietet **GPX-Route** und **FIT-Strecke**, siehe [Import und Export](./import-and-export).
+- **Export** bietet **GPX-Route**, **FIT-Strecke** und **TCX-Strecke**, siehe [Import und Export](./import-and-export).
 - **Teilen** öffnet die Teilen-Karte: ein **Link** zur Route, **Ride with GPS** und **Strava**, siehe [Teilen](./sharing) und [Strava und Ride with GPS](./strava-and-ridewithgps).
 - **Diese Route beschreiben** lässt den Assistenten einen Absatz darüber schreiben, siehe [Assistent](./assistant).
 
@@ -74,7 +74,7 @@ Eine Fahrt, die mit Pulsgurt, Apple Watch oder Leistungsmesser aufgezeichnet wur
 
 ### Kalorien, Pulszonen, Leistungszonen und geschätzte Leistung
 
-Alle vier sind aus, bis du sie unter Einstellungen → Fahrer einschaltest, und alle vier werden auf dem Handy aus den Punkten der Fahrt berechnet, also auch für ältere Fahrten.
+Alle vier sind aus, bis du sie unter Einstellungen → Fahrer & Rad einschaltest, und alle vier werden auf dem Handy aus den Punkten der Fahrt berechnet, also auch für ältere Fahrten.
 
 **Kalorien** ist eine Schätzung, und die kleine Zeile unter der Zahl sagt, worauf sie beruht. Mit einem Leistungsmesser über die Fahrt ist es die geleistete Arbeit, "aus Leistung": ein Kilojoule Treten ist ziemlich genau eine verbrannte Kilokalorie. Sonst, mit einem Puls über die Fahrt und deinem Gewicht, Geburtsjahr und Geschlecht, ist es "aus Puls". Sonst, wenn **Leistung schätzen** an ist, ist es "aus gesch. Leistung", wieder die geschätzte Arbeit in Kilojoule. Sonst ist es "aus Tempo", aus deinem Gewicht und deinem Tempo. Dein Gewicht braucht es in jedem Fall.
 
@@ -82,7 +82,7 @@ Alle vier sind aus, bis du sie unter Einstellungen → Fahrer einschaltest, und 
 
 **Pulszonen** ist ein Balken unter dem Herzfrequenz-Diagramm, in fünf Zonen deines Maximalpulses geteilt, mit einer Zeile je Zone: ihr Bereich, die Zeit darin und der Anteil an der Pulszeit der Fahrt. Zone 1 ist alles unter 60 %, Zone 5 alles ab 90 %. Die Überschrift nennt den verwendeten Maximalpuls: den eingetragenen oder 220 minus dein Alter.
 
-**Leistungszonen** ist derselbe Balken für Fahrten mit Leistungsmesser, in sieben Zonen deiner Schwellenleistung geteilt: unter 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 und ab 150 %. Jede Sekunde der Fahrt geht in die Zone des Messwerts in diesem Moment; Standzeit zählt nirgends. Die Überschrift nennt die Schwelle, "Leistungszonen · Schwelle 250 W". Es braucht den Schalter und deine Schwellenleistung unter Einstellungen → Fahrer, und es setzt die Zahl **Intensität** zu den Kacheln.
+**Leistungszonen** ist derselbe Balken für Fahrten mit Leistungsmesser, in sieben Zonen deiner Schwellenleistung geteilt: unter 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 und ab 150 %. Jede Sekunde der Fahrt geht in die Zone des Messwerts in diesem Moment; Standzeit zählt nirgends. Die Überschrift nennt die Schwelle, "Leistungszonen · Schwelle 250 W". Es braucht den Schalter und deine Schwellenleistung unter Einstellungen → Fahrer & Rad, und es setzt die Zahl **Intensität** zu den Kacheln.
 
 ### Splits
 
@@ -102,7 +102,7 @@ Unter den Anstiegen ein Balken **Belag** wie im Blatt einer Route: wie viel der 
 
 ### Aktionen einer Fahrt
 
-- Das Menü rechts in der Kopfzeile des Blatts: **GPX-Track exportieren**, **FIT-Aktivität exportieren**, **Fahrt fortsetzen**, **Umbenennen**, **Löschen**.
+- Das Menü rechts in der Kopfzeile des Blatts: **GPX-Track exportieren**, **FIT-Aktivität exportieren**, **TCX-Aktivität exportieren**, **Fahrt fortsetzen**, **Umbenennen**, **Löschen**.
 - Ganz unten: dieselben zwei Exporte und **Teilen**, das die Teilen-Karte mit **Link**, **Ride with GPS** und **Strava** öffnet, siehe [Teilen](./sharing).
 
 ## Dateien und Routen hereinbekommen
@@ -116,11 +116,11 @@ Beides steht unter [Import und Export](./import-and-export) und [Strava und Ride
 
 ## Synchronisierung mit iCloud oder Google Drive
 
-Deine gespeicherten Routen und aufgezeichneten Fahrten, mit Track, Notizen, Kennzahlen, Runden und Sensorwerten jeder Fahrt, lassen sich über deine eigene Cloud zwischen deinen eigenen Geräten abgleichen. **Einstellungen → Synchronisieren mit** wählt eine pro Gerät: **iCloud** (iPhone und iPad mit iOS 17 oder neuer, und der Planer im Browser), **Google** (iPhone, iPad, Android und der Browser) oder **Aus**. Auf einem iPhone oder iPad ist iCloud standardmäßig an; unter Android und im Browser ist die Synchronisierung aus, bis du eine Cloud wählst. Google legt die Daten in einen ausgeblendeten Velorki-Ordner in deinem Google Drive; Velorki kann diesen Ordner öffnen und sonst nichts in deinem Drive.
+Deine gespeicherten Routen und aufgezeichneten Fahrten, mit Track, Notizen, Kennzahlen, Runden und Sensorwerten jeder Fahrt, lassen sich über deine eigene Cloud zwischen deinen eigenen Geräten abgleichen. **Einstellungen → Synchronisierung**, unter **Synchronisieren mit**, wählt eine pro Gerät: **iCloud** (iPhone und iPad mit iOS 17 oder neuer, und der Planer im Browser), **Google** (iPhone, iPad, Android und der Browser) oder **Aus**. Auf einem iPhone oder iPad ist iCloud standardmäßig an; unter Android und im Browser ist die Synchronisierung aus, bis du eine Cloud wählst. Google legt die Daten in einen ausgeblendeten Velorki-Ordner in deinem Google Drive; Velorki kann diesen Ordner öffnen und sonst nichts in deinem Drive.
 
 Einige Einstellungen kommen mit: Design, Akzentfarbe, Kartenstil, der Stil des Regenradars, Leistenstil, Spaltenseite, Einheiten sowie die Einstellungen für Abbiegehinweise, Sprachansagen und Neuberechnung. Im Browser mit iCloud bleiben die Einstellungen im Browser. Velorki betreibt dafür keinen Server und kann das Gespeicherte nicht lesen; siehe die [Datenschutzerklärung](/privacy).
 
-Löschst du eine Route oder eine Fahrt, verschwindet sie auch auf deinen anderen Geräten. **Aus** zu wählen, dich abzumelden oder zur anderen Cloud zu wechseln, löscht nichts: Was schon in iCloud liegt, bleibt dort, bis du es in den iCloud-Einstellungen auf einem Apple-Gerät löschst, und was in Google Drive liegt, bis du es in Google Drive im Web löschst, unter Einstellungen → Apps verwalten → Velorki → Optionen → Ausgeblendete App-Daten löschen. Eine Statuszeile in den Einstellungen zeigt den Stand, etwa **Gerade synchronisiert**, **Wird synchronisiert …**, **Der iCloud-Speicher ist voll** oder **Nicht bei Google angemeldet**.
+Löschst du eine Route oder eine Fahrt, verschwindet sie auch auf deinen anderen Geräten. **Aus** zu wählen, dich abzumelden oder zur anderen Cloud zu wechseln, löscht nichts: Was schon in iCloud liegt, bleibt dort, bis du es in den iCloud-Einstellungen auf einem Apple-Gerät löschst, und was in Google Drive liegt, bis du es in Google Drive im Web löschst, unter Einstellungen → Apps verwalten → Velorki → Optionen → Ausgeblendete App-Daten löschen. Eine Statuszeile in den Einstellungen zur Synchronisierung zeigt den Stand, etwa **Gerade synchronisiert**, **Wird synchronisiert …**, **Der iCloud-Speicher ist voll** oder **Nicht bei Google angemeldet**.
 
 Aus Strava gelesene Routen und daraus bearbeitete Routen bleiben auf dem Handy, ebenso die Strava-Links von Fahrten; auch Links von Uploads zu Ride with GPS werden nicht abgeglichen. Heruntergeladene Karten und Routing-Kacheln werden nicht abgeglichen.
 

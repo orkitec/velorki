@@ -1,28 +1,22 @@
 ---
 title: Settings and appearance
-description: Every setting in Velorki, from theme, accent, units and language to navigation, recording, sensors, search, offline data, connections and the server URLs.
+description: "Every setting in Velorki: sync, Plus, connections, navigation, recording, rider and sensors, theme, units, language, offline data and server URLs."
 order: 16
 ---
 
-The Settings tab is one scrolling page with a section per subject. This page walks it from top to bottom, so you can find the switch you are after and know what it does.
+The Settings tab is an overview of rows in three groups, **Sync & Plus**, **Riding** and **App**, and each row opens its own page. A row is left out where it makes no sense on the phone, such as **Sensors** without a health app. This page walks the rows in order, so you can find the switch you are after and know what it does.
 
-## Appearance
+## Sync
 
-**Theme**: **System**, **Light** or **Dark**. System follows the phone.
+**Sync with**: **iCloud**, **Google** or **Off**, whichever the phone offers. Your routes, rides and a few settings then follow you to your other devices through your own iCloud or your own Google Drive, never through us. A line under the choice says how it stands, for example "Synced just now" or "Waiting for a connection". With Google the page also shows the account, with **Sign in** or **Sign out**. iCloud is on by default on an iPhone or iPad; on Android sync stays off until you choose a cloud. Routes from Strava stay on the device. The details are in [syncing with iCloud or Google Drive](./library#syncing-with-icloud-or-google-drive).
 
-**Map**: how the map itself is drawn, independently of the app's theme, one segment each: **Follows theme**, **Light**, **Night** or **Black**. **Black** is the one for a dark ride with the display dimmed, and it is what battery saver forces anyway.
+## Velorki Plus
 
-**Online cycle map on dark maps**: what to do with the **Online cycle map** from **Layers** when the map underneath is dark: **Inverted**, **Dimmed** or **Unchanged**. That map comes as pictures drawn for a light background, so on a night map it needs help. The offline **Cycle map** has its own colours for dark maps and is not affected.
+**Velorki Plus** with **Active** or **Not active** under it, and the renewal or end date when there is one. Tapping it opens the subscription page. Underneath sit **Manage**, while Plus is active, which opens the store's subscription page, and **Restore purchases**. Neither is there in a build without a store. See [Velorki Plus](./velorki-plus).
 
-**Glass**: how much of the map shows through the tab bar and the controls over the map: **Solid**, **Transparent**, **Subtle glass** or **Clear glass**, the default.
+## Connections
 
-**Rain radar**: how the rain radar from **Layers** is drawn: **Soft**, the default, with smooth edges and light rain fainter than heavy rain, or **As measured**, every rain image (radar, satellite, forecast) as the weather services deliver it, the radar in its 1 km cells.
-
-**Accent**: five colour presets: **Volt**, **Ember**, **Glacier**, **Berry** and **Forest**. The accent colours the buttons, the charts and the route line on the map.
-
-**Units**: **Metric** or **Imperial**, used by every figure, slider, chart axis, turn banner and spoken cue in the app. Until you choose, Velorki follows the phone's country.
-
-**Language**: **System**, English, Deutsch, Español, Français, Italiano or Nederlands, each named in its own language. **System** follows the phone's languages in the order set there, and falls back to English. On Android 13 and newer the phone's own settings can also set a language for Velorki alone (Settings → Apps → Velorki → Language), which **System** then follows. The spoken turns follow the same choice.
+One row for **Strava** and one for **Ride with GPS**, each showing **Not connected**, your name once connected, or **Not available in this build**. **Connect with Strava** and **Connect with Ride with GPS** sit under the unconnected ones, **Disconnect** beside the connected ones. Both connections are free. See [Strava and Ride with GPS](./strava-and-ridewithgps).
 
 ## Navigation
 
@@ -50,9 +44,9 @@ The three switches here are the same ones as on the Record tab's sheet.
 
 **Ride figures**: every figure a ride can show, with a handle to drag it into place and a switch to turn it off. The sheet shows them in this order, the bar the sheet folds into the first four, the glance page the first two beside the ride's time; a figure with nothing to show, a sensor not connected or no route followed, gives its place to the next. One stays on at least, the reset button at the top right puts back the default, and **Time**, which the sheet shows beside the status anyway, is off until you turn it on. **Edit figures** under the figures on the sheet opens the same list.
 
-## Rider
+## Rider & bike
 
-Three switches, all off by default, and the fields they need.
+Four switches, all off by default, and the fields they need.
 
 **Estimate calories** puts a **Calories** figure on every ride card: from your power meter when you have one, else from your heart rate, else from your speed. It needs your weight; the heart-rate estimate also needs your year of birth and sex.
 
@@ -74,21 +68,37 @@ With any switch on, the fields appear: **Weight** (kg, or lb on imperial units: 
 
 **Bluetooth sensors**: "Heart-rate straps, speed and cadence sensors, power meters", or how many sensors are paired. It opens the screen where **Scan** looks for them. All of it is walked through in [sensors and your watch](./sensors-and-watch).
 
-## Subscription
+## Appearance
 
-**Velorki Plus** with **Active** or **Not active** under it, and the renewal or end date when there is one. Tapping it opens the subscription page. Underneath sit **Manage**, which opens the store's subscription page, and **Restore purchases**. See [Velorki Plus](./velorki-plus).
+This page also holds **Units** and **Language**, at its end.
 
-## Connections
+**Theme**: **System**, **Light** or **Dark**. System follows the phone.
 
-One row for **Strava** and one for **Ride with GPS**, each showing **Not connected**, your name once connected, or **Not available in this build**. **Connect with Strava** and **Connect with Ride with GPS** sit under the unconnected ones, **Disconnect** beside the connected ones. Both connections are free. See [Strava and Ride with GPS](./strava-and-ridewithgps).
+**Map**: how the map itself is drawn, independently of the app's theme, one segment each: **Follows theme**, **Light**, **Night** or **Black**. **Black** is the one for a dark ride with the display dimmed, and it is what battery saver forces anyway.
+
+**Online cycle map on dark maps**: what to do with the **Online cycle map** from **Layers** when the map underneath is dark: **Inverted**, **Dimmed** or **Unchanged**. That map comes as pictures drawn for a light background, so on a night map it needs help. The offline **Cycle map** has its own colours for dark maps and is not affected.
+
+**Glass**: how much of the map shows through the tab bar and the controls over the map: **Solid**, **Transparent**, **Subtle glass** or **Clear glass**, the default. It turns solid by itself while the phone is saving power and on a ride recorded with battery saver, and says so under the choice.
+
+**Side on large screens**: **Left** or **Right**. It is there only on a tablet or a foldable's inner screen, where Velorki stands in a column over the map, and picks the side the column stands on.
+
+**Rain radar**: how the rain radar from **Layers** is drawn: **Soft**, the default, with smooth edges and light rain fainter than heavy rain, or **As measured**, every rain image (radar, satellite, forecast) as the weather services deliver it, the radar in its 1 km cells.
+
+**Accent**: five colour presets: **Volt**, **Ember**, **Glacier**, **Berry** and **Forest**. The accent colours the buttons, the charts and the route line on the map.
+
+**Units**: **Metric** or **Imperial**, used by every figure, slider, chart axis, turn banner and spoken cue in the app. Until you choose, Velorki follows the phone's country.
+
+**Language**: **System**, English, Deutsch, Español, Français, Italiano or Nederlands, each named in its own language. **System** follows the phone's languages in the order set there, and falls back to English. On Android 13 and newer the phone's own settings can also set a language for Velorki alone (Settings → Apps → Velorki → Language), which **System** then follows. The spoken turns follow the same choice.
 
 ## AI assistant
 
-**What is sent** always says which consent you gave: "You have not been asked yet.", "Nothing. The assistant is switched off.", "Your text only." or "Your text and your rough position (about 1 km)." **Change** beside it reopens the consent dialog.
+**What is sent** always says which consent you gave: "You have not been asked yet.", "Nothing. The assistant is switched off.", "Your text only. Without your position the suggestions are less accurate." or "Your text and your rough position (about 1 km)." **Change** beside it reopens the consent dialog.
 
 **Report AI output**: "Tell us about an answer that was wrong or inappropriate." Opens a mail to us.
 
-## Advanced
+## Maps & data
+
+Four entries: **Offline data**, **Search**, **Routing** and **Server URLs**.
 
 **Offline data**: "Maps and routing data for rides without a signal". When the mirror has rebuilt tiles you hold, the subtitle turns orange and counts them. See [offline maps and routing](./offline-maps-and-routing).
 
@@ -107,8 +117,9 @@ One row for **Strava** and one for **Ride with GPS**, each showing **Not connect
 - **Velorki**, with the version number.
 - **© OpenStreetMap contributors**.
 - **Open-source licences**: "The software and the map data Velorki is built on."
-- **Privacy policy** and **Terms of use**, which open in the browser.
+- **Privacy policy**, **Terms of use** and **Imprint**, which open in the browser.
 - **Report a problem**: "Open an issue on GitHub."
+- **Show performance**: "Frame rate, frame times and memory in a corner of the screen".
 
 ## Related
 

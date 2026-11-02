@@ -47,7 +47,7 @@ Ouvrir un itinéraire le trace sur la carte, cadré dans la partie de l’écran
 Les actions :
 
 - **Ouvrir dans le planificateur** le charge dans l’onglet Planifier avec tous ses points, points intermédiaires et leurs noms, types et notes compris, où vous pouvez le modifier et l’enregistrer de nouveau. Un itinéraire importé plutôt que planifié s’ouvre avec le tracé exact du fichier et des points seulement à ses extrémités et aux points propres du fichier qui se trouvent sur la trace, qui viennent avec leur type et leur note ; une modification ne recalcule que les tronçons voisins, et le tracé du fichier reste partout ailleurs. Le tracé du fichier est conservé avec l’itinéraire à travers chaque modification et chaque enregistrement, de sorte que **Rétablir** dans le planificateur peut le remettre. Les points hors trace arrivent comme des lieux à côté de l’itinéraire, où ils peuvent être nommés, recevoir un type, être déplacés sur l’itinéraire ou supprimés comme n’importe quel autre point. Le prochain enregistrement réécrit les deux ensembles, de sorte qu’un lieu que vous supprimez dans le planificateur disparaît aussi de la fiche.
-- **Exporter** propose **Itinéraire GPX** et **Parcours FIT**, voir [importer et exporter](./import-and-export).
+- **Exporter** propose **Itinéraire GPX**, **Parcours FIT** et **Parcours TCX**, voir [importer et exporter](./import-and-export).
 - **Partager** ouvre la fiche de partage : un **Lien** vers l’itinéraire, **Ride with GPS** et **Strava**, voir [partager](./sharing) et [Strava et Ride with GPS](./strava-and-ridewithgps).
 - **Décrire cet itinéraire** demande à l’assistant d’en écrire un paragraphe, voir [assistant](./assistant).
 
@@ -74,7 +74,7 @@ Une sortie enregistrée avec une ceinture cardio, une Apple Watch ou un capteur 
 
 ### Calories, zones de fréquence cardiaque, zones de puissance et puissance estimée
 
-Les quatre sont désactivées jusqu’à ce que vous les activiez dans Réglages → Cycliste, et les quatre sont calculées sur le téléphone à partir des points de la sortie elle-même, de sorte que les anciennes sorties en bénéficient aussi.
+Les quatre sont désactivées jusqu’à ce que vous les activiez dans Réglages → Cycliste et vélo, et les quatre sont calculées sur le téléphone à partir des points de la sortie elle-même, de sorte que les anciennes sorties en bénéficient aussi.
 
 **Calories** est une estimation, et la petite ligne sous le chiffre dit sur quoi elle repose. Avec un capteur de puissance sur la sortie, c’est le travail fourni, « d’après la puissance » : un kilojoule de pédalage correspond presque exactement à une kilocalorie brûlée. Sinon, avec une fréquence cardiaque sur la sortie et votre poids, votre année de naissance et votre sexe, c’est « d’après la FC ». Sinon, avec **Estimer la puissance** activé, c’est « d’après la puiss. est. », le travail estimé en kilojoules là encore. Sinon c’est « d’après la vitesse », à partir de votre poids et de votre allure. Il faut votre poids dans tous les cas.
 
@@ -82,7 +82,7 @@ Les quatre sont désactivées jusqu’à ce que vous les activiez dans Réglages
 
 **Zones de FC** est une barre sous le graphique de fréquence cardiaque, découpée en cinq zones de votre fréquence cardiaque maximale, avec une ligne par zone : sa plage, le temps passé dedans et sa part du temps de fréquence cardiaque de la sortie. La zone 1 est tout ce qui est sous 60 %, la zone 5 tout ce qui est à partir de 90 %. La légende nomme le maximum utilisé : celui que vous avez saisi, ou 220 moins votre âge.
 
-**Zones de puissance** est la même barre pour les sorties avec capteur de puissance, découpée en sept zones de votre puissance seuil : sous 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 et à partir de 150 %. Chaque seconde de la sortie va à la zone de la mesure du capteur à ce moment ; le temps passé à l’arrêt ne compte nulle part. La légende nomme le seuil, « Zones de puissance · seuil 250 W ». Il faut l’interrupteur et votre puissance seuil dans Réglages → Cycliste, et cela place le chiffre **Intensité** parmi les tuiles.
+**Zones de puissance** est la même barre pour les sorties avec capteur de puissance, découpée en sept zones de votre puissance seuil : sous 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 et à partir de 150 %. Chaque seconde de la sortie va à la zone de la mesure du capteur à ce moment ; le temps passé à l’arrêt ne compte nulle part. La légende nomme le seuil, « Zones de puissance · seuil 250 W ». Il faut l’interrupteur et votre puissance seuil dans Réglages → Cycliste et vélo, et cela place le chiffre **Intensité** parmi les tuiles.
 
 ### Tronçons
 
@@ -102,7 +102,7 @@ Sous les montées, une barre **Revêtement** comme sur une fiche d’itinéraire
 
 ### Actions sur une sortie
 
-- Le menu à droite de l’en-tête de la fiche : **Exporter la trace GPX**, **Exporter l’activité FIT**, **Poursuivre cette sortie**, **Renommer**, **Supprimer**.
+- Le menu à droite de l’en-tête de la fiche : **Exporter la trace GPX**, **Exporter l’activité FIT**, **Exporter l’activité TCX**, **Poursuivre cette sortie**, **Renommer**, **Supprimer**.
 - En bas : les deux mêmes exports et **Partager**, qui ouvre la fiche de partage avec **Lien**, **Ride with GPS** et **Strava**, voir [partager](./sharing).
 
 ## Faire entrer des fichiers et des itinéraires
@@ -116,11 +116,11 @@ Les deux sont décrits dans [importer et exporter](./import-and-export) et [Stra
 
 ## Synchronisation avec iCloud ou Google Drive
 
-Vos itinéraires enregistrés et vos sorties enregistrées, avec la trace, les notes, les chiffres, les tours et les mesures des capteurs de chaque sortie, peuvent être synchronisés entre vos propres appareils par votre propre cloud. **Réglages → Synchroniser avec** en choisit un par appareil : **iCloud** (iPhone et iPad sous iOS 17 ou plus récent, et le planificateur dans le navigateur), **Google** (iPhone, iPad, Android et le navigateur) ou **Désactivé**. Sur un iPhone ou un iPad, iCloud est activé par défaut ; sur Android et dans le navigateur, la synchronisation est désactivée tant que vous ne choisissez pas de cloud. Google conserve les données dans un dossier Velorki masqué de votre Google Drive ; Velorki peut ouvrir ce dossier et rien d’autre dans votre Drive.
+Vos itinéraires enregistrés et vos sorties enregistrées, avec la trace, les notes, les chiffres, les tours et les mesures des capteurs de chaque sortie, peuvent être synchronisés entre vos propres appareils par votre propre cloud. **Réglages → Synchronisation**, sous **Synchroniser avec**, en choisit un par appareil : **iCloud** (iPhone et iPad sous iOS 17 ou plus récent, et le planificateur dans le navigateur), **Google** (iPhone, iPad, Android et le navigateur) ou **Désactivé**. Sur un iPhone ou un iPad, iCloud est activé par défaut ; sur Android et dans le navigateur, la synchronisation est désactivée tant que vous ne choisissez pas de cloud. Google conserve les données dans un dossier Velorki masqué de votre Google Drive ; Velorki peut ouvrir ce dossier et rien d’autre dans votre Drive.
 
 Quelques réglages suivent : thème, couleur d’accent, aspect de la carte, aspect du radar de pluie, style de la barre, côté de la colonne, unités, ainsi que les réglages des virages, de la voix et du recalcul d’itinéraire. Dans le navigateur avec iCloud, les réglages restent dans le navigateur. Velorki n’exploite aucun serveur pour cela et ne peut pas lire ce qui est stocké ; voir la [politique de confidentialité](/privacy).
 
-Supprimer un itinéraire ou une sortie le supprime aussi sur vos autres appareils. Choisir **Désactivé**, se déconnecter ou passer à l’autre cloud ne supprime rien : ce qui est déjà dans iCloud y reste jusqu’à ce que vous le supprimiez dans les réglages iCloud d’un appareil Apple, et ce qui est dans Google Drive y reste jusqu’à ce que vous le supprimiez dans Google Drive sur le web, sous Paramètres → Gérer les applications → Velorki → Options → Supprimer les données d’application masquées. Une ligne d’état dans les Réglages indique où elle en est, par exemple **Synchronisé à l’instant**, **Synchronisation…**, **Le stockage iCloud est plein** ou **Non connecté à Google**.
+Supprimer un itinéraire ou une sortie le supprime aussi sur vos autres appareils. Choisir **Désactivé**, se déconnecter ou passer à l’autre cloud ne supprime rien : ce qui est déjà dans iCloud y reste jusqu’à ce que vous le supprimiez dans les réglages iCloud d’un appareil Apple, et ce qui est dans Google Drive y reste jusqu’à ce que vous le supprimiez dans Google Drive sur le web, sous Paramètres → Gérer les applications → Velorki → Options → Supprimer les données d’application masquées. Une ligne d’état dans les réglages de synchronisation indique où elle en est, par exemple **Synchronisé à l’instant**, **Synchronisation…**, **Le stockage iCloud est plein** ou **Non connecté à Google**.
 
 Les itinéraires lus depuis Strava et les itinéraires modifiés à partir d’eux restent sur le téléphone, tout comme les liens Strava des sorties ; les liens des envois vers Ride with GPS ne sont pas synchronisés non plus. Les cartes téléchargées et les tuiles de routage ne sont pas synchronisées.
 

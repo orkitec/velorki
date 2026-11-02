@@ -20,7 +20,7 @@ Melden zwei davon dasselbe zur selben Zeit, gewinnt die Uhr vor einem Bluetooth-
 
 ## Eine Quelle einschalten
 
-Alles steht unter **Einstellungen → Sensoren**, direkt unter **Aufzeichnung**:
+Alles steht unter **Einstellungen → Sensoren**, unter **Fahrer & Rad**:
 
 - **Apple Health** auf dem iPhone, **Health Connect** unter Android, mit der Zeile "Liest den Puls, den andere Apps in Health ablegen, etwa das Training der Uhr. Wird alle paar Sekunden abgefragt, hinkt also nach; ein Gurt oder die Velorki-Uhren-App übernimmt, sobald sie melden". Das Einschalten ist das Einzige in Velorki, was die Health-Abfrage auslösen kann. Lehnst du ab, sagt Velorki "Velorki hat keinen Zugriff auf deine Gesundheitsdaten bekommen." und lässt den Schalter aus.
 - **Fahrten in Health speichern** darunter, "Jede beendete Fahrt landet in Health als ein Radfahr-Training mit Start, Ende und Distanz", getrennt abschaltbar. Solange der Schalter darüber aus ist, tut er nichts.

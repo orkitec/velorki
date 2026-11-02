@@ -21,18 +21,19 @@ De routeringsgegevens bevatten ook de plaatsindex, dus een gedownload gebied kun
 ## Een gebied downloaden
 
 1. Schuif de kaart op het tabblad **Plannen** zo dat het gebied dat je wilt het scherm vult. Zoom niet verder uit dan nodig: de kaartdownload volgt precies wat er op het scherm staat.
-2. Tik op de knop **Offline gegevens** in de kolom rechts van de kaart. Op een klein scherm zoals een iPhone SE is er in de kolom geen ruimte voor: tik daar op **Downloaden** in de melding bovenaan de zoekresultaten of in de chip op de kaart, of op de downloadknop onder een route die tegels nodig heeft, en beheer wat je hebt onder **Instellingen → Offline gegevens**.
-3. Lees de twee kaarten en tik dan onderaan op **Zichtbaar gebied downloaden**.
-4. Het venster **Zichtbaar gebied downloaden** toont wat je gaat ophalen: "Kaart van het zichtbare gebied · grootte pas bekend na het downloaden" voor de kaart, dan één regel per routeringstegel met zijn grootte, bijvoorbeeld `E5_N45 · 187 MB`, of "Routeringsgegevens voor dit gebied staan al op het apparaat".
-5. Tik op **Downloaden**.
+2. Start de download waar die wordt aangeboden. Overal wordt dezelfde ene vraag gesteld en wordt ter plekke over de kaart gedownload:
+   - **Downloaden** in de chip op de kaart. Vanaf zoom 11 staat daar **Dit gebied is niet gedownload**, zodra het midden van de kaart op het tabblad Plannen boven een niet-gedownload gebied ligt; met [stopplekken](./stops-on-the-map) aan staat er in plaats daarvan "Geen stopplekken hier – gebied niet gedownload", met de fietskaart aan "Geen fietskaart hier – gebied niet gedownload".
+   - **Downloaden** in de melding bovenaan de zoekresultaten.
+   - **3 tegels downloaden (412 MB)** onder een route die tegels nodig heeft.
+   - De ronde downloadknop in de kolom rechts van de kaart, die het scherm **Offline** opent: lees de twee kaarten en tik dan onderaan op **Zichtbaar gebied downloaden**. Op een klein scherm zoals een iPhone SE is er in de kolom geen ruimte voor; beheer wat je hebt onder **Instellingen → Kaarten en gegevens → Offline gegevens**. De knop toont een gevuld icoon zodra het gebied in beeld is gedownload (een tik zegt "Dit gebied is gedownload", met **Beheren**), een stip als er updates zijn en een draaiend rondje terwijl er wordt gedownload.
+3. Het venster **Zichtbaar gebied downloaden** toont wat je gaat ophalen: "Kaart van het zichtbare gebied · grootte pas bekend na het downloaden" voor de kaart, dan één regel per routeringstegel met zijn grootte, bijvoorbeeld `E5_N45 · 187 MB`, of "Routeringsgegevens voor dit gebied staan al op het apparaat".
+4. Tik op **Downloaden**.
 
-Vanaf zoom 11 toont een chip op de kaart **Dit gebied is niet gedownload** met **Downloaden**, zodra het midden van de kaart op het tabblad Plannen boven een niet-gedownload gebied ligt. Een tik ergens op de chip opent het offlinescherm voor het zichtbare gebied. Met [stopplekken](./stops-on-the-map) aan staat er in plaats daarvan "Geen stopplekken hier – gebied niet gedownload", met de fietskaart aan "Geen fietskaart hier – gebied niet gedownload". Hij verdwijnt zodra het gebied is gedownload.
-
-Beide downloads lopen zolang de app open is. De kaarten tonen **Kaart downloaden…** en **E5_N45 downloaden…** met voortgangsbalken.
+Beide downloads lopen zolang de app open is. De chip en de kaart waarvan je startte tonen de voortgang; op het offlinescherm tonen de kaarten **Kaart downloaden…** en **E5_N45 downloaden…** met voortgangsbalken. Het kruisje van de chip is **Download annuleren** zolang de download loopt: het vraagt "Download stoppen?", en **Download annuleren** stopt de kaart en de routeringstegels, verwijdert het onafgemaakte kaartpakket en biedt het gebied opnieuw aan. **Doorgaan met downloaden** gaat verder. De chip verdwijnt zodra het gebied is gedownload. Een kaartdownload die geen vooruitgang meer boekt, wordt opgegeven.
 
 Het scherm waarschuwt je niet voor niets: "Tegels zijn groot, vaak 125–250 MB per stuk, en Velorki kan wifi niet van mobiele data onderscheiden. Start een download als je op wifi zit."
 
-Je komt ook op dit scherm via **Instellingen → Offline gegevens**, maar zo geopend staat er geen kaart achter, dus de downloadknop is uitgeschakeld en de notitie zegt "Open dit scherm vanaf de kaart om het gebied te downloaden waar je naar kijkt."
+Je komt ook op dit scherm via **Instellingen → Kaarten en gegevens → Offline gegevens**, maar zo geopend staat er geen kaart achter, dus de downloadknop is uitgeschakeld en de notitie zegt "Open dit scherm vanaf de kaart om het gebied te downloaden waar je naar kijkt."
 
 ## De kaartgebieden beheren
 
@@ -65,11 +66,11 @@ Verder op het scherm:
 - Een knop **Verwijderen** op elke rij, met de waarschuwing "De tegel wordt van dit apparaat verwijderd. Routes in dat gebied hebben dan weer de routeringsserver nodig."
 - Een knop **Download annuleren** in de voortgangskop zolang er een loopt.
 
-Velorki controleert wekelijks of de mirror iets opnieuw heeft gebouwd dat jij hebt. Is dat zo, dan wordt de rij **Offline gegevens** in Instellingen oranje, toont "Voor 2 tegels zijn updates" en zet een teller op de pijl.
+Velorki controleert wekelijks of de mirror iets opnieuw heeft gebouwd dat jij hebt. Een tegel telt pas als bijgewerkt als zijn inhoud is veranderd, niet elke keer dat de mirror draait. Is dat zo, dan toont een chip op de kaart **Nieuwe kaartgegevens voor dit gebied** met **Bijwerken**, krijgt de downloadknop een stip, en wordt de rij **Offline gegevens** onder **Instellingen → Kaarten en gegevens** oranje, toont "Voor 2 tegels zijn updates" en zet een teller op de pijl. **Bijwerken** op de chip stelt de gebruikelijke vraag en downloadt de gewijzigde tegels opnieuw; het kruisje verbergt de chip voor dit gebied tot je de app opnieuw start.
 
 ## De gazetteer, of zoekindex
 
-Naast elke routeringstegel die de mirror publiceert staat een kleine zoekindex, en Velorki downloadt die twee samen. Er is geen aparte instelling of aparte download voor.
+Naast elke routeringstegel die de mirror publiceert staat een kleine zoekindex, en Velorki downloadt die twee samen. Er is geen aparte instelling voor. Is alleen de zoekindex van een tegel veranderd, dan is de update een kleine download van alleen de index, niet de tegel opnieuw.
 
 Mislukt het downloaden van de index, dan is de tegel zelf nog steeds in orde: het gebied blijft routeerbaar en het zoeken gaat er gewoon online. Hetzelfde geldt voor een index in een formaat dat deze appversie niet leest; die wordt overgeslagen, de andere gebieden blijven offline antwoorden, en in dat gebied wordt online gezocht.
 

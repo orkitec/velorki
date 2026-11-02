@@ -4,7 +4,7 @@ description: La carte vélo hors ligne et ses parties, la carte vélo en ligne, 
 order: 6
 ---
 
-**Calques** se trouve dans la colonne de boutons à droite de la carte, dans l’onglet Planifier comme dans l’onglet Rouler. Sa feuille contient la carte vélo, la carte vélo en ligne, le radar de pluie, les nuages, le vent et les haltes. Le bouton est mis en évidence tant que l’une d’elles est activée.
+**Calques** se trouve dans la colonne de boutons à droite de la carte, dans l’onglet Planifier comme dans l’onglet Rouler. Sa feuille contient la carte vélo, la carte vélo en ligne, le radar de pluie, les nuages, le vent et les haltes. Le bouton est mis en évidence tant que l’une d’elles est activée. Au premier lancement, la carte vélo et les haltes sont déjà activées ; un choix que vous faites est conservé.
 
 <!-- screenshot: layers -->
 
@@ -28,9 +28,9 @@ La carte vélo apparaît en fondu entre le zoom 12 et 13, et disparaît de même
 | **VTT** | Petits traits de difficulté sur les sentiers à partir du zoom 14 : bleu pour facile (S0–S1), rouge pour S2, noir pour S3 et plus difficile (blanc sur la carte de nuit) ; itinéraires VTT en halo orange |
 | **Montées** | Tronçons raides des voies que le vélo peut emprunter, en bande : jaune à partir de 6 %, orange à partir de 10 %, rouge à partir de 15 % ; des chevrons indiquent la montée à partir du zoom 15. Les altitudes viennent du modèle de terrain des données de routage. Une montée ne compte que si elle dure au moins 150 m et 10 m de dénivelé, donc les courtes rampes sont ignorées ; dans les centres-villes aux immeubles hauts, elle peut quand même montrer une montée qui n’existe pas ou en manquer une. Ponts et tunnels sont exclus. Dans les centres denses des plus grandes villes, où les altitudes sont celles des bâtiments, aucune montée n’est dessinée. |
 
-Au départ, toutes les parties sont actives sauf **Non revêtu & cahoteux**, **Rues à sens unique**, **Rues calmes**, **VTT** et **Montées**. Une partie ajoutée dans une version ultérieure démarre avec sa valeur par défaut ; les choix faits avant sont conservés.
+La carte vélo reste activée tant que vous ne la désactivez pas, sauf si vous avez choisi la carte vélo en ligne, qui la remplace alors. Au départ, toutes les parties sont actives sauf **Non revêtu & cahoteux**, **Rues à sens unique**, **Rues calmes**, **VTT** et **Montées**. Une partie ajoutée dans une version ultérieure démarre avec sa valeur par défaut ; les choix faits avant sont conservés.
 
-Dans l’onglet Planifier, avec la carte vélo activée sur une zone non téléchargée, une puce indique **Pas de carte vélo ici – zone non téléchargée**, avec **Télécharger** ; un toucher ouvre le téléchargement de la zone visible. Si la puce des haltes s’applique aussi, elle passe en premier.
+Dans l’onglet Planifier, avec la carte vélo activée sur une zone non téléchargée, une puce indique **Pas de carte vélo ici – zone non téléchargée**, avec **Télécharger** ; un toucher demande ce qui sera récupéré et télécharge la zone sur place, avec la progression dans la puce. Si la puce des haltes s’applique aussi, elle passe en premier.
 
 ## Carte vélo en ligne
 
@@ -38,7 +38,7 @@ Dans l’onglet Planifier, avec la carte vélo activée sur une zone non téléc
 
 ## Radar de pluie et nuages
 
-**Radar de pluie** : "Maintenant : radar en Allemagne, aux Pays-Bas, en Finlande et aux États-Unis, ailleurs en Europe et en Afrique une estimation par satellite. À venir : prévision radar sur 2 heures en Allemagne, prévision de modèle jusqu'à 24 heures (horaire en Europe, toutes les 6 heures ailleurs)". **Nuages** : "Europe, Afrique et Amériques · mis à jour toutes les heures en Europe". Les deux sont gratuits, désactivés tant que vous ne les activez pas, et nécessitent une connexion.
+**Radar de pluie** : "Maintenant : radar en Allemagne, aux Pays-Bas, en Finlande et aux États-Unis, ailleurs en Europe et en Afrique une estimation par satellite. À venir : prévision radar sur 2 heures en Allemagne, prévision de modèle jusqu'à 24 heures (horaire en Europe, toutes les 6 heures ailleurs)". **Nuages** : "Europe, Afrique et Amériques · mis à jour toutes les heures en Europe". Les deux sont gratuits, désactivés tant que vous ne les activez pas, et nécessitent une connexion. Quand l’un est activé, un curseur **Opacité** apparaît sous son interrupteur.
 
 La pluie vient de trois sortes de sources. Maintenant : le radar du service météorologique allemand (Deutscher Wetterdienst) au-dessus de l’Allemagne et de ses environs du service météorologique américain (National Weather Service) au-dessus des États-Unis, du KNMI au-dessus des Pays-Bas et de l’Institut météorologique finlandais au-dessus de la Finlande, et autour, sur le reste de l’Europe, l’Afrique et l’Atlantique, la pluie estimée à partir du satellite Meteosat par H SAF d’EUMETSAT, toutes les dix minutes. Une estimation par satellite est plus grossière que le radar et manque une partie de la pluie faible ; elle n’est jamais dessinée sur les zones des radars, si bien que les deux ne se contredisent jamais sur la carte. Avec Velorki Plus, un vrai radar d’EUMETNET OPERA, le réseau européen de radars, et de Radar-DPC (Italie), celui de la Protection civile italienne, prend la place du satellite partout où il mesure, comme en France, en Espagne, en Italie, au Royaume-Uni, en Suisse et en Scandinavie : des cellules de 1 km, une nouvelle image toutes les cinq minutes, les deux dernières heures, sans prévision. Les deux heures à venir : en Allemagne la prévision radar du Deutscher Wetterdienst, la pluie du radar déplacée par quarts d’heure ; partout ailleurs, et partout à partir de trois heures, la prévision de son modèle météorologique ICON, heure par heure sur l’Europe et par pas de six heures ailleurs. L’app cherche des images plus récentes toutes les cinq minutes. La pluie est dessinée à tous les zooms, jusqu’au monde entier, où ses images sont plus grossières. Là où s’arrête la zone du radar, le radar et le satellite ou la prévision autour se fondent l’un dans l’autre sur environ 25 km au lieu de se rencontrer sur un bord net.
 
@@ -58,4 +58,4 @@ Le curseur de temps du radar de pluie fait aussi avancer le vent, heure par heur
 
 ## Haltes
 
-**Haltes** est un interrupteur dans la même feuille, désactivé tant que vous ne l’activez pas. Il dessine l’eau potable, les cafés, les toilettes, les stations de réparation vélo et plus, d’après l’index des lieux sur le téléphone. Les types, la zone que vous regardez et l’itinéraire à venir sont décrits dans [haltes sur la carte](./stops-on-the-map).
+**Haltes** est un interrupteur dans la même feuille, activé tant que vous ne le désactivez pas. Il dessine l’eau potable, les cafés, les toilettes, les stations de réparation vélo, les gares, les arrêts de bus, les pharmacies et plus, d’après l’index des lieux sur le téléphone. Les types, la zone que vous regardez et l’itinéraire à venir sont décrits dans [haltes sur la carte](./stops-on-the-map).

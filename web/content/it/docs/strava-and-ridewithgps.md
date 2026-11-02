@@ -1,6 +1,6 @@
 ---
 title: Strava e Ride with GPS
-description: Velorki funziona con Strava e Ride with GPS, gratis. Collega un account per caricare i giri registrati e importare percorsi, e scopri perché inviare un percorso a Strava è un file.
+description: Velorki funziona gratis con Strava e Ride with GPS. Collega un account per caricare giri e importare percorsi; verso Strava va un file.
 order: 13
 ---
 
@@ -10,10 +10,12 @@ Nulla viene inviato a nessuno dei due servizi finché non sei tu a collegare l'a
 
 ## Collegare un account
 
-1. Apri **Opzioni** e trova la sezione **Connessioni**.
+1. Apri **Opzioni → Connessioni**.
 2. Tocca **Connetti con Strava** o **Connetti Ride with GPS**.
 3. La pagina di accesso del servizio si apre in un browser. Accedi lì e approva l'accesso.
 4. Torni in Velorki, e la riga mostra il tuo nome al posto di **Non connesso**.
+
+Per Strava prima compare un avviso, **Prima di collegare Strava**: cosa legge Velorki, cosa scrive, come funziona la connessione e come disconnetterla. Leggilo, poi vai alla pagina di accesso.
 
 Velorki chiede a Strava solo due permessi: **read**, il tuo profilo pubblico (il tuo id e il tuo nome, mostrati in Opzioni), e **activity:write**, per caricare i giri che scegli di caricare. Non legge le tue attività.
 

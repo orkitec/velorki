@@ -20,7 +20,7 @@ When two of them report the same thing at the same time, the watch wins over a B
 
 ## Turning a source on
 
-Everything is in **Settings → Sensors**, just under **Recording**:
+Everything is in **Settings → Sensors**, under **Rider & bike**:
 
 - **Apple Health** on an iPhone, **Health Connect** on Android, with the line "Reads the heart rate other apps put into Health, such as the watch's own Workout app. Checked every few seconds, so it lags; a strap or the Velorki watch app takes over when it reports". Turning this on is the only thing in Velorki that can raise the health permission prompt. Refuse it and Velorki says "Velorki was not given access to your health data." and leaves the switch off.
 - **Save rides to Health** under it, "Each finished ride goes into Health as one cycling workout with its start, end and distance", which you can switch off on its own. It does nothing while the switch above it is off.
