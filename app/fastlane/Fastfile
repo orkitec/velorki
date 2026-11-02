@@ -139,6 +139,10 @@ platform :android do
       skip_upload_screenshots: false,
       # Unchanged images stay; the rest are replaced, in file order.
       sync_image_upload: true,
+      # Staged, not sent for review: each upload sent on its own restarted a
+      # review already running. The maintainer sends the release and the
+      # listing for review together in the Play Console.
+      changes_not_sent_for_review: true,
     )
   end
 
@@ -148,6 +152,8 @@ platform :android do
       track: "internal",
       track_promote_to: "alpha",
       json_key: ENV["PLAY_SERVICE_ACCOUNT_JSON_PATH"],
+      # Sent for review from the Play Console with the rest, as store_listing.
+      changes_not_sent_for_review: true,
       skip_upload_aab: true,
       skip_upload_metadata: true,
       skip_upload_images: true,
