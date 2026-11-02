@@ -20,7 +20,7 @@ Melden zwei davon dasselbe zur selben Zeit, gewinnt die Uhr vor einem Bluetooth-
 
 ## Eine Quelle einschalten
 
-Alles steht unter **Einstellungen → Sensoren**, unter **Fahrer & Rad**:
+Alles steht unter **Optionen → Sensoren**, unter **Fahrer & Rad**:
 
 - **Apple Health** auf dem iPhone, **Health Connect** unter Android, mit der Zeile "Liest den Puls, den andere Apps in Health ablegen, etwa das Training der Uhr. Wird alle paar Sekunden abgefragt, hinkt also nach; ein Gurt oder die Velorki-Uhren-App übernimmt, sobald sie melden". Das Einschalten ist das Einzige in Velorki, was die Health-Abfrage auslösen kann. Lehnst du ab, sagt Velorki "Velorki hat keinen Zugriff auf deine Gesundheitsdaten bekommen." und lässt den Schalter aus.
 - **Fahrten in Health speichern** darunter, "Jede beendete Fahrt landet in Health als ein Radfahr-Training mit Start, Ende und Distanz", getrennt abschaltbar. Solange der Schalter darüber aus ist, tut er nichts.
@@ -32,7 +32,7 @@ Alles steht unter **Einstellungen → Sensoren**, unter **Fahrer & Rad**:
 ### Einen Sensor koppeln
 
 1. Weck den Sensor auf: Gurt anlegen oder Kurbel drehen. Die meisten Sensoren sagen gar nichts, solange sie nicht benutzt werden.
-2. Öffne **Einstellungen → Sensoren → Bluetooth-Sensoren** und tippe auf **Scannen**. Auf dem iPhone steht vorher "iOS fragt beim ersten Scannen nach Bluetooth." auf dem Bildschirm. Ein Scan läuft etwa fünfzehn Sekunden.
+2. Öffne **Optionen → Sensoren → Bluetooth-Sensoren** und tippe auf **Scannen**. Auf dem iPhone steht vorher "iOS fragt beim ersten Scannen nach Bluetooth." auf dem Bildschirm. Ein Scan läuft etwa fünfzehn Sekunden.
 3. Tippe unter **Gefunden** auf den Sensor, den du wiedererkennst. Jede Zeile trägt seinen Namen, kleine Symbole für das, was er misst, und seine Signalstärke in dBm; der lauteste steht oben.
 4. Velorki verbindet sich einmal, um das Gerät zu fragen, was es wirklich hat, legt es unter **Gekoppelt** ab und lässt es wieder los.
 
@@ -68,7 +68,7 @@ Die App auf der Uhr ist Anzeige und Sensor, nie ein zweites Aufzeichnungsgerät.
 
 ### Die App auf die Uhr bekommen
 
-Velorkis Uhren-App steckt in der iPhone-App. Sie landet von selbst auf der Uhr, wenn diese Begleit-Apps automatisch installiert; sonst öffne die App **Watch** auf dem iPhone und installiere Velorki aus der Liste der verfügbaren Apps. Schalte danach **Apple Watch** unter **Einstellungen → Sensoren** ein; das fragt einmal auch, ob Velorki Mitteilungen zeigen darf, für die unter den Knöpfen beschriebene. Beim ersten Training fragt die Uhr um Erlaubnis, deinen Puls zu lesen. Diese Abfrage kommt von der Uhr, nicht vom Handy.
+Velorkis Uhren-App steckt in der iPhone-App. Sie landet von selbst auf der Uhr, wenn diese Begleit-Apps automatisch installiert; sonst öffne die App **Watch** auf dem iPhone und installiere Velorki aus der Liste der verfügbaren Apps. Schalte danach **Apple Watch** unter **Optionen → Sensoren** ein; das fragt einmal auch, ob Velorki Mitteilungen zeigen darf, für die unter den Knöpfen beschriebene. Beim ersten Training fragt die Uhr um Erlaubnis, deinen Puls zu lesen. Diese Abfrage kommt von der Uhr, nicht vom Handy.
 
 ### Was die Uhr zeigt
 
@@ -94,7 +94,7 @@ Startet eine Fahrt am Handy, öffnet sich die Uhren-App von selbst und beginnt z
 
 ### Akku am Handgelenk
 
-Stundenlang einen Puls zu messen ist es, was die Uhr ihren Tag kostet. Gemessen wird die ganze Fahrt über, Pausen eingeschlossen: Eine Uhren-App, die nicht mehr misst, legt watchOS innerhalb einer Minute schlafen, und dann hört sie nichts mehr vom Handy; wach zu bleiben ist es, was den Puls weiter kommen lässt. Solange die Fahrt pausiert ist, zeichnet das Handy keinen Puls auf. Für Fahrten mit vielen Stopps lässt **Sensor in Pausen ruhen lassen** unter dem Apple-Watch-Schalter in den Einstellungen die Uhr in jeder Pause aufhören zu messen. Der Tausch: Der Sensor ruht bei jedem Stopp, aber das Handy muss die Uhr wieder wecken, wenn du weiterfährst, der erste Puls nach jedem Stopp braucht einen Moment, und schlägt das Wecken fehl, fehlt der Puls, bis das Handy es erneut versucht. Für einen lückenlosen Puls lass ihn aus. Verstummt die Uhr mitten in der Fahrt doch einmal für eine Dreiviertelminute, startet das Handy ihre App von selbst neu. **Pulsmessung beenden** beendet das Messen, ohne die Fahrt anzurühren. Den Rest sagt die Fußnote auf dem Bildschirm, "Mit dem Stromsparmodus in den Einstellungen der Uhr hält der Akku auch eine lange Fahrt durch." Schaltest du **Apple Watch** in den Einstellungen aus, endet eine noch laufende Sitzung ebenfalls.
+Stundenlang einen Puls zu messen ist es, was die Uhr ihren Tag kostet. Gemessen wird die ganze Fahrt über, Pausen eingeschlossen: Eine Uhren-App, die nicht mehr misst, legt watchOS innerhalb einer Minute schlafen, und dann hört sie nichts mehr vom Handy; wach zu bleiben ist es, was den Puls weiter kommen lässt. Solange die Fahrt pausiert ist, zeichnet das Handy keinen Puls auf. Für Fahrten mit vielen Stopps lässt **Sensor in Pausen ruhen lassen** unter dem Apple-Watch-Schalter in den Optionen die Uhr in jeder Pause aufhören zu messen. Der Tausch: Der Sensor ruht bei jedem Stopp, aber das Handy muss die Uhr wieder wecken, wenn du weiterfährst, der erste Puls nach jedem Stopp braucht einen Moment, und schlägt das Wecken fehl, fehlt der Puls, bis das Handy es erneut versucht. Für einen lückenlosen Puls lass ihn aus. Verstummt die Uhr mitten in der Fahrt doch einmal für eine Dreiviertelminute, startet das Handy ihre App von selbst neu. **Pulsmessung beenden** beendet das Messen, ohne die Fahrt anzurühren. Den Rest sagt die Fußnote auf dem Bildschirm, "Mit dem Stromsparmodus in den Einstellungen der Uhr hält der Akku auch eine lange Fahrt durch." Schaltest du **Apple Watch** in den Optionen aus, endet eine noch laufende Sitzung ebenfalls.
 
 ## Apple Health und Health Connect
 
@@ -131,6 +131,6 @@ Von allein wird nichts hochgeladen. Ein GPX-, FIT- oder TCX-Export nimmt die Wer
 
 - [Fahrt aufzeichnen](./recording-a-ride)
 - [Bibliothek](./library)
-- [Einstellungen und Darstellung](./settings-and-appearance)
+- [Optionen und Darstellung](./settings-and-appearance)
 - [Privatsphäre auf dem Handy](./privacy-on-the-phone)
 - [Fehlerbehebung](./troubleshooting)

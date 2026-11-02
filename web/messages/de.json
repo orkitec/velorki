@@ -56,7 +56,7 @@
       "ride": "Eine fertige Fahrt: der nach Geschwindigkeit eingefärbte Track auf der Karte, mit Höhen-, Geschwindigkeits- und Split-Statistik.",
       "library": "Die Bibliothek: gespeicherte Routen und aufgezeichnete Fahrten als Liste mit ihrer Distanz und ihrem Anstieg.",
       "offline": "Offline-Downloads: Karten- und Routing-Regionen auf dem Handy mit ihrer Größe und ihrem Status.",
-      "settings": "Einstellungen: der Bereich Darstellung mit dem Schalter für Hell, Dunkel und System und den fünf Akzentfarben.",
+      "settings": "Optionen: der Bereich Darstellung mit dem Schalter für Hell, Dunkel und System und den fünf Akzentfarben.",
       "assistant": "Der Assistent im Tab Planen: die Bitte um eine 40-km-Gravel-Runde mit Café-Stopp, was er verstanden hat, und die Runde, die er auf der Karte geplant hat.",
       "paywall": "Die Seite Velorki Plus, wie Abonnenten sie sehen: die enthaltenen Funktionen und das aktive Abo.",
       "cyclemap": "Die Radkarte in Chelsea, New York: der Hudson River Greenway, geschützte Radstreifen auf den Avenues, lokale Radrouten, Einbahn-Pfeile und Stopps für Café und Trinkwasser auf der Karte.",
@@ -398,7 +398,7 @@
       "missing": "Für dieses Land ist hier kein Preis der Stores hinterlegt. Den aktuellen Monats- und Jahrespreis zeigt dir der Store in der App, in deiner eigenen Währung, mit kostenloser Testphase."
     },
     "restoreTitle": "Ein Abo wiederherstellen",
-    "restoreBody": "Schon abonniert? Unter Einstellungen → Velorki Plus die Käufe wiederherstellen. Das klappt ohne Konto: der Store, in dem du gekauft hast, ist der einzige Nachweis.",
+    "restoreBody": "Schon abonniert? Unter Optionen → Velorki Plus die Käufe wiederherstellen. Das klappt ohne Konto: der Store, in dem du gekauft hast, ist der einzige Nachweis.",
     "cancelTitle": "Kündigen",
     "cancelBody": "Das Abo verlängert sich automatisch zum Ende jeder Laufzeit, sofern es nicht mindestens 24 Stunden vorher gekündigt wird. Die Zahlung läuft über den App Store oder Google Play, dort lässt sich das Abo jederzeit verwalten oder kündigen. Eine kostenlose Testphase, die nicht gekündigt wird, geht in ein kostenpflichtiges Abo über.",
     "selfHostTitle": "Oder betreib ihn selbst",
@@ -433,7 +433,7 @@
   "docs": {
     "meta": {
       "title": "Dokumentation",
-      "description": "Das Velorki-Handbuch: Planen, Runden, Offline-Karten und -Suche, Navigation, Aufzeichnung, Dateien, Teilen und Einstellungen."
+      "description": "Das Velorki-Handbuch: Planen, Runden, Offline-Karten und -Suche, Navigation, Aufzeichnung, Dateien, Teilen und Optionen."
     },
     "title": "Dokumentation",
     "lead": "Das Handbuch: wie du planst, fährst, aufzeichnest und deine Fahrten wieder herausbekommst.",
@@ -514,7 +514,7 @@
         "licence": "BSD-3-Clause-Lizenz."
       }
     },
-    "appNote": "Die vollständige Liste der Lizenzen von Drittanbietern, samt jedem Dart-Paket der App, steht in der App selbst, unter Einstellungen → Über → Open-Source-Lizenzen."
+    "appNote": "Die vollständige Liste der Lizenzen von Drittanbietern, samt jedem Dart-Paket der App, steht in der App selbst, unter Optionen → Über → Open-Source-Lizenzen."
   },
   "legal": {
     "privacy": {

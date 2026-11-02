@@ -95,5 +95,5 @@ Es gibt keine Schaltfläche zum Speichern; die Änderungen greifen beim nächste
 - [Stopps auf der Karte](./stops-on-the-map)
 - [Offline-Karten und Routing](./offline-maps-and-routing)
 - [Route planen](./planning-a-route)
-- [Einstellungen und Darstellung](./settings-and-appearance)
+- [Optionen und Darstellung](./settings-and-appearance)
 - [Datenschutz auf dem Handy](./privacy-on-the-phone)

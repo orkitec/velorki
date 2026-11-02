@@ -38,7 +38,8 @@ a language".
 ## Rules
 
 - A change to an English source carries its translation into every other
-  language in the same commit, matching the terms that language already uses.
+  language in the same commit, in the terms of `GLOSSARY.md`: the fixed words,
+  each language's form of address, and how menu paths are written.
   Give an ARB key a `@key` description: it is the context a translator in
   Crowdin gets.
 - Legal pages (imprint, privacy, terms) and the store texts get a person's

@@ -23,7 +23,7 @@ Velorki braucht nie den Standort im Hintergrund. "Beim Verwenden der App" reicht
 
 **"Das Routing ist gerade nicht verfügbar."** Das Routing auf dem Gerät startet noch, oder es konnte nicht starten ("Das Routing konnte auf diesem Gerät nicht starten."), oder dieser Build hat keine Kartendaten dafür ("Diese Velorki-Version hat keine Kartendaten für das Routing."). Warte einen Moment und lade dann die Routing-Kacheln für dein Gebiet herunter.
 
-**Einstellungen → Karten & Daten → Routing steht auf "Nur auf dem Gerät".** Dann fragt Velorki nie einen Server, so ist es gedacht. Stell es auf **Automatisch** oder lade die Kacheln herunter.
+**Optionen → Karten & Daten → Routing steht auf "Nur auf dem Gerät".** Dann fragt Velorki nie einen Server, so ist es gedacht. Stell es auf **Automatisch** oder lade die Kacheln herunter.
 
 **"Routing fehlgeschlagen:" mit einem Grund.** Meist war der Server nicht erreichbar. Versuch es erneut und prüf, ob ein Wegpunkt im Meer oder auf einer Autobahn gelandet ist, wo kein Rad fahren darf. Den störenden Punkt ein paar Meter auf eine echte Straße zu ziehen, hilft in der Regel.
 
@@ -43,7 +43,7 @@ Zeigen die gebrauchten Kacheln **Update braucht ein neueres Velorki**, aktualisi
 
 Prüf in dieser Reihenfolge:
 
-1. **Einstellungen → Navigation → Abbiegehinweise** an und **Stimme** an. Stimme ist ausgegraut, solange Abbiegehinweise aus ist.
+1. **Optionen → Navigation → Abbiegehinweise** an und **Stimme** an. Stimme ist ausgegraut, solange Abbiegehinweise aus ist.
 2. **Die Stummschalt-Schaltfläche im Abbiegeband.** Sie legt die Stimme nur für den Rest dieser Fahrt still. Tippe sie erneut an.
 3. **Folgst du einer Route?** Die Führung braucht eine unter **Einer Route folgen** im Tab Aufzeichnen gewählte Route und eine tatsächlich laufende Aufzeichnung.
 4. **Die Lautstärke und der Stummschalter des Handys.**
@@ -102,7 +102,7 @@ Ein gekoppelter Sensor, der **Nicht verbunden** zeigt, ist außer Reichweite, sc
 
 ## Die Uhr verbindet sich nicht
 
-- **Es gibt keinen Schalter Apple Watch.** Er erscheint unter **Einstellungen → Sensoren** nur auf einem iPhone, mit dem eine Uhr gekoppelt ist.
+- **Es gibt keinen Schalter Apple Watch.** Er erscheint unter **Optionen → Sensoren** nur auf einem iPhone, mit dem eine Uhr gekoppelt ist.
 - **Die App ist nicht auf der Uhr.** Sie steckt in der iPhone-App; kam sie nicht von selbst an, installiere Velorki aus der App **Watch** auf dem iPhone.
 - **Die Fahrt läuft, aber die Uhr misst nichts.** Eine am Handy gestartete Fahrt öffnet die Uhren-App und lässt sie von selbst messen. Zeigt die Uhr trotzdem zwei Striche, tippe dort auf **Pulsmessung starten**; eine orange Zeile unter dem Herz sagt, was schiefging, wenn die Uhr es weiß.
 - **Die Uhr zeigt keinen Puls.** Sie fragt beim ersten Training um Erlaubnis, deinen Puls zu lesen. Wurde das abgelehnt, erteile die Erlaubnis in den Datenschutzeinstellungen der Uhr.
@@ -111,7 +111,7 @@ Ein gekoppelter Sensor, der **Nicht verbunden** zeigt, ist außer Reichweite, sc
 
 ## Kein Puls aus Health
 
-- **Der Schalter ist aus.** **Apple Health**, unter Android **Health Connect**, muss unter **Einstellungen → Sensoren** an sein. Solange er aus ist, wird nichts gelesen.
+- **Der Schalter ist aus.** **Apple Health**, unter Android **Health Connect**, muss unter **Optionen → Sensoren** an sein. Solange er aus ist, wird nichts gelesen.
 - **Der Zugriff wurde abgelehnt.** "Velorki hat keinen Zugriff auf deine Gesundheitsdaten bekommen." lässt den Schalter aus. Schalte ihn erneut ein und erlaube den Puls, oder erteile die Erlaubnis in der Health-App selbst.
 - **Es hat nie jemand einen Puls geschrieben.** Velorki liest nur, was schon im Speicher liegt. Ohne Uhr und ohne App, die einen Puls hineinschreibt, gibt es nichts zu lesen.
 - **Er kommt spät.** Der Speicher wird alle fünf Sekunden gefragt, mit Energiesparen alle dreißig, und beim Speichern der Fahrt werden die Lücken noch einmal gefüllt. Ein direkt meldender Gurt oder eine Uhr ist immer schneller.
@@ -120,17 +120,17 @@ Ein gekoppelter Sensor, der **Nicht verbunden** zeigt, ist außer Reichweite, sc
 
 - **"In diesem Build nicht verfügbar"** in einer Verbindungszeile oder auf der Abo-Seite heißt, dass diese Velorki-Kopie ohne die Schlüssel für diesen Dienst oder Store gebaut wurde. So sieht eine selbst gebaute Kopie aus.
 - **Die Schaltfläche Fragen oder die Schaltfläche Link teilen fehlt ganz** in einem Build ohne konfigurierten Velorki-Server.
-- **Alles andere** sollte "… gehört zu Velorki Plus" sagen und die Abo-Seite anbieten. Hast du ein Abo und es tut das nicht, tippe unter **Einstellungen → Velorki Plus** auf **Käufe wiederherstellen**.
+- **Alles andere** sollte "… gehört zu Velorki Plus" sagen und die Abo-Seite anbieten. Hast du ein Abo und es tut das nicht, tippe unter **Optionen → Velorki Plus** auf **Käufe wiederherstellen**.
 
 ## Einen Fehler melden
 
-**Einstellungen → Über → Problem melden** öffnet den Issue-Tracker, oder geh direkt zu [github.com/orkitec/velorki/issues](https://github.com/orkitec/velorki/issues).
+**Optionen → Über → Problem melden** öffnet den Issue-Tracker, oder geh direkt zu [github.com/orkitec/velorki/issues](https://github.com/orkitec/velorki/issues).
 
 Eine gute Meldung enthält:
 
 1. was du getan hast, Schritt für Schritt, und was statt des Erwarteten passiert ist;
 2. das Handy und die Version des Betriebssystems;
-3. die Velorki-Version, aus **Einstellungen → Über**;
+3. die Velorki-Version, aus **Optionen → Über**;
 4. wo es passiert ist, falls Karte oder Routing beteiligt sind, denn viele Probleme hängen an einer bestimmten Ecke der Kartendaten;
 5. einen Screenshot, der meist mehr wert ist als alles davor.
 
