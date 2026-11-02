@@ -1,4 +1,5 @@
 • Al primer inicio: tu ubicación, el mapa de tu país, carriles bici y paradas visibles
+• La guía en la app, sin conexión: Ajustes → Guía de usuario
 • «Salir» junto a «Guardar» inicia la ruta planificada
 • Añade una parada durante la salida; la navegación sigue
 • Estaciones, paradas de bus, tranvía y ferri, farmacias, hospitales, miradores y más

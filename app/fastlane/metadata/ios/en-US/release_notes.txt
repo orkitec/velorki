@@ -1,4 +1,5 @@
 • An easier first start: Velorki asks for your location, opens the map over your country with bike lanes and stops shown, and points out where to begin.
+• The user guide is now in the app, in your language and offline: Settings → Guide.
 • Ride straight away: Ride beside Save starts recording and guides you along the route you planned.
 • Add a stop during a ride: tap a café, shop or water point on the map and add it to your route. Guidance carries on while the route is worked out again.
 • More on the map: train stations, bus, tram and ferry stops, pharmacies, hospitals, picnic sites, viewpoints, beaches and inner-tube vending machines. Search "bus", "train" or "ferry" to find the nearest.

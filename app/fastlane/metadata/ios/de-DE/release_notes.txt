@@ -1,4 +1,5 @@
 • Leichter Einstieg: Velorki fragt nach deinem Standort, öffnet die Karte über deinem Land mit Radwegen und Stopps und zeigt, wo du anfängst.
+• Das Handbuch ist jetzt in der App, in deiner Sprache und offline: Optionen → Handbuch.
 • Gleich losfahren: „Losfahren“ neben „Speichern“ startet die Aufzeichnung und führt dich die geplante Route entlang.
 • Stopp während der Fahrt: Tippe auf ein Café, einen Laden oder eine Wasserstelle auf der Karte und füge sie deiner Route hinzu. Die Führung läuft weiter, während die Route neu berechnet wird.
 • Mehr auf der Karte: Bahnhöfe, Bus-, Tram- und Fährhaltestellen, Apotheken, Krankenhäuser, Picknickplätze, Aussichtspunkte, Strände und Schlauchautomaten. Suche „Bus“, „Zug“ oder „Fähre“, um die nächste zu finden.

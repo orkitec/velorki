@@ -1,4 +1,5 @@
 • Makkelijker beginnen: Velorki vraagt je locatie, opent de kaart boven je land met fietspaden en stops, en laat zien waar je begint.
+• De handleiding staat nu in de app, in je eigen taal en offline: Instellingen → Handleiding.
 • Meteen op pad: ‘Rijden’ naast ‘Opslaan’ start de opname en leidt je langs de route die je plande.
 • Een stop toevoegen onderweg: tik op een café, winkel of waterpunt op de kaart en voeg het toe aan je route. De navigatie gaat door terwijl de route opnieuw wordt berekend.
 • Meer op de kaart: stations, bus-, tram- en veerhaltes, apotheken, ziekenhuizen, picknickplekken, uitzichtpunten, stranden en binnenbandautomaten. Zoek ‘bus’, ‘trein’ of ‘veer’ om de dichtstbijzijnde te vinden.
