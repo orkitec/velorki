@@ -358,6 +358,27 @@ jobs:
             app/build/app/outputs/flutter-apk/app-debug.apk
             app/build/app/outputs/bundle/release/app-release.aab
 
+      # The release notes the release brings, one whatsnew-<locale> per
+      # language from fastlane's changelogs; a promotion to production copies
+      # them along.
+      - name: Stage the release notes
+        if: ${{ env.HAVE_SECRETS == 'true' && env.HAVE_PLAY == 'true' && env.DRY_RUN != 'true' && steps.play.outputs.uploaded != 'true' }}
+        working-directory: .
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/whatsnew"
+          mkdir -p "$out"
+          for f in app/fastlane/metadata/android/*/changelogs/default.txt; do
+            locale=$(basename "$(dirname "$(dirname "$f")")")
+            chars=$(wc -m < "$f")
+            if [ "$chars" -gt 500 ]; then
+              echo "::error::$f has $chars characters; Play takes 500"; exit 1
+            fi
+            cp "$f" "$out/whatsnew-$locale"
+          done
+          ls "$out"
+          echo "WHATSNEW_DIR=$out" >> "$GITHUB_ENV"
+
       - name: Upload to Play internal testing
         if: ${{ env.HAVE_SECRETS == 'true' && env.HAVE_PLAY == 'true' && env.DRY_RUN != 'true' && steps.play.outputs.uploaded != 'true' }}
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
@@ -367,6 +388,7 @@ jobs:
           releaseFiles: app/build/app/outputs/bundle/release/app-release.aab
           track: internal
           status: completed
+          whatsNewDirectory: ${{ env.WHATSNEW_DIR }}
 
       - name: Dry run
         if: ${{ env.DRY_RUN == 'true' }}
