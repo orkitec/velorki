@@ -16,7 +16,9 @@ Le impostazioni stanno in due posti contemporaneamente, e sono la stessa imposta
 2. **Voce**, "Annuncia le svolte a voce".
 3. **Quando esci dal percorso**: **Guidami al percorso**, **Nuovo percorso alla destinazione** o **Nessun ricalcolo**. Vedi [quando lasci il percorso](#quando-lasci-il-percorso).
 
-Poi nel tab **Registra** scegli qualcosa sotto **Segui un percorso**: **Il percorso nella scheda Pianifica** se il pianificatore contiene un percorso, oppure un percorso qualsiasi dalla tua libreria. Avvia il giro e il banner compare.
+Poi nel tab **Registra** scegli qualcosa sotto **Segui un percorso**: **Il percorso nella scheda Pianifica** se il pianificatore contiene un percorso, oppure un percorso qualsiasi dalla tua libreria. Avvia il giro e il banner compare. Dalla scheda Pianifica, **Parti** accanto a **Salva** fa questi passaggi in uno: apre il tab Registra con il piano scelto e avvia il giro.
+
+Se il percorso non ha indicazioni di svolta, l'avvio del giro chiede **Nessuna indicazione di svolta**: **Crea** le genera dalla mappa, **Pedala senza** ne fa a meno. Quando la regione del percorso non è ancora sul telefono, Velorki chiede di scaricarla lì stesso e aspetta mostrando l'avanzamento del download, "In attesa del download della regione…", poi "Creazione delle indicazioni di svolta…".
 
 ## Il banner di svolta
 
@@ -81,6 +83,16 @@ Solo il banner arancione, con la distanza dal percorso e la direzione per tornar
 Il banner dice **Ricalcolo…** mentre viene calcolata una via di ritorno o un nuovo percorso, e **Percorso ricalcolato** quando arriva un nuovo percorso. **Nuovo percorso da qui**, un pulsante accanto al banner arancione, pianifica subito da dove sei alla destinazione, qualunque sia l'impostazione.
 
 Tutte le distanze sopra crescono con la qualità del tuo segnale GPS, più o meno raddoppiando con la precisione riportata, così un telefono sotto gli alberi non continua a dichiarare che hai perso la strada. Smettono di crescere a 100 metri di precisione, così un telefono che ha perso del tutto il cielo non può disattivare il rilevamento del fuori percorso.
+
+## Aggiungere una sosta lungo la strada
+
+Mentre un giro segue un percorso, tocca una sosta sulla mappa (un caffè, una fontanella, un negozio) e la sua scheda offre **Aggiungi come sosta**. Velorki chiede **Aggiungere al percorso?**: "Il percorso viene ricalcolato per passare da questa sosta, e la navigazione segue il nuovo percorso." Conferma con **Aggiungi e ricalcola**.
+
+- La sosta entra nella parte di percorso che ti sta ancora davanti, mai dietro. Una sosta accanto a quanto hai già pedalato diventa il punto successivo.
+- La guida continua sul vecchio percorso finché il nuovo non è pronto, quindi voce e banner non si fermano. Il giro continua a registrare per tutto il tempo.
+- Su un percorso importato viene ricalcolato di nuovo solo il tratto intorno alla sosta; la linea del file resta ovunque altrove.
+- Se segui un percorso salvato, questo resta com'è: il percorso modificato è nella scheda Pianifica e il giro segue quello.
+- Se la sosta non può essere calcolata, viene tolta di nuovo e vedi "Non è stato possibile aggiungere la sosta al percorso. La navigazione continua sul percorso di prima."
 
 ## La mappa durante la navigazione
 

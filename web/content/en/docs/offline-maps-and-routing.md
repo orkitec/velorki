@@ -21,18 +21,19 @@ The routing data also carries the place index, so a downloaded area searches off
 ## Download an area
 
 1. On the **Plan** tab, move the map so the area you want fills the screen. Do not zoom out further than you need: the map download follows exactly what is on screen.
-2. Tap the **Offline data** button in the column on the right of the map. On a small screen such as an iPhone SE the column has no room for it: there, tap **Download** in the notice at the top of the search results, or in the chip over the map, or the download button under a route that needs tiles, and manage what you have under **Settings → Offline data**.
-3. Read the two cards, then tap **Download the visible area** at the bottom.
-4. The dialog **Download the visible area** lists what you are about to fetch: "Map of the visible area · size known once downloaded" for the map, then one line per routing tile with its size, for example `E5_N45 · 187 MB`, or "Routing data for this area is already on the device".
-5. Tap **Download**.
+2. Start the download from wherever it is offered. All of them ask the same one question and download in place over the map:
+   - **Download** in the chip over the map. From zoom 11, whenever the middle of the Plan map is over an area that is not downloaded, it says **This area isn't downloaded**; with [stops](./stops-on-the-map) on it says "No stops here — area not downloaded" instead, with the cycle map on "No cycle map here — area not downloaded".
+   - **Download** in the notice at the top of the search results.
+   - **Download 3 tiles (412 MB)** under a route that needs tiles.
+   - The round download button in the column on the right of the map, which opens the **Offline** screen: read the two cards, then tap **Download the visible area** at the bottom. On a small screen such as an iPhone SE the column has no room for it; manage what you have under **Settings → Maps & data → Offline data**. The button shows a filled icon once the area in view is downloaded (a tap says "This area is downloaded", with **Manage**), a badge when it has updates and a spinner while it downloads.
+3. The dialog **Download the visible area** lists what you are about to fetch: "Map of the visible area · size known once downloaded" for the map, then one line per routing tile with its size, for example `E5_N45 · 187 MB`, or "Routing data for this area is already on the device".
+4. Tap **Download**.
 
-From zoom 11, whenever the middle of the Plan map is over an area that is not downloaded, a chip over the map says **This area isn't downloaded** with **Download**. A tap anywhere on the chip opens the offline screen for the visible area. With [stops](./stops-on-the-map) on it says "No stops here — area not downloaded" instead, with the cycle map on "No cycle map here — area not downloaded". It goes once the area is downloaded.
-
-Both downloads run while the app is open. The cards show **Downloading the map…** and **Downloading E5_N45…** with progress bars.
+Both downloads run while the app is open. The chip, and the card you started from, show the progress; on the offline screen the cards show **Downloading the map…** and **Downloading E5_N45…** with progress bars. The chip's **X** is **Cancel download** while it runs: it asks "Stop the download?", and **Cancel download** stops the map and the routing tiles, removes the unfinished map pack and offers the area again. **Keep downloading** carries on. The chip goes once the area is downloaded. A map download that stops making progress is given up.
 
 The screen warns you for a reason: "Tiles are large, often 125–250 MB each, and Velorki cannot tell Wi-Fi from mobile data. Start a download when you are on Wi-Fi."
 
-You can also reach this screen from **Settings → Offline data**, but opened that way there is no map behind it, so the download button is disabled and the note says "Open this screen from the map to download the area you are looking at."
+You can also reach this screen from **Settings → Maps & data → Offline data**, but opened that way there is no map behind it, so the download button is disabled and the note says "Open this screen from the map to download the area you are looking at."
 
 ## Manage the map areas
 
@@ -65,11 +66,11 @@ Also on the screen:
 - A **Delete** button on every row, warning "The tile is removed from this device. Routes in that area then need the routing server again."
 - A **Cancel download** button in the progress header while one is running.
 
-Velorki checks weekly whether the mirror has rebuilt anything you hold. When it has, the **Offline data** row in Settings turns orange, shows "2 tiles have updates" and puts a count badge on the chevron.
+Velorki checks weekly whether the mirror has rebuilt anything you hold. A tile counts as updated only when its content has changed, not each time the mirror runs. When one has, a chip over the map says **New map data for this area** with **Update**, the download button gets a badge, and the **Offline data** row under **Settings → Maps & data** turns orange, shows "2 tiles have updates" and puts a count badge on the chevron. **Update** on the chip asks the usual question, then re-downloads the changed tiles; its **X** hides the chip for this area until you restart the app.
 
 ## The gazetteer, or search index
 
-Every routing tile the mirror publishes has a small search index beside it, and Velorki downloads the two together. Nothing about it is exposed as a separate setting or a separate download.
+Every routing tile the mirror publishes has a small search index beside it, and Velorki downloads the two together. Nothing about it is exposed as a separate setting. If only the search index of a tile has changed, the update is a small download of the index alone, not the tile again.
 
 If the index fails to download, the tile itself is still fine: the area stays routable and its search simply goes online. The same is true of an index in a format this app version does not read; it is skipped, the other areas keep answering offline, and that area searches online.
 

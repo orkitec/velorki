@@ -1,6 +1,6 @@
 ---
 title: Solución de problemas
-description: "Soluciones para los problemas habituales: sin posición, sin ruta, el aviso de teselas que faltan, una voz muda en iOS, descargas atascadas y enlaces que no se abren."
+description: "Soluciones a los problemas habituales: sin posición, sin ruta, aviso de teselas, voz muda en iOS, descargas atascadas y enlaces que no se abren."
 order: 19
 ---
 
@@ -10,7 +10,7 @@ Lo que falla más a menudo y qué hacer en cada caso. Si tu problema no está aq
 
 Los síntomas son «Aún no hay posición.», un botón de ubicación que no hace nada o «Activa la ubicación o toca el mapa para fijar el inicio.»
 
-1. **¿Se rechazó el permiso?** Velorki pregunta con su propio diálogo, **¿Mostrar tu posición?**, antes que el del sistema. Si respondiste **Ahora no**, vuelve a tocar el botón de ubicación y responde **Continuar**.
+1. **¿Se rechazó el permiso?** Velorki pregunta por sí mismo en el primer arranque, con su propio diálogo, **¿Mostrar tu posición?**, antes que el del sistema. En Android, si respondiste **Ahora no**, vuelve a tocar el botón de ubicación y responde **Continuar**. En un iPhone el diálogo solo tiene **Continuar** y decide el aviso del sistema; si rechazaste allí, usa el paso siguiente.
 2. **¿Está desactivado para Velorki?** «El permiso de ubicación está desactivado para Velorki. Actívalo en los ajustes del sistema.» viene con una acción **Ajustes** que te lleva directamente allí. Concede «Mientras se usa la app» o «Cuando se use la app».
 3. **¿Están desactivados los servicios de ubicación del teléfono?** «Los servicios de ubicación están desactivados en este dispositivo.» va del teléfono, no de Velorki. La acción **Ajustes** abre el sitio adecuado.
 4. **¿Dentro de un edificio, o recién encendido?** «Aún no hay posición.» a menudo significa que el teléfono todavía no tiene ninguna posición. Sal al exterior y dale medio minuto.
@@ -19,11 +19,11 @@ Velorki nunca necesita la ubicación en segundo plano. «Mientras se usa la app�
 
 ## No aparece ninguna ruta
 
-**«Esta ruta necesita teselas de rutas que no están en este dispositivo.»** Tu teléfono no tiene datos de rutas para la zona y no hay ningún servidor de rutas al que recurrir. Toca el botón, que cuenta las teselas y su tamaño, y descárgalas. Consulta [mapas y rutas sin conexión](./offline-maps-and-routing).
+**«Esta ruta necesita teselas de rutas que no están en este dispositivo.»** Tu teléfono no tiene datos de rutas para la zona. Toca el botón, que cuenta las teselas y su tamaño, y descárgalas; la descarga corre ahí mismo. Consulta [mapas y rutas sin conexión](./offline-maps-and-routing).
 
-**«No hay servidor de rutas configurado; añade uno en Ajustes → Avanzado.»** Esta versión no trae ninguna dirección de servidor. Descarga las teselas de rutas de donde estés y calcula la ruta en el teléfono.
+**«El cálculo de rutas no está disponible en este momento.»** El cálculo en el dispositivo aún está arrancando, o no pudo arrancar («No se pudo iniciar el cálculo de rutas en este dispositivo.»), o esta versión no tiene datos de mapa para ello («Esta versión de Velorki no tiene datos de mapa para calcular rutas.»). Espera un momento y descarga después las teselas de rutas de donde estés.
 
-**Ajustes → Avanzado → Cálculo de rutas está en «Solo en el dispositivo».** Entonces Velorki nunca preguntará a un servidor, a propósito. Cámbialo a **Automático** o descarga las teselas.
+**Ajustes → Mapas y datos → Cálculo de rutas está en «Solo en el dispositivo».** Entonces Velorki nunca preguntará a un servidor, a propósito. Cámbialo a **Automático** o descarga las teselas.
 
 **«No se pudo calcular la ruta:» con un motivo.** Normalmente no se pudo contactar con el servidor. Vuelve a intentarlo, y comprueba que ningún punto de paso haya caído en el mar o en una autopista por la que no puede ir ninguna bici. Mover el punto problemático unos metros a una carretera de verdad suele arreglarlo.
 
@@ -31,9 +31,11 @@ Velorki nunca necesita la ubicación en segundo plano. «Mientras se usa la app�
 
 El aviso aparece en el planificador siempre que la ruta cruza una zona cuya tesela de rutas no está en el teléfono. Velorki nunca calcula rutas con cobertura parcial, porque el enrutador trataría la tesela que falta como tierra vacía y devolvería sin decir nada una ruta equivocada.
 
-1. Toca el botón del aviso. Abre **Datos de rutas sin conexión** con exactamente las teselas que necesita la ruta ya seleccionadas.
-2. Descárgalas. Cada tesela ocupa de 125 a 250 MB, así que usa wifi.
+1. Toca el botón de descarga del aviso. Cuenta las teselas que necesita la ruta y su tamaño, y la descarga corre ahí mismo: el aviso muestra el progreso y el chip de descarga sobre el mapa sigue la misma descarga.
+2. Cada tesela ocupa de 125 a 250 MB, así que usa wifi.
 3. Cuando llega una tesela, el planificador vuelve a calcular la ruta solo y el aviso se sustituye por las cifras de la ruta.
+
+Si se detiene a medias, el aviso dice «Falló la descarga:» con el motivo y **Reintentar**. Para detenerla tú, toca el botón de cerrar del chip y confirma **¿Detener la descarga?** con **Cancelar descarga**; una tesela a medias conserva lo que tiene.
 
 Si las teselas que necesitas muestran **La actualización requiere un Velorki más reciente**, actualiza primero la app; el diálogo explica por qué.
 
@@ -57,10 +59,12 @@ Si la voz elegida está marcada como **Necesita internet**, se genera en un serv
 ## Una descarga se atasca o falla
 
 - **Las descargas solo avanzan con la app abierta.** Deja Velorki en primer plano para una tesela grande. Si se detiene, lo que ya llegó se conserva y el siguiente intento continúa desde ahí.
-- **«Falló la descarga:»** con un motivo. Vuelve a tocar la tesela para reintentarlo. Una descarga reanudada no empieza desde cero.
+- **«Falló la descarga:»** con un motivo. Toca **Reintentar**, o la tesela de nuevo en la página **Datos de rutas sin conexión**. Una descarga reanudada no empieza desde cero.
+- **La parte del mapa se rinde sola.** Una descarga de mapa que no avanza durante aproximadamente un minuto se detiene; el mensaje dice «No se pudo descargar el mapa:» con «Comprueba la conexión y el espacio libre, e inténtalo de nuevo.» Lo que había llegado se elimina, así que empieza la descarga otra vez.
 - **«No se pudo cargar la lista de teselas:»** significa que no se pudo contactar con el espejo. **Reintentar** está en la pantalla.
 - **Comprueba el espacio libre del teléfono.** Una tesela de rutas de 250 MB necesita 250 MB, y la zona de mapa encima.
-- **Cancela y vuelve a empezar** con el botón de cerrar de la cabecera de progreso si una descarga se ha quedado claramente parada.
+- **Cancela y vuelve a empezar** si una descarga se ha quedado claramente parada: el botón de cerrar del chip sobre el mapa pregunta **¿Detener la descarga?**, y **Cancelar descarga** la detiene. La zona cuenta entonces como no descargada y el chip la ofrece de nuevo.
+- **«Nuevos datos de mapa para esta zona»** sobre el mapa no es un fallo. El espejo tiene datos cambiados para la zona en pantalla; toca **Actualizar** para descargarlos, o ignóralo.
 - Velorki no distingue el wifi de los datos móviles, así que avisa en lugar de bloquear. Empieza tú las descargas grandes con wifi.
 
 ## Un enlace compartido no se abre en la app
@@ -116,7 +120,7 @@ Un sensor emparejado que dice **No conectado** está fuera de alcance, dormido o
 
 - **«No disponible en esta versión»** en una fila de conexión, o en la página de la suscripción, significa que esta copia de Velorki se compiló sin las claves de ese servicio o esa tienda. Así se ve una copia compilada por tu cuenta.
 - **El botón Preguntar o el botón Compartir enlace no aparecen** en una versión sin servidor de Velorki configurado.
-- **Todo lo demás** debería decir «… forma parte de Velorki Plus» y ofrecer la página de la suscripción. Si tienes suscripción y no lo hace, toca **Restaurar compras** en **Ajustes → Suscripción**.
+- **Todo lo demás** debería decir «… forma parte de Velorki Plus» y ofrecer la página de la suscripción. Si tienes suscripción y no lo hace, toca **Restaurar compras** en **Ajustes → Velorki Plus**.
 
 ## Informar de un error
 

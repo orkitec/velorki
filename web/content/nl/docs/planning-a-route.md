@@ -9,7 +9,7 @@ Het tabblad Plannen maakt van tikken op de kaart een fietsroute, berekend op je 
 ## De start en de bestemming kiezen
 
 1. Open het tabblad **Plannen** en schuif de kaart naar waar je wilt beginnen.
-2. **Tik op de kaart** om de start te kiezen. Het paneel onderaan zegt "Tik nog eens op de kaart om een bestemming toe te voegen."
+2. **Tik op de kaart** om de start te kiezen. Het lege paneel zegt "Zoek een plaats of tik op de kaart."; zodra er een start is, zegt het "Tik nog eens op de kaart om een bestemming toe te voegen."
 3. **Tik nog eens** voor het volgende punt. Elke tik voegt een punt toe aan het einde van de route, en het laatste, de bestemming, draagt een vlag. Wil je een punt juist in het midden, **tik dan op de routelijn** waar het moet komen: het punt komt daar op de lijn, en je kunt het verslepen zoals elk ander.
 4. Velorki wacht even na je laatste wijziging en berekent dan de route. Terwijl het rekent, toont het paneel een draaiend wieltje en **Route berekenen…**; daarna verschijnen de cijfers.
 
@@ -86,7 +86,7 @@ De rij knoppen in het routepaneel:
 - **Rondje** opent het paneel voor slimme rondjes, beschreven bij [rondjes](./loops).
 - **Vragen** opent de [assistent](./assistant). Die knop is er alleen als de build met een Velorki-server praat.
 
-Onder de rij staat de knop **Opslaan** over de volle breedte.
+Onder de rij staan **Opslaan** en **Rijden**. **Rijden** gaat naar het tabblad Opnemen, volgt het plan en start de opname, met dezelfde vragen als **Rit starten** daar; loopt er al een rit, dan wisselt het alleen van tabblad.
 
 ## Varianten
 
@@ -128,8 +128,8 @@ Je krijgt "Route opgeslagen", en de route staat in **Bibliotheek → Routes**. S
 
 ## Als er geen route komt
 
-- **"Deze route heeft routeringstegels nodig die niet op dit apparaat staan."** verschijnt in plaats van de cijfers als je telefoon geen routeringsgegevens voor het gebied heeft en geen routeringsserver om op terug te vallen. De knop eronder telt de tegels en hun grootte, bijvoorbeeld **3 tegels downloaden (412 MB)**, en opent het offlinescherm met precies die tegels geselecteerd. Zie [offline kaarten en routering](./offline-maps-and-routing).
-- **"Geen routeringsserver ingesteld, stel er een in onder Instellingen → Geavanceerd."** is een kaart onder de fietsknoppen, en betekent dat deze build helemaal geen serveradres heeft.
+- **"Deze route heeft routeringstegels nodig die niet op dit apparaat staan."** verschijnt in plaats van de cijfers als je telefoon geen routeringsgegevens voor het gebied heeft. De knop eronder telt de tegels en hun grootte, bijvoorbeeld **3 tegels downloaden (412 MB)**. Tik erop, bevestig de vraag, en de kaart toont de voortgang terwijl de chip boven de kaart dezelfde download volgt; het kruisje van de chip is dan **Download annuleren** en vraagt eerst om bevestiging. Zie [offline kaarten en routering](./offline-maps-and-routing).
+- **"Deze versie van Velorki heeft geen kaartgegevens om te routeren."** is een banner, en betekent dat het een zelfgebouwde versie is zonder ingestelde tegelmirror.
 - Al het andere verschijnt als **Route berekenen mislukt:** met de reden.
 
 ## Zie ook

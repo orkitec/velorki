@@ -1,6 +1,6 @@
 ---
 title: Asistente
-description: Describe en una frase la salida que quieres y Velorki la convierte en una ruta, con tu consentimiento, como mucho una posición aproximada y sin enviar tu historial de rutas.
+description: Describe la salida que quieres en una frase y Velorki la convierte en ruta, con tu consentimiento, una posición redondeada como mucho y sin historial.
 order: 14
 ---
 
@@ -10,7 +10,7 @@ El asistente forma parte de [Velorki Plus](./velorki-plus).
 
 ## Abrirlo
 
-Toca **Preguntar** en la barra de herramientas del panel de ruta, en la pestaña **Planificar**. La tarjeta del asistente ocupa el lugar del panel de ruta, con el título **Pide una ruta**: "Describe la salida que tienes en mente. Velorki la convierte en una petición y planifica la ruta en tu teléfono." El mapa de arriba sigue siendo el mapa: muévelo, haz zoom y tócalo igual que con el panel de ruta abierto. Desliza la tarjeta hacia abajo, o vuelve atrás, y el panel de ruta reaparece tal como lo dejaste; lo que escribiste y las respuestas se quedan para la próxima vez.
+Toca **Preguntar** en la barra de herramientas del panel de ruta, en la pestaña **Planificar**. La tarjeta del asistente ocupa el lugar del panel de ruta, con el título **Pide una ruta**: "Describe la salida que tienes en mente. Velorki la convierte en una petición y planifica la ruta en este dispositivo." El mapa de arriba sigue siendo el mapa: muévelo, haz zoom y tócalo igual que con el panel de ruta abierto. Desliza la tarjeta hacia abajo, o vuelve atrás, y el panel de ruta reaparece tal como lo dejaste; lo que escribiste y las respuestas se quedan para la próxima vez.
 
 Si hay una ruta en el mapa, el panel se abre en **Esta ruta**, con una pregunta sobre esa ruta (consulta [Preguntar sobre esta ruta](#preguntar-sobre-esta-ruta)); **Ruta nueva**, encima, vuelve al otro modo.
 
@@ -20,9 +20,9 @@ Si no aparece el botón **Preguntar**, esta versión de Velorki no tiene ninguna
 
 La primera vez que envías algo, Velorki muestra **Antes de que el asistente pregunte**:
 
-> Lo que escribes se envía al servidor de Velorki, que lo reenvía a nuestro proveedor de IA. No va nada más: ni nombre, ni cuenta, ni historial de rutas.
+> Lo que escribes, y la ruta sobre la que preguntas, se envía al servidor de Velorki, que lo reenvía a nuestro proveedor de IA. No va nada más: ni nombre, ni cuenta, ni historial de rutas.
 >
-> Si lo permites, también se envía tu posición, redondeada a aproximadamente un kilómetro, para que "desde aquí" signifique algo.
+> Si lo permites, también se envía tu posición, redondeada a aproximadamente un kilómetro. Sin ella, el asistente no sabe dónde estás y sus sugerencias serán menos precisas.
 
 Tres respuestas:
 

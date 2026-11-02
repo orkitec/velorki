@@ -47,7 +47,7 @@ Al abrir una ruta se dibuja en el mapa, ajustada a la parte de la pantalla que q
 Las acciones:
 
 - **Abrir en el planificador** la carga en la pestaña Planificar con todos sus puntos, incluidos los puntos de paso y sus nombres, tipos y notas, donde puedes editarla y volver a guardarla. Una ruta importada en lugar de planificada se abre con la línea exacta del archivo y con puntos solo en sus extremos y en los puntos propios del archivo que están en el track, que vienen con su tipo y su nota; una edición solo recalcula los tramos de al lado, y la línea del archivo se mantiene en todo lo demás. La línea del archivo se guarda con la ruta en cada edición y cada guardado, así que **Restaurar** en el planificador puede recuperarla. Los puntos fuera del track vienen como lugares junto a la ruta, donde se les puede poner nombre o tipo, moverlos a la ruta o quitarlos como cualquier otro punto. El siguiente Guardar escribe los dos conjuntos, así que un lugar que eliminas en el planificador también desaparece de la tarjeta.
-- **Exportar** ofrece **Ruta GPX** y **Recorrido FIT**, consulta [importar y exportar](./import-and-export).
+- **Exportar** ofrece **Ruta GPX**, **Recorrido FIT** y **Recorrido TCX**, consulta [importar y exportar](./import-and-export).
 - **Compartir** abre la tarjeta para compartir: un **Enlace** a la ruta, **Ride with GPS** y **Strava**, ver [compartir](./sharing) y [Strava y Ride with GPS](./strava-and-ridewithgps).
 - **Describir esta ruta** pide al asistente que escriba un párrafo sobre ella, consulta [asistente](./assistant).
 
@@ -74,7 +74,7 @@ Una salida grabada con una banda de frecuencia cardiaca, un Apple Watch o un med
 
 ### Calorías, zonas de frecuencia cardiaca, zonas de potencia y potencia estimada
 
-Las cuatro están desactivadas hasta que las activas en Ajustes → Ciclista, y las cuatro se calculan en el teléfono a partir de los propios puntos de la salida, así que las salidas antiguas también las tienen.
+Las cuatro están desactivadas hasta que las activas en Ajustes → Ciclista y bici, y las cuatro se calculan en el teléfono a partir de los propios puntos de la salida, así que las salidas antiguas también las tienen.
 
 **Calorías** es una estimación, y la línea pequeña bajo la cifra dice en qué se basa. Con un medidor de potencia en toda la salida es el trabajo realizado, "por potencia": un kilojulio de pedaleo es casi exactamente una kilocaloría quemada. Si no, con frecuencia cardiaca en toda la salida y tu peso, año de nacimiento y sexo, es "por frecuencia cardiaca". Si no, con **Estimar potencia** activado, es "por potencia est.", de nuevo el trabajo estimado en kilojulios. Si no, es "por velocidad", a partir de tu peso y de lo rápido que fuiste. En todos los casos necesita tu peso.
 
@@ -82,7 +82,7 @@ Las cuatro están desactivadas hasta que las activas en Ajustes → Ciclista, y 
 
 **Zonas de frecuencia cardiaca** es una barra bajo el gráfico de frecuencia cardiaca, dividida en cinco zonas de tu frecuencia cardiaca máxima, con una fila por zona: su rango, el tiempo en ella y su parte del tiempo con frecuencia cardiaca de la salida. La zona 1 es todo lo que está por debajo del 60 %, la zona 5 todo desde el 90 %. El título indica la máxima usada: la que introdujiste, o 220 menos tu edad.
 
-**Zonas de potencia** es la misma barra para salidas con medidor de potencia, dividida en siete zonas de tu potencia umbral: por debajo del 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 y desde el 150 %. Cada segundo de la salida va a la zona de la lectura del medidor en ese momento; el tiempo parado no cuenta en ninguna. El título indica el umbral, "Zonas de potencia · umbral 250 W". Necesita el interruptor y tu potencia umbral en Ajustes → Ciclista, y pone la cifra de **Intensidad** entre las casillas.
+**Zonas de potencia** es la misma barra para salidas con medidor de potencia, dividida en siete zonas de tu potencia umbral: por debajo del 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 y desde el 150 %. Cada segundo de la salida va a la zona de la lectura del medidor en ese momento; el tiempo parado no cuenta en ninguna. El título indica el umbral, "Zonas de potencia · umbral 250 W". Necesita el interruptor y tu potencia umbral en Ajustes → Ciclista y bici, y pone la cifra de **Intensidad** entre las casillas.
 
 ### Parciales
 
@@ -102,7 +102,7 @@ Bajo las subidas, una barra de **Superficie** como la de la tarjeta de una ruta:
 
 ### Acciones de la salida
 
-- El menú a la derecha de la cabecera de la tarjeta: **Exportar track GPX**, **Exportar actividad FIT**, **Continuar esta salida**, **Renombrar**, **Eliminar**.
+- El menú a la derecha de la cabecera de la tarjeta: **Exportar track GPX**, **Exportar actividad FIT**, **Exportar actividad TCX**, **Continuar esta salida**, **Renombrar**, **Eliminar**.
 - Abajo del todo: las mismas dos exportaciones y **Compartir**, que abre la tarjeta para compartir con **Enlace**, **Ride with GPS** y **Strava**, ver [compartir](./sharing).
 
 ## Meter archivos y rutas
@@ -116,11 +116,11 @@ Ambos se explican en [importar y exportar](./import-and-export) y en [Strava y R
 
 ## Sincronización con iCloud o Google Drive
 
-Tus rutas guardadas y tus salidas grabadas, con el track, las notas, las cifras, las vueltas y las lecturas de sensores de cada salida, pueden sincronizarse entre tus propios dispositivos a través de tu propia nube. **Ajustes → Sincronizar con** elige una por dispositivo: **iCloud** (iPhone y iPad con iOS 17 o posterior, y el planificador en el navegador), **Google** (iPhone, iPad, Android y el navegador) o **Desactivado**. En un iPhone o iPad, iCloud está activado por defecto; en Android y en el navegador la sincronización está desactivada hasta que eliges una nube. Google guarda los datos en una carpeta oculta de Velorki en tu Google Drive; Velorki puede abrir esa carpeta y nada más de tu Drive.
+Tus rutas guardadas y tus salidas grabadas, con el track, las notas, las cifras, las vueltas y las lecturas de sensores de cada salida, pueden sincronizarse entre tus propios dispositivos a través de tu propia nube. **Ajustes → Sincronización**, en **Sincronizar con**, elige una por dispositivo: **iCloud** (iPhone y iPad con iOS 17 o posterior, y el planificador en el navegador), **Google** (iPhone, iPad, Android y el navegador) o **Desactivado**. En un iPhone o iPad, iCloud está activado por defecto; en Android y en el navegador la sincronización está desactivada hasta que eliges una nube. Google guarda los datos en una carpeta oculta de Velorki en tu Google Drive; Velorki puede abrir esa carpeta y nada más de tu Drive.
 
 Unos pocos ajustes van con ellas: tema, color de acento, aspecto del mapa, aspecto del radar de lluvia, estilo de la barra, lado de la columna, unidades y los ajustes de giros, de voz y de recálculo de ruta. En el navegador con iCloud, los ajustes se quedan en el navegador. Velorki no tiene ningún servidor para esto y no puede leer lo almacenado; véase la [política de privacidad](/privacy).
 
-Eliminar una ruta o una salida la elimina también en tus otros dispositivos. Elegir **Desactivado**, cerrar sesión o cambiar a la otra nube no elimina nada: lo que ya está en iCloud se queda allí hasta que lo elimines en los ajustes de iCloud de un dispositivo Apple, y lo que está en Google Drive se queda hasta que lo elimines en Google Drive en la web, en Configuración → Gestionar aplicaciones → Velorki → Opciones → Eliminar datos ocultos de la aplicación. Una línea de estado en Ajustes dice cómo va, por ejemplo **Sincronizado hace un momento**, **Sincronizando…**, **El almacenamiento de iCloud está lleno** o **Sin sesión iniciada en Google**.
+Eliminar una ruta o una salida la elimina también en tus otros dispositivos. Elegir **Desactivado**, cerrar sesión o cambiar a la otra nube no elimina nada: lo que ya está en iCloud se queda allí hasta que lo elimines en los ajustes de iCloud de un dispositivo Apple, y lo que está en Google Drive se queda hasta que lo elimines en Google Drive en la web, en Configuración → Gestionar aplicaciones → Velorki → Opciones → Eliminar datos ocultos de la aplicación. Una línea de estado en los ajustes de Sincronización dice cómo va, por ejemplo **Sincronizado hace un momento**, **Sincronizando…**, **El almacenamiento de iCloud está lleno** o **Sin sesión iniciada en Google**.
 
 Las rutas leídas de Strava y las rutas editadas a partir de ellas se quedan en el teléfono, y también los enlaces de Strava de las salidas; los enlaces de las subidas a Ride with GPS tampoco se sincronizan. Los mapas descargados y las teselas de enrutamiento no se sincronizan.
 

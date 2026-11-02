@@ -12,16 +12,21 @@ L’enregistrement est gratuit et fonctionne sans aucune connexion.
 
 1. Ouvrez l’onglet **Rouler**. La feuille affiche **Prêt à rouler**, avec un court conseil dessous.
 2. Sous **Itinéraire suivi**, choisissez ce que la sortie suit : **Aucun**, **L’itinéraire de l’onglet Planifier** (proposé tant qu’il y en a un) ou l’un de vos itinéraires enregistrés. Un itinéraire active le guidage décrit dans [la navigation guidée](./navigation). Tant que vous n’avez rien choisi, l’onglet propose l’itinéraire d’où vous venez : celui dont la fiche était ouverte dans la bibliothèque, ou le plan de l’onglet Planifier ; votre choix est ensuite conservé jusqu’au redémarrage de l’appli.
-3. Touchez **Démarrer**.
-4. Pendant la sortie, la feuille affiche une pastille d’état, le chronomètre et les chiffres : **Distance**, **Vitesse**, **Moy.**, puis **Montée**, **Descente**, **En mouvement**. Quand vous suivez un itinéraire, une ligne **Reste** et **Arrivée** s’y ajoute : la distance qu’il reste à parcourir et l’heure d’arrivée à votre vitesse moyenne jusqu’ici, deux tirets tant que la sortie n’a pas de moyenne.
+3. Touchez **Démarrer**. Si l’itinéraire n’a pas d’indications de direction, Velorki propose d’abord de les créer, et si sa région n’est pas sur le téléphone, il propose de la télécharger sur place et l’attend ; voir [la navigation guidée](./navigation).
+4. Pendant la sortie, la feuille affiche une pastille d’état, le chronomètre et les chiffres (**Modifier les données** choisit lesquels et dans quel ordre) : **Distance**, **Vitesse**, **Moy.**, puis **Montée**, **Descente**, **En mouvement**. Quand vous suivez un itinéraire, une ligne **Reste** et **Arrivée** s’y ajoute : la distance qu’il reste à parcourir et l’heure d’arrivée à votre vitesse moyenne jusqu’ici, deux tirets tant que la sortie n’a pas de moyenne.
 5. **Pause** arrête la trace là où vous êtes ; **Reprendre** repart. L’interruption apparaît comme un trou dans la trace. En pause, les chiffres s’estompent et la pastille passe à **EN PAUSE**, pour que l’état soit clair d’un coup d’œil.
 6. **Terminer** enregistre la sortie sous un nom par défaut du type **Sortie du 17 sept. 2026** et ouvre sa page.
+
+Vous avez planifié un itinéraire et voulez le rouler ? **Rouler** à côté d’**Enregistrer** dans l’onglet Planifier ouvre l’onglet Rouler avec le plan choisi et démarre la sortie de la même façon, avec les mêmes questions. Si une sortie est déjà en cours, il se contente de passer à l’onglet Rouler.
 
 Si vous terminez sans rien avoir enregistré, Velorki indique « Rien n’a été enregistré. » et n’enregistre aucune sortie.
 
 ### Pause automatique
 
 Velorki se met en pause tout seul après une dizaine de secondes sans mouvement ; la pastille affiche alors **PAUSE AUTO**. Contrairement à une pause manuelle, il reste à l’écoute, et le premier vrai mouvement relance l’enregistrement. Une pause manuelle arrête l’écoute jusqu’à ce que vous touchiez **Reprendre**.
+### Ajouter une étape en chemin
+
+Pendant que vous suivez un itinéraire, touchez une étape sur la carte et choisissez **Ajouter comme étape** : l’itinéraire est recalculé pour la prendre en compte, devant vous, et le guidage continue sans interruption. Voir [la navigation guidée](./navigation#ajouter-une-etape-en-chemin).
 
 ## Fréquence cardiaque, cadence et puissance
 

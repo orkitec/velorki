@@ -20,7 +20,7 @@ Quand deux sources signalent la même mesure en même temps, la montre l'emporte
 
 ## Activer une source
 
-Tout se trouve dans **Réglages → Capteurs**, juste sous **Enregistrement** :
+Tout se trouve dans **Réglages → Capteurs**, sous **Cycliste et vélo** :
 
 - **Apple Santé** sur un iPhone, **Health Connect** sur Android, avec la ligne « Lit la fréquence cardiaque que d’autres apps enregistrent dans Santé, comme l’app Exercice de la montre. Interrogé toutes les quelques secondes, donc avec du retard ; une ceinture cardio ou l’app Velorki pour montre prend le relais dès qu’elle transmet ». L'activer est la seule action dans Velorki qui peut déclencher la demande d'autorisation d'accès aux données de santé. Si vous la refusez, Velorki affiche « Velorki n’a pas reçu l’accès à vos données de santé. » et laisse le réglage désactivé.
 - **Enregistrer les sorties dans Santé**, juste dessous : « Chaque sortie terminée est ajoutée à Santé comme un entraînement vélo avec son début, sa fin et sa distance ». Vous pouvez le désactiver séparément. Il ne fait rien tant que le réglage au-dessus est désactivé.

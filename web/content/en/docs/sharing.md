@@ -14,6 +14,8 @@ Link sharing is part of [Velorki Plus](./velorki-plus). Opening someone else's l
 2. Tap **Share** at the bottom of the card. The share card lists **Link**, **Ride with GPS** and **Strava**.
 3. On the **Link** row tap **Share link**. Velorki uploads the track and hands the link to the phone's share sheet. The row then says "Works until 17 Sept 2027." Before that it says "Anyone with the link can see it on a map and download the GPX."
 
+A route that came from Strava has no link: its row says "Not available for routes from Strava."
+
 Without Plus the **Link** row is marked **Velorki Plus** and leads to the subscription page. The Strava and Ride with GPS rows are free.
 
 ## What the person who opens it sees

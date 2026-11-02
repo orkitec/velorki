@@ -12,6 +12,8 @@ The search field at the top of the Plan tab finds towns, streets, house numbers 
 2. Type at least three characters. Results appear in a card under the field as you type.
 3. Tap a result. The map moves to the place, pins it and opens its card.
 
+While the search is open, a tap on the map only closes it; the next tap sets a point.
+
 Coordinates typed or pasted into the field, `40.71747, -73.94840` or `40,71747° N, 73,94840° W` as map apps copy them, are the place itself: one result at that spot, with nothing looked up and nothing sent. A place shared from another app opens the same way, see [import and export](./import-and-export#a-place-from-another-app).
 
 ## The place card
@@ -22,7 +24,7 @@ A search result, a [stop on the map](./stops-on-the-map) or a place shared from 
 - **Only a start**: **Destination** makes it the end of the route.
 - **A route**: **Add as a stop** puts it into the route where it lies along the way; **Destination** adds it at the end.
 
-On the Record tab the card only tells, with no actions.
+On the Record tab the card only tells, with no actions, except during a ride that follows a route: there **Add as a stop** asks "Add to the route?" and, on **Add and recalculate**, puts the place into the part of the route still ahead of you. Guidance carries on along the old route until the new one is ready, and the recording is not interrupted. A saved route stays as it is; the changed copy is on the Plan tab. If the new route cannot be calculated, you are told and navigation carries on as before.
 
 Under them:
 
@@ -36,7 +38,7 @@ Closing the card (the **X**, a swipe down or a tap on the map) changes nothing a
 Velorki decides by the **map centre**, not by your connection. Each downloaded routing tile brings a search index of its area with it.
 
 - **Map centre over a downloaded area**: the query is answered on the phone. The last row of the result card, **Search online for "…"**, runs the same text online.
-- **Anywhere else** (the map centre is over an area that is not downloaded, nothing is downloaded at all, or there is no map centre): nothing is searched and nothing leaves the phone until you pick **Search online for "…"** or, when you have downloaded areas, **Search downloaded areas**, which searches every one of them, nearest to the map first. Your pick holds for the following keystrokes until you clear the search. With a map centre the list also shows a notice, **This area isn't downloaded**, a line saying why and a **Download** button that opens the offline screen for the visible area. Online results come under the caption **Online results**, and the last row, **Show offline results**, switches to the downloaded areas; results from the phone end in **Search online for "…"**.
+- **Anywhere else** (the map centre is over an area that is not downloaded, nothing is downloaded at all, or there is no map centre): nothing is searched and nothing leaves the phone until you pick **Search online for "…"** or, when you have downloaded areas, **Search downloaded areas**, which searches every one of them, nearest to the map first. Your pick holds for the following keystrokes until you clear the search. With a map centre the list also shows a notice, **This area isn't downloaded**, a line saying why and a **Download** button. It closes the results, asks the one question about what will be fetched, and then shows the progress in the chip over the map. Online results come under the caption **Online results**, and the last row, **Show offline results**, switches to the downloaded areas; results from the phone end in **Search online for "…"**.
 - **No online search configured**: the downloaded areas answer.
 
 The notice stays visible while you scroll the list, and when the search failed it sits above the error message, which is where it matters most.
@@ -45,7 +47,7 @@ The notice stays visible while you scroll the list, and when the search failed i
 
 - **Places**: cities, towns, villages, hamlets, suburbs, neighbourhoods, localities and islands.
 - **Streets**, with house numbers.
-- **Points of interest**, each with its own icon and label: Cafe, Restaurant, Fast food, Ice cream, Petrol station, Air pump, Drinking water, Toilets, Bike repair station, Bike shop, Bike rental, Bike parking, E-bike charging, Shelter, Campsite, Hotel, Hostel, Mountain hut, Supermarket, Bakery, Pharmacy, Picnic site, Station, Ferry terminal, Airport, Viewpoint, Peak, Mountain pass, Park, Beach, Water, Nature reserve, Attraction, Museum, Historic site, Place of worship, Hospital, University, Sports venue, Shopping centre, Tower, Lighthouse, Building.
+- **Points of interest**, each with its own icon and label: Cafe, Restaurant, Fast food, Ice cream, Petrol station, Air pump, Drinking water, Toilets, Bike repair station, Bike shop, Tube vending machine, Bike rental, Bike parking, E-bike charging, Shelter, Campsite, Hotel, Hostel, Mountain hut, Supermarket, Bakery, Pharmacy, Picnic site, Station, Bus stop, Tram stop, Ferry terminal, Airport, Viewpoint, Peak, Mountain pass, Park, Beach, Water, Nature reserve, Attraction, Museum, Historic site, Place of worship, Hospital, University, Sports venue, Shopping centre, Tower, Lighthouse, Building.
 
 - **Well-known places in your language**: "Parigi" finds Paris, and a famous landmark comes before its namesakes.
 
@@ -53,7 +55,9 @@ Offline rows show the kind, the distance and the town under the name, as far as 
 
 ## Searching by kind
 
-Type the name of a kind rather than the name of a place. "drinking water", "bakery", "toilets" and the rest all work, in the language the app is running in.
+Type the name of a kind rather than the name of a place. "drinking water", "bakery", "toilets" and the rest all work, in the language the app is running in. For public transport one word is enough: "bus", "tram", "train" or "ferry" (in German "Bus", "Tram", "Zug", "Fähre") finds the nearest stops, stations and ferry terminals; "inner tube" finds tube vending machines. Only the whole text counts, so "Busch" and "bus marktplatz" stay name searches.
+
+Bus and tram stops are found only this way. They never turn up among the name matches, where thousands of stops named after their street would bury the streets and places you mean.
 
 The list then opens with the five nearest of that kind to the map centre, each with its distance, and the ordinary name matches follow underneath. Velorki looks in a box that grows from 5 to 50 km around the map centre until it has enough. This is the quick way to answer "where is the nearest tap" in the middle of a ride.
 
@@ -74,7 +78,7 @@ Offline search forgives a letter or two wrong, a word written together or apart,
 Offline results are grouped, and you decide which groups appear and in which order.
 
 1. Open **Settings**.
-2. Tap **Search**, subtitled "What offline search shows, and in which order. Drag to change the priority."
+2. Open **Maps & data**, then tap **Search**, subtitled "What offline search shows, and in which order. Drag to change the priority."
 3. Drag a row by its handle to move it up or down. Use the switch on the right to turn a group off.
 
 The eight groups, in their default order: **Places**, **Streets and addresses**, **Landmarks**, **Cycling stops**, **Overnight**, **Nature**, **Transport**, **Services**.
@@ -85,7 +89,7 @@ There is no save button; changes take effect on your next keystroke. A group tha
 
 - **"Nothing found."** The text matched nothing, offline or online. Try the trailing row to switch source, or fewer words.
 - **"Search failed."** with a reason means the online geocoder could not be reached. Offline search keeps working where you have downloaded an area.
-- **"No search server configured, set one in Settings → Advanced."** means this build has neither a geocoder address nor any downloaded index. The field is disabled until one exists.
+- **"This build of Velorki has no map data for searching."** is the field's hint in a build made from source with no geocoder, no tile mirror and nothing downloaded. The field stays disabled.
 
 ## Related
 

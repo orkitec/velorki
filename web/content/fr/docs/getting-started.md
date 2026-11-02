@@ -21,24 +21,26 @@ Velorki est open source. Si vous préférez la compiler vous-même, ou faire tou
 
 ## Premier lancement
 
-Velorki s’ouvre sur l’onglet **Planifier**, avec une carte du monde. Rien n’est encore téléchargé et aucune autorisation n’a encore été demandée.
+Velorki s’ouvre sur l’onglet **Planifier**. La première fois, il commence par demander votre position (voir plus bas), puis affiche la carte là où vous êtes, ou sur le pays de votre téléphone si vous refusez. Les pistes cyclables et les [haltes](./stops-on-the-map) sont déjà dessinées ; désactivez-les dans **Calques** si vous préférez ne pas les voir. Rien n’est encore téléchargé.
+
+Le plan vide indique « Recherchez un lieu ou touchez la carte. » Une courte animation désigne cette ligne, le champ de recherche et, si votre zone n’est pas téléchargée, la pastille de téléchargement. Elle se joue une fois et s’arrête au premier toucher.
 
 Une bonne première séance :
 
 1. Déplacez la carte là où vous roulez et pincez pour zoomer.
 2. Touchez la carte pour fixer un départ, touchez à nouveau pour ajouter une arrivée. Un itinéraire apparaît en un instant.
-3. Touchez le bouton de téléchargement à droite de la carte (**Données hors ligne**) et téléchargez la zone, pour que la carte et le calcul d’itinéraire continuent de fonctionner quand le réseau fait défaut. Voir [cartes et routage hors ligne](./offline-maps-and-routing) pour savoir ce que sont les deux téléchargements et leur taille.
+3. Téléchargez la zone, pour que la carte et le calcul d’itinéraire continuent de fonctionner quand le réseau fait défaut : touchez **Télécharger** dans la pastille au-dessus de la carte, ou le bouton rond de téléchargement à droite de la carte. Confirmez l’unique question posée et suivez la progression dans la pastille. Voir [cartes et routage hors ligne](./offline-maps-and-routing) pour savoir ce que sont les deux téléchargements et leur taille.
 4. Réglez vos unités dans **Réglages → Apparence → Unités** si l’app s’est trompée.
 
 ## Les autorisations demandées, et pourquoi
 
-Velorki ne demande rien au lancement. Chaque autorisation est demandée au moment où elle devient nécessaire pour la première fois, et chacune est expliquée avant l’apparition de la boîte de dialogue du système.
+Velorki demande votre position à la première ouverture, et tout le reste au moment où cela devient nécessaire pour la première fois. Chaque autorisation est expliquée avant l’apparition de la boîte de dialogue du système.
 
 ### Position
 
-Demandée la première fois que vous touchez **Afficher ma position**, que vous démarrez une sortie ou que vous demandez une boucle depuis votre position.
+Demandée à la première ouverture de l’app, puis la première fois que vous touchez **Afficher ma position**, que vous démarrez une sortie ou que vous demandez une boucle depuis votre position.
 
-Velorki affiche d’abord sa propre boîte de dialogue, intitulée **Afficher votre position ?** : « Velorki utilise votre position pour centrer la carte sur vous et enregistrer vos sorties. La position reste sur cet appareil ; elle n’est jamais envoyée. » Vous pouvez répondre **Plus tard** et continuer à utiliser l’app ; seules les fonctions qui ont besoin de savoir où vous êtes cessent de fonctionner.
+Velorki affiche d’abord sa propre boîte de dialogue, intitulée **Afficher votre position ?** : « Velorki utilise votre position pour centrer la carte sur vous et enregistrer vos sorties. La position reste sur cet appareil ; elle n’est jamais envoyée. » Touchez **Continuer** pour accéder à la boîte de dialogue du système. Sur Android, vous pouvez aussi répondre **Plus tard** et continuer à utiliser l’app ; seules les fonctions qui ont besoin de savoir où vous êtes cessent de fonctionner. Sur iPhone, la boîte de dialogue n’a que **Continuer**, et c’est la boîte de dialogue du système qui suit où vous décidez. Si vous refusez au premier lancement, la carte s’ouvre sur le pays de votre téléphone et Velorki ne redemande pas avant que vous touchiez **Afficher ma position**.
 
 Une fois l’autorisation accordée, la carte s’ouvre là où vous l’aviez laissée, puis glisse jusqu’à votre position : aussitôt vers le dernier endroit connu du téléphone si celui-ci date de moins d’une heure, et vers la première position récente sinon, ou lorsque cette position vous place à plus de 300 m environ de là, aussi bien au démarrage de l’app qu’à votre retour dans l’app après une demi-heure ou plus. Elle ne bouge pas tant qu’un plan est sur l’onglet Planifier, qu’une fiche d’itinéraire ou de sortie est ouverte, qu’une sortie est en cours d’enregistrement, que vous êtes déjà à l’écran ou que vous avez vous-même déplacé la carte.
 
@@ -67,7 +69,7 @@ La barre en bas comporte quatre onglets.
 | **Planifier** | La carte, la recherche de lieux, le planificateur d’itinéraires, les boucles intelligentes et l’assistant. |
 | **Rouler** | Démarrer, mettre en pause et terminer une sortie, les chiffres en direct et vos sorties récentes. |
 | **Bibliothèque** | Tout ce que vous avez enregistré : **Itinéraires** et **Sorties**, avec import et export. |
-| **Réglages** | Apparence, unités et langue, options de navigation et d’enregistrement, données hors ligne, recherche, connexions, abonnement et pages légales. |
+| **Réglages** | Une liste de pages : Synchronisation, Velorki Plus et Connexions ; Navigation, Enregistrement, Cycliste et vélo et Capteurs ; Apparence (thème, unités, langue), Assistant IA, Cartes et données (données hors ligne, recherche) et À propos avec les pages légales. |
 
 La barre flotte au-dessus du contenu, si bien que les listes défilent dessous.
 
@@ -83,7 +85,7 @@ Tant que vous n’avez pas choisi, Velorki suit le pays du téléphone : impé
 
 ## Où trouver quoi
 
-- **Les commandes de la carte** forment une colonne à droite de la carte : **Afficher ma position**, **Calques** ([la carte vélo](./map-layers) et les [haltes sur la carte](./stops-on-the-map)), **Données hors ligne** (absentes sur un petit écran comme celui d’un iPhone SE), **Zoom avant** et **Zoom arrière**. Dans l’onglet Rouler, un bouton boussole s’y ajoute et bascule entre **Nord en haut** et **La carte tourne avec vous**.
+- **Les commandes de la carte** forment une colonne à droite de la carte : **Afficher ma position**, **Calques** ([la carte vélo](./map-layers) et les [haltes sur la carte](./stops-on-the-map)), **Données hors ligne** (le bouton de téléchargement ; absent sur un petit écran comme celui d’un iPhone SE), **Zoom avant** et **Zoom arrière**. Dans l’onglet Rouler, un bouton boussole s’y ajoute et bascule entre **Nord en haut** et **La carte tourne avec vous**.
 - **Le champ de recherche** se trouve en haut de l’onglet Planifier.
 - **Le profil de vélo** (Rando, Route, Gravel, VTT, Direct) est la rangée de pastilles sous le champ de recherche.
 - **La feuille d’itinéraire** est le panneau en bas de l’onglet Planifier. Tirez-la vers le haut pour le profil altimétrique et la répartition des revêtements, vers le bas pour voir plus de carte.

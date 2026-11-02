@@ -20,7 +20,7 @@ Als twee ervan tegelijk hetzelfde melden, wint het horloge van een Bluetooth-sen
 
 ## Een bron aanzetten
 
-Alles staat in **Instellingen → Sensoren**, direct onder **Opname**:
+Alles staat in **Instellingen → Sensoren**, onder **Fietser en fiets**:
 
 - **Apple Health** op een iPhone, **Health Connect** op Android, met de regel "Leest de hartslag die andere apps in Gezondheid zetten, zoals de eigen Workout-app van het horloge. Wordt om de paar seconden opgevraagd, loopt dus achter; een borstband of de Velorki-horloge-app neemt het over zodra die iets meldt". Dit aanzetten is het enige in Velorki dat de vraag om toegang tot gezondheidsgegevens kan oproepen. Weiger je, dan zegt Velorki "Velorki heeft geen toegang tot je gezondheidsgegevens gekregen." en laat de schakelaar uit.
 - **Ritten opslaan in Gezondheid** daaronder, "Elke beëindigde rit komt in Gezondheid als één fietstraining met start, einde en afstand", dat je los kunt uitzetten. Het doet niets zolang de schakelaar erboven uit staat.

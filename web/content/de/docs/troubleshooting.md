@@ -10,7 +10,7 @@ Was am häufigsten schiefgeht, und was jeweils dagegen hilft. Steht dein Problem
 
 Die Anzeichen sind "Noch keine Position ermittelt.", eine Positions-Schaltfläche, die nichts tut, oder "Standort einschalten oder Karte antippen, um den Start zu setzen."
 
-1. **Wurde die Berechtigung abgelehnt?** Velorki fragt mit einem eigenen Dialog, **Deine Position anzeigen?**, bevor der des Systems kommt. Hast du **Jetzt nicht** geantwortet, tippe erneut auf die Positions-Schaltfläche und antworte **Weiter**.
+1. **Wurde die Berechtigung abgelehnt?** Velorki fragt beim ersten Start von selbst, mit einem eigenen Dialog, **Deine Position anzeigen?**, bevor der des Systems kommt. Hast du unter Android **Jetzt nicht** geantwortet, tippe erneut auf die Positions-Schaltfläche und antworte **Weiter**. Auf dem iPhone hat der Dialog nur **Weiter**, und die Systemabfrage entscheidet; hast du dort abgelehnt, nimm den nächsten Schritt.
 2. **Ist sie für Velorki ausgeschaltet?** "Die Standortberechtigung ist für Velorki ausgeschaltet. Schalte sie in den Systemeinstellungen ein." kommt mit einer Aktion **Einstellungen**, die dich direkt dorthin bringt. Erlaube "Beim Verwenden der App" oder "Beim Verwenden".
 3. **Sind die Ortungsdienste auf dem Handy aus?** "Die Ortungsdienste sind auf diesem Gerät ausgeschaltet." betrifft das Handy, nicht Velorki. Die Aktion **Einstellungen** öffnet die richtige Stelle.
 4. **Drinnen, oder gerade erst eingeschaltet?** "Noch keine Position ermittelt." heißt oft, dass das Handy überhaupt noch keine Position hat. Geh nach draußen und gib ihm eine halbe Minute.
@@ -19,11 +19,11 @@ Velorki braucht nie den Standort im Hintergrund. "Beim Verwenden der App" reicht
 
 ## Es erscheint keine Route
 
-**"Diese Route braucht Routing-Kacheln, die nicht auf diesem Gerät sind."** Dein Handy hat keine Routing-Daten für das Gebiet, und es gibt keinen Routing-Server, der einspringt. Tippe auf die Schaltfläche, die die Kacheln und ihre Größe zählt, und lade sie herunter. Siehe [Offline-Karten und Routing](./offline-maps-and-routing).
+**"Diese Route braucht Routing-Kacheln, die nicht auf diesem Gerät sind."** Dein Handy hat keine Routing-Daten für das Gebiet. Tippe auf die Schaltfläche, die die Kacheln und ihre Größe zählt, und lade sie herunter; der Download läuft gleich dort. Siehe [Offline-Karten und Routing](./offline-maps-and-routing).
 
-**"Kein Routing-Server konfiguriert, einen unter Einstellungen → Erweitert festlegen."** Dieser Build liefert keine Serveradresse mit. Lade die Routing-Kacheln für dein Gebiet herunter und berechne stattdessen auf dem Handy.
+**"Das Routing ist gerade nicht verfügbar."** Das Routing auf dem Gerät startet noch, oder es konnte nicht starten ("Das Routing konnte auf diesem Gerät nicht starten."), oder dieser Build hat keine Kartendaten dafür ("Diese Velorki-Version hat keine Kartendaten für das Routing."). Warte einen Moment und lade dann die Routing-Kacheln für dein Gebiet herunter.
 
-**Einstellungen → Erweitert → Routing steht auf "Nur auf dem Gerät".** Dann fragt Velorki nie einen Server, so ist es gedacht. Stell es auf **Automatisch** oder lade die Kacheln herunter.
+**Einstellungen → Karten & Daten → Routing steht auf "Nur auf dem Gerät".** Dann fragt Velorki nie einen Server, so ist es gedacht. Stell es auf **Automatisch** oder lade die Kacheln herunter.
 
 **"Routing fehlgeschlagen:" mit einem Grund.** Meist war der Server nicht erreichbar. Versuch es erneut und prüf, ob ein Wegpunkt im Meer oder auf einer Autobahn gelandet ist, wo kein Rad fahren darf. Den störenden Punkt ein paar Meter auf eine echte Straße zu ziehen, hilft in der Regel.
 
@@ -31,9 +31,11 @@ Velorki braucht nie den Standort im Hintergrund. "Beim Verwenden der App" reicht
 
 Das Banner steht im Planer, sobald die Route ein Gebiet quert, dessen Routing-Kachel nicht auf dem Handy ist. Velorki berechnet nie auf lückenhafter Abdeckung, denn der Router würde die fehlende Kachel für leeres Land halten und still eine falsche Route zurückgeben.
 
-1. Tippe auf die Schaltfläche im Banner. Sie öffnet **Offline-Routing-Daten** mit genau den Kacheln ausgewählt, die die Route braucht.
-2. Lade sie herunter. Kacheln sind 125 bis 250 MB pro Stück, sei also im Wi-Fi.
+1. Tippe im Banner auf die Download-Schaltfläche. Sie zählt die Kacheln, die die Route braucht, und ihre Größe, und der Download läuft gleich dort: Das Banner zeigt den Fortschritt, und der Download-Chip über der Karte folgt demselben Download.
+2. Kacheln sind 125 bis 250 MB pro Stück, sei also im Wi-Fi.
 3. Sobald eine Kachel ankommt, berechnet der Planer von selbst neu und das Banner weicht den Zahlen der Route.
+
+Bricht er ab, steht im Banner "Der Download ist fehlgeschlagen:" mit dem Grund und **Erneut versuchen**. Willst du ihn selbst stoppen, tippe auf die Schließen-Schaltfläche des Chips und bestätige **Download abbrechen?** mit **Download abbrechen**; eine halb geladene Kachel behält, was sie hat.
 
 Zeigen die gebrauchten Kacheln **Update braucht ein neueres Velorki**, aktualisiere erst die App; der Dialog erklärt, warum.
 
@@ -57,10 +59,12 @@ Ist die gewählte Stimme mit **Braucht Internet** gekennzeichnet, wird sie auf e
 ## Ein Download hängt oder schlägt fehl
 
 - **Downloads laufen nur, solange die App offen ist.** Lass Velorki bei einer großen Kachel im Vordergrund. Bricht es ab, bleibt der angekommene Teil erhalten und der nächste Versuch setzt dort an.
-- **"Der Download ist fehlgeschlagen:"** mit einem Grund. Tippe die Kachel erneut an, um es zu wiederholen. Ein fortgesetzter Download beginnt nicht bei null.
+- **"Der Download ist fehlgeschlagen:"** mit einem Grund. Tippe auf **Erneut versuchen** oder auf der Seite **Offline-Routing-Daten** erneut die Kachel. Ein fortgesetzter Download beginnt nicht bei null.
+- **Der Kartenteil gibt von selbst auf.** Ein Kartendownload, der etwa eine Minute lang nicht vorankommt, wird abgebrochen; die Meldung lautet "Die Karte konnte nicht heruntergeladen werden:" mit "Verbindung und freien Speicher prüfen, dann erneut versuchen." Was schon da war, wird entfernt, starte den Download also neu.
 - **"Die Kachelliste konnte nicht geladen werden:"** heißt, dass der Mirror nicht erreichbar war. **Erneut versuchen** steht auf dem Bildschirm.
 - **Prüf den freien Speicher auf dem Handy.** Eine Routing-Kachel von 250 MB braucht 250 MB, und das Kartengebiet kommt obendrauf.
-- **Abbrechen und neu starten** mit der Schließen-Schaltfläche im Fortschrittskopf, wenn ein Download erkennbar steht.
+- **Abbrechen und neu starten**, wenn ein Download erkennbar steht: Die Schließen-Schaltfläche des Chips über der Karte fragt **Download abbrechen?**, und **Download abbrechen** stoppt ihn. Das Gebiet gilt dann als nicht heruntergeladen, und der Chip bietet es wieder an.
+- **"Neue Kartendaten für dieses Gebiet"** über der Karte ist kein Fehler. Der Mirror hat geänderte Daten für das Gebiet auf dem Bildschirm; tippe auf **Aktualisieren**, um sie zu laden, oder ignoriere es.
 - Velorki kann Wi-Fi nicht von mobilen Daten unterscheiden, deshalb warnt es, statt zu blockieren. Starte große Downloads selbst im Wi-Fi.
 
 ## Ein Teilen-Link geht nicht in der App auf
@@ -116,7 +120,7 @@ Ein gekoppelter Sensor, der **Nicht verbunden** zeigt, ist außer Reichweite, sc
 
 - **"In diesem Build nicht verfügbar"** in einer Verbindungszeile oder auf der Abo-Seite heißt, dass diese Velorki-Kopie ohne die Schlüssel für diesen Dienst oder Store gebaut wurde. So sieht eine selbst gebaute Kopie aus.
 - **Die Schaltfläche Fragen oder die Schaltfläche Link teilen fehlt ganz** in einem Build ohne konfigurierten Velorki-Server.
-- **Alles andere** sollte "… gehört zu Velorki Plus" sagen und die Abo-Seite anbieten. Hast du ein Abo und es tut das nicht, tippe unter **Einstellungen → Abo** auf **Käufe wiederherstellen**.
+- **Alles andere** sollte "… gehört zu Velorki Plus" sagen und die Abo-Seite anbieten. Hast du ein Abo und es tut das nicht, tippe unter **Einstellungen → Velorki Plus** auf **Käufe wiederherstellen**.
 
 ## Einen Fehler melden
 

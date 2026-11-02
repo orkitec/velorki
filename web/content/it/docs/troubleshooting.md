@@ -10,7 +10,7 @@ Le cose che vanno storte più spesso, e cosa fare in ogni caso. Se il tuo proble
 
 I sintomi sono "Posizione non ancora disponibile.", un pulsante di localizzazione che non fa nulla, oppure "Attiva la posizione o tocca la mappa per impostare la partenza."
 
-1. **Hai rifiutato il permesso?** Velorki chiede con una sua finestra, **Mostrare la tua posizione?**, prima di quella di sistema. Se hai risposto **Non ora**, tocca di nuovo il pulsante di localizzazione e rispondi **Continua**.
+1. **Hai rifiutato il permesso?** Velorki lo chiede da solo al primo avvio, con una sua finestra, **Mostrare la tua posizione?**, prima di quella di sistema. Su Android, se hai risposto **Non ora**, tocca di nuovo il pulsante di localizzazione e rispondi **Continua**. Su un iPhone la finestra ha solo **Continua** e decide l'avviso di sistema; se hai rifiutato lì, usa il passo successivo.
 2. **È disattivato per Velorki?** "Il permesso di localizzazione è disattivato per Velorki. Attivalo nelle impostazioni di sistema." arriva con un'azione **Impostazioni** che ti porta direttamente lì. Concedi "Mentre usi l'app" o "Quando in uso".
 3. **I servizi di localizzazione sono spenti sul telefono?** "I servizi di localizzazione sono disattivati su questo dispositivo." riguarda il telefono, non Velorki. L'azione **Impostazioni** apre il posto giusto.
 4. **Al chiuso, o appena acceso?** "Posizione non ancora disponibile." spesso significa che il telefono non ha ancora alcuna posizione. Esci all'aperto e dagli mezzo minuto.
@@ -19,11 +19,11 @@ Velorki non ha mai bisogno della posizione in background. "Mentre usi l'app" bas
 
 ## Non appare nessun percorso
 
-**"Questo percorso richiede riquadri di routing che non sono su questo dispositivo."** Il tuo telefono non ha dati di routing per la zona e non c'è un server di routing su cui ripiegare. Tocca il pulsante, che conta i riquadri e la loro dimensione, e scaricali. Vedi [mappe offline e calcolo del percorso](./offline-maps-and-routing).
+**"Questo percorso richiede riquadri di routing che non sono su questo dispositivo."** Il tuo telefono non ha dati di routing per la zona. Tocca il pulsante, che conta i riquadri e la loro dimensione, e scaricali; il download parte lì stesso. Vedi [mappe offline e calcolo del percorso](./offline-maps-and-routing).
 
-**"Nessun server di routing configurato, impostane uno in Opzioni → Avanzate."** Questa build non include alcun indirizzo di server. Scarica i riquadri di routing per dove ti trovi e calcola invece sul telefono.
+**"Il calcolo del percorso non è disponibile al momento."** Il calcolo sul dispositivo sta ancora partendo, oppure non è riuscito a partire ("Il calcolo del percorso non è partito su questo dispositivo."), oppure questa build non ha dati della mappa per farlo ("Questa versione di Velorki non ha dati della mappa per il calcolo dei percorsi."). Attendi un momento, poi scarica i riquadri di routing per dove ti trovi.
 
-**Opzioni → Avanzate → Calcolo percorso è su "Solo sul dispositivo".** Allora Velorki non chiederà mai a un server, per scelta. Passalo ad **Automatico** o scarica i riquadri.
+**Opzioni → Mappe e dati → Calcolo percorso è su "Solo sul dispositivo".** Allora Velorki non chiederà mai a un server, per scelta. Passalo ad **Automatico** o scarica i riquadri.
 
 **"Calcolo del percorso non riuscito:" con un motivo.** Di solito il server non era raggiungibile. Riprova, e controlla che un punto non sia finito in mare o su un'autostrada dove le bici non possono andare. Spostare il punto in questione di qualche metro su una strada vera di solito risolve.
 
@@ -31,9 +31,11 @@ Velorki non ha mai bisogno della posizione in background. "Mentre usi l'app" bas
 
 Il banner sta nel pianificatore ogni volta che il percorso attraversa una zona il cui riquadro di routing non è sul telefono. Velorki non calcola mai su una copertura parziale, perché il motore di calcolo tratterebbe il riquadro mancante come terra vuota e restituirebbe in silenzio un percorso sbagliato.
 
-1. Tocca il pulsante sul banner. Apre **Dati di routing offline** con già selezionati esattamente i riquadri che servono al percorso.
-2. Scaricali. I riquadri pesano da 125 a 250 MB ciascuno, quindi stai sul Wi-Fi.
+1. Tocca il pulsante di download sul banner. Conta i riquadri che servono al percorso e la loro dimensione, e il download parte lì stesso: il banner mostra l'avanzamento e il chip di download sulla mappa segue lo stesso download.
+2. I riquadri pesano da 125 a 250 MB ciascuno, quindi stai sul Wi-Fi.
 3. Quando un riquadro arriva, il pianificatore ricalcola da solo e il banner viene sostituito dai dati del percorso.
+
+Se si ferma a metà, il banner dice "Download non riuscito:" con il motivo e **Riprova**. Per fermarlo tu, tocca il pulsante di chiusura del chip e conferma **Interrompere il download?** con **Annulla download**; un riquadro a metà conserva quello che ha.
 
 Se i riquadri che ti servono mostrano **Serve un Velorki più recente**, aggiorna prima l'app; la finestra spiega perché.
 
@@ -57,10 +59,12 @@ Se la voce scelta è contrassegnata con **Richiede internet**, viene generata su
 ## Un download è bloccato o fallisce
 
 - **I download avvengono solo mentre l'app è aperta.** Lascia Velorki in primo piano per un riquadro grande. Se si interrompe, la parte arrivata viene conservata e il tentativo successivo riprende da lì.
-- **"Download non riuscito:"** con un motivo. Tocca di nuovo il riquadro per riprovare. Un download ripreso non parte da zero.
+- **"Download non riuscito:"** con un motivo. Tocca **Riprova**, o di nuovo il riquadro nella pagina **Dati di routing offline**. Un download ripreso non parte da zero.
+- **La parte della mappa si arrende da sola.** Un download della mappa che non avanza per circa un minuto viene fermato; il messaggio dice "Impossibile scaricare la mappa:" con "Controlla la connessione e lo spazio libero, poi riprova." Quello che era arrivato viene rimosso, quindi riavvia il download.
 - **"Impossibile caricare l'elenco dei riquadri:"** significa che il mirror non era raggiungibile. **Riprova** è sullo schermo.
 - **Controlla lo spazio libero sul telefono.** Un riquadro di routing da 250 MB richiede 250 MB, più l'area della mappa.
-- **Annulla e riavvia** con il pulsante di chiusura nell'intestazione dell'avanzamento se un download si è chiaramente bloccato.
+- **Annulla e riavvia** se un download si è chiaramente bloccato: il pulsante di chiusura del chip sulla mappa chiede **Interrompere il download?**, e **Annulla download** lo ferma. L'area conta allora come non scaricata e il chip la propone di nuovo.
+- **"Nuovi dati della mappa per quest'area"** sulla mappa non è un guasto. Il mirror ha dati cambiati per l'area sullo schermo; tocca **Aggiorna** per scaricarli, oppure ignoralo.
 - Velorki non distingue il Wi-Fi dai dati mobili, quindi avvisa invece di bloccare. Avvia tu i download grandi sul Wi-Fi.
 
 ## Un link di condivisione non si apre nell'app
@@ -116,7 +120,7 @@ Un sensore associato che dice **Non connesso** è fuori portata, in standby o sc
 
 - **"Non disponibile in questa build"** su una riga di collegamento, o nella pagina dell'abbonamento, significa che questa copia di Velorki è stata compilata senza le chiavi per quel servizio o quello store. È così che appare una copia compilata da te.
 - **Il pulsante Chiedi o il pulsante Condividi link non c'è proprio** in una build senza un server Velorki configurato.
-- **Tutto il resto** dovrebbe dire "… fa parte di Velorki Plus" e offrire la pagina dell'abbonamento. Se hai un abbonamento e non lo fa, tocca **Ripristina acquisti** in **Opzioni → Abbonamento**.
+- **Tutto il resto** dovrebbe dire "… fa parte di Velorki Plus" e offrire la pagina dell'abbonamento. Se hai un abbonamento e non lo fa, tocca **Ripristina acquisti** in **Opzioni → Velorki Plus**.
 
 ## Segnalare un bug
 

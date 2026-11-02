@@ -55,6 +55,7 @@ La finestra degli anelli non ha un campo per un posto da cui passare, e nessuna 
 
 ## Quando non trova nulla
 
+- **"Questo percorso richiede riquadri di routing che non sono su questo dispositivo."** I dati di routing della zona non sono sul telefono. Sotto il messaggio, il pulsante **Scarica 2 riquadri (14 MB)** li scarica lì stesso, con l'avanzamento mostrato nella finestra e sulla mappa; la ricerca può partire quando sono arrivati.
 - **"Nessun anello trovato qui, prova un'altra distanza."** Alcuni posti, un'isola o una valle senza uscita, semplicemente non hanno una rete stradale per un cerchio di quella lunghezza. Sposta la distanza su o giù di un buon margine, o parti da un altro posto.
 - **"Attiva la posizione o tocca la mappa per impostare la partenza."** Non è stato possibile determinare un punto di partenza. Consenti la posizione, o tocca prima la mappa.
 - **"La ricerca dell'anello ha richiesto troppo tempo su questo telefono. Prova una distanza più breve."** La ricerca si è arresa dopo 30 minuti.

@@ -12,16 +12,22 @@ Die Aufzeichnung ist kostenlos und funktioniert ganz ohne Verbindung.
 
 1. Öffne den Tab **Aufzeichnen**. Dort steht **Bereit zur Fahrt**, mit einem kurzen Tipp darunter.
 2. Wähle unter **Einer Route folgen**, wem die Fahrt folgt: **Keine Route**, **Die Route im Tab Planen** (angeboten, solange es eine gibt) oder einer deiner gespeicherten Routen. Eine Route schaltet die Führung aus [Navigation mit Abbiegehinweisen](./navigation) ein. Bis du wählst, schlägt der Tab die Route vor, von der du kommst: die Route, deren Karte du in der Bibliothek offen hattest, oder den Plan im Tab Planen; deine eigene Wahl gilt dann bis zum Neustart der App.
-3. Tippe auf **Fahrt starten**.
-4. Während der Fahrt zeigt die Übersicht eine Zustandsplakette, die laufende Uhr und die Zahlen: **Distanz**, **Tempo**, **Ø**, dann **Anstieg**, **Abstieg**, **Fahrzeit**. Solange du einer Route folgst, kommt eine Zeile **Übrig** und **Ankunft** dazu: die noch zu fahrende Distanz und wann du bei deinem bisherigen Schnitt ankommst, zwei Striche, bis die Fahrt einen Schnitt hat.
+3. Tippe auf **Fahrt starten**. Hat die Route keine Abbiegehinweise, bietet Velorki zuerst an, sie zu erstellen, und ist ihre Region nicht auf dem Telefon, bietet es an, sie gleich dort herunterzuladen, und wartet darauf; siehe [Navigation mit Abbiegehinweisen](./navigation).
+4. Während der Fahrt zeigt die Übersicht eine Zustandsplakette, die laufende Uhr und die Zahlen (**Werte bearbeiten** wählt, welche und in welcher Reihenfolge): **Distanz**, **Tempo**, **Ø**, dann **Anstieg**, **Abstieg**, **Fahrzeit**. Solange du einer Route folgst, kommt eine Zeile **Übrig** und **Ankunft** dazu: die noch zu fahrende Distanz und wann du bei deinem bisherigen Schnitt ankommst, zwei Striche, bis die Fahrt einen Schnitt hat.
 5. **Pause** hält den Track an deiner Stelle an; **Fortsetzen** macht weiter. Die Unterbrechung zeigt sich als Lücke im Track. Solange pausiert ist, verblassen die Zahlen und die Plakette wechselt zu **Pausiert**, der Zustand ist also auf einen Blick klar.
 6. **Beenden** speichert die Fahrt unter einem voreingestellten Namen wie **Fahrt 17. Sept. 2026** und öffnet ihre Seite.
+
+Eine Route geplant und willst sie fahren? **Losfahren** neben **Speichern** im Tab Planen öffnet den Tab Aufzeichnen mit dem gewählten Plan und startet die Fahrt auf dieselbe Weise, mit denselben Rückfragen. Läuft schon eine Fahrt, wechselt es nur zum Tab Aufzeichnen.
 
 Beendest du, ohne dass etwas aufgezeichnet wurde, sagt Velorki "Es wurde nichts aufgezeichnet." und speichert keine Fahrt.
 
 ### Auto-Pause
 
 Velorki pausiert nach etwa zehn Sekunden ohne Bewegung von selbst; die Plakette liest sich dann **Auto-Pause**. Anders als bei einer Pause von Hand hört es weiter zu, und die erste richtige Bewegung setzt fort. Eine Pause von Hand hört auf zuzuhören, bis du auf **Fortsetzen** drückst.
+
+### Einen Stopp unterwegs einfügen
+
+Solange du einer Route folgst, tippe auf der Karte auf einen Stopp und wähle **Als Stopp einfügen**: Die Route wird neu berechnet und nimmt ihn vor deiner Position auf, und die Führung läuft ohne Lücke weiter. Siehe [Navigation mit Abbiegehinweisen](./navigation#einen-stopp-unterwegs-einfügen).
 
 ## Puls, Trittfrequenz und Leistung
 

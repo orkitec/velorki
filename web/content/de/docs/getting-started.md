@@ -21,24 +21,26 @@ Velorki ist Open Source. Wer die App lieber selbst baut oder eigene Server für 
 
 ## Der erste Start
 
-Velorki öffnet den Tab **Planen** mit einer Weltkarte. Es ist noch nichts heruntergeladen und noch keine Berechtigung angefragt.
+Velorki öffnet den Tab **Planen**. Beim ersten Mal fragt die App zuerst nach deinem Standort (siehe unten) und zeigt dann die Karte dort, wo du bist, oder über dem Land deines Handys, wenn du ablehnst. Radwege und [Stopps](./stops-on-the-map) sind schon gezeichnet; unter **Ebenen** kannst du sie ausschalten. Es ist noch nichts heruntergeladen.
+
+Der leere Plan sagt "Ort suchen oder Karte antippen." Eine kurze Animation weist auf diese Zeile, auf das Suchfeld und, wenn dein Gebiet nicht heruntergeladen ist, auf den Download-Chip hin. Sie läuft einmal und endet bei deiner ersten Berührung.
 
 Eine gute erste Sitzung:
 
 1. Verschiebe die Karte in dein Fahrgebiet und zieh sie mit zwei Fingern auf.
 2. Tippe auf die Karte, um den Start zu setzen, und tippe erneut für ein Ziel. Kurz darauf erscheint eine Route.
-3. Tippe rechts neben der Karte auf die Download-Schaltfläche (**Offline-Daten**) und lade das Gebiet herunter, damit Karte und Routing auch ohne Empfang weiterlaufen. Was die beiden Downloads sind und wie groß sie werden, steht unter [Offline-Karten und Routing](./offline-maps-and-routing).
-4. Stelle unter **Einstellungen → Darstellung → Einheiten** deine Einheiten ein, falls die App falsch geraten hat.
+3. Lade das Gebiet herunter, damit Karte und Routing auch ohne Empfang weiterlaufen: Tippe im Chip über der Karte auf **Herunterladen** oder auf die runde Download-Schaltfläche rechts neben der Karte. Bestätige die eine Frage, die kommt, und verfolge den Fortschritt im Chip. Was die beiden Downloads sind und wie groß sie werden, steht unter [Offline-Karten und Routing](./offline-maps-and-routing).
+4. Stelle unter **Optionen → Darstellung → Einheiten** deine Einheiten ein, falls die App falsch geraten hat.
 
 ## Die Berechtigungen und wofür sie da sind
 
-Velorki fragt beim Start nach nichts. Jede Berechtigung wird genau dann angefragt, wenn sie zum ersten Mal gebraucht wird, und jede wird erklärt, bevor der Systemdialog kommt.
+Velorki fragt beim ersten Öffnen nach deinem Standort und sonst nach allem erst dann, wenn es zum ersten Mal gebraucht wird. Jede Berechtigung wird erklärt, bevor der Systemdialog kommt.
 
 ### Standort
 
-Wird gefragt, sobald du zum ersten Mal auf **Meine Position anzeigen** tippst, eine Fahrt startest oder eine Runde ab deiner Position anforderst.
+Wird gefragt, wenn du die App zum ersten Mal öffnest, danach sobald du zum ersten Mal auf **Meine Position anzeigen** tippst, eine Fahrt startest oder eine Runde ab deiner Position anforderst.
 
-Velorki zeigt zuerst einen eigenen Dialog mit dem Titel **Deine Position anzeigen?**: "Velorki nutzt deinen Standort, um die Karte auf dich zu zentrieren und Fahrten aufzuzeichnen. Die Position bleibt auf diesem Gerät und wird nie hochgeladen." Du kannst **Jetzt nicht** antworten und die App weiter nutzen; nur die Funktionen, die deine Position kennen müssen, fallen dann aus.
+Velorki zeigt zuerst einen eigenen Dialog mit dem Titel **Deine Position anzeigen?**: "Velorki nutzt deinen Standort, um die Karte auf dich zu zentrieren und Fahrten aufzuzeichnen. Die Position bleibt auf diesem Gerät und wird nie hochgeladen." Tippe auf **Weiter**, dann kommt der Systemdialog. Unter Android kannst du auch **Jetzt nicht** antworten und die App weiter nutzen; nur die Funktionen, die deine Position kennen müssen, fallen dann aus. Auf dem iPhone hat der Dialog nur **Weiter**, und im Systemdialog danach entscheidest du. Lehnst du beim ersten Start ab, öffnet sich die Karte über dem Land deines Handys, und Velorki fragt erst wieder, wenn du auf **Meine Position anzeigen** tippst.
 
 Mit der Berechtigung öffnet sich die Karte dort, wo du sie verlassen hast, und gleitet dann zu deiner Position: sofort dorthin, wo das Telefon dich zuletzt kannte, wenn das weniger als eine Stunde her ist, und zur ersten frischen Ortung, wenn nicht, oder wenn diese dich mehr als etwa 300 m davon entfernt zeigt, beim Start der App ebenso wie bei einer Rückkehr nach einer halben Stunde oder mehr. Sie bleibt, wo sie ist, solange eine Planung im Tab Planen liegt, eine Routen- oder Fahrtenkarte offen ist, eine Fahrt aufgezeichnet wird, du schon zu sehen bist oder du die Karte selbst bewegt hast.
 
@@ -67,7 +69,7 @@ Die Leiste am unteren Rand hat vier Tabs.
 | **Planen** | Die Karte, die Ortssuche, der Routenplaner, smarte Runden und der Assistent. |
 | **Aufzeichnen** | Fahrt starten, pausieren und beenden, die Zahlen währenddessen und deine letzten Fahrten. |
 | **Bibliothek** | Alles Gespeicherte: **Routen** und **Fahrten**, mit Import und Export. |
-| **Einstellungen** | Darstellung, Einheiten und Sprache, Navigation und Aufzeichnung, Offline-Daten, Suche, Verbindungen, Abo und die Rechtstexte. |
+| **Optionen** | Eine Liste von Seiten: Synchronisierung, Velorki Plus und Verbindungen; Navigation, Aufzeichnung, Fahrer & Rad und Sensoren; Darstellung (Thema, Einheiten, Sprache), KI-Assistent, Karten & Daten (Offline-Daten, Suche) und Über mit den Rechtstexten. |
 
 Die Leiste schwebt über dem Inhalt, Listen scrollen also darunter hindurch.
 
@@ -75,7 +77,7 @@ Die Leiste schwebt über dem Inhalt, Listen scrollen also darunter hindurch.
 
 Velorki zeigt Distanzen in Kilometern und Metern oder in Meilen und Fuß, und deine Wahl gilt überall: für die Zahlen, die Schieberegler, die Achsen der Diagramme, das Abbiegeband und die Sprachansagen.
 
-1. Öffne **Einstellungen**.
+1. Öffne **Optionen**.
 2. Unter **Darstellung** findest du **Einheiten**.
 3. Wähle **Metrisch** oder **Imperial**.
 
@@ -83,7 +85,7 @@ Bis du wählst, folgt Velorki dem Land des Handys: imperial nur dort, wo das Lan
 
 ## Wo was liegt
 
-- **Die Kartenbedienung** sitzt in einer Spalte rechts neben der Karte: **Meine Position anzeigen**, **Ebenen** ([die Radkarte](./map-layers) und [Stopps auf der Karte](./stops-on-the-map)), **Offline-Daten** (nicht auf einem kleinen Bildschirm wie dem iPhone SE), **Hineinzoomen** und **Herauszoomen**. Im Tab Aufzeichnen kommt eine Kompass-Schaltfläche dazu, die zwischen **Norden oben** und **Karte dreht mit** wechselt.
+- **Die Kartenbedienung** sitzt in einer Spalte rechts neben der Karte: **Meine Position anzeigen**, **Ebenen** ([die Radkarte](./map-layers) und [Stopps auf der Karte](./stops-on-the-map)), **Offline-Daten** (die Download-Schaltfläche; nicht auf einem kleinen Bildschirm wie dem iPhone SE), **Hineinzoomen** und **Herauszoomen**. Im Tab Aufzeichnen kommt eine Kompass-Schaltfläche dazu, die zwischen **Norden oben** und **Karte dreht mit** wechselt.
 - **Das Suchfeld** steht oben im Tab Planen.
 - **Das Radprofil** (Trekking, Rennrad, Gravel, MTB, Direkt) ist die Reihe von Chips unter dem Suchfeld.
 - **Die Routenübersicht** ist das Feld am unteren Rand des Tabs Planen. Zieh es nach oben für Höhenprofil und Belagsverteilung, nach unten für mehr Karte.

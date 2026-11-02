@@ -21,18 +21,19 @@ Los datos de rutas también incluyen el índice de lugares, así que en una zona
 ## Descargar una zona
 
 1. En la pestaña **Planificar**, mueve el mapa para que la zona que quieres llene la pantalla. No alejes más de lo necesario: la descarga del mapa sigue exactamente lo que hay en pantalla.
-2. Toca el botón **Datos sin conexión** en la columna de la derecha del mapa. En una pantalla pequeña como la de un iPhone SE la columna no tiene sitio para él: ahí, toca **Descargar** en el aviso al principio de los resultados de búsqueda o en la etiqueta sobre el mapa, o el botón de descarga bajo una ruta que necesite teselas, y gestiona lo que tienes en **Ajustes → Datos sin conexión**.
-3. Lee las dos tarjetas y toca **Descargar la zona visible** abajo.
-4. El diálogo **Descargar la zona visible** enumera lo que vas a descargar: "Mapa de la zona visible · tamaño conocido tras la descarga" para el mapa, y luego una línea por tesela de rutas con su tamaño, por ejemplo `E5_N45 · 187 MB`, o "Los datos de rutas de esta zona ya están en el dispositivo".
-5. Toca **Descargar**.
+2. Empieza la descarga desde donde se ofrezca. Todas hacen la misma pregunta y descargan en el sitio, sobre el mapa:
+   - **Descargar** en el chip sobre el mapa. A partir del zoom 11, siempre que el centro del mapa de la pestaña Planificar esté sobre una zona sin descargar, dice **Esta zona no está descargada**; con las [paradas](./stops-on-the-map) activadas dice «No hay paradas aquí – zona no descargada», con el mapa ciclista «No hay mapa ciclista aquí – zona no descargada».
+   - **Descargar** en el aviso al principio de los resultados de búsqueda.
+   - **Descargar 3 teselas (412 MB)** bajo una ruta que necesita teselas.
+   - El botón redondo de descarga en la columna de la derecha del mapa, que abre la pantalla **Sin conexión**: lee las dos tarjetas y toca **Descargar la zona visible** abajo. En una pantalla pequeña como la de un iPhone SE la columna no tiene sitio para él; gestiona lo que tienes en **Ajustes → Mapas y datos → Datos sin conexión**. El botón muestra un icono relleno cuando la zona a la vista está descargada (un toque dice «Esta zona está descargada», con **Gestionar**), una insignia cuando hay actualizaciones y un indicador de carga mientras descarga.
+3. El diálogo **Descargar la zona visible** enumera lo que vas a descargar: "Mapa de la zona visible · tamaño conocido tras la descarga" para el mapa, y luego una línea por tesela de rutas con su tamaño, por ejemplo `E5_N45 · 187 MB`, o "Los datos de rutas de esta zona ya están en el dispositivo".
+4. Toca **Descargar**.
 
-A partir del zoom 11, siempre que el centro del mapa de la pestaña Planificar esté sobre una zona sin descargar, una etiqueta sobre el mapa dice **Esta zona no está descargada** con **Descargar**. Un toque en cualquier punto de la etiqueta abre la pantalla sin conexión para la zona visible. Con las [paradas](./stops-on-the-map) activadas dice «No hay paradas aquí – zona no descargada», con el mapa ciclista «No hay mapa ciclista aquí – zona no descargada». Desaparece cuando la zona está descargada.
-
-Las dos descargas se hacen mientras la app está abierta. Las tarjetas muestran **Descargando el mapa…** y **Descargando E5_N45…** con barras de progreso.
+Las dos descargas se hacen mientras la app está abierta. El chip, y la tarjeta desde la que empezaste, muestran el progreso; en la pantalla sin conexión las tarjetas muestran **Descargando el mapa…** y **Descargando E5_N45…** con barras de progreso. La **X** del chip es **Cancelar descarga** mientras corre: pregunta «¿Detener la descarga?», y **Cancelar descarga** detiene el mapa y las teselas de rutas, elimina el paquete de mapa sin terminar y vuelve a ofrecer la zona. **Seguir descargando** continúa. El chip desaparece cuando la zona está descargada. Una descarga de mapa que deja de avanzar se abandona.
 
 La pantalla te avisa por una razón: "Las teselas son grandes, a menudo de 125–250 MB cada una, y Velorki no distingue entre wifi y datos móviles. Empieza las descargas cuando estés con wifi."
 
-También puedes llegar a esta pantalla desde **Ajustes → Datos sin conexión**, pero abierta así no hay mapa detrás, de modo que el botón de descarga está desactivado y la nota dice "Abre esta pantalla desde el mapa para descargar la zona que estás viendo."
+También puedes llegar a esta pantalla desde **Ajustes → Mapas y datos → Datos sin conexión**, pero abierta así no hay mapa detrás, de modo que el botón de descarga está desactivado y la nota dice "Abre esta pantalla desde el mapa para descargar la zona que estás viendo."
 
 ## Gestionar las zonas del mapa
 
@@ -65,11 +66,11 @@ También en la pantalla:
 - Un botón **Eliminar** en cada fila, que avisa "La tesela se elimina de este dispositivo. Las rutas en esa zona volverán a necesitar el servidor de rutas."
 - Un botón **Cancelar descarga** en la cabecera de progreso mientras hay una en curso.
 
-Velorki comprueba cada semana si el espejo ha regenerado algo de lo que tienes. Si es así, la fila **Datos sin conexión** de Ajustes se vuelve naranja, muestra "2 teselas tienen actualizaciones" y pone un contador sobre la flecha.
+Velorki comprueba cada semana si el espejo ha regenerado algo de lo que tienes. Una tesela cuenta como actualizada solo cuando su contenido ha cambiado, no cada vez que el espejo se ejecuta. Si es así, un chip sobre el mapa dice **Nuevos datos de mapa para esta zona** con **Actualizar**, el botón de descarga lleva una insignia, y la fila **Datos sin conexión** de **Ajustes → Mapas y datos** se vuelve naranja, muestra "2 teselas tienen actualizaciones" y pone un contador sobre la flecha. **Actualizar** en el chip hace la pregunta de siempre y luego vuelve a descargar las teselas cambiadas; su **X** oculta el chip para esa zona hasta que reinicies la app.
 
 ## El nomenclátor, o índice de búsqueda
 
-Cada tesela de rutas que publica el espejo tiene al lado un pequeño índice de búsqueda, y Velorki descarga los dos juntos. No aparece como ajuste ni como descarga aparte.
+Cada tesela de rutas que publica el espejo tiene al lado un pequeño índice de búsqueda, y Velorki descarga los dos juntos. No aparece como ajuste. Si solo ha cambiado el índice de búsqueda de una tesela, la actualización es una pequeña descarga del índice solo, no de la tesela otra vez.
 
 Si el índice no se descarga, la tesela en sí sigue bien: la zona sigue siendo enrutable y su búsqueda simplemente pasa a hacerse en línea. Lo mismo ocurre con un índice en un formato que esta versión de la app no sabe leer: se omite, las demás zonas siguen respondiendo sin conexión y esa zona busca en línea.
 

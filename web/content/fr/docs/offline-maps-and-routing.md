@@ -21,18 +21,19 @@ Les données de routage contiennent aussi l’index des lieux : une zone tél�
 ## Télécharger une zone
 
 1. Dans l’onglet **Planifier**, déplacez la carte pour que la zone voulue remplisse l’écran. Ne dézoomez pas plus que nécessaire : le téléchargement de la carte suit exactement ce qui est affiché.
-2. Touchez le bouton **Données hors ligne** dans la colonne à droite de la carte. Sur un petit écran comme celui de l’iPhone SE, la colonne n’a pas la place de l’afficher : touchez alors **Télécharger** dans l’avis en haut des résultats de recherche ou dans la pastille sur la carte, ou le bouton de téléchargement sous un itinéraire qui a besoin de tuiles, et gérez ce que vous avez dans **Réglages → Données hors ligne**.
-3. Lisez les deux cartes, puis touchez **Télécharger la zone visible** en bas.
-4. La boîte de dialogue **Télécharger la zone visible** liste ce que vous allez récupérer : « Carte de la zone visible · taille connue après le téléchargement » pour la carte, puis une ligne par tuile de routage avec sa taille, par exemple `E5_N45 · 187 Mo`, ou « Les données de routage de cette zone sont déjà sur l’appareil ».
-5. Touchez **Télécharger**.
+2. Lancez le téléchargement là où il est proposé. Tous posent la même question et téléchargent sur place, par-dessus la carte :
+   - **Télécharger** dans la pastille sur la carte. À partir du zoom 11, dès que le centre de la carte de l’onglet Planifier se trouve sur une zone non téléchargée, elle affiche **Cette zone n’est pas téléchargée** ; avec les [haltes](./stops-on-the-map) affichées, elle dit « Pas de haltes ici – zone non téléchargée », avec la carte vélo « Pas de carte vélo ici – zone non téléchargée ».
+   - **Télécharger** dans l’avis en haut des résultats de recherche.
+   - **Télécharger 3 tuiles (412 Mo)** sous un itinéraire qui a besoin de tuiles.
+   - Le bouton rond de téléchargement dans la colonne à droite de la carte, qui ouvre l’écran **Hors ligne** : lisez les deux cartes, puis touchez **Télécharger la zone visible** en bas. Sur un petit écran comme celui de l’iPhone SE, la colonne n’a pas la place de l’afficher ; gérez alors ce que vous avez dans **Réglages → Cartes et données → Données hors ligne**. Le bouton affiche une icône pleine quand la zone visible est téléchargée (un toucher dit « Cette zone est téléchargée », avec **Gérer**), un badge quand elle a des mises à jour et un indicateur de progression pendant le téléchargement.
+3. La boîte de dialogue **Télécharger la zone visible** liste ce que vous allez récupérer : « Carte de la zone visible · taille connue après le téléchargement » pour la carte, puis une ligne par tuile de routage avec sa taille, par exemple `E5_N45 · 187 Mo`, ou « Les données de routage de cette zone sont déjà sur l’appareil ».
+4. Touchez **Télécharger**.
 
-À partir du zoom 11, dès que le centre de la carte de l’onglet Planifier se trouve sur une zone non téléchargée, une pastille sur la carte affiche **Cette zone n’est pas téléchargée** avec **Télécharger**. Un toucher n’importe où sur la pastille ouvre l’écran hors ligne pour la zone visible. Avec les [haltes](./stops-on-the-map) affichées, elle dit « Pas de haltes ici – zone non téléchargée », avec la carte vélo « Pas de carte vélo ici – zone non téléchargée ». Elle disparaît une fois la zone téléchargée.
-
-Les deux téléchargements se déroulent tant que l’app est ouverte. Les cartes affichent **Téléchargement de la carte…** et **Téléchargement de E5_N45…** avec des barres de progression.
+Les deux téléchargements se déroulent tant que l’app est ouverte. La pastille, et la carte d’où vous êtes parti, affichent la progression ; sur l’écran hors ligne, les cartes affichent **Téléchargement de la carte…** et **Téléchargement de E5_N45…** avec des barres de progression. Le **X** de la pastille devient **Annuler le téléchargement** pendant le téléchargement : il demande « Arrêter le téléchargement ? », et **Annuler le téléchargement** arrête la carte et les tuiles de routage, supprime le paquet de carte inachevé et propose de nouveau la zone. **Continuer le téléchargement** poursuit. La pastille disparaît une fois la zone téléchargée. Un téléchargement de carte qui ne progresse plus est abandonné.
 
 L’écran vous prévient pour une bonne raison : « Les tuiles sont volumineuses, souvent 125–250 Mo chacune, et Velorki ne sait pas distinguer le Wi-Fi des données mobiles. Lancez plutôt un téléchargement en Wi-Fi. »
 
-Vous pouvez aussi atteindre cet écran depuis **Réglages → Données hors ligne**, mais ouvert ainsi, il n’y a pas de carte derrière : le bouton de téléchargement est désactivé et la note indique « Ouvrez cet écran depuis la carte pour télécharger la zone que vous regardez. »
+Vous pouvez aussi atteindre cet écran depuis **Réglages → Cartes et données → Données hors ligne**, mais ouvert ainsi, il n’y a pas de carte derrière : le bouton de téléchargement est désactivé et la note indique « Ouvrez cet écran depuis la carte pour télécharger la zone que vous regardez. »
 
 ## Gérer les zones de carte
 
@@ -65,11 +66,11 @@ La carte de l’écran des données hors ligne résume la même chose : « 3 
 - Un bouton **Supprimer** sur chaque ligne, avec l’avertissement « La tuile est retirée de cet appareil. Les itinéraires dans cette zone auront de nouveau besoin du serveur de routage. »
 - Un bouton **Annuler le téléchargement** dans l’en-tête de progression pendant qu’un téléchargement est en cours.
 
-Velorki vérifie chaque semaine si le miroir a reconstruit une tuile que vous possédez. Si c’est le cas, la ligne **Données hors ligne** des Réglages passe à l’orange, affiche « 2 tuiles ont des mises à jour » et place un badge avec le nombre sur le chevron.
+Velorki vérifie chaque semaine si le miroir a reconstruit une tuile que vous possédez. Une tuile ne compte comme mise à jour que si son contenu a changé, et non à chaque passage du miroir. Si c’est le cas, une pastille sur la carte affiche **Nouvelles données cartographiques pour cette zone** avec **Mettre à jour**, le bouton de téléchargement reçoit un badge, et la ligne **Données hors ligne** sous **Réglages → Cartes et données** passe à l’orange, affiche « 2 tuiles ont des mises à jour » et place un badge avec le nombre sur le chevron. **Mettre à jour** sur la pastille pose la question habituelle, puis télécharge de nouveau les tuiles modifiées ; son **X** masque la pastille pour cette zone jusqu’au redémarrage de l’app.
 
 ## Le gazetteer, ou index de recherche
 
-Chaque tuile de routage publiée par le miroir a un petit index de recherche à côté d’elle, et Velorki télécharge les deux ensemble. Rien n’en est exposé comme réglage ou téléchargement séparé.
+Chaque tuile de routage publiée par le miroir a un petit index de recherche à côté d’elle, et Velorki télécharge les deux ensemble. Rien n’en est exposé comme réglage séparé. Si seul l’index de recherche d’une tuile a changé, la mise à jour est un petit téléchargement de l’index seul, sans retélécharger la tuile.
 
 Si l’index ne se télécharge pas, la tuile elle-même reste valable : la zone reste utilisable pour le routage et sa recherche passe simplement en ligne. Il en va de même pour un index dans un format que cette version de l’app ne lit pas : il est ignoré, les autres zones continuent de répondre hors ligne, et cette zone cherche en ligne.
 

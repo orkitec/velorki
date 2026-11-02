@@ -11,13 +11,13 @@ Velorki hat kein Konto, es gibt also nichts, wo man sich anmeldet, und nichts ü
 Alles, was du machst, und alles, was du herunterlädst:
 
 - geplante Routen, aufgezeichnete Fahrten und ihre GPS-Tracks,
-- deine Einstellungen, auch die gewählten Einheiten und die gewählte Stimme sowie Gewicht, Geburtsjahr, Geschlecht, Maximalpuls, Gewicht des Rads, Radtyp und Schwellenleistung, die du unter Einstellungen → Fahrer eintragen kannst; sie sind Einstellungen auf dem Handy und werden nirgendwohin gesendet,
+- deine Einstellungen, auch die gewählten Einheiten und die gewählte Stimme sowie Gewicht, Geburtsjahr, Geschlecht, Maximalpuls, Gewicht des Rads, Radtyp und Schwellenleistung, die du unter Einstellungen → Fahrer & Rad eintragen kannst; sie sind Einstellungen auf dem Handy und werden nirgendwohin gesendet,
 - heruntergeladene Offline-Kartengebiete,
 - heruntergeladene Routing-Kacheln und die Ortssuch-Indizes, die mitkommen,
 - die Zugriffstoken für Strava und Ride with GPS, falls du sie verbindest, die in den sicheren Speicher des Handys wandern, in einer Form, die nur der Velorki-Relay öffnen kann, und von Sicherungen ausgenommen sind.
 - was du von Strava übernimmst: dein Strava-Name, die Liste deiner Strava-Routen für höchstens 48 Stunden, die Routen, die du importierst, und die Links von hochgeladenen Fahrten zu ihren Strava-Aktivitäten. Das Trennen löscht all das.
 
-Nichts davon geht irgendwohin hoch, außer du forderst es an. Die eine Ausnahme ist die Cloud-Synchronisierung: Deine Routen, Fahrten und einige Einstellungen gehen in deine eigene iCloud oder dein eigenes Google Drive, nie zu uns, und Strava-Daten bleiben auf dem Handy. Auf einem iPhone oder iPad ist iCloud standardmäßig an; unter Android ist die Synchronisierung aus, bis du eine Cloud wählst. **Einstellungen → Synchronisieren mit** wählt die Cloud oder schaltet die Synchronisierung aus, siehe [die Bibliothek](./library#synchronisierung-mit-icloud-oder-google-drive).
+Nichts davon geht irgendwohin hoch, außer du forderst es an. Die eine Ausnahme ist die Cloud-Synchronisierung: Deine Routen, Fahrten und einige Einstellungen gehen in deine eigene iCloud oder dein eigenes Google Drive, nie zu uns, und Strava-Daten bleiben auf dem Handy. Auf einem iPhone oder iPad ist iCloud standardmäßig an; unter Android ist die Synchronisierung aus, bis du eine Cloud wählst. **Einstellungen → Synchronisierung → Synchronisieren mit** wählt die Cloud oder schaltet die Synchronisierung aus, siehe [die Bibliothek](./library#synchronisierung-mit-icloud-oder-google-drive).
 
 Unter Android ist Velorki bewusst aus Googles Cloud-Sicherung und aus der Übertragung von Gerät zu Gerät ausgenommen, deine Fahrten werden also auch vom System nicht vom Handy kopiert. Für den Umzug auf ein neues Handy schaltest du die Synchronisierung mit Google ein oder exportierst das Gewünschte als GPX-, FIT- oder TCX-Datei, siehe [Import und Export](./import-and-export).
 
@@ -27,11 +27,19 @@ Unter Android ist Velorki bewusst aus Googles Cloud-Sicherung und aus der Übert
 
 Kartenkacheln werden von OpenFreeMap geholt, und von CyclOSM, wenn du unter **Ebenen** die **Online-Radkarte** einschaltest. Die **Radkarte** wird auf dem Handy gezeichnet und fragt bei keinem Server etwas an. Eine Kachel anzufragen verrät dem Kachelserver, welches Quadrat der Welt du gerade ansiehst, und umfasst deine IP-Adresse, wie jede Anfrage. Ein heruntergeladenes Gebiet kommt vom Handy und fragt nach nichts.
 
+### Wetter
+
+Die Wetterkarte (Regen, Wolken, Wind) und eine nach Wind oder Regen gefärbte Route holen Bilder und Vorhersagedaten direkt von öffentlichen Wetterdiensten, etwa dem Deutschen Wetterdienst, der NOAA, dem KNMI, der NASA und EUMETSAT. Jede Anfrage nennt einen Kartenausschnitt oder einen Kasten um deine Route und eine Zeit und umfasst deine IP-Adresse; die Route selbst, deine Fahrten und deine Identität werden nicht gesendet. Mit Velorki Plus laufen die genauere Vorhersage und das Regenradar stattdessen über das Velorki-Relay: für die Vorhersage die Punkte entlang der Route, auf ein Raster von etwa 2,5 km gerundet, mit den Stunden, in denen du dort fährst; für das Radar der Kartenausschnitt, den du ansiehst, und eine Zeit. Die Wetterdienste sehen unseren Server, nicht dein Handy.
+
+### Wenn du ein Gebiet herunterlädst
+
+Offline-Kartengebiete kommen von OpenFreeMap, wie die Karte selbst. Routing-Kacheln und der Suchindex daneben kommen vom Kachel-Mirror auf GitHub; GitHub erfährt, welche Kacheln du lädst, und deine IP-Adresse. Ob es neue Kartendaten gibt, fragt Velorki beim selben Mirror an; darüber hinaus geht nichts hinaus.
+
 ### Während du planst
 
 Das Routing läuft auf deinem Handy, wo immer du die Routing-Kacheln hast. Für ein Gebiet ohne Download gehen die Wegpunkte an einen Routing-Server, der die Route zurückschickt. Er bekommt die Wegpunkte und sonst nichts: keine Identität, keine anderen Routen, keine Fahrten.
 
-**Einstellungen → Erweitert → Routing → Nur auf dem Gerät** schaltet den Server ganz ab; Velorki bietet dann den Download an, statt zu berechnen.
+**Einstellungen → Karten & Daten → Routing → Nur auf dem Gerät** schaltet den Server ganz ab; Velorki bietet dann den Download an, statt zu berechnen.
 
 ### Während du suchst
 
@@ -48,6 +56,8 @@ Einen kurzen Kartenlink, den du in Velorki teilst (`maps.app.goo.gl`, `maps.appl
 ### Während du aufzeichnest
 
 Gar nichts verlässt das Handy. Aufzeichnung, Statistik, Diagramme und Splits werden alle auf dem Gerät berechnet. Dasselbe gilt für Puls, Trittfrequenz und Leistung von einer Uhr, einem Bluetooth-Sensor oder deiner Health-App: Sie werden mit der Fahrt gespeichert und, wenn du Health eingeschaltet hast, auf dem Handy selbst mit Apple Health oder Health Connect ausgetauscht.
+
+Deine Position zentriert die Karte und zeichnet deine Fahrten auf und bleibt auf dem Handy. Velorki fragt beim ersten Start einmal nach der Erlaubnis. Sie verlässt das Handy nur in zwei Fällen, beide nur, wenn du sie auslöst: auf etwa einen Kilometer gerundet zum Assistenten, wenn du das erlaubt hast, und als grobe Position zu Photon, wenn du online suchst.
 
 ### Wenn du den Assistenten fragst
 
@@ -68,6 +78,10 @@ Diese Route oder Fahrt wird mit ihrem Track, ihrem Namen und ihren Zahlen auf un
 ### Wenn du Velorki Plus kaufst
 
 Der Store wickelt die Zahlung ab, und wir sehen deine Karte nie. Das Abo wird gegen eine anonyme Zufalls-ID geprüft, die weder mit einem Namen noch mit einer E-Mail-Adresse noch mit einer Gerätekennung verknüpft ist. Bei eingeschalteter Synchronisierung legt die App diese ID außerdem in deine eigene Cloud, damit der Planer im Browser, angemeldet beim selben Konto, dein Plus nutzen kann.
+
+### Update-Hinweise und Bewertungen
+
+Auf einem iPhone fragt Velorki die öffentliche Abfrage des App Store, ob es eine neuere Version gibt, mit der Bundle-ID der App, deinem Land und deiner Sprache; unter Android sagt es Google Play. Das Bewertungsfenster ist das des Systems, Apple oder Google entscheiden, ob und wann es erscheint, und eine Bewertung erreicht uns nie.
 
 ## Was Velorki nie tut
 

@@ -1,6 +1,6 @@
 ---
 title: Strava et Ride with GPS
-description: Velorki fonctionne avec Strava et Ride with GPS, gratuitement. Connectez un compte pour téléverser vos sorties enregistrées et importer des itinéraires, et comprenez pourquoi l’envoi d’un itinéraire vers Strava passe par un fichier.
+description: Velorki fonctionne gratuitement avec Strava et Ride with GPS. Connectez un compte pour envoyer des sorties et importer des itinéraires.
 order: 13
 ---
 
@@ -10,10 +10,12 @@ Rien n’est envoyé à l’un ou l’autre service tant que vous n’avez pas c
 
 ## Connecter un compte
 
-1. Ouvrez **Réglages** et trouvez la section **Connexions**.
+1. Ouvrez **Réglages → Connexions**.
 2. Touchez **Se connecter avec Strava** ou **Se connecter à Ride with GPS**.
 3. La page de connexion du service s’ouvre dans un navigateur. Connectez-vous-y et autorisez l’accès.
 4. Vous revenez dans Velorki, et la ligne affiche votre nom au lieu de **Non connecté**.
+
+Pour Strava, une note vient d’abord, **Avant de connecter Strava** : ce que Velorki lit, ce qu’il écrit, comment fonctionne la connexion et comment la couper. Lisez-la, puis passez à la page de connexion.
 
 Velorki ne demande à Strava que deux autorisations : **read**, votre profil public (votre identifiant et votre nom, affichés dans les Réglages), et **activity:write**, pour téléverser les sorties que vous choisissez de téléverser. Il ne lit pas vos activités.
 

@@ -16,7 +16,9 @@ De instellingen staan op twee plekken tegelijk, en het is beide keren dezelfde i
 2. **Stem**, "De afslagen hardop uitspreken".
 3. **Als je de route verlaat**: **Terugleiden**, **Nieuwe route naar de bestemming** of **Niet herberekenen**. Zie [als je de route verlaat](#als-je-de-route-verlaat).
 
-Kies daarna op het tabblad **Opnemen** iets onder **Een route volgen**: **De route op het tabblad Plannen** als de planner een route heeft, of een willekeurige route uit je bibliotheek. Start de rit en de banner verschijnt.
+Kies daarna op het tabblad **Opnemen** iets onder **Een route volgen**: **De route op het tabblad Plannen** als de planner een route heeft, of een willekeurige route uit je bibliotheek. Start de rit en de banner verschijnt. Vanaf het tabblad Plannen doet **Rijden** naast **Opslaan** deze stappen in één keer: het opent het tabblad Opnemen met het plan gekozen en start de rit.
+
+Heeft de route geen afslaginstructies, dan vraagt het starten van de rit **Geen afslaginstructies**: **Maken** maakt ze op basis van de kaart, **Zonder rijden** doet het zonder. Staat de regio van de route nog niet op de telefoon, dan vraagt Velorki om hem meteen te downloaden en wacht met de voortgang van de download, "Wachten tot de regio is gedownload…", daarna "Afslaginstructies worden gemaakt…".
 
 ## De afslagbanner
 
@@ -81,6 +83,16 @@ Alleen de oranje banner, met de afstand tot de route en de richting terug. Velor
 De banner toont **Opnieuw berekenen…** terwijl een weg terug of een nieuwe route wordt berekend, en **Route opnieuw berekend** als er een nieuwe route is. **Nieuwe route vanaf hier**, een knop naast de oranje banner, plant meteen van waar je staat naar de bestemming, ongeacht de instelling.
 
 Alle afstanden hierboven groeien mee met hoe slecht je GPS-positie is, ruwweg een verdubbeling met de opgegeven nauwkeurigheid, zodat een telefoon onder bomen je niet steeds kwijt verklaart. Ze groeien niet verder bij een nauwkeurigheid van 100 meter, zodat een telefoon die de lucht helemaal kwijt is, de detectie van het verlaten van de route niet kan uitschakelen.
+
+## Een tussenstop toevoegen onderweg
+
+Volgt een rit een route, tik dan op de kaart op een stop (een café, een drinkwaterpunt, een winkel) en de kaart ervan biedt **Als tussenstop**. Velorki vraagt **Toevoegen aan de route?**: "De route wordt opnieuw berekend met deze tussenstop, en de navigatie volgt de nieuwe route." Bevestig met **Toevoegen en herberekenen**.
+
+- De stop komt in het deel van de route dat nog voor je ligt, nooit erachter. Een stop naast wat je al hebt gereden wordt het volgende punt.
+- De begeleiding gaat door langs de oude route tot de nieuwe klaar is, dus de stem en de banner stoppen niet. De rit blijft de hele tijd opnemen.
+- Bij een geïmporteerde route wordt alleen het stuk rond de stop opnieuw gerouteerd; de eigen lijn van het bestand blijft overal elders.
+- Volg je een opgeslagen route, dan blijft die zoals hij is: de gewijzigde route staat op het tabblad Plannen en de rit volgt die.
+- Kan de stop niet worden gerouteerd, dan wordt hij weer weggehaald en zie je "De tussenstop kon niet aan de route worden toegevoegd. De navigatie volgt de route zoals die was."
 
 ## De kaart tijdens het navigeren
 

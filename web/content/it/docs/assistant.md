@@ -10,7 +10,7 @@ L'assistente fa parte di [Velorki Plus](./velorki-plus).
 
 ## Aprirlo
 
-Tocca **Chiedi** nella barra degli strumenti del pannello del percorso nella scheda **Pianifica**. La scheda dell'assistente prende il posto del pannello del percorso, intitolata **Chiedi un percorso**: "Descrivi il giro che hai in mente. Velorki lo trasforma in una richiesta e pianifica il percorso sul tuo telefono." La mappa sopra resta la mappa: spostala, ingrandiscila e toccala come con il pannello del percorso aperto. Scorri la scheda verso il basso, o torna indietro, e il pannello del percorso è di nuovo lì come lo avevi lasciato; quello che hai scritto e le risposte restano per la prossima volta.
+Tocca **Chiedi** nella barra degli strumenti del pannello del percorso nella scheda **Pianifica**. La scheda dell'assistente prende il posto del pannello del percorso, intitolata **Chiedi un percorso**: "Descrivi il giro che hai in mente. Velorki lo trasforma in una richiesta e pianifica il percorso su questo dispositivo." La mappa sopra resta la mappa: spostala, ingrandiscila e toccala come con il pannello del percorso aperto. Scorri la scheda verso il basso, o torna indietro, e il pannello del percorso è di nuovo lì come lo avevi lasciato; quello che hai scritto e le risposte restano per la prossima volta.
 
 Con un percorso sulla mappa il pannello si apre invece su **Questo percorso**, una domanda su quel percorso (vedi [Fai domande su questo percorso](#fai-domande-su-questo-percorso)); **Nuovo percorso** sopra riporta indietro.
 
@@ -20,9 +20,9 @@ Se il pulsante **Chiedi** non c'è, questa build di Velorki non ha alcun indiriz
 
 La prima volta che invii qualcosa, Velorki mostra **Prima che l'assistente chieda**:
 
-> Quello che scrivi viene inviato al server Velorki, che lo passa al nostro fornitore di IA. Non parte nient'altro: nessun nome, nessun account, nessuna cronologia dei percorsi.
+> Quello che scrivi, e il percorso su cui fai domande, viene inviato al server Velorki, che lo passa al nostro fornitore IA. Non viaggia nient'altro: nessun nome, nessun account, nessuna cronologia dei percorsi.
 >
-> Se lo consenti, viene inviata anche la tua posizione, arrotondata a circa un chilometro, così "da qui" ha un senso.
+> Se lo permetti, viene inviata anche la tua posizione, arrotondata a circa un chilometro. Senza, l'assistente non sa dove sei e i suoi suggerimenti saranno meno precisi.
 
 Tre risposte:
 

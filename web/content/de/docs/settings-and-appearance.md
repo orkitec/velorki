@@ -1,28 +1,22 @@
 ---
 title: Einstellungen und Darstellung
-description: Jede Einstellung in Velorki, von Design, Akzent, Einheiten und Sprache über Navigation, Aufzeichnung, Sensoren und Suche bis zu Offline-Daten, Verbindungen und Server-URLs.
+description: "Jede Einstellung in Velorki: Synchronisierung, Plus, Verbindungen, Navigation, Aufzeichnung, Sensoren, Design, Einheiten, Sprache, Offline-Daten."
 order: 16
 ---
 
-Der Tab Einstellungen ist eine einzige scrollende Seite mit einem Abschnitt je Thema. Diese Seite geht ihn von oben nach unten durch, damit du den gesuchten Schalter findest und weißt, was er tut.
+Der Tab Optionen ist eine Übersicht mit Zeilen in drei Gruppen, **Synchronisierung & Plus**, **Unterwegs** und **App**, und jede Zeile öffnet ihre eigene Seite. Eine Zeile fehlt, wo sie auf dem Handy keinen Sinn hätte, etwa **Sensoren** ohne Health-App. Diese Seite geht die Zeilen der Reihe nach durch, damit du den gesuchten Schalter findest und weißt, was er tut.
 
-## Darstellung
+## Synchronisierung
 
-**Design**: **System**, **Hell** oder **Dunkel**. System folgt dem Handy.
+**Synchronisieren mit**: **iCloud**, **Google** oder **Aus**, was das Handy anbietet. Deine Routen, Fahrten und einige Einstellungen folgen dir dann über dein eigenes iCloud oder dein eigenes Google Drive auf deine anderen Geräte, nie über uns. Eine Zeile unter der Auswahl sagt, wie es steht, etwa "Gerade synchronisiert" oder "Wartet auf eine Verbindung". Bei Google zeigt die Seite auch das Konto, mit **Anmelden** oder **Abmelden**. Auf einem iPhone oder iPad ist iCloud standardmäßig an; unter Android bleibt die Synchronisierung aus, bis du eine Cloud wählst. Routen von Strava bleiben auf dem Gerät. Die Einzelheiten stehen unter [Synchronisierung mit iCloud oder Google Drive](./library#synchronisierung-mit-icloud-oder-google-drive).
 
-**Karte**: wie die Karte selbst gezeichnet wird, unabhängig vom Design der App, je ein Segment: **Automatisch**, **Hell**, **Nacht** oder **Schwarz**. **Schwarz** ist das für eine Fahrt im Dunkeln mit gedimmtem Display, und Energiesparen erzwingt es ohnehin.
+## Velorki Plus
 
-**Online-Radkarte auf dunklen Karten**: was mit der **Online-Radkarte** aus **Ebenen** geschehen soll, wenn die Karte darunter dunkel ist: **Invertiert**, **Gedimmt** oder **Unverändert**. Diese Karte kommt als Bilder, gezeichnet für einen hellen Untergrund, auf einer Nachtkarte braucht sie also Hilfe. Die Offline-**Radkarte** hat eigene Farben für dunkle Karten und ist davon nicht betroffen.
+**Velorki Plus** mit **Aktiv** oder **Nicht aktiv** darunter, und dem Verlängerungs- oder Enddatum, wo es eines gibt. Ein Tipper darauf öffnet die Abo-Seite. Darunter sitzen, solange Plus aktiv ist, **Verwalten**, was die Abo-Seite des Stores öffnet, und **Käufe wiederherstellen**. In einem Build ohne Store gibt es beides nicht. Siehe [Velorki Plus](./velorki-plus).
 
-**Glas**: wie viel von der Karte durch die Tab-Leiste und die Bedienelemente über der Karte scheint: **Deckend**, **Transparent**, **Leichtes Glas** oder **Klares Glas**, die Voreinstellung.
+## Verbindungen
 
-**Regenradar**: wie das Regenradar aus **Ebenen** gezeichnet wird: **Weich**, die Voreinstellung, mit sanften Rändern und leichtem Regen blasser als starkem, oder **Wie gemessen**, jedes Regenbild (Radar, Satellit, Vorhersage) so, wie die Wetterdienste es liefern, das Radar in seinen 1-km-Zellen.
-
-**Akzent**: fünf Farbvoreinstellungen: **Volt**, **Glut**, **Gletscher**, **Beere** und **Wald**. Der Akzent färbt die Schaltflächen, die Diagramme und die Routenlinie auf der Karte.
-
-**Einheiten**: **Metrisch** oder **Imperial**, verwendet von jeder Zahl, jedem Schieberegler, jeder Diagrammachse, dem Abbiegeband und jeder Sprachansage in der App. Bis du wählst, folgt Velorki dem Land des Handys.
-
-**Sprache**: **System**, English, Deutsch, Español, Français, Italiano oder Nederlands, jede in ihrer eigenen Sprache benannt. **System** folgt den Sprachen des Handys in der dort eingestellten Reihenfolge und weicht auf Englisch aus. Ab Android 13 kann auch das Handy selbst eine Sprache nur für Velorki festlegen (Einstellungen → Apps → Velorki → Sprache), der **System** dann folgt. Die gesprochenen Abbiegehinweise folgen derselben Wahl.
+Je eine Zeile für **Strava** und für **Ride with GPS**, die entweder **Nicht verbunden**, nach dem Verbinden deinen Namen, oder **In diesem Build nicht verfügbar** zeigt. **Verbinden mit Strava** und **Mit Ride with GPS verbinden** stehen unter den nicht verbundenen, **Trennen** neben den verbundenen. Beide Verbindungen sind kostenlos. Siehe [Strava und Ride with GPS](./strava-and-ridewithgps).
 
 ## Navigation
 
@@ -50,9 +44,9 @@ Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufzeichnen
 
 **Fahrtwerte**: jeder Wert, den eine Fahrt zeigen kann, mit einem Griff zum Verschieben und einem Schalter zum Ausblenden. Die Übersicht zeigt sie in dieser Reihenfolge, die Leiste, in die sie sich faltet, die ersten vier, die Blickseite die ersten zwei neben der Zeit der Fahrt; ein Wert ohne Anzeige, ein nicht verbundener Sensor oder keine gefolgte Route, gibt seinen Platz an den nächsten ab. Einer bleibt mindestens an, die Schaltfläche zum Zurücksetzen oben rechts stellt die Voreinstellung wieder her, und **Zeit**, die die Übersicht ohnehin neben dem Status zeigt, ist aus, bis du sie einschaltest. **Werte bearbeiten** unter den Werten in der Übersicht öffnet dieselbe Liste.
 
-## Fahrer
+## Fahrer & Rad
 
-Drei Schalter, alle standardmäßig aus, und die Felder, die sie brauchen.
+Vier Schalter, alle standardmäßig aus, und die Felder, die sie brauchen.
 
 **Kalorien schätzen** setzt eine Zahl **Kalorien** auf das Blatt jeder Fahrt: aus deinem Leistungsmesser, wenn du einen hast, sonst aus deinem Puls, sonst aus deinem Tempo. Es braucht dein Gewicht; die Schätzung aus dem Puls braucht außerdem dein Geburtsjahr und dein Geschlecht.
 
@@ -74,21 +68,37 @@ Ist einer der Schalter an, erscheinen die Felder: **Gewicht** (kg, bei imperiale
 
 **Bluetooth-Sensoren**: "Brustgurte, Geschwindigkeits- und Trittfrequenzsensoren, Leistungsmesser", oder wie viele Sensoren gekoppelt sind. Dahinter liegt der Bildschirm, auf dem **Scannen** sie sucht. Alles davon steht ausführlich unter [Sensoren und deine Uhr](./sensors-and-watch).
 
-## Abo
+## Darstellung
 
-**Velorki Plus** mit **Aktiv** oder **Nicht aktiv** darunter, und dem Verlängerungs- oder Enddatum, wo es eines gibt. Ein Tipper darauf öffnet die Abo-Seite. Darunter sitzen **Verwalten**, was die Abo-Seite des Stores öffnet, und **Käufe wiederherstellen**. Siehe [Velorki Plus](./velorki-plus).
+Auf dieser Seite stehen am Ende auch **Einheiten** und **Sprache**.
 
-## Verbindungen
+**Design**: **System**, **Hell** oder **Dunkel**. System folgt dem Handy.
 
-Je eine Zeile für **Strava** und für **Ride with GPS**, die entweder **Nicht verbunden**, nach dem Verbinden deinen Namen, oder **In diesem Build nicht verfügbar** zeigt. **Verbinden mit Strava** und **Mit Ride with GPS verbinden** stehen unter den nicht verbundenen, **Trennen** neben den verbundenen. Beide Verbindungen sind kostenlos. Siehe [Strava und Ride with GPS](./strava-and-ridewithgps).
+**Karte**: wie die Karte selbst gezeichnet wird, unabhängig vom Design der App, je ein Segment: **Automatisch**, **Hell**, **Nacht** oder **Schwarz**. **Schwarz** ist das für eine Fahrt im Dunkeln mit gedimmtem Display, und Energiesparen erzwingt es ohnehin.
+
+**Online-Radkarte auf dunklen Karten**: was mit der **Online-Radkarte** aus **Ebenen** geschehen soll, wenn die Karte darunter dunkel ist: **Invertiert**, **Gedimmt** oder **Unverändert**. Diese Karte kommt als Bilder, gezeichnet für einen hellen Untergrund, auf einer Nachtkarte braucht sie also Hilfe. Die Offline-**Radkarte** hat eigene Farben für dunkle Karten und ist davon nicht betroffen.
+
+**Glas**: wie viel von der Karte durch die Tab-Leiste und die Bedienelemente über der Karte scheint: **Deckend**, **Transparent**, **Leichtes Glas** oder **Klares Glas**, die Voreinstellung. Sie wird von selbst deckend, solange das Handy Strom spart und bei Fahrten mit Energiesparen, und sagt das unter der Auswahl.
+
+**Seite auf großen Bildschirmen**: **Links** oder **Rechts**. Es gibt sie nur auf einem Tablet oder dem Innendisplay eines faltbaren Handys, wo Velorki in einer Spalte über der Karte steht; sie wählt die Seite dieser Spalte.
+
+**Regenradar**: wie das Regenradar aus **Ebenen** gezeichnet wird: **Weich**, die Voreinstellung, mit sanften Rändern und leichtem Regen blasser als starkem, oder **Wie gemessen**, jedes Regenbild (Radar, Satellit, Vorhersage) so, wie die Wetterdienste es liefern, das Radar in seinen 1-km-Zellen.
+
+**Akzent**: fünf Farbvoreinstellungen: **Volt**, **Glut**, **Gletscher**, **Beere** und **Wald**. Der Akzent färbt die Schaltflächen, die Diagramme und die Routenlinie auf der Karte.
+
+**Einheiten**: **Metrisch** oder **Imperial**, verwendet von jeder Zahl, jedem Schieberegler, jeder Diagrammachse, dem Abbiegeband und jeder Sprachansage in der App. Bis du wählst, folgt Velorki dem Land des Handys.
+
+**Sprache**: **System**, English, Deutsch, Español, Français, Italiano oder Nederlands, jede in ihrer eigenen Sprache benannt. **System** folgt den Sprachen des Handys in der dort eingestellten Reihenfolge und weicht auf Englisch aus. Ab Android 13 kann auch das Handy selbst eine Sprache nur für Velorki festlegen (Einstellungen → Apps → Velorki → Sprache), der **System** dann folgt. Die gesprochenen Abbiegehinweise folgen derselben Wahl.
 
 ## KI-Assistent
 
-**Was gesendet wird** sagt immer, welche Zustimmung du gegeben hast: "Noch nicht gefragt.", "Nichts. Der Assistent ist aus.", "Nur dein Text." oder "Dein Text und deine grobe Position (etwa 1 km)." **Ändern** daneben öffnet den Zustimmungsdialog erneut.
+**Was gesendet wird** sagt immer, welche Zustimmung du gegeben hast: "Noch nicht gefragt.", "Nichts. Der Assistent ist aus.", "Nur dein Text. Ohne deine Position sind die Vorschläge ungenauer." oder "Dein Text und deine grobe Position (etwa 1 km)." **Ändern** daneben öffnet den Zustimmungsdialog erneut.
 
 **KI-Antwort melden**: "Melde eine Antwort, die falsch oder unpassend war." Öffnet eine Mail an uns.
 
-## Erweitert
+## Karten & Daten
+
+Vier Einträge: **Offline-Daten**, **Suche**, **Routing** und **Server-URLs**.
 
 **Offline-Daten**: "Karten und Routing-Daten für Fahrten ohne Empfang". Hat der Mirror Kacheln neu gebaut, die du besitzt, wird der Untertitel orange und zählt sie. Siehe [Offline-Karten und Routing](./offline-maps-and-routing).
 
@@ -107,8 +117,9 @@ Je eine Zeile für **Strava** und für **Ride with GPS**, die entweder **Nicht v
 - **Velorki**, mit der Versionsnummer.
 - **© OpenStreetMap contributors**.
 - **Open-Source-Lizenzen**: "Die Software und die Kartendaten, auf denen Velorki aufbaut."
-- **Datenschutzerklärung** und **Nutzungsbedingungen**, die im Browser aufgehen.
+- **Datenschutzerklärung**, **Nutzungsbedingungen** und **Impressum**, die im Browser aufgehen.
 - **Problem melden**: "Issue auf GitHub öffnen."
+- **Leistung anzeigen**: "Bildrate, Bildzeiten und Speicher in einer Ecke des Bildschirms".
 
 ## Weiterlesen
 

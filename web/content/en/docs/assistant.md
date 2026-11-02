@@ -10,7 +10,7 @@ The assistant is part of [Velorki Plus](./velorki-plus).
 
 ## Open it
 
-Tap **Ask** in the toolbar of the route sheet on the **Plan** tab. The assistant's card takes the route sheet's place, titled **Ask for a route**: "Describe the ride you have in mind. Velorki turns it into a request and plans the route on your phone." The map above it stays the map: move it, zoom it and tap it as with the route sheet up. Swipe the card down, or go back, and the route sheet is there again as you left it; what you typed and the answers stay for the next time.
+Tap **Ask** in the toolbar of the route sheet on the **Plan** tab. The assistant's card takes the route sheet's place, titled **Ask for a route**: "Describe the ride you have in mind. Velorki turns it into a request and plans the route on this device." The map above it stays the map: move it, zoom it and tap it as with the route sheet up. Swipe the card down, or go back, and the route sheet is there again as you left it; what you typed and the answers stay for the next time.
 
 With a route on the map the sheet opens on **This route** instead, a question about that route (see [Ask about this route](#ask-about-this-route)); **New route** above it switches back.
 
@@ -20,9 +20,9 @@ If the **Ask** button is not there, this build of Velorki has no server address 
 
 The first time you send something, Velorki shows **Before the assistant asks**:
 
-> What you type is sent to the Velorki server, which forwards it to our AI provider. Nothing else goes with it: no name, no account, no route history.
+> What you type, and a route you ask about, is sent to the Velorki server, which forwards it to our AI provider. Nothing else goes with it: no name, no account, no route history.
 >
-> If you allow it, your position is sent as well, rounded to about one kilometre, so "from here" means something.
+> If you allow it, your position is sent as well, rounded to about one kilometre. Without it the assistant does not know where you are, and its suggestions will be less accurate.
 
 Three answers:
 

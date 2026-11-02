@@ -21,24 +21,26 @@ Velorki è open source. Se preferisci compilarlo da solo, o far girare i tuoi se
 
 ## Il primo avvio
 
-Velorki si apre sulla scheda **Pianifica**, mostrando una mappa del mondo. Non è ancora stato scaricato nulla e non è ancora stato chiesto nessun permesso.
+Velorki si apre sulla scheda **Pianifica**. La prima volta chiede prima di tutto la tua posizione (vedi sotto), poi mostra la mappa dove sei, oppure sul paese del tuo telefono se rifiuti. Piste ciclabili e [soste](./stops-on-the-map) sono già disegnate; disattivale in **Livelli** se non le vuoi. Non è ancora stato scaricato nulla.
+
+Il piano vuoto dice "Cerca un luogo o tocca la mappa." Una breve animazione indica quella riga, il campo di ricerca e, se la tua area non è scaricata, il chip di download. Parte una volta sola e si ferma al primo tocco.
 
 Una buona prima sessione:
 
 1. Sposta la mappa dove pedali e allarga le dita per ingrandire.
 2. Tocca la mappa per impostare una partenza, tocca di nuovo per aggiungere una destinazione. Un percorso compare in un attimo.
-3. Tocca il pulsante di download a destra della mappa (**Dati offline**) e scarica l'area, così la mappa e il calcolo del percorso continuano a funzionare quando il segnale no. Vedi [mappe offline e calcolo del percorso](./offline-maps-and-routing) per cosa sono i due download e quanto diventano grandi.
+3. Scarica l'area, così la mappa e il calcolo del percorso continuano a funzionare quando il segnale no: tocca **Scarica** nel chip sulla mappa, oppure il pulsante di download rotondo a destra della mappa. Conferma l'unica domanda che pone e segui l'avanzamento nel chip. Vedi [mappe offline e calcolo del percorso](./offline-maps-and-routing) per cosa sono i due download e quanto diventano grandi.
 4. Imposta le tue unità in **Opzioni → Aspetto → Unità** se l'app ha indovinato male.
 
 ## I permessi che chiede, e perché
 
-Velorki non chiede nulla all'avvio. Ogni permesso viene richiesto nel momento in cui serve per la prima volta, e ognuno viene spiegato prima che compaia la finestra di sistema.
+Velorki chiede la tua posizione al primo avvio, e tutto il resto nel momento in cui serve per la prima volta. Ogni permesso viene spiegato prima che compaia la finestra di sistema.
 
 ### Posizione
 
-Chiesto la prima volta che tocchi **Mostra la mia posizione**, avvii un giro o chiedi un anello da dove sei.
+Chiesto quando apri l'app per la prima volta, e poi la prima volta che tocchi **Mostra la mia posizione**, avvii un giro o chiedi un anello da dove sei.
 
-Velorki mostra prima la sua finestra, intitolata **Mostrare la tua posizione?**: "Velorki usa la tua posizione per centrare la mappa su di te e registrare i giri. La posizione resta su questo dispositivo e non viene mai caricata." Puoi rispondere **Non ora** e continuare a usare l'app; solo le funzioni che devono sapere dove sei smettono di funzionare.
+Velorki mostra prima la sua finestra, intitolata **Mostrare la tua posizione?**: "Velorki usa la tua posizione per centrare la mappa su di te e registrare i giri. La posizione resta su questo dispositivo e non viene mai caricata." Tocca **Continua** per la finestra di sistema. Su Android puoi anche rispondere **Non ora** e continuare a usare l'app; solo le funzioni che devono sapere dove sei smettono di funzionare. Su iPhone la finestra ha solo **Continua**, e la decisione la prendi nella finestra di sistema che segue. Se rifiuti al primo avvio, la mappa si apre sul paese del tuo telefono e Velorki non lo chiede più finché non tocchi **Mostra la mia posizione**.
 
 Con il permesso concesso, la mappa si apre dove l'avevi lasciata e poi scivola verso la tua posizione: subito dove il telefono ti ha visto l'ultima volta se è meno di un'ora fa, e al primo rilevamento fresco quando non lo è, o quando quel rilevamento ti mette a più di circa 300 m da lì, sia all'avvio dell'app sia quando ci torni dopo mezz'ora o più. Resta ferma mentre c'è un piano nella scheda Pianifica, una scheda di percorso o giro è aperta, un giro è in registrazione, sei già in vista, o hai spostato la mappa tu stesso.
 
@@ -67,7 +69,7 @@ La barra in basso ha quattro schede.
 | **Pianifica** | La mappa, la ricerca dei luoghi, il pianificatore di percorsi, gli anelli intelligenti e l'assistente. |
 | **Registra** | Avviare, mettere in pausa e terminare un giro, i numeri in tempo reale e i tuoi giri recenti. |
 | **Libreria** | Tutto ciò che hai salvato: **Percorsi** e **Giri**, con importazione ed esportazione. |
-| **Opzioni** | Aspetto, unità e lingua, opzioni di navigazione e registrazione, dati offline, ricerca, connessioni, abbonamento e le pagine legali. |
+| **Opzioni** | Un elenco di pagine: Sincronizzazione, Velorki Plus e Connessioni; Navigazione, Registrazione, Ciclista e bici e Sensori; Aspetto (tema, unità, lingua), Assistente IA, Mappe e dati (dati offline, ricerca) e Informazioni con le pagine legali. |
 
 La barra galleggia sopra il contenuto, così gli elenchi scorrono sotto di essa.
 
@@ -83,7 +85,7 @@ Finché non scegli, Velorki segue il paese del telefono: imperiale solo dove il 
 
 ## Dove si trovano le cose
 
-- **I controlli della mappa** stanno in una colonna a destra della mappa: **Mostra la mia posizione**, **Livelli** ([la mappa ciclabile](./map-layers) e le [soste sulla mappa](./stops-on-the-map)), **Dati offline** (non su uno schermo piccolo come un iPhone SE), **Ingrandisci** e **Riduci**. Nella scheda Registra si aggiunge un pulsante bussola, che alterna tra **Nord in alto** e **La mappa gira con te**.
+- **I controlli della mappa** stanno in una colonna a destra della mappa: **Mostra la mia posizione**, **Livelli** ([la mappa ciclabile](./map-layers) e le [soste sulla mappa](./stops-on-the-map)), **Dati offline** (il pulsante di download; non su uno schermo piccolo come un iPhone SE), **Ingrandisci** e **Riduci**. Nella scheda Registra si aggiunge un pulsante bussola, che alterna tra **Nord in alto** e **La mappa gira con te**.
 - **Il campo di ricerca** è in alto nella scheda Pianifica.
 - **Il profilo bici** (Trekking, Corsa, Gravel, MTB, Diretto) è la fila di chip sotto il campo di ricerca.
 - **Il pannello del percorso** è il riquadro in basso nella scheda Pianifica. Trascinalo verso l'alto per l'altimetria e la ripartizione del fondo, verso il basso per vedere più mappa.

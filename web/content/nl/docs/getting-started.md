@@ -21,24 +21,26 @@ Velorki is open source. Bouw je hem liever zelf, of draai je je eigen servers vo
 
 ## De eerste keer openen
 
-Velorki opent op het tabblad **Plannen**, met een wereldkaart. Er is nog niets gedownload en er is nog geen toestemming gevraagd.
+Velorki opent op het tabblad **Plannen**. De eerste keer vraagt de app eerst om je locatie (zie hieronder) en toont daarna de kaart waar je bent, of boven het land van je telefoon als je weigert. Fietsstroken en [stopplekken](./stops-on-the-map) staan er al op; zet ze uit onder **Kaartlagen** als je ze liever niet ziet. Er is nog niets gedownload.
+
+Het lege plan zegt "Zoek een plaats of tik op de kaart." Een korte animatie wijst naar die regel, naar het zoekveld en, als je gebied niet is gedownload, naar de downloadchip. Hij speelt één keer en stopt bij je eerste aanraking.
 
 Een goede eerste sessie:
 
 1. Schuif de kaart naar waar je fietst en zoom in door te knijpen.
 2. Tik op de kaart om een start te kiezen en tik nog eens om een bestemming toe te voegen. Binnen een ogenblik verschijnt er een route.
-3. Tik op de downloadknop rechts op de kaart (**Offline gegevens**) en download het gebied, zodat de kaart en de routering blijven werken als het bereik dat niet doet. Zie [offline kaarten en routering](./offline-maps-and-routing) voor wat de twee downloads zijn en hoe groot ze worden.
+3. Download het gebied, zodat de kaart en de routering blijven werken als het bereik dat niet doet: tik op **Downloaden** in de chip boven de kaart, of op de ronde downloadknop rechts op de kaart. Bevestig de ene vraag die de app stelt en volg de voortgang in de chip. Zie [offline kaarten en routering](./offline-maps-and-routing) voor wat de twee downloads zijn en hoe groot ze worden.
 4. Stel je eenheden in onder **Instellingen → Weergave → Eenheden** als de app verkeerd heeft gegokt.
 
 ## De toestemmingen die de app vraagt, en waarom
 
-Velorki vraagt niets bij het opstarten. Elke toestemming wordt gevraagd op het moment dat hij voor het eerst nodig is, en elke toestemming wordt uitgelegd voordat het systeemvenster verschijnt.
+Velorki vraagt om je locatie als je de app voor het eerst opent, en om al het andere op het moment dat het voor het eerst nodig is. Elke toestemming wordt uitgelegd voordat het systeemvenster verschijnt.
 
 ### Locatie
 
-Gevraagd de eerste keer dat je op **Mijn positie tonen** tikt, een rit start of om een rondje vanaf je positie vraagt.
+Gevraagd als je de app voor het eerst opent, en daarna de eerste keer dat je op **Mijn positie tonen** tikt, een rit start of om een rondje vanaf je positie vraagt.
 
-Velorki toont eerst een eigen venster met de titel **Je positie tonen?**: "Velorki gebruikt je locatie om de kaart op jou te centreren en ritten op te nemen. De positie blijft op dit apparaat; hij wordt nooit geüpload." Je kunt **Niet nu** antwoorden en de app gewoon blijven gebruiken; alleen de functies die moeten weten waar je bent, werken dan niet.
+Velorki toont eerst een eigen venster met de titel **Je positie tonen?**: "Velorki gebruikt je locatie om de kaart op jou te centreren en ritten op te nemen. De positie blijft op dit apparaat; hij wordt nooit geüpload." Tik op **Doorgaan** voor het systeemvenster. Op Android kun je ook **Niet nu** antwoorden en de app gewoon blijven gebruiken; alleen de functies die moeten weten waar je bent, werken dan niet. Op de iPhone heeft het venster alleen **Doorgaan**, en in het systeemvenster daarna beslis je zelf. Weiger je bij de eerste start, dan opent de kaart boven het land van je telefoon en vraagt Velorki er niet opnieuw om tot je op **Mijn positie tonen** tikt.
 
 Met de toestemming opent de kaart waar je hem achterliet en glijdt daarna naar je positie: meteen naar waar de telefoon je het laatst zag als dat minder dan een uur geleden is, en naar de eerste verse positiebepaling als dat niet zo is, of als die bepaling je meer dan zo'n 300 m daarvandaan plaatst, zowel bij het starten van de app als wanneer je na een halfuur of langer terugkomt. De kaart blijft staan zolang er een plan op het tabblad Plannen staat, een route- of ritkaart open is, een rit wordt opgenomen, je al in beeld bent of je de kaart zelf hebt verschoven.
 
@@ -67,7 +69,7 @@ De balk onderaan heeft vier tabbladen.
 | **Plannen** | De kaart, het zoeken naar plaatsen, de routeplanner, slimme rondjes en de assistent. |
 | **Opnemen** | Een rit starten, pauzeren en beëindigen, de live waarden en je recente ritten. |
 | **Bibliotheek** | Alles wat je hebt opgeslagen: **Routes** en **Ritten**, met importeren en exporteren. |
-| **Instellingen** | Weergave, eenheden en taal, opties voor navigatie en opname, offline gegevens, zoeken, koppelingen, abonnement en de juridische pagina's. |
+| **Instellingen** | Een lijst met pagina's: Synchronisatie, Velorki Plus en Koppelingen; Navigatie, Opname, Fietser en fiets en Sensoren; Weergave (thema, eenheden, taal), AI-assistent, Kaarten en gegevens (offline gegevens, zoeken) en Over met de juridische pagina's. |
 
 De balk zweeft boven de inhoud, dus lijsten scrollen eronderdoor.
 
@@ -83,7 +85,7 @@ Tot je kiest, volgt Velorki het land van de telefoon: imperiaal alleen waar het 
 
 ## Waar alles zit
 
-- **De kaartknoppen** staan in een kolom rechts op de kaart: **Mijn positie tonen**, **Kaartlagen** ([de fietskaart](./map-layers) en [stopplekken op de kaart](./stops-on-the-map)), **Offline gegevens** (niet op een klein scherm zoals een iPhone SE), **Inzoomen** en **Uitzoomen**. Op het tabblad Opnemen komt er een kompasknop bij, die wisselt tussen **Noorden boven** en **Kaart draait mee**.
+- **De kaartknoppen** staan in een kolom rechts op de kaart: **Mijn positie tonen**, **Kaartlagen** ([de fietskaart](./map-layers) en [stopplekken op de kaart](./stops-on-the-map)), **Offline gegevens** (de downloadknop; niet op een klein scherm zoals een iPhone SE), **Inzoomen** en **Uitzoomen**. Op het tabblad Opnemen komt er een kompasknop bij, die wisselt tussen **Noorden boven** en **Kaart draait mee**.
 - **Het zoekveld** staat bovenaan het tabblad Plannen.
 - **Het fietsprofiel** (Toer, Racefiets, Gravel, MTB, Direct) is de rij knoppen onder het zoekveld.
 - **Het routepaneel** is het paneel onderaan het tabblad Plannen. Sleep het omhoog voor het hoogteprofiel en de verdeling van de ondergrond, omlaag om meer kaart te zien.

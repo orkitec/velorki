@@ -12,16 +12,22 @@ Grabar es gratis y funciona sin ninguna conexión.
 
 1. Abre la pestaña **Grabar**. El panel dice **Listo para rodar**, con un breve consejo debajo.
 2. En **Seguir una ruta** elige qué sigue la salida: **Sin ruta**, **La ruta de la pestaña Planificar** (se ofrece mientras haya una) o una de tus rutas guardadas. Una ruta activa la guía descrita en [navegación paso a paso](./navigation). Hasta que elijas, la pestaña propone la ruta de la que vienes: la ruta cuya ficha tenías abierta en la Biblioteca, o el plan de la pestaña Planificar; tu propia elección se mantiene después hasta que se reinicie la app.
-3. Toca **Iniciar salida**.
-4. Durante la salida, el panel muestra una etiqueta de estado, el cronómetro y las cifras: **Distancia**, **Velocidad**, **Media**, y luego **Subida**, **Bajada**, **En movimiento**. Mientras sigues una ruta se añade una fila **Restante** y **Llegada**: la distancia que aún queda y cuándo llegarás a tu velocidad media hasta ahora, dos guiones hasta que la salida tenga una media.
+3. Toca **Iniciar salida**. Si la ruta no tiene indicaciones de giro, Velorki ofrece crearlas antes, y si su región no está en el teléfono, ofrece descargarla allí mismo y espera a que termine; consulta [navegación paso a paso](./navigation).
+4. Durante la salida, el panel muestra una etiqueta de estado, el cronómetro y las cifras (**Editar datos** elige cuáles y en qué orden): **Distancia**, **Velocidad**, **Media**, y luego **Subida**, **Bajada**, **En movimiento**. Mientras sigues una ruta se añade una fila **Restante** y **Llegada**: la distancia que aún queda y cuándo llegarás a tu velocidad media hasta ahora, dos guiones hasta que la salida tenga una media.
 5. **Pausa** detiene el track donde estás; **Reanudar** continúa. La interrupción se ve como un hueco en el track. En pausa, las cifras se atenúan y la etiqueta pasa a **EN PAUSA**, así el estado se ve de un vistazo.
 6. **Terminar** guarda la salida con un nombre por defecto como **Salida 17 sept 2026** y abre su página.
+
+¿Has planificado una ruta y quieres rodarla? **Salir** junto a **Guardar** en la pestaña Planificar abre la pestaña Grabar con el plan elegido y empieza la salida de la misma manera, con los mismos avisos. Con una salida ya en curso solo cambia a la pestaña Grabar.
 
 Si terminas sin haber grabado nada, Velorki dice «No se grabó nada.» y no guarda ninguna salida.
 
 ### Pausa automática
 
 Velorki se pausa sola tras unos diez segundos sin movimiento; la etiqueta dice entonces **PAUSA AUTOMÁTICA**. A diferencia de una pausa manual, sigue escuchando, y el primer movimiento de verdad la reanuda. Una pausa manual deja de escuchar hasta que pulsas **Reanudar**.
+
+### Añadir una parada por el camino
+
+Mientras sigues una ruta, toca una parada en el mapa y elige **Añadir como parada**: la ruta se recalcula para incluirla, por delante de donde estás, y la guía continúa sin interrupción. Consulta [navegación paso a paso](./navigation#anadir-una-parada-por-el-camino).
 
 ## Frecuencia cardiaca, cadencia y potencia
 

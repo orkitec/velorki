@@ -1,6 +1,6 @@
 ---
 title: Assistant
-description: "Décrivez la sortie que vous voulez en une phrase et Velorki en fait un itinéraire, avec votre consentement, une position arrondie au plus, et aucun historique d'itinéraires envoyé."
+description: Décrivez la sortie voulue en une phrase et Velorki en fait un itinéraire, avec votre accord, au plus une position arrondie et sans historique.
 order: 14
 ---
 
@@ -10,7 +10,7 @@ L'assistant fait partie de [Velorki Plus](./velorki-plus).
 
 ## L'ouvrir
 
-Touchez **Demander** dans la barre d'outils de la fiche d'itinéraire de l'onglet **Planifier**. La carte de l'assistant prend la place de la fiche d'itinéraire, intitulée **Demander un itinéraire** : « Décrivez la sortie que vous avez en tête. Velorki en fait une demande et calcule l’itinéraire sur votre téléphone. » La carte au-dessus reste la carte : déplacez-la, zoomez et touchez-la comme avec la fiche d'itinéraire affichée. Faites glisser la carte de l'assistant vers le bas, ou revenez en arrière, et la fiche d'itinéraire est là, comme vous l'avez laissée ; ce que vous avez tapé et les réponses restent pour la fois suivante.
+Touchez **Demander** dans la barre d'outils de la fiche d'itinéraire de l'onglet **Planifier**. La carte de l'assistant prend la place de la fiche d'itinéraire, intitulée **Demander un itinéraire** : « Décrivez la sortie que vous avez en tête. Velorki en fait une demande et calcule l’itinéraire sur cet appareil. » La carte au-dessus reste la carte : déplacez-la, zoomez et touchez-la comme avec la fiche d'itinéraire affichée. Faites glisser la carte de l'assistant vers le bas, ou revenez en arrière, et la fiche d'itinéraire est là, comme vous l'avez laissée ; ce que vous avez tapé et les réponses restent pour la fois suivante.
 
 Quand un itinéraire est sur la carte, la fiche s'ouvre plutôt sur **Cet itinéraire**, une question à propos de cet itinéraire (voir [Poser une question sur cet itinéraire](#poser-une-question-sur-cet-itinéraire)) ; **Nouvel itinéraire** au-dessus permet de revenir en arrière.
 

@@ -55,6 +55,7 @@ Das Rundenfenster hat kein Feld für einen Ort, an dem du vorbeifahren willst, u
 
 ## Wenn nichts gefunden wird
 
+- **"Diese Route braucht Routing-Kacheln, die nicht auf diesem Gerät sind."** Die Routingdaten für die Gegend sind nicht auf dem Telefon. Unter der Meldung lädt die Schaltfläche **2 Kacheln herunterladen (14 MB)** sie gleich dort herunter, mit dem Fortschritt im Blatt und auf der Karte; die Suche kann starten, sobald sie da sind.
 - **"Hier keine Runde gefunden, andere Distanz versuchen."** Manche Gegenden, eine Insel oder ein Sackgassental, haben schlicht kein Wegenetz für einen Rundkurs dieser Länge. Setz die Distanz deutlich herauf oder herunter, oder starte woanders.
 - **"Standort einschalten oder Karte antippen, um den Start zu setzen."** Es ließ sich kein Startpunkt ermitteln. Erlaube den Standort, oder tippe zuerst auf die Karte.
 - **"Die Rundensuche hat auf diesem Gerät zu lange gedauert. Kürzere Distanz versuchen."** Die Suche hat nach 30 Minuten aufgegeben.

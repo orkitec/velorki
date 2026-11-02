@@ -1,6 +1,6 @@
 ---
 title: Velorki Plus
-description: Todo lo que funciona en tu teléfono es gratis, y también las conexiones con Strava y Ride with GPS. Plus es una pequeña suscripción para las funciones que necesitan nuestros servidores.
+description: Todo lo que funciona en el teléfono es gratis, también Strava y Ride with GPS. Plus es una suscripción pequeña para lo que usa nuestros servidores.
 order: 15
 ---
 
@@ -23,6 +23,7 @@ Gratis, para todo el mundo, para siempre:
 - el mapa del tiempo: radar de lluvia, nubes y viento, con el control de tiempo,
 - el tiempo a lo largo de la ruta de una previsión pública más gruesa, el modelo ICON del Deutscher Wetterdienst: viento, lluvia, temperatura, una línea que los resume y la mejor hora de salida, y la ruta coloreada según la pendiente, la superficie, el viento o la lluvia,
 - las conexiones con Strava y Ride with GPS: subir salidas, importar rutas, enviar rutas a Ride with GPS (consulta [Strava y Ride with GPS](./strava-and-ridewithgps)),
+- sincronizar tus rutas, salidas y algunos ajustes entre tus dispositivos a través de tu propio iCloud o Google Drive,
 - abrir el enlace compartido de otra persona.
 
 Los datos de rutas y el índice de búsqueda se replican para ti sin coste.
@@ -33,7 +34,7 @@ Tres funciones, tal como aparecen en la página de la suscripción:
 
 | Función | Qué es |
 |---|---|
-| **Asistente de IA** | «Describe la salida que quieres; Velorki la convierte en una ruta y la planifica en tu teléfono.» |
+| **Asistente de IA** | «Describe la salida que quieres; Velorki la convierte en una ruta y la planifica en tu dispositivo.» |
 | **Compartir enlaces** | «Convierte una ruta o una salida en un enlace que cualquiera puede abrir en un navegador.» |
 | **El tiempo en la ruta más preciso y radar de lluvia** | «El tiempo a lo largo de la ruta más preciso de servicios meteorológicos locales, con rachas y probabilidad de lluvia, y radar de lluvia real en toda Europa.» |
 
@@ -43,13 +44,13 @@ El tiempo más preciso en la ruta viene del National Weather Service de EE. UU.,
 
 ## Suscribirse
 
-1. Abre **Ajustes**, busca **Suscripción** y toca **Velorki Plus**. La página de la suscripción también se abre desde los botones **Ver Velorki Plus** repartidos por las funciones de pago.
-2. Elige un paquete. Cada casilla muestra su precio y su periodo, y una prueba gratuita aparece bajo el precio: «Empieza con una prueba gratuita de 7 días.»
+1. Abre **Ajustes**, toca **Velorki Plus** y luego la fila **Velorki Plus**. La página de la suscripción también se abre desde los botones **Ver Velorki Plus** repartidos por las funciones de pago.
+2. Elige un paquete. Cada casilla muestra su precio y su periodo, y una prueba gratuita aparece bajo el precio: «Gratis durante 7 días, luego … Cancela al menos 24 horas antes de que termine la prueba y no se te cobrará nada.»
 3. Toca **Suscribirse** y confirma en el panel de la propia tienda.
 
 Aparece «Velorki Plus está activo. ¡Gracias!» y todas las funciones de pago se desbloquean a la vez. Cancelar el panel de la tienda no dice nada y no cambia nada.
 
-La página muestra siempre las condiciones de la propia tienda: «La suscripción se renueva automáticamente al final de cada periodo salvo que se cancele al menos 24 horas antes. El pago lo cobra el App Store o Google Play, donde la suscripción se puede gestionar o cancelar en cualquier momento. Una prueba gratuita que no se cancela pasa a ser una suscripción de pago.»
+La página termina con las condiciones de la propia tienda. En un iPhone el pago se carga a tu cuenta de Apple y la suscripción se renueva automáticamente salvo que se cancele al menos 24 horas antes de que termine el periodo. En Android se carga a tu cuenta de Google Play y se renueva salvo que se cancele antes de que termine el periodo. En ambos casos se puede gestionar o cancelar en cualquier momento en la tienda, y una prueba gratuita que no se cancela pasa a ser una suscripción de pago.
 
 ## La prueba
 
@@ -59,7 +60,7 @@ Cuando un paquete la ofrece, la suscripción empieza con una prueba gratuita y l
 
 Como no hay cuenta, una suscripción activa se reconoce a través de la tienda. En un teléfono nuevo, tras reinstalar, o si la app simplemente ha perdido la pista:
 
-1. Abre **Ajustes → Suscripción**, o la página de la suscripción.
+1. Abre **Ajustes → Velorki Plus**, o la página de la suscripción.
 2. Toca **Restaurar compras**. «¿Ya estás suscrito? Restaurar funciona sin cuenta.»
 
 Velorki dice entonces «Se restauró tu suscripción.», o «La tienda no encontró ninguna compra que restaurar.» si el Apple ID o la cuenta de Google con la que se ha iniciado sesión en el teléfono no tiene ninguna. Una suscripción comprada en una tienda no se puede restaurar en la otra.
@@ -68,13 +69,17 @@ Velorki dice entonces «Se restauró tu suscripción.», o «La tienda no encont
 
 La cancelación se hace en la tienda, nunca en la app.
 
-1. **Ajustes → Suscripción**.
+1. **Ajustes → Velorki Plus**.
 2. Toca **Gestionar**, que abre tu página de suscripción en el App Store o en Google Play.
 3. Cancela allí.
 
 Plus sigue activo hasta el final del periodo que ya pagaste. La fila de Ajustes muestra **Activa · Se renueva el 17 oct 2026** mientras se renueva, y **Activa · Termina el 17 oct 2026** una vez que la has cancelado.
 
 Los reembolsos los conceden Apple y Google, según sus propias políticas, ya que son ellos quienes cobraron.
+
+## En el navegador
+
+Plus no se puede comprar en el planificador web. Si lo compraste en la app para iPhone o Android y sincronizas con iCloud o Google, inicia sesión en el planificador con esa misma cuenta («Inicia sesión con iCloud o Google para usar tu Plus») y Plus también funciona allí. Sin Plus en esa cuenta, el planificador dice «Por ahora, solo en las apps para iPhone y Android».
 
 ## «No disponible en esta versión»
 

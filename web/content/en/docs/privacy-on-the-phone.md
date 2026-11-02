@@ -11,13 +11,13 @@ Velorki has no account, so there is nothing to log in to and nothing about you o
 Everything you make and everything you download:
 
 - planned routes, recorded rides and their GPS tracks,
-- your settings, including which units and which voice you chose, and the weight, year of birth, sex, maximum heart rate, bike weight, bike type and threshold power you may enter under Settings → Rider, which are settings on the phone and are never sent anywhere,
+- your settings, including which units and which voice you chose, and the weight, year of birth, sex, maximum heart rate, bike weight, bike type and threshold power you may enter under Settings → Rider & bike, which are settings on the phone and are never sent anywhere,
 - downloaded offline map areas,
 - downloaded routing tiles and the place-search indexes that come with them,
 - the access tokens for Strava and Ride with GPS if you connect them, which go into the phone's secure storage in a form only the Velorki relay can open, and are left out of backups.
 - what you take from Strava: your Strava name, the list of your Strava routes for at most 48 hours, the routes you import and the links from uploaded rides to their Strava activities. Disconnecting deletes all of it.
 
-None of it is uploaded anywhere unless you ask for it. The one exception is cloud sync: your routes, rides and a few settings go to your own iCloud or your own Google Drive, never to us, and Strava data stays on the phone. On an iPhone or iPad iCloud is on by default; on Android sync is off until you choose a cloud. **Settings → Sync with** picks the cloud or turns sync off, see [the library](./library#syncing-with-icloud-or-google-drive).
+None of it is uploaded anywhere unless you ask for it. The one exception is cloud sync: your routes, rides and a few settings go to your own iCloud or your own Google Drive, never to us, and Strava data stays on the phone. On an iPhone or iPad iCloud is on by default; on Android sync is off until you choose a cloud. **Settings → Sync → Sync with** picks the cloud or turns sync off, see [the library](./library#syncing-with-icloud-or-google-drive).
 
 On Android, Velorki is deliberately left out of Google's cloud backup and out of device-to-device transfer, so your rides do not get copied off the phone by the system either. To move to a new phone, turn on sync with Google, or export what you want to keep as GPX, FIT or TCX files, see [import and export](./import-and-export).
 
@@ -27,11 +27,19 @@ On Android, Velorki is deliberately left out of Google's cloud backup and out of
 
 Map tiles are fetched from OpenFreeMap, and from CyclOSM if you turn on **Online cycle map** under **Layers**. The **Cycle map** is drawn on the phone and asks nothing of any server. Asking for a tile tells the tile server which square of the world you are looking at, and involves your IP address, as any request does. An area you have downloaded is served from the phone and asks for nothing.
 
+### Weather
+
+The weather map (rain, clouds, wind) and a route coloured by wind or rain fetch pictures and forecast data straight from public weather services, such as the Deutscher Wetterdienst, NOAA, KNMI, NASA and EUMETSAT. Each request names a part of the map, or a box around your route, and a time, and involves your IP address; your route itself, your rides and your identity are not sent. With Velorki Plus the finer forecast and the rain radar go through the Velorki relay instead: for the forecast the points along the route, rounded to a grid of about 2.5 km, with the hours you ride there; for the radar the part of the map you look at and a time. The weather services see our server, not your phone.
+
+### When you download an area
+
+Offline map areas come from OpenFreeMap, like the live map. Routing tiles and the search index beside them come from the tile mirror on GitHub; GitHub learns which tiles you download and your IP address. Whether there is new map data, Velorki asks the same mirror; nothing goes out beyond that request.
+
 ### While you plan
 
 Routing happens on your phone wherever you have the routing tiles. For an area you have not downloaded, the waypoints go to a routing server, which sends the route back. It gets the waypoints, nothing else: no identity, no other routes, no rides.
 
-**Settings → Advanced → Routing → On device only** switches the server off entirely; Velorki then offers the download instead of routing.
+**Settings → Maps & data → Routing → On device only** switches the server off entirely; Velorki then offers the download instead of routing.
 
 ### While you search
 
@@ -48,6 +56,8 @@ A short map link you share into Velorki (`maps.app.goo.gl`, `maps.apple/p`, `osm
 ### While you record
 
 Nothing at all leaves the phone. Recording, the statistics, the charts and the splits are all computed on the device. The same goes for heart rate, cadence and power from a watch, a Bluetooth sensor or your health app: they are stored with the ride and, if you have switched Health on, exchanged with Apple Health or Health Connect on the phone itself.
+
+Your position centres the map and records your rides, and stays on the phone. Velorki asks for permission once, on the first start. It leaves the phone in two cases only, both when you trigger them: rounded to about a kilometre to the assistant, if you allowed that, and as a rough position to Photon when you search online.
 
 ### When you ask the assistant
 
@@ -68,6 +78,10 @@ That route or ride, with its track, its name and its figures, is copied to our s
 ### When you buy Velorki Plus
 
 The store handles the payment and we never see your card. The subscription is checked against an anonymous random id that is not linked to a name, an email address or a device identifier. With sync on, the app also puts that id into your own cloud, so the planner in the browser, signed in to the same account, can use your Plus.
+
+### Update notices and ratings
+
+On an iPhone Velorki asks the App Store's public lookup whether a newer version exists, with the app's bundle id, your country and your language; on Android Google Play tells it. The rating sheet is the system's own, Apple or Google decide whether and when it shows, and a rating never reaches us.
 
 ## What Velorki never does
 

@@ -9,7 +9,7 @@ The Plan tab turns taps on the map into a bike route, computed on your phone whe
 ## Set the start and the destination
 
 1. Open the **Plan** tab and move the map to where you want to start.
-2. **Tap the map** to set the start. The sheet at the bottom says "Tap the map again to add a destination."
+2. **Tap the map** to set the start. The empty sheet says "Search for a place or tap the map."; once there is a start it says "Tap the map again to add a destination."
 3. **Tap again** for the next point. Every tap appends a point to the end of the route, and the last one, the destination, wears a flag. To put a point in the middle instead, **tap the route line** where it should go: the point lands on the line there, and you can drag it like any other.
 4. Velorki waits a moment after your last edit and then routes. While it works the sheet shows a spinner and **Routing…**; then the figures appear.
 
@@ -86,7 +86,7 @@ The row of buttons inside the route sheet:
 - **Loop** opens the smart loop sheet, described in [loops](./loops).
 - **Ask** opens the [assistant](./assistant). It is only there when the build talks to a Velorki server.
 
-Under the row sits the full-width **Save** button.
+Under the row sit **Save** and **Ride**. **Ride** goes to the Record tab, follows the plan and starts recording, with the same questions as **Start ride** there; with a ride already running it only switches tabs.
 
 ## Variants
 
@@ -128,8 +128,8 @@ You get "Route saved", and the route is in **Library → Routes**. Saving a rout
 
 ## When it will not route
 
-- **"This route needs routing tiles that are not on this device."** appears in place of the figures when your phone has no routing data for the area and no routing server to fall back on. The button under it counts the tiles and their size, for example **Download 3 tiles (412 MB)**, and opens the offline screen with exactly those tiles picked out. See [offline maps and routing](./offline-maps-and-routing).
-- **"No routing server configured, set one in Settings → Advanced."** is a card under the bike chips, and means this build has no server address at all.
+- **"This route needs routing tiles that are not on this device."** appears in place of the figures when your phone has no routing data for the area. The button under it counts the tiles and their size, for example **Download 3 tiles (412 MB)**. Tap it, confirm the question, and the card shows the progress while the chip over the map follows the same download; the chip's **X** is **Cancel download** meanwhile and asks before it stops. See [offline maps and routing](./offline-maps-and-routing).
+- **"This build of Velorki has no map data for routing."** is a banner, and means a build made from source with no tile mirror set.
 - Anything else shows as **Routing failed:** with the reason.
 
 ## Related

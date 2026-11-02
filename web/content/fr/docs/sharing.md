@@ -14,6 +14,8 @@ Le partage de lien fait partie de [Velorki Plus](./velorki-plus). Ouvrir le lien
 2. Touchez **Partager** en bas de la fiche. La fiche de partage propose **Lien**, **Ride with GPS** et **Strava**.
 3. Sur la ligne **Lien**, touchez **Partager un lien**. Velorki téléverse la trace et passe le lien à la feuille de partage du téléphone. La ligne indique alors « Fonctionne jusqu’au 17 sept. 2027. » Avant, elle dit « Toute personne ayant le lien peut le voir sur une carte et télécharger le GPX. »
 
+Un itinéraire venant de Strava n’a pas de lien : sa ligne indique « Indisponible pour les itinéraires venant de Strava. »
+
 Sans Plus, la ligne **Lien** porte la mention **Velorki Plus** et mène à la page d’abonnement. Les lignes Strava et Ride with GPS sont gratuites.
 
 ## Ce que voit la personne qui l’ouvre

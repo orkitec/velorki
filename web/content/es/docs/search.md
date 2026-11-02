@@ -12,6 +12,8 @@ El campo de búsqueda en la parte superior de la pestaña Planificar encuentra p
 2. Escribe al menos tres caracteres. Los resultados aparecen en una ficha bajo el campo mientras escribes.
 3. Toca un resultado. El mapa se mueve hasta el lugar, lo marca y abre su ficha.
 
+Mientras la búsqueda está abierta, un toque en el mapa solo la cierra; el siguiente toque fija un punto.
+
 Las coordenadas escritas o pegadas en el campo, `40.71747, -73.94840` o `40,71747° N, 73,94840° O` como las copian las apps de mapas, son el propio lugar: un resultado en ese punto, sin buscar nada y sin enviar nada. Un lugar compartido desde otra app se abre igual, consulta [importar y exportar](./import-and-export#un-lugar-desde-otra-app).
 
 ## La ficha de un lugar
@@ -22,7 +24,7 @@ Un resultado de búsqueda, una [parada en el mapa](./stops-on-the-map) o un luga
 - **Solo hay un inicio**: **Como destino** lo convierte en el final de la ruta.
 - **Hay una ruta**: **Añadir como parada** lo mete en la ruta donde queda de camino; **Como destino** lo añade al final.
 
-En la pestaña Grabar la ficha solo informa, sin acciones.
+En la pestaña Grabar la ficha solo informa, sin acciones, salvo durante una salida que sigue una ruta: allí **Añadir como parada** pregunta «¿Añadir a la ruta?» y, con **Añadir y recalcular**, mete el lugar en la parte de la ruta que aún tienes por delante. La guía sigue por la ruta anterior hasta que la nueva está lista, y la grabación no se interrumpe. Una ruta guardada se queda como está; la copia modificada está en la pestaña Planificar. Si la nueva ruta no se puede calcular, se te avisa y la navegación sigue como antes.
 
 Debajo:
 
@@ -36,7 +38,7 @@ Cerrar la ficha (la **X**, deslizar hacia abajo o tocar el mapa) no cambia nada 
 Velorki decide por el **centro del mapa**, no por tu conexión. Cada tesela de rutas descargada trae consigo un índice de búsqueda de su zona.
 
 - **Centro del mapa sobre una zona descargada**: la consulta se responde en el teléfono. La última fila de la ficha de resultados, **Buscar «…» en línea**, lanza el mismo texto en línea.
-- **En cualquier otro caso** (centro del mapa sobre una zona sin descargar, nada descargado o sin centro del mapa): no se busca nada y nada sale del teléfono hasta que elijas **Buscar «…» en línea** o, si tienes zonas descargadas, **Buscar en las zonas descargadas**, que recorre todas, la más cercana al mapa primero. Tu elección vale para las pulsaciones siguientes hasta que borres la búsqueda. Con un centro del mapa, la lista muestra además un aviso, **Esta zona no está descargada**, una línea con el motivo y un botón **Descargar** que abre la pantalla sin conexión para la zona visible. Los resultados en línea van bajo el rótulo **Resultados en línea**, y la última fila, **Mostrar resultados sin conexión**, cambia a las zonas descargadas; los resultados del teléfono terminan en **Buscar «…» en línea**.
+- **En cualquier otro caso** (centro del mapa sobre una zona sin descargar, nada descargado o sin centro del mapa): no se busca nada y nada sale del teléfono hasta que elijas **Buscar «…» en línea** o, si tienes zonas descargadas, **Buscar en las zonas descargadas**, que recorre todas, la más cercana al mapa primero. Tu elección vale para las pulsaciones siguientes hasta que borres la búsqueda. Con un centro del mapa, la lista muestra además un aviso, **Esta zona no está descargada**, una línea con el motivo y un botón **Descargar**. Cierra los resultados, hace la única pregunta sobre lo que se va a descargar y luego muestra el progreso en el chip sobre el mapa. Los resultados en línea van bajo el rótulo **Resultados en línea**, y la última fila, **Mostrar resultados sin conexión**, cambia a las zonas descargadas; los resultados del teléfono terminan en **Buscar «…» en línea**.
 - **Sin búsqueda en línea configurada**: responden las zonas descargadas.
 
 El aviso sigue visible mientras desplazas la lista y, si la búsqueda falló, queda sobre el mensaje de error, que es donde más importa.
@@ -47,7 +49,7 @@ El aviso sigue visible mientras desplazas la lista y, si la búsqueda falló, qu
 
 - **Calles**, con números de portal.
 
-- **Puntos de interés**, cada uno con su icono y su etiqueta: Cafetería, Restaurante, Comida rápida, Heladería, Gasolinera, Bomba de aire, Agua potable, Aseos, Estación de reparación de bicis, Tienda de bicis, Alquiler de bicis, Aparcabicis, Carga de e-bikes, Refugio, Camping, Hotel, Hostel, Refugio de montaña, Supermercado, Panadería, Farmacia, Zona de pícnic, Estación, Terminal de ferri, Aeropuerto, Mirador, Cima, Puerto de montaña, Parque, Playa, Agua, Reserva natural, Atracción, Museo, Lugar histórico, Lugar de culto, Hospital, Universidad, Instalación deportiva, Centro comercial, Torre, Faro, Edificio.
+- **Puntos de interés**, cada uno con su icono y su etiqueta: Cafetería, Restaurante, Comida rápida, Heladería, Gasolinera, Bomba de aire, Agua potable, Aseos, Estación de reparación de bicis, Tienda de bicis, Máquina de cámaras de aire, Alquiler de bicis, Aparcabicis, Carga de e-bikes, Refugio, Camping, Hotel, Hostel, Refugio de montaña, Supermercado, Panadería, Farmacia, Zona de pícnic, Estación, Parada de autobús, Parada de tranvía, Terminal de ferri, Aeropuerto, Mirador, Cima, Puerto de montaña, Parque, Playa, Agua, Reserva natural, Atracción, Museo, Lugar histórico, Lugar de culto, Hospital, Universidad, Instalación deportiva, Centro comercial, Torre, Faro, Edificio.
 
 - **Lugares conocidos en tu idioma**: «Parigi» encuentra París, y un monumento famoso va antes que sus homónimos.
 
@@ -55,7 +57,9 @@ Las filas sin conexión muestran bajo el nombre el tipo, la distancia y la pobla
 
 ## Buscar por tipo
 
-Escribe el nombre de un tipo en lugar del nombre de un lugar. «agua potable», «panadería», «aseos» y los demás funcionan todos, en el idioma en que esté la app.
+Escribe el nombre de un tipo en lugar del nombre de un lugar. «agua potable», «panadería», «aseos» y los demás funcionan todos, en el idioma en que esté la app. Para el transporte público basta una palabra: «autobús», «bus», «tranvía», «tren» o «ferry» encuentra las paradas, estaciones y terminales de ferri más cercanas; «cámara de aire» encuentra máquinas de cámaras de aire. Solo cuenta el texto entero, así que «Busch» y «bus marktplatz» siguen siendo búsquedas por nombre.
+
+Las paradas de autobús y de tranvía solo se encuentran así. Nunca aparecen entre las coincidencias por nombre, donde miles de paradas con el nombre de su calle enterrarían las calles y los lugares que buscas.
 
 La lista se abre entonces con los cinco más cercanos de ese tipo al centro del mapa, cada uno con su distancia, y debajo siguen las coincidencias normales por nombre. Velorki busca en un recuadro que crece de 5 a 50 km alrededor del centro del mapa hasta que tiene suficientes. Es la forma rápida de responder «¿dónde está la fuente más cercana?» en plena salida.
 
@@ -76,7 +80,7 @@ La búsqueda sin conexión perdona una o dos letras mal, una palabra escrita jun
 Los resultados sin conexión van agrupados, y tú decides qué grupos aparecen y en qué orden.
 
 1. Abre **Ajustes**.
-2. Toca **Búsqueda**, con el subtítulo «Qué muestra la búsqueda sin conexión y en qué orden. Arrastra para cambiar la prioridad.»
+2. Abre **Mapas y datos** y toca **Búsqueda**, con el subtítulo «Qué muestra la búsqueda sin conexión y en qué orden. Arrastra para cambiar la prioridad.»
 3. Arrastra una fila por su asa para subirla o bajarla. Usa el interruptor de la derecha para desactivar un grupo.
 
 Los ocho grupos, en su orden por defecto: **Lugares**, **Calles y direcciones**, **Puntos de interés**, **Paradas en ruta**, **Alojamiento**, **Naturaleza**, **Transporte**, **Servicios**.
@@ -87,7 +91,7 @@ No hay botón de guardar; los cambios se aplican con la siguiente tecla que puls
 
 - **«No se encontró nada.»** El texto no coincidió con nada, ni sin conexión ni en línea. Prueba la fila del final para cambiar de fuente, o menos palabras.
 - **«Falló la búsqueda.»** con un motivo significa que no se pudo contactar con el geocodificador en línea. La búsqueda sin conexión sigue funcionando donde has descargado una zona.
-- **«No hay servidor de búsqueda configurado; añade uno en Ajustes → Avanzado.»** significa que esta versión no tiene ni dirección de geocodificador ni ningún índice descargado. El campo está desactivado hasta que exista uno.
+- **«Esta versión de Velorki no tiene datos de mapa para buscar.»** es el texto del campo en una versión compilada desde el código fuente sin geocodificador, sin mirror de teselas y sin nada descargado. El campo queda desactivado.
 
 ## Relacionado
 

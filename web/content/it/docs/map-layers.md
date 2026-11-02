@@ -4,7 +4,7 @@ description: La mappa ciclabile offline e le sue parti, la mappa ciclabile onlin
 order: 6
 ---
 
-**Livelli** sta nella colonna di pulsanti a destra della mappa, nei tab Pianifica e Registra. Il suo foglio contiene la mappa ciclabile, la mappa ciclabile online, il radar pioggia, le nuvole, il vento e le soste. Il pulsante è evidenziato finché una di esse è attiva.
+**Livelli** sta nella colonna di pulsanti a destra della mappa, nei tab Pianifica e Registra. Il suo foglio contiene la mappa ciclabile, la mappa ciclabile online, il radar pioggia, le nuvole, il vento e le soste. Il pulsante è evidenziato finché una di esse è attiva. Al primo avvio la mappa ciclabile e le soste sono già attive; una tua scelta viene ricordata.
 
 <!-- screenshot: layers -->
 
@@ -28,9 +28,9 @@ La mappa ciclabile compare in dissolvenza tra lo zoom 12 e 13, e scompare di nuo
 | **MTB** | Tacche di difficoltà sui sentieri dallo zoom 14: blu per facile (S0–S1), rosso per S2, nero per S3 e più difficile (bianco sulla mappa notturna); itinerari MTB come alone arancione |
 | **Salite** | Tratti ripidi delle vie che una bici può usare, come una banda: giallo dal 6 %, arancione dal 10 %, rosso dal 15 %; i chevron indicano la salita dallo zoom 15. Le quote vengono dal modello del terreno nei dati di routing. Una salita conta solo se continua per almeno 150 m e 10 m di dislivello, quindi le rampe brevi non compaiono; nei centri città con edifici alti può comunque mostrare una salita che non c'è o non vederne una. Ponti e gallerie sono esclusi. Nei centri densi delle città più grandi, dove le quote sono quelle degli edifici, non si disegnano salite. |
 
-All'inizio sono attive tutte le parti tranne **Sterrato & sconnesso**, **Strade a senso unico**, **Strade tranquille**, **MTB** e **Salite**. Una parte aggiunta in una versione successiva parte dal suo valore predefinito; le scelte fatte prima restano.
+La mappa ciclabile resta attiva finché non la spegni, a meno che tu abbia scelto la mappa ciclabile online, che allora resta al suo posto. All'inizio sono attive tutte le parti tranne **Sterrato & sconnesso**, **Strade a senso unico**, **Strade tranquille**, **MTB** e **Salite**. Una parte aggiunta in una versione successiva parte dal suo valore predefinito; le scelte fatte prima restano.
 
-Nella scheda Pianifica, con la mappa ciclabile attiva su un'area non scaricata, un chip dice **Nessuna mappa ciclabile qui – area non scaricata**, con **Scarica**; un tocco apre il download dell'area visibile. Se vale anche il chip delle soste, questo ha la precedenza.
+Nella scheda Pianifica, con la mappa ciclabile attiva su un'area non scaricata, un chip dice **Nessuna mappa ciclabile qui – area non scaricata**, con **Scarica**; un tocco chiede cosa verrà scaricato e scarica l'area sul posto, con l'avanzamento nel chip. Se vale anche il chip delle soste, questo ha la precedenza.
 
 ## Mappa ciclabile online
 
@@ -38,7 +38,7 @@ Nella scheda Pianifica, con la mappa ciclabile attiva su un'area non scaricata, 
 
 ## Radar pioggia e nuvole
 
-**Radar pioggia**: "Ora: radar in Germania, Paesi Bassi, Finlandia e Stati Uniti, altrove in Europa e Africa una stima da satellite. Dopo: previsione radar per 2 ore in Germania, previsione del modello fino a 24 ore (oraria in Europa, ogni 6 ore altrove)". **Nuvole**: "Europa, Africa e Americhe · ogni ora in Europa". Sono entrambi gratuiti, disattivati finché non li attivi, e richiedono una connessione.
+**Radar pioggia**: "Ora: radar in Germania, Paesi Bassi, Finlandia e Stati Uniti, altrove in Europa e Africa una stima da satellite. Dopo: previsione radar per 2 ore in Germania, previsione del modello fino a 24 ore (oraria in Europa, ogni 6 ore altrove)". **Nuvole**: "Europa, Africa e Americhe · ogni ora in Europa". Sono entrambi gratuiti, disattivati finché non li attivi, e richiedono una connessione. Con uno dei due attivo, sotto il suo interruttore compare un cursore **Opacità**.
 
 La pioggia viene da tre tipi di fonte. Adesso: il radar del servizio meteorologico tedesco (Deutscher Wetterdienst) sopra la Germania e i dintorni del servizio meteorologico statunitense (National Weather Service) sopra gli Stati Uniti, del KNMI sopra i Paesi Bassi e dell'Istituto meteorologico finlandese sopra la Finlandia, e intorno, sul resto dell'Europa, sull'Africa e sull'Atlantico, la pioggia stimata dal satellite Meteosat da H SAF di EUMETSAT, ogni dieci minuti. Una stima da satellite è più grossolana del radar e perde parte della pioggia debole; non viene mai disegnata sulle zone dei radar, così i due non si contraddicono mai sulla mappa. Con Velorki Plus, un vero radar di EUMETNET OPERA, la rete europea dei radar, e di Radar-DPC (Italia), quello della Protezione Civile, prende il posto del satellite ovunque misuri, come in Francia, Spagna, Italia, Regno Unito, Svizzera e Scandinavia: celle di 1 km, una nuova immagine ogni cinque minuti, le ultime due ore, senza previsione. Le prossime due ore: in Germania la previsione radar del Deutscher Wetterdienst, la pioggia del radar spostata a quarti d'ora; ovunque altrove, e ovunque da tre ore in poi, la previsione del suo modello meteorologico ICON, ora per ora sull'Europa e a passi di sei ore altrove. L'app cerca immagini più recenti ogni cinque minuti. La pioggia viene disegnata a ogni zoom, fino al mondo intero, dove le sue immagini sono più grossolane. Dove finisce la zona del radar, il radar e il satellite o la previsione intorno sfumano l'uno nell'altro per circa 25 km invece di incontrarsi su un bordo netto.
 
@@ -58,4 +58,4 @@ Il controllo del tempo del radar pioggia sposta anche il vento, ora per ora: **O
 
 ## Soste
 
-**Soste** è un interruttore nello stesso foglio, spento finché non lo attivi. Disegna acqua potabile, caffè, bagni, stazioni di riparazione bici e altro dall'indice dei luoghi sul telefono. I tipi, la zona che guardi e il percorso davanti a te sono descritti in [soste sulla mappa](./stops-on-the-map).
+**Soste** è un interruttore nello stesso foglio, attivo finché non lo spegni. Disegna acqua potabile, caffè, bagni, stazioni di riparazione bici, stazioni, fermate dell'autobus, farmacie e altro dall'indice dei luoghi sul telefono. I tipi, la zona che guardi e il percorso davanti a te sono descritti in [soste sulla mappa](./stops-on-the-map).

@@ -10,7 +10,7 @@ Der Assistent gehört zu [Velorki Plus](./velorki-plus).
 
 ## Öffnen
 
-Tippe in der Leiste der Routenübersicht im Tab **Planen** auf **Fragen**. Die Karte des Assistenten tritt an die Stelle der Routenübersicht und heißt **Nach einer Route fragen**: "Beschreibe die geplante Fahrt. Velorki macht daraus eine Anfrage und plant die Route auf dem Handy." Die Karte darüber bleibt die Karte: verschieben, zoomen und antippen wie bei offener Routenübersicht. Wisch die Karte nach unten oder geh zurück, und die Routenübersicht ist wieder da, wie du sie verlassen hast; was du eingetippt hast und die Antworten bleiben für das nächste Mal.
+Tippe in der Leiste der Routenübersicht im Tab **Planen** auf **Fragen**. Die Karte des Assistenten tritt an die Stelle der Routenübersicht und heißt **Nach einer Route fragen**: "Beschreibe die geplante Fahrt. Velorki macht daraus eine Anfrage und plant die Route auf diesem Gerät." Die Karte darüber bleibt die Karte: verschieben, zoomen und antippen wie bei offener Routenübersicht. Wisch die Karte nach unten oder geh zurück, und die Routenübersicht ist wieder da, wie du sie verlassen hast; was du eingetippt hast und die Antworten bleiben für das nächste Mal.
 
 Liegt eine Route auf der Karte, öffnet das Fenster stattdessen auf **Diese Route**, mit einer Frage zu dieser Route (siehe [Nach dieser Route fragen](#nach-dieser-route-fragen)); **Neue Route** darüber schaltet zurück.
 
@@ -20,9 +20,9 @@ Fehlt die Schaltfläche **Fragen**, hat dieser Velorki-Build gar keine Serveradr
 
 Beim ersten Absenden zeigt Velorki **Bevor der Assistent fragt**:
 
-> Was du eingibst, geht an den Velorki-Server und von dort an unseren KI-Anbieter. Mehr geht nicht mit: kein Name, kein Konto, keine Routenhistorie.
+> Was du eingibst, und eine Route, nach der du fragst, geht an den Velorki-Server und von dort an unseren KI-Anbieter. Mehr geht nicht mit: kein Name, kein Konto, keine Routenhistorie.
 >
-> Wenn du es erlaubst, geht auch deine Position mit, auf etwa einen Kilometer gerundet, damit "von hier" etwas bedeutet.
+> Wenn du es erlaubst, geht auch deine Position mit, auf etwa einen Kilometer gerundet. Ohne sie weiß der Assistent nicht, wo du bist, und seine Vorschläge werden ungenauer.
 
 Drei Antworten:
 

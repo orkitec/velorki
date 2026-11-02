@@ -1,28 +1,22 @@
 ---
 title: Instellingen en weergave
-description: Elke instelling in Velorki, van thema, accentkleur, eenheden en taal tot navigatie, opname, sensoren, zoeken, offline gegevens, koppelingen en de server-URL's.
+description: "Elke instelling in Velorki: synchronisatie, Plus, koppelingen, navigatie, opname, fietser en sensoren, thema, eenheden, taal, offline gegevens en server-URL's."
 order: 16
 ---
 
-Het tabblad Instellingen is één scrollende pagina met een sectie per onderwerp. Deze pagina loopt hem van boven naar beneden door, zodat je de schakelaar vindt die je zoekt en weet wat hij doet.
+Het tabblad Instellingen is een overzicht van rijen in drie groepen, **Synchronisatie en Plus**, **Onderweg** en **App**, en elke rij opent een eigen pagina. Een rij ontbreekt waar ze op de telefoon geen zin heeft, zoals **Sensoren** zonder gezondheidsapp. Deze pagina loopt de rijen in volgorde door, zodat je de schakelaar vindt die je zoekt en weet wat hij doet.
 
-## Weergave
+## Synchronisatie
 
-**Thema**: **Systeem**, **Licht** of **Donker**. Systeem volgt de telefoon.
+**Synchroniseren met**: **iCloud**, **Google** of **Uit**, wat de telefoon aanbiedt. Je routes, ritten en een paar instellingen volgen je dan naar je andere apparaten via je eigen iCloud of je eigen Google Drive, nooit via ons. Een regel onder de keuze zegt hoe het ervoor staat, bijvoorbeeld "Zojuist gesynchroniseerd" of "Wacht op een verbinding". Bij Google toont de pagina ook het account, met **Inloggen** of **Uitloggen**. Op een iPhone of iPad staat iCloud standaard aan; op Android blijft synchronisatie uit totdat je een cloud kiest. Routes van Strava blijven op het apparaat. De details staan bij [synchroniseren met iCloud of Google Drive](./library#synchroniseren-met-icloud-of-google-drive).
 
-**Kaart**: hoe de kaart zelf wordt getekend, los van het thema van de app, **Volgt thema**, **Licht**, **Nacht** of **Zwart**, elk een segment. **Zwart** is die voor een rit in het donker met het scherm gedimd, en het is wat batterijbesparing toch al afdwingt.
+## Velorki Plus
 
-**Online fietskaart op donkere kaarten**: wat er met de **Online fietskaart** uit **Kaartlagen** gebeurt als de kaart eronder donker is: **Omgekeerd**, **Gedimd** of **Ongewijzigd**. Die kaart komt als afbeeldingen, getekend voor een lichte achtergrond, dus op een nachtkaart heeft ze hulp nodig. De offline **Fietskaart** heeft eigen kleuren voor donkere kaarten en verandert niet.
+**Velorki Plus** met **Actief** of **Niet actief** eronder, en de verlengings- of einddatum als die er is. Een tik erop opent de abonnementspagina. Daaronder staan, zolang Plus actief is, **Beheren**, dat de abonnementspagina van de store opent, en **Aankopen herstellen**. In een build zonder store zijn ze er geen van beide. Zie [Velorki Plus](./velorki-plus).
 
-**Glas**: hoeveel van de kaart doorschijnt door de tabbalk en de knoppen over de kaart: **Dekkend**, **Transparant**, **Licht glas** of **Helder glas**, de standaard.
+## Koppelingen
 
-**Regenradar**: hoe de regenradar uit **Kaartlagen** wordt getekend: **Zacht**, de standaard, met vloeiende randen en lichte regen vager dan zware, of **Zoals gemeten**, elk regenbeeld (radar, satelliet, verwachting) zoals de weerdiensten het leveren, de radar in cellen van 1 km.
-
-**Accentkleur**: vijf kleurvoorinstellingen: **Volt**, **Gloed**, **Gletsjer**, **Bes** en **Bos**. De accentkleur kleurt de knoppen, de grafieken en de routelijn op de kaart.
-
-**Eenheden**: **Metrisch** of **Imperiaal**, gebruikt door elke waarde, schuifregelaar, grafiekas, afslagbanner en gesproken aanwijzing in de app. Tot je kiest, volgt Velorki het land van de telefoon.
-
-**Taal**: **Systeem**, English, Deutsch, Español, Français, Italiano of Nederlands, elk in zijn eigen taal. **Systeem** volgt de talen van de telefoon in de volgorde die daar is ingesteld, en valt terug op Engels. Op Android 13 en nieuwer kunnen de eigen instellingen van de telefoon ook een taal voor Velorki alleen instellen (Instellingen → Apps → Velorki → Taal), die **Systeem** dan volgt. De gesproken afslagen volgen dezelfde keuze.
+Eén rij voor **Strava** en één voor **Ride with GPS**, elk met **Niet gekoppeld**, je naam zodra er gekoppeld is, of **Niet beschikbaar in deze build**. **Koppelen met Strava** en **Koppelen met Ride with GPS** staan onder de niet-gekoppelde, **Ontkoppelen** naast de gekoppelde. Beide koppelingen zijn gratis. Zie [Strava en Ride with GPS](./strava-and-ridewithgps).
 
 ## Navigatie
 
@@ -50,9 +44,9 @@ De drie schakelaars hier zijn dezelfde als op het paneel van het tabblad Opnemen
 
 **Ritwaarden**: elke waarde die een rit kan tonen, met een greep om hem op zijn plek te slepen en een schakelaar om hem uit te zetten. Het paneel toont ze in deze volgorde, de balk waarin het paneel inklapt de eerste vier, de overzichtspagina de eerste twee naast de tijd van de rit; een waarde zonder iets te tonen, een sensor die niet verbonden is of geen gevolgde route, geeft zijn plek aan de volgende. Er blijft er minstens één aan, de herstelknop rechtsboven zet de standaard terug, en **Tijd**, die het paneel toch al naast de status toont, staat uit tot je hem aanzet. **Waarden bewerken** onder de waarden op het paneel opent dezelfde lijst.
 
-## Fietser
+## Fietser en fiets
 
-Drie schakelaars, standaard allemaal uit, en de velden die ze nodig hebben.
+Vier schakelaars, standaard allemaal uit, en de velden die ze nodig hebben.
 
 **Calorieën schatten** zet een waarde **Calorieën** op elke ritkaart: uit je vermogensmeter als je die hebt, anders uit je hartslag, anders uit je snelheid. Het heeft je gewicht nodig; de schatting uit hartslag heeft ook je geboortejaar en geslacht nodig.
 
@@ -74,21 +68,37 @@ Met een schakelaar aan verschijnen de velden: **Gewicht** (kg, of lb bij imperia
 
 **Bluetooth-sensoren**: "Hartslagbanden, snelheids- en cadanssensoren, vermogensmeters", of hoeveel sensoren er gekoppeld zijn. Het opent het scherm waar **Zoeken** ze zoekt. Alles wordt doorgelopen bij [sensoren en je horloge](./sensors-and-watch).
 
-## Abonnement
+## Weergave
 
-**Velorki Plus** met **Actief** of **Niet actief** eronder, en de verlengings- of einddatum als die er is. Een tik erop opent de abonnementspagina. Daaronder staan **Beheren**, dat de abonnementspagina van de store opent, en **Aankopen herstellen**. Zie [Velorki Plus](./velorki-plus).
+Deze pagina bevat aan het eind ook **Eenheden** en **Taal**.
 
-## Koppelingen
+**Thema**: **Systeem**, **Licht** of **Donker**. Systeem volgt de telefoon.
 
-Eén rij voor **Strava** en één voor **Ride with GPS**, elk met **Niet gekoppeld**, je naam zodra er gekoppeld is, of **Niet beschikbaar in deze build**. **Koppelen met Strava** en **Koppelen met Ride with GPS** staan onder de niet-gekoppelde, **Ontkoppelen** naast de gekoppelde. Beide koppelingen zijn gratis. Zie [Strava en Ride with GPS](./strava-and-ridewithgps).
+**Kaart**: hoe de kaart zelf wordt getekend, los van het thema van de app, **Volgt thema**, **Licht**, **Nacht** of **Zwart**, elk een segment. **Zwart** is die voor een rit in het donker met het scherm gedimd, en het is wat batterijbesparing toch al afdwingt.
+
+**Online fietskaart op donkere kaarten**: wat er met de **Online fietskaart** uit **Kaartlagen** gebeurt als de kaart eronder donker is: **Omgekeerd**, **Gedimd** of **Ongewijzigd**. Die kaart komt als afbeeldingen, getekend voor een lichte achtergrond, dus op een nachtkaart heeft ze hulp nodig. De offline **Fietskaart** heeft eigen kleuren voor donkere kaarten en verandert niet.
+
+**Glas**: hoeveel van de kaart doorschijnt door de tabbalk en de knoppen over de kaart: **Dekkend**, **Transparant**, **Licht glas** of **Helder glas**, de standaard. Het wordt vanzelf dekkend zolang de telefoon energie bespaart en bij ritten met batterijbesparing, en dat staat onder de keuze.
+
+**Kant op grote schermen**: **Links** of **Rechts**. Alleen op een tablet of het binnenscherm van een vouwbare telefoon, waar Velorki in een kolom over de kaart staat; hij kiest de kant van die kolom.
+
+**Regenradar**: hoe de regenradar uit **Kaartlagen** wordt getekend: **Zacht**, de standaard, met vloeiende randen en lichte regen vager dan zware, of **Zoals gemeten**, elk regenbeeld (radar, satelliet, verwachting) zoals de weerdiensten het leveren, de radar in cellen van 1 km.
+
+**Accentkleur**: vijf kleurvoorinstellingen: **Volt**, **Gloed**, **Gletsjer**, **Bes** en **Bos**. De accentkleur kleurt de knoppen, de grafieken en de routelijn op de kaart.
+
+**Eenheden**: **Metrisch** of **Imperiaal**, gebruikt door elke waarde, schuifregelaar, grafiekas, afslagbanner en gesproken aanwijzing in de app. Tot je kiest, volgt Velorki het land van de telefoon.
+
+**Taal**: **Systeem**, English, Deutsch, Español, Français, Italiano of Nederlands, elk in zijn eigen taal. **Systeem** volgt de talen van de telefoon in de volgorde die daar is ingesteld, en valt terug op Engels. Op Android 13 en nieuwer kunnen de eigen instellingen van de telefoon ook een taal voor Velorki alleen instellen (Instellingen → Apps → Velorki → Taal), die **Systeem** dan volgt. De gesproken afslagen volgen dezelfde keuze.
 
 ## AI-assistent
 
-**Wat er wordt verstuurd** zegt altijd welke toestemming je hebt gegeven: "Dit is je nog niet gevraagd.", "Niets. De assistent staat uit.", "Alleen je tekst." of "Je tekst en je globale positie (ongeveer 1 km)." **Wijzigen** ernaast opent het toestemmingsvenster opnieuw.
+**Wat er wordt verstuurd** zegt altijd welke toestemming je hebt gegeven: "Dit is je nog niet gevraagd.", "Niets. De assistent staat uit.", "Alleen je tekst. Zonder je positie zijn de voorstellen minder nauwkeurig." of "Je tekst en je globale positie (ongeveer 1 km)." **Wijzigen** ernaast opent het toestemmingsvenster opnieuw.
 
 **AI-antwoord melden**: "Laat ons weten welk antwoord fout of ongepast was." Opent een mail aan ons.
 
-## Geavanceerd
+## Kaarten en gegevens
+
+Vier onderdelen: **Offline gegevens**, **Zoeken**, **Routering** en **Server-URL's**.
 
 **Offline gegevens**: "Kaarten en routeringsgegevens voor ritten zonder bereik". Als de mirror tegels opnieuw heeft gebouwd die jij hebt, wordt de ondertitel oranje en telt hij ze. Zie [offline kaarten en routering](./offline-maps-and-routing).
 
@@ -107,8 +117,9 @@ Eén rij voor **Strava** en één voor **Ride with GPS**, elk met **Niet gekoppe
 - **Velorki**, met het versienummer.
 - **© OpenStreetMap-bijdragers**.
 - **Opensourcelicenties**: "De software en de kaartgegevens waarop Velorki is gebouwd."
-- **Privacybeleid** en **Gebruiksvoorwaarden**, die in de browser openen.
+- **Privacybeleid**, **Gebruiksvoorwaarden** en **Colofon**, die in de browser openen.
 - **Probleem melden**: "Open een issue op GitHub."
+- **Prestaties tonen**: "Beeldsnelheid, beeldtijden en geheugen in een hoek van het scherm".
 
 ## Zie ook
 

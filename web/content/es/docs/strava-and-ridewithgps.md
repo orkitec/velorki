@@ -1,6 +1,6 @@
 ---
 title: Strava y Ride with GPS
-description: Velorki funciona con Strava y Ride with GPS, gratis. Conecta una cuenta para subir salidas grabadas e importar rutas, y entiende por qué enviar una ruta a Strava es un archivo.
+description: Velorki funciona gratis con Strava y Ride with GPS. Conecta una cuenta para subir salidas e importar rutas; a Strava una ruta llega como archivo.
 order: 13
 ---
 
@@ -10,10 +10,12 @@ No se envía nada a ninguno de los dos servicios hasta que conectas tú la cuent
 
 ## Conectar una cuenta
 
-1. Abre **Ajustes** y busca la sección **Conexiones**.
+1. Abre **Ajustes → Conexiones**.
 2. Toca **Conectar con Strava** o **Conectar con Ride with GPS**.
 3. Se abre en un navegador la propia página de inicio de sesión del servicio. Inicia sesión allí y aprueba el acceso.
 4. Vuelves a Velorki, y la fila muestra tu nombre en lugar de **No conectado**.
+
+En Strava primero aparece un aviso, **Antes de conectar Strava**: qué lee Velorki, qué escribe, cómo funciona la conexión y cómo desconectarla. Léelo y sigue a la página de inicio de sesión.
 
 Velorki pide a Strava solo dos permisos: **read**, tu perfil público (tu id y tu nombre, que se muestran en Ajustes), y **activity:write**, para subir las salidas que elijas subir. No lee tus actividades.
 

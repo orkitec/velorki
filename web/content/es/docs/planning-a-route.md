@@ -9,7 +9,7 @@ La pestaña Planificar convierte toques en el mapa en una ruta en bici, calculad
 ## Fijar el inicio y el destino
 
 1. Abre la pestaña **Planificar** y mueve el mapa hasta donde quieres empezar.
-2. **Toca el mapa** para fijar el inicio. El panel de abajo dice "Toca el mapa otra vez para añadir un destino."
+2. **Toca el mapa** para fijar el inicio. El panel vacío dice "Busca un lugar o toca el mapa."; con un inicio ya puesto dice "Toca el mapa otra vez para añadir un destino."
 3. **Vuelve a tocar** para el siguiente punto. Cada toque añade un punto al final de la ruta, y el último, el destino, lleva una bandera. Para poner un punto en medio, **toca la línea de la ruta** donde debe ir: el punto cae ahí sobre la línea, y puedes arrastrarlo como cualquier otro.
 4. Velorki espera un momento tras tu última edición y luego calcula la ruta. Mientras trabaja, el panel muestra un indicador de carga y **Calculando ruta…**; después aparecen las cifras.
 
@@ -86,7 +86,7 @@ La fila de botones dentro del panel de ruta:
 - **Circular** abre el panel de rutas circulares inteligentes, descrito en [rutas circulares](./loops).
 - **Preguntar** abre el [asistente](./assistant). Solo aparece cuando la versión se comunica con un servidor de Velorki.
 
-Bajo la fila está el botón **Guardar**, a todo lo ancho.
+Bajo la fila están **Guardar** y **Salir**. **Salir** pasa a la pestaña Grabar, sigue la planificación y empieza a grabar, con las mismas preguntas que **Iniciar salida** allí; si ya hay una salida en marcha, solo cambia de pestaña.
 
 ## Variantes
 
@@ -128,8 +128,8 @@ Aparece "Ruta guardada", y la ruta está en **Biblioteca → Rutas**. Guardar un
 
 ## Cuando no calcula la ruta
 
-- **"Esta ruta necesita teselas de rutas que no están en este dispositivo."** aparece en lugar de las cifras cuando tu teléfono no tiene datos de rutas para la zona ni un servidor de rutas al que recurrir. El botón de debajo cuenta las teselas y su tamaño, por ejemplo **Descargar 3 teselas (412 MB)**, y abre la pantalla sin conexión con exactamente esas teselas seleccionadas. Consulta [mapas y enrutamiento sin conexión](./offline-maps-and-routing).
-- **"No hay servidor de rutas configurado; añade uno en Ajustes → Avanzado."** es una tarjeta bajo los chips de bici, y significa que esta versión no tiene ninguna dirección de servidor.
+- **"Esta ruta necesita teselas de rutas que no están en este dispositivo."** aparece en lugar de las cifras cuando tu teléfono no tiene datos de rutas para la zona. El botón de debajo cuenta las teselas y su tamaño, por ejemplo **Descargar 3 teselas (412 MB)**. Tócalo, confirma la pregunta, y la tarjeta muestra el progreso mientras el chip sobre el mapa sigue la misma descarga; la **X** del chip es entretanto **Cancelar descarga** y pregunta antes de detenerla. Consulta [mapas y enrutamiento sin conexión](./offline-maps-and-routing).
+- **"Esta versión de Velorki no tiene datos de mapa para calcular rutas."** es un aviso, y significa una versión compilada desde el código fuente sin mirror de teselas.
 - Cualquier otra cosa aparece como **No se pudo calcular la ruta:** con el motivo.
 
 ## Relacionado

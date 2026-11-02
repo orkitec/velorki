@@ -55,6 +55,7 @@ Het rondjespaneel heeft geen veld voor een plek om langs te rijden, en geen voor
 
 ## Als er niets wordt gevonden
 
+- **"Deze route heeft routeringstegels nodig die niet op dit apparaat staan."** De routeringsgegevens voor het gebied staan niet op de telefoon. Onder de melding haalt de knop **2 tegels downloaden (14 MB)** ze meteen op, met de voortgang in het paneel en op de kaart; het zoeken kan beginnen zodra ze binnen zijn.
 - **"Hier geen rondje gevonden, probeer een andere afstand."** Sommige plekken, een eiland of een doodlopend dal, hebben gewoon geen wegennet voor een cirkel van die lengte. Verander de afstand flink omhoog of omlaag, of begin ergens anders.
 - **"Zet je locatie aan of tik op de kaart om een start te kiezen."** Er kon geen startpunt worden bepaald. Sta je locatie toe, of tik eerst op de kaart.
 - **"Een rondje zoeken duurde op deze telefoon te lang. Probeer een kortere afstand."** Het zoeken gaf het op na 30 minuten.

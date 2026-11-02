@@ -16,7 +16,9 @@ The settings live in two places at once, and they are the same setting either wa
 2. **Voice**, "Say the turns out loud".
 3. **When you leave the route**: **Guide me back**, **New route to the destination** or **Don't re-route**. See [when you leave the route](#when-you-leave-the-route).
 
-Then on the **Record** tab pick something under **Follow a route**: **The route on the Plan tab** if the planner holds a route, or any route from your library. Start the ride and the banner appears.
+Then on the **Record** tab pick something under **Follow a route**: **The route on the Plan tab** if the planner holds a route, or any route from your library. Start the ride and the banner appears. From the Plan tab, **Ride** beside **Save** does these steps in one: it opens the Record tab with the plan chosen and starts the ride.
+
+If the route has no turn instructions, starting the ride asks **No turn instructions**: **Create** makes them from the map, **Ride without** goes without. When the route's region is not on the phone yet, Velorki asks to download it right there and waits with the download's progress, "Waiting for the region to download…", then "Creating turn instructions…".
 
 ## The turn banner
 
@@ -81,6 +83,16 @@ Only the orange banner, with the distance to the route and the direction back to
 The banner says **Recalculating…** while a way back or a new route is being worked out, and **Route recalculated** when a new route lands. **New route from here**, a button beside the orange banner, plans from where you stand to the destination straight away, whatever the setting.
 
 All of the distances above grow with how bad your GPS fix is, roughly doubling with the reported accuracy, so a phone under trees does not keep declaring you lost. They stop growing at 100 metres of accuracy, so a phone that has lost the sky entirely cannot switch off-route detection off.
+
+## Adding a stop on the way
+
+While a ride follows a route, tap a stop on the map (a café, a water fountain, a shop) and its card offers **Add as a stop**. Velorki asks **Add to the route?**: "The route is recalculated to take in this stop, and navigation follows the new route." Confirm with **Add and recalculate**.
+
+- The stop goes into the part of the route still ahead of you, never behind. A stop beside what you have already ridden becomes the next point.
+- Guidance carries on along the old route until the new one is ready, so the voice and the banner do not stop. The ride keeps recording throughout.
+- On an imported route only the stretch around the stop is routed again; the file's own line stays everywhere else.
+- If you follow a saved route, it stays as it is: the changed route is on the Plan tab and the ride follows that.
+- If the stop cannot be routed, it is taken out again and you see "The stop could not be added to the route. Navigation carries on along the route as it was."
 
 ## The map while navigating
 

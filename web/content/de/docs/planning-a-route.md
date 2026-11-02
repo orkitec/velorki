@@ -9,7 +9,7 @@ Der Tab Planen macht aus Tippern auf der Karte eine Radroute, berechnet auf dein
 ## Start und Ziel setzen
 
 1. Öffne den Tab **Planen** und verschiebe die Karte dorthin, wo du starten willst.
-2. **Tippe auf die Karte**, um den Start zu setzen. Unten steht dann "Karte erneut antippen, um ein Ziel zu setzen."
+2. **Tippe auf die Karte**, um den Start zu setzen. Das leere Feld unten sagt "Ort suchen oder Karte antippen."; mit einem Start steht dort "Karte erneut antippen, um ein Ziel zu setzen."
 3. **Tippe erneut** für den nächsten Punkt. Jeder Tipper hängt einen Punkt ans Ende der Route, und der letzte, das Ziel, trägt eine Flagge. Für einen Punkt mittendrin **tippe auf die Routenlinie**, wo er hin soll: Der Punkt landet dort auf der Linie, und du kannst ihn ziehen wie jeden anderen.
 4. Velorki wartet nach deiner letzten Änderung einen Moment und berechnet dann. Währenddessen dreht sich unten ein Ladekreis mit **Route wird berechnet…**, danach erscheinen die Zahlen.
 
@@ -86,7 +86,7 @@ Die Reihe von Schaltflächen in der Routenübersicht:
 - **Runde** öffnet das Fenster für smarte Runden, beschrieben unter [Runden](./loops).
 - **Fragen** öffnet den [Assistenten](./assistant). Es ist nur da, wenn der Build mit einem Velorki-Server spricht.
 
-Unter der Reihe sitzt die Schaltfläche **Speichern** über die volle Breite.
+Unter der Reihe sitzen **Speichern** und **Losfahren**. **Losfahren** wechselt in den Tab Aufzeichnen, folgt dem Plan und startet die Aufzeichnung, mit denselben Fragen wie **Fahrt starten** dort; läuft schon eine Fahrt, wechselt es nur den Tab.
 
 ## Varianten
 
@@ -128,8 +128,8 @@ Du bekommst "Route gespeichert", und die Route liegt unter **Bibliothek → Rout
 
 ## Wenn keine Route zustande kommt
 
-- **"Diese Route braucht Routing-Kacheln, die nicht auf diesem Gerät sind."** erscheint anstelle der Zahlen, wenn dein Handy keine Routing-Daten für das Gebiet hat und kein Routing-Server einspringen kann. Die Schaltfläche darunter zählt die Kacheln und ihre Größe, zum Beispiel **3 Kacheln herunterladen (412 MB)**, und öffnet den Offline-Bildschirm mit genau diesen Kacheln ausgewählt. Siehe [Offline-Karten und Routing](./offline-maps-and-routing).
-- **"Kein Routing-Server konfiguriert, einen unter Einstellungen → Erweitert festlegen."** ist eine Karte unter den Rad-Chips und heißt, dass dieser Build gar keine Serveradresse hat.
+- **"Diese Route braucht Routing-Kacheln, die nicht auf diesem Gerät sind."** erscheint anstelle der Zahlen, wenn dein Handy keine Routing-Daten für das Gebiet hat. Die Schaltfläche darunter zählt die Kacheln und ihre Größe, zum Beispiel **3 Kacheln herunterladen (412 MB)**. Tippe darauf, bestätige die Frage, und die Karte zeigt den Fortschritt, während der Chip über der Karte demselben Download folgt; sein **X** ist währenddessen **Download abbrechen** und fragt, bevor es stoppt. Siehe [Offline-Karten und Routing](./offline-maps-and-routing).
+- **"Diese Velorki-Version hat keine Kartendaten für das Routing."** ist ein Banner und heißt, dass der Build aus dem Quellcode ohne Kachel-Mirror gebaut wurde.
 - Alles andere erscheint als **Routing fehlgeschlagen:** mit dem Grund.
 
 ## Weiterlesen

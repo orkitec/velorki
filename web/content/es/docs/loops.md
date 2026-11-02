@@ -55,6 +55,7 @@ El panel de rutas circulares no tiene un campo para un lugar por el que pasar, n
 
 ## Cuando no encuentra nada
 
+- **"Esta ruta necesita teselas de rutas que no están en este dispositivo."** Los datos de enrutamiento de la zona no están en el teléfono. Bajo el mensaje, el botón **Descargar 2 teselas (14 MB)** los descarga allí mismo, con el progreso en la hoja y en el mapa; la búsqueda puede empezar en cuanto estén.
 - **"No se encontró ninguna ruta circular aquí; prueba otra distancia."** Algunos lugares, una isla o un valle sin salida, simplemente no tienen red de carreteras para un círculo de esa longitud. Sube o baja bastante la distancia, o empieza en otro sitio.
 - **"Activa la ubicación o toca el mapa para fijar el inicio."** No se pudo determinar un punto de inicio. Permite la ubicación o toca antes el mapa.
 - **"Buscar una ruta circular tardó demasiado en este teléfono. Prueba una distancia más corta."** La búsqueda se rindió tras 30 minutos.

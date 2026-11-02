@@ -16,7 +16,9 @@ Die Einstellungen liegen an zwei Stellen gleichzeitig und sind so oder so diesel
 2. **Stimme**, "Abbiegehinweise laut ansagen".
 3. **Wenn du die Route verlässt**: **Zurückführen**, **Neue Route zum Ziel** oder **Nicht neu berechnen**. Siehe [Wenn du die Route verlässt](#wenn-du-die-route-verlässt).
 
-Wähle dann im Tab **Aufzeichnen** etwas unter **Einer Route folgen**: **Die Route im Tab Planen**, wenn der Planer eine Route enthält, oder eine beliebige Route aus deiner Bibliothek. Starte die Fahrt, und das Band erscheint.
+Wähle dann im Tab **Aufzeichnen** etwas unter **Einer Route folgen**: **Die Route im Tab Planen**, wenn der Planer eine Route enthält, oder eine beliebige Route aus deiner Bibliothek. Starte die Fahrt, und das Band erscheint. Im Tab Planen erledigt **Losfahren** neben **Speichern** diese Schritte in einem: Es öffnet den Tab Aufzeichnen mit dem gewählten Plan und startet die Fahrt.
+
+Hat die Route keine Abbiegehinweise, fragt das Starten der Fahrt nach **Keine Abbiegehinweise**: **Erstellen** legt sie aus der Karte an, **Ohne fahren** verzichtet darauf. Ist die Region der Route noch nicht auf dem Telefon, bietet Velorki an, sie gleich dort herunterzuladen, und wartet mit dem Fortschritt des Downloads, "Warte, bis die Region heruntergeladen ist…", dann "Abbiegehinweise werden erstellt…".
 
 ## Das Abbiegeband
 
@@ -81,6 +83,16 @@ Nur das orange Band, mit der Entfernung zur Route und der Richtung dorthin. Velo
 Das Band sagt **Wird neu berechnet…**, solange ein Weg zurück oder eine neue Route berechnet wird, und **Route neu berechnet**, wenn eine neue Route da ist. **Neue Route von hier**, eine Schaltfläche neben dem orangen Band, plant sofort von deinem Standort zum Ziel, egal was eingestellt ist.
 
 Alle genannten Entfernungen wachsen mit, je schlechter dein GPS-Empfang ist, ungefähr im Doppelten der gemeldeten Genauigkeit, damit ein Handy unter Bäumen dich nicht dauernd für verirrt erklärt. Bei 100 Metern Genauigkeit wachsen sie nicht weiter, ein Handy ohne jede Sicht zum Himmel kann die Erkennung also nicht abschalten.
+
+## Einen Stopp unterwegs einfügen
+
+Solange eine Fahrt einer Route folgt, tippe auf der Karte auf einen Stopp (ein Café, einen Trinkbrunnen, einen Laden), und seine Karte bietet **Als Stopp einfügen**. Velorki fragt **Zur Route hinzufügen?**: "Die Route wird mit diesem Stopp neu berechnet, und die Navigation folgt der neuen Route." Bestätige mit **Hinzufügen und neu berechnen**.
+
+- Der Stopp kommt in den Teil der Route, der noch vor dir liegt, nie dahinter. Ein Stopp neben dem, was du schon gefahren bist, wird der nächste Punkt.
+- Die Führung läuft auf der alten Route weiter, bis die neue fertig ist, Stimme und Band setzen also nicht aus. Die Fahrt wird die ganze Zeit weiter aufgezeichnet.
+- Auf einer importierten Route wird nur das Stück um den Stopp neu geroutet; die Linie der Datei bleibt überall sonst.
+- Folgst du einer gespeicherten Route, bleibt sie, wie sie ist: Die geänderte Route liegt im Tab Planen, und die Fahrt folgt dieser.
+- Lässt sich der Stopp nicht routen, wird er wieder herausgenommen, und du siehst "Der Stopp konnte nicht zur Route hinzugefügt werden. Die Navigation folgt weiter der bisherigen Route."
 
 ## Die Karte während der Navigation
 

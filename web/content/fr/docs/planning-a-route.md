@@ -9,7 +9,7 @@ L’onglet Planifier transforme des touchers sur la carte en itinéraire à vél
 ## Fixer le départ et l’arrivée
 
 1. Ouvrez l’onglet **Planifier** et déplacez la carte là où vous voulez partir.
-2. **Touchez la carte** pour fixer le départ. La feuille en bas indique « Touchez à nouveau la carte pour ajouter une arrivée. »
+2. **Touchez la carte** pour fixer le départ. La feuille vide indique « Recherchez un lieu ou touchez la carte. » ; une fois le départ posé, elle indique « Touchez à nouveau la carte pour ajouter une arrivée. »
 3. **Touchez à nouveau** pour le point suivant. Chaque toucher ajoute un point à la fin de l’itinéraire, et le dernier, l’arrivée, porte un drapeau. Pour placer plutôt un point au milieu, **touchez la ligne de l’itinéraire** à l’endroit voulu : le point se pose sur la ligne à cet endroit, et vous pouvez le faire glisser comme n’importe quel autre.
 4. Velorki attend un instant après votre dernière modification, puis calcule. Pendant ce temps, la feuille affiche un indicateur de chargement et **Calcul de l’itinéraire…** ; puis les chiffres apparaissent.
 
@@ -86,7 +86,7 @@ La rangée de boutons dans la feuille d’itinéraire :
 - **Boucle** ouvre la feuille de boucle intelligente, décrite dans [boucles](./loops).
 - **Demander** ouvre l’[assistant](./assistant). Il n’est là que si la version communique avec un serveur Velorki.
 
-Sous la rangée se trouve le bouton **Enregistrer** pleine largeur.
+Sous la rangée se trouvent **Enregistrer** et **Rouler**. **Rouler** passe à l’onglet Rouler, suit le plan et démarre l’enregistrement, avec les mêmes questions que **Démarrer** là-bas ; si une sortie est déjà en cours, il ne fait que changer d’onglet.
 
 ## Variantes
 
@@ -128,8 +128,8 @@ Vous obtenez « Itinéraire enregistré », et l’itinéraire est dans **Bibl
 
 ## Quand le calcul échoue
 
-- **« Cet itinéraire nécessite des tuiles de routage absentes de cet appareil. »** s’affiche à la place des chiffres quand votre téléphone n’a pas de données de routage pour la zone et aucun serveur de routage de repli. Le bouton en dessous compte les tuiles et leur taille, par exemple **Télécharger 3 tuiles (412 Mo)**, et ouvre l’écran hors ligne avec exactement ces tuiles sélectionnées. Voir [cartes et routage hors ligne](./offline-maps-and-routing).
-- **« Aucun serveur de routage configuré, définissez-en un dans Réglages → Avancé. »** est une carte sous les pastilles de vélo, et signifie que cette version n’a aucune adresse de serveur.
+- **« Cet itinéraire nécessite des tuiles de routage absentes de cet appareil. »** s’affiche à la place des chiffres quand votre téléphone n’a pas de données de routage pour la zone. Le bouton en dessous compte les tuiles et leur taille, par exemple **Télécharger 3 tuiles (412 Mo)**. Touchez-le, confirmez la question, et la carte affiche la progression pendant que la pastille au-dessus de la carte suit le même téléchargement ; le **X** de la pastille devient **Annuler le téléchargement** et demande confirmation avant d’arrêter. Voir [cartes et routage hors ligne](./offline-maps-and-routing).
+- **« Cette version de Velorki n’a pas de données cartographiques pour le calcul d’itinéraire. »** est une bannière, et signifie une version compilée depuis les sources sans miroir de tuiles.
 - Tout le reste s’affiche sous la forme **Échec du calcul :** suivi de la raison.
 
 ## Voir aussi

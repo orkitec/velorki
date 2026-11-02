@@ -1,6 +1,6 @@
 ---
 title: Velorki Plus
-description: Alles wat op je telefoon draait is gratis, en de koppelingen met Strava en Ride with GPS ook. Plus is een klein abonnement voor de functies die onze servers nodig hebben.
+description: Alles wat op je telefoon draait is gratis, ook Strava en Ride with GPS. Plus is een klein abonnement voor wat onze servers nodig heeft.
 order: 15
 ---
 
@@ -23,6 +23,7 @@ Gratis, voor iedereen, voorgoed:
 - de weerkaart: regenradar, wolken en wind, met de tijdregelaar,
 - het weer langs de route uit een grovere openbare verwachting, het ICON-model van de Deutscher Wetterdienst: wind, regen, temperatuur, een regel die ze samenvat en de beste vertrektijd, en de route gekleurd naar helling, ondergrond, wind of regen,
 - de koppelingen met Strava en Ride with GPS: ritten uploaden, routes importeren, routes naar Ride with GPS sturen (zie [Strava en Ride with GPS](./strava-and-ridewithgps)),
+- je routes, ritten en een paar instellingen synchroniseren tussen je apparaten via je eigen iCloud of Google Drive,
 - de gedeelde link van iemand anders openen.
 
 De routeringsgegevens en de zoekindex worden kosteloos voor je gespiegeld.
@@ -33,7 +34,7 @@ Drie functies, zoals ze op de abonnementspagina staan:
 
 | Functie | Wat het is |
 |---|---|
-| **AI-assistent** | "Beschrijf de rit die je wilt; Velorki maakt er een route van en plant die op je telefoon." |
+| **AI-assistent** | "Beschrijf de rit die je wilt; Velorki maakt er een route van en plant die op je apparaat." |
 | **Links delen** | "Maak van een route of rit een link die iedereen in een browser kan openen." |
 | **Fijner weer op de route en regenradar** | "Fijner weer langs de route van lokale weerdiensten, met windstoten en regenkans, en echte regenradar in heel Europa." |
 
@@ -43,13 +44,13 @@ Het fijnere weer op de route komt van de National Weather Service in de VS, uit 
 
 ## Abonneren
 
-1. Open **Instellingen**, zoek **Abonnement** en tik op **Velorki Plus**. De abonnementspagina opent ook vanuit de knoppen **Velorki Plus bekijken** die bij de afgeschermde functies staan.
-2. Kies een pakket. Elke tegel toont de prijs en de periode, en een gratis proefperiode wordt onder de prijs vermeld: "Begint met een gratis proefperiode van 7 dagen."
+1. Open **Instellingen**, tik op **Velorki Plus** en dan op de rij **Velorki Plus**. De abonnementspagina opent ook vanuit de knoppen **Velorki Plus bekijken** die bij de afgeschermde functies staan.
+2. Kies een pakket. Elke tegel toont de prijs en de periode, en een gratis proefperiode wordt onder de prijs vermeld: "7 dagen gratis, daarna … Zeg je uiterlijk 24 uur voor het einde van de proefperiode op, dan wordt er niets in rekening gebracht."
 3. Tik op **Abonneren** en bevestig in het eigen venster van de store.
 
 Je krijgt "Velorki Plus is actief. Bedankt!" en elke afgeschermde functie wordt meteen ontgrendeld. Annuleer je het venster van de store, dan zegt het niets en verandert er niets.
 
-De pagina toont altijd de eigen voorwaarden van de store: "Het abonnement wordt aan het eind van elke periode automatisch verlengd, tenzij het minstens 24 uur van tevoren wordt opgezegd. De betaling loopt via de App Store of Google Play, waar het abonnement op elk moment kan worden beheerd of opgezegd. Een gratis proefperiode die niet wordt opgezegd, gaat over in een betaald abonnement."
+De pagina eindigt met de eigen voorwaarden van de store. Op een iPhone wordt de betaling van je Apple Account afgeschreven en wordt het abonnement automatisch verlengd, tenzij het minstens 24 uur voor het einde van de periode wordt opgezegd. Op Android wordt het van je Google Play-account afgeschreven en verlengd, tenzij het voor het einde van de periode wordt opgezegd. Bij beide kan het op elk moment in de store worden beheerd of opgezegd, en een gratis proefperiode die niet wordt opgezegd, gaat over in een betaald abonnement.
 
 ## De proefperiode
 
@@ -59,7 +60,7 @@ Waar een pakket er een aanbiedt, begint het abonnement met een gratis proefperio
 
 Omdat er geen account is, wordt een actief abonnement via de store herkend. Op een nieuwe telefoon, na een herinstallatie, of als de app het gewoon kwijt is:
 
-1. Open **Instellingen → Abonnement**, of de abonnementspagina.
+1. Open **Instellingen → Velorki Plus**, of de abonnementspagina.
 2. Tik op **Aankopen herstellen**. "Al geabonneerd? Herstellen werkt zonder account."
 
 Velorki zegt dan "Je abonnement is hersteld.", of "De store heeft geen aankoop gevonden om te herstellen." als de Apple ID of het Google-account dat op de telefoon is aangemeld er geen heeft. Een abonnement dat in de ene store is gekocht, kan niet in de andere worden hersteld.
@@ -68,13 +69,17 @@ Velorki zegt dan "Je abonnement is hersteld.", of "De store heeft geen aankoop g
 
 Opzeggen gebeurt in de store, nooit in de app.
 
-1. **Instellingen → Abonnement**.
+1. **Instellingen → Velorki Plus**.
 2. Tik op **Beheren**, dat je abonnementspagina in de App Store of in Google Play opent.
 3. Zeg daar op.
 
 Plus blijft actief tot het einde van de periode die je al hebt betaald. De rij in Instellingen toont **Actief · Wordt verlengd op 17 okt 2026** zolang het wordt verlengd, en **Actief · Eindigt op 17 okt 2026** zodra je hebt opgezegd.
 
 Terugbetalingen zijn aan Apple en Google, volgens hun eigen beleid, omdat zij de betaling hebben ontvangen.
+
+## In de browser
+
+Plus kun je niet kopen in de webplanner. Heb je het gekocht in de app voor iPhone of Android en synchroniseer je met iCloud of Google, log dan in de planner in met dat account ("Log in met iCloud of Google om je Plus te gebruiken") en Plus werkt daar ook. Zonder Plus op dat account zegt de planner "Voorlopig alleen in de apps voor iPhone en Android".
 
 ## "Niet beschikbaar in deze build"
 
