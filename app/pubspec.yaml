@@ -55,7 +55,7 @@ dependencies:
   wakelock_plus: ^1.8.0
   # Browser APIs for the web build (Cache Storage, downloads).
   web: ^1.1.2
-  purchases_flutter: ^10.12.0
+  purchases_flutter: ^11.0.0
   sensors_plus: ^7.1.1
   screen_brightness: ^2.1.11
   live_activities: ^2.6.0
