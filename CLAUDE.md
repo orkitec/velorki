@@ -55,7 +55,8 @@ changing structure.
 ## Toolchain facts
 
 - Flutter/Dart/Java via mise (`mise.toml`); maplibre_gl needs Java 21,
-  permission_handler needs compileSdk 37. Android SDK at `~/Android/Sdk`.
+  permission_handler needs compileSdk 37. Android SDK at `~/Android/Sdk`
+  on Linux, `~/Library/Android/sdk` on macOS (`mise.toml` picks by OS).
 - Codegen: `bash tool/gen.sh` (riverpod, freezed, drift, gen-l10n, and the
   in-app guide: `web/content/<locale>/docs` copied into the git-ignored
   `assets/guide/`); every workflow runs it before building. build_runner

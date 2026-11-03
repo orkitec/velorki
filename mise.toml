@@ -6,5 +6,5 @@ java = "temurin-21.0.12+101.0.LTS"
 node = "26"
 
 [env]
-ANDROID_HOME = "{{env.HOME}}/Android/Sdk"
-ANDROID_SDK_ROOT = "{{env.HOME}}/Android/Sdk"
+ANDROID_HOME = "{% if os() == 'macos' %}{{env.HOME}}/Library/Android/sdk{% else %}{{env.HOME}}/Android/Sdk{% endif %}"
+ANDROID_SDK_ROOT = "{% if os() == 'macos' %}{{env.HOME}}/Library/Android/sdk{% else %}{{env.HOME}}/Android/Sdk{% endif %}"
