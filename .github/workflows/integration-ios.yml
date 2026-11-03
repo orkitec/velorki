@@ -130,8 +130,7 @@ jobs:
         working-directory: app
         run: |
           flutter pub get
-          dart run build_runner build
-          flutter gen-l10n
+          bash tool/gen.sh
 
       - name: Build and serve the segments mirror
         run: bash app/tool/itest_mirror.sh

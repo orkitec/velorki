@@ -20,6 +20,7 @@
   "settingsVersionUnknown": "Versie niet beschikbaar",
   "settingsLicenses": "Opensourcelicenties",
   "settingsLicensesSubtitle": "De software en de kaartgegevens waarop Velorki is gebouwd.",
+  "settingsGuide": "Handleiding",
   "settingsLegalese": "Velorki is open source onder de GNU Affero General Public License v3.0 only. Kaartgegevens © OpenStreetMap-bijdragers.",
   "settingsPrivacyPolicy": "Privacybeleid",
   "settingsTerms": "Gebruiksvoorwaarden",

@@ -1,7 +1,7 @@
 • Erster Start fragt nach dem Standort, öffnet über deinem Land, Radwege und Stopps an
+• Handbuch in der App, offline: Optionen → Handbuch
 • „Losfahren“ neben „Speichern“ startet die geplante Route
 • Stopp während der Fahrt hinzufügen; die Führung läuft weiter
 • Bahnhöfe, Bus-, Tram- und Fährhalte, Apotheken, Krankenhäuser, Aussichtspunkte und mehr
 • Downloads direkt auf der Karte, mit Fortschritt und Abbrechen
 • Kartendaten nur bei echten Änderungen aktualisiert
-• Tab „Aufzeichnen“ statt „Aufnahme“

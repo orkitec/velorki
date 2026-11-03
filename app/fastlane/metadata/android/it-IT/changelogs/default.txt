@@ -1,4 +1,5 @@
 • Al primo avvio: la tua posizione, la mappa sul tuo paese, ciclabili e soste visibili
+• La guida nell’app, offline: Opzioni → Guida
 • «Parti» accanto a «Salva» avvia il percorso pianificato
 • Aggiungi una sosta durante il giro; la navigazione continua
 • Stazioni, fermate di bus, tram e traghetti, farmacie, ospedali, panorami e altro

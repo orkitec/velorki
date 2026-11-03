@@ -56,7 +56,9 @@ changing structure.
 
 - Flutter/Dart/Java via mise (`mise.toml`); maplibre_gl needs Java 21,
   permission_handler needs compileSdk 37. Android SDK at `~/Android/Sdk`.
-- Codegen: `bash tool/gen.sh` (riverpod, freezed, drift, gen-l10n). build_runner
+- Codegen: `bash tool/gen.sh` (riverpod, freezed, drift, gen-l10n, and the
+  in-app guide: `web/content/<locale>/docs` copied into the git-ignored
+  `assets/guide/`); every workflow runs it before building. build_runner
   here has no `--delete-conflicting-outputs`.
 - Strings are written in `app/lib/l10n/app_en.arb` and translated into every
   other `app_*.arb` in the same commit (by the agent, in the terms of

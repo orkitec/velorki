@@ -55,6 +55,9 @@ __pycache__/
 .itest-mirror/
 mirror.pid
 
+# Copied from web/content/<locale>/docs by app/tool/gen.sh.
+app/assets/guide/
+
 # Fetched by tool/web_assets.sh for the web build.
 app/web/sqlite3.wasm
 app/web/drift_worker.js

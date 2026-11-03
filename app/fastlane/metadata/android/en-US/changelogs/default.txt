@@ -1,4 +1,5 @@
 • First start asks for your location and opens over your country, lanes and stops on
+• The guide in the app, offline: Settings → Guide
 • Ride beside Save starts the planned route
 • Add a stop during a ride; guidance carries on
 • Train, bus, tram and ferry stops, pharmacies, hospitals, viewpoints and more on the map

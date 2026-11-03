@@ -1,4 +1,5 @@
 • Un primer inicio más fácil: Velorki pide tu ubicación, abre el mapa sobre tu país con los carriles bici y las paradas, y te indica por dónde empezar.
+• La guía de usuario ya está en la app, en tu idioma y sin conexión: Ajustes → Guía de usuario.
 • Sal enseguida: «Salir» junto a «Guardar» empieza a grabar y te guía por la ruta que has planificado.
 • Añade una parada durante la salida: toca una cafetería, una tienda o una fuente en el mapa y añádela a tu ruta. La navegación sigue mientras se recalcula la ruta.
 • Más en el mapa: estaciones, paradas de autobús, tranvía y ferri, farmacias, hospitales, áreas de pícnic, miradores, playas y máquinas expendedoras de cámaras. Busca «bus», «tren» o «ferri» para encontrar la más cercana.

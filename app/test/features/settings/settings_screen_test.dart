@@ -45,6 +45,7 @@ void main() {
       settingsRow(SettingsTopic.appearance),
       settingsRow(SettingsTopic.assistant),
       settingsRow(SettingsTopic.mapsData),
+      settingsRow(SettingsTopic.guide),
       settingsRow(SettingsTopic.about),
     ];
     for (final finder in order) {
@@ -139,6 +140,7 @@ void main() {
       SettingsTopic.appearance,
       SettingsTopic.assistant,
       SettingsTopic.mapsData,
+      SettingsTopic.guide,
       SettingsTopic.about,
     ]) {
       expect(settingsRow(kept), findsOneWidget, reason: '$kept');

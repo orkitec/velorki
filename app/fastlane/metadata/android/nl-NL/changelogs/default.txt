@@ -1,4 +1,5 @@
 • Eerste start vraagt je locatie, opent boven je land, fietspaden en stops aan
+• De handleiding in de app, offline: Instellingen → Handleiding
 • ‘Rijden’ naast ‘Opslaan’ start de geplande route
 • Stop toevoegen onderweg; de navigatie gaat door
 • Stations, bus-, tram- en veerhaltes, apotheken, ziekenhuizen, uitzichtpunten en meer

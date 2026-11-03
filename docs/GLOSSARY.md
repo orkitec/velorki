@@ -64,6 +64,7 @@ ones whose choice is a decision, and the rules around them.
 | Connections | Verbindungen | Connexions | Conexiones | Connessioni | Koppelingen |
 | Maps & data | Karten & Daten | Cartes et données | Mapas y datos | Mappe e dati | Kaarten en gegevens |
 | Rider & bike | Fahrer & Rad | Cycliste et vélo | Ciclista y bici | Ciclista e bici | Fietser en fiets |
+| Guide (user guide, a Settings row) | Handbuch | Guide d’utilisation | Guía de usuario | Guida | Handleiding |
 | Touring (profile) | Trekking | Rando | Trekking | Trekking | Toer |
 
 ## Known overlaps
