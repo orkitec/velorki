@@ -1,3 +1,12 @@
 {
-  "signedContributors": []
+  "signedContributors": [
+    {
+      "name": "steffen-roemer",
+      "id": 1806181,
+      "comment_id": 6596935421,
+      "created_at": "2026-11-03T06:20:57Z",
+      "repoId": 1367505544,
+      "pullRequestNo": 43
+    }
+  ]
 }
