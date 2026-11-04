@@ -36,7 +36,7 @@ dependencies:
   riverpod_annotation: ^4.0.7
   share_plus: ^13.3.1
   shared_preferences: ^2.5.6
-  speak: ^0.1.0
+  speak: ^0.1.2
   sqlite3: ^3.8.0
   universal_ble: ^3.1.0
   url_launcher: ^6.3.3
