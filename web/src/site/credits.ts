@@ -112,6 +112,14 @@ export const CREDITS: readonly Credit[] = [
     app: ['Voice catalogue'],
   },
   {
+    id: 'speak',
+    links: [
+      { label: 'pub.dev/packages/speak', href: 'https://pub.dev/packages/speak' },
+      { label: 'github.com/orkitec/speak', href: 'https://github.com/orkitec/speak' },
+    ],
+    app: [],
+  },
+  {
     id: 'fonts',
     links: [
       { label: 'Barlow Condensed', href: 'https://github.com/jpt/barlow' },

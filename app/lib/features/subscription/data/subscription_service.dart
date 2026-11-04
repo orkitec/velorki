@@ -39,6 +39,14 @@ abstract interface class SubscriptionService {
   /// Asks the store for the customer info again.
   Future<PlusCustomerInfo> refresh();
 
+  /// The country of the store account the phone buys from (ISO 3166-1
+  /// alpha-3, `CHN` for China's App Store), or `null` when there is no store
+  /// or it cannot say. Not the phone's region: App Review in China uses a
+  /// Chinese account on any phone.
+  ///
+  /// Never throws.
+  Future<String?> storeCountry();
+
   /// The current offering, or `null` when the store has none configured.
   ///
   /// Throws [SubscriptionException] when the store could not be asked.
@@ -88,6 +96,9 @@ class NoopSubscriptionService implements SubscriptionService {
   Future<PlusCustomerInfo> refresh() async => PlusCustomerInfo.none;
 
   @override
+  Future<String?> storeCountry() async => null;
+
+  @override
   Future<PlusOffering?> offerings() async => null;
 
   @override
@@ -134,6 +145,12 @@ final subscriptionServiceProvider = Provider<SubscriptionService>((ref) {
   ref.onDispose(service.dispose);
   return service;
 });
+
+/// The store account's country, as [SubscriptionService.storeCountry] says;
+/// asked once per process.
+final storeCountryProvider = FutureProvider<String?>(
+  (ref) => ref.watch(subscriptionServiceProvider).storeCountry(),
+);
 
 /// The customer info as a stream, for the paywall, the settings tile and
 /// `plusAccessProvider`. Loading until the store has answered.

@@ -53,6 +53,9 @@ abstract interface class PurchasesApi {
   Future<Map<String, rc.IntroEligibility>> checkIntroEligibility(
     List<String> productIdentifiers,
   );
+
+  /// The store account's country, or `null` when the store cannot say.
+  Future<rc.Storefront?> storefront();
 }
 
 /// [PurchasesApi] over the real `rc.Purchases` statics.
@@ -98,6 +101,9 @@ class SdkPurchasesApi implements PurchasesApi {
     List<String> productIdentifiers,
   ) =>
       rc.Purchases.checkTrialOrIntroductoryPriceEligibility(productIdentifiers);
+
+  @override
+  Future<rc.Storefront?> storefront() => rc.Purchases.storefront;
 }
 
 /// [SubscriptionService] over RevenueCat's `purchases_flutter`.
@@ -150,6 +156,10 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   rc.CustomerInfoUpdateListener? _listener;
   bool _configured = false;
 
+  /// The configure under way, so a second caller waits for it rather than
+  /// configuring the SDK twice.
+  Future<void>? _configuring;
+
   @override
   bool get isAvailable => true;
 
@@ -163,7 +173,10 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   }
 
   @override
-  Future<void> configure() async {
+  Future<void> configure() =>
+      _configuring ??= _configure().whenComplete(() => _configuring = null);
+
+  Future<void> _configure() async {
     if (_configured) return;
     try {
       await purchases.setLogLevel(
@@ -184,6 +197,18 @@ class RevenueCatSubscriptionService implements SubscriptionService {
       // emulator without Play services). The rider stays unentitled until the
       // next refresh; nothing else in the app depends on this succeeding.
       _log.warning('RevenueCat could not be configured', e, st);
+    }
+  }
+
+  @override
+  Future<String?> storeCountry() async {
+    await configure();
+    if (!_configured) return null;
+    try {
+      return (await purchases.storefront())?.countryCode;
+    } on Object catch (e, st) {
+      _log.info('the storefront could not be read', e, st);
+      return null;
     }
   }
 

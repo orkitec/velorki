@@ -503,6 +503,11 @@
         "body": "Welke spraakstem op de telefoon welke is, zijn geslacht en zijn kwaliteit: uit de catalogus Web Speech Recommended Voices van Hadrien Gardeur.",
         "licence": "CC0 1.0 (toewijding aan het publiek domein)."
       },
+      "speak": {
+        "title": "speak",
+        "body": "De spraaksynthese achter de gesproken afslaginstructies: zet muziek alleen zachter of pauzeert een podcast alleen zolang een instructie klinkt, en zwijgt tijdens telefoongesprekken. Ons eigen pakket, gepubliceerd op pub.dev.",
+        "licence": "BSD 3-Clause-licentie."
+      },
       "fonts": {
         "title": "Barlow Condensed en Manrope",
         "body": "De twee lettertypen van de app en deze website. Copyright 2017 The Barlow Project Authors, copyright 2018 The Manrope Project Authors.",

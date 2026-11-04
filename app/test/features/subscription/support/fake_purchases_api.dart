@@ -41,6 +41,18 @@ class FakePurchasesApi implements PurchasesApi {
   /// Thrown by [restorePurchases] when set.
   Object? restoreError;
 
+  /// What [storefront] answers.
+  rc.Storefront? storefrontResult;
+
+  /// Thrown by [storefront] when set.
+  Object? storefrontError;
+
+  @override
+  Future<rc.Storefront?> storefront() async {
+    if (storefrontError != null) throw storefrontError!;
+    return storefrontResult;
+  }
+
   /// What [checkIntroEligibility] answers, by product id; products not in
   /// here are left out of the answer, as a store that cannot tell may.
   Map<String, rc.IntroEligibilityStatus> introEligibility =

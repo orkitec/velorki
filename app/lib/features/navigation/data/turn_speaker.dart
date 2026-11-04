@@ -7,6 +7,7 @@ import 'package:speak/speak.dart' as tts;
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../settings/data/language_controller.dart';
+import '../../subscription/data/subscription_service.dart';
 import '../domain/voice_option.dart';
 import '../domain/voice_ranking.dart';
 import 'navigation_settings.dart';
@@ -56,9 +57,12 @@ abstract class TurnSpeaker {
   Future<void> dispose();
 }
 
-/// Builds the `speak` speaker for an audio configuration; replaced in tests,
-/// which have no text-to-speech engine.
-typedef SpeakFactory = tts.Speak Function(tts.SpeakAudio audio);
+/// Builds the `speak` speaker for an audio configuration and its iOS
+/// options; replaced in tests, which have no text-to-speech engine.
+typedef SpeakFactory = tts.Speak Function(
+  tts.SpeakAudio audio,
+  tts.IosSpeakOptions ios,
+);
 
 /// The real speaker, on top of the `speak` package.
 ///
@@ -78,14 +82,19 @@ typedef SpeakFactory = tts.Speak Function(tts.SpeakAudio audio);
 class SpeakTurnSpeaker implements TurnSpeaker {
   /// Creates a speaker that talks in [localeTag], e.g. `en-GB`, in the voice
   /// with [voiceId] (`null` for the best one), with other audio treated as
-  /// [otherAudio] says.
+  /// [otherAudio] says. [callKit] lets iOS ask CallKit whether a call is
+  /// going on; see [callKitAllowedIn].
   SpeakTurnSpeaker({
     this.localeTag = 'en-US',
     this._voiceId,
     InstructionAudio otherAudio = InstructionAudio.pausePodcasts,
+    bool callKit = false,
     SpeakFactory? create,
     TargetPlatform? platform,
-  }) : _speak = (create ?? _engine)(audioFor(otherAudio)),
+  }) : _speak = (create ?? _engine)(
+         audioFor(otherAudio),
+         tts.IosSpeakOptions(callKit: callKit),
+       ),
        _platform = platform ?? defaultTargetPlatform {
     _speak
       ..language = localeTag
@@ -127,7 +136,8 @@ class SpeakTurnSpeaker implements TurnSpeaker {
   /// The BCP-47 tag the cues are spoken in.
   final String localeTag;
 
-  static tts.Speak _engine(tts.SpeakAudio audio) => tts.Speak(audio: audio);
+  static tts.Speak _engine(tts.SpeakAudio audio, tts.IosSpeakOptions ios) =>
+      tts.Speak(audio: audio, ios: ios);
 
   final tts.Speak _speak;
   final TargetPlatform _platform;
@@ -153,7 +163,9 @@ class SpeakTurnSpeaker implements TurnSpeaker {
     await (_voiceApplied ??= _applyVoice());
     if (_broken) return;
     try {
-      // Interrupted and expired cues simply end: neither is a failure.
+      // Interrupted, expired and blocked cues (a phone call has the audio)
+      // simply end: none is a failure, and nothing is said after a call
+      // that was due during it.
       await _speak(
         text,
         queue: urgent ? tts.SpeakQueue.interrupt : tts.SpeakQueue.append,
@@ -278,6 +290,17 @@ VoiceOption voiceOptionFrom(tts.Voice voice) => VoiceOption(
       voice.name.toLowerCase().endsWith('-network'),
 );
 
+/// Whether the speaker may ask CallKit about calls, for the store account
+/// in [storeCountry] (see `storeCountryProvider`).
+///
+/// Not on China's App Store, where App Review rejects apps that use CallKit,
+/// and not while the store has not said where it is: a review there must
+/// never see it. Without it a call is still noticed while a cue is being
+/// said; only one that started between two cues can have a cue spoken over
+/// it.
+bool callKitAllowedIn(String? storeCountry) =>
+    storeCountry != null && storeCountry != 'CHN';
+
 /// The speaker the navigation feature uses.
 ///
 /// Kept alive for the whole app (a plain [Provider] is not auto-disposed), so
@@ -294,6 +317,7 @@ final turnSpeakerProvider = Provider<TurnSpeaker>((ref) {
       navigationSettingsProvider.select((settings) => settings.otherAudio),
     ),
     voiceId: ref.read(navigationSettingsProvider).voiceId,
+    callKit: callKitAllowedIn(ref.watch(storeCountryProvider).value),
   );
   ref.onDispose(speaker.dispose);
   return speaker;

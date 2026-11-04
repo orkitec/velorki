@@ -307,6 +307,44 @@ void main() {
     );
   });
 
+  group('storeCountry', () {
+    test('is the store account\'s country, once configured', () async {
+      final api = FakePurchasesApi()
+        ..storefrontResult = const rc.Storefront(countryCode: 'CHN');
+      final service = _service(api);
+
+      // Asked before the launch's configure is done: it waits for it.
+      expect(await service.storeCountry(), 'CHN');
+      expect(api.configurations, hasLength(1));
+    });
+
+    test('a configure under way is not started twice', () async {
+      final api = FakePurchasesApi();
+      final service = _service(api);
+
+      await Future.wait([service.configure(), service.storeCountry()]);
+
+      expect(api.configurations, hasLength(1));
+      expect(api.listeners, hasLength(1));
+    });
+
+    test('a store that cannot be reached has no country', () async {
+      final api = FakePurchasesApi()
+        ..configureError = PlatformException(code: '23', message: 'no store')
+        ..storefrontResult = const rc.Storefront(countryCode: 'DEU');
+      final service = _service(api);
+
+      expect(await service.storeCountry(), isNull);
+    });
+
+    test('a storefront that cannot be read has no country', () async {
+      final api = FakePurchasesApi()..storefrontError = StateError('no');
+      final service = _service(api);
+
+      expect(await service.storeCountry(), isNull);
+    });
+  });
+
   group('customerInfo', () {
     test('starts at what is known and then follows the store', () async {
       final api = FakePurchasesApi();

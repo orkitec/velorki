@@ -7,6 +7,7 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/navigation/data/navigation_settings.dart';
 import 'package:velorki/features/navigation/data/turn_speaker.dart';
 import 'package:velorki/features/navigation/domain/voice_option.dart';
+import 'package:velorki/features/subscription/data/subscription_service.dart';
 
 /// One call of the speaker: what was said, and how it was queued.
 typedef _Said = ({String text, tts.SpeakQueue queue, Duration? expireAfter});
@@ -14,10 +15,13 @@ typedef _Said = ({String text, tts.SpeakQueue queue, Duration? expireAfter});
 /// The `speak` speaker without an engine: it writes down what it was asked
 /// and answers with what the test says.
 class _FakeSpeak implements tts.Speak {
-  _FakeSpeak(this.audio);
+  _FakeSpeak(this.audio, [this.ios = const tts.IosSpeakOptions()]);
 
   @override
   final tts.SpeakAudio audio;
+
+  /// The iOS options the speaker was built with.
+  final tts.IosSpeakOptions ios;
 
   /// What [voices] lists; read on every call, so a test can play a voice
   /// being downloaded mid-run.
@@ -25,6 +29,9 @@ class _FakeSpeak implements tts.Speak {
 
   /// Thrown by the next call, when set.
   Object? failNext;
+
+  /// How the next calls end: a call on the phone makes it `blocked`.
+  tts.SpeakOutcome outcome = tts.SpeakOutcome.completed;
 
   final said = <_Said>[];
 
@@ -60,7 +67,7 @@ class _FakeSpeak implements tts.Speak {
     }
     said.add((text: text, queue: queue, expireAfter: expireAfter));
     voicesUsed.add(this.voice?.id);
-    return tts.SpeakOutcome.completed;
+    return outcome;
   }
 
   @override
@@ -132,7 +139,7 @@ void main() {
     voiceId: voiceId,
     otherAudio: otherAudio,
     platform: platform,
-    create: (audio) =>
+    create: (audio, ios) =>
         engine = _FakeSpeak(audio)..installed = voices ?? _appleVoices,
   );
 
@@ -163,7 +170,7 @@ void main() {
     test('says the cues in the language they are written in', () async {
       final turns = SpeakTurnSpeaker(
         localeTag: 'de-DE',
-        create: (audio) => engine = _FakeSpeak(audio),
+        create: (audio, ios) => engine = _FakeSpeak(audio),
       );
       await turns.speak('Links abbiegen');
       expect(engine.language, 'de-DE');
@@ -194,6 +201,22 @@ void main() {
         await turns.speak('One');
         await turns.speak('Two');
         expect(engine.said.map((s) => s.text), ['Two']);
+      },
+    );
+
+    test(
+      'a cue blocked by a phone call ends quietly, and the voice stays on',
+      () async {
+        final turns = speaker();
+        engine.outcome = tts.SpeakOutcome.blocked;
+        await turns.speak('During the call');
+        engine.outcome = tts.SpeakOutcome.completed;
+        await turns.speak('After the call');
+        expect(engine.said.map((s) => s.text), [
+          'During the call',
+          'After the call',
+        ]);
+        expect(await turns.voices(), isNotEmpty);
       },
     );
 
@@ -230,6 +253,8 @@ void main() {
       // short linger.
       expect(engine.audio.leadIn, SpeakTurnSpeaker.leadIn);
       expect(engine.audio.linger, tts.SpeakAudio.defaultLinger);
+      // Nothing is said over a phone call, and nothing is kept for after it.
+      expect(engine.audio.duringCalls, tts.SpeakDuringCalls.skip);
     });
 
     test('"lower the volume" lowers everything, still as guidance', () {
@@ -360,6 +385,40 @@ void main() {
   });
 
   group('the provider', () {
+    Future<_FakeSpeak> speakerIn(String? storeCountry) async {
+      SharedPreferences.setMockInitialValues(const {});
+      final prefs = await SharedPreferences.getInstance();
+      final made = <_FakeSpeak>[];
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          storeCountryProvider.overrideWith((ref) async => storeCountry),
+          speakFactoryProvider.overrideWithValue((audio, ios) {
+            final engine = _FakeSpeak(audio, ios)..installed = _appleVoices;
+            made.add(engine);
+            return engine;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(turnSpeakerProvider, (_, _) {});
+      await container.read(storeCountryProvider.future);
+      await container.read(turnSpeakerProvider).speak('Hello');
+      return made.last;
+    }
+
+    test('asks CallKit about calls on a store outside China', () async {
+      expect((await speakerIn('DEU')).ios.callKit, isTrue);
+    });
+
+    test("never asks CallKit on China's App Store", () async {
+      expect((await speakerIn('CHN')).ios.callKit, isFalse);
+    });
+
+    test('never asks CallKit while the store has not said where', () async {
+      expect((await speakerIn(null)).ios.callKit, isFalse);
+    });
+
     test(
       'a new choice for other audio builds a new speaker for the next cue',
       () async {
@@ -369,7 +428,7 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
-            speakFactoryProvider.overrideWithValue((audio) {
+            speakFactoryProvider.overrideWithValue((audio, ios) {
               final engine = _FakeSpeak(audio)..installed = _appleVoices;
               made.add(engine);
               return engine;
@@ -402,7 +461,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          speakFactoryProvider.overrideWithValue((audio) {
+          speakFactoryProvider.overrideWithValue((audio, ios) {
             final engine = _FakeSpeak(audio)..installed = _appleVoices;
             made.add(engine);
             return engine;

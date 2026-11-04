@@ -503,6 +503,11 @@
         "body": "Welche Sprachausgabe-Stimme auf dem Handy welche ist, ihr Geschlecht und ihre Qualität: aus dem Katalog Web Speech Recommended Voices von Hadrien Gardeur.",
         "licence": "CC0 1.0 (Widmung an die Gemeinfreiheit)."
       },
+      "speak": {
+        "title": "speak",
+        "body": "Die Sprachausgabe hinter den gesprochenen Abbiegehinweisen: Sie macht Musik nur leiser oder hält einen Podcast nur an, solange ein Hinweis gesprochen wird, und schweigt während eines Telefonats. Unser eigenes Paket, veröffentlicht auf pub.dev.",
+        "licence": "BSD-3-Clause-Lizenz."
+      },
       "fonts": {
         "title": "Barlow Condensed und Manrope",
         "body": "Die beiden Schriften der App und dieser Website. Copyright 2017 The Barlow Project Authors, Copyright 2018 The Manrope Project Authors.",

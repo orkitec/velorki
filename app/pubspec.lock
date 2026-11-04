@@ -1597,10 +1597,10 @@ packages:
     dependency: "direct main"
     description:
       name: speak
-      sha256: ec7e7b0b24c672fa60a6e409934e6d42c6847ebe0cb3d2b663ebff5586c361fd
+      sha256: fa2cecfac1b6cd31237da736adfe6ba80cb57c72df81afeb6fb3ba9020e1d659
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.2"
+    version: "0.2.1"
   sqlite3:
     dependency: "direct main"
     description:

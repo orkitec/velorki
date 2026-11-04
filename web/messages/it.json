@@ -503,6 +503,11 @@
         "body": "Quale voce di sintesi del telefono è quale, il suo genere e la sua qualità: dal catalogo Web Speech Recommended Voices di Hadrien Gardeur.",
         "licence": "CC0 1.0 (dedica al pubblico dominio)."
       },
+      "speak": {
+        "title": "speak",
+        "body": "La sintesi vocale dietro le indicazioni di svolta parlate: abbassa la musica o mette in pausa un podcast solo mentre viene detta un'indicazione, e tace durante le telefonate. Il nostro pacchetto, pubblicato su pub.dev.",
+        "licence": "Licenza BSD 3-Clause."
+      },
       "fonts": {
         "title": "Barlow Condensed e Manrope",
         "body": "I due caratteri dell'app e di questo sito. Copyright 2017 The Barlow Project Authors, copyright 2018 The Manrope Project Authors.",
