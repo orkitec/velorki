@@ -42,6 +42,8 @@ Con **Voz** activado, cada giro se anuncia una vez al acercarte y otra vez en el
 
 Mientras la voz está activada, el banner tiene además un botón de **silencio**. Silencia la voz **solo durante el resto de esta salida** y no toca tu ajuste; la siguiente salida empieza sin silenciar.
 
+Mientras se anuncia un giro, el audio de otras apps le deja sitio y vuelve justo después: un pódcast o audiolibro se pausa y sigue donde estaba, y la música sigue sonando, más baja. Para que los pódcasts también sigan sonando, elige **Bajar el volumen** en Ajustes → Navegación → **Otro audio durante las indicaciones de giro**. En Android un pódcast solo se pausa si su app lo hace; si no, baja como la música. Antes de cada indicación hay un instante de silencio, para que los auriculares Bluetooth no se coman la primera palabra.
+
 ## Elegir una voz
 
 1. **Ajustes → Navegación → Voz de las indicaciones**.

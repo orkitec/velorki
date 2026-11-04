@@ -42,6 +42,8 @@ Mit eingeschalteter **Stimme** wird jede Abbiegung einmal bei der Annäherung an
 
 Solange Stimme an ist, trägt das Band außerdem eine Schaltfläche zum **Stummschalten**. Sie legt die Stimme **nur für den Rest dieser Fahrt** still und rührt deine Einstellung nicht an; die nächste Fahrt beginnt wieder mit Ton.
 
+Während eine Abbiegung angesagt wird, macht der Ton anderer Apps Platz und kommt gleich danach zurück: Ein Podcast oder Hörbuch pausiert und läuft dort weiter, wo es war, Musik spielt leiser weiter. Sollen Podcasts auch weiterlaufen, wähle **Leiser stellen** unter Optionen → Navigation → **Andere Audioquellen bei Abbiegehinweisen**. Unter Android pausiert ein Podcast nur, wenn seine App das so vorsieht; sonst wird er wie Musik leiser. Vor jedem Hinweis kommt ein Moment Stille, damit Bluetooth-Kopfhörer das erste Wort nicht verschlucken.
+
 ## Eine Stimme wählen
 
 1. **Optionen → Navigation → Sprechstimme**.

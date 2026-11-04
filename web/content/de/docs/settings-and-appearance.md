@@ -30,6 +30,8 @@ Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufzeichnen
 
 **Abbiegehinweise ansagen** ist ein Schieberegler in Sekunden. Der Hinweis lautet "12 Sekunden vor der Abbiegung bei deinem Tempo, nie näher als 50 Meter". In Sekunden zu zählen heißt, dass die Ansage im selben Moment kommt, ob du steigst oder fällst.
 
+**Andere Audioquellen bei Abbiegehinweisen**: **Podcasts pausieren, Musik leiser**, "Podcasts und Hörbücher pausieren und laufen nach jedem Hinweis weiter; Musik spielt leiser weiter", die Voreinstellung; oder **Leiser stellen**, "Musik, Podcasts und Hörbücher laufen leiser weiter, solange ein Hinweis gesprochen wird". Es gilt ab dem nächsten Hinweis.
+
 **Wenn du die Route verlässt**: **Zurückführen**, "Die Planung behalten und den besten Weg zurück zeigen, vor dir"; **Neue Route zum Ziel**, "Von deinem Standort neu planen, mit den Stopps, die noch vor dir liegen"; oder **Nicht neu berechnen**, "Nur zeigen, wie weit die Route entfernt ist und in welcher Richtung". Was jede davon tut, steht unter [Navigation](./navigation#wenn-du-die-route-verlässt).
 
 ## Aufzeichnung

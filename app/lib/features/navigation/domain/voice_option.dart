@@ -32,13 +32,11 @@ enum VoiceGender {
 
 /// One voice the phone can say the turns in.
 ///
-/// Built from what the text-to-speech plugin reports, which differs per
-/// platform. iOS gives `name` ("Samantha"), `locale`, `identifier`,
-/// `quality` ("default", "enhanced" or "premium") and, from iOS 13,
-/// `gender`. Android gives `name` (a machine identifier such as
-/// `en-us-x-iog-local`), `locale`, `quality` ("very high" down to "very
-/// low"), `latency`, `network_required` and a tab-separated `features`, and
-/// no identifier or gender at all.
+/// Built from what the `speak` package reports (`voiceOptionFrom` in
+/// `turn_speaker.dart`). iOS gives a name ("Samantha"), an identifier, a
+/// grade (compact, enhanced or premium) and a gender. Android gives a name
+/// that is a machine identifier (`en-us-x-iog-local`), a grade and whether
+/// the voice is synthesised online, and no gender.
 ///
 /// [displayName] is what the rider reads. It starts out as [name] and is
 /// replaced by the catalogue or by the numbered fallback; see
@@ -54,47 +52,6 @@ class VoiceOption {
     this.quality = VoiceQuality.unknown,
     this.needsNetwork = false,
   }) : displayName = displayName ?? name;
-
-  /// The voice as the plugin lists it, or `null` when the entry is unusable.
-  static VoiceOption? fromPlatform(Map<Object?, Object?> raw) {
-    final name = raw['name'];
-    final locale = raw['locale'];
-    if (name is! String ||
-        name.isEmpty ||
-        locale is! String ||
-        locale.isEmpty) {
-      return null;
-    }
-    final identifier = raw['identifier'];
-    final features = raw['features'];
-    final id = identifier is String && identifier.isNotEmpty
-        ? identifier
-        : '$name|$locale';
-    return VoiceOption(
-      id: id,
-      name: name,
-      localeTag: locale,
-      gender: switch ((raw['gender'] as String? ?? '').toLowerCase()) {
-        'female' => VoiceGender.female,
-        'male' => VoiceGender.male,
-        _ => VoiceGender.unknown,
-      },
-      quality: switch ((raw['quality'] as String? ?? '').toLowerCase()) {
-        'premium' || 'very high' => VoiceQuality.premium,
-        'enhanced' || 'high' => VoiceQuality.enhanced,
-        // iOS calls its everyday voice "default", Android "normal".
-        'default' || 'normal' => VoiceQuality.normal,
-        'low' || 'very low' => VoiceQuality.low,
-        _ => VoiceQuality.unknown,
-      },
-      needsNetwork:
-          raw['network_required'] == '1' ||
-          (features is String && features.contains('networkTts')) ||
-          // Google's online voices only differ from the ones on the phone by
-          // this suffix, and a ride has no guaranteed signal.
-          name.toLowerCase().endsWith('-network'),
-    );
-  }
 
   /// What the choice is stored and looked up by. The iOS identifier, or
   /// name and locale together on Android, where there is no identifier.
@@ -127,13 +84,6 @@ class VoiceOption {
 
   /// The language part of [localeTag], lower-case: `en` for `en-GB`.
   String get language => localeTag.split(RegExp('[-_]')).first.toLowerCase();
-
-  /// What the plugin's `setVoice` wants.
-  Map<String, String> get platformVoice => <String, String>{
-    'name': name,
-    'locale': localeTag,
-    if (id != '$name|$localeTag') 'identifier': id,
-  };
 
   /// A copy with the named fields replaced.
   VoiceOption copyWith({

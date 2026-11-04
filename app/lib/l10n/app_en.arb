@@ -4380,6 +4380,26 @@
       }
     }
   },
+  "settingsOtherAudio": "Other audio during instructions",
+  "@settingsOtherAudio": {
+    "description": "Heading of the choice of what music and podcasts from other apps do while a turn instruction is spoken"
+  },
+  "settingsOtherAudioPausePodcasts": "Pause podcasts, lower music",
+  "@settingsOtherAudioPausePodcasts": {
+    "description": "Option (the default): podcasts and audiobooks pause during an instruction and resume after it; music keeps playing at a lower volume"
+  },
+  "settingsOtherAudioPausePodcastsHint": "Podcasts and audiobooks pause and carry on after each instruction; music plays on, quieter",
+  "@settingsOtherAudioPausePodcastsHint": {
+    "description": "Line under the Pause podcasts, lower music option"
+  },
+  "settingsOtherAudioLowerVolume": "Lower the volume",
+  "@settingsOtherAudioLowerVolume": {
+    "description": "Option: all other audio, music and podcasts alike, keeps playing at a lower volume during an instruction"
+  },
+  "settingsOtherAudioLowerVolumeHint": "Music, podcasts and audiobooks keep playing, quieter, while an instruction is spoken",
+  "@settingsOtherAudioLowerVolumeHint": {
+    "description": "Line under the Lower the volume option"
+  },
   "settingsRerouteMode": "When you leave the route",
   "@settingsRerouteMode": {
     "description": "Heading of the choice of what the ride does when the rider leaves the planned route"

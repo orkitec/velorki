@@ -59,6 +59,9 @@ ones whose choice is a decision, and the rules around them.
 | Download | Herunterladen | Télécharger | Descargar | Scarica | Downloaden |
 | Update | Aktualisieren | Mettre à jour | Actualizar | Aggiorna | Bijwerken |
 | turn instructions | Abbiegehinweise | indications de direction | indicaciones de giro | indicazioni di svolta | afslaginstructies |
+| Other audio during instructions (setting) | Andere Audioquellen bei Abbiegehinweisen | Autres sons pendant les indications de direction | Otro audio durante las indicaciones de giro | Altro audio durante le indicazioni di svolta | Ander geluid tijdens afslaginstructies |
+| Pause podcasts, lower music | Podcasts pausieren, Musik leiser | Mettre les podcasts en pause, baisser la musique | Pausar pódcasts, bajar la música | Metti in pausa i podcast, abbassa la musica | Podcasts pauzeren, muziek zachter |
+| Lower the volume | Leiser stellen | Baisser le volume | Bajar el volumen | Abbassa il volume | Volume verlagen |
 | AI assistant | KI-Assistent | Assistant IA | Asistente de IA | Assistente IA | AI-assistent |
 | Sync | Synchronisierung | Synchronisation | Sincronización | Sincronizzazione | Synchronisatie |
 | Connections | Verbindungen | Connexions | Conexiones | Connessioni | Koppelingen |

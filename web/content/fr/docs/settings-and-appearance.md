@@ -30,6 +30,8 @@ Les trois réglages ici sont les mêmes que sur la fiche de l'onglet Rouler.
 
 **Annonce des directions** est un curseur en secondes. L'indication dit « 12 secondes avant le changement de direction à votre vitesse, jamais à moins de 50 mètres ». Compter en secondes fait que l'indication arrive au même moment que vous montiez ou descendiez.
 
+**Autres sons pendant les indications de direction** : **Mettre les podcasts en pause, baisser la musique**, « Les podcasts et livres audio s’interrompent puis reprennent après chaque indication ; la musique continue, moins fort », le réglage par défaut ; ou **Baisser le volume**, « La musique, les podcasts et les livres audio continuent, moins fort, pendant une indication ». Le choix s’applique dès l’indication suivante.
+
 **Quand vous quittez l'itinéraire** : **Me guider pour revenir**, « Garder le plan et montrer le meilleur chemin pour le rejoindre, devant vous » ; **Nouvel itinéraire vers l'arrivée**, « Recalculer depuis votre position, en gardant les étapes encore devant vous » ; ou **Ne pas recalculer**, « Montrer seulement à quelle distance et dans quelle direction se trouve l’itinéraire ». Ce que chacun fait est expliqué dans [la navigation guidée](./navigation#quand-vous-quittez-litinéraire).
 
 ## Enregistrement

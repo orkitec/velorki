@@ -30,6 +30,8 @@ Los tres interruptores de aquí son los mismos que los del panel de la pestaña 
 
 **Anunciar giros** es un deslizador en segundos. La indicación dice «12 segundos antes del giro a tu velocidad, nunca a menos de 50 metros». Contar en segundos hace que la indicación llegue en el mismo momento tanto si subes como si bajas.
 
+**Otro audio durante las indicaciones de giro**: **Pausar pódcasts, bajar la música**, «Los pódcasts y audiolibros se pausan y siguen tras cada indicación; la música sigue sonando, más baja», la opción por defecto; o **Bajar el volumen**, «La música, los pódcasts y los audiolibros siguen sonando, más bajos, mientras se dice una indicación». Se aplica desde la siguiente indicación.
+
 **Cuando te sales de la ruta**: **Guiarme de vuelta**, «Mantiene el plan y muestra el mejor camino para volver a él, por delante de ti»; **Nueva ruta al destino**, «Planifica de nuevo desde donde estás, con las paradas que aún tienes por delante»; o **No recalcular**, «Solo muestra a qué distancia está la ruta y en qué dirección». Lo que hace cada una está en [navegación paso a paso](./navigation#cuando-te-sales-de-la-ruta).
 
 ## Grabación

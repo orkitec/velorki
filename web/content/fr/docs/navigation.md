@@ -42,6 +42,8 @@ Avec **Voix** activée, chaque virage est annoncé une fois à l’approche, pui
 
 La bannière porte aussi un bouton **Couper la voix pour cette sortie** tant que la voix est activée. Il coupe la voix **pour le reste de cette sortie seulement** et ne touche pas à votre réglage ; la sortie suivante recommence avec le son.
 
+Pendant qu’une direction est annoncée, le son des autres apps lui laisse la place et revient aussitôt après : un podcast ou un livre audio se met en pause puis reprend là où il en était, et la musique continue, moins fort. Pour que les podcasts continuent aussi, choisissez **Baisser le volume** dans Réglages → Navigation → **Autres sons pendant les indications de direction**. Sur Android, un podcast ne se met en pause que si son app le prévoit ; sinon il baisse comme la musique. Un court silence précède chaque indication, pour que des écouteurs Bluetooth ne coupent pas le premier mot.
+
 ## Choisir une voix
 
 1. **Réglages → Navigation → Voix de lecture**.

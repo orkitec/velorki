@@ -339,19 +339,20 @@ matches the rider onto the followed route — the saved one, or the plan when no
 was chosen — and reports the next turn, the one after it, the distance left and
 whether the rider strayed. `TurnAnnouncer` turns that stream into cues given
 once each; `TurnBanner` shows the current one over the map and `TurnSpeaker`
-(`flutter_tts`) says it. Settings: `navigation.turns` shows the banner,
+(`SpeakTurnSpeaker`, on the `speak` package) says it. Settings:
+`navigation.turns` shows the banner,
 `navigation.voice` speaks it, `navigation.rerouteMode` (`RerouteMode`: guide
 back, new route, off; the old `navigation.reroute` bool is read as guide back
 or off) says what leaving the route does. The same settings are on the record
 sheet, and the
 banner carries a mute button that silences the voice for the rest of the ride
 only (`voiceMutedForRideProvider`, cleared whenever a ride starts or ends).
-On iOS the speaker holds one audio session for the whole spoken stretch rather
-than the one per cue `flutter_tts` would otherwise take and give back, and each
-cue is preceded by 1.5 s of silence (`assets/audio/silence.wav`, played by
-`AppDelegate` over `app.velorki/audio`). Both are for Bluetooth headsets, whose
-A2DP link goes idle between cues and takes about a second to come back — long
-enough to swallow the first syllables of a turn.
+The phone's audio is claimed only while a cue is said (`speak` queues the
+cues, cuts in with the urgent one and drops stale ones): a short silent
+lead-in first, so a Bluetooth headset whose link went idle is awake by the
+first word, and given back 1.5 s after the last cue, so music comes back up
+and a podcast resumes. `navigation.otherAudio` (`InstructionAudio`) chooses
+whether podcasts pause meanwhile (the default) or everything is only lowered.
 A rider who leaves the route goes through `OffRouteMachine`: more than
 `max(75 m, 2 × accuracy)` out for two fixes (or 8 s) is `guiding`, in every
 mode — the plan stays the active route and the banner and the voice point at

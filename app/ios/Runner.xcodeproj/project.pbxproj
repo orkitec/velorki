@@ -7,9 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7E1A00000000000000000006 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7E1A00000000000000000005 /* PrivacyInfo.xcprivacy */; };
-		7E1A00000000000000000004 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7E1A00000000000000000003 /* PrivacyInfo.xcprivacy */; };
-		7E1A00000000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7E1A00000000000000000001 /* PrivacyInfo.xcprivacy */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		1D7016A7C9112AB6D84A5BFB /* RideLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E18F67C6E76AA51104CFCEA6 /* RideLiveActivityView.swift */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
@@ -18,29 +15,30 @@
 		5A3E0001B7C24D9E0A11F001 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A3E0005B7C24D9E0A11F005 /* ShareViewController.swift */; };
 		5A3E0002B7C24D9E0A11F002 /* VelorkiShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5A3E0004B7C24D9E0A11F004 /* VelorkiShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		5A3E0003B7C24D9E0A11F003 /* receive-sharing-intent in Frameworks */ = {isa = PBXBuildFile; productRef = 5A3E0014B7C24D9E0A11F014 /* receive-sharing-intent */; };
-		67A0293EF244B6FD4F3AFE3B /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7690812C490F3FC713151189 /* Pods_RunnerTests.framework */; };
-		6C79CE0B49702B86D722C712 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 78AD3C57BE16920DCFC34E9B /* Pods_Runner.framework */; };
 		6D58232E0667D7EACD00BB03 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8BBF19C39B42455ECAE6EA33 /* SwiftUI.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		75CB2D243C6E1A328F7CE659 /* RideSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BC8D33095E2E4406B766B87 /* RideSession.swift */; };
-		C10D5A0C0000000000000001 /* CloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10D5A0C0000000000000002 /* CloudSync.swift */; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
 		7B3683D6A38308C94F0E46F2 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 52053D484120430C5712742E /* Foundation.framework */; };
+		7E1A00000000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7E1A00000000000000000001 /* PrivacyInfo.xcprivacy */; };
+		7E1A00000000000000000004 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7E1A00000000000000000003 /* PrivacyInfo.xcprivacy */; };
+		7E1A00000000000000000006 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7E1A00000000000000000005 /* PrivacyInfo.xcprivacy */; };
+		7E1A0000000000000000A103 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7E1A0000000000000000A101 /* Localizable.xcstrings */; };
+		7E1A0000000000000000A104 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7E1A0000000000000000A102 /* InfoPlist.xcstrings */; };
 		843FB2330511C74224C38574 /* VelorkiLiveActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 370A9BB6458CEA7718FE69B8 /* VelorkiLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		B1D0C0DE0000000000000001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B1D0C0DE0000000000000002 /* InfoPlist.strings */; };
 		B4053774F148833D513D5F72 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 809EDC46B4B0FC950784F9AE /* Foundation.framework */; };
 		BCDE3491E9C4D842DC7EC5E9 /* VelorkiLiveActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B629F2DAABCA04D6A962751C /* VelorkiLiveActivityBundle.swift */; };
+		C10D5A0C0000000000000001 /* CloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10D5A0C0000000000000002 /* CloudSync.swift */; };
 		C570474A61AEC1DD8C042B8D /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A331DBBD0100421F00FE2985 /* WidgetKit.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		C724D5FBE4A2007DBA057B65 /* RideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57F1EF71EFB7D85B75937799 /* RideView.swift */; };
 		DA8812D188CD0C1197901020 /* VelorkiWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 19D37D38A8C063E04B9F5F73 /* VelorkiWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F285F8F1FEBAE9645ED6E95F /* RideAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 012EB496B3FC5CC0261224A9 /* RideAttributes.swift */; };
-		7E1A0000000000000000A103 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7E1A0000000000000000A101 /* Localizable.xcstrings */; };
-		7E1A0000000000000000A104 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7E1A0000000000000000A102 /* InfoPlist.xcstrings */; };
 		F94BDE0EF6A7FA7C55CDCDA5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A03831C09A662408AD7CF62A /* Assets.xcassets */; };
-		B1D0C0DE0000000000000001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B1D0C0DE0000000000000002 /* InfoPlist.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -111,11 +109,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		7E1A00000000000000000005 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		7E1A00000000000000000003 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		7E1A00000000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		012EB496B3FC5CC0261224A9 /* RideAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RideAttributes.swift; sourceTree = "<group>"; };
-		044B67A64FE33E00E9FE13A2 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		123065A742A25EF3E2DF1408 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
@@ -133,16 +127,16 @@
 		5A3E0005B7C24D9E0A11F005 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		5A3E0006B7C24D9E0A11F006 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		5A3E0007B7C24D9E0A11F007 /* VelorkiShare.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = VelorkiShare.entitlements; sourceTree = "<group>"; };
-		5CCE35C0272A17FD95679B77 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		7690812C490F3FC713151189 /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		C10D5A0C0000000000000002 /* CloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSync.swift; sourceTree = "<group>"; };
 		7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		78AD3C57BE16920DCFC34E9B /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
-		7D5863D29531E6F61C1C0612 /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
+		7E1A00000000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		7E1A00000000000000000003 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		7E1A00000000000000000005 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		7E1A0000000000000000A101 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		7E1A0000000000000000A102 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		809EDC46B4B0FC950784F9AE /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		8BBF19C39B42455ECAE6EA33 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
@@ -152,25 +146,21 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		983661F063B1705338610B46 /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
-		7E1A0000000000000000A101 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		7E1A0000000000000000A102 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		A03831C09A662408AD7CF62A /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A331DBBD0100421F00FE2985 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
 		AB33B7967224B81FCF9C693E /* Runner.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
-		B629F2DAABCA04D6A962751C /* VelorkiLiveActivityBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VelorkiLiveActivityBundle.swift; sourceTree = "<group>"; };
-		B676A062B060E1DF5125F936 /* VelorkiWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VelorkiWatchApp.swift; sourceTree = "<group>"; };
-		CBA68647639C7B1B99489168 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		D4CC3B8E12851FED0EB42435 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
-		D6FFCF7B84C88D37FB8E1BFD /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
-		E18F67C6E76AA51104CFCEA6 /* RideLiveActivityView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RideLiveActivityView.swift; sourceTree = "<group>"; };
-		FD28D9A3FC0CE9524E4C4F93 /* VelorkiLiveActivity.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = VelorkiLiveActivity.entitlements; sourceTree = "<group>"; };
 		B1D0C0DE0000000000000003 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		B1D0C0DE0000000000000004 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		B1D0C0DE0000000000000005 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		B1D0C0DE0000000000000006 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		B1D0C0DE0000000000000007 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		B1D0C0DE0000000000000008 /* nl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = nl; path = nl.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		B629F2DAABCA04D6A962751C /* VelorkiLiveActivityBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VelorkiLiveActivityBundle.swift; sourceTree = "<group>"; };
+		B676A062B060E1DF5125F936 /* VelorkiWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VelorkiWatchApp.swift; sourceTree = "<group>"; };
+		C10D5A0C0000000000000002 /* CloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSync.swift; sourceTree = "<group>"; };
+		CBA68647639C7B1B99489168 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		E18F67C6E76AA51104CFCEA6 /* RideLiveActivityView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RideLiveActivityView.swift; sourceTree = "<group>"; };
+		FD28D9A3FC0CE9524E4C4F93 /* VelorkiLiveActivity.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = VelorkiLiveActivity.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -188,7 +178,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				67A0293EF244B6FD4F3AFE3B /* Pods_RunnerTests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -213,7 +202,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */,
-				6C79CE0B49702B86D722C712 /* Pods_Runner.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -226,19 +214,6 @@
 				331C807B294A618700263BE5 /* RunnerTests.swift */,
 			);
 			path = RunnerTests;
-			sourceTree = "<group>";
-		};
-		3AFB428CF1916B0289522BB8 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				D4CC3B8E12851FED0EB42435 /* Pods-Runner.debug.xcconfig */,
-				5CCE35C0272A17FD95679B77 /* Pods-Runner.release.xcconfig */,
-				044B67A64FE33E00E9FE13A2 /* Pods-Runner.profile.xcconfig */,
-				983661F063B1705338610B46 /* Pods-RunnerTests.debug.xcconfig */,
-				D6FFCF7B84C88D37FB8E1BFD /* Pods-RunnerTests.release.xcconfig */,
-				7D5863D29531E6F61C1C0612 /* Pods-RunnerTests.profile.xcconfig */,
-			);
-			path = Pods;
 			sourceTree = "<group>";
 		};
 		5A3E0008B7C24D9E0A11F008 /* VelorkiShare */ = {
@@ -280,7 +255,6 @@
 				97C146F01CF9000F007C117D /* Runner */,
 				97C146EF1CF9000F007C117D /* Products */,
 				331C8082294A63A400263BE5 /* RunnerTests */,
-				3AFB428CF1916B0289522BB8 /* Pods */,
 				99BD584F1D3AF87D309FD38C /* Frameworks */,
 				E36A0B5C7FCECE9E1F1487D0 /* VelorkiLiveActivity */,
 				5A3E0008B7C24D9E0A11F008 /* VelorkiShare */,
@@ -323,8 +297,6 @@
 		99BD584F1D3AF87D309FD38C /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				78AD3C57BE16920DCFC34E9B /* Pods_Runner.framework */,
-				7690812C490F3FC713151189 /* Pods_RunnerTests.framework */,
 				C4C084145A739715169DD3F8 /* iOS */,
 				6924B6DBA3AAC3E6B2484CA7 /* watchOS */,
 			);
@@ -379,7 +351,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
 			buildPhases = (
-				59094045A2C553F57C385F90 /* [CP] Check Pods Manifest.lock */,
 				331C807D294A63A400263BE5 /* Sources */,
 				331C807F294A63A400263BE5 /* Resources */,
 				559581090809956286BE3C14 /* Frameworks */,
@@ -435,7 +406,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */;
 			buildPhases = (
-				78A4D7761AC4530A7499D15E /* [CP] Check Pods Manifest.lock */,
 				9740EEB61CF901F6004384FC /* Run Script */,
 				97C146EA1CF9000F007C117D /* Sources */,
 				97C146EB1CF9000F007C117D /* Frameworks */,
@@ -593,50 +563,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
-		};
-		59094045A2C553F57C385F90 /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-RunnerTests-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		78A4D7761AC4530A7499D15E /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-Runner-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
 		};
 		9740EEB61CF901F6004384FC /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -873,7 +799,6 @@
 		};
 		331C8088294A63A400263BE5 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 983661F063B1705338610B46 /* Pods-RunnerTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -892,7 +817,6 @@
 		};
 		331C8089294A63A400263BE5 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D6FFCF7B84C88D37FB8E1BFD /* Pods-RunnerTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -909,7 +833,6 @@
 		};
 		331C808A294A63A400263BE5 /* Profile */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7D5863D29531E6F61C1C0612 /* Pods-RunnerTests.profile.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;

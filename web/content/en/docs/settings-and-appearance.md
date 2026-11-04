@@ -30,6 +30,8 @@ The three switches here are the same ones as on the Record tab's sheet.
 
 **Announce turns** is a slider in seconds. The hint reads "12 seconds before the turn at your speed, never closer than 50 metres". Counting in seconds means the cue comes at the same moment whether you are climbing or descending.
 
+**Other audio during instructions**: **Pause podcasts, lower music**, "Podcasts and audiobooks pause and carry on after each instruction; music plays on, quieter", the default; or **Lower the volume**, "Music, podcasts and audiobooks keep playing, quieter, while an instruction is spoken". It applies from the next instruction.
+
 **When you leave the route**: **Guide me back**, "Keep the plan and show the best way back onto it, ahead of you"; **New route to the destination**, "Plan again from where you are, keeping the stops still ahead"; or **Don't re-route**, "Only show how far the route is and which way". What each does is in [turn-by-turn navigation](./navigation#when-you-leave-the-route).
 
 ## Recording

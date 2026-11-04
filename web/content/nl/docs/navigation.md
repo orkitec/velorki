@@ -42,6 +42,8 @@ Met **Stem** aan wordt elke afslag één keer aangekondigd als je hem nadert en 
 
 Zolang Stem aan staat, heeft de banner ook een knop om te **dempen**. Die zet de stem stil **alleen voor de rest van deze rit** en laat je instelling met rust; de volgende rit begint weer met geluid.
 
+Terwijl een afslag wordt aangekondigd, maakt het geluid van andere apps plaats en komt het direct daarna terug: een podcast of luisterboek pauzeert en gaat verder waar het was, en muziek speelt zachter door. Wil je dat podcasts ook doorspelen, kies dan **Volume verlagen** onder Instellingen → Navigatie → **Ander geluid tijdens afslaginstructies**. Op Android pauzeert een podcast alleen als de app dat zelf doet; anders wordt hij zachter, net als muziek. Voor elke instructie komt een moment stilte, zodat een Bluetooth-koptelefoon het eerste woord niet afknipt.
+
 ## Een stem kiezen
 
 1. **Instellingen → Navigatie → Spreekstem**.

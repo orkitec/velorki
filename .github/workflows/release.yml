@@ -525,7 +525,7 @@ jobs:
         run: |
           # `flutter build ipa` cannot pass the API key to xcodebuild, so
           # Flutter only writes its configuration (dart-defines, version, build
-          # number, pods) and xcodebuild archives; the Flutter build phase
+          # number) and xcodebuild archives; the Flutter build phase
           # compiles the Dart inside the archive.
           flutter build ios --config-only --release \
             --dart-define-from-file=env/prod.json \

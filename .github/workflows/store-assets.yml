@@ -251,15 +251,6 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
-      - name: CocoaPods cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            app/ios/Pods
-            ~/Library/Caches/CocoaPods
-          key: pods-${{ hashFiles('app/ios/Podfile.lock') }}
-          restore-keys: pods-
-
       - name: Week stamp
         id: stamp
         run: echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
@@ -272,9 +263,9 @@ jobs:
           path: ~/Library/Developer/Xcode/DerivedData
           key: >-
             derived-xcode27-${{ env.FLUTTER_VERSION }}-${{
-            hashFiles('app/ios/Podfile.lock') }}-${{ steps.stamp.outputs.week }}
+            hashFiles('app/ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ steps.stamp.outputs.week }}
           restore-keys: |
-            derived-xcode27-${{ env.FLUTTER_VERSION }}-${{ hashFiles('app/ios/Podfile.lock') }}-
+            derived-xcode27-${{ env.FLUTTER_VERSION }}-${{ hashFiles('app/ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-
 
       # The Swift packages Xcode clones into app/build/ios (Flutter's place
       # for them, not the derived data), under integration-ios.yml's key:
