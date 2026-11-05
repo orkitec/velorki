@@ -181,8 +181,9 @@ changing structure.
   Liechtenstein extract and checks the `.gaz` fixtures), `integration.yml` and
   `integration-ios.yml` (every push to main that touches app/tiles/fixtures,
   plus nightly; a newer push cancels the older run. Android shards the suite
-  three ways across API levels 31, 35 and 36 and caches Gradle and the AVD
-  snapshot; iOS is one job running the whole suite in one process
+  three ways across API levels 31, 35 and 36, caches Gradle and the AVD
+  snapshot, and boots an emulator that timed out once more (a failed test is
+  never retried); iOS is one job running the whole suite in one process
   (`VELORKI_ITEST_COMBINED=1`), because there the Xcode build and the simulator
   boot cost more than the tests, and caches the derived data and the Swift
   packages; the app has no CocoaPods),

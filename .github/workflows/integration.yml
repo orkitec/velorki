@@ -144,16 +144,16 @@ jobs:
           ver="$(sed -n 's/.*val ndkVersion: String = "\([^"]*\)".*/\1/p' \
             "$root/packages/flutter_tools/gradle/src/main/kotlin/FlutterExtension.kt")"
           [ -n "$ver" ] || { echo "::error::no ndkVersion in Flutter's FlutterExtension.kt"; exit 1; }
-          for try in 1 2 3; do
+          for try in 1 2 3 4 5; do
             printf 'y\n%.0s' {1..30} \
               | "$sdk/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ver" || true
             if [ -f "$sdk/ndk/$ver/source.properties" ]; then
               echo "==> ndk;$ver in place"
               exit 0
             fi
-            echo "==> ndk;$ver did not install cleanly (try $try of 3); fetching it again"
+            echo "==> ndk;$ver did not install cleanly (try $try of 5); fetching it again"
             rm -rf "$sdk/ndk/$ver" "$sdk/.temp"
-            sleep 20
+            sleep $((try * 30))
           done
           echo "::error::ndk;$ver could not be installed"
           exit 1
@@ -172,7 +172,7 @@ jobs:
           sdk="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
           pkg="system-images;android-${{ matrix.api-level }};google_apis;x86_64"
           dir="$sdk/system-images/android-${{ matrix.api-level }}/google_apis/x86_64"
-          for try in 1 2 3; do
+          for try in 1 2 3 4 5; do
             # sdkmanager reports a bad archive as a warning and exits 0, so
             # the file it should have produced is the check, not its status.
             printf 'y\n%.0s' {1..30} \
@@ -183,9 +183,9 @@ jobs:
               echo "==> $pkg r${revision:-0} in place"
               exit 0
             fi
-            echo "==> $pkg did not install cleanly (try $try of 3); fetching it again"
+            echo "==> $pkg did not install cleanly (try $try of 5); fetching it again"
             rm -rf "$dir" "$sdk/.temp"
-            sleep 20
+            sleep $((try * 30))
           done
           echo "::error::$pkg could not be installed"
           exit 1
@@ -208,7 +208,9 @@ jobs:
       # from: no test is installed here, so -no-snapshot-save is absent on
       # purpose and the animations are left alone (the real run disables them).
       - name: Create the AVD snapshot
+        id: snapshot
         if: steps.avd-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           api-level: ${{ matrix.api-level }}
@@ -222,10 +224,33 @@ jobs:
           disable-animations: false
           script: echo "AVD snapshot written."
 
+      # A boot that timed out on the runner leaves no snapshot; one more
+      # attempt, so the cache below never stores an AVD without one.
+      - name: The snapshot boot timed out; once more
+        if: steps.snapshot.outcome == 'failure'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: >-
+            -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
+            -camera-back none -camera-front none
+          disable-animations: false
+          script: echo "::warning::the snapshot boot timed out the first time"
+
       - name: Build and serve the segments mirror
         run: bash app/tool/itest_mirror.sh
 
+      # The script's first line marks the emulator as booted: a run that
+      # fails without the mark never got an emulator (a boot timeout on the
+      # runner) and is tried once more; one that fails with the mark failed a
+      # test and is not.
       - name: Run the emulator suite
+        id: suite
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           api-level: ${{ matrix.api-level }}
@@ -239,15 +264,31 @@ jobs:
             -gpu swiftshader_indirect -camera-back none -camera-front none
           disable-animations: true
           script: |
-            adb wait-for-device
-            # Madeira, where the frozen oracle tile is. The tests read the same
-            # place from VELORKI_ITEST_REGION.
-            adb emu geo fix -16.92 32.65
-            adb shell settings put secure location_mode 3
-            # One line: the emulator action runs the script line by line, so
-            # a backslash continuation is handed to sh as a command.
-            # VELORKI_ITEST_GEO: the position again, if itest.sh restarts it.
-            VELORKI_ITEST_REGION=madeira VELORKI_ITEST_GEO="-16.92 32.65" VELORKI_SEGMENTS_URL=http://10.0.2.2:8000 VELORKI_ITEST_SHARD=${{ matrix.shard }} tool/itest.sh
+            touch "$GITHUB_WORKSPACE/.emulator-booted"
+            VELORKI_ITEST_SHARD=${{ matrix.shard }} tool/itest_ci.sh
+
+      - name: The emulator did not boot; once more
+        id: again
+        if: steps.suite.outcome == 'failure' && hashFiles('.emulator-booted') == ''
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          working-directory: app
+          force-avd-creation: false
+          emulator-options: >-
+            -no-window -no-snapshot-save -no-audio -no-boot-anim
+            -gpu swiftshader_indirect -camera-back none -camera-front none
+          disable-animations: true
+          script: |
+            echo "::warning::the emulator did not boot the first time"
+            VELORKI_ITEST_SHARD=${{ matrix.shard }} tool/itest_ci.sh
+
+      - name: Verdict
+        if: steps.suite.outcome == 'failure' && steps.again.outcome != 'success'
+        run: exit 1
 
       # After the run, because that is what fills them, and even on a red run:
       # a failing test is no reason to rebuild Gradle from nothing next time.
