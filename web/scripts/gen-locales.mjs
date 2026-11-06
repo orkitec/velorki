@@ -145,6 +145,7 @@ const SAME_AS_ENGLISH = new Map([
   ['download.apkLink', 'product name (GitHub Releases)'],
   ['credits.items.osm.title', 'project name'],
   ['credits.items.brouter.title', 'project name'],
+  ['credits.items.speak.title', 'project name'],
   ['credits.items.cyclosm.title', 'project name'],
   ['credits.items.cyclosm.licence', 'licence name'],
   ['credits.items.photon.title', 'project name'],

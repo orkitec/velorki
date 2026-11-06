@@ -30,6 +30,8 @@ De drie schakelaars hier zijn dezelfde als op het paneel van het tabblad Opnemen
 
 **Afslagen aankondigen** is een schuifregelaar in seconden. De hint luidt "12 seconden voor de afslag bij je snelheid, nooit dichter dan 50 meter". Tellen in seconden betekent dat de aanwijzing op hetzelfde moment komt, of je nu klimt of afdaalt.
 
+**Ander geluid tijdens afslaginstructies**: **Podcasts pauzeren, muziek zachter**, "Podcasts en luisterboeken pauzeren en gaan na elke instructie verder; muziek speelt zachter door", de standaard; of **Volume verlagen**, "Muziek, podcasts en luisterboeken spelen zachter door terwijl een instructie wordt uitgesproken". Het geldt vanaf de volgende instructie.
+
 **Als je de route verlaat**: **Terugleiden**, "Het plan houden en de beste weg terug erop tonen, voor je uit"; **Nieuwe route naar de bestemming**, "Opnieuw plannen vanaf waar je bent, met de tussenstops die nog voor je liggen"; of **Niet herberekenen**, "Alleen tonen hoe ver de route is en in welke richting". Wat elk ervan doet, staat bij [navigatie met afslagaanwijzingen](./navigation#als-je-de-route-verlaat).
 
 ## Opname

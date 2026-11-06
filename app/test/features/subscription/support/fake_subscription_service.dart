@@ -17,6 +17,7 @@ class FakeSubscriptionService implements SubscriptionService {
     this.purchaseFailure,
     this.purchased,
     this.restored,
+    this.country,
   }) : _latest = initial ?? PlusCustomerInfo.none;
 
   @override
@@ -36,6 +37,12 @@ class FakeSubscriptionService implements SubscriptionService {
 
   /// What [restorePurchases] answers.
   PlusCustomerInfo? restored;
+
+  /// What [storeCountry] answers.
+  String? country;
+
+  @override
+  Future<String?> storeCountry() async => country;
 
   /// Every package that was bought, in order.
   final List<PlusPackage> purchases = <PlusPackage>[];

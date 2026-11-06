@@ -13,7 +13,6 @@ import 'package:velorki/features/subscription/application/web_plus.dart';
 import 'package:velorki/features/subscription/data/subscription_service.dart';
 import 'package:velorki/features/subscription/domain/plus_subscription.dart';
 import 'package:velorki/features/subscription/presentation/paywall_screen.dart';
-import 'package:velorki/features/subscription/presentation/plus_settings_section.dart';
 import 'package:velorki/features/subscription/presentation/plus_strings.dart';
 
 import '../../support/app.dart';
@@ -319,25 +318,11 @@ void main() {
     });
   });
 
-  group('PlusSettingsSection', () {
-    testWidgets('an inactive subscription says so', (tester) async {
-      await _pump(
-        tester,
-        const Scaffold(body: PlusSettingsSection()),
-        service: FakeSubscriptionService(),
-      );
-
-      expect(find.text(l10n.plusInactive), findsOneWidget);
-      expect(find.text(l10n.plusManage), findsNothing);
-      expect(find.text(l10n.plusRestore), findsOneWidget);
-    });
-
-    testWidgets('an active subscription shows when it renews, and Manage', (
-      tester,
-    ) async {
+  group('a subscriber on the paywall', () {
+    testWidgets('sees when it renews, and Manage', (tester) async {
       final opened = await _pump(
         tester,
-        const Scaffold(body: PlusSettingsSection()),
+        const PaywallScreen(),
         entitled: true,
         service: FakeSubscriptionService(
           initial: PlusCustomerInfo(
@@ -365,7 +350,7 @@ void main() {
     ) async {
       final opened = await _pump(
         tester,
-        const Scaffold(body: PlusSettingsSection()),
+        const PaywallScreen(),
         entitled: true,
         service: FakeSubscriptionService(
           initial: const PlusCustomerInfo(
@@ -379,6 +364,17 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(opened.single.toString(), 'https://example.test/manage');
+    });
+
+    testWidgets('nobody without Plus is offered Manage', (tester) async {
+      await _pump(
+        tester,
+        const PaywallScreen(),
+        service: FakeSubscriptionService(),
+      );
+
+      expect(find.text(l10n.plusManage), findsNothing);
+      expect(find.text(l10n.plusRestore), findsOneWidget);
     });
   });
 }

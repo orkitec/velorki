@@ -503,6 +503,11 @@
         "body": "Qué voz de síntesis del teléfono es cuál, su género y su calidad: del catálogo Web Speech Recommended Voices de Hadrien Gardeur.",
         "licence": "CC0 1.0 (dedicación al dominio público)."
       },
+      "speak": {
+        "title": "speak",
+        "body": "La síntesis de voz detrás de las indicaciones de giro habladas: baja la música o pausa un pódcast solo mientras se dice una indicación, y calla durante las llamadas. Nuestro propio paquete, publicado en pub.dev.",
+        "licence": "Licencia BSD 3-Clause."
+      },
       "fonts": {
         "title": "Barlow Condensed y Manrope",
         "body": "Las dos tipografías de la app y de esta web. Copyright 2017 The Barlow Project Authors, copyright 2018 The Manrope Project Authors.",

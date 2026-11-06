@@ -239,11 +239,6 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        <!-- flutter_tts: find the installed text-to-speech engines for the
-             spoken turn directions (Android 11+ package visibility). -->
-        <intent>
-            <action android:name="android.intent.action.TTS_SERVICE"/>
-        </intent>
         <!-- health: see whether Health Connect is installed at all, and reach
              its permissions rationale. Package visibility only; nothing is
              read or asked for until the rider switches Health on. Required

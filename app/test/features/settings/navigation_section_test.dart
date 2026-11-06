@@ -225,4 +225,47 @@ void main() {
     );
     expect(tile.enabled, isFalse);
   });
+
+  testWidgets('podcasts pause during instructions until the rider picks '
+      'lowering the volume', (tester) async {
+    final container = await _pump(tester);
+
+    for (final text in [
+      l10n.settingsOtherAudio,
+      l10n.settingsOtherAudioPausePodcasts,
+      l10n.settingsOtherAudioPausePodcastsHint,
+      l10n.settingsOtherAudioLowerVolume,
+      l10n.settingsOtherAudioLowerVolumeHint,
+    ]) {
+      await tester.ensureVisible(find.text(text));
+      expect(find.text(text), findsOneWidget);
+    }
+    InstructionAudio? picked() => tester
+        .widget<RadioGroup<InstructionAudio>>(
+          find.byType(RadioGroup<InstructionAudio>),
+        )
+        .groupValue;
+    expect(picked(), InstructionAudio.pausePodcasts);
+
+    await tester.tap(find.text(l10n.settingsOtherAudioLowerVolume));
+    await tester.pumpAndSettle();
+
+    expect(picked(), InstructionAudio.lowerVolume);
+    expect(
+      container.read(navigationSettingsProvider).otherAudio,
+      InstructionAudio.lowerVolume,
+    );
+  });
+
+  testWidgets('the choice greys out with the voice', (tester) async {
+    await _pump(tester, initial: const {'navigation.voice': false});
+
+    final tile = tester.widget<RadioListTile<InstructionAudio>>(
+      find.widgetWithText(
+        RadioListTile<InstructionAudio>,
+        l10n.settingsOtherAudioLowerVolume,
+      ),
+    );
+    expect(tile.enabled, isFalse);
+  });
 }

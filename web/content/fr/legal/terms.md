@@ -112,8 +112,7 @@ expiration devient un abonnement payant.
 
 Vous résiliez via la boutique, et non auprès de nous : sur iOS, dans les
 réglages d'abonnement de votre compte Apple ; sur Android, dans Google Play
-sous Abonnements. Le bouton **Gérer** de l'application, dans **Réglages →
-Abonnement**, ouvre cette page pour vous.
+sous Abonnements. Le bouton **Gérer** de l'application, dans **Réglages → Velorki Plus**, ouvre cette page pour vous.
 La résiliation empêche le
 renouvellement suivant ; Plus reste actif jusqu'à la fin de la période que vous
 avez déjà payée.

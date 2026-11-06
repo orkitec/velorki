@@ -24,9 +24,9 @@ name: integration ios
 # left running takes down one file rather than the run. Every test therefore
 # has to work both ways; integration_test/all_tests.dart says what that costs.
 #
-# The pods and the derived data are still cached, now one restore and one save,
-# and the derived data weekly, because a stale Xcode cache is worth less than a
-# clean build and reuse beyond a week is thin.
+# The derived data is still cached, one restore and one save, and rebuilt
+# weekly, because a stale Xcode cache is worth less than a clean build and
+# reuse beyond a week is thin.
 on:
   workflow_dispatch:
   push:
@@ -94,15 +94,6 @@ jobs:
         id: stamp
         run: echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
 
-      - name: CocoaPods cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            app/ios/Pods
-            ~/Library/Caches/CocoaPods
-          key: pods-${{ hashFiles('app/ios/Podfile.lock') }}
-          restore-keys: pods-
-
       # Restored here and saved after the run, which is what fills it. One job
       # now, so this is a plain restore/save pair rather than the "every shard
       # restores, one shard saves" dance the Android workflow still needs.
@@ -112,9 +103,9 @@ jobs:
           path: ~/Library/Developer/Xcode/DerivedData
           key: >-
             derived-xcode27-${{ env.FLUTTER_VERSION }}-${{
-            hashFiles('app/ios/Podfile.lock') }}-${{ steps.stamp.outputs.week }}
+            hashFiles('app/ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ steps.stamp.outputs.week }}
           restore-keys: |
-            derived-xcode27-${{ env.FLUTTER_VERSION }}-${{ hashFiles('app/ios/Podfile.lock') }}-
+            derived-xcode27-${{ env.FLUTTER_VERSION }}-${{ hashFiles('app/ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-
 
       # Flutter has Xcode clone the Swift packages into app/build/ios, not
       # into the derived data: fetched fresh, every package was cloned again
@@ -180,7 +171,7 @@ jobs:
           path: ~/Library/Developer/Xcode/DerivedData
           key: >-
             derived-xcode27-${{ env.FLUTTER_VERSION }}-${{
-            hashFiles('app/ios/Podfile.lock') }}-${{ steps.stamp.outputs.week }}
+            hashFiles('app/ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ steps.stamp.outputs.week }}
 
       - name: Save the Swift packages
         if: always()

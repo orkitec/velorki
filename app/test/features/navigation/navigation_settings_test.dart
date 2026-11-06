@@ -169,9 +169,56 @@ void main() {
     expect(
       settings.toString(),
       'NavigationSettings(turns: true, voice: true, rerouteMode: guideBack, '
-      'leadSeconds: 10, voiceId: null)',
+      'leadSeconds: 10, voiceId: null, otherAudio: pausePodcasts)',
+    );
+    expect(
+      settings.copyWith(otherAudio: InstructionAudio.lowerVolume),
+      const NavigationSettings(otherAudio: InstructionAudio.lowerVolume),
     );
   });
+
+  test('podcasts pause during an instruction out of the box', () async {
+    final container = await _container(const <String, Object>{});
+
+    expect(
+      container.read(navigationSettingsProvider).otherAudio,
+      InstructionAudio.pausePodcasts,
+    );
+  });
+
+  test('"lower the volume" is stored, and the default is not', () async {
+    final container = await _container(const <String, Object>{});
+    final controller = container.read(navigationSettingsProvider.notifier);
+
+    await controller.setOtherAudio(InstructionAudio.lowerVolume);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('navigation.otherAudio'), 'lowerVolume');
+    expect(
+      container.read(navigationSettingsProvider).otherAudio,
+      InstructionAudio.lowerVolume,
+    );
+
+    await controller.setOtherAudio(InstructionAudio.pausePodcasts);
+    expect(prefs.getString('navigation.otherAudio'), isNull);
+  });
+
+  test(
+    'a stored choice comes back, and an unknown one is the default',
+    () async {
+      var container = await _container(const {
+        'navigation.otherAudio': 'lowerVolume',
+      });
+      expect(
+        container.read(navigationSettingsProvider).otherAudio,
+        InstructionAudio.lowerVolume,
+      );
+      container = await _container(const {'navigation.otherAudio': 'loud'});
+      expect(
+        container.read(navigationSettingsProvider).otherAudio,
+        InstructionAudio.pausePodcasts,
+      );
+    },
+  );
 
   test('the lead is ten seconds out of the box', () async {
     final container = await _container(const <String, Object>{});

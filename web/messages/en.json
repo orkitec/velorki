@@ -503,6 +503,11 @@
         "body": "Which spoken voice on the phone is which, its gender and its quality: from the Web Speech Recommended Voices catalogue by Hadrien Gardeur.",
         "licence": "CC0 1.0 (public domain dedication)."
       },
+      "speak": {
+        "title": "speak",
+        "body": "The text-to-speech behind the spoken turn instructions: it lowers music or pauses a podcast only while an instruction is said, and stays quiet during phone calls. Our own package, published on pub.dev.",
+        "licence": "BSD 3-Clause licence."
+      },
       "fonts": {
         "title": "Barlow Condensed and Manrope",
         "body": "The two typefaces of the app and this website. Copyright 2017 The Barlow Project Authors, copyright 2018 The Manrope Project Authors.",

@@ -55,7 +55,8 @@ changing structure.
 ## Toolchain facts
 
 - Flutter/Dart/Java via mise (`mise.toml`); maplibre_gl needs Java 21,
-  permission_handler needs compileSdk 37. Android SDK at `~/Android/Sdk`.
+  permission_handler needs compileSdk 37. Android SDK at `~/Android/Sdk`
+  on Linux, `~/Library/Android/sdk` on macOS (`mise.toml` picks by OS).
 - Codegen: `bash tool/gen.sh` (riverpod, freezed, drift, gen-l10n, and the
   in-app guide: `web/content/<locale>/docs` copied into the git-ignored
   `assets/guide/`); every workflow runs it before building. build_runner
@@ -180,10 +181,12 @@ changing structure.
   Liechtenstein extract and checks the `.gaz` fixtures), `integration.yml` and
   `integration-ios.yml` (every push to main that touches app/tiles/fixtures,
   plus nightly; a newer push cancels the older run. Android shards the suite
-  three ways across API levels 31, 35 and 36 and caches Gradle and the AVD
-  snapshot; iOS is one job running the whole suite in one process
+  three ways across API levels 31, 35 and 36, caches Gradle and the AVD
+  snapshot, and boots an emulator that timed out once more (a failed test is
+  never retried); iOS is one job running the whole suite in one process
   (`VELORKI_ITEST_COMBINED=1`), because there the Xcode build and the simulator
-  boot cost more than the tests, and caches the pods and the derived data),
+  boot cost more than the tests, and caches the derived data and the Swift
+  packages; the app has no CocoaPods),
   `locales.yml` (by hand: the widget suite once per language found in
   `app/lib/l10n/app_*.arb`; `app.yml` itself runs English and German),
   `gazetteer-perf.yml` (nightly, times the search against New York off the

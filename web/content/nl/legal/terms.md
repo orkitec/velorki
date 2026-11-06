@@ -106,7 +106,7 @@ opgezegd voordat die afloopt, wordt een betaald abonnement.
 
 Je zegt op via de store, niet via ons: op iOS in de abonnementsinstellingen van
 je Apple-account, op Android in Google Play onder Abonnementen. De knop
-**Beheren** in **Instellingen → Abonnement** in de app opent die pagina voor
+**Beheren** in **Instellingen → Velorki Plus** in de app opent die pagina voor
 je.
 Opzeggen stopt de volgende verlenging; Plus blijft actief tot het einde van
 de periode die je al hebt betaald.

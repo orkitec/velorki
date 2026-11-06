@@ -30,6 +30,8 @@ I tre interruttori qui sono gli stessi del pannello del tab Registra.
 
 **Annuncio svolte** è un cursore in secondi. Il suggerimento dice "12 secondi prima della svolta alla tua velocità, mai a meno di 50 metri". Contare in secondi significa che l'indicazione arriva nello stesso momento sia in salita che in discesa.
 
+**Altro audio durante le indicazioni di svolta**: **Metti in pausa i podcast, abbassa la musica**, "Podcast e audiolibri si fermano e riprendono dopo ogni indicazione; la musica continua, più bassa", l'impostazione predefinita; oppure **Abbassa il volume**, "Musica, podcast e audiolibri continuano, più bassi, mentre viene detta un’indicazione". Vale dall'indicazione successiva.
+
 **Quando esci dal percorso**: **Guidami al percorso**, "Mantieni il piano e mostra la via migliore per tornarci, davanti a te"; **Nuovo percorso alla destinazione**, "Ripianifica da dove sei, con le soste ancora davanti a te"; oppure **Nessun ricalcolo**, "Mostra solo quanto è lontano il percorso e in che direzione". Cosa fa ognuna è in [navigazione svolta per svolta](./navigation#quando-lasci-il-percorso).
 
 ## Registrazione

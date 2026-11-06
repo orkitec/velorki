@@ -22,7 +22,7 @@
 // second isolate that hardcodes the real GPS, so no scripted position would
 // ever reach it. The speaker is a fake as well, and the assertion at the end
 // is that it was never asked to say anything — with the voice switch off,
-// flutter_tts must not be touched at all.
+// the text-to-speech engine must not be touched at all.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

@@ -11,6 +11,7 @@ const String _prefsReroute = 'navigation.reroute';
 const String _prefsRerouteMode = 'navigation.rerouteMode';
 const String _prefsLead = 'navigation.leadSeconds';
 const String _prefsVoiceId = 'navigation.voiceId';
+const String _prefsOtherAudio = 'navigation.otherAudio';
 
 /// The range the turn announcement lead can be set to, in seconds.
 const int minLeadSeconds = 5;
@@ -32,6 +33,17 @@ enum RerouteMode {
   off,
 }
 
+/// What happens to music and podcasts from other apps while a turn is said.
+enum InstructionAudio {
+  /// A podcast or audiobook pauses and carries on after the instruction;
+  /// music plays on, lowered. On Android, where no app can pause another,
+  /// both are lowered unless the podcast app pauses by itself.
+  pausePodcasts,
+
+  /// Everything is lowered and comes back up after the instruction.
+  lowerVolume,
+}
+
 /// Whether turn-by-turn guidance is shown and spoken while recording, how far
 /// ahead a turn is announced, and what leaving the route does.
 class NavigationSettings {
@@ -44,6 +56,7 @@ class NavigationSettings {
     this.rerouteMode = RerouteMode.guideBack,
     this.leadSeconds = defaultLeadSeconds,
     this.voiceId,
+    this.otherAudio = InstructionAudio.pausePodcasts,
   });
 
   /// Whether the next turn is shown at all.
@@ -63,6 +76,9 @@ class NavigationSettings {
   /// the phone's own voice for the language.
   final String? voiceId;
 
+  /// What other apps' audio does while a turn is said.
+  final InstructionAudio otherAudio;
+
   /// A copy with the named fields replaced. [voiceId] is only replaced when
   /// [setVoiceId] is true, so that it can be set back to `null`.
   NavigationSettings copyWith({
@@ -72,12 +88,14 @@ class NavigationSettings {
     int? leadSeconds,
     String? voiceId,
     bool setVoiceId = false,
+    InstructionAudio? otherAudio,
   }) => NavigationSettings(
     turns: turns ?? this.turns,
     voice: voice ?? this.voice,
     rerouteMode: rerouteMode ?? this.rerouteMode,
     leadSeconds: leadSeconds ?? this.leadSeconds,
     voiceId: setVoiceId ? voiceId : this.voiceId,
+    otherAudio: otherAudio ?? this.otherAudio,
   );
 
   @override
@@ -88,17 +106,19 @@ class NavigationSettings {
           other.voice == voice &&
           other.rerouteMode == rerouteMode &&
           other.leadSeconds == leadSeconds &&
-          other.voiceId == voiceId;
+          other.voiceId == voiceId &&
+          other.otherAudio == otherAudio;
 
   @override
   int get hashCode =>
-      Object.hash(turns, voice, rerouteMode, leadSeconds, voiceId);
+      Object.hash(turns, voice, rerouteMode, leadSeconds, voiceId, otherAudio);
 
   @override
   String toString() =>
       'NavigationSettings(turns: $turns, voice: $voice, '
       'rerouteMode: ${rerouteMode.name}, '
-      'leadSeconds: $leadSeconds, voiceId: $voiceId)';
+      'leadSeconds: $leadSeconds, voiceId: $voiceId, '
+      'otherAudio: ${otherAudio.name})';
 }
 
 /// The navigation settings, kept in shared_preferences.
@@ -119,7 +139,23 @@ class NavigationSettingsController extends Notifier<NavigationSettings> {
         maxLeadSeconds,
       ),
       voiceId: prefs.getString(_prefsVoiceId),
+      otherAudio:
+          InstructionAudio.values.asNameMap()[prefs.getString(
+            _prefsOtherAudio,
+          )] ??
+          InstructionAudio.pausePodcasts,
     );
+  }
+
+  /// Chooses what other apps' audio does while a turn is said.
+  Future<void> setOtherAudio(InstructionAudio value) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (value == InstructionAudio.pausePodcasts) {
+      await prefs.remove(_prefsOtherAudio);
+    } else {
+      await prefs.setString(_prefsOtherAudio, value.name);
+    }
+    state = state.copyWith(otherAudio: value);
   }
 
   /// Chooses the voice the turns are said in; `null` for the phone's own.

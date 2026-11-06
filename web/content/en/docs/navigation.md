@@ -42,6 +42,8 @@ With **Voice** on, each turn is announced once as you approach it and once more 
 
 The banner also carries a **mute** button while Voice is on. It silences the voice **for the rest of this ride only** and does not touch your setting; the next ride starts unmuted.
 
+While a turn is spoken, other apps' audio makes room for it and comes back right after: a podcast or audiobook pauses and carries on where it left off, and music keeps playing, quieter. To keep podcasts playing too, choose **Lower the volume** under Settings → Navigation → **Other audio during instructions**. On Android a podcast pauses only if its app chooses to; otherwise it is lowered like music. A moment of silence goes before an instruction, so Bluetooth headphones do not cut off its first word.
+
 ## Choosing a voice
 
 1. **Settings → Navigation → Speaking voice**.

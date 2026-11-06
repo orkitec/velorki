@@ -2,104 +2,29 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/navigation/domain/voice_option.dart';
 
 void main() {
-  test('an iOS voice is read with its identifier, quality and gender', () {
-    final voice = VoiceOption.fromPlatform(const {
-      'name': 'Samantha',
-      'locale': 'en-US',
-      'quality': 'enhanced',
-      'gender': 'female',
-      'identifier': 'com.apple.voice.enhanced.en-US.Samantha',
-    });
+  test('an iOS voice shows its identifier; its language is the first part', () {
+    const voice = VoiceOption(
+      id: 'com.apple.voice.enhanced.en-US.Samantha',
+      name: 'Samantha',
+      localeTag: 'en-US',
+    );
 
-    expect(voice, isNotNull);
-    expect(voice!.id, 'com.apple.voice.enhanced.en-US.Samantha');
-    expect(voice.name, 'Samantha');
     expect(voice.displayName, 'Samantha');
     expect(voice.rawIdentifier, 'com.apple.voice.enhanced.en-US.Samantha');
     expect(voice.language, 'en');
-    expect(voice.quality, VoiceQuality.enhanced);
-    expect(voice.gender, VoiceGender.female);
-    expect(voice.needsNetwork, isFalse);
-    expect(voice.platformVoice, {
-      'name': 'Samantha',
-      'locale': 'en-US',
-      'identifier': 'com.apple.voice.enhanced.en-US.Samantha',
-    });
   });
 
-  test('iOS calls its everyday voice "default"', () {
-    final voice = VoiceOption.fromPlatform(const {
-      'name': 'Anna',
-      'locale': 'de-DE',
-      'quality': 'default',
-      'gender': 'unspecified',
-      'identifier': 'com.apple.voice.compact.de-DE.Anna',
-    });
+  test('an Android voice keyed by name and locale shows its name', () {
+    const voice = VoiceOption(
+      id: 'en-us-x-tpf-network|en-US',
+      name: 'en-us-x-tpf-network',
+      localeTag: 'en-US',
+    );
 
-    expect(voice!.quality, VoiceQuality.normal);
-    expect(voice.gender, VoiceGender.unknown);
-  });
-
-  test('an Android voice is keyed by name and locale and knows about the '
-      'network', () {
-    final voice = VoiceOption.fromPlatform(const {
-      'name': 'en-us-x-tpf-network',
-      'locale': 'en-US',
-      'quality': 'very high',
-      'latency': 'very high',
-      'network_required': '1',
-      'features': 'networkTts',
-    });
-
-    expect(voice!.id, 'en-us-x-tpf-network|en-US');
     expect(voice.rawIdentifier, 'en-us-x-tpf-network');
-    expect(voice.quality, VoiceQuality.premium);
-    expect(voice.gender, VoiceGender.unknown);
-    expect(voice.needsNetwork, isTrue);
-    expect(voice.platformVoice, {
-      'name': 'en-us-x-tpf-network',
-      'locale': 'en-US',
-    });
-  });
-
-  test('a voice whose identifier ends in -network is online, whatever the '
-      'engine says about it', () {
-    final voice = VoiceOption.fromPlatform(const {
-      'name': 'en-gb-x-gbb-network',
-      'locale': 'en-GB',
-      'quality': 'normal',
-      'network_required': '0',
-      'features': '',
-    });
-
-    expect(voice!.needsNetwork, isTrue);
-  });
-
-  test('an entry without a name or locale is dropped', () {
-    expect(VoiceOption.fromPlatform(const {'locale': 'en-US'}), isNull);
-    expect(VoiceOption.fromPlatform(const {'name': 'x', 'locale': ''}), isNull);
-  });
-
-  test('a quality nobody reports is unknown', () {
     expect(
-      VoiceOption.fromPlatform(const {'name': 'a', 'locale': 'de-DE'})!.quality,
-      VoiceQuality.unknown,
-    );
-    expect(
-      VoiceOption.fromPlatform(const {
-        'name': 'a',
-        'locale': 'de_DE',
-        'quality': 'normal',
-      })!.language,
+      const VoiceOption(id: 'a|de_DE', name: 'a', localeTag: 'de_DE').language,
       'de',
-    );
-    expect(
-      VoiceOption.fromPlatform(const {
-        'name': 'a',
-        'locale': 'de-DE',
-        'quality': 'very low',
-      })!.quality,
-      VoiceQuality.low,
     );
   });
 

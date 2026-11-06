@@ -1172,13 +1172,12 @@ class NavigationController extends _$NavigationController {
     unawaited(ref.read(turnSpeakerProvider).stop());
   }
 
-  /// Claims the phone's audio while the turns are being spoken, and gives it
-  /// back as soon as they are not: the voice switched off, the ride muted
-  /// from the banner, or the guidance over.
+  /// Tells the speaker when the turns start being spoken and when they stop:
+  /// the voice switched off, the ride muted from the banner, or the guidance
+  /// over, which stops whatever is being said.
   ///
-  /// On iOS that is one audio session held open for the whole stretch rather
-  /// than one per cue, which is what a Bluetooth headset needs; see
-  /// [TurnSpeaker.beginGuidance]. On Android it costs nothing.
+  /// The phone's audio is not held in between; the speaker claims it for
+  /// each cue only. See [TurnSpeaker.beginGuidance].
   void _holdAudio(bool wanted) {
     if (wanted == _audioHeld) return;
     _audioHeld = wanted;

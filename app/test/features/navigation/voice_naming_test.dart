@@ -36,14 +36,21 @@ final VoiceCatalogue _catalogue = VoiceCatalogue.fromJson(const {
   },
 });
 
-VoiceOption _android(String name, {String locale = 'en-US'}) =>
-    VoiceOption.fromPlatform({
-      'name': name,
-      'locale': locale,
-      'quality': 'unknown',
-      'network_required': '0',
-      'features': '',
-    })!;
+/// An Android voice as `voiceOptionFrom` builds it: no identifier, so name
+/// and locale together are the id.
+VoiceOption _android(
+  String name, {
+  String locale = 'en-US',
+  VoiceQuality quality = VoiceQuality.unknown,
+  VoiceGender gender = VoiceGender.unknown,
+}) => VoiceOption(
+  id: '$name|$locale',
+  name: name,
+  localeTag: locale,
+  quality: quality,
+  gender: gender,
+  needsNetwork: name.endsWith('-network'),
+);
 
 void main() {
   group('the catalogue', () {
@@ -120,11 +127,7 @@ void main() {
     });
 
     test('lets the engine have the last word on quality', () {
-      final voice = VoiceOption.fromPlatform(const {
-        'name': 'en-us-x-iog-local',
-        'locale': 'en-US',
-        'quality': 'normal',
-      })!;
+      final voice = _android('en-us-x-iog-local', quality: VoiceQuality.normal);
 
       final named = describeVoices(
         [voice],
@@ -156,11 +159,7 @@ void main() {
           _android('en-us-x-aaa-local'),
           _android('en-gb-x-bbb-local', locale: 'en-GB'),
           _android('en-us-x-ccc-local'),
-          VoiceOption.fromPlatform(const {
-            'name': 'en-us-x-ddd-local',
-            'locale': 'en-US',
-            'gender': 'male',
-          })!,
+          _android('en-us-x-ddd-local', gender: VoiceGender.male),
         ],
         catalogue: const VoiceCatalogue.empty(),
         naming: _naming,
@@ -201,27 +200,27 @@ void main() {
   group('on iOS', () {
     test('the Apple name carries a quality badge', () {
       final voices = [
-        VoiceOption.fromPlatform(const {
-          'name': 'Samantha',
-          'locale': 'en-US',
-          'quality': 'default',
-          'gender': 'female',
-          'identifier': 'com.apple.voice.compact.en-US.Samantha',
-        })!,
-        VoiceOption.fromPlatform(const {
-          'name': 'Evan',
-          'locale': 'en-US',
-          'quality': 'premium',
-          'gender': 'male',
-          'identifier': 'com.apple.voice.premium.en-US.Evan',
-        })!,
-        VoiceOption.fromPlatform(const {
-          'name': 'Zoe',
-          'locale': 'en-US',
-          'quality': 'enhanced',
-          'gender': 'female',
-          'identifier': 'com.apple.voice.enhanced.en-US.Zoe',
-        })!,
+        const VoiceOption(
+          id: 'com.apple.voice.compact.en-US.Samantha',
+          name: 'Samantha',
+          localeTag: 'en-US',
+          quality: VoiceQuality.normal,
+          gender: VoiceGender.female,
+        ),
+        const VoiceOption(
+          id: 'com.apple.voice.premium.en-US.Evan',
+          name: 'Evan',
+          localeTag: 'en-US',
+          quality: VoiceQuality.premium,
+          gender: VoiceGender.male,
+        ),
+        const VoiceOption(
+          id: 'com.apple.voice.enhanced.en-US.Zoe',
+          name: 'Zoe',
+          localeTag: 'en-US',
+          quality: VoiceQuality.enhanced,
+          gender: VoiceGender.female,
+        ),
       ];
 
       final named = describeVoices(

@@ -16,7 +16,8 @@ import '../../shared/presentation/wide_panel.dart';
 import 'voice_picker_screen.dart';
 
 /// Settings → Navigation: the turn directions, whether they are spoken, how
-/// far ahead, and whether leaving the route plans a new way back onto it.
+/// far ahead, what other audio does meanwhile, and whether leaving the route
+/// plans a new way back onto it.
 class NavigationSection extends ConsumerWidget {
   /// Creates the section.
   const NavigationSection({super.key});
@@ -63,11 +64,50 @@ class NavigationSection extends ConsumerWidget {
               ? (value) => unawaited(controller.setLeadSeconds(value.round()))
               : null,
         ),
+        // What music and podcasts from other apps do while a turn is
+        // said; also only while there is a voice. Applies from the next
+        // instruction on.
+        ListTile(
+          enabled: settings.turns && settings.voice,
+          title: Text(l10n.settingsOtherAudio),
+        ),
+        RadioGroup<InstructionAudio>(
+          groupValue: settings.otherAudio,
+          onChanged: (value) {
+            if (value != null && settings.turns && settings.voice) {
+              unawaited(controller.setOtherAudio(value));
+            }
+          },
+          child: Column(
+            children: [
+              for (final value in InstructionAudio.values)
+                RadioListTile<InstructionAudio>(
+                  value: value,
+                  enabled: settings.turns && settings.voice,
+                  title: Text(_otherAudioLabel(value, l10n)),
+                  subtitle: Text(_otherAudioHint(value, l10n)),
+                ),
+            ],
+          ),
+        ),
         const NavigationToggles(only: NavigationToggle.reroute),
       ],
     );
   }
 }
+
+String _otherAudioLabel(InstructionAudio value, AppLocalizations l10n) =>
+    switch (value) {
+      InstructionAudio.pausePodcasts => l10n.settingsOtherAudioPausePodcasts,
+      InstructionAudio.lowerVolume => l10n.settingsOtherAudioLowerVolume,
+    };
+
+String _otherAudioHint(InstructionAudio value, AppLocalizations l10n) =>
+    switch (value) {
+      InstructionAudio.pausePodcasts =>
+        l10n.settingsOtherAudioPausePodcastsHint,
+      InstructionAudio.lowerVolume => l10n.settingsOtherAudioLowerVolumeHint,
+    };
 
 /// The name of the voice with [id], or the default's name while the list is
 /// still loading or the voice is gone. Named the same way the picker names

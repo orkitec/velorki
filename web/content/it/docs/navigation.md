@@ -42,6 +42,8 @@ Con **Voce** attiva, ogni svolta viene annunciata una volta mentre ti avvicini e
 
 Il banner porta anche un pulsante **silenzia** mentre Voce è attiva. Mette a tacere la voce **solo per il resto di questo giro** e non tocca la tua impostazione; il giro successivo parte con l'audio attivo.
 
+Mentre viene annunciata una svolta, l'audio delle altre app le fa posto e torna subito dopo: un podcast o un audiolibro va in pausa e riprende da dove era, e la musica continua, più bassa. Per lasciare andare anche i podcast, scegli **Abbassa il volume** in Opzioni → Navigazione → **Altro audio durante le indicazioni di svolta**. Su Android un podcast va in pausa solo se la sua app lo prevede; altrimenti si abbassa come la musica. Prima di ogni indicazione c'è un attimo di silenzio, così le cuffie Bluetooth non tagliano la prima parola.
+
 ## Scegliere una voce
 
 1. **Opzioni → Navigazione → Voce guida**.

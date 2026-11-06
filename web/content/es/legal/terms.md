@@ -110,7 +110,7 @@ antes de que termine se convierte en una suscripción de pago.
 
 Cancelas a través de la tienda, no a través de nosotros: en iOS, en los
 ajustes de suscripciones de tu cuenta de Apple; en Android, en Google Play, en
-Suscripciones. El botón **Gestionar** de la app, en **Ajustes → Suscripción**,
+Suscripciones. El botón **Gestionar** de la app, en **Ajustes → Velorki Plus**,
 abre esa página por ti.
 Cancelar detiene la siguiente renovación; Plus sigue
 activo hasta el final del periodo que ya has pagado.

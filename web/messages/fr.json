@@ -503,6 +503,11 @@
         "body": "Quelle voix de synthèse du téléphone est laquelle, son genre et sa qualité : d’après le catalogue Web Speech Recommended Voices de Hadrien Gardeur.",
         "licence": "CC0 1.0 (dédicace au domaine public)."
       },
+      "speak": {
+        "title": "speak",
+        "body": "La synthèse vocale derrière les indications de direction parlées : elle baisse la musique ou met un podcast en pause seulement le temps d'une indication, et se tait pendant les appels. Notre propre paquet, publié sur pub.dev.",
+        "licence": "Licence BSD 3-Clause."
+      },
       "fonts": {
         "title": "Barlow Condensed et Manrope",
         "body": "Les deux polices de l’application et de ce site. Copyright 2017 The Barlow Project Authors, copyright 2018 The Manrope Project Authors.",
