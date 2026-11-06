@@ -107,7 +107,7 @@ diventa un abbonamento a pagamento.
 
 La disdetta avviene tramite lo store, non tramite noi: su iOS nelle impostazioni
 degli abbonamenti del tuo Account Apple, su Android in Google Play sotto
-Abbonamenti. Il pulsante **Gestisci** dell'app in **Opzioni → Abbonamento** apre
+Abbonamenti. Il pulsante **Gestisci** dell'app in **Opzioni → Velorki Plus** apre
 quella pagina per te.
 La disdetta ferma il prossimo rinnovo; Plus resta attivo
 fino alla fine del periodo che hai già pagato.

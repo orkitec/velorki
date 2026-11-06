@@ -51,7 +51,7 @@ in deinem Browser ablegt, steht unter Der Web-Planer.
 
 Puls, Trittfrequenz und Leistung von einer Apple Watch, einem Bluetooth-Sensor
 oder deiner Health-App werden mit der Fahrt gespeichert, auf dem Handy, wie der
-Track selbst. Ist der Health-Schalter in den Einstellungen an, liest die App
+Track selbst. Ist der Health-Schalter in den Optionen an, liest die App
 den Puls aus Apple Health oder Health Connect und schreibt deine beendeten
 Fahrten dort als Radfahr-Trainings hinein; dieser Austausch findet auf deinem
 Handy statt, und nichts davon erreicht uns. Sensorwerte verlassen das Handy nur
@@ -174,7 +174,7 @@ nicht.
 
 **Was es liest und behält, alles nur auf deinem Handy:**
 
-- deine Athleten-ID und deinen Namen, angezeigt unter Einstellungen →
+- deine Athleten-ID und deinen Namen, angezeigt unter Optionen →
   Verbindungen, bis du trennst;
 - deine Liste der Strava-Routen (Name, Distanz, Höhenmeter, Beschreibung und
   Datum), abgerufen, wenn du den Importbildschirm öffnest, und höchstens
@@ -200,7 +200,7 @@ App. Sie werden nie an den KI-Assistenten gesendet, nie in einen Teilen-Link
 gelegt und nie an RideWithGPS oder einen anderen Dienst geschickt. Wir halten
 keine Strava-Daten auf unseren Servern.
 
-**Löschung.** Strava unter Einstellungen → Verbindungen zu trennen widerruft die
+**Löschung.** Strava unter Optionen → Verbindungen zu trennen widerruft die
 Autorisierung von Velorki bei Strava, löscht die Tokens und löscht jeden Eintrag,
 der von Strava stammt, vom Handy: importierte Strava-Routen und daraus
 bearbeitete Routen, die zwischengespeicherte Routenliste und die gespeicherten
@@ -227,7 +227,7 @@ seiner eigenen Datenschutzerklärung.
 Der Assistent ist aus, bis du ihn einschaltest, und beim ersten Öffnen wirst du
 um deine Zustimmung gebeten. Du kannst wählen, nur deinen Text zu senden, oder
 deinen Text zusammen mit einer groben Startposition, oder abzulehnen. Du kannst
-die Zustimmung jederzeit in den Einstellungen widerrufen.
+die Zustimmung jederzeit in den Optionen widerrufen.
 
 Wenn du ihn nutzt, geht Folgendes über unseren Relay-Server an unseren
 KI-Anbieter:
@@ -282,7 +282,7 @@ kein Konto.
 ### Cloud-Synchronisierung (iCloud oder Google Drive)
 
 Jedes Gerät synchronisiert mit höchstens einer Cloud, gewählt unter
-**Einstellungen → Synchronisieren mit**: iCloud (iPhone und iPad mit iOS 17
+**Optionen → Synchronisieren mit**: iCloud (iPhone und iPad mit iOS 17
 oder neuer, und der Web-Planer), Google (iPhone, iPad, Android und der
 Web-Planer) oder Aus. Auf einem iPhone oder iPad ist iCloud standardmäßig an;
 unter Android und im Browser ist die Synchronisierung aus, bis du eine Cloud
@@ -382,7 +382,7 @@ Browser kontaktiert RevenueCat nicht, erzeugt keine eigene ID für Plus und
 schreibt nie einen Plus-Eintrag.
 
 Der Eintrag geht nur in das Konto, mit dem die Synchronisierung zuerst lief,
-oder in eines, das du danach unter Einstellungen → Synchronisieren mit wählst:
+oder in eines, das du danach unter Optionen → Synchronisieren mit wählst:
 Nach einer Abmeldung, mit einem anderen Konto oder bei ausgeschalteter
 Synchronisierung schreibt die App ihn nicht mehr und kopiert ihn nie von sich
 aus in ein zweites Konto. Aus der Cloud gelöscht wird er nicht; der Web-Planer
@@ -561,7 +561,7 @@ Rechtsgrundlagen nach Art. 6 Abs. 1 DSGVO:
 | Cloud-Synchronisierung mit iCloud oder Google Drive, solange sie an ist, samt den Plus-Einträgen und dem Upload des Web-Planers über `/cloudkit/upload` | (b) Erfüllung des von dir gewünschten Dienstes; Apple und Google handeln nach deiner eigenen Vereinbarung mit ihnen |
 | Der Web-Planer: seine Auslieferung, das Speichern deiner Bibliothek in deinem Browser, das Holen der Kacheln über app.velorki.com | (b) Erfüllung der von dir angeforderten Leistung, und (f) für die IP-Adresse und die Anfrage, die zur Antwort nötig sind |
 | Update-Hinweise | (f) berechtigtes Interesse daran, dich auf eine neuere Version hinzuweisen; gesendet werden nur die Bundle-ID, das Land und die Sprache |
-| Der KI-Assistent | (a) Einwilligung, in der App gesondert erfragt und in den Einstellungen widerruflich |
+| Der KI-Assistent | (a) Einwilligung, in der App gesondert erfragt und in den Optionen widerruflich |
 | Antworten im Support-Chat | (b), soweit es ein Abo betrifft, sonst (f) berechtigtes Interesse daran, der Person zu antworten, die uns geschrieben hat |
 | Aufbewahrung steuerlich relevanter Unterlagen zu einem Abo | (c) rechtliche Verpflichtung — die Zahlungsdaten liegen bei Apple und Google, nicht bei uns |
 

@@ -102,7 +102,7 @@ a paid subscription.
 
 You cancel through the store, not through us: on iOS in your Apple Account
 subscription settings, on Android in Google Play under Subscriptions. The
-app's **Manage** button in **Settings → Subscription** opens that page for you.
+app's **Manage** button in **Settings → Velorki Plus** opens that page for you.
 Cancelling stops the next renewal; Plus stays active until the end of the
 period you already paid for.
 

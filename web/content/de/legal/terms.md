@@ -62,7 +62,7 @@ installierst, steht unter derselben Open-Source-Lizenz, und nichts in diesen
 Bedingungen nimmt dir ein Recht, das diese Lizenz dir gibt.
 
 Komponenten Dritter kommen mit eigenen Lizenzen. Die vollständige Liste steht
-in der App unter **Einstellungen → Über → Open-Source-Lizenzen**.
+in der App unter **Optionen → Über → Open-Source-Lizenzen**.
 
 Kartendaten sind © OpenStreetMap contributors und stehen unter der Open
 Database License (ODbL). Das Routing nutzt BRouter und aus OpenStreetMap
@@ -110,7 +110,7 @@ gekündigt wird, geht in ein kostenpflichtiges Abo über.
 
 Gekündigt wird über den Store, nicht über uns: unter iOS in den
 Abo-Einstellungen deines Apple-Accounts, unter Android in Google Play unter
-Abos. Die Schaltfläche **Verwalten** unter **Einstellungen → Abo** öffnet diese
+Abos. Die Schaltfläche **Verwalten** unter **Optionen → Velorki Plus** öffnet diese
 Seite für dich. Eine Kündigung stoppt die nächste Verlängerung; Plus bleibt bis
 zum Ende der bereits bezahlten Laufzeit aktiv.
 
@@ -230,7 +230,7 @@ Es gilt faire Nutzung: Der Assistent ist ratenbegrenzt, und starke
 automatisierte Nutzung kann gesperrt werden. Wir dürfen den Assistenten
 begrenzen oder pausieren, wenn Anbieterkosten oder Missbrauch das nötig machen.
 
-Unter **Einstellungen → KI-Assistent** gibt es den Punkt **KI-Antwort melden**
+Unter **Optionen → KI-Assistent** gibt es den Punkt **KI-Antwort melden**
 für eine Antwort, die falsch oder unpassend war, und wir hören gern davon.
 
 ## 8. Dienste Dritter
