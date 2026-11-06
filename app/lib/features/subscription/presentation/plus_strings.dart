@@ -1,4 +1,6 @@
-import 'package:flutter/foundation.dart' show TargetPlatform;
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show TargetPlatform, kIsWeb;
 
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -16,6 +18,18 @@ const String playSubscriptionsUrl =
 /// The App Store's subscription management page.
 const String appStoreSubscriptionsUrl =
     'https://apps.apple.com/account/subscriptions';
+
+/// The store's own subscription page for this platform.
+///
+/// RevenueCat also reports a `managementURL`, which is preferred when it is
+/// there; this is the fallback, and the only thing a build without a store
+/// key can offer.
+String storeSubscriptionsUrl({String? platform}) {
+  final os = platform ?? (kIsWeb ? 'web' : Platform.operatingSystem);
+  return os == 'ios' || os == 'macos'
+      ? appStoreSubscriptionsUrl
+      : playSubscriptionsUrl;
+}
 
 /// The name of [feature], for the paywall's feature list.
 String plusFeatureTitle(AppLocalizations l10n, PlusFeature feature) =>

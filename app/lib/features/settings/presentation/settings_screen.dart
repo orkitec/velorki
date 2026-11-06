@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/app_config.dart';
 import '../../../app/platform_features.dart';
+import '../../../app/router.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../features/assistant/presentation/ai_settings_section.dart';
 import '../../../features/integrations/common/data/connected_accounts_repository.dart';
@@ -17,7 +19,6 @@ import '../../../features/search/presentation/search_settings_screen.dart';
 import '../../../features/sensors/data/health_gateway.dart';
 import '../../../features/sensors/presentation/sensors_section.dart';
 import '../../../features/offline/presentation/offline_entry.dart';
-import '../../../features/subscription/presentation/plus_settings_section.dart';
 import '../../../features/sync/application/cloud_sync_controller.dart';
 import '../../../features/sync/presentation/cloud_sync_section.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -210,10 +211,16 @@ class _TopicRow extends ConsumerWidget {
           ? null
           : Text(summary, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: const Icon(Icons.chevron_right),
+      // Plus has no settings of its own: the paywall carries the state, the
+      // renewal date, Manage and Restore, and it is what every other Plus
+      // gate in the app opens. So this row goes straight there rather than
+      // through a page holding one tile.
       onTap: () => unawaited(
-        Navigator.of(
-          context,
-        ).push(ColumnPageRoute<void>(builder: (_) => SettingsTopicPage(topic))),
+        topic == SettingsTopic.plus
+            ? context.push<void>(paywallRoute)
+            : Navigator.of(context).push(
+                ColumnPageRoute<void>(builder: (_) => SettingsTopicPage(topic)),
+              ),
       ),
     );
   }
@@ -290,7 +297,8 @@ class SettingsTopicPage extends ConsumerWidget {
         ),
         children: switch (topic) {
           SettingsTopic.sync => const [CloudSyncSection()],
-          SettingsTopic.plus => const [PlusSettingsSection()],
+          // Never built: the overview's row opens the paywall instead.
+          SettingsTopic.plus => const <Widget>[],
           SettingsTopic.connections => const [ConnectionsSection()],
           SettingsTopic.navigation => const [NavigationSection()],
           SettingsTopic.recording => const [RecordingSection()],

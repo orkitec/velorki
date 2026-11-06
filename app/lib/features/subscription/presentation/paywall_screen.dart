@@ -8,6 +8,7 @@ import '../../../core/links/link_opener.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../app/platform_features.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../planner/presentation/route_format.dart';
 import '../../shared/presentation/error_text.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/offered_plus_features.dart';
@@ -241,38 +242,80 @@ class _FeatureRow extends StatelessWidget {
   }
 }
 
-class _ActiveBanner extends StatelessWidget {
+/// What a subscriber sees in place of the packages: that Plus is active,
+/// when it renews or ends, and the way to the store's own subscription page.
+///
+/// Cancelling never happens in the app — both stores insist on owning that —
+/// so "Manage" opens the store's page.
+class _ActiveBanner extends ConsumerWidget {
   const _ActiveBanner();
 
+  Future<void> _manage(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final info = ref.read(plusCustomerInfoProvider).value;
+    final url = info?.managementUrl ?? storeSubscriptionsUrl();
+    final opened = await ref.read(linkOpenerProvider)(Uri.parse(url));
+    if (opened) return;
+    messenger.showSnackBar(SnackBar(content: Text(l10n.plusManageFailed)));
+  }
+
+  /// "Renews on 12 Oct 2026", or `null` when the end is not known.
+  String? _renewal(AppLocalizations l10n, PlusCustomerInfo? info) {
+    final expires = info?.expiresAt;
+    if (expires == null) return null;
+    final date = formatDate(l10n, expires);
+    return (info?.willRenew ?? false)
+        ? l10n.plusRenewsOn(date)
+        : l10n.plusEndsOn(date);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colors = theme.velorki;
+    final renewal = _renewal(l10n, ref.watch(plusCustomerInfoProvider).value);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.verified_rounded, color: colors.success),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.plusActive,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: colors.success,
-                    ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.verified_rounded, color: colors.success),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.plusActive,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: colors.success,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.plusPurchaseThanks,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      if (renewal != null) ...[
+                        const SizedBox(height: 4),
+                        Text(renewal, style: theme.textTheme.bodySmall),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.plusPurchaseThanks,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ],
+                ),
+              ],
+            ),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton(
+                onPressed: () => unawaited(_manage(context, ref)),
+                child: Text(l10n.plusManage),
               ),
             ),
           ],
