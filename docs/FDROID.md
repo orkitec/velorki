@@ -214,3 +214,9 @@ fdroidserver's `update.py`), and Play never reads it. A change to the English
 text carries into the other languages in the same commit, in the terms of
 `docs/GLOSSARY.md` and the store keywords, as the store texts do. Limits:
 name 50, summary 80, description 4000 characters.
+
+The pictures sit beside the texts: `metadata/<locale>/images/phoneScreenshots/`
+(the Google Play slide set without its Velorki Plus slide, renumbered 1 to 7)
+and `images/featureGraphic.jpg` (Play's 1024x500 feature graphic), as JPEG at
+1080 px wide to keep the repository small. They come from `store-assets.yml`
+with `android=true` and `upload=false`; render again when the Play set changes.
