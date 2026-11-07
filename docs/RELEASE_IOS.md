@@ -57,15 +57,19 @@ One upload carries four bundle ids, all under team `8Z44M8DMKK`:
 from *Actions* → *release* → *Run workflow* on `main`
 (`gh workflow run release.yml --ref main -f tag=v1.2.3`): the workflow comes
 from `main`, the code from the tag. `platforms` picks `ios` or `android` alone,
-`build_number` reuses the number the other store already has (empty computes
-one), and `dry_run` archives and signs but uploads nothing. A trial run uses a
+`build_number` reuses the number the other store already has (empty takes the
+pubspec's), and `dry_run` archives and signs but uploads nothing. A trial run uses a
 tag such as `v1.0.1-rc1`. Only the logins in the repository variable
 `RELEASE_ACTORS` (comma-separated) may start or re-run a release.
 
 1. The `version` job checks that the tag's `X.Y.Z` is the pubspec's version
-   at that tag and computes the build number both platforms use:
-   `run_number + 10` (iOS builds 1 and 2 and Android version codes 1 to 4
-   came before), unless `build_number` is given.
+   at that tag and takes the build number both platforms use from the
+   pubspec's `+N`, unless `build_number` is given. The release commit raises
+   it with the version (`1.2.3+23`), because F-Droid builds the same tag and
+   reads it from there. It has to be above the `+N` of every other tag of
+   this version or below, trials included, or the job fails: a store that
+   already has a number skips it as uploaded. Tags from before 1.2.3 carry
+   `+1`, so releasing one of them again needs `build_number`.
 2. The `ios` job waits for approval in the `release` environment.
 3. It writes `env/prod.json`, decodes the key into the runner's temp directory
    and imports the development identity into a throwaway keychain.

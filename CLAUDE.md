@@ -212,8 +212,10 @@ changing structure.
   composite actions such as flutter-action call internally). `workflows-lint.yml`
   runs actionlint (pinned binary, sha256-checked; shellcheck at warning level)
   on every push touching `.github/workflows/`. A `v*` tag push runs `release.yml`: a
-  `version` job checks the tag against the pubspec and computes one build
-  number (`run_number + 10`) for both platform jobs, Android (Play internal,
+  `version` job checks the tag against the pubspec and takes one build
+  number, the pubspec's `+N` (raised by the release commit above every
+  earlier tag's; F-Droid builds the same tag with it), for both platform
+  jobs, Android (Play internal,
   GitHub Release) and iOS (xcodebuild with cloud signing, TestFlight; one-time
   setup in `docs/RELEASE_IOS.md`), each checking it against its store first and
   waiting in the `release` environment for the maintainer's approval in the
