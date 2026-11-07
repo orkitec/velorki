@@ -1,0 +1,45 @@
+Velorki plant je fietsroutes, leidt je erlangs en neemt je ritten op, allemaal op je telefoon en ook offline. Fietsnavigatie, fietsrouteplanner, tracker en fietscomputer in één opensource-app. Geen account, geen aanmelding, geen reclame, geen tracking.
+
+De routes berekent de telefoon zelf, met een versie van BRouter, de routeplanner waar veel fietsapps op draaien, op gegevens van OpenStreetMap. Download een regio één keer en je plant, zoekt en navigeert daar zonder verbinding.
+
+Voor woon-werkverkeer, fietsvakanties en bikepacking, training op de racefiets, gravel en mountainbike. Een oude Android-telefoon zonder simkaart en zonder Google-diensten wordt zo een prima fietscomputer op het stuur: een offline fietskaart, navigatie en Bluetooth-sensoren op één apparaat.
+
+PLANNEN
+• Tik punten op de kaart en krijg een route voor jouw fiets: toer, racefiets, gravel, mountainbike of de kortste weg.
+• Rondjes vanaf je voordeur: zeg hoe ver je wilt fietsen en Velorki stelt rondjes voor die terugkomen bij je start.
+• Alternatieve routes, een hoogteprofiel en de ondergrond waarover je rijdt.
+• Kleur de route op helling, ondergrond, wind of regen.
+• Zoek plaatsen offline en bewaar je routes in je bibliotheek.
+
+KAART EN WEER
+• Een offline fietskaart: fietspaden en fietsstroken, eenrichtingsstraten, trappen en klimmen.
+• Stopplekken op de kaart: drinkwater, cafés, bakkers, toiletten, fietsenmakers en meer.
+• Buienradar, wind en wolken met een tijdschuif, en de wind en regen langs je route voor het moment dat je vertrekt.
+
+NAVIGATIE
+• Afslag-voor-afslag-aanwijzingen met gesproken meldingen, ook met vergrendeld scherm, ook voor GPX-routes die je importeert.
+• Ga je van de route af, dan kies jij wat er gebeurt: een weg terug, een nieuwe route naar je bestemming, of niets.
+• De meldingen gebruiken de tekst-naar-spraak van je telefoon. Heeft je telefoon die niet, installeer er dan een, bijvoorbeeld eSpeak NG of RHVoice.
+
+OPNEMEN
+• Neemt op met het scherm uit, met automatische pauze.
+• Kies wat je ziet tijdens het fietsen: afstand, snelheid, tijd, hoogtemeters, hartslag, cadans, vermogen, wat er nog over is van de route.
+• Hartslag, snelheid, cadans en vermogen van Bluetooth-sensoren, en ritten opgeslagen in Health Connect als je dat wilt.
+• Elke rit krijgt een eigen pagina met kaart, grafieken en tussentijden.
+
+BESTANDEN
+• Open GPX-, FIT- en TCX-bestanden en exporteer routes en ritten als GPX, FIT of TCX.
+
+PRIVACY
+Geen reclame, geen statistieken, geen crashrapporten, geen account en geen AI die getraind wordt op jouw gegevens. Je routes en ritten blijven op je telefoon. Velorki praat alleen met de diensten die de kaart tekenen, het weer leveren en plaatsen zoeken, en met zijn eigen tegelspiegel voor de regio's die je downloadt.
+
+De weergave past zich aan tablets en een liggende telefoon aan. Velorki is er in het Nederlands, Engels, Duits, Frans, Italiaans en Spaans.
+
+DEZE VERSIE
+Dit is de F-Droid-versie, gebouwd zonder gesloten bibliotheken. Ze heeft geen synchronisatie met Google Drive, geen Velorki Plus (de AI-assistent, deellinks en nauwkeuriger weer) en geen koppeling met Strava of Ride with GPS. Al het andere werkt zoals in elke andere versie.
+
+Offline regio's komen van de tegelspiegel van Velorki op GitHub, de kaartstijl van OpenFreeMap en het online zoeken naar plaatsen van Photon.
+
+Website: https://velorki.com
+Broncode (AGPL-3.0): https://github.com/orkitec/velorki
+Kaartgegevens © OpenStreetMap-bijdragers.

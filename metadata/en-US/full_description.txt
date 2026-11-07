@@ -1,0 +1,45 @@
+Velorki plans bike routes, guides you along them and records your rides, all on your phone and offline too. Bike navigation, route planner, ride tracker and bike computer in one open source app. No account, no sign-up, no ads, no tracking.
+
+Routes are calculated on the phone by a port of BRouter, the routing engine many cycling apps rely on, over OpenStreetMap data. Download a region once and you can plan, search and navigate there without a connection.
+
+For commuting, touring and bikepacking, road training, gravel and mountain biking. A spare Android phone without a SIM card or Google services makes a good bike computer on the handlebars: an offline cycle map, navigation and Bluetooth sensors, all on one device.
+
+PLANNING
+• Tap waypoints on the map and get a route for your bike: touring, road, gravel, mountain bike or the direct way.
+• Loops from your door: say how far you want to ride, and Velorki proposes round trips that come back to where you started.
+• Alternative routes, an elevation profile and the surfaces you will ride on.
+• Colour the route by gradient, surface, wind or rain.
+• Search places offline and keep your routes in a library.
+
+MAP AND WEATHER
+• An offline cycle map: bike paths and lanes, one-way streets, steps and climbs.
+• Stops on the map: drinking water, cafés, bakeries, toilets, bike repair and more.
+• Rain radar, wind and clouds with a time slider, and the wind and rain along your route for the time you leave.
+
+NAVIGATION
+• Turn-by-turn directions with spoken cues, also with the screen locked, also for GPX routes you import.
+• Leave the route and choose what happens: a way back to it, a new route to the destination, or nothing.
+• Spoken cues use the phone's text-to-speech engine. A phone without one needs one installed, for example eSpeak NG or RHVoice.
+
+RECORDING
+• Records with the screen off, with auto-pause.
+• Choose what you see while riding: distance, speed, time, ascent, heart rate, cadence, power, what is left of the route.
+• Heart rate, speed, cadence and power from Bluetooth sensors, and rides saved to Health Connect if you like.
+• Each ride gets a page with its map, charts and splits.
+
+FILES
+• Open GPX, FIT and TCX files, and export routes and rides as GPX, FIT or TCX.
+
+PRIVACY
+No ads, no analytics, no crash reporting, no account, and no AI trained on your data. Your routes and rides stay on your phone. Velorki only talks to the services that draw the map, bring the weather and search places, and to its own tile mirror for regions you download.
+
+The layout adapts to tablets and to a phone turned sideways. Velorki is available in English, German, French, Italian, Spanish and Dutch.
+
+THIS VERSION
+This is the F-Droid build, made without closed-source libraries. It has no Google Drive sync, no Velorki Plus (the AI assistant, share links and finer weather) and no connections to Strava or Ride with GPS. Everything else works as in every other version.
+
+Offline regions come from Velorki's tile mirror on GitHub, the map style from OpenFreeMap and online place search from Photon.
+
+Website: https://velorki.com
+Source code (AGPL-3.0): https://github.com/orkitec/velorki
+Map data © OpenStreetMap contributors.

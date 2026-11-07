@@ -201,3 +201,16 @@ One thing the scan does not catch: a *string* that mentions a store. The
 paywall's Google Play renewal terms (`plusLegalPlay`) are compiled into the
 binary with the rest of the localisations, but this build has no way to the
 paywall at all (`plusOfferedProvider` is false), so no rider sees them.
+
+## The listing
+
+F-Droid takes the listing's name, summary and description from the repository.
+The Play texts in `app/fastlane/metadata/android/` describe the store build
+(Plus, Drive sync, Strava), so the F-Droid texts live in `metadata/<locale>/`
+at the repository root, in every app language: fdroidserver reads the text
+folders in sorted path order and a later one overwrites an earlier one, so
+`metadata/` wins over `app/fastlane/` (`insert_localized_app_metadata` in
+fdroidserver's `update.py`), and Play never reads it. A change to the English
+text carries into the other languages in the same commit, in the terms of
+`docs/GLOSSARY.md` and the store keywords, as the store texts do. Limits:
+name 50, summary 80, description 4000 characters.

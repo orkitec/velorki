@@ -1,0 +1,45 @@
+Velorki planifica tus rutas en bici, te guía por ellas y graba tus salidas, todo en tu teléfono y también sin conexión. Navegación en bici, planificador de rutas, tracker y ciclocomputador en una sola app de código abierto. Sin cuenta, sin registro, sin anuncios, sin rastreo.
+
+Las rutas se calculan en el teléfono con una versión de BRouter, el motor de rutas en el que se apoyan muchas apps de bici, sobre datos de OpenStreetMap. Descarga una región una vez y podrás planificar, buscar y navegar allí sin conexión.
+
+Para ir al trabajo, viajar y hacer bikepacking, entrenar en carretera, salir en gravel o en bici de montaña. Un teléfono Android viejo sin tarjeta SIM ni servicios de Google se convierte en un buen ciclocomputador en el manillar: un mapa ciclista sin conexión, la navegación y los sensores Bluetooth, en un solo dispositivo.
+
+PLANIFICAR
+• Toca el mapa para poner puntos y obtén una ruta para tu bici: trekking, carretera, gravel, MTB o la más directa.
+• Circulares desde tu puerta: di cuántos kilómetros quieres hacer y Velorki propone rutas que vuelven al punto de salida.
+• Rutas alternativas, perfil de altitud y los firmes por los que pasarás.
+• Colorea la ruta según la pendiente, el firme, el viento o la lluvia.
+• Busca lugares sin conexión y guarda tus rutas en la biblioteca.
+
+MAPA Y TIEMPO
+• Un mapa ciclista sin conexión: carriles bici, calles de sentido único, escaleras y subidas.
+• Paradas en el mapa: agua potable, cafés, panaderías, aseos, taller de bicis y más.
+• Radar de lluvia, viento y nubes con un control de tiempo, y el viento y la lluvia a lo largo de tu ruta para la hora a la que sales.
+
+NAVEGACIÓN
+• Indicaciones giro a giro con avisos por voz, también con la pantalla bloqueada, también para las rutas GPX que importas.
+• Te sales de la ruta y eliges qué pasa: un camino de vuelta a ella, una ruta nueva al destino, o nada.
+• Los avisos usan el motor de texto a voz del teléfono. Un teléfono que no lo tiene necesita instalar uno, por ejemplo eSpeak NG o RHVoice.
+
+GRABAR
+• Graba con la pantalla apagada, con pausa automática.
+• Elige lo que ves mientras pedaleas: distancia, velocidad, tiempo, desnivel, frecuencia cardiaca, cadencia, potencia, lo que queda de ruta.
+• Frecuencia cardiaca, velocidad, cadencia y potencia de sensores Bluetooth, y salidas guardadas en Health Connect si quieres.
+• Cada salida tiene su página con su mapa, gráficos y parciales.
+
+ARCHIVOS
+• Abre archivos GPX, FIT y TCX, y exporta rutas y salidas como GPX, FIT o TCX.
+
+PRIVACIDAD
+Sin anuncios, sin analítica, sin informes de fallos, sin cuenta y sin IA entrenada con tus datos. Tus rutas y tus salidas se quedan en tu teléfono. Velorki solo habla con los servicios que dibujan el mapa, traen el tiempo y buscan lugares, y con su propio espejo de teselas para las regiones que descargas.
+
+La pantalla se adapta a tabletas y al teléfono en horizontal. Velorki está disponible en español, inglés, alemán, francés, italiano y neerlandés.
+
+ESTA VERSIÓN
+Esta es la versión de F-Droid, hecha sin bibliotecas propietarias. No tiene sincronización con Google Drive, ni Velorki Plus (el asistente de IA, los enlaces para compartir y el tiempo más preciso), ni conexión con Strava o Ride with GPS. Todo lo demás funciona como en cualquier otra versión.
+
+Las regiones sin conexión vienen del espejo de teselas de Velorki en GitHub, el estilo del mapa de OpenFreeMap y la búsqueda de lugares en línea de Photon.
+
+Sitio web: https://velorki.com
+Código fuente (AGPL-3.0): https://github.com/orkitec/velorki
+Datos del mapa © colaboradores de OpenStreetMap.
