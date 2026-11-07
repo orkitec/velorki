@@ -86,6 +86,32 @@ void main() {
     expect(text.statLarge.fontSize, greaterThan(text.statMedium.fontSize!));
   });
 
+  test('a disabled switch looks disabled, on or off', () {
+    for (final theme in [buildLightTheme(), buildDarkTheme()]) {
+      final switches = theme.switchTheme;
+      for (final on in [true, false]) {
+        final enabled = {if (on) WidgetState.selected};
+        final disabled = {...enabled, WidgetState.disabled};
+        expect(
+          switches.trackColor!.resolve(disabled),
+          isNot(switches.trackColor!.resolve(enabled)),
+        );
+        expect(
+          switches.thumbColor!.resolve(disabled),
+          isNot(switches.thumbColor!.resolve(enabled)),
+        );
+      }
+      // Greyed, but still on: the track is not the accent any more.
+      expect(
+        theme.switchTheme.trackColor!.resolve({
+          WidgetState.selected,
+          WidgetState.disabled,
+        }),
+        isNot(theme.colorScheme.primary),
+      );
+    }
+  });
+
   test('an unknown accent name falls back to volt', () {
     expect(AccentPreset.fromName('nope'), AccentPreset.volt);
     expect(AccentPreset.fromName(null), AccentPreset.volt);

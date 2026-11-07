@@ -1,3 +1,6 @@
+import '../../../core/plus/plus_gate.dart';
+import '../../subscription/application/offered_plus_features.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -7,7 +10,6 @@ import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
-import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/domain/route_poi.dart';
 import '../../planner/presentation/route_format.dart';
@@ -245,7 +247,12 @@ class _ShareLinkRowState extends ConsumerState<ShareLinkRow> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    if (ref.watch(shareServiceProvider) == null) return const SizedBox.shrink();
+    if (ref.watch(shareServiceProvider) == null ||
+        !ref.watch(plusFeatureOfferedProvider(PlusFeature.linkSharing))) {
+      // No service to share through, or a build that does not offer Plus: a
+      // row offering a link nobody here can make is worse than no row.
+      return const SizedBox.shrink();
+    }
     if (widget.fromStrava) {
       return ShareCardRow(
         icon: Icons.link_rounded,

@@ -14,17 +14,24 @@ import 'integration_labels.dart';
 import 'strava_brand.dart';
 import 'strava_consent_sheet.dart';
 
-/// Settings → Connections: one tile per partner service. Both are free.
-class ConnectionsSection extends StatelessWidget {
+/// Settings → Connections: one tile per partner service this build can
+/// actually connect. Both are free.
+///
+/// A service with no client id (or a build with no relay to hold the secret)
+/// is left out rather than shown greyed out: the F-Droid flavour ships
+/// without either, and Settings hides the whole row then — see
+/// `docs/FDROID.md`.
+class ConnectionsSection extends ConsumerWidget {
   /// Creates the section.
   const ConnectionsSection({super.key});
 
   @override
-  Widget build(BuildContext context) => Column(
+  Widget build(BuildContext context, WidgetRef ref) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       for (final service in IntegrationService.values)
-        ConnectionTile(service: service),
+        if (ref.watch(integrationConfiguredProvider(service)))
+          ConnectionTile(service: service),
     ],
   );
 }
@@ -104,9 +111,8 @@ class ConnectionTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final account = ref.watch(connectedAccountProvider(service));
-    final configured = ref.watch(integrationConfiguredProvider(service));
     final busy = ref.watch(integrationBusyProvider(service));
-    final connect = configured ? () => unawaited(_connect(context, ref)) : null;
+    void connect() => unawaited(_connect(context, ref));
     // Strava's button is their artwork at its own width; RideWithGPS' label is
     // long enough to squeeze the title into three lines. Neither fits a list
     // tile's trailing slot, so the connect button sits under the tile.
@@ -131,9 +137,7 @@ class ConnectionTile extends ConsumerWidget {
           ),
           title: Text(serviceLabel(l10n, service)),
           subtitle: Text(
-            !configured
-                ? l10n.connectionsUnavailable
-                : account == null
+            account == null
                 ? l10n.connectionsNotConnected
                 : account.athleteName ?? l10n.connectionsConnected,
             style: theme.textTheme.labelMedium?.copyWith(

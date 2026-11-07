@@ -1,19 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show Widget;
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
-import 'package:googleapis/drive/v3.dart' show DriveApi;
 import 'package:logging/logging.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../app/app_config.dart';
 import 'cloud_store.dart';
-import 'drive_cloud_store.dart';
-import 'google_web_sign_in.dart';
+import 'drive_auth.dart';
 
 part 'google_account.g.dart';
 
@@ -21,7 +16,11 @@ final Logger _log = Logger('velorki.sync.google');
 
 /// The one scope Google sync asks for: the app's hidden Drive folder,
 /// nothing else in the rider's Drive.
-const String driveAppDataScope = DriveApi.driveAppdataScope;
+///
+/// Written out rather than read from `DriveApi.driveAppdataScope`, so the
+/// account side of sync does not pull `googleapis` in.
+const String driveAppDataScope =
+    'https://www.googleapis.com/auth/drive.appdata';
 
 /// Where the signed-in account is kept.
 const String _prefsAccount = 'sync.google.user';
@@ -94,95 +93,14 @@ abstract interface class ButtonGoogleSignIn implements GoogleSignInService {
   Future<String> authorize(GoogleAccount account);
 }
 
-/// [GoogleSignInService] over the `google_sign_in` plugin. iOS reads its
-/// client id from Info.plist (`GIDClientID`); Android's client is matched
-/// by package and signing key, and Credential Manager needs the web
-/// client's id as [serverClientId] (no server auth code is asked for).
-class PluginGoogleSignIn implements GoogleSignInService {
-  /// Creates the service.
-  PluginGoogleSignIn({this.serverClientId});
-
-  /// The web client's id, for Android.
-  final String? serverClientId;
-
-  Future<void>? _ready;
-
-  Future<void> _init() => _ready ??= GoogleSignIn.instance.initialize(
-    serverClientId: serverClientId,
-  );
-
-  @override
-  Future<GoogleAccount> signIn() async {
-    try {
-      await _init();
-      final account = await GoogleSignIn.instance.authenticate(
-        scopeHint: const [driveAppDataScope],
-      );
-      // Where the sign-in already granted the scope (iOS honours the hint),
-      // asking again would show Google's screen a second time.
-      final client = account.authorizationClient;
-      if (await client.authorizationForScopes(const [driveAppDataScope]) ==
-          null) {
-        await client.authorizeScopes(const [driveAppDataScope]);
-      }
-      return GoogleAccount(id: account.id, email: account.email);
-    } on GoogleSignInException catch (e) {
-      _log.info('sign-in: ${e.code.name} ${e.description}');
-      throw GoogleSignInFailure(
-        canceled:
-            e.code == GoogleSignInExceptionCode.canceled ||
-            e.code == GoogleSignInExceptionCode.interrupted,
-        message: e.description,
-      );
-    }
-  }
-
-  @override
-  Future<void> signOut() async {
-    await _init();
-    await GoogleSignIn.instance.signOut();
-  }
-
-  @override
-  Future<String?> accessToken(GoogleAccount account, {String? stale}) async {
-    await _init();
-    if (stale != null) {
-      await GoogleSignIn.instance.authorizationClient.clearAuthorizationToken(
-        accessToken: stale,
-      );
-    }
-    // iOS restores its last sign-in when no user is named (it knows none
-    // after a restart); Android finds the account by its email.
-    final ios = Platform.isIOS;
-    final tokens = await GoogleSignInPlatform.instance
-        .clientAuthorizationTokensForScopes(
-          ClientAuthorizationTokensForScopesParameters(
-            request: AuthorizationRequestDetails(
-              scopes: const [driveAppDataScope],
-              userId: ios ? null : account.id,
-              email: ios ? null : account.email,
-              promptIfUnauthorized: false,
-            ),
-          ),
-        );
-    return tokens?.accessToken;
-  }
-}
-
-/// Google's sign-in where this build offers Google sync (iOS, Android and
-/// the browser with the web client's id configured), else null.
+/// Google's sign-in on this device, or null where this build offers none.
+///
+/// Null is the default because `google_sign_in` is a Google Play library:
+/// `main.dart` (and the browser's `bootstrap_web.dart`) install the real
+/// sign-in over this with `googleSignInOverride`, and the F-Droid entry
+/// point leaves it out, which also leaves Google sync out of that build.
 @Riverpod(keepAlive: true)
-GoogleSignInService? googleSignInService(Ref ref) {
-  final webClientId = ref.watch(appConfigProvider).googleWebClientId;
-  if (kIsWeb) {
-    return webClientId.isEmpty ? null : createWebGoogleSignIn(webClientId);
-  }
-  if (Platform.isIOS) return PluginGoogleSignIn();
-  if (Platform.isAndroid && webClientId.isNotEmpty) {
-    return PluginGoogleSignIn(serverClientId: webClientId);
-  }
-  return null;
-}
+GoogleSignInService? googleSignInService(Ref ref) => null;
 
 /// The Google account signed in for sync, kept in the preferences; null
 /// while none is.

@@ -9,6 +9,8 @@ import '../../../app/platform_features.dart';
 import '../../../app/router.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../features/assistant/presentation/ai_settings_section.dart';
+import '../../../features/integrations/application/connections_controller.dart';
+import '../../../features/subscription/application/offered_plus_features.dart';
 import '../../../features/integrations/common/data/connected_accounts_repository.dart';
 import '../../../features/integrations/common/domain/connected_account.dart';
 import '../../../features/integrations/presentation/connections_section.dart';
@@ -82,17 +84,29 @@ bool _offered(SettingsTopic topic, PlatformFeatures features, WidgetRef ref) =>
       // Only where there is a service to sync with (iCloud: iOS 17 and
       // later); hidden everywhere else.
       SettingsTopic.sync => ref.watch(offeredSyncServicesProvider).isNotEmpty,
-      SettingsTopic.connections => features.accountConnections,
+      // Only where there is a service to connect: a build with no client id
+      // for either (an empty VELORKI_STRAVA_CLIENT_ID and
+      // VELORKI_RWGPS_CLIENT_ID, which is what the F-Droid flavour ships)
+      // has nothing to put on the page.
+      SettingsTopic.connections =>
+        features.accountConnections &&
+            IntegrationService.values.any(
+              (service) => ref.watch(integrationConfiguredProvider(service)),
+            ),
       // Where nothing records, nothing navigates either.
       SettingsTopic.navigation || SettingsTopic.recording => features.recording,
       // Hidden where there is no health store to talk to, rather than shown
       // as a switch that cannot do anything.
       SettingsTopic.sensors =>
         features.recording && ref.watch(healthGatewayProvider) != null,
-      SettingsTopic.plus ||
+      // Only where Plus can be had at all: the F-Droid flavour sells nothing
+      // and offers no AI, so a row for either would open a dead end.
+      SettingsTopic.plus => ref.watch(plusOfferedProvider),
+      SettingsTopic.assistant => ref.watch(
+        plusFeatureOfferedProvider(PlusFeature.aiAssistant),
+      ),
       SettingsTopic.rider ||
       SettingsTopic.appearance ||
-      SettingsTopic.assistant ||
       SettingsTopic.mapsData ||
       SettingsTopic.guide ||
       SettingsTopic.about => true,
@@ -173,8 +187,19 @@ class SettingsScreen extends ConsumerWidget {
           bottom: MediaQuery.paddingOf(context).bottom + 24,
         ),
         children: [
-          for (final (group, topics) in _groups) ...[
-            if (group != _Group.syncPlus) const Divider(height: 32),
+          // A group with no row to offer goes with its caption: the F-Droid
+          // build has neither sync nor Plus nor connections.
+          for (final (index, (group, topics)) in [
+            for (final (group, topics) in _groups)
+              (
+                group,
+                [
+                  for (final topic in topics)
+                    if (_offered(topic, features, ref)) topic,
+                ],
+              ),
+          ].where((entry) => entry.$2.isNotEmpty).indexed) ...[
+            if (index > 0) const Divider(height: 32),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
               child: SectionCaption(switch (group) {
@@ -183,8 +208,7 @@ class SettingsScreen extends ConsumerWidget {
                 _Group.app => l10n.settingsGroupApp,
               }, accent: true),
             ),
-            for (final topic in topics)
-              if (_offered(topic, features, ref)) _TopicRow(topic),
+            for (final topic in topics) _TopicRow(topic),
           ],
         ],
       ),

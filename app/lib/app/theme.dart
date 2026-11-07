@@ -840,17 +840,25 @@ ThemeData _build(AccentPreset preset, Brightness brightness) {
       thumbColor: scheme.primary,
       overlayColor: scheme.primary.withValues(alpha: 0.12),
     ),
+    // A disabled switch keeps showing on or off, greyed out as Material 3
+    // greys it: without its own colours it looked exactly like an enabled one.
     switchTheme: SwitchThemeData(
-      thumbColor: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.selected)
-            ? scheme.onPrimary
-            : scheme.outline,
-      ),
-      trackColor: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.selected)
-            ? scheme.primary
-            : scheme.surfaceContainerHigh,
-      ),
+      thumbColor: WidgetStateProperty.resolveWith((states) {
+        final on = states.contains(WidgetState.selected);
+        if (states.contains(WidgetState.disabled)) {
+          return on ? scheme.surface : scheme.onSurface.withValues(alpha: 0.38);
+        }
+        return on ? scheme.onPrimary : scheme.outline;
+      }),
+      trackColor: WidgetStateProperty.resolveWith((states) {
+        final on = states.contains(WidgetState.selected);
+        if (states.contains(WidgetState.disabled)) {
+          return on
+              ? scheme.onSurface.withValues(alpha: 0.12)
+              : scheme.surfaceContainerHigh.withValues(alpha: 0.38);
+        }
+        return on ? scheme.primary : scheme.surfaceContainerHigh;
+      }),
       trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
     ),
     menuTheme: MenuThemeData(

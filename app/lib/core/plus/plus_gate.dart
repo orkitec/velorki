@@ -29,6 +29,20 @@ final plusEntitledProvider = NotifierProvider<PlusEntitled, bool>(
   PlusEntitled.new,
 );
 
+/// Whether this build offers Velorki Plus at all.
+///
+/// True everywhere but the F-Droid flavour, which `main_fdroid.dart`
+/// overrides to false. Nobody can buy Plus there, so every entry point for it
+/// — the Settings row, Ask, the share link, the paywall itself — would be a
+/// dead end, and a dead end that names a paid add-on is read by a store as an
+/// advertisement for one. It is also the rule the rest of the app already
+/// follows: hide what cannot do anything rather than show it disabled, as
+/// Settings does with Sync and Connections. See `docs/FDROID.md`.
+///
+/// Not keyed on whether a store answers: the browser sells nothing either and
+/// still offers Plus, through a purchase made on a linked phone.
+final plusOfferedProvider = Provider<bool>((ref) => true);
+
 /// True when [feature] may be used right now.
 final plusFeatureProvider = Provider.family<bool, PlusFeature>((ref, feature) {
   if (!gatedFeatures.contains(feature)) return true;

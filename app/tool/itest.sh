@@ -7,6 +7,8 @@
 #   VELORKI_ITEST_SHARD=1/3 tool/itest.sh   # one third of the files (CI)
 #   VELORKI_ITEST_SHARD=1/3 VELORKI_ITEST_DRY_RUN=1 tool/itest.sh  # list only
 #   VELORKI_ITEST_COMBINED=1 tool/itest.sh  # every file in one run (iOS CI)
+#   VELORKI_ITEST_FDROID=1 tool/itest.sh    # on a tree tool/fdroid_strip.sh
+#                                           # has stripped (AOSP CI)
 #
 # By default each file is a separate `flutter test` run — the integration_test
 # binding installs one test build per invocation — and the first failure stops
@@ -58,12 +60,38 @@ filter="${1:-}"
 # routes on the device by design.
 BROUTER_URL="${VELORKI_BROUTER_URL:-}"
 
+# VELORKI_ITEST_FDROID=1: the tree has been stripped by tool/fdroid_strip.sh,
+# so the plugins in tool/fdroid_plugins.sh are not there to import. A test
+# file that imports one cannot even compile, let alone pass, so it is skipped
+# — and the list it is skipped by is the one the strip itself uses, so the two
+# can never drift. Today that is live_ride_test.dart and live_navigate_test.dart
+# (both read the Live Activity the ride puts on an iPhone's lock screen).
+FDROID="${VELORKI_ITEST_FDROID:-}"
+if [ -n "$FDROID" ]; then
+  # shellcheck source=tool/fdroid_plugins.sh
+  . tool/fdroid_plugins.sh
+fi
+
+# Whether $1 imports a package the F-Droid build does without.
+needs_stripped_plugin() {
+  local pkg
+  # shellcheck disable=SC2154 # set by tool/fdroid_plugins.sh, sourced above
+  for pkg in "${fdroid_plugins[@]}"; do
+    if grep -q "^import 'package:$pkg/" "$1"; then return 0; fi
+  done
+  return 1
+}
+
 tests=()
 skipped=()
 for f in integration_test/*_test.dart; do
   [ -e "$f" ] || continue
   if [ -n "$filter" ] && [[ "$f" != *"$filter"* ]]; then continue; fi
   if [ "$(basename "$f")" = plan_route_test.dart ] && [ -z "$BROUTER_URL" ]; then
+    skipped+=("$f")
+    continue
+  fi
+  if [ -n "$FDROID" ] && needs_stripped_plugin "$f"; then
     skipped+=("$f")
     continue
   fi
@@ -80,10 +108,28 @@ fi
 # as 1, so adding a test file needs no change here unless it is slow.
 itest_weight() {
   case "$(basename "$1")" in
-    close_loop_test.dart | navigate_route_test.dart | record_ride_test.dart | live_ride_test.dart | live_navigate_test.dart | live_reroute_test.dart) echo 2 ;;
+    close_loop_test.dart | navigate_route_test.dart | record_ride_test.dart | live_ride_test.dart | live_navigate_test.dart | live_reroute_test.dart | fdroid_smoke_test.dart) echo 2 ;;
     *) echo 1 ;;
   esac
 }
+
+# The smoke test is the cheapest proof that the stripped build works at all,
+# so in an F-Droid run it leads shard 1 rather than landing wherever the
+# weights put it: a shard that is going to fail because the build is broken
+# says so in two minutes instead of twenty. It is held out of the split so
+# the other files still spread evenly.
+smoke=()
+if [ -n "$FDROID" ]; then
+  rest=()
+  for f in "${tests[@]}"; do
+    if [ "$(basename "$f")" = fdroid_smoke_test.dart ]; then
+      smoke+=("$f")
+    else
+      rest+=("$f")
+    fi
+  done
+  tests=(${rest[@]+"${rest[@]}"})
+fi
 
 SHARD="${VELORKI_ITEST_SHARD:-}"
 if [ -n "$SHARD" ]; then
@@ -118,10 +164,16 @@ if [ -n "$SHARD" ]; then
   )
 
   tests=(${mine[@]+"${mine[@]}"})
-  if [ ${#tests[@]} -eq 0 ]; then
-    printf '==> shard %s has no test files; nothing to do\n' "$SHARD"
-    exit 0
-  fi
+fi
+
+# Shard 1 of an F-Droid run leads with it; an unsharded one too.
+if [ ${#smoke[@]} -gt 0 ] && { [ -z "$SHARD" ] || [ "${SHARD%%/*}" = 1 ]; }; then
+  tests=("${smoke[@]}" ${tests[@]+"${tests[@]}"})
+fi
+
+if [ ${#tests[@]} -eq 0 ]; then
+  printf '==> shard %s has no test files; nothing to do\n' "${SHARD:-1/1}"
+  exit 0
 fi
 
 # The combined entry point imports every file above and runs them as groups in
@@ -147,8 +199,12 @@ if [ -n "${VELORKI_ITEST_DRY_RUN:-}" ]; then
     printf '==> one combined run of %s, covering %d file(s):\n' \
       "$COMBINED_ENTRY" "${#covered[@]}"
   else
-    printf '==> shard %s would run %d file(s):\n' "${SHARD:-1/1}" "${#tests[@]}"
+    printf '==> shard %s%s would run %d file(s):\n' "${SHARD:-1/1}" \
+      "${FDROID:+, F-Droid}" "${#tests[@]}"
   fi
+  for f in ${skipped[@]+"${skipped[@]}"}; do
+    printf '    (skipping %s)\n' "$f"
+  done
   printf '%s\n' "${covered[@]}"
   exit 0
 fi
@@ -161,7 +217,11 @@ else
     "${#tests[@]}" "${SHARD:-1/1}" "$DEVICE" "$REGION" "$SEGMENTS_URL"
 fi
 for f in ${skipped[@]+"${skipped[@]}"}; do
-  printf '    skipping %s: it needs a BRouter server in VELORKI_BROUTER_URL\n' "$f"
+  if [ -n "$FDROID" ] && needs_stripped_plugin "$f"; then
+    printf '    skipping %s: it imports a plugin the F-Droid build does without\n' "$f"
+  else
+    printf '    skipping %s: it needs a BRouter server in VELORKI_BROUTER_URL\n' "$f"
+  fi
 done
 printf '\n'
 
@@ -266,6 +326,24 @@ recover_emulator() {
 
 flutter_test_one() {
   clear_emulator
+  # fdroid_smoke_test.dart takes real fixes off the platform's own GPS and
+  # records a ride with them, so for that file alone the emulator grants the
+  # location permission (the system dialog is not something a test can tap;
+  # the Android half of sim_ride.py's grant) and moves: `adb emu geo fix`
+  # gives one fixed point. Every other file fakes its position source and
+  # runs against an emulator as it finds it.
+  if [[ "$DEVICE" == emulator-* ]] &&
+    [ "$(basename "$1")" = fdroid_smoke_test.dart ]; then
+    tool/grant_location.sh "$DEVICE" &
+    grant_pid=$!
+    # VELORKI_ITEST_GEO is "longitude latitude"; emu_ride.py wants the pair
+    # the other way round. Plain fixes, because the AOSP image the F-Droid
+    # run uses ignores NMEA (and a Google image takes both).
+    start=${VELORKI_ITEST_GEO:-}
+    VELORKI_EMU_GEOFIX=1 VELORKI_EMU_START="${start#* } ${start%% *}" \
+      python3 tool/emu_ride.py 45 18 600 "$DEVICE" >/dev/null 2>&1 &
+    emu_ride_pid=$!
+  fi
   # A previous file's app instance still running on the simulator has been
   # seen to stall the next attach.
   if command -v xcrun >/dev/null 2>&1 && [[ "$DEVICE" != emulator-* ]]; then
@@ -347,6 +425,10 @@ attempt() {
   sleep 1
   kill "$reader" 2>/dev/null || true
   [ -n "${sim_ride_pid:-}" ] && { kill "$sim_ride_pid" 2>/dev/null || true; }
+  [ -n "${grant_pid:-}" ] && { kill "$grant_pid" 2>/dev/null || true; }
+  [ -n "${emu_ride_pid:-}" ] && { kill "$emu_ride_pid" 2>/dev/null || true; }
+  # Started for one file only: a later file must not kill a PID reused since.
+  grant_pid='' emu_ride_pid=''
   wait "$reader" 2>/dev/null || true
   return "$rc"
 }

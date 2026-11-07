@@ -86,7 +86,7 @@ every such item.
 | `web/` | velorki.com: the website and the relay (OAuth token exchange, AI relay, share links) in one Next.js app |
 | `brouter/` | routing profiles and the map-data updater for the BRouter routing server |
 | `deploy/` | self-hosting with Docker Compose or systemd |
-| `docs/` | architecture, self-hosting, privacy, store checklist |
+| `docs/` | architecture, self-hosting, privacy, store checklist, the F-Droid flavour |
 | `tools/` | the BRouter test oracle and the gazetteer builder |
 
 ## Design in one paragraph
@@ -102,6 +102,13 @@ shared links. No accounts, no cloud database. See `docs/ARCHITECTURE.md`.
 
 `mise install` in the repository root installs Flutter, Java and Node at the
 pinned versions. Then see `app/README.md` and `web/README.md`.
+
+A build with no closed-source library in it — no Google Play Services, no
+billing, nothing from Firebase — is `app/lib/main_fdroid.dart` after
+`app/tool/fdroid_strip.sh`; it plans, records, navigates and works offline
+exactly as the store builds do. It leaves out buying Plus, Google Drive sync
+and the store prompts, and for now the Strava and Ride with GPS connections
+too. `docs/FDROID.md` says what and why.
 
 ## Self-hosting
 

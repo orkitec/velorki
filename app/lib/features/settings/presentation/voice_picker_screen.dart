@@ -142,7 +142,23 @@ class _VoiceListState extends ConsumerState<_VoiceList> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
             child: Text(
-              l10n.settingsVoiceNone,
+              // An empty list is one of two states, and the advice differs.
+              // No engine at all: a Google-free Android (a plain AOSP build,
+              // LineageOS) has no text-to-speech settings page to add a voice
+              // to, so an engine has to be installed. An engine without the
+              // rider's language: GrapheneOS ships its own, on by default,
+              // which speaks US English and nothing else, so a rider riding
+              // in German needs either a voice from that engine or another
+              // engine. Asked of the phone, not of the build: every Android
+              // build says this where it is true.
+              (ref.watch(speechEngineInstalledProvider).value ?? true)
+                  ? l10n.settingsVoiceNoLanguage(
+                      languageNameOf(
+                        l10n,
+                        cueLocaleTag(ref.watch(appLocaleProvider)),
+                      ),
+                    )
+                  : l10n.settingsVoiceNoEngine,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

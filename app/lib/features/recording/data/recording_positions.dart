@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../app/build_flavour.dart';
 import '../../map/data/position_provider.dart';
 import '../domain/gps_precision.dart';
 
@@ -37,6 +38,11 @@ geo.LocationSettings recordingLocationSettings({
         accuracy: accuracy,
         distanceFilter: distanceFilter,
         intervalDuration: interval,
+        // Without Google Play Services there is no fused provider to ask;
+        // geolocator falls back to it anyway, but the Google-free build says
+        // so outright rather than letting the plugin look for a class it was
+        // compiled without.
+        forceLocationManager: !googleServicesAvailable,
       );
     case TargetPlatform.iOS:
     case TargetPlatform.macOS:

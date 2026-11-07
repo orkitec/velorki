@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 
 import 'cloud_store.dart';
+import 'drive_auth.dart';
 import 'store_sync_backend.dart';
 
 /// Logs record names and file ids only, never their content.
@@ -27,19 +28,6 @@ const int driveHeaderVersion = 1;
 const String _kind = 'kind';
 const String _modifiedAt = 'modifiedAt';
 const String _codec = 'codec';
-
-/// Where a [DriveCloudStore] gets the signed-in account and its tokens.
-abstract interface class DriveAuth {
-  /// The signed-in Google account's id, or null.
-  String? get accountId;
-
-  /// An access token for `drive.appdata`, without asking the rider.
-  /// [stale] is one Drive refused: it is let go of and another fetched.
-  /// Null when only the rider can grant one (signed out, access taken
-  /// back): the account is then gone until they sign in again. Throws
-  /// [CloudStoreException] when it cannot be told now (no network).
-  Future<String?> accessToken({String? stale});
-}
 
 /// The hidden app data folder of the rider's Google Drive as a
 /// [CloudStore], over Drive v3.

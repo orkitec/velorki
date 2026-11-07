@@ -8,6 +8,8 @@ end with the magnetic-variation pair; the emulator's parser rejects the
 usual trailing mode field.
 
     tool/emu_ride.py [course_deg] [speed_kmh] [seconds] [serial]
+    VELORKI_EMU_START="32.65 -16.92" tool/emu_ride.py   # start elsewhere
+    VELORKI_EMU_GEOFIX=1 tool/emu_ride.py   # an AOSP image, which drops NMEA
     tool/emu_ride.py --path points.txt [speed_kmh] [serial]
 
 The first form rides a straight line from the Hudson river path in
@@ -16,8 +18,12 @@ a polyline read from a file with one `lat,lon` per line (a GeoJSON
 LineString's coordinates, for instance), so a planned route can be ridden
 end to end at a steady speed; the course is the bearing to the next point.
 """
-import math, subprocess, sys, time
+import math, os, subprocess, sys, time
+# The Hudson river path in Manhattan by default; VELORKI_EMU_START ("lat lon")
+# starts the ride somewhere else, which is how the Madeira runs use it.
 lat, lon = 40.8153, -73.9645
+if os.environ.get("VELORKI_EMU_START"):
+    lat, lon = (float(v) for v in os.environ["VELORKI_EMU_START"].split())
 path_mode = len(sys.argv) > 1 and sys.argv[1] == "--path"
 if not path_mode:
     course = float(sys.argv[1]) if len(sys.argv) > 1 else 45.0
@@ -39,7 +45,20 @@ def nmea(lat, lon, course, speed_kmh):
     gga = f"GPGGA,{t},{la},{ns},{lo},{ew},1,10,1.0,12.0,M,0.0,M,,"
     rmc = f"GPRMC,{t},A,{la},{ns},{lo},{ew},{speed_kmh/1.852:.1f},{course:.1f},{d},0.0,E"
     return [wrap(gga), wrap(rmc)]
+# VELORKI_EMU_GEOFIX=1: plain `geo fix` points instead of NMEA. The AOSP
+# (`default`) system images ignore `geo nmea` altogether; `geo fix` moves the
+# rider there, without a course, with the speed in knots as its fifth field.
+GEOFIX = os.environ.get("VELORKI_EMU_GEOFIX") == "1"
+
+
 def send(lat, lon, course, speed_kmh):
+    if GEOFIX:
+        subprocess.run(
+            ADB + ["emu", "geo", "fix", f"{lon:.6f}", f"{lat:.6f}", "12", "10",
+                   f"{speed_kmh / 1.852:.1f}"],
+            capture_output=True,
+        )
+        return
     for s in nmea(lat, lon, course, speed_kmh):
         subprocess.run(ADB + ["emu", "geo", "nmea", s], capture_output=True)
 

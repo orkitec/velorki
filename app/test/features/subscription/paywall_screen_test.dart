@@ -203,7 +203,7 @@ void main() {
         service: FakeSubscriptionService(isAvailable: false),
       );
 
-      expect(find.text(l10n.connectionsUnavailable), findsOneWidget);
+      expect(find.text(l10n.plusUnavailableTitle), findsOneWidget);
       expect(
         find.widgetWithText(FilledButton, l10n.plusSubscribe),
         findsNothing,
@@ -263,7 +263,7 @@ void main() {
     });
 
     testWidgets('a build without a store but not in a browser has no app '
-        'button', (tester) async {
+        'button, and names no store to buy in', (tester) async {
       await _pump(
         tester,
         const PaywallScreen(),
@@ -273,6 +273,13 @@ void main() {
         find.widgetWithText(FilledButton, l10n.plusGetTheApp),
         findsNothing,
       );
+      expect(find.text(l10n.plusUnavailableTitle), findsOneWidget);
+      expect(find.text(l10n.plusUnavailableBody), findsOneWidget);
+      // The F-Droid flavour lands here. Google Play's renewal terms would
+      // point at a store this build cannot buy from.
+      expect(find.text(l10n.plusLegalPlay), findsNothing);
+      expect(find.text(l10n.plusLegalAppStore), findsNothing);
+      expect(find.text(l10n.plusRestore), findsNothing);
     });
 
     test('the download page follows the site\'s locale paths', () {

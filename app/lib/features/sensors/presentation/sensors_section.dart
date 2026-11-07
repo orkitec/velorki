@@ -36,27 +36,36 @@ class SensorsSection extends ConsumerWidget {
     final settings = ref.watch(sensorSettingsProvider);
     final controller = ref.read(sensorSettingsProvider.notifier);
     final messenger = ScaffoldMessenger.of(context);
+    final store = defaultTargetPlatform == TargetPlatform.android
+        ? l10n.settingsSensorsHealthConnect
+        : l10n.settingsSensorsAppleHealth;
+    // A device without the store keeps the rows, greyed out and saying why,
+    // rather than a switch whose prompt could only end in "not given access".
+    // Still asking: the rows as usual, so nothing flickers in.
+    final storeMissing = ref.watch(healthStoreAvailableProvider).value == false;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SwitchListTile(
-          value: settings.health,
-          title: Text(
-            defaultTargetPlatform == TargetPlatform.android
-                ? l10n.settingsSensorsHealthConnect
-                : l10n.settingsSensorsAppleHealth,
+          value: settings.health && !storeMissing,
+          title: Text(store),
+          subtitle: Text(
+            storeMissing
+                ? l10n.settingsSensorsHealthMissing(store)
+                : l10n.settingsSensorsHealthHint,
           ),
-          subtitle: Text(l10n.settingsSensorsHealthHint),
-          onChanged: (value) => unawaited(
-            _setHealth(
-              value,
-              gateway: gateway,
-              controller: controller,
-              settings: settings,
-              messenger: messenger,
-              l10n: l10n,
-            ),
-          ),
+          onChanged: storeMissing
+              ? null
+              : (value) => unawaited(
+                  _setHealth(
+                    value,
+                    gateway: gateway,
+                    controller: controller,
+                    settings: settings,
+                    messenger: messenger,
+                    l10n: l10n,
+                  ),
+                ),
         ),
         // Writing is the half that leaves the phone's own store, so it can be
         // switched off on its own; it has nothing to write while there is no
@@ -65,7 +74,7 @@ class SensorsSection extends ConsumerWidget {
           value: settings.healthWrite,
           title: Text(l10n.settingsSensorsHealthWrite),
           subtitle: Text(l10n.settingsSensorsHealthWriteHint),
-          onChanged: settings.health
+          onChanged: settings.health && !storeMissing
               ? (value) => unawaited(controller.setHealthWrite(value))
               : null,
         ),

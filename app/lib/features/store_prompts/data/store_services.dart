@@ -1,35 +1,20 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:in_app_review/in_app_review.dart';
-import 'package:in_app_update/in_app_update.dart';
-import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:upgrader/upgrader.dart'
     show ITunesResults, ITunesSearchAPI, UpgraderOS;
 
-final _log = Logger('velorki.store');
-
 /// Velorki's page in the App Store.
 const String appStorePageUrl = 'https://apps.apple.com/app/id6816790504';
-
-/// Velorki's page on Google Play.
-const String playStorePageUrl =
-    'https://play.google.com/store/apps/details?id=com.orkitec.velorki';
 
 /// Asks the platform for its rating dialog. The system decides whether it
 /// shows: StoreKit at most three times a year, Play by its own quota.
 typedef ReviewRequest = Future<void> Function();
 
-Future<void> _requestSystemReview() async {
-  final review = InAppReview.instance;
-  if (await review.isAvailable()) await review.requestReview();
-}
-
-/// The rating request. Overridden in tests, where no store answers.
-final reviewRequestProvider = Provider<ReviewRequest>(
-  (ref) => _requestSystemReview,
-);
+/// The rating request: nothing, until an entry point installs the store's
+/// own dialog over it (`storePromptOverrides`). A build with no store SDK —
+/// the F-Droid flavour — and every test keep this one.
+final reviewRequestProvider = Provider<ReviewRequest>((ref) => () async {});
 
 /// What the store says about the installed version.
 @immutable
@@ -133,50 +118,33 @@ class AppStoreUpdateSource implements StoreUpdateSource {
       RegExp(r'\d+(\.\d+)*').firstMatch(text)?.group(0) ?? '0';
 }
 
-/// Google Play's in-app update API, through in_app_update. It answers only
-/// for an install that came from Play; anything else is "nothing newer".
-class PlayUpdateSource implements StoreUpdateSource {
-  @override
-  Future<StoreUpdate?> check(PackageInfo installed) async {
-    final info = await InAppUpdate.checkForUpdate();
-    if (info.installStatus == InstallStatus.downloaded) {
-      return const UpdateDownloaded();
-    }
-    if (info.updateAvailability != UpdateAvailability.updateAvailable) {
-      return null;
-    }
-    return UpdateAvailable(
-      version: 'code ${info.availableVersionCode}',
-      storeUrl: playStorePageUrl,
-      inApp: info.flexibleUpdateAllowed,
-    );
-  }
-
-  @override
-  Future<bool> download() async {
-    try {
-      return await InAppUpdate.startFlexibleUpdate() == AppUpdateResult.success;
-    } on PlatformException catch (error) {
-      _log.info('Play update download failed: ${error.code}');
-      return false;
-    }
-  }
-
-  @override
-  Future<void> install() => InAppUpdate.completeFlexibleUpdate();
+/// Where a build with no store SDK in it looks for updates: the App Store's
+/// public lookup on iOS, nowhere in a debug build (whose version the store
+/// never has), and nowhere on Android — which is what the F-Droid flavour
+/// wants, since F-Droid updates the app itself.
+///
+/// Android's own in-app update API is behind `in_app_update`, a Google Play
+/// library, so it is installed from an entry point instead
+/// (`updateSourceWithPlay`); the App Store's lookup is plain HTTP against
+/// Apple's public API and stays here.
+///
+/// [web] and [debug] are [kIsWeb] and [kDebugMode], named so tests can say
+/// what a release build would do.
+StoreUpdateSource? updateSourceWithoutStoreSdk({
+  required TargetPlatform platform,
+  bool web = kIsWeb,
+  bool debug = kDebugMode,
+}) {
+  if (web || debug) return null;
+  return platform == TargetPlatform.iOS ? AppStoreUpdateSource() : null;
 }
 
-/// Where this build looks for updates: the App Store on iOS, Google Play
-/// on Android, nowhere in a debug build (whose version the store never
-/// has) or anywhere else. Overridden in tests.
-final storeUpdateSourceProvider = Provider<StoreUpdateSource?>((ref) {
-  if (kIsWeb || kDebugMode) return null;
-  return switch (defaultTargetPlatform) {
-    TargetPlatform.iOS => AppStoreUpdateSource(),
-    TargetPlatform.android => PlayUpdateSource(),
-    _ => null,
-  };
-});
+/// Where this build looks for updates. `main.dart` overrides it with
+/// [updateSourceWithPlay]; everything else, the F-Droid flavour included,
+/// keeps [updateSourceWithoutStoreSdk]. Overridden in tests.
+final storeUpdateSourceProvider = Provider<StoreUpdateSource?>(
+  (ref) => updateSourceWithoutStoreSdk(platform: defaultTargetPlatform),
+);
 
 /// Whether the dotted version [version] is later than [than]: `1.10.0`
 /// after `1.9.2`. Anything after a `+` or `-` is ignored, and a part that

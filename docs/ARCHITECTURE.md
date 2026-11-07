@@ -104,6 +104,19 @@ and hides the Plus features — see [SELF_HOSTING.md](SELF_HOSTING.md).
 Versions live in `app/pubspec.yaml`. Deliberately not used: `strava_client` (it
 expects the client secret inside the app) and `latlong2`.
 
+Six of the plugins are closed-source (RevenueCat, Google sign-in and
+`googleapis`, the two store SDKs, WatchConnectivity and live activities), and
+Flutter compiles the Android half of every plugin a pubspec lists whether Dart
+calls it or not. So each of them sits behind a provider whose *default* is the
+free implementation, reached only through an override that one file installs
+(`app/lib/app/proprietary_services.dart`) from one entry point — which is what
+lets a second entry point, `main_fdroid.dart`, be built from a pubspec that
+drops all six. Strava and Ride with GPS need no such treatment — they are
+pure Dart over a browser OAuth flow — but the first F-Droid submission leaves
+them out anyway, by carrying no client id for either in `env/fdroid.json`; a
+service with no client id is absent from the interface. See
+[FDROID.md](FDROID.md).
+
 ## Layout
 
 One monorepo — a Dart pub workspace in the root `pubspec.yaml`, no melos — so

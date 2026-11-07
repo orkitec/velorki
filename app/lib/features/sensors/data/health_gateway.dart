@@ -252,3 +252,14 @@ class PluginHealthGateway implements HealthGateway {
 @Riverpod(keepAlive: true)
 HealthGateway? healthGateway(Ref ref) =>
     healthSupportedOn(defaultTargetPlatform) ? PluginHealthGateway() : null;
+
+/// Whether this device has its health store at all: Health Connect is an app
+/// on Android 13 and older (and a de-Googled phone has no store to get it
+/// from), Apple Health is missing on an iPad before iPadOS 17. Asks the OS
+/// whether the store exists, never for access, so it raises no prompt.
+/// `false` where there is no gateway.
+@riverpod
+Future<bool> healthStoreAvailable(Ref ref) async {
+  final gateway = ref.watch(healthGatewayProvider);
+  return gateway != null && await gateway.isAvailable();
+}

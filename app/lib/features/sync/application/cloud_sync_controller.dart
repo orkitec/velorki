@@ -18,8 +18,6 @@ import '../../navigation/data/navigation_settings.dart';
 import '../../settings/data/appearance_controller.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
-import '../../subscription/data/revenuecat_subscription_service.dart'
-    show currentStorePlatform;
 import '../../subscription/data/subscription_service.dart';
 import '../data/cloud_sync_bridge.dart';
 import '../data/google_drive_sync.dart';

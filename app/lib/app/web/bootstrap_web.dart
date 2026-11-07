@@ -12,10 +12,11 @@ import '../../features/routing_tiles/application/routing_tiles_startup.dart';
 import '../../features/subscription/application/web_plus.dart';
 import '../../features/sync/application/cloud_sync_controller.dart';
 import '../../features/subscription/data/subscription_service.dart';
+import '../../features/sync/data/google_cloud.dart';
 import '../app.dart';
 import '../app_config.dart';
-import '../bootstrap.dart' show initLogging;
 import '../licenses.dart';
+import '../startup.dart' show initLogging;
 import 'browser_download.dart';
 import 'header_bridge.dart';
 import 'platform_view_pointer_gate.dart';
@@ -48,10 +49,14 @@ Future<void> bootstrap() async {
       trackExporterProvider.overrideWithValue(
         ShareTrackExporter(shareFiles: downloadFile),
       ),
-      // No store sells Plus in a browser yet; the paywall says so.
+      // No store sells Plus in a browser yet; the paywall says so. The
+      // default service is this one already — named here because the browser
+      // means it, where another build would override it with its store.
       subscriptionServiceProvider.overrideWithValue(
         const NoopSubscriptionService(),
       ),
+      // Google sync, which a browser signs into with Google's own button.
+      ...googleCloudOverrides(),
     ],
   );
 

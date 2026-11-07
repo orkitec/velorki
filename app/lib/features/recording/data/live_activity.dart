@@ -1,7 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:live_activities/live_activities.dart';
-import 'package:logging/logging.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
 /// The App Group both the app and the widget extension are members of.
@@ -10,8 +7,6 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 /// `UserDefaults` of this group, so the same string has to be set as an App
 /// Group capability on the `Runner` and the `VelorkiLiveActivity` targets in
 /// Xcode. See `ios/VelorkiLiveActivity/README.md`.
-final Logger _log = Logger('velorki.recording');
-
 const String liveActivityAppGroupId = 'group.com.orkitec.velorki';
 
 /// Id of the ride activity. One ride, one activity, so a fixed string is
@@ -51,95 +46,16 @@ class NoRideLiveActivity implements RideLiveActivity {
   Future<void> end() async {}
 }
 
-/// The real card, over the `live_activities` plugin.
+/// The lock-screen card of the running app: nothing, until an entry point
+/// installs the real one over it.
 ///
-/// Every call is wrapped: a debug build without the widget extension, an
-/// iPhone whose owner switched live activities off, an iOS below 16.1 — all of
-/// them fail here, and none of them is worth interrupting a ride for.
-class PluginRideLiveActivity implements RideLiveActivity {
-  /// Creates the activity.
-  PluginRideLiveActivity({LiveActivities? plugin})
-    : _plugin = plugin ?? LiveActivities();
-
-  final LiveActivities _plugin;
-
-  /// Whether the app group was handed to the plugin already.
-  bool _initialized = false;
-
-  /// ActivityKit's id for the card that is up, as `createActivity` handed it
-  /// back; `null` while there is none. The plugin finds an activity by this
-  /// id, not by the name it was requested under: updates and the end sent
-  /// under the name went to "Activity not found", and the card sat at its
-  /// first figures for the whole ride.
-  String? _activityId;
-
-  bool get _running => _activityId != null;
-
-  @override
-  Future<void> start(Map<String, Object?> data) async {
-    if (_running) return;
-    await _quietly(() async {
-      if (!_initialized) {
-        // `requestAndroidNotificationPermission` would pop the Android
-        // permission dialog; this implementation is only ever built on iOS,
-        // but there is no reason to leave that trap armed.
-        await _plugin.init(
-          appGroupId: liveActivityAppGroupId,
-          requestAndroidNotificationPermission: false,
-        );
-        _initialized = true;
-      }
-      if (!await _plugin.areActivitiesSupported()) return;
-      _activityId = await _plugin.createActivity(
-        rideActivityId,
-        Map<String, dynamic>.of(data),
-        // Remote updates would need the Push Notifications capability, and
-        // every figure on the card comes from this phone anyway.
-        iOSEnableRemoteUpdates: false,
-        removeWhenAppIsKilled: true,
-      );
-      if (_activityId == null) _log.warning('Live activity: no id came back');
-    });
-  }
-
-  @override
-  Future<void> update(Map<String, Object?> data) async {
-    final id = _activityId;
-    if (id == null) return;
-    await _quietly(
-      () => _plugin.updateActivity(id, Map<String, dynamic>.of(data)),
-    );
-  }
-
-  @override
-  Future<void> end() async {
-    final id = _activityId;
-    if (id == null) return;
-    _activityId = null;
-    await _quietly(() => _plugin.endActivity(id));
-  }
-
-  /// Nothing here may take the ride down, but nothing may vanish either: a
-  /// card that silently stops updating is what this looked like once.
-  Future<void> _quietly(Future<void> Function() call) async {
-    try {
-      await call();
-    } catch (error, stackTrace) {
-      _log.warning('Live activity call failed', error, stackTrace);
-    }
-  }
-}
-
-/// The lock-screen card of the running app: the real one on iOS, nothing
-/// anywhere else.
-final rideLiveActivityProvider = Provider<RideLiveActivity>((ref) {
-  if (defaultTargetPlatform != TargetPlatform.iOS) {
-    return const NoRideLiveActivity();
-  }
-  final activity = PluginRideLiveActivity();
-  ref.onDispose(() => activity.end());
-  return activity;
-});
+/// `live_activities` is an iOS plugin whose Android half pulls Google Play
+/// libraries in, so `main.dart` installs [PluginRideLiveActivity] through
+/// `liveActivityOverride` and `main_fdroid.dart` leaves it out. Android has
+/// no card in either build.
+final rideLiveActivityProvider = Provider<RideLiveActivity>(
+  (ref) => const NoRideLiveActivity(),
+);
 
 /// The SF Symbol the widget extension draws for [kind].
 ///

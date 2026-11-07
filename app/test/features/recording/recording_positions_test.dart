@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:flutter/foundation.dart';
+import 'package:velorki/app/build_flavour.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/recording/data/recording_positions.dart';
 import 'package:velorki/features/recording/domain/gps_precision.dart';
@@ -81,6 +82,31 @@ void main() {
           platform: TargetPlatform.android,
           precision: precision,
         );
+
+    test('the fused provider is asked for where this build has Google\'s '
+        'libraries, and the LocationManager where it has not', () {
+      // The Google-free build (main_fdroid.dart) sets the flag false, and
+      // the phones it runs on have no Play Services to ask. geolocator falls
+      // back by itself, but a build compiled without the class should not be
+      // sending it looking for one. See docs/FDROID.md.
+      addTearDown(() => googleServicesAvailable = true);
+
+      expect(
+        (android(
+          GpsPrecision.normal,
+        ) as geo.AndroidSettings).forceLocationManager,
+        isFalse,
+      );
+
+      googleServicesAvailable = false;
+      for (final precision in GpsPrecision.values) {
+        expect(
+          (android(precision) as geo.AndroidSettings).forceLocationManager,
+          isTrue,
+          reason: 'forced for $precision',
+        );
+      }
+    });
 
     test('precise asks the phone for the best fix it has, every second', () {
       final settings = android(GpsPrecision.precise) as geo.AndroidSettings;

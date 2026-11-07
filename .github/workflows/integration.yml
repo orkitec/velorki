@@ -15,6 +15,12 @@ name: integration
 # own concurrency group and are never cancelled. The per-push app workflow
 # keeps running the widget and unit tests.
 #
+# Beside it, one `fdroid` job runs the Google-free flavour's smoke test on an
+# AOSP image with no Google Play Services, against a build that
+# app/tool/fdroid_strip.sh has taken the closed-source plugins out of. Same
+# trigger, same caching and boot-retry shape, one API level: what it checks is
+# the stripping and the free location client, not the Android version.
+#
 # The suite is split three ways (VELORKI_ITEST_SHARD, see app/tool/itest.sh),
 # so the matrix is api-level x shard and the GitHub UI shows `emulator (34,
 # 1/3)`. Two things are cached to keep a shard from paying the same startup
@@ -302,6 +308,203 @@ jobs:
           key: >-
             gradle-itest-${{ matrix.api-level }}-${{
             hashFiles('app/android/**/*.gradle*', 'app/pubspec.lock') }}
+
+      - name: Mirror log
+        if: always()
+        run: cat mirror.log || true
+
+  # The Google-free flavour on a device with no Google Play Services.
+  #
+  # Three things differ from `emulator` above: the system image is `default`
+  # (AOSP: no Play Services, no Play Store), the build runs after
+  # app/tool/fdroid_strip.sh, which rewrites pubspec.yaml and patches the pub
+  # cache, and only integration_test/fdroid_smoke_test.dart runs. One API
+  # level, split three ways like the job above: this is about what the
+  # stripping leaves behind, which no Android version changes, so the matrix
+  # is the shard alone. tool/itest.sh's F-Droid mode skips the files that
+  # import a plugin the strip took out (tool/fdroid_plugins.sh, the same list
+  # the strip uses) and leads shard 1 with the smoke test, so a broken build
+  # fails in minutes. See docs/FDROID.md.
+  fdroid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1/3", "2/3", "3/3"]
+    env:
+      # Its own, so nothing patched can reach another job or another run:
+      # the strip edits the plugins where pub unpacked them.
+      PUB_CACHE: ${{ github.workspace }}/.pub-cache-fdroid
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+
+      - name: Restore the Gradle caches
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          # Only the Gradle files: tool/fdroid_strip.sh rewrites pubspec.lock
+          # between this restore and the save at the end of the job, so a key
+          # hashing the lock would never match itself.
+          key: gradle-itest-fdroid-${{ hashFiles('app/android/**/*.gradle*') }}
+          restore-keys: |
+            gradle-itest-fdroid-
+
+      # The generated code before the strip: build_runner wants the full
+      # dependency set, and the strip runs `pub get` again over the smaller
+      # one afterwards.
+      - name: Prepare the app package
+        working-directory: app
+        run: |
+          flutter pub get
+          bash tool/gen.sh
+
+      - name: Strip the proprietary plugins
+        working-directory: app
+        run: bash tool/fdroid_strip.sh
+
+      - name: Install the NDK
+        working-directory: app
+        run: bash tool/install_ndk.sh
+
+      # `default`, not `google_apis`: the whole point of this job is a device
+      # that has no Google Play Services to fall back on.
+      - name: Install the system image
+        id: sysimg
+        run: |
+          sdk="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          pkg="system-images;android-35;default;x86_64"
+          dir="$sdk/system-images/android-35/default/x86_64"
+          for try in 1 2 3 4 5; do
+            printf 'y\n%.0s' {1..30} \
+              | "$sdk/cmdline-tools/latest/bin/sdkmanager" --install "$pkg" || true
+            if [ -s "$dir/system.img" ] && [ -f "$dir/package.xml" ]; then
+              revision=$(sed -n 's/.*<major>\([0-9]*\)<\/major>.*/\1/p' "$dir/package.xml" | head -n 1)
+              echo "revision=${revision:-0}" >> "$GITHUB_OUTPUT"
+              echo "==> $pkg r${revision:-0} in place"
+              exit 0
+            fi
+            echo "==> $pkg did not install cleanly (try $try of 5); fetching it again"
+            rm -rf "$dir" "$sdk/.temp"
+            sleep $((try * 30))
+          done
+          echo "::error::$pkg could not be installed"
+          exit 1
+
+      - name: AVD cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-35-x86_64-default-pixel_6-r${{ steps.sysimg.outputs.revision }}
+
+      - name: Create the AVD snapshot
+        id: snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: >-
+            -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
+            -camera-back none -camera-front none
+          disable-animations: false
+          script: echo "AVD snapshot written."
+
+      - name: The snapshot boot timed out; once more
+        if: steps.snapshot.outcome == 'failure'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: >-
+            -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
+            -camera-back none -camera-front none
+          disable-animations: false
+          script: echo "::warning::the snapshot boot timed out the first time"
+
+      - name: Build and serve the segments mirror
+        run: bash app/tool/itest_mirror.sh
+
+      - name: Run the Google-free suite
+        id: suite
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          working-directory: app
+          force-avd-creation: false
+          emulator-options: >-
+            -no-window -no-snapshot-save -no-audio -no-boot-anim
+            -gpu swiftshader_indirect -camera-back none -camera-front none
+          disable-animations: true
+          script: |
+            touch "$GITHUB_WORKSPACE/.fdroid-emulator-booted"
+            VELORKI_ITEST_SHARD=${{ matrix.shard }} tool/itest_fdroid.sh
+
+      - name: The emulator did not boot; once more
+        id: again
+        if: steps.suite.outcome == 'failure' && hashFiles('.fdroid-emulator-booted') == ''
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          working-directory: app
+          force-avd-creation: false
+          emulator-options: >-
+            -no-window -no-snapshot-save -no-audio -no-boot-anim
+            -gpu swiftshader_indirect -camera-back none -camera-front none
+          disable-animations: true
+          script: |
+            echo "::warning::the emulator did not boot the first time"
+            VELORKI_ITEST_SHARD=${{ matrix.shard }} tool/itest_fdroid.sh
+
+      - name: Verdict
+        if: steps.suite.outcome == 'failure' && steps.again.outcome != 'success'
+        run: exit 1
+
+      - name: Save the Gradle caches
+        if: always() && matrix.shard == '1/3'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-itest-fdroid-${{ hashFiles('app/android/**/*.gradle*') }}
 
       - name: Mirror log
         if: always()

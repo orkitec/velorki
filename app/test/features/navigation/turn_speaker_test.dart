@@ -135,7 +135,9 @@ void main() {
     String? voiceId,
     InstructionAudio otherAudio = InstructionAudio.pausePodcasts,
     List<tts.Voice>? voices,
+    String localeTag = 'en-US',
   }) => SpeakTurnSpeaker(
+    localeTag: localeTag,
     voiceId: voiceId,
     otherAudio: otherAudio,
     platform: platform,
@@ -229,7 +231,53 @@ void main() {
       await turns.speak('Two');
       expect(engine.said, isEmpty);
       expect(await turns.voices(), isEmpty);
+      // A phone whose engine failed that way has none, so Settings says the
+      // one thing that helps: install one. Nothing here throws or hangs; a
+      // ride on such a phone navigates in silence rather than stopping.
+      expect(await turns.hasEngine(), isFalse);
     });
+
+    test('an engine that speaks only English offers nothing to a rider '
+        'riding in German, and is not broken by it', () async {
+      // GrapheneOS Speech Services: installed, enabled, US English only. The
+      // engine is there, so hasEngine is true; the voices are the wrong
+      // language, so the list is empty and the cues are dropped one by one
+      // rather than turning the speaker off for good, which is what lets a
+      // voice installed mid-ride start working.
+      final turns = speaker(
+        platform: TargetPlatform.android,
+        localeTag: 'de-DE',
+        voices: [
+          tts.Voice(
+            id: 'graphene-en-us',
+            name: 'English (United States)',
+            language: 'en-US',
+          ),
+        ],
+      );
+      expect(await turns.voices(), isEmpty);
+      expect(await turns.defaultVoice(), isNull);
+
+      engine.failNext = const tts.SpeakException(
+        tts.SpeakError.languageUnavailable,
+      );
+      await turns.speak('In zweihundert Metern rechts abbiegen.');
+      expect(engine.said, isEmpty);
+      // Not fatal: the next cue is still attempted, so a voice installed
+      // mid-ride starts working without a restart.
+      await turns.speak('Jetzt rechts.');
+      expect(engine.said.map((s) => s.text), ['Jetzt rechts.']);
+    });
+
+    test(
+      'a phone that is not Android always counts as having an engine',
+      () async {
+        // iOS and macOS ship with one and cannot be without it; the browser
+        // either speaks or reports engineUnavailable when asked to.
+        final turns = speaker(platform: TargetPlatform.iOS);
+        expect(await turns.hasEngine(), isTrue);
+      },
+    );
 
     test(
       'ending the guidance stops the speaker; dispose releases it',

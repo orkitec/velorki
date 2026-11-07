@@ -1,3 +1,6 @@
+import '../../../core/plus/plus_gate.dart';
+import '../../subscription/application/offered_plus_features.dart';
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -2218,8 +2221,10 @@ class _PlannerActions extends ConsumerWidget {
         label: l10n.loopAction,
         onPressed: () => unawaited(onSmartLoop()),
       ),
-      // The assistant needs the relay; a build without one has no Ask.
-      if (ref.watch(relayClientProvider) != null)
+      // The assistant needs the relay, and a build that offers no Plus has no
+      // assistant to ask: neither has an Ask.
+      if (ref.watch(relayClientProvider) != null &&
+          ref.watch(plusFeatureOfferedProvider(PlusFeature.aiAssistant)))
         LabeledIconButton(
           icon: Icons.auto_awesome_rounded,
           label: l10n.assistantAction,

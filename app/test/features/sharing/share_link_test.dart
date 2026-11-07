@@ -294,6 +294,7 @@ void main() {
       bool entitled = true,
       bool withRelay = true,
       bool fromStrava = false,
+      bool plusOffered = true,
     }) async {
       await tester.binding.setSurfaceSize(const Size(1000, 2000));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -307,6 +308,7 @@ void main() {
           textSharerProvider.overrideWithValue((text, {subject}) async {
             shared.add(text);
           }),
+          plusOfferedProvider.overrideWithValue(plusOffered),
         ],
       );
       addTearDown(container.dispose);
@@ -331,6 +333,16 @@ void main() {
       await tester.pumpAndSettle();
       return shared;
     }
+
+    testWidgets('a build that does not offer Plus shows no link row at all, '
+        'not a locked one', (tester) async {
+      // The F-Droid flavour. A row that names Plus and leads to a paywall
+      // nobody there can buy from is a dead end; see docs/FDROID.md.
+      await pump(tester, relay: FakeRelayClient(), plusOffered: false);
+
+      expect(find.text(l10n.shareLinkRowTitle), findsNothing);
+      expect(find.text(l10n.sharePlusLabel), findsNothing);
+    });
 
     testWidgets('creates the link, opens the share sheet at once and says '
         'how long it works', (tester) async {
