@@ -254,6 +254,10 @@ void main() {
       describe: 'the recorder to start',
       timeout: const Duration(seconds: 30),
     );
+    // tool/itest.sh sets the emulator moving when it reads this line, and
+    // not before: a fix a second while the slow emulator routes held the
+    // route past its timeout.
+    debugPrint('VELORKI_EMU_RIDE go');
     await waitUntil(
       tester,
       () =>

@@ -336,12 +336,18 @@ flutter_test_one() {
     [ "$(basename "$1")" = fdroid_smoke_test.dart ]; then
     tool/grant_location.sh "$DEVICE" &
     grant_pid=$!
-    # VELORKI_ITEST_GEO is "longitude latitude"; emu_ride.py wants the pair
-    # the other way round. Plain fixes, because the AOSP image the F-Droid
-    # run uses ignores NMEA (and a Google image takes both).
+    # The rider stands at VELORKI_ITEST_GEO until the test prints
+    # VELORKI_EMU_RIDE: a fix a second while the slow emulator also routes
+    # held the route past its timeout. VELORKI_ITEST_GEO is "longitude
+    # latitude"; emu_ride.py wants the pair the other way round. Plain
+    # fixes, because the AOSP image the F-Droid run uses ignores NMEA (and a
+    # Google image takes both).
     start=${VELORKI_ITEST_GEO:-}
-    VELORKI_EMU_GEOFIX=1 VELORKI_EMU_START="${start#* } ${start%% *}" \
-      python3 tool/emu_ride.py 45 18 600 "$DEVICE" >/dev/null 2>&1 &
+    (
+      until grep -q VELORKI_EMU_RIDE "$2" 2>/dev/null; do sleep 1; done
+      VELORKI_EMU_GEOFIX=1 VELORKI_EMU_START="${start#* } ${start%% *}" \
+        exec python3 tool/emu_ride.py 45 18 600 "$DEVICE" >/dev/null 2>&1
+    ) &
     emu_ride_pid=$!
   fi
   # A previous file's app instance still running on the simulator has been

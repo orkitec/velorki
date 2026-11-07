@@ -21,6 +21,7 @@ import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/navigation/testing/fake_turn_speaker.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/recording/application/recording_controller.dart';
+import 'package:velorki/features/recording/data/plugin_live_activity.dart';
 import 'package:velorki/features/recording/data/live_activity.dart'
     show liveActivityAppGroupId;
 import 'package:velorki/features/recording/data/recording_gateways.dart';
@@ -74,6 +75,9 @@ void main() {
         recordingRecoveryProvider.overrideWith(
           (ref) async => const NoRecovery(),
         ),
+        // The real lock-screen card, which `main.dart` installs and the
+        // harness (the F-Droid wiring) does not.
+        liveActivityOverride(),
       ],
     );
     await ensureRegionTile(tester, container);

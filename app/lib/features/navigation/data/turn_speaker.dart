@@ -240,8 +240,13 @@ class SpeakTurnSpeaker implements TurnSpeaker {
 
   @override
   Future<bool> hasEngine() async {
-    if (_broken || !tts.Speak.isSupported) return false;
+    if (_broken) return false;
+    // Every platform but Android has one built in. Asked before
+    // `isSupported`, which answers for the machine the code runs on (a
+    // Linux test host has none) rather than for the platform this speaker
+    // serves.
     if (_platform != TargetPlatform.android) return true;
+    if (!tts.Speak.isSupported) return false;
     try {
       // `androidEngines` lists what is installed, the system's pick first;
       // empty is a phone with none. Every other platform has one built in.
