@@ -95,6 +95,15 @@ for f in integration_test/*_test.dart; do
     skipped+=("$f")
     continue
   fi
+  # The smoke test takes a real fix off the platform, which the API 36
+  # Google image never hands on (its GPS provider stays without a location
+  # however often `geo fix` is sent); it is the F-Droid job's test, on the
+  # AOSP image. Named by hand (`itest.sh fdroid_smoke`) it still runs.
+  if [ -z "$FDROID" ] && [ -z "$filter" ] &&
+    [ "$(basename "$f")" = fdroid_smoke_test.dart ]; then
+    skipped+=("$f")
+    continue
+  fi
   tests+=("$f")
 done
 
@@ -219,6 +228,8 @@ fi
 for f in ${skipped[@]+"${skipped[@]}"}; do
   if [ -n "$FDROID" ] && needs_stripped_plugin "$f"; then
     printf '    skipping %s: it imports a plugin the F-Droid build does without\n' "$f"
+  elif [ "$(basename "$f")" = fdroid_smoke_test.dart ]; then
+    printf '    skipping %s: it runs in the F-Droid job (VELORKI_ITEST_FDROID=1)\n' "$f"
   else
     printf '    skipping %s: it needs a BRouter server in VELORKI_BROUTER_URL\n' "$f"
   fi

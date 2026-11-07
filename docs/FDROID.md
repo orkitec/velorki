@@ -192,9 +192,10 @@ of 200 m off the platform's GPS. For that file alone `itest.sh` grants the
 location permission (`app/tool/grant_location.sh`) and moves the emulator with
 `app/tool/emu_ride.py` in its `VELORKI_EMU_GEOFIX=1` mode: the AOSP image
 ignores `geo nmea`, so plain `geo fix` points.
-`app/tool/itest_fdroid.sh` is the same thing by hand. The file is in the
-ordinary sweep and in `all_tests.dart` too, where it runs against an
-unstripped build on a Google image and skips itself off Android.
+`app/tool/itest_fdroid.sh` is the same thing by hand. The ordinary Android
+sweep skips the file: the API 36 Google image never hands a `geo fix` on to its
+GPS provider, so a real fix never comes there (`tool/itest.sh fdroid_smoke`
+still runs it by name). In `all_tests.dart` it skips itself off Android.
 
 One thing the scan does not catch: a *string* that mentions a store. The
 paywall's Google Play renewal terms (`plusLegalPlay`) are compiled into the
