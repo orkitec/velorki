@@ -334,6 +334,10 @@ flutter_test_one() {
   # runs against an emulator as it finds it.
   if [[ "$DEVICE" == emulator-* ]] &&
     [ "$(basename "$1")" = fdroid_smoke_test.dart ]; then
+    # Location switched on the current way too: an API 36 image gave no fix
+    # with only `settings put secure location_mode 3`.
+    adb -s "$DEVICE" shell cmd location set-location-enabled true \
+      >/dev/null 2>&1 || true
     tool/grant_location.sh "$DEVICE" &
     grant_pid=$!
     # The rider stands at VELORKI_ITEST_GEO until the test prints
@@ -434,6 +438,17 @@ attempt() {
   tail -n +1 -f "$log" &
   local reader=$!
   flutter_test_one "$f" "$log" || rc=$?
+  # A smoke test that found no position: what the phone's location service
+  # thought, for the log.
+  if [ "$rc" -ne 0 ] && [[ "$DEVICE" == emulator-* ]] &&
+    [ "$(basename "$f")" = fdroid_smoke_test.dart ]; then
+    echo '==> the emulator location service after the failure:'
+    adb -s "$DEVICE" shell cmd location is-location-enabled 2>&1 || true
+    adb -s "$DEVICE" shell dumpsys package com.orkitec.velorki 2>/dev/null \
+      | grep -E 'ACCESS_(FINE|COARSE)_LOCATION' || true
+    adb -s "$DEVICE" shell dumpsys location 2>/dev/null \
+      | grep -iE 'provider|last location|enabled' | head -40 || true
+  fi
   sleep 1
   kill "$reader" 2>/dev/null || true
   [ -n "${sim_ride_pid:-}" ] && { kill "$sim_ride_pid" 2>/dev/null || true; }
