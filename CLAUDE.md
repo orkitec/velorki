@@ -182,7 +182,9 @@ changing structure.
   store class in its dex (`docs/FDROID.md`), and `gazetteer` builds the
   Liechtenstein extract and checks the `.gaz` fixtures), `integration.yml` and
   `integration-ios.yml` (every push to main that touches app/tiles/fixtures,
-  plus nightly; a newer push cancels the older run. Android shards the suite
+  plus nightly, which a `gate` job stops when a run on main finished in the
+  last 24 hours or one tested the same commit in the last 7 days; a newer
+  push cancels the older run. Android shards the suite
   three ways across API levels 31, 35 and 36, caches Gradle and the AVD
   snapshot, and boots an emulator that timed out once more (a failed test is
   never retried); its `fdroid` job runs the same suite, three ways, in the
