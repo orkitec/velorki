@@ -72,11 +72,9 @@ run your own and skip the subscription entirely.
 Everything above is implemented and tested: unit and widget tests on every
 push, emulator and simulator suites on Android 12, 15 and 16 and on iOS, and
 the routing port reproduces the Java server byte for byte on a recorded
-corpus. Nothing is in the stores yet.
-
-Not yet done: the store accounts and partner API registrations, the relay and
-the tile mirror deployment, and iOS release signing. `docs/OPEN_ITEMS.md` lists
-every such item.
+corpus. Velorki is on the App Store and Google Play, the web planner at
+app.velorki.com, and the relay and the tile mirror run in production.
+`docs/OPEN_ITEMS.md` lists what is still open.
 
 ## Layout
 
