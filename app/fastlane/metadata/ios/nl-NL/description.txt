@@ -40,8 +40,8 @@ Velorki Plus is een abonnement voor wat onze servers nodig heeft:
 
 Velorki Plus is er als automatisch verlengend maand- en jaarabonnement; het jaarabonnement begint met een gratis proefperiode. De betaling wordt bij het bevestigen van de aankoop via je Apple Account in rekening gebracht. Het abonnement wordt automatisch verlengd, tenzij het uiterlijk 24 uur voor het einde van de lopende periode wordt uitgezet, en het kan worden beheerd en opgezegd in de instellingen van je Apple Account. Een ongebruikt deel van een gratis proefperiode vervalt zodra een abonnement wordt gekocht.
 
-Gebruiksvoorwaarden: https://velorki.com/terms
-Privacybeleid: https://velorki.com/privacy
+Gebruiksvoorwaarden: https://velorki.com/nl/terms
+Privacybeleid: https://velorki.com/nl/privacy
 
 PRIVACY
 Geen reclame, geen analytics. De assistent vraagt je toestemming voordat er tekst het apparaat verlaat, en de positie die hij verstuurt wordt afgerond op ongeveer een kilometer.

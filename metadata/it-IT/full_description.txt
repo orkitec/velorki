@@ -40,6 +40,6 @@ Questa è la versione per F-Droid, costruita senza librerie proprietarie. Non ha
 
 Le regioni offline arrivano dal mirror di tile di Velorki su GitHub, lo stile della mappa da OpenFreeMap e la ricerca dei luoghi online da Photon.
 
-Sito web: https://velorki.com
+Sito web: https://velorki.com/it
 Codice sorgente (AGPL-3.0): https://github.com/orkitec/velorki
 Dati della mappa © i contributori di OpenStreetMap.

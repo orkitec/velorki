@@ -40,6 +40,6 @@ C'est la version F-Droid, construite sans bibliothèques propriétaires. Elle n'
 
 Les régions hors ligne viennent du miroir de tuiles de Velorki sur GitHub, le style de carte d'OpenFreeMap et la recherche de lieux en ligne de Photon.
 
-Site web : https://velorki.com
+Site web : https://velorki.com/fr
 Code source (AGPL-3.0) : https://github.com/orkitec/velorki
 Données cartographiques © les contributeurs d'OpenStreetMap.

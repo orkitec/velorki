@@ -40,6 +40,6 @@ Esta es la versión de F-Droid, hecha sin bibliotecas propietarias. No tiene sin
 
 Las regiones sin conexión vienen del espejo de teselas de Velorki en GitHub, el estilo del mapa de OpenFreeMap y la búsqueda de lugares en línea de Photon.
 
-Sitio web: https://velorki.com
+Sitio web: https://velorki.com/es
 Código fuente (AGPL-3.0): https://github.com/orkitec/velorki
 Datos del mapa © colaboradores de OpenStreetMap.
