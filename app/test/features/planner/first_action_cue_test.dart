@@ -140,15 +140,11 @@ void main() {
 
   testWidgets('with the not-downloaded chip shown as it starts, the chip\'s '
       'outline pulses between the field\'s and the ring', (tester) async {
+    // An app start over an area that is not downloaded: the chip is over
+    // the map as the cue starts.
     final harness = PlannerHarness();
     harness.stopsCoverage.covered = (_) => false;
-    final h = await pumpScreen(
-      tester,
-      const PlannerScreen(),
-      harness: harness,
-      surfaceSize: const Size(360, 780),
-    );
-    h.map
+    harness.map
       ..zoom = 13
       ..center = const LatLng(48.05, 11.05)
       ..visibleBounds = const BoundingBox(
@@ -157,16 +153,15 @@ void main() {
         north: 48.1,
         east: 11.1,
       );
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+    );
     for (final listener in [...h.map.cameraIdleListeners]) {
       listener();
     }
-    await tester.pumpAndSettle();
-    expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
-
-    // The empty state again, the chip over the map as the cue starts.
-    _planner(tester).addWaypoint(const LatLng(48.05, 11.05));
-    await tester.pumpAndSettle();
-    _planner(tester).clear();
     await tester.pump();
     expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
 
@@ -510,24 +505,35 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('it comes back when the plan is cleared', (tester) async {
+  testWidgets('it does not come back when the plan is empty again', (
+    tester,
+  ) async {
     await pumpScreen(tester, const PlannerScreen());
     await tester.pumpAndSettle();
 
     _planner(tester).addWaypoint(const LatLng(48.1, 11.5));
     await tester.pumpAndSettle();
     expect(find.text(l10n.plannerEmptyState), findsNothing);
-    expect(_ring, findsNothing);
 
+    // Cleared: the empty state is back, quiet, however long it is left.
     _planner(tester).clear();
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 2000));
     expect(find.text(l10n.plannerEmptyState), findsOneWidget);
-    expect(_pulse, findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 1200));
-    expect(_ring, findsOneWidget);
+    for (var i = 0; i < 30; i++) {
+      expect(_drawn(), isEmpty);
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    // Undone back to empty: the same.
+    _planner(tester).addWaypoint(const LatLng(48.1, 11.5));
     await tester.pumpAndSettle();
-    expect(_ring, findsNothing);
+    _planner(tester).undo();
+    await tester.pump();
+    expect(find.text(l10n.plannerEmptyState), findsOneWidget);
+    for (var i = 0; i < 30; i++) {
+      expect(_drawn(), isEmpty);
+      await tester.pump(const Duration(seconds: 1));
+    }
   });
 
   testWidgets('with animations off the text is simply there', (tester) async {
