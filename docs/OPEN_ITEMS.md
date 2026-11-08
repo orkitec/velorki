@@ -4,16 +4,13 @@ Everything below needs a person, a Mac, a live service, or a longer test on
 the phone than has happened so far. The app runs on a Pixel 3 XL and has
 recorded real rides; planning, on-device routing, the map and recording are
 exercised there. The items here are the parts not yet covered by that.
-iOS 1.0 is on the App Store; Google Play is at internal testing.
+Velorki is live on the App Store and Google Play.
 
 ## Servers and accounts (Steffen)
 
-- [ ] **Measure the battery saver**: everything [BATTERY.md](BATTERY.md)
-      describes is in the app; the two comparison rides that would prove it are
-      not. That file's "How to measure" is the procedure; write both numbers
-      into it.
-- [ ] **Strava**: submit the API review before 10 athletes connect; keep the
-      developer account's Strava subscription active.
+- [ ] **Strava**: submit the API review once close to 10 connected athletes
+      (Strava takes it only then, and caps an unreviewed app at 10); keep
+      the developer account's Strava subscription active.
 - [ ] **Strava API host**: `api-v3.strava.com` is available from 2027-01-04
       and required by 2027-06-01. Switch `UPSTREAMS.strava.base` in
       `web/src/server/passthrough.ts` (and `STRAVA_TOKEN_URL` in
@@ -85,20 +82,6 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
 - [ ] `watch_connectivity` pulls `play-services-wearable` into the APK for an
       iOS-only feature; replace it with a small iOS-only channel if an F-Droid
       listing is wanted.
-- [ ] Voice cues over a Bluetooth headset: one ride with the headset paired,
-      to confirm the held audio session and the silent lead-in really do stop
-      cues arriving scrambled or cut short (`turn_speaker.dart`,
-      `LeadInPlayer` in `ios/Runner/AppDelegate.swift`).
-
-- [ ] **iCloud sync before the release** (`ios/Runner/CloudSync.swift`):
-      the two-device test passed on 2026-10-18 in Development (both
-      directions, renames, delete against edit, rides, Strava staying put,
-      off and on, push in the foreground, pull to refresh). Left: **deploy
-      the CloudKit schema to Production** in the CloudKit console (record
-      types `Route` and `Ride`), then a TestFlight build on two devices, which
-      talks to Production. Check that the App Store profile carries iCloud
-      and push (a `dry_run` of `release.yml`).
-
 ## Still to try on the Android phone
 
 Done on the Pixel: planning with on-device routing, tile download over the
@@ -116,8 +99,8 @@ stopped ride, the Library's rides list.
 - [ ] Strava upload timing against the poll backoff and `sport_type`
       acceptance; RWGPS task errors for an untimed GPX (`time_data_missing`).
 - [ ] `LSApplicationQueriesSchemes` actually takes the app-to-app Strava flow.
-- [ ] Sandbox purchase, restore after reinstall, a lapsed subscription, the
-      store subscription-management page.
+- [ ] Purchase on Android, restore after reinstall, a lapsed subscription, the
+      store subscription-management page (the iOS sandbox purchase is done).
 - [ ] `velorki://share/<id>` from a browser opens the import preview.
 - [ ] Tap a `https://velorki.com/s/<id>` link in Chrome: the app opens
       directly (App Links verification), not the website.
@@ -125,10 +108,6 @@ stopped ride, the Library's rides list.
 ## Store consoles
 
 Everything still unticked in [STORE_CHECKLIST.md](STORE_CHECKLIST.md).
-
-- [ ] **Store texts**: the free and Plus sections of the store descriptions
-      say nothing of the weather yet; the French iOS description is 5
-      characters short of Apple's 4000, so something has to go there.
 
 ## Later
 
@@ -150,4 +129,4 @@ Everything still unticked in [STORE_CHECKLIST.md](STORE_CHECKLIST.md).
   egress (Cloudflare R2, or Hetzner Object Storage for a German provider),
   keep GitHub Releases as the fallback, and teach the app a list of mirrors
   in the pointer. Both publish workflows gain an upload step.
-- Photon self-hosting; cloud sync.
+- Photon self-hosting.

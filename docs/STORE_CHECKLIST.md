@@ -46,11 +46,11 @@ background-location app.
 - [x] **(iOS)** Health data is not collected: heart rate from Apple Health
       and the workouts written there stay on the phone, and a ride's share
       link carries no heart rate, cadence or power. — `ShareService`.
-- [ ] **(Play)** Health Connect: the permissions declaration form in the Play
+- [x] **(Play)** Health Connect: the permissions declaration form in the Play
       Console (**Policy → App content → Health apps**) with the privacy policy
       link, and `READ_HEART_RATE`, `WRITE_EXERCISE`, `WRITE_DISTANCE` explained
       as ride recording. The manifest declares them; the sheet is only raised
-      by the Settings switch. — `android/app/src/main/AndroidManifest.xml`.
+      by the Settings switch. — `android/app/src/main/AndroidManifest.xml`. — Play publishes an app with these permissions only once the form is approved, and the app is live.
 - [x] **(Play)** `BLUETOOTH_SCAN` carries `neverForLocation`, so the scan does
       not count as a location permission. — `AndroidManifest.xml`.
 - [x] **(iOS)** `PrivacyInfo.xcprivacy` is present and lists the required-reason
@@ -156,8 +156,8 @@ data we collect, but Play's form asks about it (see below).
       `lib/core/links/velorki_urls.dart`.
 - [x] **(iOS)** It is linked from the App Store listing. — App Store Connect,
       done for 1.0.
-- [ ] **(Play)** It is linked from the Play listing and App content → Privacy
-      policy.
+- [x] **(Play)** It is linked from the Play listing and App content → Privacy
+      policy. — required to publish; the app is live.
 - [x] It names the AI provider, Strava, RideWithGPS, RevenueCat, the map tile
       provider and the search provider. — `web/content/*/legal/privacy.md`; the
       assistant goes through OpenRouter, restricted to providers that neither
@@ -226,7 +226,7 @@ data we collect, but Play's form asks about it (see below).
 - [x] **(iOS)** The App Store age-rating questionnaire is completed, including
       the questions about AI assistants and user-generated content. —
       App Store Connect, done for 1.0.
-- [ ] **(Play)** The content-rating questionnaire (IARC) is completed.
+- [x] **(Play)** The content-rating questionnaire (IARC) is completed. — required to publish; the app is live.
 - [ ] **(Play)** Expected outcome is Everyone; if the answers push it
       higher, re-check the assistant's constraints before accepting the rating.
 
@@ -247,7 +247,7 @@ data we collect, but Play's form asks about it (see below).
       pre-caching of raster tiles. Audit the offline-region download once more
       before submission — vector regions come from OpenFreeMap, and the raster
       overlay must stay out of them.
-- [ ] `brouter/profiles` keeps BRouter's MIT header.
+- [x] `brouter/profiles` names BRouter's MIT licence and the upstream tag: the upstream `.brf` files carry no header of their own, so `brouter/profiles/README.md` does.
 - [ ] The repository is AGPL-3.0-only. A GPL-family app is acceptable in the
       App Store and on Google Play only because Orkitec holds the copyright on
       the code and can also distribute it under the stores' terms. That breaks
@@ -294,8 +294,8 @@ data we collect, but Play's form asks about it (see below).
       `IntegrationConnections.forgetStravaData`.
 - [x] A consent sheet says what is read and written before the OAuth page
       (`strava_consent_sheet.dart`); scopes are `read,activity:write`.
-- [ ] The Strava API review is submitted before the app exceeds 10 connected
-      athletes (self-service works up to 10).
+- [ ] The Strava API review is submitted once close to 10 connected athletes
+      (Strava takes it only then; self-service works up to 10).
 - [ ] The developer account holds an active Strava subscription, as their
       API terms require.
 - [ ] The base URL move to `api-v3.strava.com` (available 2027-01-04,
@@ -357,21 +357,21 @@ data we collect, but Play's form asks about it (see below).
       an Any and a Dark appearance. No splash package is used.
 - [x] **(iOS)** The 1024 × 1024 store icon, without transparency. — App Store
       Connect, done for 1.0.
-- [ ] **(Play)** The 512 × 512 store icon, without transparency, is uploaded.
+- [x] **(Play)** The 512 × 512 store icon, without transparency, is uploaded.
       Generated on demand from the same SVG, see `app/assets/icon/README.md`;
-      it is not committed.
+      it is not committed. — on the live listing.
 - [x] **(iOS)** Screenshots for iPhone 6.9" and 6.5". — App Store Connect, done
       for 1.0; from `app/tool/store_screenshots.sh`, see
       [STORE_ASSETS.md](STORE_ASSETS.md).
-- [ ] **(Play)** At least 2 phone screenshots are uploaded (produced, upload by
-      hand).
-- [ ] **(Play)** Feature graphic, 1024 × 500.
+- [x] **(Play)** At least 2 phone screenshots are uploaded (produced, upload by
+      hand). — `store-assets.yml` uploads the Play set.
+- [x] **(Play)** Feature graphic, 1024 × 500. — on the live listing.
 
 ## Accounts and store administration
 
-- [ ] Check whether the Orkitec Google Play developer account is **personal** or
+- [x] Check whether the Orkitec Google Play developer account is **personal** or
       **organisation**: a personal account requires a 14-day closed test with at
-      least 12 testers before production access. Plan the timeline accordingly.
+      least 12 testers before production access. Plan the timeline accordingly. — settled: the app reached production.
 - [x] App signing is configured (Play App Signing; iOS automatic signing with
       the cloud-managed distribution certificate). — Play App Signing is on in
       the Play Console and the upload keystore is in the `release`
@@ -385,7 +385,7 @@ data we collect, but Play's form asks about it (see below).
 - [x] **(iOS)** Export compliance: the app uses only standard HTTPS/TLS, so
       the exemption applies. `ITSAppUsesNonExemptEncryption = false` is set in
       `Info.plist`.
-- [ ] **(Play)** Answer the export declaration (US export laws) accordingly.
+- [x] **(Play)** Answer the export declaration (US export laws) accordingly. — required to publish; the app is live.
 
 ## App Review notes
 
