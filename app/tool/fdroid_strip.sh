@@ -165,7 +165,7 @@ patch_maplibre() {
   for dir in "$cache"/maplibre_gl-*/android; do
     [ -d "$dir" ] || continue
     if grep -q 'playServicesLocation' "$dir/build.gradle"; then
-      local props=../android/gradle.properties
+      local props=android/gradle.properties
       if grep -q '^maplibre_gl.playServicesLocation=false' "$props" 2>/dev/null; then
         say 'maplibre_gl.playServicesLocation=false already set'
       else
