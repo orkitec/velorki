@@ -81,7 +81,9 @@ background-location app.
       (a 30-day extension is available): navigation and ride recording, the
       position needed continuously in a foreground service; coarse location
       or the one-time location button cannot follow a route. The location
-      button becomes required only for apps targeting API 37.
+      button becomes required only for apps targeting API 37. Not yet shown
+      in App content on 2026-11-08 (it rolls out from November): look again in
+      December.
 - [x] The notification shown during recording states what is happening and
       shows distance and time. — `lib/features/recording/data/recording_service.dart`
       (`notificationText: '0.0 km · 00:00'`, updated from each snapshot).
