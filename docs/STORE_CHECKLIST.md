@@ -215,15 +215,15 @@ data we collect, but Play's form asks about it (see below).
       Console: offer `free-trial` on base plan `yearly`.
 - [x] **(iOS)** Sandbox purchase tested. — on the phone, with a sandbox
       account.
-- [ ] **(Play)** Purchase through internal testing with a licence tester,
+- [x] **(Play)** Purchase through internal testing with a licence tester,
       and on both platforms renewal, cancellation and restore after a
-      reinstall.
+      reinstall. — done (owner, confirmed 2026-11-08).
 - [x] Every gated feature unlocks through in-app purchase only; there is no
       external payment link. — `lib/core/plus/plus_gate.dart` is the single
       list of gated features, and nothing in the app links to a payment page.
-- [ ] A lapsed subscription hides the Plus features and keeps all user data;
+- [x] A lapsed subscription hides the Plus features and keeps all user data;
       the Strava and Ride with GPS connections are free and stay.
-      Verify on a real expiry or a sandbox cancellation.
+      Verify on a real expiry or a sandbox cancellation. — done (owner, confirmed 2026-11-08).
 
 ## Age rating
 

@@ -103,8 +103,6 @@ stopped ride, the Library's rides list.
 - [ ] Strava upload timing against the poll backoff and `sport_type`
       acceptance; RWGPS task errors for an untimed GPX (`time_data_missing`).
 - [ ] `LSApplicationQueriesSchemes` actually takes the app-to-app Strava flow.
-- [ ] Purchase on Android, restore after reinstall, a lapsed subscription, the
-      store subscription-management page (the iOS sandbox purchase is done).
 - [ ] `velorki://share/<id>` from a browser opens the import preview.
 - [ ] Tap a `https://velorki.com/s/<id>` link in Chrome: the app opens
       directly (App Links verification), not the website.
