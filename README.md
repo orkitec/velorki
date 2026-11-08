@@ -7,9 +7,9 @@
 [![Crowdin](https://badges.crowdin.net/velorki/localized.svg)](https://crowdin.com/project/velorki)
 [![Licence: AGPL-3.0-only](https://img.shields.io/badge/licence-AGPL--3.0--only-blue)](LICENSE)
 [![Website: velorki.com](https://img.shields.io/badge/website-velorki.com-3f7a00)](https://velorki.com)
+[![Web planner](https://img.shields.io/badge/Web_planner-app.velorki.com-3f7a00?logo=googlechrome&logoColor=white)](https://app.velorki.com)
 [![App Store](https://img.shields.io/badge/App_Store-Velorki-0d96f6?logo=apple)](https://apps.apple.com/app/id6816790504)
 [![Google Play](https://img.shields.io/badge/Google_Play-Velorki-01875f?logo=googleplay)](https://play.google.com/store/apps/details?id=com.orkitec.velorki)
-[![Web planner](https://img.shields.io/badge/Web_planner-app.velorki.com-3f7a00?logo=googlechrome&logoColor=white)](https://app.velorki.com)
 
 [![Velorki: ride where the signal ends. The planner on two phones, dark and light.](docs/images/cover.jpg)](https://velorki.com)
 
