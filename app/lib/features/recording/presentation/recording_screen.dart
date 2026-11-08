@@ -1867,6 +1867,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       alongM: navigation?.alongM ?? 0,
     );
     final stopsAhead = stopsAlong && stopsWanted.shown;
+    // The line of next stops over the map, while the rider wants it: along
+    // the route followed, or around the rider in the area.
+    final stopsLine = stopsWanted.shown && stopsWanted.aheadLine;
+    final riderPosition = state.snapshot?.lastPosition;
     final snapshot = state.snapshot;
     // The glance view needs figures to show; without a snapshot there are
     // none yet and the normal screen stays.
@@ -2110,8 +2114,27 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                                                 onClose: _closeStopsHint,
                                                 onCancel: _cancelAreaDownload,
                                               )
+                                      : !stopsLine
+                                      ? const SizedBox.shrink()
+                                      : _stops.mode == MapStopsMode.alongRoute
+                                      ? StopsAheadLine(
+                                          entries: [
+                                            for (final placed
+                                                in _stops.nextPerKind())
+                                              (
+                                                stop: placed.stop,
+                                                distanceM: placed.aheadM,
+                                              ),
+                                          ],
+                                          onTap: _onStopAheadTapped,
+                                        )
                                       : StopsAheadLine(
-                                          entries: _stops.nextPerKind(),
+                                          entries: riderPosition == null
+                                              ? const []
+                                              : _stops.nearestPerKind(
+                                                  riderPosition,
+                                                ),
+                                          alongRoute: false,
                                           onTap: _onStopAheadTapped,
                                         ),
                                 ),

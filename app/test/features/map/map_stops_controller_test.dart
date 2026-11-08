@@ -965,6 +965,99 @@ void main() {
         stops.dispose();
       });
     });
+
+    test('with no reach, the whole route from its start, as a plan asks', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()..zoom = 9;
+        final stops = MapStopsController(find: store.find)
+          ..update(
+            shown: true,
+            kinds: const {'drinking_water'},
+            routeKey: 'plan',
+            routeLine: line,
+            reachM: double.infinity,
+          )
+          ..attach(map);
+        async.flushMicrotasks();
+        // Eighty kilometres in five-kilometre stretches.
+        expect(store.asks.length, inInclusiveRange(16, 17));
+        store.answerAll([
+          _stop('Start', beside(0.2)),
+          _stop('Far', beside(75)),
+          _stop('Off', const LatLng(48.1, 11.2)),
+        ]);
+        async.flushMicrotasks();
+        expect(stops.stops.map((s) => s.name), <String>['Start', 'Far']);
+        stops.dispose();
+      });
+    });
+
+    test('a ride looks no further than its reach', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final stops = MapStopsController(find: store.find)
+          ..update(
+            shown: true,
+            kinds: const {'drinking_water'},
+            routeKey: 'r1',
+            routeLine: line,
+          )
+          ..attach(FakeMapController());
+        async.flushMicrotasks();
+        store.answerAll([_stop('Near', beside(10)), _stop('Far', beside(75))]);
+        async.flushMicrotasks();
+        expect(stops.stops.map((s) => s.name), <String>['Near']);
+        expect(stops.nearestPerKind(line.first), isEmpty);
+        stops.dispose();
+      });
+    });
+  });
+
+  group('the nearest of each kind', () {
+    test('in the area, the nearest stop of each kind on the map in a '
+        'straight line from the rider, nearest first, at most three', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = 14
+          ..visibleBounds = _view;
+        final stops = MapStopsController(find: store.find)
+          ..update(
+            shown: true,
+            kinds: const {'drinking_water', 'cafe', 'toilets', 'bakery'},
+          )
+          ..attach(map);
+        async.elapse(stopsDebounce);
+        const rider = LatLng(48.01, 11.01);
+        store.answerAll([
+          _stop('Far tap', const LatLng(48.019, 11.01)),
+          _stop('Tap', const LatLng(48.012, 11.01)),
+          _stop('Café', const LatLng(48.01, 11.012), kind: 'cafe'),
+          _stop('WC', const LatLng(48.015, 11.01), kind: 'toilets'),
+          _stop('Bakery', const LatLng(48.019, 11.029), kind: 'bakery'),
+        ]);
+        async.flushMicrotasks();
+        expect(stops.mode, MapStopsMode.area);
+        expect(stops.stops, hasLength(5));
+
+        final nearest = stops.nearestPerKind(rider);
+        expect(nearest.map((e) => e.stop.name), <String>['Café', 'Tap', 'WC']);
+        expect(
+          nearest.first.distanceM,
+          closeTo(haversineMeters(rider, const LatLng(48.01, 11.012)), 0.01),
+        );
+        expect(stops.nearestPerKind(rider, max: 4).last.stop.name, 'Bakery');
+
+        // Off: nothing.
+        stops.update(
+          shown: false,
+          kinds: const {'drinking_water', 'cafe', 'toilets', 'bakery'},
+        );
+        expect(stops.nearestPerKind(rider), isEmpty);
+        stops.dispose();
+      });
+    });
   });
 
   group('where nothing is downloaded', () {

@@ -11,6 +11,8 @@ Velorki peut dessiner sur la carte les lieux où l’on s’arrête en sortie :
 **Calques** se trouve dans la colonne de boutons à droite de la carte, dans l’onglet Planifier comme dans l’onglet Rouler. Sa feuille contient :
 
 - **Haltes**, un interrupteur, activé tant que vous ne le désactivez pas. Dessous, les types à afficher, par groupe : **Haltes à vélo**, **Hébergement**, **Nature**, **Transports**, **Services** et **Points d’intérêt**. Touchez un type pour l’afficher ou le masquer. La première fois, l’eau potable, les cafés, les boulangeries, les toilettes et les stations de réparation vélo sont choisis ; les autres types sont désactivés. **Haltes à vélo** comprend le distributeur de chambres à air, **Nature** l’aire de pique-nique, le point de vue et la plage, **Transports** les gares (haltes ferroviaires comprises), les arrêts de bus et de tram, les terminaux de ferry et les aéroports, et **Services** la pharmacie et l’hôpital. Interrupteur désactivé, les types se replient ; votre choix est conservé pour la fois suivante.
+- **Le long du parcours** et **Dans cette zone**, sous **Haltes**, dès qu’il y a un itinéraire : un itinéraire planifié dans l’onglet Planifier, ou celui que vous suivez dans l’onglet Rouler. Chaque choix dit ce qu’il montre ; il vaut pour les deux onglets.
+- **Prochaines haltes en roulant**, sous **Haltes** dans l’onglet Rouler seulement, désactivé tant que vous ne l’activez pas : la ligne des prochaines haltes au-dessus de la carte, voir plus bas.
 
 ## Dans la zone que vous regardez
 
@@ -20,11 +22,20 @@ Quand la zone n’est pas téléchargée, une pastille indique **Pas de haltes i
 
 ## Le long de l’itinéraire à venir
 
-Avec un itinéraire choisi sous **Itinéraire suivi** dans l’onglet Rouler, les haltes sont celles situées à moins de 300 m de la partie de l’itinéraire encore devant vous, jusqu’à 50 km, à tout zoom. Une ligne au-dessus de la carte liste la prochaine de chaque type avec sa distance le long de l’itinéraire, « Eau potable · 2,4 km » ; touchez une entrée pour voir la halte sur la carte. Tant que la carte vous suit pendant une sortie, elle reste avec vous et la halte est seulement mise en évidence.
+Dans l’onglet Planifier, avec un itinéraire planifié et **Le long du parcours** choisi, les haltes sont celles situées à moins de 300 m de tout l’itinéraire, du départ à l’arrivée, à tout zoom.
 
-Quand rien des 50 prochains km de l’itinéraire n’est téléchargé, la même pastille prend la place de cette ligne.
+Dans l’onglet Rouler, avec un itinéraire choisi sous **Itinéraire suivi**, ce sont celles à moins de 300 m de la partie de l’itinéraire encore devant vous, jusqu’à 50 km, à tout zoom. Quand rien des 50 prochains km de l’itinéraire n’est téléchargé, la même pastille le dit.
 
-**Le long du parcours** et **Dans cette zone** dans la feuille Calques basculent entre les deux.
+Choisissez **Dans cette zone** pour voir plutôt les haltes à l’écran.
+
+## La ligne des prochaines haltes
+
+Avec **Prochaines haltes en roulant** activé, une ligne au-dessus de la carte dans l’onglet Rouler liste la prochaine halte de chaque type, la plus proche d’abord. Touchez une entrée pour voir la halte sur la carte. Tant que la carte vous suit pendant une sortie, elle reste avec vous et la halte est seulement mise en évidence.
+
+- Le long d’un itinéraire suivi, chaque entrée a sa distance le long de l’itinéraire, « Eau potable · 2,4 km ».
+- Sans itinéraire, ou avec **Dans cette zone** choisi, chacune a sa distance à vol d’oiseau depuis l’endroit où vous êtes, « Eau potable · à 2,4 km ». Il faut une sortie en cours, d’où vient votre position, et la ligne liste les haltes chargées autour de la carte, donc à partir du zoom 11.
+
+Quand la zone n’est pas téléchargée, la pastille qui le dit se tient à la place de la ligne.
 
 ## Toucher une halte
 

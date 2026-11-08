@@ -15,12 +15,20 @@ import 'package:velorki/features/map/presentation/stops_ahead_line.dart';
 import 'package:velorki/features/map/presentation/visible_map_padding.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
+import 'package:velorki/features/planner/application/planner_controller.dart';
+import 'package:velorki/features/planner/domain/planner_state.dart';
+import 'package:velorki/features/planner/presentation/route_format.dart'
+    show formatDistance, formatNumber;
+import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/search/domain/search_group.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/search/presentation/search_field.dart'
     show gazetteerPoiKindLabel;
+import 'package:velorki_brouter/velorki_brouter.dart' show RouteResult;
 import 'package:velorki_geo/velorki_geo.dart';
+
+import '../planner/support/fakes.dart' show syntheticRoute;
 
 import '../../support/app.dart';
 
@@ -86,6 +94,36 @@ final GuidedRoute _route = GuidedRoute(
   key: 'r1',
   line: const <LatLng>[LatLng(48, 11), LatLng(48, 11.1)],
   turns: const [],
+);
+
+/// The Plan tab, showing whatever route the test puts on it.
+class _StubPlanner extends PlannerController {
+  _StubPlanner(this.initial);
+
+  final RouteResult? initial;
+
+  @override
+  PlannerState build() => PlannerState(route: AsyncData<RouteResult?>(initial));
+
+  void show(RouteResult? route) =>
+      state = state.copyWith(route: AsyncData<RouteResult?>(route));
+}
+
+/// The units the open sheet speaks in.
+UnitSystem _units(WidgetTester tester) =>
+    ProviderScope.containerOf(tester.element(find.byType(LayersSheet)))
+        .read(unitSystemProvider);
+
+/// What the sheet says "Along the route" shows on Plan.
+String _planAlongHint(WidgetTester tester) => l10n.mapLayersAlongRoutePlanHint(
+  formatDistance(l10n, _units(tester), stopsCorridorM),
+);
+
+/// What the sheet says "Along the route" shows on a ride.
+String _rideAlongHint(WidgetTester tester) => l10n.mapLayersAlongRouteRideHint(
+  formatDistance(l10n, _units(tester), stopsCorridorM),
+  // The reach in whole units.
+  _units(tester) == UnitSystem.metric ? l10n.unitKm('50') : l10n.unitMi('31'),
 );
 
 SearchResult _stop(String kind) => SearchResult(
@@ -190,9 +228,11 @@ void main() {
         expect(find.text(l10n.mapLayers), findsWidgets);
         expect(_switch(l10n.mapLayersCycleMap), findsOneWidget);
         expect(_switch(l10n.mapLayersStops), findsOneWidget);
-        expect(find.text(l10n.mapLayersStopsPlanHint), findsOneWidget);
-        // Not on Plan: there is no route followed there.
-        expect(find.byType(SegmentedButton<bool>), findsNothing);
+        expect(find.text(l10n.mapLayersStopsSubtitle), findsOneWidget);
+        // No plan, so nothing to be along; and the line of next stops is
+        // the ride screen's.
+        expect(find.byType(RadioListTile<bool>), findsNothing);
+        expect(_switch(l10n.mapLayersStopsLine), findsNothing);
         expect(
           find.text(gazetteerPoiKindLabel(l10n, 'drinking_water')!),
           findsOneWidget,
@@ -220,10 +260,34 @@ void main() {
         );
         await _openSheet(tester);
 
-        expect(find.text(l10n.mapLayersStopsRideHint), findsOneWidget);
-        expect(find.byType(SegmentedButton<bool>), findsOneWidget);
+        expect(find.text(l10n.mapLayersStopsSubtitle), findsOneWidget);
+        expect(find.byType(RadioListTile<bool>), findsNWidgets(2));
         expect(find.text(l10n.mapLayersAlongRoute), findsOneWidget);
+        expect(find.text(_rideAlongHint(tester)), findsOneWidget);
         expect(find.text(l10n.mapLayersInArea), findsOneWidget);
+        expect(find.text(l10n.mapLayersInAreaHint), findsOneWidget);
+        expect(_switch(l10n.mapLayersStopsLine), findsOneWidget);
+        expectNoClippedText(tester);
+      });
+
+      testWidgets('fits on Plan with a route at $label', (tester) async {
+        debugShellLayoutOverride = null;
+        await _screen(tester, size);
+        await _pump(
+          tester,
+          overrides: [
+            plannerControllerProvider.overrideWith(
+              () => _StubPlanner(syntheticRoute()),
+            ),
+          ],
+          stopsShown: true,
+        );
+        await _openSheet(tester);
+
+        expect(find.byType(RadioListTile<bool>), findsNWidgets(2));
+        expect(find.text(_planAlongHint(tester)), findsOneWidget);
+        expect(find.text(l10n.mapLayersInAreaHint), findsOneWidget);
+        expect(_switch(l10n.mapLayersStopsLine), findsNothing);
         expectNoClippedText(tester);
       });
     }
@@ -240,19 +304,89 @@ void main() {
       expect(find.byType(FilterChip), findsNothing);
     });
 
-    testWidgets('on the Record tab without a route, no choice of where', (
-      tester,
-    ) async {
+    testWidgets('on the Record tab without a route, no choice of where, '
+        'but the line of next stops', (tester) async {
       await _screen(tester, const Size(411, 914));
       await _pump(
         tester,
         offer: MapStopsOffer.ride,
         overrides: [activeGuidedRouteProvider.overrideWithValue(null)],
+        stopsShown: true,
       );
       await _openSheet(tester);
 
       expect(_switch(l10n.mapLayersStops), findsOneWidget);
-      expect(find.byType(SegmentedButton<bool>), findsNothing);
+      expect(find.byType(RadioListTile<bool>), findsNothing);
+      expect(_switch(l10n.mapLayersStopsLine), findsOneWidget);
+    });
+
+    testWidgets('on Plan, the choice of where comes with a route', (
+      tester,
+    ) async {
+      await _screen(tester, const Size(411, 914));
+      final planner = _StubPlanner(null);
+      final prefs = await _pump(
+        tester,
+        overrides: [plannerControllerProvider.overrideWith(() => planner)],
+        stopsShown: true,
+      );
+      await _openSheet(tester);
+      expect(find.byType(RadioListTile<bool>), findsNothing);
+
+      planner.show(syntheticRoute());
+      await tester.pumpAndSettle();
+      expect(find.byType(RadioListTile<bool>), findsNWidgets(2));
+      expect(find.text(_planAlongHint(tester)), findsOneWidget);
+
+      await tester.ensureVisible(find.text(l10n.mapLayersInAreaHint));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.mapLayersInAreaHint));
+      await tester.pumpAndSettle();
+      expect(prefs.getBool('map.stops.alongRoute'), isFalse);
+      await tester.ensureVisible(find.text(_planAlongHint(tester)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(_planAlongHint(tester)));
+      await tester.pumpAndSettle();
+      expect(prefs.getBool('map.stops.alongRoute'), isTrue);
+      expect(
+        tester
+            .widget<RadioGroup<bool>>(find.byType(RadioGroup<bool>))
+            .groupValue,
+        isTrue,
+      );
+
+      planner.show(null);
+      await tester.pumpAndSettle();
+      expect(find.byType(RadioListTile<bool>), findsNothing);
+    });
+
+    testWidgets('the line of next stops is off until switched on, and '
+        'remembered', (tester) async {
+      await _screen(tester, const Size(411, 914));
+      final prefs = await _pump(
+        tester,
+        offer: MapStopsOffer.ride,
+        overrides: [activeGuidedRouteProvider.overrideWithValue(_route)],
+        stopsShown: true,
+      );
+      await _openSheet(tester);
+      final line = _switch(l10n.mapLayersStopsLine);
+      expect(find.text(l10n.mapLayersStopsLineHint), findsOneWidget);
+      expect(tester.widget<SwitchListTile>(line).value, isFalse);
+
+      await tester.ensureVisible(line);
+      await tester.pumpAndSettle();
+      await tester.tap(line);
+      await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(line).value, isTrue);
+      expect(prefs.getBool('map.stops.aheadLine'), isTrue);
+
+      // It folds away with the stops.
+      await tester.ensureVisible(_switch(l10n.mapLayersStops));
+      await tester.pumpAndSettle();
+      await tester.tap(_switch(l10n.mapLayersStops));
+      await tester.pumpAndSettle();
+      expect(line, findsNothing);
     });
 
     testWidgets('the online cycle map switch is the app-wide overlay', (
@@ -379,6 +513,11 @@ void main() {
       await tester.tap(find.text(l10n.mapLayersInArea));
       await tester.pumpAndSettle();
       expect(prefs.getBool('map.stops.alongRoute'), isFalse);
+      await tester.ensureVisible(find.text(l10n.mapLayersAlongRoute));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.mapLayersAlongRoute));
+      await tester.pumpAndSettle();
+      expect(prefs.getBool('map.stops.alongRoute'), isTrue);
     });
 
     testWidgets('with the stops off their choices fold away, and come back '
@@ -421,6 +560,23 @@ void main() {
       );
       expect(tester.widget<FilterChip>(toilets).selected, isFalse);
     });
+  });
+
+  test('a ride\'s reach reads in whole units, the corridor as a distance '
+      'does', () {
+    expect(stopsReachLabel(l10n, UnitSystem.metric), l10n.unitKm('50'));
+    expect(stopsReachLabel(l10n, UnitSystem.imperial), l10n.unitMi('31'));
+    expect(
+      l10n.mapLayersAlongRouteRideHint(
+        formatDistance(l10n, UnitSystem.imperial, stopsCorridorM),
+        stopsReachLabel(l10n, UnitSystem.imperial),
+      ),
+      allOf(
+        contains(l10n.unitMi(formatNumber(l10n, 0.2))),
+        contains(l10n.unitMi('31')),
+        isNot(contains(formatNumber(l10n, 31.1))),
+      ),
+    );
   });
 
   test('the sheet offers the stops of each group, not the rest of it', () {
@@ -501,18 +657,13 @@ void main() {
     ) async {
       await _screen(tester, const Size(360, 800));
       final tapped = <SearchResult>[];
-      final entries = <StopAlongRoute<SearchResult>>[
+      final entries = <StopDistance<SearchResult>>[
         for (final (kind, ahead) in <(String, double)>[
           ('bicycle_repair_station', 400),
           ('drinking_water', 1250),
           ('toilets', 12600),
         ])
-          StopAlongRoute<SearchResult>(
-            stop: _stop(kind),
-            atM: ahead,
-            offM: 20,
-            aheadM: ahead,
-          ),
+          (stop: _stop(kind), distanceM: ahead),
       ];
       SharedPreferences.setMockInitialValues(const <String, Object>{});
       final prefs = await SharedPreferences.getInstance();

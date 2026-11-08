@@ -327,6 +327,8 @@ void main() {
         'bicycle_repair_station',
       });
       expect(stops.alongRoute, isTrue);
+      // The line of next stops on the ride screen is off until asked for.
+      expect(stops.aheadLine, isFalse);
     });
 
     test('a rider who switched the stops off keeps them off', () async {
@@ -345,9 +347,11 @@ void main() {
       await notifier.setKind('cafe', shown: false);
       await notifier.setKind('camp_site', shown: true);
       await notifier.setAlongRoute(false);
+      await notifier.setAheadLine(true);
 
       expect(prefs.getBool('map.stops.shown'), isTrue);
       expect(prefs.getBool('map.stops.alongRoute'), isFalse);
+      expect(prefs.getBool('map.stops.aheadLine'), isTrue);
       expect(
         prefs.getStringList('map.stops.kinds'),
         unorderedEquals(<String>[
@@ -367,6 +371,7 @@ void main() {
       final stops = next.read(mapStopsPreferencesProvider);
       expect(stops.shown, isTrue);
       expect(stops.alongRoute, isFalse);
+      expect(stops.aheadLine, isTrue);
       expect(stops.kinds, contains('camp_site'));
       expect(stops.kinds, isNot(contains('cafe')));
     });

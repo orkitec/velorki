@@ -4784,21 +4784,17 @@
   "@mapAreaHintHide": {
     "description": "Tooltip and screen-reader label of the close button on the area-not-downloaded chip over the map; hides the chip for that area until the app restarts"
   },
-  "mapLayersStopsPlanHint": "Shown when zoomed in · tap one to plan to it",
-  "@mapLayersStopsPlanHint": {
-    "description": "Line under the stops switch on the Plan tab: stops show once the map is zoomed in far enough, and a tap on one plans the route to it"
-  },
-  "mapLayersStopsRideHint": "Tap one to see it on the map",
-  "@mapLayersStopsRideHint": {
-    "description": "Line under the stops switch on the Record tab: stops show once the map is zoomed in far enough, and a tap on one shows what it is"
+  "mapLayersStopsSubtitle": "Drinking water, cafés, toilets, bike repair and more on the map",
+  "@mapLayersStopsSubtitle": {
+    "description": "Line under the stops switch in the layers sheet: what stops are, a few of the kinds it can show"
   },
   "mapLayersAlongRoute": "Along the route",
   "@mapLayersAlongRoute": {
-    "description": "Choice in the layers sheet during a guided ride: show the stops beside the route still ahead"
+    "description": "Choice in the layers sheet with a route planned or followed: show the stops beside the route still ahead"
   },
   "mapLayersInArea": "In this area",
   "@mapLayersInArea": {
-    "description": "Choice in the layers sheet during a guided ride: show the stops in the part of the map on screen"
+    "description": "Choice in the layers sheet with a route planned or followed: show the stops in the part of the map on screen"
   },
   "mapStopsAhead": "Stops ahead",
   "@mapStopsAhead": {
@@ -4807,6 +4803,60 @@
   "mapStopAhead": "{kind} · {distance}",
   "@mapStopAhead": {
     "description": "One entry of the stops-ahead line over the ride map: the kind of stop and how far ahead on the route it is",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Drinking water"
+      },
+      "distance": {
+        "type": "String",
+        "example": "1.2 km"
+      }
+    }
+  },
+  "mapLayersAlongRouteRideHint": "Stops within {corridor} of the route ahead, for the next {reach}",
+  "@mapLayersAlongRouteRideHint": {
+    "description": "Line under the 'Along the route' choice in the layers sheet during a ride that follows a route: which stops it shows",
+    "placeholders": {
+      "corridor": {
+        "type": "String",
+        "example": "300 m"
+      },
+      "reach": {
+        "type": "String",
+        "example": "50 km"
+      }
+    }
+  },
+  "mapLayersAlongRoutePlanHint": "Stops within {corridor} of the route, from start to finish",
+  "@mapLayersAlongRoutePlanHint": {
+    "description": "Line under the 'Along the route' choice in the layers sheet on the Plan tab: which stops it shows, along the whole planned route",
+    "placeholders": {
+      "corridor": {
+        "type": "String",
+        "example": "300 m"
+      }
+    }
+  },
+  "mapLayersInAreaHint": "Everything in the part of the map on screen, once zoomed in to town level",
+  "@mapLayersInAreaHint": {
+    "description": "Line under the 'In this area' choice in the layers sheet: it shows every stop in the part of the map on screen, once zoomed in far enough (zoom 11, about a town)"
+  },
+  "mapLayersStopsLine": "Next stops while riding",
+  "@mapLayersStopsLine": {
+    "description": "Switch under Stops in the layers sheet on the Record tab: list the next stops over the map during a ride"
+  },
+  "mapLayersStopsLineHint": "The nearest stop of each kind over the ride map, with its distance",
+  "@mapLayersStopsLineHint": {
+    "description": "Line under the 'Next stops while riding' switch: what the line over the ride map shows"
+  },
+  "mapStopsNearby": "Stops nearby",
+  "@mapStopsNearby": {
+    "description": "Accessibility label of the line over the ride map that lists the nearest stop of each kind around the rider, without a route"
+  },
+  "mapStopAway": "{kind} · {distance} away",
+  "@mapStopAway": {
+    "description": "One entry of the nearby-stops line over the ride map without a route: the kind of stop and how far it is in a straight line from the rider",
     "placeholders": {
       "kind": {
         "type": "String",

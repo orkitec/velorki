@@ -104,7 +104,7 @@ Solange eine Fahrt einer Route folgt, tippe auf der Karte auf einen Stopp (ein C
 - **Meine Position anzeigen** nimmt das Folgen wieder auf, nachdem du die Karte verschoben hast, im gewohnten Zoom auf Straßenebene.
 - Solange du auf der Route bist, wird die Positionsmarkierung auf der Route gezeichnet und daran ausgerichtet, statt mit dem Empfang umherzuwandern.
 - Auch die Punkte der Route stehen auf der Karte: der Start, das Ziel mit seiner Flagge, jeder Stopp mit Namen oder Art und die Orte neben der Route. Ein Punkt, der nur die Linie formt, fehlt. Stopps, an denen du vorbei bist, werden blass und bleiben es, auch wenn du zurückfährst. Nach einer neuen Route zum Ziel sind es weiter die Punkte deiner Route.
-- Ist **Stopps** unter **Ebenen** an, stehen die Stopps neben der Route voraus auf der Karte, und eine Zeile nennt den nächsten jeder Art mit seiner Entfernung; siehe [Stopps auf der Karte](./stops-on-the-map#entlang-der-route-voraus).
+- Ist **Stopps** unter **Ebenen** an, stehen die Stopps neben der Route voraus auf der Karte, und mit **Nächste Stopps beim Fahren** nennt eine Zeile den nächsten jeder Art mit seiner Entfernung; siehe [Stopps auf der Karte](./stops-on-the-map#entlang-der-route-voraus).
 
 ## Weiterlesen
 

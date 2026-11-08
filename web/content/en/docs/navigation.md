@@ -104,7 +104,7 @@ While a ride follows a route, tap a stop on the map (a café, a water fountain, 
 - **Show my position** picks the following up again after you have panned the map, at the usual street-level zoom.
 - While you are on the route the position marker is drawn on the route and pointed along it, rather than wandering with the fix.
 - The route's own points are on the map too: the start, the destination with its flag, every stop that has a name or a type, and the places beside the route. A point that only shapes the line is left out. The stops you have ridden past fade, and they stay faded if you go back. After a new route to the destination, the markers are still your route's.
-- With **Stops** on under **Layers**, the stops beside the route ahead are on the map, and a line lists the next of each kind with its distance; see [stops on the map](./stops-on-the-map#along-the-route-ahead).
+- With **Stops** on under **Layers**, the stops beside the route ahead are on the map, and with **Next stops while riding** on a line lists the next of each kind with its distance; see [stops on the map](./stops-on-the-map#along-the-route-ahead).
 
 ## Related
 

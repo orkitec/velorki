@@ -11,6 +11,8 @@ Velorki kann die Orte, an denen eine Fahrt hält, auf der Karte zeichnen: Trinkw
 **Ebenen** sitzt in der Spalte rechts neben der Karte, im Tab Planen und im Tab Aufzeichnen. Das Fenster enthält die Radkarten, siehe [Ebenen auf der Karte](./map-layers), und die Stopps:
 
 - **Stopps**, ein Schalter, an, bis du ihn ausschaltest. Darunter die Arten, die gezeigt werden, nach Gruppen: **Stopps unterwegs**, **Übernachten**, **Natur**, **Verkehr**, **Einrichtungen** und **Sehenswürdigkeiten**. Tippe auf eine Art, um sie zu zeigen oder zu verbergen. Beim ersten Mal sind Trinkwasser, Cafés, Bäckereien, Toiletten und Fahrrad-Reparaturstationen gewählt; die anderen Arten starten aus. Zu **Stopps unterwegs** gehört der Schlauchautomat, zu **Natur** Picknickplatz, Aussichtspunkt und Strand, zu **Verkehr** Bahnhöfe (auch Haltepunkte), Bus- und Straßenbahnhaltestellen, Fähranleger und Flughäfen, zu **Einrichtungen** Apotheke und Krankenhaus. Bei ausgeschaltetem Schalter klappen die Arten ein; deine Wahl bleibt für das nächste Mal.
+- **Entlang der Route** und **In diesem Gebiet**, unter **Stopps**, sobald es eine Route gibt: eine geplante im Tab Planen oder eine, der du im Tab Aufzeichnen folgst. Jede Wahl sagt, was sie zeigt; sie gilt für beide Tabs.
+- **Nächste Stopps beim Fahren**, unter **Stopps** nur im Tab Aufzeichnen, aus, bis du es einschaltest: die Zeile der nächsten Stopps über der Karte, siehe unten.
 
 ## Im Gebiet, das du ansiehst
 
@@ -20,11 +22,20 @@ Ist das Gebiet nicht heruntergeladen, sagt ein Chip **Keine Stopps hier – Gebi
 
 ## Entlang der Route voraus
 
-Ist im Tab Aufzeichnen unter **Einer Route folgen** eine Route gewählt, sind die Stopps die höchstens 300 m neben der Route, die noch vor dir liegt, bis zu 50 km weit, bei jeder Zoomstufe. Eine Zeile über der Karte nennt den nächsten jeder Art mit seiner Entfernung entlang der Route, "Trinkwasser · 2,4 km"; tippe auf einen Eintrag, um den Stopp auf der Karte zu sehen. Folgt die Karte dir auf einer Fahrt, bleibt sie bei dir und der Stopp wird nur hervorgehoben.
+Im Tab Planen, mit einer geplanten Route und **Entlang der Route** gewählt, sind die Stopps die höchstens 300 m neben der ganzen Route, vom Start bis zum Ziel, bei jeder Zoomstufe.
 
-Ist von den nächsten 50 km der Route nichts heruntergeladen, tritt derselbe Chip an die Stelle dieser Zeile.
+Im Tab Aufzeichnen, mit einer Route unter **Einer Route folgen**, sind es die höchstens 300 m neben der Route, die noch vor dir liegt, bis zu 50 km weit, bei jeder Zoomstufe. Ist von den nächsten 50 km der Route nichts heruntergeladen, sagt es derselbe Chip.
 
-**Entlang der Route** und **In diesem Gebiet** im Fenster Ebenen wechseln zwischen beiden.
+Wähle **In diesem Gebiet**, um stattdessen die Stopps im sichtbaren Ausschnitt zu sehen.
+
+## Die Zeile der nächsten Stopps
+
+Ist **Nächste Stopps beim Fahren** an, nennt eine Zeile über der Karte im Tab Aufzeichnen den nächsten Stopp jeder Art, den nächstgelegenen zuerst. Tippe auf einen Eintrag, um den Stopp auf der Karte zu sehen. Folgt die Karte dir auf einer Fahrt, bleibt sie bei dir und der Stopp wird nur hervorgehoben.
+
+- Entlang einer Route, der du folgst, hat jeder Eintrag seine Entfernung entlang der Route, "Trinkwasser · 2,4 km".
+- Ohne Route oder mit **In diesem Gebiet** hat jeder seine Entfernung in Luftlinie von dort, wo du bist, "Trinkwasser · 2,4 km entfernt". Das braucht eine laufende Fahrt, denn von ihr kommt deine Position, und nennt die Stopps, die rund um die Karte geladen sind, also ab Zoomstufe 11.
+
+Ist das Gebiet nicht heruntergeladen, steht der Chip dazu dort, wo die Zeile stünde.
 
 ## Einen Stopp antippen
 

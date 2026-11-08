@@ -104,7 +104,7 @@ Mientras una salida sigue una ruta, toca una parada en el mapa (un café, una fu
 - **Mostrar mi posición** vuelve a seguirte después de haber movido el mapa, con el zoom habitual a nivel de calle.
 - Mientras estás en la ruta, el marcador de posición se dibuja sobre la ruta y orientado a lo largo de ella, en lugar de ir dando bandazos con la posición.
 - Los propios puntos de la ruta también están en el mapa: el inicio, el destino con su bandera, cada parada que tiene nombre o tipo, y los lugares junto a la ruta. Un punto que solo da forma a la línea no aparece. Las paradas por las que ya has pasado se atenúan, y siguen atenuadas si vuelves atrás. Tras una nueva ruta al destino, los marcadores siguen siendo los de tu ruta.
-- Con **Paradas** activado en **Capas**, las paradas junto a la ruta por delante están en el mapa, y una línea enumera la siguiente de cada tipo con su distancia; consulta [paradas en el mapa](./stops-on-the-map#a-lo-largo-de-la-ruta).
+- Con **Paradas** activado en **Capas**, las paradas junto a la ruta por delante están en el mapa, y con **Próximas paradas al pedalear** activado una línea enumera la siguiente de cada tipo con su distancia; consulta [paradas en el mapa](./stops-on-the-map#a-lo-largo-de-la-ruta).
 
 ## Relacionado
 

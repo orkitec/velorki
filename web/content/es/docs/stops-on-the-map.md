@@ -11,6 +11,8 @@ Velorki puede dibujar en el mapa los lugares donde se para en una salida: agua p
 **Capas** está en la columna de botones a la derecha del mapa, en las pestañas Planificar y Grabar. Su panel contiene los mapas ciclistas, ver [capas del mapa](./map-layers), y las paradas:
 
 - **Paradas**, un interruptor, activado hasta que lo desactives. Debajo, los tipos que mostrar, por grupo: **Paradas en ruta**, **Alojamiento**, **Naturaleza**, **Transporte**, **Servicios** y **Puntos de interés**. Toca un tipo para mostrarlo u ocultarlo. La primera vez están elegidos agua potable, cafés, panaderías, aseos y estaciones de reparación de bicis; los demás tipos empiezan desactivados. **Paradas en ruta** incluye la máquina de cámaras de aire, **Naturaleza** la zona de pícnic, el mirador y la playa, **Transporte** las estaciones (también apeaderos), las paradas de autobús y de tranvía, las terminales de ferri y los aeropuertos, y **Servicios** la farmacia y el hospital. Con el interruptor desactivado los tipos se pliegan; tu elección se conserva para la próxima vez.
+- **A lo largo de la ruta** y **En esta zona**, bajo **Paradas**, en cuanto hay una ruta: una planificada en la pestaña Planificar o la que sigues en la pestaña Grabar. Cada opción dice lo que muestra; vale para las dos pestañas.
+- **Próximas paradas al pedalear**, bajo **Paradas** solo en la pestaña Grabar, desactivado hasta que lo actives: la línea de próximas paradas sobre el mapa, mira más abajo.
 
 ## En la zona que miras
 
@@ -20,11 +22,20 @@ Cuando la zona no está descargada, un chip dice **No hay paradas aquí – zona
 
 ## A lo largo de la ruta
 
-Con una ruta elegida en **Seguir una ruta** en la pestaña Grabar, las paradas son las que están a menos de 300 m de la ruta que queda por delante, hasta 50 km, con cualquier zoom. Una línea sobre el mapa enumera la siguiente de cada tipo con su distancia a lo largo de la ruta, "Agua potable · 2,4 km"; toca una entrada para ver la parada en el mapa. Mientras el mapa te sigue en una salida, sigue contigo y la parada solo se destaca.
+En la pestaña Planificar, con una ruta planificada y **A lo largo de la ruta** elegido, las paradas son las que están a menos de 300 m de toda la ruta, del inicio al final, con cualquier zoom.
 
-Cuando nada de los próximos 50 km de la ruta está descargado, el mismo chip ocupa el lugar de esa línea.
+En la pestaña Grabar, con una ruta elegida en **Seguir una ruta**, son las que están a menos de 300 m de la ruta que queda por delante, hasta 50 km, con cualquier zoom. Cuando nada de los próximos 50 km de la ruta está descargado, el mismo chip lo dice.
 
-**A lo largo de la ruta** y **En esta zona** en el panel Capas alternan entre las dos.
+Elige **En esta zona** para ver en su lugar las paradas en pantalla.
+
+## La línea de próximas paradas
+
+Con **Próximas paradas al pedalear** activado, una línea sobre el mapa en la pestaña Grabar enumera la siguiente parada de cada tipo, la más cercana primero. Toca una entrada para ver la parada en el mapa. Mientras el mapa te sigue en una salida, sigue contigo y la parada solo se destaca.
+
+- A lo largo de una ruta que sigues, cada entrada lleva su distancia a lo largo de la ruta, "Agua potable · 2,4 km".
+- Sin ruta, o con **En esta zona** elegido, cada una lleva su distancia en línea recta desde donde estás, "Agua potable · a 2,4 km". Hace falta una salida en curso, que es de donde sale tu posición, y la línea enumera las paradas cargadas alrededor del mapa, así que desde el zoom 11.
+
+Cuando la zona no está descargada, el chip que lo dice ocupa el lugar de la línea.
 
 ## Toca una parada
 
