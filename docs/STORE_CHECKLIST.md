@@ -125,18 +125,18 @@ data we collect, but Play's form asks about it (see below).
 - [x] **(iOS)** App Privacy answers declare **fitness** (a ride shared as a
       link: its track, times, distance and ascent; no sensor values). — App
       Store Connect, done for 1.0.
-- [ ] **(Play)** The Data safety form mirrors all of the above, including who
+- [x] **(Play)** The Data safety form mirrors all of the above, including who
       the data is shared with: the routing server, Photon, OpenFreeMap/CyclOSM,
       GitHub (IP address and tile names for the routing-tile downloads), the
       AI provider, RevenueCat, Strava/RideWithGPS on user action, and Google
       for Drive sync (routes, rides with their sensor values, settings and the
       Plus record, into the rider's own Drive, only while sync with Google is
-      on).
+      on). — filled in by the owner and approved by Play (confirmed 2026-11-08).
 - [x] **(iOS)** The App Privacy answers state that no account is created and
       no data is used for tracking or advertising, and match `docs/PRIVACY.md`
       on what is collected. — App Store Connect, done for 1.0.
-- [ ] **(Play)** The Data safety form states the same and matches
-      `docs/PRIVACY.md` word for word on what is collected.
+- [x] **(Play)** The Data safety form states the same and matches
+      `docs/PRIVACY.md` word for word on what is collected. — filled in by the owner and approved by Play (confirmed 2026-11-08).
 - [x] No accounts means: **no** account-deletion flow and **no** Sign in with
       Apple requirement. — App Review notes, App Store Connect, done for 1.0.
 - [x] **(Play)** Rides, routes and tokens are kept out of Google backup and
