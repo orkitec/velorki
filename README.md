@@ -20,11 +20,13 @@ Download a region once and the whole app works without a network: the map,
 the routing, the place search and the spoken turns. No account, no ads, no
 paywall on the ride itself, and no server in the loop unless you ask for one.
 Everything about using it is on **[velorki.com](https://velorki.com)**.
-A Flutter app for iOS and Android. What it does:
+A Flutter app for iOS and Android, with an Apple Watch app, and a web
+planner at **[app.velorki.com](https://app.velorki.com)** built from the same
+code. What it does:
 
 - **Routing on the phone.** A Dart port of the BRouter engine routes on
-  downloaded 5°×5° tiles, with touring, road, gravel, MTB and direct
-  profiles, up to three alternatives, elevation profile and surface
+  downloaded 5°×5° tiles (in the web planner, in the browser), with touring,
+  road, gravel, MTB and direct profiles, up to three alternatives, elevation profile and surface
   statistics. A BRouter server is optional, for areas with no tiles.
 - **Loops.** "A 60 km round trip from here via the lake": candidates are
   generated and scored on length, climbing, surface and repeated roads.
