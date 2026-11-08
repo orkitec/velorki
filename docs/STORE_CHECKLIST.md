@@ -76,8 +76,12 @@ background-location app.
 - [x] **(Play)** A prominent in-app disclosure explains recording before the
       first location prompt, regardless of which permissions are requested. —
       `lib/features/map/presentation/location_rationale_dialog.dart`.
-- [ ] **(Play)** The "Minimum Scope" location declaration is submitted before
-      November 2026 (enforcement starts January 2027).
+- [ ] **(Play)** The precise-location ("Minimum Scope") declaration in App
+      content, which opens in November 2026, is submitted by 27 January 2027
+      (a 30-day extension is available): navigation and ride recording, the
+      position needed continuously in a foreground service; coarse location
+      or the one-time location button cannot follow a route. The location
+      button becomes required only for apps targeting API 37.
 - [x] The notification shown during recording states what is happening and
       shows distance and time. — `lib/features/recording/data/recording_service.dart`
       (`notificationText: '0.0 km · 00:00'`, updated from each snapshot).
