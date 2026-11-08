@@ -4842,6 +4842,10 @@
   "@mapLayersInAreaHint": {
     "description": "Line under the 'In this area' choice in the layers sheet: it shows every stop in the part of the map on screen, once zoomed in far enough (zoom 11, about a town)"
   },
+  "mapLayersAlongRouteNoRoute": "No route yet, so for now the stops in the part of the map on screen.",
+  "@mapLayersAlongRouteNoRoute": {
+    "description": "Second line under Along the route in the Layers sheet while there is no planned or followed route"
+  },
   "mapLayersStopsLine": "Next stops while riding",
   "@mapLayersStopsLine": {
     "description": "Switch under Stops in the layers sheet on the Record tab: list the next stops over the map during a ride"

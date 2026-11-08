@@ -951,6 +951,7 @@
   "mapLayersAlongRouteRideHint": "Stopps bis {corridor} neben der Route voraus, auf den nächsten {reach}",
   "mapLayersAlongRoutePlanHint": "Stopps bis {corridor} neben der Route, vom Start bis zum Ziel",
   "mapLayersInAreaHint": "Alles im sichtbaren Kartenausschnitt, sobald auf Ortsgröße gezoomt ist",
+  "mapLayersAlongRouteNoRoute": "Noch keine Route, bis dahin die Stopps im Kartenausschnitt auf dem Bildschirm.",
   "mapLayersStopsLine": "Nächste Stopps beim Fahren",
   "mapLayersStopsLineHint": "Der nächste Stopp jeder Art über der Karte beim Fahren, mit Entfernung",
   "mapStopsNearby": "Stopps in der Nähe",

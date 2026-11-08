@@ -229,9 +229,13 @@ void main() {
         expect(_switch(l10n.mapLayersCycleMap), findsOneWidget);
         expect(_switch(l10n.mapLayersStops), findsOneWidget);
         expect(find.text(l10n.mapLayersStopsSubtitle), findsOneWidget);
-        // No plan, so nothing to be along; and the line of next stops is
-        // the ride screen's.
-        expect(find.byType(RadioListTile<bool>), findsNothing);
+        // The choice of where is always there, waiting for a plan; the line
+        // of next stops is the ride screen's.
+        expect(find.byType(RadioListTile<bool>), findsNWidgets(2));
+        expect(
+          find.textContaining(l10n.mapLayersAlongRouteNoRoute),
+          findsOneWidget,
+        );
         expect(_switch(l10n.mapLayersStopsLine), findsNothing);
         expect(
           find.text(gazetteerPoiKindLabel(l10n, 'drinking_water')!),
@@ -304,8 +308,8 @@ void main() {
       expect(find.byType(FilterChip), findsNothing);
     });
 
-    testWidgets('on the Record tab without a route, no choice of where, '
-        'but the line of next stops', (tester) async {
+    testWidgets('on the Record tab without a route, the choice of where '
+        'says it waits for one, and the line of next stops', (tester) async {
       await _screen(tester, const Size(411, 914));
       await _pump(
         tester,
@@ -316,13 +320,16 @@ void main() {
       await _openSheet(tester);
 
       expect(_switch(l10n.mapLayersStops), findsOneWidget);
-      expect(find.byType(RadioListTile<bool>), findsNothing);
+      expect(find.byType(RadioListTile<bool>), findsNWidgets(2));
+      expect(
+        find.textContaining(l10n.mapLayersAlongRouteNoRoute),
+        findsOneWidget,
+      );
       expect(_switch(l10n.mapLayersStopsLine), findsOneWidget);
     });
 
-    testWidgets('on Plan, the choice of where comes with a route', (
-      tester,
-    ) async {
+    testWidgets('on Plan, the choice of where is always there, and says '
+        'so while there is no route', (tester) async {
       await _screen(tester, const Size(411, 914));
       final planner = _StubPlanner(null);
       final prefs = await _pump(
@@ -331,12 +338,20 @@ void main() {
         stopsShown: true,
       );
       await _openSheet(tester);
-      expect(find.byType(RadioListTile<bool>), findsNothing);
+      expect(find.byType(RadioListTile<bool>), findsNWidgets(2));
+      expect(
+        find.textContaining(l10n.mapLayersAlongRouteNoRoute),
+        findsOneWidget,
+      );
 
       planner.show(syntheticRoute());
       await tester.pumpAndSettle();
       expect(find.byType(RadioListTile<bool>), findsNWidgets(2));
       expect(find.text(_planAlongHint(tester)), findsOneWidget);
+      expect(
+        find.textContaining(l10n.mapLayersAlongRouteNoRoute),
+        findsNothing,
+      );
 
       await tester.ensureVisible(find.text(l10n.mapLayersInAreaHint));
       await tester.pumpAndSettle();
@@ -357,7 +372,11 @@ void main() {
 
       planner.show(null);
       await tester.pumpAndSettle();
-      expect(find.byType(RadioListTile<bool>), findsNothing);
+      expect(find.byType(RadioListTile<bool>), findsNWidgets(2));
+      expect(
+        find.textContaining(l10n.mapLayersAlongRouteNoRoute),
+        findsOneWidget,
+      );
     });
 
     testWidgets('the line of next stops is off until switched on, and '

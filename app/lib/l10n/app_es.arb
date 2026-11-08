@@ -951,6 +951,7 @@
   "mapLayersAlongRouteRideHint": "Paradas a menos de {corridor} de la ruta que queda, en los próximos {reach}",
   "mapLayersAlongRoutePlanHint": "Paradas a menos de {corridor} de la ruta, del inicio al final",
   "mapLayersInAreaHint": "Todo lo que hay en la parte visible del mapa, al acercar a nivel de ciudad",
+  "mapLayersAlongRouteNoRoute": "Aún no hay ruta, así que por ahora las paradas de la parte del mapa en pantalla.",
   "mapLayersStopsLine": "Próximas paradas al pedalear",
   "mapLayersStopsLineHint": "La parada más cercana de cada tipo sobre el mapa, con su distancia",
   "mapStopsNearby": "Paradas cercanas",

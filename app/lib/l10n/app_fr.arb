@@ -951,6 +951,7 @@
   "mapLayersAlongRouteRideHint": "Haltes à moins de {corridor} de l'itinéraire à venir, sur les {reach} suivants",
   "mapLayersAlongRoutePlanHint": "Haltes à moins de {corridor} de l'itinéraire, du départ à l'arrivée",
   "mapLayersInAreaHint": "Tout ce qui est dans la partie visible de la carte, une fois zoomé à l'échelle d'une ville",
+  "mapLayersAlongRouteNoRoute": "Pas encore d'itinéraire, donc pour l'instant les haltes de la partie de carte à l'écran.",
   "mapLayersStopsLine": "Prochaines haltes en roulant",
   "mapLayersStopsLineHint": "La halte la plus proche de chaque type au-dessus de la carte, avec sa distance",
   "mapStopsNearby": "Haltes à proximité",

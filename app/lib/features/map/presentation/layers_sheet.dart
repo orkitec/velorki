@@ -265,46 +265,52 @@ class LayersSheet extends ConsumerWidget {
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (hasRoute)
-                          RadioGroup<bool>(
-                            groupValue: stops.alongRoute,
-                            onChanged: (value) {
-                              if (value != null) {
-                                unawaited(preferences.setAlongRoute(value));
-                              }
-                            },
-                            child: Column(
-                              children: [
-                                RadioListTile<bool>(
-                                  value: true,
-                                  title: Text(l10n.mapLayersAlongRoute),
-                                  subtitle: Text(
-                                    offer == MapStopsOffer.plan
-                                        ? l10n.mapLayersAlongRoutePlanHint(
-                                            format.formatDistance(
-                                              l10n,
-                                              units,
-                                              stopsCorridorM,
-                                            ),
-                                          )
-                                        : l10n.mapLayersAlongRouteRideHint(
-                                            format.formatDistance(
-                                              l10n,
-                                              units,
-                                              stopsCorridorM,
-                                            ),
-                                            stopsReachLabel(l10n, units),
-                                          ),
-                                  ),
+                        // Always there with stops on, so the setting has
+                        // one place: without a route to be along, "Along
+                        // the route" says it waits for one, and the map
+                        // shows the stops on screen meanwhile.
+                        RadioGroup<bool>(
+                          groupValue: stops.alongRoute,
+                          onChanged: (value) {
+                            if (value != null) {
+                              unawaited(preferences.setAlongRoute(value));
+                            }
+                          },
+                          child: Column(
+                            children: [
+                              RadioListTile<bool>(
+                                value: true,
+                                title: Text(l10n.mapLayersAlongRoute),
+                                subtitle: Text(
+                                  (offer == MapStopsOffer.plan
+                                          ? l10n.mapLayersAlongRoutePlanHint(
+                                              format.formatDistance(
+                                                l10n,
+                                                units,
+                                                stopsCorridorM,
+                                              ),
+                                            )
+                                          : l10n.mapLayersAlongRouteRideHint(
+                                              format.formatDistance(
+                                                l10n,
+                                                units,
+                                                stopsCorridorM,
+                                              ),
+                                              stopsReachLabel(l10n, units),
+                                            )) +
+                                      (hasRoute
+                                          ? ''
+                                          : '\n${l10n.mapLayersAlongRouteNoRoute}'),
                                 ),
-                                RadioListTile<bool>(
-                                  value: false,
-                                  title: Text(l10n.mapLayersInArea),
-                                  subtitle: Text(l10n.mapLayersInAreaHint),
-                                ),
-                              ],
-                            ),
+                              ),
+                              RadioListTile<bool>(
+                                value: false,
+                                title: Text(l10n.mapLayersInArea),
+                                subtitle: Text(l10n.mapLayersInAreaHint),
+                              ),
+                            ],
                           ),
+                        ),
                         // The line of next stops is the ride screen's own.
                         if (offer == MapStopsOffer.ride)
                           SwitchListTile(

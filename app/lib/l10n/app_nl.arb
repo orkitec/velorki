@@ -951,6 +951,7 @@
   "mapLayersAlongRouteRideHint": "Stopplekken binnen {corridor} van de route verderop, over de komende {reach}",
   "mapLayersAlongRoutePlanHint": "Stopplekken binnen {corridor} van de route, van start tot finish",
   "mapLayersInAreaHint": "Alles in het zichtbare deel van de kaart, zodra je inzoomt tot op stadsniveau",
+  "mapLayersAlongRouteNoRoute": "Nog geen route, dus voorlopig de stopplekken op het deel van de kaart in beeld.",
   "mapLayersStopsLine": "Volgende stopplekken tijdens het fietsen",
   "mapLayersStopsLineHint": "De dichtstbijzijnde stopplek van elk soort boven de kaart, met de afstand",
   "mapStopsNearby": "Stopplekken in de buurt",

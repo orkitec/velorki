@@ -951,6 +951,7 @@
   "mapLayersAlongRouteRideHint": "Soste entro {corridor} dal percorso che resta, per i prossimi {reach}",
   "mapLayersAlongRoutePlanHint": "Soste entro {corridor} dal percorso, dalla partenza all'arrivo",
   "mapLayersInAreaHint": "Tutto nella parte di mappa visibile, ingrandendo fino al livello di una città",
+  "mapLayersAlongRouteNoRoute": "Ancora nessun percorso, quindi per ora le soste nella parte di mappa sullo schermo.",
   "mapLayersStopsLine": "Prossime soste mentre pedali",
   "mapLayersStopsLineHint": "La sosta più vicina di ogni tipo sopra la mappa, con la distanza",
   "mapStopsNearby": "Soste nelle vicinanze",
