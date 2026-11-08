@@ -26,8 +26,8 @@ code. What it does:
 
 - **Routing on the phone.** A Dart port of the BRouter engine routes on
   downloaded 5°×5° tiles (in the web planner, in the browser), with touring,
-  road, gravel, MTB and direct profiles, up to three alternatives, elevation profile and surface
-  statistics. A BRouter server is optional, for areas with no tiles.
+  road, gravel, MTB and direct profiles, up to three alternatives, elevation
+  profile and surface statistics. A BRouter server is optional, for areas with no tiles.
 - **Loops.** "A 60 km round trip from here via the lake": candidates are
   generated and scored on length, climbing, surface and repeated roads.
 - **Place search offline.** Each routing tile brings a search index of its
