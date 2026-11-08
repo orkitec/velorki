@@ -5,15 +5,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
+import '../../../core/units/units.dart' as core_units;
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
 import '../../navigation/application/navigation_controller.dart';
+import '../../planner/application/planner_controller.dart';
+import '../../planner/presentation/route_format.dart' as format;
 import '../../search/domain/search_group.dart';
 import '../../search/presentation/search_field.dart'
     show poiKindIcon, gazetteerPoiKindLabel;
 import '../../search/presentation/search_settings_screen.dart'
     show searchGroupLabel;
+import '../../settings/data/units.dart';
 import '../../shared/application/covering_sheets.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../subscription/application/plus_access.dart';
@@ -23,6 +27,7 @@ import '../data/map_preferences.dart';
 import '../data/weather_map_preferences.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../domain/cycle_map.dart';
+import '../domain/stops_along_route.dart';
 import '../domain/weather_map.dart';
 import 'map_chrome.dart';
 import 'rain_radar_dialog.dart';
@@ -104,8 +109,10 @@ Future<void> showLayersSheet(
 );
 
 /// What the map shows over its base: the cycle map overlay, and on the
-/// shared map the stops, which kinds of them and, on a guided ride, from
-/// where.
+/// shared map the stops, which kinds of them, along the route or in the
+/// area where there is a route to be along (a planned one on Plan, a
+/// followed one on a ride), and on a ride whether the next of them are
+/// listed over the map.
 class LayersSheet extends ConsumerWidget {
   /// Creates the sheet.
   const LayersSheet({this.offer = MapStopsOffer.none, super.key});
@@ -127,9 +134,15 @@ class LayersSheet extends ConsumerWidget {
     final opacityPrefs = ref.read(weatherMapOpacityProvider.notifier);
     final stops = ref.watch(mapStopsPreferencesProvider);
     final preferences = ref.read(mapStopsPreferencesProvider.notifier);
-    final guided =
-        offer == MapStopsOffer.ride &&
-        ref.watch(activeGuidedRouteProvider) != null;
+    final units = ref.watch(unitSystemProvider);
+    // A route to be along: the plan on Plan, the route followed on a ride.
+    final hasRoute = switch (offer) {
+      MapStopsOffer.none => false,
+      MapStopsOffer.plan => ref.watch(
+        plannerControllerProvider.select((s) => s.result != null),
+      ),
+      MapStopsOffer.ride => ref.watch(activeGuidedRouteProvider) != null,
+    };
     return SingleChildScrollView(
       padding: EdgeInsets.only(
         bottom: 16 + MediaQuery.paddingOf(context).bottom,
@@ -233,11 +246,7 @@ class LayersSheet extends ConsumerWidget {
             SwitchListTile(
               secondary: const Icon(Icons.local_cafe_outlined),
               title: Text(l10n.mapLayersStops),
-              subtitle: Text(
-                offer == MapStopsOffer.plan
-                    ? l10n.mapLayersStopsPlanHint
-                    : l10n.mapLayersStopsRideHint,
-              ),
+              subtitle: Text(l10n.mapLayersStopsSubtitle),
               value: stops.shown,
               onChanged: (value) => unawaited(preferences.setShown(value)),
             ),
@@ -256,28 +265,60 @@ class LayersSheet extends ConsumerWidget {
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (guided)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
-                            child: SegmentedButton<bool>(
-                              segments: [
-                                ButtonSegment<bool>(
-                                  value: true,
-                                  icon: const Icon(Icons.route),
-                                  label: Text(l10n.mapLayersAlongRoute),
+                        // Always there with stops on, so the setting has
+                        // one place: without a route to be along, "Along
+                        // the route" says it waits for one, and the map
+                        // shows the stops on screen meanwhile.
+                        RadioGroup<bool>(
+                          groupValue: stops.alongRoute,
+                          onChanged: (value) {
+                            if (value != null) {
+                              unawaited(preferences.setAlongRoute(value));
+                            }
+                          },
+                          child: Column(
+                            children: [
+                              RadioListTile<bool>(
+                                value: true,
+                                title: Text(l10n.mapLayersAlongRoute),
+                                subtitle: Text(
+                                  (offer == MapStopsOffer.plan
+                                          ? l10n.mapLayersAlongRoutePlanHint(
+                                              format.formatDistance(
+                                                l10n,
+                                                units,
+                                                stopsCorridorM,
+                                              ),
+                                            )
+                                          : l10n.mapLayersAlongRouteRideHint(
+                                              format.formatDistance(
+                                                l10n,
+                                                units,
+                                                stopsCorridorM,
+                                              ),
+                                              stopsReachLabel(l10n, units),
+                                            )) +
+                                      (hasRoute
+                                          ? ''
+                                          : '\n${l10n.mapLayersAlongRouteNoRoute}'),
                                 ),
-                                ButtonSegment<bool>(
-                                  value: false,
-                                  icon: const Icon(Icons.crop_free),
-                                  label: Text(l10n.mapLayersInArea),
-                                ),
-                              ],
-                              selected: <bool>{stops.alongRoute},
-                              showSelectedIcon: false,
-                              onSelectionChanged: (value) => unawaited(
-                                preferences.setAlongRoute(value.first),
                               ),
-                            ),
+                              RadioListTile<bool>(
+                                value: false,
+                                title: Text(l10n.mapLayersInArea),
+                                subtitle: Text(l10n.mapLayersInAreaHint),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // The line of next stops is the ride screen's own.
+                        if (offer == MapStopsOffer.ride)
+                          SwitchListTile(
+                            title: Text(l10n.mapLayersStopsLine),
+                            subtitle: Text(l10n.mapLayersStopsLineHint),
+                            value: stops.aheadLine,
+                            onChanged: (value) =>
+                                unawaited(preferences.setAheadLine(value)),
                           ),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -470,6 +511,15 @@ class _OpacitySlider extends StatelessWidget {
             ),
     );
   }
+}
+
+/// How far ahead a ride looks for stops, in whole units: "50 km", "31 mi".
+String stopsReachLabel(AppLocalizations l10n, UnitSystem system) {
+  final reach = core_units.formatDistance(system, stopsAheadMaxM);
+  return format.formatMeasure(
+    l10n,
+    core_units.Measure(reach.value, reach.unit),
+  );
 }
 
 /// The keys of the rain's and the clouds' opacity sliders in the Layers

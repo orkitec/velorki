@@ -281,6 +281,7 @@ class MapStopsController extends ChangeNotifier {
   List<LatLng> _line = const <LatLng>[];
   List<double> _cumulative = const <double>[];
   double _alongM = 0;
+  double _reachM = stopsAheadMaxM;
 
   Timer? _timer;
   int _generation = 0;
@@ -369,7 +370,7 @@ class MapStopsController extends ChangeNotifier {
     // of the stretch the stops are listed for; the area is the first one's.
     LatLng? first;
     for (var i = 0; i < _line.length; i++) {
-      if (_cumulative[i] > _alongM + stopsAheadMaxM) break;
+      if (_cumulative[i] > _alongM + _reachM) break;
       if (i + 1 < _line.length && _cumulative[i + 1] < _alongM) continue;
       if (check.covers(_line[i])) return null;
       first ??= _line[i];
@@ -410,7 +411,7 @@ class MapStopsController extends ChangeNotifier {
     }
     return <StopAlongRoute<SearchResult>>[
       for (final placed in _placed)
-        if (placed.atM >= _alongM && placed.atM - _alongM <= stopsAheadMaxM)
+        if (placed.atM >= _alongM && placed.atM - _alongM <= _reachM)
           placed.seenFrom(_alongM),
     ];
   }
@@ -428,22 +429,49 @@ class MapStopsController extends ChangeNotifier {
     return out;
   }
 
+  /// In the area on screen: the nearest stop of each kind to [from] in a
+  /// straight line, nearest first, at most [max] of them, out of the stops
+  /// on the map.
+  List<StopDistance<SearchResult>> nearestPerKind(LatLng from, {int max = 3}) {
+    if (mode != MapStopsMode.area) {
+      return const <StopDistance<SearchResult>>[];
+    }
+    final nearest = <String?, StopDistance<SearchResult>>{};
+    for (final stop in _drawnStops) {
+      final distanceM = haversineMeters(from, stop.position);
+      final best = nearest[stop.detail];
+      if (best == null || distanceM < best.distanceM) {
+        nearest[stop.detail] = (stop: stop, distanceM: distanceM);
+      }
+    }
+    return (nearest.values.toList()
+          ..sort((a, b) => a.distanceM.compareTo(b.distanceM)))
+        .take(max)
+        .toList();
+  }
+
   /// What the tab wants: whether stops are [shown], of which [kinds], and,
   /// with a [routeKey] and its [routeLine], the ones along that route ahead
-  /// of a rider [alongM] metres along it rather than the ones on screen.
+  /// of a rider [alongM] metres along it, up to [reachM] beyond, rather than
+  /// the ones on screen.
   void update({
     required bool shown,
     required Set<String> kinds,
     String? routeKey,
     List<LatLng> routeLine = const <LatLng>[],
     double alongM = 0,
+    double reachM = stopsAheadMaxM,
   }) {
     final modeBefore = mode;
     final kindsChanged = !setEquals(kinds, _kinds);
     final shownChanged = shown != _shown;
     final routeChanged =
         routeKey != _routeKey ||
-        (routeKey != null && !identical(routeLine, _line));
+        (routeKey != null && !identical(routeLine, _line)) ||
+        reachM != _reachM;
+    // Another reach is another question, whatever was asked before.
+    if (reachM != _reachM) _askedRoute = null;
+    _reachM = reachM;
     _shown = shown;
     if (kindsChanged) _kinds = Set<String>.unmodifiable(kinds);
     if (routeChanged) {
@@ -714,7 +742,7 @@ class MapStopsController extends ChangeNotifier {
       line,
       cumulative,
       fromM: from,
-      toM: from + stopsAheadMaxM,
+      toM: from + _reachM,
       chunkM: stopsChunkM,
     );
     final List<List<SearchResult>> answers;
@@ -747,6 +775,7 @@ class MapStopsController extends ChangeNotifier {
       alongM: from,
       candidates: candidates,
       positionOf: (stop) => stop.position,
+      maxAheadM: _reachM,
     );
     if (placed.length > stopsDrawSafetyLimit) {
       debugPrint(

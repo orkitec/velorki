@@ -177,13 +177,20 @@ changing structure.
   every touch, transparent or not), and the native (i) button's margin is
   measured from the safe area on iOS.
 - CI: `app.yml` (every push; `check` is the static checks and the unit tests,
-  `apk` builds the debug artifact beside it, and `gazetteer` builds the
+  `apk` builds the debug artifact beside it, `fdroid` builds the
+  Google-free APK with `tool/fdroid_build.sh` and fails on any Google or
+  store class in its dex (`docs/FDROID.md`), and `gazetteer` builds the
   Liechtenstein extract and checks the `.gaz` fixtures), `integration.yml` and
   `integration-ios.yml` (every push to main that touches app/tiles/fixtures,
-  plus nightly; a newer push cancels the older run. Android shards the suite
+  plus nightly, which a `gate` job stops when a run on main finished in the
+  last 24 hours or one tested the same commit in the last 7 days; a newer
+  push cancels the older run. Android shards the suite
   three ways across API levels 31, 35 and 36, caches Gradle and the AVD
   snapshot, and boots an emulator that timed out once more (a failed test is
-  never retried); iOS is one job running the whole suite in one process
+  never retried); its `fdroid` job runs the same suite, three ways, in the
+  build `tool/fdroid_strip.sh` has stripped, on an AOSP (`default`) API 35
+  image with no Google Play Services, minus the files that import a stripped
+  plugin and led by `fdroid_smoke_test.dart` (`docs/FDROID.md`); iOS is one job running the whole suite in one process
   (`VELORKI_ITEST_COMBINED=1`), because there the Xcode build and the simulator
   boot cost more than the tests, and caches the derived data and the Swift
   packages; the app has no CocoaPods),
@@ -207,8 +214,10 @@ changing structure.
   composite actions such as flutter-action call internally). `workflows-lint.yml`
   runs actionlint (pinned binary, sha256-checked; shellcheck at warning level)
   on every push touching `.github/workflows/`. A `v*` tag push runs `release.yml`: a
-  `version` job checks the tag against the pubspec and computes one build
-  number (`run_number + 10`) for both platform jobs, Android (Play internal,
+  `version` job checks the tag against the pubspec and takes one build
+  number, the pubspec's `+N` (raised by the release commit above every
+  earlier tag's; F-Droid builds the same tag with it), for both platform
+  jobs, Android (Play internal,
   GitHub Release) and iOS (xcodebuild with cloud signing, TestFlight; one-time
   setup in `docs/RELEASE_IOS.md`), each checking it against its store first and
   waiting in the `release` environment for the maintainer's approval in the

@@ -1,8 +1,6 @@
-• Al primer inicio: tu ubicación, el mapa de tu país, carriles bici y paradas visibles
-• La guía en la app, sin conexión: Ajustes → Guía de usuario
-• «Salir» junto a «Guardar» inicia la ruta planificada
-• Añade una parada durante la salida; la navegación sigue
-• Estaciones, paradas de bus, tranvía y ferri, farmacias, hospitales, miradores y más
-• Descargas en el mapa, con progreso y cancelar
-• Datos del mapa actualizados solo si cambian de verdad
-• Tocar el mapa cierra la búsqueda
+• Paradas a lo largo de la ruta planificada: Capas → Paradas → A lo largo de la ruta
+• A lo largo de la ruta o En esta zona, siempre en Capas, explicado
+• Próximas paradas al pedalear: interruptor propio, apagado al principio; sin ruta, las paradas cercanas
+• Avisos por voz callados durante una llamada
+• Sin motor de voz, o sin uno para tu idioma: los ajustes de voz dicen qué instalar
+• Health Connect en gris, con el motivo, donde falta

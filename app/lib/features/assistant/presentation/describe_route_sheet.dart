@@ -1,9 +1,11 @@
+import '../../../core/plus/plus_gate.dart';
+import '../../subscription/application/offered_plus_features.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../shared/presentation/ai_mark.dart';
@@ -193,7 +195,10 @@ class DescribeRouteButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!canDescribe(route)) return const SizedBox.shrink();
+    if (!canDescribe(route) ||
+        !ref.watch(plusFeatureOfferedProvider(PlusFeature.aiAssistant))) {
+      return const SizedBox.shrink();
+    }
     final l10n = AppLocalizations.of(context);
     return OutlinedButton.icon(
       onPressed: () => unawaited(_open(context, ref)),

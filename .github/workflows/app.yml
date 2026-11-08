@@ -114,37 +114,63 @@ jobs:
           restore-keys: gradle-apk-
       - run: flutter pub get
       - run: bash tool/gen.sh
-      # The Android Gradle plugin installs the NDK during the build with no
-      # check: a download that arrived broken ("Error on ZipFile unknown
-      # archive") failed a build. So it is installed here first, the version
-      # Flutter's Gradle plugin asks for, verified by the file the plugin
-      # looks for, and fetched again on a bad archive.
       - name: Install the NDK
-        run: |
-          sdk="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
-          root="$(dirname "$(dirname "$(command -v flutter)")")"
-          ver="$(sed -n 's/.*val ndkVersion: String = "\([^"]*\)".*/\1/p' \
-            "$root/packages/flutter_tools/gradle/src/main/kotlin/FlutterExtension.kt")"
-          [ -n "$ver" ] || { echo "::error::no ndkVersion in Flutter's FlutterExtension.kt"; exit 1; }
-          for try in 1 2 3; do
-            printf 'y\n%.0s' {1..30} \
-              | "$sdk/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ver" || true
-            if [ -f "$sdk/ndk/$ver/source.properties" ]; then
-              echo "==> ndk;$ver in place"
-              exit 0
-            fi
-            echo "==> ndk;$ver did not install cleanly (try $try of 3); fetching it again"
-            rm -rf "$sdk/ndk/$ver" "$sdk/.temp"
-            sleep 20
-          done
-          echo "::error::ndk;$ver could not be installed"
-          exit 1
+        run: bash tool/install_ndk.sh
 
       - run: flutter build apk --debug --dart-define-from-file=env/ci.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: velorki-debug-apk
           path: app/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
+
+  # The Google-free flavour, the one F-Droid publishes: tool/fdroid_strip.sh
+  # takes the six closed-source plugins out of pubspec.yaml and patches the two
+  # that ask Google Play Services for a location provider, and the build runs
+  # from lib/main_fdroid.dart, whose Dart graph reaches none of them. The dex
+  # scan at the end is the actual promise: zero Google, Play, Firebase, billing
+  # or RevenueCat classes in the APK. See docs/FDROID.md.
+  #
+  # tool/fdroid_build.sh puts pubspec.yaml and pubspec.lock back afterwards
+  # and keeps the patched plugins in a cache of its own; a job of its own all
+  # the same, so nothing else ever builds beside a stripped tree.
+  fdroid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+      - name: Gradle cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-fdroid-${{ hashFiles('app/android/**/*.gradle*', 'app/pubspec.lock') }}
+          restore-keys: gradle-fdroid-
+      - run: flutter pub get
+      # The generated code first: the strip script runs `pub get` again over
+      # the smaller dependency set, and build_runner wants the full one.
+      - run: bash tool/gen.sh
+      - name: Install the NDK
+        run: bash tool/install_ndk.sh
+      # Strip, build from lib/main_fdroid.dart, dex-scan, restore: the same
+      # script a laptop runs. Release, because that is what F-Droid publishes;
+      # signed with the debug key here, which is all the scan needs.
+      - name: Build the Google-free APK and scan its dex
+        run: bash tool/fdroid_build.sh
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: velorki-fdroid-apk
+          path: app/build/fdroid/velorki-fdroid-release.apk
           retention-days: 7
 
   # The web planner: a build for the browser is the cheap guard against an

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:go_router/go_router.dart';
+import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/platform_features.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/features/integrations/presentation/connections_section.dart';
@@ -16,6 +18,17 @@ import '../../support/app.dart';
 import '../../support/settings.dart';
 import '../planner/support/pump.dart';
 
+/// A build that can connect both partner services: a relay for the secrets
+/// and a client id each. Without them Settings leaves the Connections row
+/// out altogether, which is what the F-Droid flavour ships.
+final Override _connectable = appConfigProvider.overrideWithValue(
+  const AppConfig(
+    apiUrl: 'https://api.velorki.test',
+    stravaClientId: 'strava-id',
+    rwgpsClientId: 'rwgps-id',
+  ),
+);
+
 void main() {
   testWidgets('the overview has every row in its group, Sync first', (
     tester,
@@ -26,6 +39,7 @@ void main() {
       extraOverrides: [
         offeredSyncServicesProvider.overrideWithValue([SyncService.icloud]),
         healthGatewayProvider.overrideWithValue(FakeHealthGateway()),
+        _connectable,
       ],
     );
     await tester.pumpAndSettle();
@@ -148,10 +162,26 @@ void main() {
     await unmountApp(tester);
   });
 
+  testWidgets('a phone whose build has no client id for either service has '
+      'no Connections row, though the platform allows them', (tester) async {
+    // The F-Droid flavour: everything else about the phone is as usual, and
+    // Connections is simply not a thing this build has. See docs/FDROID.md.
+    await pumpApp(tester, initialLocation: settingsRoute);
+    await tester.pumpAndSettle();
+
+    expect(settingsRow(SettingsTopic.connections), findsNothing);
+    expect(settingsRow(SettingsTopic.plus), findsOneWidget);
+    await unmountApp(tester);
+  });
+
   testWidgets('Settings → Connections has a location of its own', (
     tester,
   ) async {
-    await pumpApp(tester, initialLocation: settingsRoute);
+    await pumpApp(
+      tester,
+      initialLocation: settingsRoute,
+      extraOverrides: [_connectable],
+    );
     await tester.pumpAndSettle();
 
     GoRouter.of(tester.element(find.byType(SettingsScreen)))

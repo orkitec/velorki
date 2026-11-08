@@ -1,0 +1,45 @@
+Velorki prépare tes itinéraires vélo, te guide dessus et enregistre tes sorties, le tout sur ton téléphone et aussi hors ligne. Navigation vélo, planificateur d'itinéraire, traceur et compteur vélo dans une seule application open source. Pas de compte, pas d'inscription, pas de publicité, pas de pistage.
+
+Les itinéraires sont calculés sur le téléphone par un portage de BRouter, le moteur de calcul sur lequel s'appuient beaucoup d'applications vélo, à partir des données OpenStreetMap. Télécharge une région une fois et tu peux y planifier, chercher et naviguer sans connexion.
+
+Pour aller au travail, voyager et faire du bikepacking, s'entraîner sur route, rouler en gravel ou en VTT. Un ancien téléphone Android sans carte SIM ni services Google devient un bon compteur vélo sur le guidon : une carte vélo hors ligne, la navigation et les capteurs Bluetooth, sur un seul appareil.
+
+PLANIFIER
+• Touche la carte pour placer des points et obtiens un itinéraire pour ton vélo : rando, route, gravel, VTT ou le plus direct.
+• Des boucles depuis chez toi : dis quelle distance tu veux rouler, et Velorki propose des boucles qui reviennent à ton point de départ.
+• Itinéraires alternatifs, profil d'altitude et revêtements sur lesquels tu rouleras.
+• Colore l'itinéraire selon la pente, le revêtement, le vent ou la pluie.
+• Cherche des lieux hors ligne et garde tes itinéraires dans ta bibliothèque.
+
+CARTE ET MÉTÉO
+• Une carte vélo hors ligne : pistes et bandes cyclables, sens uniques, escaliers et montées.
+• Des haltes sur la carte : eau potable, cafés, boulangeries, toilettes, réparation vélo et plus encore.
+• Radar de pluie, vent et nuages avec un curseur de temps, et le vent et la pluie le long de ton itinéraire pour l'heure de ton départ.
+
+NAVIGATION
+• Guidage pas à pas avec annonces vocales, aussi écran verrouillé, aussi pour les itinéraires GPX que tu importes.
+• Tu quittes l'itinéraire et tu choisis ce qui se passe : un chemin pour y revenir, un nouvel itinéraire vers la destination, ou rien.
+• Les annonces utilisent la synthèse vocale du téléphone. Un téléphone qui n'en a pas doit en installer une, par exemple eSpeak NG ou RHVoice.
+
+ENREGISTRER
+• Enregistre écran éteint, avec pause automatique.
+• Choisis ce que tu vois en roulant : distance, vitesse, temps, dénivelé, fréquence cardiaque, cadence, puissance, ce qui reste de l'itinéraire.
+• Fréquence cardiaque, vitesse, cadence et puissance depuis des capteurs Bluetooth, et sorties enregistrées dans Health Connect si tu le souhaites.
+• Chaque sortie a sa page avec sa carte, ses graphiques et ses tronçons.
+
+FICHIERS
+• Ouvre des fichiers GPX, FIT et TCX, et exporte itinéraires et sorties en GPX, FIT ou TCX.
+
+VIE PRIVÉE
+Pas de publicité, pas de statistiques, pas de rapports de plantage, pas de compte, et aucune IA entraînée sur tes données. Tes itinéraires et tes sorties restent sur ton téléphone. Velorki ne parle qu'aux services qui dessinent la carte, apportent la météo et cherchent les lieux, et à son propre miroir de tuiles pour les régions que tu télécharges.
+
+L'affichage s'adapte aux tablettes et au téléphone tenu à l'horizontale. Velorki est disponible en français, anglais, allemand, italien, espagnol et néerlandais.
+
+CETTE VERSION
+C'est la version F-Droid, construite sans bibliothèques propriétaires. Elle n'a pas de synchronisation Google Drive, pas de Velorki Plus (l'assistant IA, les liens de partage et la météo plus fine) et pas de connexion à Strava ou Ride with GPS. Tout le reste fonctionne comme dans les autres versions.
+
+Les régions hors ligne viennent du miroir de tuiles de Velorki sur GitHub, le style de carte d'OpenFreeMap et la recherche de lieux en ligne de Photon.
+
+Site web : https://velorki.com
+Code source (AGPL-3.0) : https://github.com/orkitec/velorki
+Données cartographiques © les contributeurs d'OpenStreetMap.

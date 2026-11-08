@@ -18,6 +18,11 @@ maintainer's gate; tell them where to click instead.
 
 - Read `version:` in `app/pubspec.yaml` and the last tag (`git tag --sort=-v:refname | head -3`).
 - Propose the next version (patch for fixes, minor for features) and confirm it with the maintainer.
+- The build number is the pubspec's `+N` and is the same in all three stores
+  (Play, App Store, F-Droid): one above the highest any earlier tag carried,
+  trials included. 1.2.2 shipped as 22 from the old run-number scheme, so 1.2.3
+  is `+23`; from then on it is the last release's `+N` plus one, and each
+  trial takes a number of its own.
 - `main` must be green (`gh run list --branch main --limit 6`) and the working tree clean.
 
 ## 2. Release notes and store texts
@@ -32,13 +37,14 @@ maintainer's gate; tell them where to click instead.
 ## 3. Tag
 
 ```
-sed -i '' 's/^version: .*/version: X.Y.Z+1/' app/pubspec.yaml
+sed -i '' 's/^version: .*/version: X.Y.Z+N/' app/pubspec.yaml
 git commit -am "Version X.Y.Z" && git push
 git tag -a vX.Y.Z -m "Velorki X.Y.Z" && git push origin vX.Y.Z
 ```
 
-The tag push starts `release.yml`. A suffix (`vX.Y.Z-rc1`) is a trial: same
-uploads, no GitHub Release.
+The tag push starts `release.yml`; its `version` job fails if `N` is not above
+every earlier tag's. A suffix (`vX.Y.Z-rc1`) is a trial: same uploads, no
+GitHub Release, and the final tag needs a higher `N` than the trial.
 
 ## 4. Store listing (iOS)
 
@@ -79,4 +85,8 @@ open the run → "Review deployments" → tick `release` → "Approve and deploy
 
 - **iOS:** in App Store Connect, version X.Y.Z → Build → choose X.Y.Z (NN) → Submit for Review.
 - **Android:** Play Console → Internal testing → the release → Promote → Production, paste the Play notes, send for review.
+- **F-Droid** (once Velorki is listed there) needs nothing: it watches the `v*` tags, builds the tag itself
+  with `app/tool/fdroid_strip.sh` from `lib/main_fdroid.dart` and signs it with
+  its own key, usually two to five days later. Its listing has no release
+  notes to paste.
 - Report what is live, what waits for review, and anything left for the maintainer.

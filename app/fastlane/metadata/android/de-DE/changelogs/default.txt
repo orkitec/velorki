@@ -1,7 +1,6 @@
-• Erster Start fragt nach dem Standort, öffnet über deinem Land, Radwege und Stopps an
-• Handbuch in der App, offline: Optionen → Handbuch
-• „Losfahren“ neben „Speichern“ startet die geplante Route
-• Stopp während der Fahrt hinzufügen; die Führung läuft weiter
-• Bahnhöfe, Bus-, Tram- und Fährhalte, Apotheken, Krankenhäuser, Aussichtspunkte und mehr
-• Downloads direkt auf der Karte, mit Fortschritt und Abbrechen
-• Kartendaten nur bei echten Änderungen aktualisiert
+• Stopps entlang der geplanten Route: Ebenen → Stopps → Entlang der Route
+• Entlang der Route oder In diesem Gebiet, immer unter Ebenen, erklärt
+• Nächste Stopps beim Fahren: eigener Schalter, zunächst aus; ohne Route die nächsten Stopps um dich
+• Ansagen bleiben beim Telefonieren still
+• Keine Sprachausgabe oder keine für deine Sprache: die Spracheinstellungen sagen, was fehlt
+• Health Connect ausgegraut, mit Grund, wo es fehlt

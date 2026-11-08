@@ -44,6 +44,18 @@ abstract class TurnSpeaker {
   /// The voices the phone has for the language the cues are in, best first.
   Future<List<VoiceOption>> voices();
 
+  /// Whether the phone has a text-to-speech engine at all.
+  ///
+  /// Not the same question as an empty [voices]: a phone with an engine but
+  /// no voice for the rider's language can download one in its own settings,
+  /// where a phone with no engine has no such settings to go to. Android is
+  /// the only platform that can be without one — a phone shipped without
+  /// Google's, which is what GrapheneOS, LineageOS and a plain AOSP build
+  /// are — and the rider has to install one themselves. False only when that
+  /// is known to be the case; a platform that cannot say answers true, so
+  /// nothing is claimed about a phone nobody asked.
+  Future<bool> hasEngine();
+
   /// Says the turns in the voice with [id] from now on, or in the best
   /// voice the phone has for the language when [id] is `null` or no longer
   /// installed; see [defaultVoice].
@@ -227,6 +239,26 @@ class SpeakTurnSpeaker implements TurnSpeaker {
   }
 
   @override
+  Future<bool> hasEngine() async {
+    if (_broken) return false;
+    // Every platform but Android has one built in. Asked before
+    // `isSupported`, which answers for the machine the code runs on (a
+    // Linux test host has none) rather than for the platform this speaker
+    // serves.
+    if (_platform != TargetPlatform.android) return true;
+    if (!tts.Speak.isSupported) return false;
+    try {
+      // `androidEngines` lists what is installed, the system's pick first;
+      // empty is a phone with none. Every other platform has one built in.
+      return (await tts.Speak.androidEngines()).isNotEmpty;
+    } on Object catch (error) {
+      // A phone that would not answer is not a phone we can call engineless.
+      debugPrint('Could not ask for the speech engines ($error)');
+      return true;
+    }
+  }
+
+  @override
   Future<VoiceOption?> defaultVoice() async {
     final installed = await voices();
     // The ranking is worked out once per list of installed voices — the
@@ -359,4 +391,11 @@ String cueLocaleTag([Locale? appLocale]) {
 /// opened.
 final availableVoicesProvider = FutureProvider.autoDispose<List<VoiceOption>>(
   (ref) => ref.watch(turnSpeakerProvider).voices(),
+);
+
+/// Whether this phone has a text-to-speech engine at all; see
+/// [TurnSpeaker.hasEngine]. Auto-disposed, so an engine installed while the
+/// app runs is noticed the next time the voice list is opened.
+final speechEngineInstalledProvider = FutureProvider.autoDispose<bool>(
+  (ref) => ref.watch(turnSpeakerProvider).hasEngine(),
 );

@@ -1,21 +1,46 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:logging/logging.dart';
 import 'package:purchases_flutter/purchases_flutter.dart' as rc;
 
+import '../../../app/app_config.dart';
+import '../../../core/plus/app_user_id.dart';
 import '../domain/plus_subscription.dart';
 import 'subscription_service.dart';
 
 final Logger _log = Logger('SubscriptionService');
 
-/// The platform name [revenueCatKeyFor] picks a key by.
+/// [subscriptionServiceProvider] with the store behind it: RevenueCat
+/// wherever this build carries a key for the platform, and the no-op service
+/// anywhere else (a fork that set no key, the desktop test VM).
 ///
-/// Split out so tests can name a platform without a device; on the desktop VM
-/// this answers `linux`, which has no key and therefore no store.
-String currentStorePlatform() => kIsWeb ? 'web' : Platform.operatingSystem;
+/// Installed by `main.dart` only. The F-Droid entry point leaves it out, and
+/// with it the whole billing SDK.
+///
+/// [storePlatform] is [currentStorePlatform], named so tests can say which
+/// store without a device — the test VM is a desktop, which has none.
+Override storeSubscriptionOverride({String? storePlatform}) =>
+    subscriptionServiceProvider.overrideWith((ref) {
+      final platform = storePlatform ?? currentStorePlatform();
+      final key = revenueCatKeyFor(
+        ref.watch(appConfigProvider),
+        platform: platform,
+      );
+      if (key.isEmpty) return const NoopSubscriptionService();
+      final service = RevenueCatSubscriptionService(
+        apiKey: key,
+        platform: platform,
+        // The same id the relay authenticates against, so RevenueCat's
+        // customer and the `Authorization: Bearer <app_user_id>` the app
+        // sends are one and the same subscriber.
+        appUserId: ref.watch(appUserIdProvider),
+      );
+      ref.onDispose(service.dispose);
+      return service;
+    });
 
 /// The handful of `rc.Purchases` statics this service calls.
 ///

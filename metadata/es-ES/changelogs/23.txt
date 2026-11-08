@@ -1,0 +1,6 @@
+• Paradas a lo largo de la ruta planificada: Capas → Paradas → A lo largo de la ruta
+• A lo largo de la ruta o En esta zona, siempre en Capas, explicado
+• Próximas paradas al pedalear: interruptor propio, apagado al principio; sin ruta, las paradas cercanas
+• Avisos por voz callados durante una llamada
+• Sin motor de voz, o sin uno para tu idioma: los ajustes de voz dicen qué instalar
+• Health Connect en gris, con el motivo, donde falta

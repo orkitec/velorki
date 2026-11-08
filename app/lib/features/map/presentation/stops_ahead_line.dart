@@ -11,18 +11,28 @@ import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../domain/stops_along_route.dart';
 
-/// The next stop of each kind ahead on a guided ride, nearest first: what
-/// it is and how far along the route, one tap from being shown on the map.
+/// The next stop of each kind on a ride, nearest first: what it is and how
+/// far, along the route followed ([alongRoute]) or in a straight line from
+/// the rider, one tap from being shown on the map.
 ///
 /// Entries share a line where they fit and wrap onto the next where they
 /// do not; an entry too long for a line of its own wraps inside itself.
 /// Nothing is cut off.
 class StopsAheadLine extends ConsumerWidget {
   /// Creates the line.
-  const StopsAheadLine({required this.entries, required this.onTap, super.key});
+  const StopsAheadLine({
+    required this.entries,
+    required this.onTap,
+    this.alongRoute = true,
+    super.key,
+  });
 
   /// The stops to list, nearest first.
-  final List<StopAlongRoute<SearchResult>> entries;
+  final List<StopDistance<SearchResult>> entries;
+
+  /// Whether the distances are along the route followed rather than in a
+  /// straight line from the rider.
+  final bool alongRoute;
 
   /// A tap on one of them.
   final ValueChanged<SearchResult> onTap;
@@ -35,7 +45,7 @@ class StopsAheadLine extends ConsumerWidget {
     final units = ref.watch(unitSystemProvider);
     return Semantics(
       container: true,
-      label: l10n.mapStopsAhead,
+      label: alongRoute ? l10n.mapStopsAhead : l10n.mapStopsNearby,
       child: GlassPanel(
         radius: 16,
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -62,9 +72,9 @@ class StopsAheadLine extends ConsumerWidget {
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
-                          l10n.mapStopAhead(
+                          (alongRoute ? l10n.mapStopAhead : l10n.mapStopAway)(
                             _kindOf(l10n, entry.stop),
-                            format.formatDistance(l10n, units, entry.aheadM),
+                            format.formatDistance(l10n, units, entry.distanceM),
                           ),
                           style: theme.textTheme.labelLarge,
                         ),

@@ -16,16 +16,22 @@ import 'package:velorki/features/offline/presentation/offline_screen.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
+import 'package:velorki/features/planner/presentation/route_format.dart'
+    show formatDistance;
+import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/search/presentation/place_card.dart';
 import 'package:velorki/features/search/presentation/search_field.dart'
     show gazetteerPoiKindLabel;
+import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
-import 'package:velorki_brouter/velorki_brouter.dart' show TileName;
+import 'package:velorki_brouter/velorki_brouter.dart'
+    show RouteResult, TileName;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
+import '../planner/support/fakes.dart' show TestMapController;
 import '../planner/support/pump.dart';
 import '../recording/support/pump.dart';
 
@@ -52,6 +58,45 @@ Future<void> _downloadsInPlace(WidgetTester tester, Finder chip) async {
   }
   expect(find.byType(SnackBar), findsOneWidget);
   expect(find.byType(OfflineScreen), findsNothing);
+  await tester.pumpAndSettle();
+}
+
+/// The units the screen under test speaks in.
+UnitSystem _units(WidgetTester tester) =>
+    ProviderScope.containerOf(tester.element(find.byType(MaterialApp).first))
+        .read(unitSystemProvider);
+
+/// A finder that answers with those of [stops] in the box asked about, of
+/// the kinds asked for.
+StopsFinder _finderOf(List<SearchResult> stops) =>
+    (box, kinds, limit, {ranked = false}) async => [
+      for (final s in stops)
+        if (box.contains(s.position) && kinds.contains(s.detail)) s,
+    ];
+
+/// A ride under way at [at].
+RecordingSnapshot _riding(LatLng at) => RecordingSnapshot(
+  rideId: 'ride-1',
+  status: RecordingStatus.active,
+  startedAt: DateTime.utc(2026, 11, 6, 10),
+  lastPosition: at,
+);
+
+/// The camera comes to rest over [view], zoomed in, and the stops in it are
+/// asked for.
+Future<void> _lookAt(
+  WidgetTester tester,
+  TestMapController map,
+  BoundingBox view,
+) async {
+  map
+    ..zoom = 14
+    ..center = view.center
+    ..visibleBounds = view;
+  for (final listener in [...map.cameraIdleListeners]) {
+    listener();
+  }
+  await tester.pump(stopsDebounce * 2);
   await tester.pumpAndSettle();
 }
 
@@ -170,7 +215,10 @@ void main() {
     final h = await pumpRecordingScreen(
       tester,
       const RecordingScreen(),
-      preferences: const <String, Object>{'map.stops.shown': true},
+      preferences: const <String, Object>{
+        'map.stops.shown': true,
+        'map.stops.aheadLine': true,
+      },
       extraOverrides: [
         noMirrorOverride,
         activeGuidedRouteProvider.overrideWithValue(
@@ -188,9 +236,23 @@ void main() {
 
     expect(h.map.stops.map((s) => s.name), <String>['', 'Café Rad']);
     expect(find.byType(StopsAheadLine), findsOneWidget);
+    // Nearest first, each with its distance along the route.
     expect(
-      find.textContaining(gazetteerPoiKindLabel(l10n, 'drinking_water')!),
+      find.text(
+        l10n.mapStopAhead(
+          gazetteerPoiKindLabel(l10n, 'drinking_water')!,
+          formatDistance(l10n, _units(tester), 2000),
+        ),
+      ),
       findsOneWidget,
+    );
+    expect(
+      tester
+          .getTopLeft(find.byKey(const ValueKey('stop-ahead-drinking_water')))
+          .dx,
+      lessThan(
+        tester.getTopLeft(find.byKey(const ValueKey('stop-ahead-cafe'))).dx,
+      ),
     );
     expect(
       find.textContaining(gazetteerPoiKindLabel(l10n, 'cafe')!),
@@ -585,7 +647,10 @@ void main() {
       const RecordingScreen(),
       harness: harness,
       surfaceSize: const Size(360, 780),
-      preferences: const <String, Object>{'map.stops.shown': true},
+      preferences: const <String, Object>{
+        'map.stops.shown': true,
+        'map.stops.aheadLine': true,
+      },
       extraOverrides: [
         noMirrorOverride,
         activeGuidedRouteProvider.overrideWithValue(
@@ -655,6 +720,281 @@ void main() {
     expect(
       container.read(areaHintDismissalsProvider),
       contains(const TileName(10, 45)),
+    );
+  });
+
+  group('Record: the line of next stops', () {
+    const mPerLon = 111195 * 0.66913;
+    final line = <LatLng>[
+      for (var m = 0.0; m <= 20000; m += 500) LatLng(48, 11 + m / mPerLon),
+    ];
+    LatLng beside(double km) => LatLng(48.0004, 11 + km * 1000 / mPerLon);
+    final along = <SearchResult>[
+      _stop('', beside(2), 'drinking_water'),
+      _stop('Café Rad', beside(5), 'cafe'),
+    ];
+
+    testWidgets('is off until switched on: the stops are on the map, the '
+        'line is not', (tester) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const <String, Object>{'map.stops.shown': true},
+        extraOverrides: [
+          noMirrorOverride,
+          activeGuidedRouteProvider.overrideWithValue(
+            GuidedRoute(key: 'r1', line: line, turns: const []),
+          ),
+          mapStopsFinderProvider.overrideWithValue(_finderOf(along)),
+        ],
+      );
+      await tester.pumpAndSettle();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(RecordingScreen)),
+      );
+
+      expect(container.read(mapStopsPreferencesProvider).aheadLine, isFalse);
+      expect(h.map.stops, hasLength(2));
+      expect(find.byType(StopsAheadLine), findsNothing);
+
+      await container
+          .read(mapStopsPreferencesProvider.notifier)
+          .setAheadLine(true);
+      await tester.pumpAndSettle();
+      expect(find.byType(StopsAheadLine), findsOneWidget);
+    });
+
+    testWidgets('with the stops off, no line, though it is switched on', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const <String, Object>{'map.stops.aheadLine': true},
+        extraOverrides: [
+          noMirrorOverride,
+          activeGuidedRouteProvider.overrideWithValue(
+            GuidedRoute(key: 'r1', line: line, turns: const []),
+          ),
+          mapStopsFinderProvider.overrideWithValue(_finderOf(along)),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      expect(h.map.stops, isEmpty);
+      expect(find.byType(StopsAheadLine), findsNothing);
+      expect(find.textContaining(l10n.mapStopAhead('', '')), findsNothing);
+    });
+
+    testWidgets('in the area, lists the nearest stop of each kind from the '
+        'rider, nearest first, in a straight line', (tester) async {
+      const rider = LatLng(48.05, 11.05);
+      // 1.1 km and 0.55 km north, 0.37 km east of the rider; a second
+      // fountain further off than the first is not listed.
+      final fountain = _stop(
+        'Brunnen',
+        const LatLng(48.06, 11.05),
+        'drinking_water',
+      );
+      final farFountain = _stop(
+        'Ferner Brunnen',
+        const LatLng(48.09, 11.05),
+        'drinking_water',
+      );
+      final cafe = _stop('Café', const LatLng(48.055, 11.05), 'cafe');
+      final toilets = _stop('WC', const LatLng(48.05, 11.055), 'toilets');
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const <String, Object>{
+          'map.stops.shown': true,
+          'map.stops.aheadLine': true,
+        },
+        extraOverrides: [
+          noMirrorOverride,
+          activeGuidedRouteProvider.overrideWithValue(null),
+          mapStopsFinderProvider.overrideWithValue(
+            _finderOf([farFountain, fountain, cafe, toilets]),
+          ),
+        ],
+      );
+      await emitSnapshot(tester, h, _riding(rider));
+      await _lookAt(
+        tester,
+        h.map,
+        const BoundingBox(south: 48, west: 11, north: 48.1, east: 11.1),
+      );
+
+      expect(h.map.stops, hasLength(4));
+      expect(find.byType(StopsAheadLine), findsOneWidget);
+      String away(String kind, LatLng at) => l10n.mapStopAway(
+        gazetteerPoiKindLabel(l10n, kind)!,
+        formatDistance(l10n, _units(tester), haversineMeters(rider, at)),
+      );
+      final entries = [
+        away('toilets', toilets.position),
+        away('cafe', cafe.position),
+        away('drinking_water', fountain.position),
+      ];
+      for (final entry in entries) {
+        expect(find.text(entry), findsOneWidget, reason: entry);
+      }
+      expect(
+        find.text(away('drinking_water', farFountain.position)),
+        findsNothing,
+      );
+      // In reading order, as the line wraps.
+      expect(
+        [
+          for (final entry in tester.widgetList<InkWell>(
+            find.descendant(
+              of: find.byType(StopsAheadLine),
+              matching: find.byType(InkWell),
+            ),
+          ))
+            entry.key,
+        ],
+        const [
+          ValueKey('stop-ahead-toilets'),
+          ValueKey('stop-ahead-cafe'),
+          ValueKey('stop-ahead-drinking_water'),
+        ],
+      );
+      expect(find.bySemanticsLabel(l10n.mapStopsNearby), findsOneWidget);
+
+      // The rider moves on: the distances are from where they are now.
+      await emitSnapshot(tester, h, _riding(fountain.position));
+      expect(
+        find.text(
+          l10n.mapStopAway(
+            gazetteerPoiKindLabel(l10n, 'drinking_water')!,
+            formatDistance(l10n, _units(tester), 0),
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('on a followed route set to the area, lists the nearest '
+        'from the rider too', (tester) async {
+      final fountain = _stop(
+        'Brunnen',
+        const LatLng(48.06, 11.05),
+        'drinking_water',
+      );
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const <String, Object>{
+          'map.stops.shown': true,
+          'map.stops.aheadLine': true,
+          'map.stops.alongRoute': false,
+        },
+        extraOverrides: [
+          noMirrorOverride,
+          activeGuidedRouteProvider.overrideWithValue(
+            GuidedRoute(key: 'r1', line: line, turns: const []),
+          ),
+          mapStopsFinderProvider.overrideWithValue(_finderOf([fountain])),
+        ],
+      );
+      await emitSnapshot(tester, h, _riding(const LatLng(48.05, 11.05)));
+      await _lookAt(
+        tester,
+        h.map,
+        const BoundingBox(south: 48, west: 11, north: 48.1, east: 11.1),
+      );
+
+      expect(
+        find.text(
+          l10n.mapStopAway(
+            gazetteerPoiKindLabel(l10n, 'drinking_water')!,
+            formatDistance(
+              l10n,
+              _units(tester),
+              haversineMeters(const LatLng(48.05, 11.05), fountain.position),
+            ),
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
+  testWidgets('Plan: along the planned route the stops are those beside the '
+      'whole of it, not those on screen; in the area, those on screen', (
+    tester,
+  ) async {
+    const mPerLon = 111195 * 0.66913;
+    // 60 km east along 48° N: past the 50 km a ride looks ahead.
+    final points = <TrackPoint>[
+      for (var m = 0.0; m <= 60000; m += 500)
+        TrackPoint(LatLng(48, 11 + m / mPerLon)),
+    ];
+    LatLng beside(double km) => LatLng(48.0004, 11 + km * 1000 / mPerLon);
+    final near = _stop('Am Weg', beside(3), 'drinking_water');
+    final farAlong = _stop('Weit am Weg', beside(55), 'cafe');
+    // On screen, but 600 m off the route.
+    final offRoute = _stop(
+      'Abseits',
+      const LatLng(48.006, 11.05),
+      'drinking_water',
+    );
+    final harness = PlannerHarness();
+    harness.backend.result = RouteResult(
+      geometry: points,
+      lengthM: 60000,
+      ascentM: 0,
+      descentM: 0,
+      messages: const [],
+      raw: const {},
+    );
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      extraOverrides: [
+        noMirrorOverride,
+        mapStopsFinderProvider.overrideWithValue(
+          _finderOf([near, farAlong, offRoute]),
+        ),
+      ],
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    final prefs = container.read(mapStopsPreferencesProvider.notifier);
+    await prefs.setShown(true);
+    // Even switched on, the line of next stops is the ride screen's.
+    await prefs.setAheadLine(true);
+    // The route runs along the top of the map, clear of the sheet.
+    const view = BoundingBox(south: 47.9, west: 11, north: 48.01, east: 11.1);
+    await _lookAt(tester, h.map, view);
+    expect(
+      h.map.stops.map((s) => s.name),
+      unorderedEquals(<String>['Am Weg', 'Abseits']),
+    );
+
+    container
+        .read(plannerControllerProvider.notifier)
+        .addWaypoint(points.first.pos);
+    container
+        .read(plannerControllerProvider.notifier)
+        .addWaypoint(points.last.pos);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    await _lookAt(tester, h.map, view);
+
+    expect(container.read(mapStopsPreferencesProvider).alongRoute, isTrue);
+    expect(h.map.stops.map((s) => s.name), <String>['Am Weg', 'Weit am Weg']);
+    expect(find.byType(StopsAheadLine), findsNothing);
+
+    await prefs.setAlongRoute(false);
+    await tester.pump();
+    await _lookAt(tester, h.map, view);
+    expect(
+      h.map.stops.map((s) => s.name),
+      unorderedEquals(<String>['Am Weg', 'Abseits']),
     );
   });
 }

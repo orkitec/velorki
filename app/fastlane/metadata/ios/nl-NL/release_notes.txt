@@ -1,9 +1,4 @@
-• Makkelijker beginnen: Velorki vraagt je locatie, opent de kaart boven je land met fietspaden en stops, en laat zien waar je begint.
-• De handleiding staat nu in de app, in je eigen taal en offline: Instellingen → Handleiding.
-• Meteen op pad: ‘Rijden’ naast ‘Opslaan’ start de opname en leidt je langs de route die je plande.
-• Een stop toevoegen onderweg: tik op een café, winkel of waterpunt op de kaart en voeg het toe aan je route. De navigatie gaat door terwijl de route opnieuw wordt berekend.
-• Meer op de kaart: stations, bus-, tram- en veerhaltes, apotheken, ziekenhuizen, picknickplekken, uitzichtpunten, stranden en binnenbandautomaten. Zoek ‘bus’, ‘trein’ of ‘veer’ om de dichtstbijzijnde te vinden.
-• Downloads gebeuren op de kaart zelf: het gebied, het zoeken en de gegevens die een route nodig heeft, met voortgang en een knop om te stoppen.
-• Kaartgegevens worden alleen bijgewerkt als er in je gebied echt iets veranderd is, en een melding boven de kaart zegt het je.
-• Een tik op de kaart tijdens het zoeken sluit alleen het zoeken.
-• Colofon in Instellingen → Over.
+• Stopplekken langs je route al tijdens het plannen: kies in Kaartlagen → Stopplekken „Langs de route" en zie drinkwater, cafés, toiletten en meer bij de route die je plant, van start tot finish.
+• „Langs de route" of „In dit gebied" staat nu altijd in Kaartlagen → Stopplekken, elk met een regel die zegt wat het laat zien.
+• De regel met volgende stopplekken tijdens het fietsen heeft nu een eigen schakelaar in Kaartlagen → Stopplekken, eerst uit. Zonder route toont hij de dichtstbijzijnde stopplek van elk soort om je heen.
+• Gesproken aanwijzingen zwijgen tijdens een telefoongesprek.

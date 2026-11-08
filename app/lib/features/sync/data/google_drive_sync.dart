@@ -8,33 +8,19 @@ import 'package:velorki_io/io.dart';
 import '../../../app/app_config.dart';
 import '../../../core/files/app_directories.dart';
 import 'cloud_store.dart';
-import 'drive_cloud_store.dart';
-import 'google_account.dart';
 import 'store_sync_backend.dart';
 import 'sync_backend.dart';
 
 part 'google_drive_sync.g.dart';
 
 /// The hidden app data folder of the rider's Google Drive as a
-/// [CloudStore], or null where Google sync is not offered (no sign-in on
-/// the platform). The store outlives the account: signed out, its
-/// account id is null and the engine syncs nothing.
+/// [CloudStore], or null where Google sync is not offered.
+///
+/// Null is the default: the Drive client is `googleapis` over a Google
+/// sign-in, so `main.dart` and `bootstrap_web.dart` install the real store
+/// with `googleDriveStoreOverride` and the F-Droid entry point does not.
 @Riverpod(keepAlive: true)
-CloudStore? googleDriveStore(Ref ref) {
-  final service = ref.watch(googleSignInServiceProvider);
-  if (service == null) return null;
-  return DriveCloudStore(
-    auth: GoogleDriveAuth(
-      account: () => ref.read(googleAccountControllerProvider),
-      service: service,
-      onLost: () => ref.read(googleAccountControllerProvider.notifier).lost(),
-    ),
-    state: PrefsSyncEngineState(
-      ref.watch(sharedPreferencesProvider),
-      prefix: 'sync.google.drive.',
-    ),
-  );
-}
+CloudStore? googleDriveStore(Ref ref) => null;
 
 /// Where a [StoreSyncBackend] writes the bodies it fetched, for the codec
 /// to read and delete.

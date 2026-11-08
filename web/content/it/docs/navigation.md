@@ -104,7 +104,7 @@ Mentre un giro segue un percorso, tocca una sosta sulla mappa (un caffè, una fo
 - **Mostra la mia posizione** riprende a seguirti dopo che hai spostato la mappa, al consueto zoom a livello di strada.
 - Mentre sei sul percorso il segnaposto della posizione è disegnato sul percorso e orientato lungo di esso, invece di vagare con il segnale.
 - Anche i punti del percorso sono sulla mappa: la partenza, la destinazione con la sua bandierina, ogni sosta con un nome o un tipo, e i luoghi accanto al percorso. Un punto che dà solo forma alla linea è omesso. Le soste che hai superato sbiadiscono, e restano sbiadite se torni indietro. Dopo un nuovo percorso alla destinazione, i segnaposto sono ancora quelli del tuo percorso.
-- Con **Soste** attivo sotto **Livelli**, sulla mappa ci sono le soste accanto al percorso davanti a te, e una riga elenca la prossima di ogni tipo con la sua distanza; vedi [soste sulla mappa](./stops-on-the-map#lungo-il-percorso-davanti-a-te).
+- Con **Soste** attivo sotto **Livelli**, sulla mappa ci sono le soste accanto al percorso davanti a te, e con **Prossime soste mentre pedali** acceso una riga elenca la prossima di ogni tipo con la sua distanza; vedi [soste sulla mappa](./stops-on-the-map#lungo-il-percorso-davanti-a-te).
 
 ## Vedi anche
 

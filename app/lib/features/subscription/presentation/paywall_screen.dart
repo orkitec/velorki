@@ -153,7 +153,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               ),
             ),
           ],
-          if (storePurchases) ...[
+          // The store's renewal terms belong to a purchase this build can
+          // actually make: a browser sells nothing, and neither does a build
+          // with no store SDK (the F-Droid flavour), where naming Google Play
+          // would send the rider somewhere this app cannot go.
+          if (storePurchases && available) ...[
             const SizedBox(height: 24),
             Text(
               plusLegalText(l10n, theme.platform),

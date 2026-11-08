@@ -14,6 +14,8 @@ import 'package:velorki/features/recording/domain/recording_state.dart';
 import 'package:velorki/features/settings/data/package_info_provider.dart';
 import 'package:velorki/features/store_prompts/application/calm_moment.dart';
 import 'package:velorki/features/store_prompts/application/update_notices.dart';
+import 'package:velorki/features/store_prompts/data/play_store_services.dart'
+    show playStorePageUrl;
 import 'package:velorki/features/store_prompts/data/store_services.dart';
 import 'package:velorki/features/store_prompts/presentation/store_update_dialog.dart';
 

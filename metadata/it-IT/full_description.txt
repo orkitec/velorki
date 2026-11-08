@@ -1,0 +1,45 @@
+Velorki pianifica i tuoi percorsi in bici, ti guida lungo il tragitto e registra i tuoi giri, tutto sul telefono e anche offline. Navigatore bici, pianificatore di percorsi, tracker e ciclocomputer in un'unica app open source. Nessun account, nessuna registrazione, niente pubblicità, niente tracciamento.
+
+I percorsi vengono calcolati sul telefono da una versione di BRouter, il motore di calcolo su cui si basano molte app per la bici, con i dati di OpenStreetMap. Scarica una regione una volta e potrai pianificare, cercare e navigare lì senza connessione.
+
+Per andare al lavoro, viaggiare e fare bikepacking, allenarti su strada, andare in gravel o in mountain bike. Un vecchio telefono Android senza SIM e senza servizi Google diventa un ottimo ciclocomputer sul manubrio: una mappa ciclabile offline, la navigazione e i sensori Bluetooth, su un solo dispositivo.
+
+PIANIFICA
+• Tocca la mappa per aggiungere punti e ottieni un percorso per la tua bici: trekking, bici da corsa, gravel, MTB o il più diretto.
+• Anelli da casa tua: di' quanti chilometri vuoi fare e Velorki propone giri che tornano al punto di partenza.
+• Percorsi alternativi, profilo altimetrico e i fondi su cui pedalerai.
+• Colora il percorso per pendenza, fondo, vento o pioggia.
+• Cerca luoghi offline e salva i percorsi nella tua libreria.
+
+MAPPA E METEO
+• Una mappa ciclabile offline: piste e corsie ciclabili, sensi unici, scalinate e salite.
+• Soste sulla mappa: acqua potabile, bar, panetterie, bagni, riparazione bici e altro.
+• Radar pioggia, vento e nuvole con un cursore del tempo, e il vento e la pioggia lungo il percorso per l'ora in cui parti.
+
+NAVIGAZIONE
+• Indicazioni svolta per svolta con istruzioni vocali, anche a schermo bloccato, anche per i percorsi GPX che importi.
+• Esci dal percorso e scegli cosa succede: una strada per tornarci, un nuovo percorso verso la destinazione, oppure niente.
+• Le istruzioni vocali usano la sintesi vocale del telefono. Un telefono che non ce l'ha deve installarne una, per esempio eSpeak NG o RHVoice.
+
+REGISTRA
+• Registra a schermo spento, con pausa automatica.
+• Scegli cosa vedere mentre pedali: distanza, velocità, tempo, dislivello, frequenza cardiaca, cadenza, potenza, quanto manca alla fine del percorso.
+• Frequenza cardiaca, velocità, cadenza e potenza dai sensori Bluetooth, e giri salvati in Health Connect se vuoi.
+• Ogni giro ha la sua pagina con mappa, grafici e parziali.
+
+FILE
+• Apri file GPX, FIT e TCX, ed esporta percorsi e giri in GPX, FIT o TCX.
+
+PRIVACY
+Niente pubblicità, niente statistiche, niente segnalazioni di arresti anomali, nessun account e nessuna IA addestrata sui tuoi dati. I tuoi percorsi e i tuoi giri restano sul telefono. Velorki parla solo con i servizi che disegnano la mappa, forniscono il meteo e cercano i luoghi, e con il proprio mirror di tile per le regioni che scarichi.
+
+La schermata si adatta ai tablet e al telefono tenuto in orizzontale. Velorki è disponibile in italiano, inglese, tedesco, francese, spagnolo e olandese.
+
+QUESTA VERSIONE
+Questa è la versione per F-Droid, costruita senza librerie proprietarie. Non ha la sincronizzazione con Google Drive, né Velorki Plus (l'assistente IA, i link di condivisione e il meteo più preciso), né i collegamenti a Strava o Ride with GPS. Tutto il resto funziona come in ogni altra versione.
+
+Le regioni offline arrivano dal mirror di tile di Velorki su GitHub, lo stile della mappa da OpenFreeMap e la ricerca dei luoghi online da Photon.
+
+Sito web: https://velorki.com
+Codice sorgente (AGPL-3.0): https://github.com/orkitec/velorki
+Dati della mappa © i contributori di OpenStreetMap.

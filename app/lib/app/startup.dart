@@ -1,0 +1,173 @@
+import 'dart:async';
+import 'dart:developer' as developer;
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:logging/logging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../core/files/track_exporter.dart';
+import '../core/files/track_exporter_impl.dart';
+import '../features/import_export/application/incoming_import_listener.dart';
+import '../features/integrations/common/data/external_route_cache.dart';
+import '../features/integrations/common/data/oauth_flow.dart';
+import '../features/integrations/application/connections_controller.dart';
+import '../features/integrations/application/strava_route_checks.dart';
+import '../features/integrations/rwgps/application/rwgps_link_listener.dart';
+import '../features/planner/application/incoming_place.dart';
+import '../features/map/presentation/map_view.dart';
+import '../features/planner/presentation/planner_map_host.dart';
+import '../features/recording/application/recovery_on_launch.dart';
+import '../features/recording/data/recording_recovery.dart';
+import '../features/routing_tiles/application/routing_tiles_startup.dart';
+import '../features/sensors/application/ble_sources_controller.dart';
+import '../features/sensors/application/sensor_sources_controller.dart';
+import '../features/sensors/application/watch_ride_bridge.dart';
+import '../features/sharing/application/share_link_listener.dart';
+import '../features/store_prompts/application/review_prompts.dart';
+import '../features/store_prompts/application/update_notices.dart';
+import '../features/subscription/application/subscription_controller.dart';
+import '../features/sync/application/cloud_sync_controller.dart';
+import 'app.dart';
+import 'app_config.dart';
+import 'licenses.dart';
+import 'router.dart';
+
+/// The app's start on a phone or a tablet, whatever the flavour.
+///
+/// [overrides] are the services this build has beyond the free ones every
+/// build has: `bootstrap.dart` passes the proprietary plugins' providers and
+/// `main_fdroid.dart` passes nothing, which is what keeps those plugins out
+/// of the F-Droid build's Dart graph — and so lets the build drop them from
+/// `pubspec.yaml` altogether. See `docs/FDROID.md`.
+Future<void> startVelorki({List<Override> overrides = const []}) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  initLogging();
+
+  // Map data, tiles, routing and search are not pub packages, so their
+  // licences have to be added to the ones Flutter collects by itself.
+  registerVelorkiLicenses();
+
+  configureMapRendering();
+
+  final prefs = await SharedPreferences.getInstance();
+
+  final container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      // The real map; every screen reaches it through PlannerMapHost so no
+      // screen imports maplibre, and widget tests keep the placeholder.
+      mapViewBuilderProvider.overrideWithValue(
+        (onReady) => MapView(onControllerReady: onReady),
+      ),
+      // The real share sheet; widget tests keep the throwing default or
+      // override it with a recorder.
+      trackExporterProvider.overrideWithValue(ShareTrackExporter()),
+      ...overrides,
+    ],
+  );
+
+  // Looks for a ride that was left unfinished by a crash or a force quit;
+  // when there is one the Record tab comes up at once and asks, or shows the
+  // ride that is still running.
+  unawaited(RecordingRecovery.checkOnLaunch());
+  showRecoveryOnLaunch(container);
+
+  // Strava's API terms allow its data to be cached for seven days. Enforcing
+  // that at launch means the rule holds even for an app that is never opened
+  // on the Strava screen again.
+  unawaited(container.read(externalRouteListCacheProvider).purgeExpired());
+
+  // Subscribes the OAuth flows to the deep-link stream before anything can
+  // arrive: on Android the app can be resumed by the callback intent itself.
+  container.read(oauthDeepLinksProvider);
+
+  // Configures RevenueCat and keeps the Plus entitlement in step with it;
+  // nothing waits for the store, the gated screens simply react when the
+  // answer arrives.
+  startSubscriptions(container);
+
+  // Copies the bundled BRouter profiles out of the app package and reconciles
+  // the downloaded rd5 tiles with what is on disk, so the planner can route on
+  // the device as soon as both are done.
+  prepareOnDeviceRouting(container);
+
+  // Watches the Health switch and the recorder, and registers the health
+  // source with the hub while both are on. Read here because a provider
+  // nobody reads is a provider that never exists; with the switch off it
+  // touches neither the plugin nor the operating system.
+  container.read(sensorSourcesProvider);
+
+  // The other half of the same rule for the watch: with the Apple Watch
+  // switch off this registers nothing, sends nothing and wakes no watch.
+  container.read(watchRideBridgeProvider);
+  // A ride started from the wrist brings the Record tab up: the phone comes
+  // out of the pocket showing the ride, not the planner it was left on.
+  container.listen(watchRideStartsProvider, (previous, next) {
+    if (previous != null && next > previous) {
+      container.read(routerProvider).go(recordingRoute);
+    }
+  });
+
+  // And for the Bluetooth sensors: with nothing paired this never reaches the
+  // radio, and even with something paired it only connects while a ride
+  // records or the rider has the sensors screen open.
+  container.read(bleSourcesProvider);
+
+  // Attached before the first frame so a file the app was launched with is
+  // not missed.
+  listenForIncomingImports(container);
+
+  // The other half of the deep-link stream: velorki://share/<id> fetches the
+  // shared GPX and sends it into the same import preview.
+  listenForShareLinks(container);
+  // ...and a Ride with GPS route link shared into the app fetches that
+  // route's GPX the same way.
+  listenForRwgpsLinks(container);
+  // A place sent from another app (a geo: intent, velorki://navigate, a map
+  // link or text shared into the app) opens in the planner.
+  listenForIncomingLocations(container);
+  // A rider who removed Velorki's access on strava.com: the Strava data on
+  // the phone goes, as a disconnect would take it.
+  listenForStravaRevocation(container);
+  // Routes read from Strava are a cache: checked against Strava every 48
+  // hours, dropped when gone or unchecked for a week.
+  startStravaRouteChecks(container);
+  // iCloud sync of the library and a few settings, on iOS 17 and later
+  // while the switch is on; nothing anywhere else. Listened to rather than
+  // read: a provider nobody listens to is paused, and this one has to
+  // follow the switch.
+  container.listen(cloudSyncControllerProvider, (_, _) {});
+  // The store's rating dialog after the third ride or the fifth route, and
+  // a notice when the store has a newer version; neither in a browser, and
+  // neither while a ride records.
+  startReviewPrompts(container);
+  startUpdateNotices(container);
+
+  runApp(
+    UncontrolledProviderScope(container: container, child: const VelorkiApp()),
+  );
+}
+
+void initLogging() {
+  Logger.root.level = kReleaseMode ? Level.INFO : Level.ALL;
+  Logger.root.onRecord.listen((record) {
+    // developer.log reaches a debugger and nothing else; iCloud sync is
+    // only seen working between two real devices, so outside debug builds
+    // its lines (record names and decisions, never content) go to the
+    // device log too: `idevicesyslog -p Runner | grep velorki`.
+    if (!kDebugMode && record.loggerName.startsWith('velorki.sync')) {
+      debugPrint('${record.loggerName}: ${record.message}');
+    }
+    developer.log(
+      record.message,
+      time: record.time,
+      level: record.level.value,
+      name: record.loggerName,
+      error: record.error,
+      stackTrace: record.stackTrace,
+    );
+  });
+}

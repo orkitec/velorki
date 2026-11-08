@@ -116,6 +116,7 @@ class CyclosmOverlay extends _$CyclosmOverlay {
 const String _prefsStopsShown = 'map.stops.shown';
 const String _prefsStopsKinds = 'map.stops.kinds';
 const String _prefsStopsAlongRoute = 'map.stops.alongRoute';
+const String _prefsStopsAheadLine = 'map.stops.aheadLine';
 
 /// The kinds of stop shown until the rider picks their own: what a ride
 /// most often stops for.
@@ -128,8 +129,8 @@ const Set<String> defaultStopKinds = <String>{
 };
 
 /// What the map's Layers sheet says about stops: whether they are shown,
-/// which kinds, and, on a guided ride, whether along the route ahead or in
-/// the part of the map on screen.
+/// which kinds, whether along a route or in the part of the map on screen,
+/// and whether the ride screen lists the next of them.
 @immutable
 class MapStopsSettings {
   /// Creates the preferences.
@@ -137,6 +138,7 @@ class MapStopsSettings {
     this.shown = true,
     this.kinds = defaultStopKinds,
     this.alongRoute = true,
+    this.aheadLine = false,
   });
 
   /// Whether stops are drawn at all.
@@ -145,19 +147,25 @@ class MapStopsSettings {
   /// The gazetteer POI kinds shown, `drinking_water`, `cafe` and so on.
   final Set<String> kinds;
 
-  /// On a guided ride, whether the stops are the ones beside the route still
-  /// ahead rather than the ones in the area on screen.
+  /// With a route to be along (a planned one, or one followed on a ride),
+  /// whether the stops are the ones beside it rather than the ones in the
+  /// area on screen.
   final bool alongRoute;
+
+  /// Whether the ride screen lists the next stop of each kind over its map.
+  final bool aheadLine;
 
   /// A copy with the named fields replaced.
   MapStopsSettings copyWith({
     bool? shown,
     Set<String>? kinds,
     bool? alongRoute,
+    bool? aheadLine,
   }) => MapStopsSettings(
     shown: shown ?? this.shown,
     kinds: kinds ?? this.kinds,
     alongRoute: alongRoute ?? this.alongRoute,
+    aheadLine: aheadLine ?? this.aheadLine,
   );
 
   @override
@@ -165,16 +173,17 @@ class MapStopsSettings {
       other is MapStopsSettings &&
       other.shown == shown &&
       other.alongRoute == alongRoute &&
+      other.aheadLine == aheadLine &&
       setEquals(other.kinds, kinds);
 
   @override
   int get hashCode =>
-      Object.hash(shown, alongRoute, Object.hashAllUnordered(kinds));
+      Object.hash(shown, alongRoute, aheadLine, Object.hashAllUnordered(kinds));
 
   @override
   String toString() =>
       'MapStopsSettings(shown: $shown, kinds: ${kinds.join(',')}, '
-      'alongRoute: $alongRoute)';
+      'alongRoute: $alongRoute, aheadLine: $aheadLine)';
 }
 
 /// The stops the map shows, remembered across launches.
@@ -188,6 +197,9 @@ class MapStopsPreferences extends _$MapStopsPreferences {
       shown: prefs.getBool(_prefsStopsShown) ?? true,
       kinds: kinds == null ? defaultStopKinds : Set<String>.unmodifiable(kinds),
       alongRoute: prefs.getBool(_prefsStopsAlongRoute) ?? true,
+      // Off until the rider asks for it: a line over the ride map is chrome
+      // not every rider wants.
+      aheadLine: prefs.getBool(_prefsStopsAheadLine) ?? false,
     );
   }
 
@@ -211,12 +223,20 @@ class MapStopsPreferences extends _$MapStopsPreferences {
         .setStringList(_prefsStopsKinds, kinds.toList()..sort());
   }
 
-  /// On a guided ride, along the route ahead or in the area on screen.
+  /// With a route to be along, along it or in the area on screen.
   Future<void> setAlongRoute(bool value) async {
     state = state.copyWith(alongRoute: value);
     await ref
         .read(sharedPreferencesProvider)
         .setBool(_prefsStopsAlongRoute, value);
+  }
+
+  /// Lists the next stops on the ride screen, or stops listing them.
+  Future<void> setAheadLine(bool value) async {
+    state = state.copyWith(aheadLine: value);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool(_prefsStopsAheadLine, value);
   }
 }
 

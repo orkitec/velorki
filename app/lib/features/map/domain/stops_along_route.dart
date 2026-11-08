@@ -9,6 +9,10 @@ const double stopsCorridorM = 300;
 /// How far ahead of the rider the route is searched for stops, in metres.
 const double stopsAheadMaxM = 50000;
 
+/// A stop and how far the rider has to go to it: along the route, or in a
+/// straight line from where they are.
+typedef StopDistance<T> = ({T stop, double distanceM});
+
 /// One stop beside the route still ahead: where it meets the route, how far
 /// off the route it is, and how far ahead of the rider.
 class StopAlongRoute<T> {

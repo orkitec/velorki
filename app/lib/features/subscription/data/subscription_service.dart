@@ -1,19 +1,22 @@
 import 'dart:async';
 
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app_config.dart';
-import '../../../core/plus/app_user_id.dart';
 import '../domain/plus_subscription.dart';
-import 'revenuecat_subscription_service.dart';
 
 /// The store subscription, behind one small interface.
 ///
 /// Everything above this line — the paywall, the settings tile, the gates —
 /// works in terms of [PlusCustomerInfo] and [PlusPackage]. Below it there are
-/// exactly two implementations: [RevenueCatSubscriptionService] for builds
+/// exactly two implementations: `RevenueCatSubscriptionService` for builds
 /// that carry a RevenueCat key, and [NoopSubscriptionService] for forks, for
-/// CI and for the desktop test VM.
+/// CI and for the desktop test VM. This file knows only the second one: the
+/// store SDK is reached from `main.dart` alone, so a build without it (the
+/// F-Droid flavour, `main_fdroid.dart`) never compiles the plugin in.
 abstract interface class SubscriptionService {
   /// Whether this build can actually sell anything.
   ///
@@ -115,6 +118,12 @@ class NoopSubscriptionService implements SubscriptionService {
   void dispose() {}
 }
 
+/// The platform name [revenueCatKeyFor] picks a key by.
+///
+/// Split out so tests can name a platform without a device; on the desktop VM
+/// this answers `linux`, which has no key and therefore no store.
+String currentStorePlatform() => kIsWeb ? 'web' : Platform.operatingSystem;
+
 /// The RevenueCat public SDK key for the platform this build runs on, or `''`
 /// when there is none.
 String revenueCatKeyFor(AppConfig config, {required String platform}) =>
@@ -124,27 +133,16 @@ String revenueCatKeyFor(AppConfig config, {required String platform}) =>
       _ => '',
     };
 
-/// The subscription service this build runs with.
+/// The subscription service this build runs with: none of its own.
 ///
-/// Kept alive for the process: the SDK is configured once and its customer
-/// info listener has to outlive every screen. Widget tests override this with
-/// a fake and never touch a platform channel.
-final subscriptionServiceProvider = Provider<SubscriptionService>((ref) {
-  final config = ref.watch(appConfigProvider);
-  final platform = currentStorePlatform();
-  final key = revenueCatKeyFor(config, platform: platform);
-  if (key.isEmpty) return const NoopSubscriptionService();
-  final service = RevenueCatSubscriptionService(
-    apiKey: key,
-    platform: platform,
-    // The same id the relay authenticates against, so RevenueCat's customer
-    // and the `Authorization: Bearer <app_user_id>` the app sends are one
-    // and the same subscriber.
-    appUserId: ref.watch(appUserIdProvider),
-  );
-  ref.onDispose(service.dispose);
-  return service;
-});
+/// `main.dart` overrides this with the RevenueCat service wherever this build
+/// carries a key (`storeSubscriptionOverride`); nothing else does, so neither
+/// the F-Droid flavour nor a widget test reaches the store SDK. Kept alive for
+/// the process: the SDK is configured once and its customer info listener has
+/// to outlive every screen.
+final subscriptionServiceProvider = Provider<SubscriptionService>(
+  (ref) => const NoopSubscriptionService(),
+);
 
 /// The store account's country, as [SubscriptionService.storeCountry] says;
 /// asked once per process.

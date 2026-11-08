@@ -11,6 +11,8 @@ Velorki kan de plekken waar een rit stopt op de kaart tekenen: drinkwater, café
 **Kaartlagen** staat in de kolom knoppen rechts op de kaart, op het tabblad Plannen en Opnemen. Het paneel bevat de fietskaarten, zie [kaartlagen](./map-layers), en de stopplekken:
 
 - **Stopplekken**, een schakelaar, aan tot je hem uitzet. Eronder de soorten die je wilt zien, per groep: **Stops onderweg**, **Overnachten**, **Natuur**, **Vervoer**, **Voorzieningen** en **Bezienswaardigheden**. Tik op een soort om hem te tonen of te verbergen. De eerste keer zijn drinkwater, cafés, bakkers, toiletten en fietsreparatiepunten gekozen; de andere soorten staan uit. **Stops onderweg** bevat ook de binnenbandautomaat, **Natuur** de picknickplek, het uitzichtpunt en het strand, **Vervoer** stations (ook halteplaatsen), bus- en tramhaltes, veerhavens en vliegvelden, en **Voorzieningen** de apotheek en het ziekenhuis. Met de schakelaar uit klappen de soorten in; je keuze blijft voor de volgende keer bewaard.
+- **Langs de route** en **In dit gebied**, onder **Stopplekken**, zodra er een route is: een geplande op het tabblad Plannen, of de route die je volgt op het tabblad Opnemen. Elke keuze zegt wat hij toont; hij geldt voor beide tabbladen.
+- **Volgende stopplekken tijdens het fietsen**, onder **Stopplekken** alleen op het tabblad Opnemen, uit tot je het aanzet: de regel met de volgende stopplekken over de kaart, zie hieronder.
 
 ## In het gebied waar je naar kijkt
 
@@ -20,11 +22,20 @@ Is het gebied niet gedownload, dan zegt een chip **Geen stopplekken hier – geb
 
 ## Langs de route vooruit
 
-Met een route gekozen onder **Een route volgen** op het tabblad Opnemen zijn het de stopplekken binnen 300 m van het deel van de route dat nog voor je ligt, tot 50 km, op elke zoom. Een regel over de kaart noemt de eerstvolgende van elke soort met zijn afstand langs de route, "Drinkwater · 2,4 km"; tik op een regel om de stopplek op de kaart te zien. Terwijl de kaart je tijdens een rit volgt, blijft hij bij je en wordt de stopplek alleen uitgelicht.
+Op het tabblad Plannen, met een geplande route en **Langs de route** gekozen, zijn het de stopplekken binnen 300 m van de hele route, van start tot finish, op elke zoom.
 
-Is van de komende 50 km van de route niets gedownload, dan neemt dezelfde chip de plaats van die regel in.
+Op het tabblad Opnemen, met een route gekozen onder **Een route volgen**, zijn het de stopplekken binnen 300 m van het deel van de route dat nog voor je ligt, tot 50 km, op elke zoom. Is van de komende 50 km van de route niets gedownload, dan zegt dezelfde chip dat.
 
-**Langs de route** en **In dit gebied** in het paneel Kaartlagen wisselen tussen de twee.
+Kies **In dit gebied** om in plaats daarvan de stopplekken op het scherm te zien.
+
+## De regel met de volgende stopplekken
+
+Met **Volgende stopplekken tijdens het fietsen** aan noemt een regel over de kaart op het tabblad Opnemen de volgende stopplek van elke soort, de dichtstbijzijnde eerst. Tik op een regel om de stopplek op de kaart te zien. Terwijl de kaart je tijdens een rit volgt, blijft hij bij je en wordt de stopplek alleen uitgelicht.
+
+- Langs een route die je volgt heeft elke regel zijn afstand langs de route, "Drinkwater · 2,4 km".
+- Zonder route, of met **In dit gebied** gekozen, heeft elke regel zijn afstand in rechte lijn vanaf waar je bent, "Drinkwater · op 2,4 km". Dat vraagt een rit die loopt, want daar komt je positie vandaan, en de regel noemt de stopplekken die rond de kaart geladen zijn, dus vanaf zoom 11.
+
+Is het gebied niet gedownload, dan staat de chip die dat zegt op de plaats van de regel.
 
 ## Tik op een stopplek
 

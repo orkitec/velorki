@@ -1,9 +1,4 @@
-• Un primo avvio più semplice: Velorki chiede la tua posizione, apre la mappa sul tuo paese con piste ciclabili e punti di sosta e ti mostra da dove iniziare.
-• La guida ora è nell’app, nella tua lingua e offline: Opzioni → Guida.
-• Parti subito: «Parti» accanto a «Salva» avvia la registrazione e ti guida lungo il percorso pianificato.
-• Aggiungi una sosta durante il giro: tocca un bar, un negozio o una fontanella sulla mappa e aggiungila al percorso. La navigazione continua mentre il percorso viene ricalcolato.
-• Più cose sulla mappa: stazioni, fermate di bus, tram e traghetti, farmacie, ospedali, aree picnic, punti panoramici, spiagge e distributori di camere d'aria. Cerca «bus», «treno» o «traghetto» per trovare il più vicino.
-• I download avvengono direttamente sulla mappa: la zona, la ricerca e i dati che servono a un percorso, con l'avanzamento e un modo per annullare.
-• I dati della mappa si aggiornano solo quando nella tua zona è cambiato davvero qualcosa, e un avviso sulla mappa te lo dice.
-• Un tocco sulla mappa durante la ricerca chiude solo la ricerca.
-• Note legali in Impostazioni → Info.
+• Soste lungo il percorso già mentre pianifichi: in Livelli → Soste scegli "Lungo il percorso" per vedere acqua potabile, bar, bagni e altro vicino al percorso che stai pianificando, dalla partenza all'arrivo.
+• "Lungo il percorso" o "In questa zona" ora è sempre in Livelli → Soste, ognuno con una riga che dice cosa mostra.
+• La riga delle prossime soste mentre pedali ha ora un interruttore tutto suo in Livelli → Soste, spento all'inizio. Senza percorso mostra la sosta più vicina di ogni tipo intorno a te.
+• Le istruzioni vocali tacciono durante una telefonata.

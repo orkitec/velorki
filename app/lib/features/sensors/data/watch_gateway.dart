@@ -1,14 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
-import 'package:logging/logging.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:watch_connectivity/watch_connectivity.dart';
 
 part 'watch_gateway.g.dart';
-
-final Logger _log = Logger('velorki.sensors.watch');
 
 /// What the watch is called in the interface. A brand name, so it reads the
 /// same in every language.
@@ -61,106 +54,15 @@ abstract interface class WatchGateway {
 bool watchSupportedOn(TargetPlatform platform) =>
     platform == TargetPlatform.iOS;
 
-/// [WatchGateway] over the `watch_connectivity` package.
+/// The watch link of this platform, or `null` where there is none — which
+/// is the default, because WatchConnectivity comes through a package with
+/// Google Play code in its Android half.
 ///
-/// Every call is wrapped: a phone with no watch, or a plugin that is not
-/// there, answers "no" instead of throwing into a recording.
-class PluginWatchGateway implements WatchGateway {
-  /// Creates a gateway. [watch] is only injected by this package's own tests.
-  PluginWatchGateway({WatchConnectivity? watch})
-    : _watch = watch ?? WatchConnectivity();
-
-  final WatchConnectivity _watch;
-
-  /// Mirrored in `ios/Runner/AppDelegate.swift`.
-  static const MethodChannel _channel = MethodChannel('velorki/watch');
-
-  @override
-  Future<bool> launchWorkout() async {
-    try {
-      return await _channel.invokeMethod<bool>('launchWorkout') ?? false;
-    } on PlatformException {
-      return false;
-    } on MissingPluginException {
-      return false;
-    }
-  }
-
-  @override
-  Future<bool> notifyRideStarted({
-    required String title,
-    required String body,
-  }) async {
-    try {
-      return await _channel.invokeMethod<bool>('notifyRideStarted', {
-            'title': title,
-            'body': body,
-          }) ??
-          false;
-    } on PlatformException {
-      return false;
-    } on MissingPluginException {
-      // Android: the foreground service's own notification is already up.
-      return false;
-    }
-  }
-
-  @override
-  Future<bool> isSupported() =>
-      _guard('isSupported', false, () => _watch.isSupported);
-
-  @override
-  Future<bool> isPaired() => _guard('isPaired', false, () => _watch.isPaired);
-
-  @override
-  Future<bool> isReachable() =>
-      _guard('isReachable', false, () => _watch.isReachable);
-
-  @override
-  Stream<Map<String, Object?>> get messages => _watch.messageStream
-      .handleError(
-        (Object error, StackTrace stackTrace) =>
-            _log.warning('watch message stream failed', error, stackTrace),
-      )
-      .map(Map<String, Object?>.from);
-
-  @override
-  Future<void> sendMessage(Map<String, Object?> message) => _guard(
-    'sendMessage',
-    null,
-    () => _watch.sendMessage(Map<String, dynamic>.from(message)),
-  );
-
-  @override
-  Future<void> updateApplicationContext(Map<String, Object?> context) => _guard(
-    'updateApplicationContext',
-    null,
-    () => _watch.updateApplicationContext(Map<String, dynamic>.from(context)),
-  );
-
-  Future<T> _guard<T>(
-    String what,
-    T fallback,
-    Future<T> Function() body,
-  ) async {
-    try {
-      return await body();
-    } on Object catch (error, stackTrace) {
-      _log.warning('watch $what failed', error, stackTrace);
-      return fallback;
-    }
-  }
-}
-
-/// The watch link of this platform, or `null` where there is none.
-///
-/// Constructing it asks the OS for nothing and wakes no watch; the gateway
-/// only reaches the plugin once something calls it, and the only thing that
-/// calls it is the Apple Watch switch in Settings → Sensors and the bridge
-/// behind it.
+/// `main.dart` installs the real gateway over this (`watchGatewayOverride`)
+/// and `main_fdroid.dart` does not; on Android it is null either way, since
+/// the watch app is an Apple Watch one.
 @Riverpod(keepAlive: true)
-WatchGateway? watchGateway(Ref ref) =>
-    watchSupportedOn(defaultTargetPlatform) ? PluginWatchGateway() : null;
+WatchGateway? watchGateway(Ref ref) => null;
 
 /// Whether this phone has a watch to offer the rider at all: the platform can
 /// talk to one, and one is paired.

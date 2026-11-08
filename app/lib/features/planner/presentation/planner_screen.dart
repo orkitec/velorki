@@ -1,3 +1,6 @@
+import '../../../core/plus/plus_gate.dart';
+import '../../subscription/application/offered_plus_features.dart';
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -550,8 +553,15 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// layers are on.
   late final AreaDownloadHint _areaHint;
 
-  /// The stops in the area on screen, from the Layers sheet.
+  /// The stops in the area on screen or along the plan, from the Layers
+  /// sheet.
   late final MapStopsController _stops;
+
+  /// The plan's line the stops along it were last asked about, and the
+  /// route it is the line of: one list per route, so the stops are not
+  /// asked for again on every build.
+  RouteResult? _stopsRoute;
+  List<LatLng> _stopsLine = const <LatLng>[];
 
   /// A stop tapped on the map: its card, the map kept at its zoom, since
   /// the rider is looking at the stop already.
@@ -1482,7 +1492,22 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       _shareChrome(const MapChromeData(stopsOffer: MapStopsOffer.plan));
     }
     final stopsWanted = ref.watch(mapStopsPreferencesProvider);
-    _stops.update(shown: stopsWanted.shown, kinds: stopsWanted.kinds);
+    // Along the whole plan, from its start, when there is one and the rider
+    // wants them so; else in the area on screen.
+    final planned = state.result;
+    if (!identical(planned, _stopsRoute)) {
+      _stopsRoute = planned;
+      _stopsLine = planned?.positions ?? const <LatLng>[];
+    }
+    final stopsAlong = stopsWanted.alongRoute && _stopsLine.length >= 2;
+    _stops.update(
+      shown: stopsWanted.shown,
+      kinds: stopsWanted.kinds,
+      // A plan has no id: each route worked out is a new one.
+      routeKey: stopsAlong ? 'plan:${identityHashCode(planned)}' : null,
+      routeLine: stopsAlong ? _stopsLine : const <LatLng>[],
+      reachM: double.infinity,
+    );
     final sideways = ShellLayout.of(context).sideRail;
     // A wide window's narrow column, and a short wide window, take the
     // compact top a phone turned sideways has: the profiles as a menu at
@@ -2218,8 +2243,10 @@ class _PlannerActions extends ConsumerWidget {
         label: l10n.loopAction,
         onPressed: () => unawaited(onSmartLoop()),
       ),
-      // The assistant needs the relay; a build without one has no Ask.
-      if (ref.watch(relayClientProvider) != null)
+      // The assistant needs the relay, and a build that offers no Plus has no
+      // assistant to ask: neither has an Ask.
+      if (ref.watch(relayClientProvider) != null &&
+          ref.watch(plusFeatureOfferedProvider(PlusFeature.aiAssistant)))
         LabeledIconButton(
           icon: Icons.auto_awesome_rounded,
           label: l10n.assistantAction,

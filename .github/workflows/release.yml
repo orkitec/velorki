@@ -1,7 +1,8 @@
 # Tag `vX.Y.Z` → Android (signed AAB + APK, GitHub Release, Play internal track),
 # iOS (signed build → TestFlight) and the web planner (Cloudflare Pages, once
 # its secrets are set; see the `web` job), all with the same version name and
-# build number, computed once by the `version` job. A tag with a suffix
+# build number, the `+N` in app/pubspec.yaml at the tag (F-Droid builds the
+# same tag with it). A tag with a suffix
 # (`v1.0.1-rc1`) is a trial: it reaches Play and TestFlight but makes no GitHub
 # Release. The .ipa is never attached: it is signed for the App Store and
 # installs nowhere else.
@@ -57,7 +58,7 @@ on:
         type: boolean
         default: false
       build_number:
-        description: "Build number to use instead of run number + 10 (e.g. the one the other store already has); empty computes it"
+        description: "Build number to use instead of the +N in app/pubspec.yaml at the tag (e.g. the one the other store already has); empty takes the pubspec's"
         type: string
         required: false
 
@@ -159,25 +160,24 @@ jobs:
         with:
           ref: refs/tags/${{ steps.request.outputs.tag }}
 
-      # The build number is this workflow's run number plus 10, unless a
-      # dispatch names one. Both stores refuse a number they have already seen,
-      # and numbers were taken before this workflow existed: iOS builds 1 and 2
-      # in App Store Connect, Android version codes 1 to 4 uploaded by hand.
-      # The run number only grows (a re-run of failed jobs keeps it, which is
-      # fine: only what failed runs again), so every release gets a fresh
-      # number on both platforms. A dispatch that releases one store for a tag
-      # the other store already has passes that store's number, so both carry
-      # the same one.
+      # The build number is the `+N` in app/pubspec.yaml at the tag, so the tag
+      # itself carries it: F-Droid builds the same tag and reads it from
+      # there, and all three stores get the same number. The release commit
+      # raises it with the version. It has to be higher than the number at
+      # the previous release tag (a trial included): a store that already has
+      # a number treats it as uploaded and skips it, which for a new version
+      # would upload nothing. Below what a store has, the platform job fails.
+      # A dispatch that releases one store for a tag the other store already
+      # has may still name the number (`build_number`).
       - name: Version name and build number
         id: version
         env:
           TAG: ${{ steps.request.outputs.tag }}
           INPUT_BUILD_NUMBER: ${{ inputs.build_number }}
-          RUN_NUMBER: ${{ github.run_number }}
-          OFFSET: 10
         run: |
-          version_name="$(sed -nE 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+)(\+[0-9]+)?[[:space:]]*$/\1/p' pubspec.yaml)"
-          if [ -z "$version_name" ]; then
+          version_name="$(sed -nE 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+)\+[0-9]+[[:space:]]*$/\1/p' pubspec.yaml)"
+          pubspec_number="$(sed -nE 's/^version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+\+([0-9]+)[[:space:]]*$/\1/p' pubspec.yaml)"
+          if [ -z "$version_name" ] || [ -z "$pubspec_number" ]; then
             echo "::error::No 'version: X.Y.Z+N' line in app/pubspec.yaml at $TAG."
             exit 1
           fi
@@ -194,7 +194,28 @@ jobs:
             fi
             build_number="$INPUT_BUILD_NUMBER"
           else
-            build_number=$((RUN_NUMBER + OFFSET))
+            build_number="$pubspec_number"
+            # Every other release tag of this version or below, trials
+            # included, and the highest number any of them carried.
+            base="${TAG%%-*}"
+            git fetch --quiet --depth=1 origin '+refs/tags/v*:refs/tags/v*'
+            highest=0
+            highest_tag=
+            for other in $(git tag --list 'v*'); do
+              [ "$other" = "$TAG" ] && continue
+              lower="$(printf '%s\n%s\n' "${other%%-*}" "$base" | sort -V | head -n 1)"
+              [ "$lower" = "${other%%-*}" ] || continue
+              number="$(git show "$other:app/pubspec.yaml" 2>/dev/null \
+                | sed -nE 's/^version:[[:space:]]*[0-9.]+\+([0-9]+)[[:space:]]*$/\1/p')"
+              if [ -n "$number" ] && [ "$number" -gt "$highest" ]; then
+                highest="$number"
+                highest_tag="$other"
+              fi
+            done
+            if [ "$build_number" -le "$highest" ]; then
+              echo "::error::app/pubspec.yaml at $TAG has build number $build_number, not above $highest at $highest_tag. Raise the +N in the release commit."
+              exit 1
+            fi
           fi
           sha="$(git rev-parse HEAD)"
           echo "::notice::Version $version_name ($build_number) from $TAG at $sha, trial: $is_trial"
@@ -292,7 +313,7 @@ jobs:
           fi
           latest="$(cat "$LATEST_VERSION_CODE_FILE")"
           if [ "$BUILD_NUMBER" -lt "$latest" ]; then
-            echo "::error::Version code $BUILD_NUMBER is below $latest, the highest on Google Play. Raise OFFSET in the version job, or dispatch with a higher build_number."
+            echo "::error::Version code $BUILD_NUMBER is below $latest, the highest on Google Play. Raise the +N in app/pubspec.yaml with a new tag, or dispatch with a higher build_number."
             exit 1
           fi
           if [ "$BUILD_NUMBER" -eq "$latest" ]; then
@@ -502,7 +523,7 @@ jobs:
           fi
           latest="$(cat "$LATEST_BUILD_NUMBER_FILE")"
           if [ "$BUILD_NUMBER" -lt "$latest" ]; then
-            echo "::error::Build number $BUILD_NUMBER is below $latest, the latest on App Store Connect. Raise OFFSET in the version job, or dispatch with a higher build_number."
+            echo "::error::Build number $BUILD_NUMBER is below $latest, the latest on App Store Connect. Raise the +N in app/pubspec.yaml with a new tag, or dispatch with a higher build_number."
             exit 1
           fi
           if [ "$BUILD_NUMBER" -eq "$latest" ]; then

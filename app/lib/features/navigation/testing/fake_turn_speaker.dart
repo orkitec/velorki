@@ -62,6 +62,13 @@ class FakeTurnSpeaker implements TurnSpeaker {
   @override
   Future<List<VoiceOption>> voices() async => available;
 
+  /// What [TurnSpeaker.hasEngine] answers. True unless a test says otherwise,
+  /// which is every phone but one shipped without a speech engine.
+  bool engineInstalled = true;
+
+  @override
+  Future<bool> hasEngine() async => engineInstalled;
+
   @override
   Future<void> selectVoice(String? id) async => selections.add(id);
 

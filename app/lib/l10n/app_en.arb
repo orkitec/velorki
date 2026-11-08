@@ -61,6 +61,14 @@
     "description": "Button that clears all server URL overrides"
   },
   "settingsAbout": "About",
+  "settingsFlavourTitle": "This version",
+  "@settingsFlavourTitle": {
+    "description": "Heading of the note in Settings → About that is only in the F-Droid build"
+  },
+  "settingsFlavourBody": "This version of Velorki is built for F-Droid, without closed-source libraries. Planning, maps, navigation and recording work as in every other version. Not included: Google Drive sync, the rating prompt and update notices, the connections to Strava and Ride with GPS, and Velorki Plus, so there is no AI assistant, no link sharing, no finer route weather and no finer rain radar.",
+  "@settingsFlavourBody": {
+    "description": "What the F-Droid build leaves out, in Settings → About. The three Plus feature names match plusFeatureAiAssistant, plusFeatureLinkSharing and plusFeatureWeather"
+  },
   "@settingsAbout": {
     "description": "Settings section header for version and attribution"
   },
@@ -2065,10 +2073,6 @@
   "settingsConnections": "Connections",
   "@settingsConnections": {
     "description": "Settings section header for the Strava and Ride with GPS accounts"
-  },
-  "connectionsUnavailable": "Not available in this build",
-  "@connectionsUnavailable": {
-    "description": "Shown on a connection tile when the build has no relay or client id"
   },
   "serviceStrava": "Strava",
   "@serviceStrava": {
@@ -4352,9 +4356,18 @@
   "@voiceBetterOpenSettingsHint": {
     "description": "Caption under the button of the card that explains how to install a better iOS voice"
   },
-  "settingsVoiceNone": "No voice for your language is installed. Add one in the phone's settings, under text-to-speech or Spoken Content.",
-  "@settingsVoiceNone": {
-    "description": "Shown in the voice list when the phone has no voice for the app's language"
+  "settingsVoiceNoEngine": "No text-to-speech engine is installed on this phone, so the spoken directions have nothing to say them with. Install one from your app store, for example eSpeak NG or RHVoice, and it will show up here.",
+  "settingsVoiceNoLanguage": "The text-to-speech installed on this phone has no {language} voice, so the directions cannot be spoken. Add one in the phone's settings if its engine offers {language}, or install another engine, for example eSpeak NG or RHVoice.",
+  "@settingsVoiceNoLanguage": {
+    "description": "Shown in the voice list when the phone has a text-to-speech engine but no voice for the language the directions are in. eSpeak NG and RHVoice are product names; do not translate them",
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "@settingsVoiceNoEngine": {
+    "description": "Shown in the voice list on an Android phone with no text-to-speech engine at all. eSpeak NG and RHVoice are product names; do not translate them"
   },
   "settingsTurnLead": "Announce turns",
   "@settingsTurnLead": {
@@ -4771,21 +4784,17 @@
   "@mapAreaHintHide": {
     "description": "Tooltip and screen-reader label of the close button on the area-not-downloaded chip over the map; hides the chip for that area until the app restarts"
   },
-  "mapLayersStopsPlanHint": "Shown when zoomed in · tap one to plan to it",
-  "@mapLayersStopsPlanHint": {
-    "description": "Line under the stops switch on the Plan tab: stops show once the map is zoomed in far enough, and a tap on one plans the route to it"
-  },
-  "mapLayersStopsRideHint": "Tap one to see it on the map",
-  "@mapLayersStopsRideHint": {
-    "description": "Line under the stops switch on the Record tab: stops show once the map is zoomed in far enough, and a tap on one shows what it is"
+  "mapLayersStopsSubtitle": "Drinking water, cafés, toilets, bike repair and more on the map",
+  "@mapLayersStopsSubtitle": {
+    "description": "Line under the stops switch in the layers sheet: what stops are, a few of the kinds it can show"
   },
   "mapLayersAlongRoute": "Along the route",
   "@mapLayersAlongRoute": {
-    "description": "Choice in the layers sheet during a guided ride: show the stops beside the route still ahead"
+    "description": "Choice in the layers sheet with a route planned or followed: show the stops beside the route still ahead"
   },
   "mapLayersInArea": "In this area",
   "@mapLayersInArea": {
-    "description": "Choice in the layers sheet during a guided ride: show the stops in the part of the map on screen"
+    "description": "Choice in the layers sheet with a route planned or followed: show the stops in the part of the map on screen"
   },
   "mapStopsAhead": "Stops ahead",
   "@mapStopsAhead": {
@@ -4794,6 +4803,64 @@
   "mapStopAhead": "{kind} · {distance}",
   "@mapStopAhead": {
     "description": "One entry of the stops-ahead line over the ride map: the kind of stop and how far ahead on the route it is",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Drinking water"
+      },
+      "distance": {
+        "type": "String",
+        "example": "1.2 km"
+      }
+    }
+  },
+  "mapLayersAlongRouteRideHint": "Stops within {corridor} of the route ahead, for the next {reach}",
+  "@mapLayersAlongRouteRideHint": {
+    "description": "Line under the 'Along the route' choice in the layers sheet during a ride that follows a route: which stops it shows",
+    "placeholders": {
+      "corridor": {
+        "type": "String",
+        "example": "300 m"
+      },
+      "reach": {
+        "type": "String",
+        "example": "50 km"
+      }
+    }
+  },
+  "mapLayersAlongRoutePlanHint": "Stops within {corridor} of the route, from start to finish",
+  "@mapLayersAlongRoutePlanHint": {
+    "description": "Line under the 'Along the route' choice in the layers sheet on the Plan tab: which stops it shows, along the whole planned route",
+    "placeholders": {
+      "corridor": {
+        "type": "String",
+        "example": "300 m"
+      }
+    }
+  },
+  "mapLayersInAreaHint": "Everything in the part of the map on screen, once zoomed in to town level",
+  "@mapLayersInAreaHint": {
+    "description": "Line under the 'In this area' choice in the layers sheet: it shows every stop in the part of the map on screen, once zoomed in far enough (zoom 11, about a town)"
+  },
+  "mapLayersAlongRouteNoRoute": "No route yet, so for now the stops in the part of the map on screen.",
+  "@mapLayersAlongRouteNoRoute": {
+    "description": "Second line under Along the route in the Layers sheet while there is no planned or followed route"
+  },
+  "mapLayersStopsLine": "Next stops while riding",
+  "@mapLayersStopsLine": {
+    "description": "Switch under Stops in the layers sheet on the Record tab: list the next stops over the map during a ride"
+  },
+  "mapLayersStopsLineHint": "The nearest stop of each kind over the ride map, with its distance",
+  "@mapLayersStopsLineHint": {
+    "description": "Line under the 'Next stops while riding' switch: what the line over the ride map shows"
+  },
+  "mapStopsNearby": "Stops nearby",
+  "@mapStopsNearby": {
+    "description": "Accessibility label of the line over the ride map that lists the nearest stop of each kind around the rider, without a route"
+  },
+  "mapStopAway": "{kind} · {distance} away",
+  "@mapStopAway": {
+    "description": "One entry of the nearby-stops line over the ride map without a route: the kind of stop and how far it is in a straight line from the rider",
     "placeholders": {
       "kind": {
         "type": "String",
@@ -4929,6 +4996,16 @@
   "settingsSensorsHealthHint": "Reads the heart rate other apps put into Health, such as the watch's own Workout app. Checked every few seconds, so it lags; a strap or the Velorki watch app takes over when it reports",
   "@settingsSensorsHealthHint": {
     "description": "Second line of the switch that connects Velorki to the phone's health store"
+  },
+  "settingsSensorsHealthMissing": "{store} is not available on this device.",
+  "@settingsSensorsHealthMissing": {
+    "description": "Second line of the greyed-out Health switch on a device without the health store (Health Connect missing on an older Android, Apple Health on an older iPad)",
+    "placeholders": {
+      "store": {
+        "type": "String",
+        "example": "Health Connect"
+      }
+    }
   },
   "settingsSensorsHealthWrite": "Save rides to Health",
   "@settingsSensorsHealthWrite": {

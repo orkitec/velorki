@@ -11,6 +11,8 @@ Velorki can draw the places a ride stops at on the map: drinking water, cafés, 
 **Layers** sits in the button column on the right of the map, on the Plan and the Record tab. Its sheet holds the cycle maps, see [map layers](./map-layers), and the stops:
 
 - **Stops**, a switch, on until you turn it off. Under it, the kinds to show, by group: **Cycling stops**, **Overnight**, **Nature**, **Transport**, **Services** and **Landmarks**. Tap a kind to show or hide it. The first time, drinking water, cafés, bakeries, toilets and bike repair stations are picked; the other kinds start off. **Cycling stops** include the tube vending machine, **Nature** the picnic site, viewpoint and beach, **Transport** stations (halts too), bus and tram stops, ferry terminals and airports, and **Services** the pharmacy and the hospital. With the switch off the kinds fold away; your pick is kept for the next time.
+- **Along the route** and **In this area**, under **Stops** once there is a route to be along: one planned on the Plan tab, or one you follow on the Record tab. Each says what it shows; the choice holds for both tabs.
+- **Next stops while riding**, under **Stops** on the Record tab only, off until you turn it on: the line of next stops over the map, see below.
 
 ## In the area you look at
 
@@ -20,11 +22,20 @@ Where the area is not downloaded, a chip says **No stops here — area not downl
 
 ## Along the route ahead
 
-With a route chosen under **Follow a route** on the Record tab, the stops are the ones within 300 m of the route still ahead, up to 50 km, at any zoom. A line over the map lists the next of each kind with its distance along the route, "Drinking water · 2.4 km"; tap an entry to see the stop on the map. While the map follows you on a ride, it stays with you and the stop is only picked out.
+On the Plan tab, with a route planned and **Along the route** picked, the stops are the ones within 300 m of the whole route, from start to finish, at any zoom.
 
-Where none of the next 50 km of the route is downloaded, the same chip takes the place of that line.
+On the Record tab, with a route chosen under **Follow a route**, they are the ones within 300 m of the route still ahead, up to 50 km, at any zoom. Where none of the next 50 km of the route is downloaded, the same chip says so.
 
-**Along the route** and **In this area** in the Layers sheet switch between the two.
+Pick **In this area** to see the stops on screen instead.
+
+## The line of next stops
+
+With **Next stops while riding** on, a line over the map on the Record tab lists the next stop of each kind, nearest first. Tap an entry to see the stop on the map. While the map follows you on a ride, it stays with you and the stop is only picked out.
+
+- Along a followed route, each entry has its distance along the route, "Drinking water · 2.4 km".
+- Without a route, or with **In this area** picked, each has its distance in a straight line from where you are, "Drinking water · 2.4 km away". This needs a ride under way, which is where your position comes from, and lists the stops loaded around the map, so from zoom 11 on.
+
+Where the area is not downloaded, the chip about it stands where the line would.
 
 ## Tap a stop
 

@@ -130,6 +130,33 @@ void main() {
     expect(prefs.getBool('sensors.health.write'), isFalse);
   });
 
+  testWidgets('a phone without Health Connect keeps the rows, greyed out and '
+      'saying why', (tester) async {
+    final gateway = FakeHealthGateway(available: false);
+    final container = await _pump(
+      tester,
+      gateway: gateway,
+      // Even a switch left on from before reads off: there is nothing to
+      // read from or write to.
+      initial: const <String, Object>{'sensors.health': true},
+    );
+
+    expect(_tile(tester, healthTitle).value, isFalse);
+    expect(_tile(tester, healthTitle).onChanged, isNull);
+    expect(
+      find.text(l10n.settingsSensorsHealthMissing(healthTitle)),
+      findsOneWidget,
+    );
+    expect(find.text(l10n.settingsSensorsHealthHint), findsNothing);
+    expect(_tile(tester, l10n.settingsSensorsHealthWrite).onChanged, isNull);
+
+    await tester.tap(find.text(healthTitle));
+    await tester.pumpAndSettle();
+    expect(gateway.authorizations, isEmpty, reason: 'no prompt to refuse');
+    expect(find.text(l10n.settingsSensorsHealthDenied), findsNothing);
+    expect(container.read(sensorSettingsProvider).health, isTrue);
+  });
+
   testWidgets('a platform without a health store shows nothing', (
     tester,
   ) async {

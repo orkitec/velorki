@@ -1,0 +1,6 @@
+• Haltes le long de l'itinéraire prévu : Calques → Haltes → Le long du parcours
+• Le long du parcours ou Dans cette zone, toujours dans Calques, expliqué
+• Prochaines haltes en roulant : interrupteur à part, désactivé au départ ; sans itinéraire, les haltes proches
+• Annonces vocales muettes pendant un appel
+• Pas de synthèse vocale, ou pas pour ta langue : les réglages de la voix disent quoi installer
+• Health Connect grisé, avec la raison, s'il manque

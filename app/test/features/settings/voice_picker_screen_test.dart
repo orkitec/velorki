@@ -10,6 +10,7 @@ import 'package:velorki/features/navigation/data/turn_speaker.dart';
 import 'package:velorki/features/navigation/data/voice_catalogue_asset.dart';
 import 'package:velorki/features/navigation/domain/voice_catalogue.dart';
 import 'package:velorki/features/navigation/domain/voice_option.dart';
+import 'package:velorki/features/navigation/presentation/voice_labels.dart';
 import 'package:velorki/features/navigation/testing/fake_turn_speaker.dart';
 import 'package:velorki/features/settings/presentation/voice_picker_screen.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
@@ -103,10 +104,12 @@ Future<(ProviderContainer, FakeTurnSpeaker)> _pump(
   TargetPlatform platform = TargetPlatform.iOS,
   VoiceCatalogue? catalogue,
   List<Uri>? opened,
+  bool engineInstalled = true,
 }) async {
   SharedPreferences.setMockInitialValues(initial);
   final prefs = await SharedPreferences.getInstance();
-  final speaker = FakeTurnSpeaker(available: voices);
+  final speaker = FakeTurnSpeaker(available: voices)
+    ..engineInstalled = engineInstalled;
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
@@ -393,6 +396,83 @@ void main() {
   testWidgets('no voices at all says where to get one', (tester) async {
     await _pump(tester, voices: const []);
 
-    expect(find.text(_l10n.settingsVoiceNone), findsOneWidget);
+    expect(
+      find.text(
+        _l10n.settingsVoiceNoLanguage(languageNameOf(_l10n, cueLocaleTag())),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a phone with no speech engine is told to install one, with '
+      'two it can have', (tester) async {
+    // Android shipped without Google's text-to-speech: GrapheneOS,
+    // LineageOS, a plain AOSP build. Telling that rider to add a voice in
+    // the phone's settings would send them to a page that is not there.
+    await _pump(
+      tester,
+      voices: const <VoiceOption>[],
+      platform: TargetPlatform.android,
+      engineInstalled: false,
+    );
+
+    expect(find.text(_l10n.settingsVoiceNoEngine), findsOneWidget);
+    expect(
+      find.text(
+        _l10n.settingsVoiceNoLanguage(languageNameOf(_l10n, cueLocaleTag())),
+      ),
+      findsNothing,
+    );
+    // Named so the rider has somewhere to start; both are on F-Droid.
+    expect(_l10n.settingsVoiceNoEngine, contains('eSpeak NG'));
+    expect(_l10n.settingsVoiceNoEngine, contains('RHVoice'));
+    // Plain text: nothing to tap, no link.
+    expect(
+      find.widgetWithText(TextButton, _l10n.settingsVoiceNoEngine),
+      findsNothing,
+    );
+  });
+
+  testWidgets('and a phone whose engine has no voice for the language is '
+      'told that, with the language named', (tester) async {
+    // GrapheneOS ships its own speech services, on by default, speaking US
+    // English and nothing else: a rider riding in another language has an
+    // engine and no voice. "Add one in the phone's settings" is not the
+    // whole answer there, because that engine may not have the language at
+    // all.
+    await _pump(
+      tester,
+      voices: const <VoiceOption>[],
+      platform: TargetPlatform.android,
+    );
+
+    final language = languageNameOf(_l10n, cueLocaleTag());
+    expect(find.text(_l10n.settingsVoiceNoLanguage(language)), findsOneWidget);
+    expect(find.text(_l10n.settingsVoiceNoEngine), findsNothing);
+    // It names the language the directions are in, and an engine to try.
+    expect(_l10n.settingsVoiceNoLanguage(language), contains(language));
+    expect(_l10n.settingsVoiceNoLanguage(language), contains('eSpeak NG'));
+  });
+
+  testWidgets('an English-only engine on a phone riding in German offers no '
+      'voice at all, and says so', (tester) async {
+    // The voices the engine has are real, they are simply the wrong
+    // language: SpeakTurnSpeaker.voices() drops them, so the list is empty
+    // and this is the state the rider lands in.
+    // What SpeakTurnSpeaker.voices() hands back on such a phone: the
+    // engine's English voices are dropped because they are not the cue
+    // language, so the list the screen sees is empty.
+    await _pump(
+      tester,
+      voices: const <VoiceOption>[],
+      platform: TargetPlatform.android,
+    );
+    expect(find.text(_l10n.settingsVoiceNoEngine), findsNothing);
+    expect(
+      find.text(
+        _l10n.settingsVoiceNoLanguage(languageNameOf(_l10n, cueLocaleTag())),
+      ),
+      findsOneWidget,
+    );
   });
 }

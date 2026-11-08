@@ -104,7 +104,7 @@ Volgt een rit een route, tik dan op de kaart op een stop (een café, een drinkwa
 - **Mijn positie tonen** pakt het volgen weer op nadat je de kaart hebt verschoven, op de gewone zoom op straatniveau.
 - Zolang je op de route bent, wordt de positiemarkering op de route getekend en langs de route gericht, in plaats van met de positiebepaling mee te zwerven.
 - De eigen punten van de route staan ook op de kaart: de start, de bestemming met haar vlag, elke tussenstop met een naam of een soort, en de plekken naast de route. Een punt dat alleen de lijn vormt, blijft weg. De tussenstops waar je voorbij bent, vervagen, en ze blijven vaag als je teruggaat. Na een nieuwe route naar de bestemming zijn de markeringen nog die van je eigen route.
-- Met **Stopplekken** aan onder **Kaartlagen** staan de stopplekken naast de route voor je op de kaart, en een regel noemt de eerstvolgende van elke soort met zijn afstand; zie [stopplekken op de kaart](./stops-on-the-map#langs-de-route-vooruit).
+- Met **Stopplekken** aan onder **Kaartlagen** staan de stopplekken naast de route voor je op de kaart, en met **Volgende stopplekken tijdens het fietsen** aan noemt een regel de eerstvolgende van elke soort met zijn afstand; zie [stopplekken op de kaart](./stops-on-the-map#langs-de-route-vooruit).
 
 ## Zie ook
 

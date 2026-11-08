@@ -1,0 +1,45 @@
+Velorki plant Radrouten, führt dich darauf entlang und zeichnet deine Fahrten auf, alles auf deinem Handy und auch offline. Fahrrad-Navi, Routenplaner, Tracker und Fahrradcomputer in einer Open-Source-App. Kein Konto, keine Anmeldung, keine Werbung, kein Tracking.
+
+Die Routen berechnet das Handy selbst, mit einer Portierung von BRouter, der Routing-Engine, auf die viele Fahrrad-Apps bauen, über Daten von OpenStreetMap. Lade eine Region einmal und du planst, suchst und navigierst dort ohne Verbindung.
+
+Für den Weg zur Arbeit, Radreisen und Bikepacking, Rennradtraining, Gravel und Mountainbike. Ein altes Android-Handy ohne SIM-Karte und ohne Google-Dienste wird so zum Fahrradcomputer am Lenker: Offline-Radkarte, Navigation und Bluetooth-Sensoren auf einem Gerät.
+
+PLANEN
+• Tippe Wegpunkte auf die Karte und bekomme eine Route für dein Rad: Tour, Rennrad, Gravel, Mountainbike oder der direkte Weg.
+• Rundtouren ab deiner Haustür: Sag, wie weit du fahren willst, und Velorki schlägt Runden vor, die zum Start zurückführen.
+• Alternativrouten, ein Höhenprofil und die Beläge, über die du fährst.
+• Route nach Steigung, Belag, Wind oder Regen einfärben.
+• Orte offline suchen und Routen in der Bibliothek speichern.
+
+KARTE UND WETTER
+• Eine Radkarte, offline: Radwege und Radspuren, Einbahnstraßen, Treppen und Anstiege.
+• Stopps auf der Karte: Trinkwasser, Cafés, Bäckereien, Toiletten, Radwerkstätten und mehr.
+• Regenradar, Wind und Wolken mit einem Zeitregler, dazu Wind und Regen entlang deiner Route für die Zeit, zu der du losfährst.
+
+NAVIGATION
+• Abbiegehinweise mit Ansagen, auch bei gesperrtem Bildschirm, auch für GPX-Routen, die du importierst.
+• Du verlässt die Route und bestimmst, was passiert: ein Weg zurück, eine neue Route zum Ziel oder nichts.
+• Die Ansagen nutzen die Sprachausgabe des Handys. Fehlt sie, muss eine installiert werden, zum Beispiel eSpeak NG oder RHVoice.
+
+AUFZEICHNEN
+• Zeichnet bei ausgeschaltetem Bildschirm auf, mit automatischer Pause.
+• Wähle, was du beim Fahren siehst: Strecke, Tempo, Zeit, Anstieg, Puls, Trittfrequenz, Leistung, verbleibende Strecke.
+• Puls, Tempo, Trittfrequenz und Leistung von Bluetooth-Sensoren, und Fahrten auf Wunsch in Health Connect gespeichert.
+• Jede Fahrt bekommt eine Seite mit Karte, Diagrammen und Abschnitten.
+
+DATEIEN
+• GPX-, FIT- und TCX-Dateien öffnen, Routen und Fahrten als GPX, FIT oder TCX exportieren.
+
+DATENSCHUTZ
+Keine Werbung, keine Analyse, keine Absturzberichte, kein Konto und keine KI, die mit deinen Daten trainiert wird. Deine Routen und Fahrten bleiben auf deinem Handy. Velorki spricht nur mit den Diensten, die die Karte zeichnen, das Wetter liefern und Orte suchen, und mit seinem eigenen Kachel-Spiegel für Regionen, die du lädst.
+
+Die Ansicht passt sich an Tablets und an ein quer gehaltenes Handy an. Velorki gibt es auf Deutsch, Englisch, Französisch, Italienisch, Spanisch und Niederländisch.
+
+DIESE VERSION
+Das ist die F-Droid-Version, gebaut ohne proprietäre Bibliotheken. Sie hat keine Synchronisierung mit Google Drive, kein Velorki Plus (KI-Assistent, Teilen von Links und genaueres Wetter) und keine Verbindungen zu Strava oder Ride with GPS. Alles andere funktioniert wie in jeder anderen Version.
+
+Offline-Regionen kommen vom Kachel-Spiegel von Velorki auf GitHub, der Kartenstil von OpenFreeMap und die Ortssuche online von Photon.
+
+Website: https://velorki.com
+Quellcode (AGPL-3.0): https://github.com/orkitec/velorki
+Kartendaten © OpenStreetMap-Mitwirkende.

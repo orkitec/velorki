@@ -77,7 +77,7 @@ void main() {
     expect(rwgps.onPressed, isNotNull);
   });
 
-  testWidgets('a build without a relay says so instead of offering a button', (
+  testWidgets('a build without a relay offers neither service at all', (
     tester,
   ) async {
     await pumpIntegrations(
@@ -86,7 +86,28 @@ void main() {
       harness: IntegrationsHarness(config: const AppConfig()),
     );
 
-    expect(find.text(l10n.connectionsUnavailable), findsNWidgets(2));
+    // Not a greyed-out tile: nothing. A service this build cannot connect is
+    // not a feature it half has. The F-Droid flavour ships this way.
+    expect(find.text(l10n.serviceStrava), findsNothing);
+    expect(find.text(l10n.serviceRwgps), findsNothing);
+    expect(find.byType(ConnectionTile), findsNothing);
+  });
+
+  testWidgets('and a build with only one of the two client ids offers only '
+      'that one', (tester) async {
+    await pumpIntegrations(
+      tester,
+      const ConnectionsSection(),
+      harness: IntegrationsHarness(
+        config: const AppConfig(
+          apiUrl: 'https://api.velorki.test',
+          stravaClientId: 'strava-id',
+        ),
+      ),
+    );
+
+    expect(find.text(l10n.serviceStrava), findsOneWidget);
+    expect(find.text(l10n.serviceRwgps), findsNothing);
   });
 
   testWidgets('a connected account shows the athlete and a Disconnect button', (

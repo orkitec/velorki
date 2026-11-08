@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/links/link_opener.dart';
+import '../../../core/plus/plus_gate.dart';
 import '../../../core/links/velorki_urls.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../performance/data/show_performance_setting.dart';
+import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/wide_panel.dart';
 import '../application/app_reset.dart';
 import '../data/package_info_provider.dart';
@@ -89,6 +91,30 @@ class AboutSection extends ConsumerWidget {
     final version = _version(info);
     return Column(
       children: [
+        // Only where Plus is not offered, which is the F-Droid flavour and
+        // nothing else: a rider who downloaded that build should be able to
+        // read what it leaves out without hunting for it. One signal for the
+        // whole flavour, the same one that takes the Plus entry points away.
+        if (!ref.watch(plusOfferedProvider)) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SectionCaption(l10n.settingsFlavourTitle),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.settingsFlavourBody,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         ListTile(
           leading: const Icon(Icons.info_outline),
           title: Text(l10n.appName),
