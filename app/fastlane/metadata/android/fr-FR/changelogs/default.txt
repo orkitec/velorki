@@ -1,7 +1,6 @@
-• Au premier lancement : votre position, la carte sur votre pays, pistes et arrêts affichés
-• Le guide dans l’app, hors ligne : Réglages → Guide d’utilisation
-• « Rouler » à côté d’« Enregistrer » lance l’itinéraire prévu
-• Ajoutez un arrêt en route ; le guidage continue
-• Gares, arrêts de bus, tram et ferry, pharmacies, hôpitaux, points de vue et plus
-• Téléchargements sur la carte, avec progression et annulation
-• Données de carte mises à jour seulement si elles changent
+• Haltes le long de l'itinéraire prévu : Calques → Haltes → Le long du parcours
+• Le long du parcours ou Dans cette zone, toujours dans Calques, expliqué
+• Prochaines haltes en roulant : interrupteur à part, désactivé au départ ; sans itinéraire, les haltes proches
+• Annonces vocales muettes pendant un appel
+• Pas de synthèse vocale, ou pas pour ta langue : les réglages de la voix disent quoi installer
+• Health Connect grisé, avec la raison, s'il manque

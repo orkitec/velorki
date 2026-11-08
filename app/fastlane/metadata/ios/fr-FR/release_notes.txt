@@ -1,9 +1,4 @@
-• Un premier lancement plus simple : Velorki demande votre position, ouvre la carte sur votre pays avec les pistes cyclables et les arrêts, et montre par où commencer.
-• Le guide d’utilisation est désormais dans l’app, dans votre langue et hors ligne : Réglages → Guide d’utilisation.
-• Partez tout de suite : « Rouler » à côté d’« Enregistrer » lance l’enregistrement et vous guide le long de l’itinéraire prévu.
-• Ajoutez un arrêt en route : touchez un café, un magasin ou un point d’eau sur la carte et ajoutez-le à votre itinéraire. Le guidage continue pendant le nouveau calcul.
-• Plus d’informations sur la carte : gares, arrêts de bus, de tram et de ferry, pharmacies, hôpitaux, aires de pique-nique, points de vue, plages et distributeurs de chambres à air. Cherchez « bus », « train » ou « ferry » pour trouver le plus proche.
-• Les téléchargements se font sur la carte : la zone, la recherche et les données d’un itinéraire, avec la progression et un bouton pour annuler.
-• Les données de carte ne sont mises à jour que si quelque chose a vraiment changé dans votre zone, et un avis sur la carte vous le signale.
-• Toucher la carte pendant une recherche ferme simplement la recherche.
-• Mentions légales dans Réglages → À propos.
+• Les haltes le long de ton itinéraire dès la préparation : dans Calques → Haltes, choisis « Le long du parcours » pour voir eau potable, cafés, toilettes et plus encore près de l'itinéraire que tu prépares, du départ à l'arrivée.
+• « Le long du parcours » ou « Dans cette zone » est désormais toujours dans Calques → Haltes, chacun avec une ligne qui dit ce qu'il montre.
+• La ligne des prochaines haltes en roulant a maintenant son propre interrupteur dans Calques → Haltes, désactivé au départ. Sans itinéraire, elle montre la halte la plus proche de chaque type autour de toi.
+• Les annonces vocales se taisent pendant un appel téléphonique.

@@ -1,8 +1,6 @@
-• Al primo avvio: la tua posizione, la mappa sul tuo paese, ciclabili e soste visibili
-• La guida nell’app, offline: Opzioni → Guida
-• «Parti» accanto a «Salva» avvia il percorso pianificato
-• Aggiungi una sosta durante il giro; la navigazione continua
-• Stazioni, fermate di bus, tram e traghetti, farmacie, ospedali, panorami e altro
-• Download sulla mappa, con avanzamento e annulla
-• Dati della mappa aggiornati solo se cambiano davvero
-• Un tocco sulla mappa chiude la ricerca
+• Soste lungo il percorso pianificato: Livelli → Soste → Lungo il percorso
+• Lungo il percorso o In questa zona, sempre in Livelli, spiegato
+• Prossime soste mentre pedali: interruttore proprio, spento all'inizio; senza percorso, le soste vicine
+• Istruzioni vocali mute durante una telefonata
+• Nessuna sintesi vocale, o nessuna per la tua lingua: le impostazioni della voce dicono cosa installare
+• Health Connect in grigio, con il motivo, dove manca

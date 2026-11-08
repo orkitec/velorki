@@ -1,9 +1,4 @@
-• An easier first start: Velorki asks for your location, opens the map over your country with bike lanes and stops shown, and points out where to begin.
-• The user guide is now in the app, in your language and offline: Settings → Guide.
-• Ride straight away: Ride beside Save starts recording and guides you along the route you planned.
-• Add a stop during a ride: tap a café, shop or water point on the map and add it to your route. Guidance carries on while the route is worked out again.
-• More on the map: train stations, bus, tram and ferry stops, pharmacies, hospitals, picnic sites, viewpoints, beaches and inner-tube vending machines. Search "bus", "train" or "ferry" to find the nearest.
-• Downloads happen right on the map: the area, the search and the data a route needs, with progress and a way to cancel.
-• Map data is updated only when something in your area has really changed, and a note over the map tells you.
-• A tap on the map while searching just closes the search.
-• Imprint in Settings → About.
+• Stops along your route while you plan: in Layers → Stops, pick "Along the route" to see water, cafés, toilets and more near the route you are planning, from start to finish.
+• "Along the route" or "In this area" is now always in Layers → Stops, each with a line saying what it shows.
+• The line of next stops on the ride screen now has its own switch in Layers → Stops, off at first. Without a route, it lists the nearest stop of each kind around you.
+• Spoken directions stay quiet during a phone call.

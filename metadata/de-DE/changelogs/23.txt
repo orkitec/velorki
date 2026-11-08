@@ -1,0 +1,6 @@
+• Stopps entlang der geplanten Route: Ebenen → Stopps → Entlang der Route
+• Entlang der Route oder In diesem Gebiet, immer unter Ebenen, erklärt
+• Nächste Stopps beim Fahren: eigener Schalter, zunächst aus; ohne Route die nächsten Stopps um dich
+• Ansagen bleiben beim Telefonieren still
+• Keine Sprachausgabe oder keine für deine Sprache: die Spracheinstellungen sagen, was fehlt
+• Health Connect ausgegraut, mit Grund, wo es fehlt

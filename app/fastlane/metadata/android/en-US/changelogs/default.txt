@@ -1,8 +1,6 @@
-• First start asks for your location and opens over your country, lanes and stops on
-• The guide in the app, offline: Settings → Guide
-• Ride beside Save starts the planned route
-• Add a stop during a ride; guidance carries on
-• Train, bus, tram and ferry stops, pharmacies, hospitals, viewpoints and more on the map
-• Downloads right on the map, with progress and Cancel
-• Map data updates only when it really changed
-• A map tap while searching just closes the search
+• Stops along the planned route: Layers → Stops → Along the route
+• Along the route or In this area, always in Layers, explained
+• Next stops on the ride screen: own switch, off at first; without a route, the nearest stops around you
+• Spoken directions stay quiet during a phone call
+• No speech engine, or none for your language: the voice settings say what to install
+• Health Connect greyed out, with the reason, where it is missing
