@@ -2,13 +2,22 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+// The plugin's Pigeon messages: their codec and the download event native
+// sends are what the native side of the plugin speaks, and the plugin keeps
+// them under src/ (its own tests import them the same way).
+// ignore: implementation_imports
+import 'package:maplibre_gl/src/native/messages.g.dart';
 import 'package:velorki/features/map/data/offline_regions_repository.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
-/// The global method channel maplibre_gl's top-level offline functions use.
-const MethodChannel _globalChannel = MethodChannel(
-  'plugins.flutter.io/maplibre_gl',
-);
+/// The Pigeon channels maplibre_gl's top-level offline functions call
+/// native through, one per method, and the one native sends download events
+/// back on.
+const String _hostApi = 'dev.flutter.pigeon.maplibre_gl.MapLibreGlobalHostApi';
+const String _onDownloadEvent =
+    'dev.flutter.pigeon.maplibre_gl.MapLibreOfflineDownloadFlutterApi'
+    '.onDownloadEvent';
+const MessageCodec<Object?> _codec = MapLibreGlobalHostApi.pigeonChannelCodec;
 
 const String _styleUrl = 'https://tiles.example/style.json';
 const BoundingBox _bounds = BoundingBox(
@@ -39,14 +48,19 @@ Map<String, Object?> _regionJson(int id) => <String, Object?>{
   'metadata': <String, Object?>{'name': 'Zurich'},
 };
 
+/// A call native received: the method and its decoded arguments.
+typedef NativeCall = ({String method, List<Object?> arguments});
+
 /// The plugin's native side, answering from Dart.
 ///
 /// [MaplibreOfflineMapApi] is the one place that talks to maplibre_gl
-/// directly, so serving the channel the plugin speaks is the only way to see
-/// what it actually sends and how it reads the answers back.
+/// directly, so serving the channels the plugin speaks, with its codec and
+/// the reply envelopes of the generated Kotlin and Swift code (`[result]`,
+/// or `[code, message, details]` for an error), is the only way to see what
+/// it actually sends and how it reads the answers back.
 class FakeMaplibreNative {
-  /// Every call the plugin made on the global channel, in order.
-  final List<MethodCall> calls = <MethodCall>[];
+  /// Every call the plugin made, in order.
+  final List<NativeCall> calls = <NativeCall>[];
 
   /// The id a started download is given.
   int regionId = 42;
@@ -64,73 +78,103 @@ class FakeMaplibreNative {
   /// The ids `getListOfRegions` answers with.
   List<int> listedIds = <int>[];
 
-  MockStreamHandlerEventSink? _events;
+  /// The id the plugin tagged the last download with; native tags each of
+  /// its events with it.
+  int? _downloadId;
 
-  /// Answers the global channel until the test ends.
+  static TestDefaultBinaryMessenger get _messenger =>
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+
+  static const List<String> _methods = <String>[
+    'downloadOfflineRegion',
+    'getOfflineRegionStatus',
+    'getListOfRegions',
+    'deleteOfflineRegion',
+    'clearAmbientCache',
+  ];
+
+  /// Answers the plugin's channels until the test ends.
   void install() {
-    final messenger =
-        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(_globalChannel, (call) async {
-      calls.add(call);
-      final args = call.arguments is Map
-          ? Map<String, Object?>.from(call.arguments as Map)
-          : const <String, Object?>{};
-      switch (call.method) {
-        case 'downloadOfflineRegion#setup':
-          // The plugin subscribes to this event channel next, so the handler
-          // has to be in place before this call answers.
-          messenger.setMockStreamHandler(
-            EventChannel(args['channelName']! as String),
-            MockStreamHandler.inline(onListen: (_, events) => _events = events),
+    for (final method in _methods) {
+      _messenger.setMockMessageHandler('$_hostApi.$method', (message) async {
+        final arguments =
+            (_codec.decodeMessage(message) as List<Object?>?) ??
+            const <Object?>[];
+        calls.add((method: method, arguments: arguments));
+        try {
+          return _codec.encodeMessage(<Object?>[_answer(method, arguments)]);
+        } on PlatformException catch (e) {
+          return _codec.encodeMessage(<Object?>[e.code, e.message, e.details]);
+        }
+      });
+      addTearDown(
+        () => _messenger.setMockMessageHandler('$_hostApi.$method', null),
+      );
+    }
+  }
+
+  Object? _answer(String method, List<Object?> arguments) {
+    switch (method) {
+      case 'downloadOfflineRegion':
+        _downloadId = arguments[0]! as int;
+        return json.encode(<String, Object?>{
+          'id': regionId,
+          'definition': arguments[1],
+          'metadata': arguments[2],
+        });
+      case 'getOfflineRegionStatus':
+        final status = this.status;
+        if (status == null) {
+          throw PlatformException(
+            code: 'REGION_NOT_FOUND',
+            message: 'no such region',
           );
-          return null;
-        case 'downloadOfflineRegion':
-          return json.encode(<String, Object?>{
-            'id': regionId,
-            'definition': args['definition'],
-            'metadata': args['metadata'],
-          });
-        case 'getOfflineRegionStatus':
-          final status = this.status;
-          if (status == null) {
-            throw PlatformException(
-              code: 'REGION_GONE',
-              message: 'no such region',
-            );
-          }
-          return json.encode(status);
-        case 'getListOfRegions':
-          return json.encode(listedIds.map(_regionJson).toList());
-        default:
-          return null;
-      }
-    });
-    addTearDown(() => messenger.setMockMethodCallHandler(_globalChannel, null));
+        }
+        return json.encode(status);
+      case 'getListOfRegions':
+        return json.encode(listedIds.map(_regionJson).toList());
+      default:
+        return null;
+    }
+  }
+
+  Future<void> _emit(PgOfflineDownloadEvent event) async {
+    await _messenger.handlePlatformMessage(
+      _onDownloadEvent,
+      MapLibreOfflineDownloadFlutterApi.pigeonChannelCodec.encodeMessage(
+        <Object?>[_downloadId!, event],
+      ),
+      null,
+    );
   }
 
   /// Reports [percent] percent done, with [bytes] written so far.
-  void emitProgress(double percent, {int bytes = 0}) => _events!.success(
-    json.encode(<String, Object?>{
-      'status': 'progress',
-      'progress': percent,
-      'completedResourceCount': 1,
-      'requiredResourceCount': 2,
-      'completedResourceSize': bytes,
-    }),
+  Future<void> emitProgress(double percent, {int bytes = 0}) => _emit(
+    PgOfflineDownloadEvent(
+      status: PgOfflineDownloadStatus.progress,
+      progress: percent,
+      completedResourceCount: 1,
+      requiredResourceCount: 2,
+      completedResourceSize: bytes,
+    ),
   );
 
   /// Reports the download as finished.
-  void emitSuccess() =>
-      _events!.success(json.encode(<String, Object?>{'status': 'success'}));
+  Future<void> emitSuccess() =>
+      _emit(PgOfflineDownloadEvent(status: PgOfflineDownloadStatus.success));
 
   /// Reports the download as failed.
-  void emitError({required String code, String? message}) =>
-      _events!.error(code: code, message: message);
+  Future<void> emitError({required String code, String? message}) => _emit(
+    PgOfflineDownloadEvent(
+      status: PgOfflineDownloadStatus.error,
+      errorCode: code,
+      errorMessage: message,
+    ),
+  );
 
   /// The arguments of the last call to [method].
-  Map<String, Object?> argumentsOf(String method) => Map<String, Object?>.from(
-    calls.lastWhere((c) => c.method == method).arguments as Map,
-  );
+  List<Object?> argumentsOf(String method) =>
+      calls.lastWhere((c) => c.method == method).arguments;
 }
 
 void main() {
@@ -148,11 +192,11 @@ void main() {
     () async {
       final pending = api.download(_spec);
       await pumpEventQueue();
-      native.emitSuccess();
+      await native.emitSuccess();
       await pending;
 
       final definition = Map<String, Object?>.from(
-        native.argumentsOf('downloadOfflineRegion')['definition']! as Map,
+        native.argumentsOf('downloadOfflineRegion')[1]! as Map,
       );
       // The plugin normalises every longitude it is handed, which costs the
       // last bits of the double; a tenth of a micrometre is not a tile.
@@ -168,7 +212,7 @@ void main() {
       expect(definition['maxZoom'], 15.0);
       // The name travels as metadata so a region merged from another device can
       // still be identified.
-      expect(native.argumentsOf('downloadOfflineRegion')['metadata'], {
+      expect(native.argumentsOf('downloadOfflineRegion')[2], {
         'name': 'Zurich',
       });
     },
@@ -179,11 +223,11 @@ void main() {
 
     final pending = api.download(_spec, onProgress: seen.add);
     await pumpEventQueue();
-    native.emitProgress(0, bytes: 0);
-    native.emitProgress(40, bytes: 512);
-    native.emitProgress(100, bytes: 2048);
+    await native.emitProgress(0, bytes: 0);
+    await native.emitProgress(40, bytes: 512);
+    await native.emitProgress(100, bytes: 2048);
     await pumpEventQueue();
-    native.emitSuccess();
+    await native.emitSuccess();
     await pending;
 
     expect(seen.map((p) => p.fraction), [0.0, 0.4, 1.0]);
@@ -195,9 +239,9 @@ void main() {
 
     final pending = api.download(_spec, onProgress: seen.add);
     await pumpEventQueue();
-    native.emitProgress(140, bytes: 2048);
+    await native.emitProgress(140, bytes: 2048);
     await pumpEventQueue();
-    native.emitSuccess();
+    await native.emitSuccess();
     await pending;
 
     expect(seen.single.fraction, 1.0);
@@ -208,15 +252,15 @@ void main() {
 
     final pending = api.download(_spec);
     await pumpEventQueue();
-    native.emitProgress(50, bytes: 512);
+    await native.emitProgress(50, bytes: 512);
     await pumpEventQueue();
-    native.emitSuccess();
+    await native.emitSuccess();
     final result = await pending;
 
     expect(result.maplibreRegionId, 7);
     // 9999 from the status, not the 512 the last progress event mentioned.
     expect(result.sizeBytes, 9999);
-    expect(native.argumentsOf('getOfflineRegionStatus')['id'], 7);
+    expect(native.argumentsOf('getOfflineRegionStatus'), [7]);
   });
 
   test('an unreadable status leaves the last progress size standing', () async {
@@ -224,9 +268,9 @@ void main() {
 
     final pending = api.download(_spec);
     await pumpEventQueue();
-    native.emitProgress(50, bytes: 512);
+    await native.emitProgress(50, bytes: 512);
     await pumpEventQueue();
-    native.emitSuccess();
+    await native.emitSuccess();
     final result = await pending;
 
     expect(result.sizeBytes, 512);
@@ -235,7 +279,10 @@ void main() {
   test('a failed download is raised with the cause MapLibre gave', () async {
     final pending = api.download(_spec);
     await pumpEventQueue();
-    native.emitError(code: 'NO_SPACE', message: 'no space left on device');
+    await native.emitError(
+      code: 'NO_SPACE',
+      message: 'no space left on device',
+    );
 
     await expectLater(
       pending,
@@ -252,7 +299,7 @@ void main() {
   test('a failure without a message is raised under its code', () async {
     final pending = api.download(_spec);
     await pumpEventQueue();
-    native.emitError(code: 'UNKNOWN');
+    await native.emitError(code: 'UNKNOWN');
 
     await expectLater(
       pending,
@@ -275,7 +322,7 @@ void main() {
       // every tile the region shared with it.
       'clearAmbientCache',
     ]);
-    expect(native.argumentsOf('deleteOfflineRegion')['id'], 11);
+    expect(native.argumentsOf('deleteOfflineRegion'), [11]);
   });
 
   test('the live region ids are the ones MapLibre lists', () async {
@@ -295,7 +342,7 @@ void main() {
       throwsA(isA<OfflineDownloadException>()),
     );
     await pumpEventQueue();
-    native.emitProgress(30, bytes: 512);
+    await native.emitProgress(30, bytes: 512);
 
     await failed;
     expect(
@@ -312,9 +359,9 @@ void main() {
     await pumpEventQueue();
     for (var i = 0; i < 4; i++) {
       await Future<void>.delayed(const Duration(milliseconds: 120));
-      native.emitProgress(20.0 * i, bytes: 100 * i);
+      await native.emitProgress(20.0 * i, bytes: 100 * i);
     }
-    native.emitSuccess();
+    await native.emitSuccess();
     final result = await pending;
     expect(result.maplibreRegionId, native.regionId);
   });

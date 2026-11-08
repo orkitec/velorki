@@ -25,17 +25,6 @@ import 'puck_ownership.dart';
 import 'map_controls.dart';
 import 'web_legal_chip.dart';
 
-/// Sets up the native map before the first map is built.
-///
-/// Android draws platform views through a virtual display unless told
-/// otherwise, and on some devices (a Pixel 3 XL on Android 12) that path never
-/// composes a frame: the map shows once and then neither moves nor reacts to
-/// touch. Hybrid composition puts the native view into the Flutter tree
-/// instead, which is also what the plugin recommends.
-void configureMapRendering() {
-  ml.MapLibreMap.useHybridComposition = true;
-}
-
 /// Used when the build passes no `VELORKI_MAP_STYLE_URL`, so a bare
 /// `flutter run` still shows a map.
 const String fallbackMapStyleUrl =
@@ -358,6 +347,14 @@ class _MapViewState extends ConsumerState<MapView> {
       color: mapBaseColorFor(resolveMapLook(look, brightness)),
       child: ml.MapLibreMap(
         styleString: styleUrl,
+        // On Android the map draws into a TextureView. Drawn into the default
+        // SurfaceView, Flutter falls back to a virtual display for the
+        // platform view, and on some devices (a Pixel 3 XL on Android 12)
+        // that path never composes a frame: the map shows once and then
+        // neither moves nor reacts to touch.
+        androidView: const ml.AndroidMapView(
+          surface: ml.AndroidMapSurface.textureView,
+        ),
         initialCameraPosition: ml.CameraPosition(
           target: ml.LatLng(camera.center.lat, camera.center.lon),
           zoom: camera.zoom,

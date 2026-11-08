@@ -38,20 +38,49 @@ void main() {
       await expectLater(
         tolerateMapGone(
           () async => throw PlatformException(
-            code: 'error',
-            message: 'Layer velorki-route-main-casing already exists',
+            code: 'LAYER_ALREADY_EXISTS',
+            message: 'Layer already exists',
+            details: 'Layer with id velorki-route-main-casing already exists.',
           ),
         ),
         completes,
       );
     });
 
-    test('a style iOS no longer has is nothing to report', () async {
+    test('a source the style already has is nothing to report', () async {
       await expectLater(
         tolerateMapGone(
           () async => throw PlatformException(
-            code: 'styleNotFound',
-            message: 'Style not found',
+            code: 'SOURCE_ALREADY_EXISTS',
+            message: 'Source already exists',
+            details: 'Source with id velorki-route already exists.',
+          ),
+        ),
+        completes,
+      );
+    });
+
+    test(
+      'an "already exists" under another code is nothing to report',
+      () async {
+        await expectLater(
+          tolerateMapGone(
+            () async => throw PlatformException(
+              code: 'error',
+              message: 'Layer velorki-route-main-casing already exists',
+            ),
+          ),
+          completes,
+        );
+      },
+    );
+
+    test('a map already disposed is nothing to report', () async {
+      await expectLater(
+        tolerateMapGone(
+          () async => throw PlatformException(
+            code: 'MAP_DISPOSED',
+            message: 'The map was disposed before the call reached it.',
           ),
         ),
         completes,
@@ -62,9 +91,10 @@ void main() {
       await expectLater(
         tolerateMapGone(
           () async => throw PlatformException(
-            code: 'sourceNotFound',
-            message: 'Source not found',
-            details: 'Source with id velorki-position not found.',
+            code: 'SOURCE_NOT_FOUND',
+            message:
+                "Source 'velorki-position' does not exist in the current "
+                'style.',
           ),
         ),
         completes,

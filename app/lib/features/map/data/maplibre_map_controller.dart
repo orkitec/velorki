@@ -638,13 +638,14 @@ abstract class MapLibreStyleOps {
 /// Completes [op] as if it had succeeded when the platform says there was
 /// nothing to do.
 ///
-/// Five answers mean exactly that: `MAP_NOT_READY` and `STYLE_NOT_READY`
-/// (Android) and `styleNotFound` (iOS), when the view or its style is gone
-/// or not yet loaded under the map (a recreated activity, a page popped
-/// mid-write, a theme change mid-write) and a fresh style or map, whose
-/// style-loaded callback replays everything, is on its way; a missing plugin implementation, when the
-/// view's method channel has already been torn down; and "already exists",
-/// when a style reload kept a source or layer the adapter had written off.
+/// These answers mean exactly that: `MAP_NOT_READY` and `STYLE_NOT_READY`,
+/// when the view or its style is gone or not yet loaded under the map (a
+/// recreated activity, a page popped mid-write, a theme change mid-write)
+/// and a fresh style or map, whose style-loaded callback replays everything,
+/// is on its way; `MAP_DISPOSED` (or a missing plugin implementation), when
+/// the view has already been torn down; and `LAYER_ALREADY_EXISTS` and
+/// `SOURCE_ALREADY_EXISTS` ("already exists"), when a style reload kept a
+/// source or layer the adapter had written off.
 /// All used to surface as unhandled exceptions from fire-and-forget calls
 /// and take an integration test down; none is worth reporting.
 Future<void> tolerateMapGone(
@@ -659,9 +660,13 @@ Future<void> tolerateMapGone(
   } on MissingPluginException {
     return;
   } on PlatformException catch (e) {
-    if (e.code == 'MAP_NOT_READY' ||
-        e.code == 'STYLE_NOT_READY' ||
-        e.code == 'styleNotFound') {
+    if (const <String>{
+      'MAP_NOT_READY',
+      'STYLE_NOT_READY',
+      'MAP_DISPOSED',
+      'LAYER_ALREADY_EXISTS',
+      'SOURCE_ALREADY_EXISTS',
+    }.contains(e.code)) {
       return;
     }
     if ((e.message ?? '').contains('already exists')) return;
@@ -676,12 +681,13 @@ Future<void> tolerateMapGone(
   }
 }
 
-/// Whether [e] says the style no longer has what the call addressed: iOS
-/// answers with `sourceNotFound`, `LAYER_NOT_FOUND_ERROR` and the like while
-/// a look change tears the old style down under the adapter.
+/// Whether [e] says the style no longer has what the call addressed, or no
+/// longer is: iOS answers with `SOURCE_NOT_FOUND`, `LAYER_NOT_FOUND_ERROR`
+/// or `STYLE_NOT_READY` while a look change tears the old style down under
+/// the adapter.
 bool isStyleGoneError(PlatformException e) {
   final code = e.code.toLowerCase();
-  return code.contains('notfound') || code.contains('not_found');
+  return code.contains('not_found') || e.code == 'STYLE_NOT_READY';
 }
 
 /// How long a read of the style ([styleRead]) is given.
@@ -696,7 +702,7 @@ const Duration styleReadTimeout = Duration(seconds: 10);
 /// store picture waited out its limit on them.
 Future<T> styleRead<T>(Future<T> call) => call.timeout(
   styleReadTimeout,
-  onTimeout: () => throw PlatformException(code: 'styleNotFound'),
+  onTimeout: () => throw PlatformException(code: 'STYLE_NOT_READY'),
 );
 
 /// [MapLibreStyleOps] forwarding one for one to a real plugin controller.

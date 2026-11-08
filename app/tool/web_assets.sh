@@ -39,12 +39,12 @@ fetch https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-3.7.1/s
 fetch https://github.com/simolus3/drift/releases/download/drift-2.35.2/drift_worker.js \
   drift_worker.js 191fc9db018d2bbecb1723e81118fcf2c5c094df8644c2fcba2ed51df061e90a
 
-# maplibre-gl-js 6.4.1 for maplibre_gl 0.27.1. The library finds its worker
+# maplibre-gl-js 6.16.0 for maplibre_gl 0.28.0. The library finds its worker
 # beside its own URL, so the dist files stay together in maplibre-gl/.
-MAPLIBRE=6.4.1
+MAPLIBRE=6.16.0
 if [ ! -f "maplibre-gl/.version-$MAPLIBRE" ]; then
   fetch "https://registry.npmjs.org/maplibre-gl/-/maplibre-gl-$MAPLIBRE.tgz" \
-    maplibre-gl.tgz 21d78393afc6db78f1f9963dfd979057b536b309d8c48c1a4dde95277a522fef
+    maplibre-gl.tgz 1504a18021fc6d9329a9dc7c949525822c8ae5e2fe3e3751df9262a13af5de4b
   rm -rf maplibre-gl
   mkdir maplibre-gl
   tar -xzf maplibre-gl.tgz -C maplibre-gl --strip-components=2 \

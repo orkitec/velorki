@@ -88,16 +88,19 @@ That gives three pieces:
      `LocationManagerClient`.
    - `maplibre_gl`: drop `play-services-base` and `-location`, delete
      `GMSLocationEngine.java`, make `LocationEngineFactory` always use
-     `MapLibreGPSLocationEngine`. From maplibre_gl 0.28 there is a
-     `maplibre_gl.playServicesLocation=false` Gradle property that does this
-     without a patch; the script sets it instead as soon as the app moves up.
+     `MapLibreGPSLocationEngine`. From maplibre_gl 0.28 the
+     `maplibre_gl.playServicesLocation=false` Gradle property does this
+     without a patch, and the script sets it in `android/gradle.properties`
+     instead.
 
    Both fall back to the free client by themselves on a phone without Play
    Services — the patch is not about behaviour, it is about the *reference*
    being gone.
 
    It ends by grepping the patched sources and failing if
-   `com.google.android.gms` is left. It is idempotent.
+   `com.google.android.gms` is left (a maplibre_gl with the property keeps
+   its Google sources on disk, out of the build; the dex scan covers it). It
+   is idempotent.
 
 ## Building it
 

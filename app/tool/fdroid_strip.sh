@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Turn this checkout into the Google-free tree the F-Droid build compiles.
 #
-# Two kinds of change, both of which this script makes and neither of which is
+# Three kinds of change, all of which this script makes and none of which is
 # committed:
 #
 #  1. `pubspec.yaml` and `pubspec.lock` lose the six closed-source plugins.
@@ -22,6 +22,10 @@
 #     PUB_CACHE of its own if that matters:
 #
 #       PUB_CACHE=$PWD/.pub-cache bash tool/fdroid_strip.sh
+#
+#  3. `android/gradle.properties` gains `maplibre_gl.playServicesLocation=false`
+#     where the maplibre_gl in use has that switch (0.28 on) instead of
+#     needing the patch.
 #
 # Idempotent: every edit is skipped where it has already been made, so a
 # second run (or a run over a cache another flavour already patched) is a
@@ -156,9 +160,8 @@ patch_geolocator() {
 # 3. maplibre_gl: the MapLibre GPS location engine, never the GMS one
 # ---------------------------------------------------------------------------
 # From 0.28 the plugin has a `maplibre_gl.playServicesLocation` Gradle
-# property that does this without a patch; while Velorki is on 0.27 the
-# sources are edited instead. Both paths are here, so the day the app moves up
-# this script keeps working and the patch half simply stops being reached.
+# property that does this without a patch; an older one has its sources
+# edited instead.
 
 patch_maplibre() {
   local dir
@@ -196,13 +199,15 @@ patch_maplibre
 # Only the two patched plugins are checked here: every other Google reference
 # left anywhere in the cache belongs to a plugin this build no longer lists,
 # and the `fdroid` job in .github/workflows/app.yml scans the dex, which is
-# what proves that.
+# what proves that. A maplibre_gl with the Gradle switch keeps its Google
+# sources on disk (Gradle leaves them out), so only the dex scan can check it.
 
-left=$(
-  grep -rl 'com\.google\.android\.gms' \
-    "$cache"/geolocator_android-*/android \
-    "$cache"/maplibre_gl-*/android 2>/dev/null || true
-)
+patched=("$cache"/geolocator_android-*/android)
+for dir in "$cache"/maplibre_gl-*/android; do
+  [ -d "$dir" ] || continue
+  grep -q 'playServicesLocation' "$dir/build.gradle" || patched+=("$dir")
+done
+left=$(grep -rl 'com\.google\.android\.gms' "${patched[@]}" 2>/dev/null || true)
 if [ -n "$left" ]; then
   say 'com.google.android.gms is still referenced after patching:'
   printf '  %s\n' $left
