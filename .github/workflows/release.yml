@@ -238,6 +238,10 @@ jobs:
     env:
       HAVE_SECRETS: ${{ secrets.ANDROID_KEYSTORE_B64 != '' && 'true' || 'false' }}
       HAVE_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' && 'true' || 'false' }}
+      # The Wear OS app (app/android/wear) goes to Play only with the
+      # repository variable WEAR_RELEASE set to true, once the Wear OS form
+      # factor is added to the Play listing; it is built either way.
+      WEAR_RELEASE: ${{ vars.WEAR_RELEASE == 'true' && 'true' || 'false' }}
       TAG: ${{ needs.version.outputs.tag }}
       VERSION_NAME: ${{ needs.version.outputs.version_name }}
       BUILD_NUMBER: ${{ needs.version.outputs.build_number }}
@@ -303,6 +307,9 @@ jobs:
           bundle install
           export PLAY_SERVICE_ACCOUNT_JSON_PATH="$RUNNER_TEMP/play.json"
           export LATEST_VERSION_CODE_FILE="$RUNNER_TEMP/latest-version-code"
+          if [ "$WEAR_RELEASE" = true ]; then
+            export LATEST_WEAR_VERSION_CODE_FILE="$RUNNER_TEMP/latest-wear-version-code"
+          fi
           echo "$PLAY_SERVICE_ACCOUNT_JSON" > "$PLAY_SERVICE_ACCOUNT_JSON_PATH"
           status=0
           bundle exec fastlane android latest_version_code || status=$?
@@ -312,6 +319,27 @@ jobs:
             exit 1
           fi
           latest="$(cat "$LATEST_VERSION_CODE_FILE")"
+          # The Wear OS app goes up as 100000 + the build number on Play's
+          # Wear OS track, owed or not on its own, so a run that stopped
+          # between the two uploads finishes the job when re-run. Nothing
+          # about it can stop the phone's: a lookup that failed is reported
+          # and the upload tried.
+          wear_owed=false
+          if [ "$WEAR_RELEASE" = true ]; then
+            wear_code=$((100000 + BUILD_NUMBER))
+            if [ -s "$LATEST_WEAR_VERSION_CODE_FILE" ]; then
+              wear_latest="$(cat "$LATEST_WEAR_VERSION_CODE_FILE")"
+            else
+              echo "::warning::Could not read the Wear OS version codes from Google Play; the upload will be tried."
+              wear_latest=0
+            fi
+            if [ "$wear_code" -le "$wear_latest" ]; then
+              echo "::notice::Wear OS version code $wear_code is already on Google Play (highest $wear_latest): skipping its upload."
+            else
+              wear_owed=true
+            fi
+          fi
+          echo "wear_owed=$wear_owed" >> "$GITHUB_OUTPUT"
           if [ "$BUILD_NUMBER" -lt "$latest" ]; then
             echo "::error::Version code $BUILD_NUMBER is below $latest, the highest on Google Play. Raise the +N in app/pubspec.yaml with a new tag, or dispatch with a higher build_number."
             exit 1
@@ -383,7 +411,7 @@ jobs:
       # language from fastlane's changelogs; a promotion to production copies
       # them along.
       - name: Stage the release notes
-        if: ${{ env.HAVE_SECRETS == 'true' && env.HAVE_PLAY == 'true' && env.DRY_RUN != 'true' && steps.play.outputs.uploaded != 'true' }}
+        if: ${{ env.HAVE_SECRETS == 'true' && env.HAVE_PLAY == 'true' && env.DRY_RUN != 'true' && (steps.play.outputs.uploaded != 'true' || steps.play.outputs.wear_owed == 'true') }}
         working-directory: .
         run: |
           set -euo pipefail
@@ -408,6 +436,34 @@ jobs:
           packageName: com.orkitec.velorki
           releaseFiles: app/build/app/outputs/bundle/release/app-release.aab
           track: internal
+          status: completed
+          whatsNewDirectory: ${{ env.WHATSNEW_DIR }}
+
+      # The Wear OS app, after the phone's upload so nothing here can hold
+      # that back; with the same key. --config-only writes the Gradle wrapper
+      # and local.properties when the phone's build was skipped.
+      - name: Build the Wear OS app
+        if: ${{ env.HAVE_SECRETS == 'true' && (env.DRY_RUN == 'true' || steps.play.outputs.uploaded != 'true' || steps.play.outputs.wear_owed == 'true' || steps.ghrelease.outputs.create == 'true') }}
+        run: |
+          flutter build apk --config-only
+          cd android
+          ./gradlew --no-daemon :wear:bundleRelease \
+            -PvelorkiBuildNumber="$BUILD_NUMBER" -PvelorkiBuildName="$VERSION_NAME"
+
+      - name: Wear OS upload is off
+        if: ${{ env.HAVE_SECRETS == 'true' && env.HAVE_PLAY == 'true' && env.DRY_RUN != 'true' && env.WEAR_RELEASE != 'true' }}
+        run: echo "::notice::The Wear OS app was built but not uploaded. To ship it, add the Wear OS form factor in the Play Console (Test and release, Advanced settings, Form factors), then set the repository variable WEAR_RELEASE to true."
+
+      # Play's Wear OS form factor track for internal testing: the API names
+      # a form factor's tracks "wear:<track>", and the internal one "qa".
+      - name: Upload the Wear OS app to Play internal testing
+        if: ${{ env.HAVE_SECRETS == 'true' && env.HAVE_PLAY == 'true' && env.DRY_RUN != 'true' && steps.play.outputs.wear_owed == 'true' }}
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.orkitec.velorki
+          releaseFiles: app/build/wear/outputs/bundle/release/wear-release.aab
+          track: wear:qa
           status: completed
           whatsNewDirectory: ${{ env.WHATSNEW_DIR }}
 

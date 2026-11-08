@@ -218,7 +218,8 @@ changing structure.
   number, the pubspec's `+N` (raised by the release commit above every
   earlier tag's; F-Droid builds the same tag with it), for both platform
   jobs, Android (Play internal,
-  GitHub Release) and iOS (xcodebuild with cloud signing, TestFlight; one-time
+  GitHub Release, and the Wear OS app's AAB, uploaded to `wear:qa` only with
+  the repository variable `WEAR_RELEASE=true`) and iOS (xcodebuild with cloud signing, TestFlight; one-time
   setup in `docs/RELEASE_IOS.md`), each checking it against its store first and
   waiting in the `release` environment for the maintainer's approval in the
   Actions UI before anything is signed or published. An existing tag is

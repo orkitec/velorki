@@ -124,6 +124,14 @@ jobs:
           path: app/build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 7
 
+      # The Wear OS app (android/wear): its JVM tests, which hold it to the
+      # protocol fixture the Dart tests use, and its release bundle (signed
+      # with the debug key here). flutter build has written the Gradle
+      # wrapper it runs with.
+      - name: Wear OS app
+        working-directory: app/android
+        run: ./gradlew --no-daemon :wear:testDebugUnitTest :wear:bundleRelease
+
   # The Google-free flavour, the one F-Droid publishes: tool/fdroid_strip.sh
   # takes the six closed-source plugins out of pubspec.yaml and patches the two
   # that ask Google Play Services for a location provider, and the build runs

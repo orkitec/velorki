@@ -256,12 +256,16 @@ void main() {
       );
     });
 
-    test('the WatchConnectivity gateway on iOS, nothing on Android', () async {
+    test('the WatchConnectivity gateway on iOS and on Android (Wear OS), '
+        'nothing on a desktop', () async {
       final ios = await _storeBuild(TargetPlatform.iOS);
       expect(ios.read(watchGatewayProvider), isA<PluginWatchGateway>());
       debugDefaultTargetPlatformOverride = null;
       final android = await _storeBuild(TargetPlatform.android);
-      expect(android.read(watchGatewayProvider), isNull);
+      expect(android.read(watchGatewayProvider), isA<PluginWatchGateway>());
+      debugDefaultTargetPlatformOverride = null;
+      final macos = await _storeBuild(TargetPlatform.macOS);
+      expect(macos.read(watchGatewayProvider), isNull);
     });
 
     test('the ActivityKit card on iOS, nothing on Android', () async {

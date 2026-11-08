@@ -24,8 +24,8 @@ import '../features/sync/data/google_cloud.dart';
 ///   Sync with offers iCloud only (or nothing);
 /// - the store's rating dialog and the update notice: StoreKit and Google
 ///   Play, else neither is ever asked for;
-/// - the Apple Watch link and the ride's lock-screen card: iOS only in any
-///   case, and nothing at all without their plugins.
+/// - the watch link (Apple Watch, Wear OS) and the ride's lock-screen card
+///   (iOS only in any case): nothing at all without their plugins.
 ///
 /// `docs/FDROID.md` is the whole picture; a seventh plugin added here has to
 /// follow the same shape, or the Google-free build stops building.

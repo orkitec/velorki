@@ -83,7 +83,11 @@ class SensorsSection extends ConsumerWidget {
         if (ref.watch(watchPairedProvider).value ?? false) ...[
           SwitchListTile(
             value: settings.watch,
-            title: Text(l10n.settingsSensorsAppleWatch),
+            title: Text(
+              defaultTargetPlatform == TargetPlatform.android
+                  ? l10n.settingsSensorsWatch
+                  : l10n.settingsSensorsAppleWatch,
+            ),
             subtitle: Text(l10n.settingsSensorsWatchHint),
             onChanged: (value) => unawaited(
               _setWatch(
@@ -111,10 +115,11 @@ class SensorsSection extends ConsumerWidget {
     );
   }
 
-  /// Turning the watch on also asks to post notifications, once: a ride
-  /// started from the wrist with the phone app closed is announced on the
-  /// phone so a tap brings the app up. A refusal only costs that
-  /// announcement; the switch goes on either way.
+  /// Turning the watch on also asks to post notifications, once: on iOS a
+  /// ride started from the wrist with the phone app closed is announced on
+  /// the phone so a tap brings the app up, on Android the ride's own
+  /// notification needs it. A refusal only costs that; the switch goes on
+  /// either way.
   Future<void> _setWatch(
     bool value, {
     required SensorSettingsController controller,

@@ -988,6 +988,7 @@
   "settingsSensorsHealthWriteHint": "Ogni giro concluso finisce in Health come un allenamento in bici con inizio, fine e distanza",
   "settingsSensorsHealthDenied": "Velorki non ha ottenuto l'accesso ai tuoi dati sulla salute.",
   "settingsSensorsAppleWatch": "Apple Watch",
+  "settingsSensorsWatch": "Orologio",
   "settingsSensorsWatchHint": "L'app Velorki per l'orologio: misura il battito dal vivo per tutto il giro, mostra il giro e ha Avvia, Pausa e Termina al polso. Consuma la batteria dell'orologio",
   "settingsSensorsWatchRest": "Sensore a riposo in pausa",
   "settingsSensorsWatchRestHint": "L'orologio smette di misurare a ogni pausa e il telefono lo risveglia quando riparti. Risparmia la batteria dell'orologio nei giri con molte fermate; il primo battito dopo ogni fermata richiede un attimo, e se il risveglio fallisce il battito manca finché il telefono non riprova dopo 45 secondi",

@@ -19,7 +19,7 @@ What is not, because only a closed-source library can do it:
 | Google Drive sync | `google_sign_in` + `googleapis`. Settings → Sync with offers nothing on Android in this build. |
 | The store's rating dialog | `in_app_review`. Never asked for. |
 | The update notice | `in_app_update`. F-Droid updates the app itself. |
-| The Apple Watch link, the lock-screen card | `watch_connectivity`, `live_activities` — iOS only in any case. |
+| The watch link (Apple Watch, Wear OS), the lock-screen card | `watch_connectivity` (Play Services' Wearable Data Layer on Android), `live_activities` (iOS only in any case). The Wear OS app in `app/android/wear` is a Gradle module the Flutter build only includes when one of its own tasks is asked for, so this build never compiles it. |
 
 And one thing that is left out by choice rather than by licence:
 

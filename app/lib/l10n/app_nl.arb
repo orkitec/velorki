@@ -988,6 +988,7 @@
   "settingsSensorsHealthWriteHint": "Elke beëindigde rit komt in Gezondheid als één fietstraining met start, einde en afstand",
   "settingsSensorsHealthDenied": "Velorki heeft geen toegang tot je gezondheidsgegevens gekregen.",
   "settingsSensorsAppleWatch": "Apple Watch",
+  "settingsSensorsWatch": "Horloge",
   "settingsSensorsWatchHint": "De eigen horloge-app van Velorki: meet je hartslag live tijdens de hele rit, toont de rit en heeft Start, Pauze en Beëindigen om je pols. Kost batterij van het horloge",
   "settingsSensorsWatchRest": "Sensor laten rusten tijdens pauzes",
   "settingsSensorsWatchRestHint": "Het horloge stopt bij elke pauze met meten en de telefoon wekt het als je verder rijdt. Spaart de batterij van het horloge bij ritten met veel stops; de eerste hartslag na elke stop duurt even, en als het wekken mislukt ontbreekt de hartslag tot de telefoon het na 45 seconden opnieuw probeert",

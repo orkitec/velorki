@@ -6,11 +6,14 @@
 // a plugin that is not there at all, must answer "no" rather than throw. The
 // caller is a ride that is recording.
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:velorki/features/sensors/data/plugin_watch_gateway.dart';
+import 'package:velorki/features/sensors/data/watch_protocol.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
 
 class _MockWatch extends Mock implements WatchConnectivity {}
@@ -43,7 +46,8 @@ void main() {
 
   setUp(() {
     watch = _MockWatch();
-    gateway = PluginWatchGateway(watch: watch);
+    // An iPhone, unless a test says otherwise: the test VM reports Android.
+    gateway = PluginWatchGateway(watch: watch, platform: TargetPlatform.iOS);
   });
 
   group('asking the plugin about the watch', () {
@@ -130,20 +134,14 @@ void main() {
       expect(await gateway.launchWorkout(), isFalse);
     });
 
-    test(
-      'and no iOS side at all — Android, where the method is not there',
-      () async {
-        // No handler registered: the channel throws MissingPluginException.
-        expect(await gateway.launchWorkout(), isFalse);
-        expect(
-          await gateway.notifyRideStarted(
-            title: 'Riding',
-            body: 'From a watch',
-          ),
-          isFalse,
-        );
-      },
-    );
+    test('and no iOS side at all, where the method is not there', () async {
+      // No handler registered: the channel throws MissingPluginException.
+      expect(await gateway.launchWorkout(), isFalse);
+      expect(
+        await gateway.notifyRideStarted(title: 'Riding', body: 'From a watch'),
+        isFalse,
+      );
+    });
 
     test(
       'the notice that the watch started a ride carries its words',
@@ -172,5 +170,53 @@ void main() {
       expect(await gateway.launchWorkout(), isFalse);
       expect(await gateway.notifyRideStarted(title: 't', body: 'b'), isFalse);
     });
+  });
+
+  group('on Android, with a Wear OS watch', () {
+    late PluginWatchGateway android;
+
+    setUp(() {
+      android = PluginWatchGateway(
+        watch: watch,
+        platform: TargetPlatform.android,
+      );
+      when(() => watch.updateApplicationContext(any()))
+          .thenAnswer((_) async {});
+      when(() => watch.sendMessage(any())).thenAnswer((_) async {});
+    });
+
+    test('the context goes out as a data item and again as a message, the '
+        'one the shared fixture shows', () async {
+      final fixture = jsonDecode(
+        File('test/fixtures/watch/messages.json').readAsStringSync(),
+      ) as Map<String, Object?>;
+      final phone = fixture['phoneToWatch']! as Map<String, Object?>;
+      final context = phone['contextActive']! as Map<String, Object?>;
+
+      await android.updateApplicationContext(context);
+
+      verify(() => watch.updateApplicationContext(context)).called(1);
+      final sent =
+          verify(() => watch.sendMessage(captureAny())).captured.single
+              as Map<String, Object?>;
+      expect(sent, phone['contextMessage']);
+      expect(sent[watchTypeKey], watchContextType);
+    });
+
+    test('an iPhone sends no such message', () async {
+      when(() => watch.updateApplicationContext(any()))
+          .thenAnswer((_) async {});
+      await gateway.updateApplicationContext(const {'status': 'idle'});
+      verifyNever(() => watch.sendMessage(any()));
+    });
+
+    test(
+      'there is no launch to ask for: the message wakes the watch app',
+      () async {
+        final calls = _mockNative({'launchWorkout': true});
+        expect(await android.launchWorkout(), isFalse);
+        expect(calls, isEmpty);
+      },
+    );
   });
 }

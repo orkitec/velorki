@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_riding">Onderweg</string>
+    <string name="title_paused">Gepauzeerd</string>
+    <string name="start_hint">Start een rit hier of op de telefoon.</string>
+    <string name="start_ride">Rit starten</string>
+    <string name="pause">Pauze</string>
+    <string name="resume">Hervatten</string>
+    <string name="finish">Beëindigen</string>
+    <string name="stop_heart_rate">Hartslag stoppen</string>
+    <string name="start_heart_rate">Hartslag starten</string>
+    <string name="footnote_finish">‘Beëindigen’ opent op de telefoon het venster om de rit op te slaan.</string>
+    <string name="footnote_battery">Met batterijbesparing in de instellingen van het horloge houdt de batterij een lange rit vol.</string>
+    <string name="bpm">spm</string>
+    <string name="problem_health_access">Velorki heeft toegang tot je hartslag nodig: sta het toe in de instellingen van het horloge.</string>
+    <string name="problem_would_not_start">Het horloge kon geen training starten: %1$s</string>
+    <string name="problem_stopped">De training is gestopt: %1$s</string>
+    <string name="problem_phone_silent">De telefoon antwoordt niet. Open Velorki op de telefoon en probeer het opnieuw.</string>
+    <string name="notification_channel">Rit</string>
+</resources>

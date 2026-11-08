@@ -3,9 +3,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'watch_gateway.g.dart';
 
-/// What the watch is called in the interface. A brand name, so it reads the
-/// same in every language.
-const String watchName = 'Apple Watch';
+/// What the watch on [platform] is called, as a sensor. A brand name, so it
+/// reads the same in every language.
+String watchName(TargetPlatform platform) =>
+    platform == TargetPlatform.android ? 'Wear OS' : 'Apple Watch';
 
 /// The link to the watch app, as the little of WatchConnectivity Velorki uses.
 ///
@@ -37,7 +38,9 @@ abstract interface class WatchGateway {
 
   /// Launches the watch app into a cycling workout through HealthKit, for a
   /// watch whose app is not running and so cannot be sent a message. True
-  /// when watchOS took the request.
+  /// when watchOS took the request. Always false on Android, where there is
+  /// no such launch: a message reaches a Wear OS app that is not running
+  /// through its listener service, so [isReachable] covers that case.
   Future<bool> launchWorkout();
 
   /// Posts a notification on the phone saying the watch has started a ride,
@@ -47,20 +50,18 @@ abstract interface class WatchGateway {
   Future<bool> notifyRideStarted({required String title, required String body});
 }
 
-/// Whether [platform] has a watch Velorki can talk to.
-///
-/// iOS only: the phone side of this feature is an Apple Watch companion app,
-/// and a rider on any other platform never sees the switch.
+/// Whether [platform] has a watch Velorki can talk to: an Apple Watch on
+/// iOS, a Wear OS watch on Android. A rider on any other platform never sees
+/// the switch.
 bool watchSupportedOn(TargetPlatform platform) =>
-    platform == TargetPlatform.iOS;
+    platform == TargetPlatform.iOS || platform == TargetPlatform.android;
 
 /// The watch link of this platform, or `null` where there is none — which
 /// is the default, because WatchConnectivity comes through a package with
 /// Google Play code in its Android half.
 ///
 /// `main.dart` installs the real gateway over this (`watchGatewayOverride`)
-/// and `main_fdroid.dart` does not; on Android it is null either way, since
-/// the watch app is an Apple Watch one.
+/// and `main_fdroid.dart` does not, so the F-Droid build has no watch.
 @Riverpod(keepAlive: true)
 WatchGateway? watchGateway(Ref ref) => null;
 

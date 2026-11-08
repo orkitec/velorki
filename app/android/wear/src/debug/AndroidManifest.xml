@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only: messages from adb in place of a paired phone, see
+     DebugFeedReceiver and wear/README.md. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <receiver
+            android:name=".DebugFeedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.orkitec.velorki.wear.debug.FEED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

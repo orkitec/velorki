@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The watch's own words. The figures and the turn arrive formatted and
+     translated by the phone. Every app language has a values-<lang> copy;
+     docs/GLOSSARY.md has the terms. -->
+<resources>
+    <string name="app_name" translatable="false">Velorki</string>
+    <string name="title_riding">Riding</string>
+    <string name="title_paused">Paused</string>
+    <string name="start_hint">Start a ride here or on the phone.</string>
+    <string name="start_ride">Start ride</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="finish">Finish</string>
+    <string name="stop_heart_rate">Stop heart rate</string>
+    <string name="start_heart_rate">Start heart rate</string>
+    <string name="footnote_finish">Finish opens the save sheet on the phone.</string>
+    <string name="footnote_battery">Battery Saver in the watch\'s settings makes a long ride last.</string>
+    <string name="bpm">bpm</string>
+    <string name="problem_health_access">Heart rate access is needed: allow it in the watch\'s settings.</string>
+    <string name="problem_would_not_start">The watch would not start a workout: %1$s</string>
+    <string name="problem_stopped">The workout stopped: %1$s</string>
+    <string name="problem_phone_silent">The phone did not answer. Open Velorki on the phone and try again.</string>
+    <string name="notification_channel">Ride</string>
+</resources>

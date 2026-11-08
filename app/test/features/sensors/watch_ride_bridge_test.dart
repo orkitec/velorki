@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:ui' show Locale;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +10,7 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
 import 'package:velorki/features/recording/application/ride_finish_request.dart';
+import 'package:velorki/features/recording/data/live_activity.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/sensors/application/sensor_hub.dart';
@@ -559,6 +562,130 @@ void main() {
 
       expect(harness.lastContext?[watchStatusKey], watchStatusIdle);
       expect(harness.lastContext?[watchDistanceKey], '');
+    });
+  });
+
+  // test/fixtures/watch/messages.json is the one description of the protocol
+  // both watch apps are held to: the Wear OS app's JVM tests decode and
+  // encode the same file, so a change here that the watch does not follow
+  // fails over there, and the other way round.
+  group('the shared fixture', () {
+    final fixture = jsonDecode(
+      File('test/fixtures/watch/messages.json').readAsStringSync(),
+    ) as Map<String, Object?>;
+    final fromWatch = fixture['watchToPhone']! as Map<String, Object?>;
+    final toWatch = fixture['phoneToWatch']! as Map<String, Object?>;
+    Map<String, Object?> message(Map<String, Object?> from, String name) =>
+        from[name]! as Map<String, Object?>;
+
+    test('is the context a watch with no ride is given', () async {
+      final harness = await _Harness.create();
+      expect(harness.lastContext, message(toWatch, 'contextIdle'));
+    });
+
+    test('is the context of a ride with a turn ahead', () async {
+      final harness = await _Harness.create(
+        progress: const NavigationProgress(next: _left, distanceToNextM: 150),
+      );
+      await harness.record(_snapshot());
+      expect(harness.lastContext, message(toWatch, 'contextActive'));
+    });
+
+    test('is the context of a paused ride with the sensor resting', () async {
+      final harness = await _Harness.create(
+        rest: true,
+        progress: const NavigationProgress(next: _left, distanceToNextM: 150),
+      );
+      await harness.record(_snapshot(status: RecordingStatus.paused));
+      expect(harness.lastContext, message(toWatch, 'contextPaused'));
+    });
+
+    test(
+      'is the context of a rider off the route, with a cue to feel',
+      () async {
+        final harness = await _Harness.create(
+          progress: const NavigationProgress(
+            next: _left,
+            distanceToNextM: 150,
+            offRoute: true,
+          ),
+        );
+        await harness.record(_snapshot());
+        harness.container
+            .read(navigationCueProvider.notifier)
+            .fire(_start.add(const Duration(minutes: 2)));
+        await harness.settle();
+        expect(harness.lastContext, message(toWatch, 'contextOffRoute'));
+      },
+    );
+
+    test('is what the phone asks of the workout', () async {
+      final harness = await _Harness.create();
+      await harness.record(_snapshot());
+      await harness.finish();
+      expect(harness.watch.sent, <Map<String, Object?>>[
+        message(toWatch, 'workoutStart'),
+        message(toWatch, 'workoutStop'),
+      ]);
+    });
+
+    test('is a heart rate the hub takes', () async {
+      final harness = await _Harness.create();
+      final reading = message(fromWatch, 'heartRate');
+      await harness.fromWatch(reading);
+      final snapshot = harness.container.read(sensorHubProvider);
+      expect(snapshot.heartRateBpm, reading[watchBpmKey]);
+      expect(snapshot.heartRateAt?.millisecondsSinceEpoch, reading[watchAtKey]);
+    });
+
+    test(
+      'is every button on the wrist, each one driving the recorder',
+      () async {
+        final harness = await _Harness.create();
+        final commands = (fromWatch['commands']! as List<Object?>)
+            .cast<Map<String, Object?>>();
+        expect(commands.map((command) => command[watchCommandKey]), <String>[
+          watchCommandStart,
+          watchCommandPause,
+          watchCommandResume,
+          watchCommandStop,
+        ]);
+
+        await harness.fromWatch(commands[0]);
+        await harness.record(_snapshot());
+        await harness.fromWatch(commands[1]);
+        await harness.record(_snapshot(status: RecordingStatus.paused));
+        await harness.fromWatch(commands[2]);
+        await harness.record(_snapshot());
+        await harness.fromWatch(commands[3]);
+
+        expect(harness.service.calls, <String>[
+          'start(null)',
+          'pause',
+          'resume',
+          'pause',
+        ]);
+        expect(harness.container.read(rideFinishRequestProvider), isTrue);
+      },
+    );
+
+    test('is the rider stopping the heart rate on the wrist', () async {
+      final harness = await _Harness.create();
+      await harness.record(_snapshot());
+      await harness.fromWatch(message(fromWatch, 'heartRateStopped'));
+      // The phone owes the watch no stop for a workout it already ended.
+      await harness.finish();
+      expect(harness.workouts, <Object?>[watchWorkoutStart]);
+    });
+
+    test('names every turn icon the phone can send', () {
+      expect(
+        fixture['turnIcons'],
+        unorderedEquals(<String>{
+          for (final kind in TurnKind.values) turnSymbol(kind),
+          offRouteSymbol,
+        }),
+      );
     });
   });
 }

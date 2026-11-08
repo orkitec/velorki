@@ -988,6 +988,7 @@
   "settingsSensorsHealthWriteHint": "Cada salida terminada se guarda en Salud como un entrenamiento de ciclismo con su inicio, final y distancia",
   "settingsSensorsHealthDenied": "Velorki no tiene acceso a tus datos de salud.",
   "settingsSensorsAppleWatch": "Apple Watch",
+  "settingsSensorsWatch": "Reloj",
   "settingsSensorsWatchHint": "La app de Velorki para el reloj: mide tu pulso en directo durante toda la salida, muestra la salida y tiene Iniciar, Pausa y Terminar en la muñeca. Gasta batería del reloj",
   "settingsSensorsWatchRest": "Reposo del sensor en pausa",
   "settingsSensorsWatchRestHint": "El reloj deja de medir en cada pausa y el teléfono lo despierta cuando sigues rodando. Ahorra batería del reloj en salidas con muchas paradas; el primer pulso tras cada parada tarda un momento, y si falla el despertar, falta el pulso hasta que el teléfono lo vuelve a intentar a los 45 segundos",

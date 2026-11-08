@@ -79,9 +79,13 @@ Velorki is live on the App Store and Google Play.
       on the Mac. A combined speed-and-cadence sensor is stored with both
       kinds, so the wheel field shows for a crank-only one; reading the CSC
       Feature characteristic (0x2A5C) at pairing would settle it.
-- [ ] `watch_connectivity` pulls `play-services-wearable` into the APK for an
-      iOS-only feature; replace it with a small iOS-only channel if an F-Droid
-      listing is wanted.
+- [ ] **Wear OS app end to end** (`app/android/wear`): driven on the Wear OS 5
+      emulator from adb only; pair a watch (or a Play Store phone image with
+      the companion app) and ride once: start on the phone and on the wrist,
+      pause, finish, heart rate in the hub, the ongoing activity, the watch
+      woken by the phone's message. Add the Wear OS form factor in the Play
+      Console before the first release uploads to `wear:qa`.
+
 ## Still to try on the Android phone
 
 Done on the Pixel: planning with on-device routing, tile download over the
