@@ -34,7 +34,8 @@ export const THEMES = ['system', 'light', 'dark'];
 
 /**
  * The header's wording, the website's own (web/messages/<lang>.json: `nav`,
- * `theme`, `localeSwitcher.label`), held to it by the test.
+ * `theme`, `localeSwitcher.label`, and for the planner's menu
+ * `legal.imprint.title` and `cookies.footer`), held to it by the test.
  */
 export const HEADER_STRINGS = {
   en: {
@@ -52,6 +53,8 @@ export const HEADER_STRINGS = {
     dark: 'Dark',
     cycle: 'Theme: {current}. Switch to {next}.',
     language: 'Language',
+    imprint: 'Imprint',
+    cookies: 'Cookies',
   },
   de: {
     home: 'Velorki Startseite',
@@ -68,6 +71,8 @@ export const HEADER_STRINGS = {
     dark: 'Dunkel',
     cycle: 'Design: {current}. Zu {next} wechseln.',
     language: 'Sprache',
+    imprint: 'Impressum',
+    cookies: 'Cookies',
   },
   es: {
     home: 'Inicio de Velorki',
@@ -84,6 +89,8 @@ export const HEADER_STRINGS = {
     dark: 'Oscuro',
     cycle: 'Tema: {current}. Cambiar a {next}.',
     language: 'Idioma',
+    imprint: 'Aviso legal',
+    cookies: 'Cookies',
   },
   fr: {
     home: 'Accueil Velorki',
@@ -100,6 +107,8 @@ export const HEADER_STRINGS = {
     dark: 'Sombre',
     cycle: 'Thème : {current}. Passer à {next}.', // a no-break space before the colon, as the site writes it
     language: 'Langue',
+    imprint: 'Mentions légales',
+    cookies: 'Cookies',
   },
   it: {
     home: 'Pagina iniziale di Velorki',
@@ -116,6 +125,8 @@ export const HEADER_STRINGS = {
     dark: 'Scuro',
     cycle: 'Tema: {current}. Passa a {next}.',
     language: 'Lingua',
+    imprint: 'Note legali',
+    cookies: 'Cookie',
   },
   nl: {
     home: 'Velorki-startpagina',
@@ -132,6 +143,8 @@ export const HEADER_STRINGS = {
     dark: 'Donker',
     cycle: 'Thema: {current}. Overschakelen naar {next}.',
     language: 'Taal',
+    imprint: 'Colofon',
+    cookies: 'Cookies',
   },
 };
 
@@ -346,6 +359,9 @@ export function glyph(document, name, size, cls) {
  * classes written out, as they render: `.btn` is unlayered CSS on the site
  * and beats the pill's `px-4 text-sm`, so the pill keeps `.btn`'s padding and
  * size here too. Breakpoints as Tailwind's: sm 640, md 768, lg 1024.
+ * The frosted ground is a layer of its own (`.vh::before`), as on the site:
+ * Safari on iOS cuts off whatever overflows an element with a backdrop
+ * filter, and the menu panel and the language menu drop out of the header.
  */
 export const HEADER_CSS = `
 @font-face{font-family:Manrope;src:url(fonts/Manrope-latin.woff2) format('woff2');font-weight:400 700;font-display:swap}
@@ -356,10 +372,12 @@ export const HEADER_CSS = `
 :root[data-theme=dark]{color-scheme:dark;--canvas:#0e1115;--panel:#1b1f26;--fg:#f1f3f5;--muted:#aab2bc;--line:#2c333c;--line-soft:#232930;--accent:#c8f542;--on-accent:#0e1115;--accent-soft:rgb(200 245 66/.14);--accent-10:rgb(200 245 66/.1);--tile:#c8f542;--glyph:#0e1115}
 html,body{margin:0;background:var(--canvas)}
 .vg-tile{fill:var(--tile)}.vg-glyph{fill:var(--glyph)}.vg-route{fill:none;stroke:var(--glyph)}
-.vh{position:sticky;top:0;z-index:50;overflow-x:clip;border-bottom:1px solid var(--line-soft);background:color-mix(in srgb,var(--canvas) 85%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);padding-top:env(safe-area-inset-top,0px);color:var(--fg);font:500 1rem/1.55 Manrope,ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+.vh{position:sticky;top:0;z-index:50;overflow-x:clip;border-bottom:1px solid var(--line-soft);padding-top:env(safe-area-inset-top,0px);color:var(--fg);font:500 1rem/1.55 Manrope,ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+.vh::before{content:'';position:absolute;inset:0;z-index:-1;background:color-mix(in srgb,var(--canvas) 85%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
 .vh *,.vh *::before,.vh *::after{box-sizing:border-box}
 .vh a{color:inherit;text-decoration:none}
 .vh a.vh-link,.vh-panel nav a{color:var(--muted)}
+.vh-panel nav button{width:100%;text-align:left}
 .vh button{font:inherit;color:inherit;background:none;border:0;margin:0;cursor:pointer}
 .vh :focus-visible{outline:2px solid color-mix(in srgb,var(--fg) 55%,transparent);outline-offset:2px}
 .vh-shell{width:100%;max-width:76rem;margin-inline:auto;padding-inline:max(1.25rem,env(safe-area-inset-left,0px)) max(1.25rem,env(safe-area-inset-right,0px))}
@@ -401,7 +419,7 @@ html,body{margin:0;background:var(--canvas)}
 .vh-panel{position:absolute;left:0;right:0;top:100%;border-bottom:1px solid var(--line-soft);background:var(--canvas);box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}
 .vh-panel .vh-shell{display:flex;flex-direction:column;gap:.25rem;padding-block:.75rem}
 .vh-panel nav{display:flex;flex-direction:column;gap:.25rem}
-.vh-panel nav a{display:flex;min-height:2.75rem;align-items:center;gap:.5rem;border-radius:1rem;padding-inline:.75rem;font-size:1rem;line-height:1.5rem;font-weight:700;color:var(--muted)}
+.vh-panel nav a,.vh-panel nav button{display:flex;min-height:2.75rem;align-items:center;gap:.5rem;border-radius:1rem;padding-inline:.75rem;font-size:1rem;line-height:1.5rem;font-weight:700;color:var(--muted)}
 .vh-panel .vh-btn{margin-top:.5rem;min-height:3rem;padding:0 1.5rem;font-size:.9375rem}
 @media (min-width:640px){.vh-word{font-size:1.5rem}}
 @media (min-width:768px){.vh-shell{padding-inline:max(2rem,env(safe-area-inset-left,0px)) max(2rem,env(safe-area-inset-right,0px))}.vh-bar{gap:.75rem}.vh-nav{display:flex}.vh-right{margin-left:0;gap:.5rem}.vh-cycle,.vh-menu{display:none!important}.vh-themes{display:flex}.vh-loc summary{height:auto;gap:.375rem;border-color:transparent;padding-block:.375rem}.vh-dl{display:block}}
@@ -411,11 +429,12 @@ html,body{margin:0;background:var(--canvas)}
 /**
  * Builds the header for `lang` and returns it with a way to follow a theme or
  * a language set from elsewhere. `onTheme` and `onLanguage` run when the
- * reader picks one here, after it is shown and kept.
+ * reader picks one here, after it is shown and kept; `onStorageNotice` when
+ * they ask for the planner's note on what the browser keeps.
  */
-export function renderHeader(window, { lang, theme, onTheme, onLanguage }) {
+export function renderHeader(window, { lang, theme, onTheme, onLanguage, onStorageNotice }) {
   const { document } = window;
-  const state = { lang, theme };
+  const state = { lang, theme, legal: false };
   const header = el(document, 'header', { class: 'vh', id: 'velorki-header' });
 
   const applyTheme = () => {
@@ -496,6 +515,18 @@ export function renderHeader(window, { lang, theme, onTheme, onLanguage }) {
       ]),
     ]);
 
+    // Above the planner the menu also holds the imprint and the note on
+    // what the browser keeps: upright on a phone the tab's sheet and the
+    // bar cover the map's legal chip that has them in a wider window.
+    const legal = (t) => {
+      const notice = el(document, 'button', { type: 'button', 'data-storage-notice': '' }, [t.cookies]);
+      notice.addEventListener('click', () => {
+        for (const open of header.querySelectorAll?.('details[open]') ?? []) open.removeAttribute('open');
+        onStorageNotice?.();
+      });
+      return [el(document, 'a', { href: siteUrl(state.lang, '/imprint') }, [t.imprint]), notice];
+    };
+
     // Below md the links and the "Get the app" pill live in the menu.
     const download = siteUrl(state.lang, '/download');
     const menu = el(document, 'details', { class: 'vh-menu', 'data-header-menu': '' }, [
@@ -508,6 +539,7 @@ export function renderHeader(window, { lang, theme, onTheme, onLanguage }) {
           el(document, 'nav', { 'aria-label': t.primary }, [
             ...links.map((link) => navLink(link)),
             el(document, 'a', { href: GITHUB_URL, rel: 'noreferrer' }, [glyph(document, 'github', 16), t.github]),
+            ...(state.legal ? legal(t) : []),
           ]),
           el(document, 'a', { href: download, class: 'vh-btn' }, [t.getApp]),
         ]),
@@ -545,9 +577,14 @@ export function renderHeader(window, { lang, theme, onTheme, onLanguage }) {
     onLanguage?.(code);
   }
 
-  /** Shows `theme` and `lang` as they now are, without telling anyone. */
-  function set({ theme: nextValue, lang: nextLang } = {}) {
+  /** Shows `theme` and `lang` as they now are, without telling anyone;
+      `legal` once the planner runs below the header. */
+  function set({ theme: nextValue, lang: nextLang, legal } = {}) {
     let changed = false;
+    if (legal !== undefined && legal !== state.legal) {
+      state.legal = legal;
+      changed = true;
+    }
     if (nextValue && nextValue !== state.theme) {
       state.theme = nextValue;
       applyTheme();

@@ -214,6 +214,14 @@ test('boot loads the app on a desktop', () => {
   const body = w.document.body.children.map((n) => n.attributes.id);
   assert.deepEqual(body.slice(0, 2), ['velorki-header', 'velorki-app']);
   assert.equal(w.document.body.attributes.class, 'vg-app');
+  // Over the planner the menu holds the imprint and asks the app for its
+  // note on what the browser keeps.
+  const header = byId(w.document, 'velorki-header');
+  assert.ok([...header.walk()].some((n) => n.attributes.href === 'https://velorki.com/de/imprint'));
+  const told = [];
+  w.addEventListener('velorki-header', (event) => told.push(event.detail));
+  [...header.walk()].find((n) => 'data-storage-notice' in n.attributes).click();
+  assert.deepEqual(told, [{ storageNotice: true }]);
 });
 
 test('boot shows the download page on a phone, and continuing loads the app once', () => {
@@ -234,11 +242,14 @@ test('boot shows the download page on a phone, and continuing loads the app once
   assert.ok(hrefs.includes('https://velorki.com/de/imprint'));
   const header = byId(w.document, 'velorki-header');
   assert.ok([...header.walk()].some((n) => n.attributes.href === 'https://velorki.com/de/docs'));
+  // The download page has its own imprint link; the menu is the site's.
+  assert.ok(![...header.walk()].some((n) => n.attributes.href === 'https://velorki.com/de/imprint'));
 
   find(w.document, (n) => n.attributes.class === 'vg-continue').click();
   assert.equal(find(w.document, (n) => n.attributes.id === 'velorki-gate'), undefined);
-  // The header stays, now over the planner.
+  // The header stays, now over the planner, its menu with the imprint.
   assert.ok(byId(w.document, 'velorki-header'));
+  assert.ok([...byId(w.document, 'velorki-header').walk()].some((n) => n.attributes.href === 'https://velorki.com/de/imprint'));
   assert.ok(byId(w.document, 'velorki-app'));
   assert.equal(scripts(w.document).length, 1);
   assert.equal(scripts(w.document)[0].src, 'flutter_bootstrap.js');

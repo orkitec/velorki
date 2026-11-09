@@ -277,6 +277,7 @@ export function boot(window) {
       announce({ locale: lang });
       if (gate) showGate(lang);
     },
+    onStorageNotice: () => announce({ storageNotice: true }),
   });
   window.addEventListener?.('velorki-app-settings', (event) => {
     const { theme, locale } = event.detail ?? {};
@@ -286,6 +287,7 @@ export function boot(window) {
   document.head.appendChild(el(document, 'style', { id: 'velorki-style' }, [HEADER_CSS + PAGE_CSS]));
   document.body.appendChild(header.element);
   if (!mobile) {
+    header.set({ legal: true });
     loadApp(document, window);
     return;
   }
@@ -294,7 +296,7 @@ export function boot(window) {
     gate = lang;
     removeGate = renderDownloadPage(document, lang, () => {
       gate = null;
-      header.set({});
+      header.set({ legal: true });
       loadApp(document, window);
     });
   }

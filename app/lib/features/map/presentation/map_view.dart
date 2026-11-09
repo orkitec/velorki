@@ -9,6 +9,7 @@ import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/app_config.dart';
+import '../../../app/shell_layout.dart';
 import '../../recording/data/battery_saver.dart';
 import '../application/map_drawn.dart';
 import '../application/web_storage_notice.dart';
@@ -466,7 +467,13 @@ class _MapViewState extends ConsumerState<MapView> {
   /// note on the browser's storage above it while it is shown. In a window
   /// narrower than a tablet's the chip stands over the credit instead of
   /// beside it, so the two never overlap.
+  ///
+  /// Upright with the bar at the bottom, the tab's sheet and the bar cover
+  /// that band: there the header's menu holds the imprint and the way back
+  /// to the note (web/site_header.mjs), and the shell shows the note over
+  /// its bar ([WebStorageNoticeOverBar]).
   List<Widget> _webLegal(BoxConstraints constraints, double bottom) {
+    if (ShellLayout.of(context) == ShellLayout.bottomBar) return const [];
     final chrome = MapChromeInsets.maybeOf(context);
     final left =
         widget.attributionPadding.left + (chrome?.attributionInsets.left ?? 0);

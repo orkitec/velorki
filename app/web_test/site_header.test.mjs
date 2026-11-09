@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import {
   GITHUB_URL,
   GLYPHS,
+  HEADER_CSS,
   HEADER_STRINGS,
   LANGS,
   LOCALE_KEY,
@@ -51,6 +52,8 @@ test("the words are the website's", () => {
     assert.equal(t.theme, m.theme.label, `${lang}.theme.label`);
     for (const key of ['system', 'light', 'dark', 'cycle']) assert.equal(t[key], m.theme[key], `${lang}.theme.${key}`);
     assert.equal(t.language, m.localeSwitcher.label, `${lang}.localeSwitcher.label`);
+    assert.equal(t.imprint, m.legal.imprint.title, `${lang}.legal.imprint.title`);
+    assert.equal(t.cookies, m.cookies.footer, `${lang}.cookies.footer`);
   }
 });
 
@@ -85,6 +88,18 @@ test("the glyphs are the website's", () => {
       if (attrs.d) assert.ok(block.includes(attrs.d), `${name}: ${attrs.d}`);
     }
   }
+});
+
+test('the menus can drop out of the header in Safari on iOS', () => {
+  // Safari on iOS cuts off whatever overflows an element with a backdrop
+  // filter: on the header itself it hid the menu panel and the language
+  // menu, which hang below it. The frosted ground is a layer of its own.
+  const rules = [...HEADER_CSS.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+  const header = rules.find(([, selector]) => selector.trim() === '.vh');
+  assert.ok(header, 'the .vh rule');
+  assert.ok(!/backdrop-filter/.test(header[2]), '.vh has no backdrop filter');
+  const ground = rules.find(([, selector]) => selector.trim() === '.vh::before');
+  assert.ok(ground && /backdrop-filter/.test(ground[2]), 'the ground layer is frosted');
 });
 
 test('the theme and the language are kept where the app keeps them', () => {
@@ -155,6 +170,11 @@ class Node {
     yield this;
     for (const c of this.children) yield* c.walk();
   }
+  // Only what the header asks for: its open menus.
+  querySelectorAll(selector) {
+    assert.equal(selector, 'details[open]');
+    return [...this.walk()].filter((n) => n.tagName === 'details' && 'open' in n.attributes);
+  }
 }
 
 function fakeWindow() {
@@ -220,4 +240,30 @@ test('a pick in the header is shown and told; one from the app is only shown', (
   assert.equal(w.document.documentElement.attributes['data-theme'], undefined);
   assert.ok(header.element.textContent.includes('Handleiding'));
   assert.equal(picks.length, 2);
+});
+
+test("above the planner the menu holds the imprint and the way to the browser note", () => {
+  const w = fakeWindow();
+  let asked = 0;
+  const header = renderHeader(w, { lang: 'de', theme: 'system', onStorageNotice: () => asked++ });
+  const menu = () => [...header.element.walk()].find((n) => n.attributes.class === 'vh-panel');
+  const imprint = () => [...menu().walk()].find((n) => n.attributes.href === 'https://velorki.com/de/imprint');
+  const cookies = () => [...menu().walk()].find((n) => 'data-storage-notice' in n.attributes);
+  // The download page's menu is the site's own.
+  assert.equal(imprint(), undefined);
+  assert.equal(cookies(), undefined);
+
+  header.set({ legal: true });
+  assert.equal(imprint().textContent, 'Impressum');
+  assert.equal(cookies().textContent, 'Cookies');
+  const details = [...header.element.walk()].find((n) => n.tagName === 'details' && 'data-header-menu' in n.attributes);
+  details.setAttribute('open', '');
+  cookies().click();
+  assert.equal(asked, 1);
+  assert.equal(details.attributes.open, undefined, 'the menu closes');
+
+  // A change of language keeps them, in the new language.
+  header.set({ lang: 'fr' });
+  assert.equal(imprint(), undefined);
+  assert.ok([...menu().walk()].some((n) => n.attributes.href === 'https://velorki.com/fr/imprint' && n.textContent === 'Mentions légales'));
 });
