@@ -626,9 +626,13 @@ jobs:
       - name: Restore the Gradle caches
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
+          # The downloads only, the dependencies and the Gradle
+          # distribution: the build outputs Gradle keeps beside them are
+          # cheap to make again and took the cache past GitHub's 10 GB,
+          # which then threw out the entries every job needs.
           path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
+            ~/.gradle/caches/modules-2
+            ~/.gradle/wrapper/dists
           key: >-
             gradle-itest-${{ env.API_LEVEL }}-${{
             hashFiles('app/android/**/*.gradle*', 'app/pubspec.lock') }}
@@ -669,6 +673,12 @@ jobs:
 
       # As in integration.yml: installed and checked here, so the emulator
       # action finds it in place.
+      # The wrapper downloads Gradle with no retry of its own: a 504 from
+      # the download server failed a build before it had started.
+      - name: Fetch Gradle
+        working-directory: app
+        run: bash tool/install_gradle.sh
+
       - name: Install the system image
         id: sysimg
         run: |

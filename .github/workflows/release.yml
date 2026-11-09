@@ -381,6 +381,10 @@ jobs:
 
       # Skipped when Play has the build and the GitHub Release needs no files,
       # except in a dry run, whose point is to build and sign.
+      # The wrapper downloads Gradle with no retry of its own: a 504 from
+      # the download server failed a build before it had started.
+      - name: Fetch Gradle
+        run: bash tool/install_gradle.sh
       - name: Build release (signed)
         if: ${{ env.HAVE_SECRETS == 'true' && (env.DRY_RUN == 'true' || steps.play.outputs.uploaded != 'true' || steps.ghrelease.outputs.create == 'true') }}
         run: |
