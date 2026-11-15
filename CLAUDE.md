@@ -42,7 +42,8 @@ changing structure.
   `npm run lint && npm run typecheck && npm test` before committing anything
   under `web/`. A change to `messages/en.json` or `content/en/` carries its
   translation into every other language in the same commit, as the app's
-  strings do; legal pages get a person's read before they go live.
+  strings do; legal pages get a person's read before they go live. The blog
+  (`content/<locale>/blog/`) is the exception: posts are not translated.
 - **Delegation**: routine implementation goes to cheaper subagents with a
   precise brief; design decisions, verification and review stay with the
   main agent. Subagents must not commit.

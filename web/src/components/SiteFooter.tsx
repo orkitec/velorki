@@ -63,6 +63,11 @@ export function SiteFooter({ locale }: { locale: string }) {
               </Link>
             </li>
             <li>
+              <Link href={localePath(locale, '/blog')} className="text-muted hover:text-fg">
+                {nav('blog')}
+              </Link>
+            </li>
+            <li>
               <a href={GITHUB_URL} rel="noreferrer" className="inline-flex items-center gap-1.5 text-muted hover:text-fg">
                 <GitHubIcon width={15} height={15} />
                 {t('github')}

@@ -8,18 +8,21 @@
 // that only the code ("DE"), which is what keeps the header on a 320 px phone
 // and what keeps the German labels inside a 768 px one. The menu itself is the
 // same list at every width.
+import { type BlogSwitchPairs, localeSwitchHref } from '@/site/blog-switch';
 import { localeName, localeNames } from '@/site/locales';
-import { switchPath } from '@/site/paths';
 import { ChevronDownIcon, GlobeIcon } from './Icons';
 
 export function LocaleSwitcherMenu({
   current,
   pathname,
   label,
+  blogPairs,
 }: {
   current: string;
   pathname: string;
   label: string;
+  /** The current language's blog posts that exist in another; see blog-switch.ts. */
+  blogPairs?: BlogSwitchPairs;
 }) {
   return (
     <nav aria-label={label} className="relative">
@@ -53,7 +56,7 @@ export function LocaleSwitcherMenu({
                   with JavaScript switched off as well.
                 */}
                 <a
-                  href={switchPath(locale, pathname)}
+                  href={localeSwitchHref(locale, current, pathname, blogPairs)}
                   hrefLang={locale}
                   lang={locale}
                   aria-current={active ? 'page' : undefined}

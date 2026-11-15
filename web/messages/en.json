@@ -9,6 +9,7 @@
     "home": "Velorki home",
     "features": "Features",
     "docs": "Docs",
+    "blog": "Blog",
     "plus": "Plus",
     "download": "Download",
     "getApp": "Get the app",
@@ -448,6 +449,39 @@
     "untranslatedTitle": "This page is not translated yet",
     "untranslatedBody": "The English text is shown instead. Translations come from the community — the source file is in the repository.",
     "draft": "This text is a draft and has not been reviewed yet."
+  },
+  "blog": {
+    "meta": {
+      "title": "Blog",
+      "description": "Notes from building Velorki, an open-source bike route planner, and rides planned with it."
+    },
+    "title": "Blog",
+    "lead": "Notes from building Velorki, and rides planned with it.",
+    "breadcrumb": "Blog",
+    "inEnglish": "In English",
+    "englishLabel": "English",
+    "empty": "No posts yet.",
+    "filterLabel": "Categories",
+    "all": "All posts",
+    "categories": {
+      "engineering": "Engineering",
+      "rides": "Rides"
+    },
+    "categoryLead": {
+      "engineering": "How Velorki is built: routing, maps, search and the app.",
+      "rides": "Rides planned and ridden with Velorki, with the route to download."
+    },
+    "emptyCategory": "No posts in this category yet.",
+    "postsBy": "Posts by {name}",
+    "authorDescription": "Posts by {name} on the Velorki blog.",
+    "byline": "By <author>{name}</author>",
+    "updated": "Updated {date}",
+    "readingTime": "{minutes, plural, one {# min read} other {# min read}}",
+    "downloadGpx": "Download GPX",
+    "mapLabel": "Map of the route",
+    "mapError": "The map could not be loaded. You can still download the GPX file.",
+    "feed": "RSS feed",
+    "feedTitle": "Velorki blog"
   },
   "credits": {
     "meta": {

@@ -9,6 +9,7 @@
     "home": "Pagina iniziale di Velorki",
     "features": "Funzionalità",
     "docs": "Guida",
+    "blog": "Blog",
     "plus": "Plus",
     "download": "Download",
     "getApp": "Scarica l'app",
@@ -448,6 +449,39 @@
     "untranslatedTitle": "Questa pagina non è ancora tradotta",
     "untranslatedBody": "Al suo posto viene mostrato il testo inglese. Le traduzioni arrivano dalla community: il file sorgente è nel repository.",
     "draft": "Questo testo è una bozza e non è ancora stato revisionato."
+  },
+  "blog": {
+    "meta": {
+      "title": "Blog",
+      "description": "Note dallo sviluppo di Velorki, un pianificatore di percorsi in bici open source, e giri pianificati con l’app."
+    },
+    "title": "Blog",
+    "lead": "Note dallo sviluppo di Velorki e giri pianificati con l’app.",
+    "breadcrumb": "Blog",
+    "inEnglish": "In inglese",
+    "englishLabel": "Inglese",
+    "empty": "Ancora nessun articolo.",
+    "filterLabel": "Categorie",
+    "all": "Tutti gli articoli",
+    "categories": {
+      "engineering": "Tecnica",
+      "rides": "Giri"
+    },
+    "categoryLead": {
+      "engineering": "Come è fatto Velorki: calcolo dei percorsi, mappe, ricerca e l’app.",
+      "rides": "Giri pianificati e pedalati con Velorki, con il percorso da scaricare."
+    },
+    "emptyCategory": "Ancora nessun articolo in questa categoria.",
+    "postsBy": "Articoli di {name}",
+    "authorDescription": "Articoli di {name} sul blog di Velorki.",
+    "byline": "Di <author>{name}</author>",
+    "updated": "Aggiornato il {date}",
+    "readingTime": "{minutes, plural, one {# min di lettura} other {# min di lettura}}",
+    "downloadGpx": "Scarica il GPX",
+    "mapLabel": "Mappa del percorso",
+    "mapError": "Non è stato possibile caricare la mappa. Puoi comunque scaricare il file GPX.",
+    "feed": "Feed RSS",
+    "feedTitle": "Blog di Velorki"
   },
   "credits": {
     "meta": {

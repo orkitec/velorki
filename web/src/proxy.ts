@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { NextResponse, type NextRequest } from 'next/server';
 import { routing } from '@/i18n/routing';
+import { blogRouteExists, FEED_PATH, MEDIA_PREFIX } from '@/site/blog';
 import { docSlugs } from '@/site/content';
 import { getConfig, getStore } from '@/server/singletons';
 import { requestIdFrom, REQUEST_ID_HEADER } from '@/server/requestid';
@@ -17,8 +18,8 @@ import { isApiRoute, parseSharePath, resolveHost, SHARE_ID_RE } from '@/hosts';
  * answer the api host's JSON 404 for an unknown (method, path), turn
  * `/s/<id>.gpx` into the `/s/<id>/gpx` route while rejecting a malformed id,
  * settle whether a share still exists so the 404 is a real one, settle the same
- * way whether a docs slug exists, and run next-intl's locale negotiation for
- * the website.
+ * way whether a docs slug or a blog post exists, and run next-intl's locale
+ * negotiation for the website.
  *
  * `cache-control` is only ever set on a response this file *produces*: the
  * JSON errors, the 308, the share page and the rewrite to `/s/gone`. A
@@ -113,6 +114,44 @@ function docsNotFoundPath(pathname: string): string | null {
   return `/${locale}/${DOCS_MISSING_SEGMENT}`;
 }
 
+/** A path's locale prefix, if it has one, and the rest. */
+function splitLocale(pathname: string): { locale: string; prefixed: boolean; rest: string[] } {
+  const segments = pathname.split('/').filter((segment) => segment !== '');
+  const prefixed = segments[0] !== undefined && (routing.locales as readonly string[]).includes(segments[0]);
+  return {
+    locale: prefixed ? segments[0]! : routing.defaultLocale,
+    prefixed,
+    rest: prefixed ? segments.slice(1) : segments,
+  };
+}
+
+/**
+ * The same for the blog: `/blog/<slug>` is a page only in the language the
+ * post was written in (src/site/blog.ts), so `/de/blog/<english-slug>` is
+ * rewritten to the missing segment like an unknown docs slug, and so is a
+ * category or author that does not exist. Null for every real blog page and
+ * for anything outside the blog.
+ */
+function blogNotFoundPath(pathname: string): string | null {
+  const { locale, rest } = splitLocale(pathname);
+  if (rest[0] !== 'blog') return null;
+  return blogRouteExists(locale, rest.slice(1)) ? null : `/${locale}/${DOCS_MISSING_SEGMENT}`;
+}
+
+/**
+ * The blog's feeds carry an extension, so the matcher names them, and the
+ * English one is mapped here: `/blog/feed.xml` is always the English feed. A
+ * feed reader's Accept-Language must not redirect it to another language's
+ * feed, which next-intl's negotiation would. Returns the route to rewrite to,
+ * `next` for a prefixed feed that is served as it is, or null.
+ */
+function feedTarget(pathname: string): string | null {
+  if (pathname === FEED_PATH) return `/${routing.defaultLocale}${FEED_PATH}`;
+  const { locale, prefixed, rest } = splitLocale(pathname);
+  if (prefixed && locale !== routing.defaultLocale && `/${rest.join('/')}` === FEED_PATH) return 'next';
+  return null;
+}
+
 /**
  * Where `<OrkifyErrorCapture />` posts the browser's errors. A route of the
  * site only: the api host has no pages to report from, and `isApiRoute` does
@@ -127,6 +166,8 @@ function isPassThrough(pathname: string): boolean {
     pathname.startsWith('/.well-known/') ||
     pathname.startsWith('/well-known/') ||
     pathname === ERROR_REPORT_PATH ||
+    // A blog post's files; a `.gpx` is the one extension the matcher keeps.
+    pathname.startsWith(`${MEDIA_PREFIX}/`) ||
     SITE_FILES.includes(pathname)
   );
 }
@@ -336,7 +377,18 @@ async function route(request: NextRequest): Promise<NextResponse> {
     return response;
   }
 
-  const missing = docsNotFoundPath(url.pathname);
+  const feed = feedTarget(url.pathname);
+  if (feed !== null) {
+    const headers = forwardHeaders(request, requestId);
+    const response =
+      feed === 'next'
+        ? NextResponse.next({ request: { headers } })
+        : NextResponse.rewrite(rewriteTarget(feed, request), { request: { headers } });
+    response.headers.set(REQUEST_ID_HEADER, requestId);
+    return response;
+  }
+
+  const missing = docsNotFoundPath(url.pathname) ?? blogNotFoundPath(url.pathname);
   if (missing !== null) {
     const response = NextResponse.rewrite(rewriteTarget(missing, request), {
       request: { headers: forwardHeaders(request, requestId) },
@@ -372,5 +424,8 @@ export const config = {
     '/llms.txt',
     '/llms-full.txt',
     '/manifest.webmanifest',
+    // The blog's feeds, one per locale.
+    '/blog/feed.xml',
+    '/:locale/blog/feed.xml',
   ],
 };

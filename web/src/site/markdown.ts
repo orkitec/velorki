@@ -60,15 +60,50 @@ const sanitizeSchema: SanitizeOptions = {
   clobber: [],
 };
 
-const processor = unified()
-  .use(remarkParse)
-  .use(remarkGfm)
-  .use(remarkRehype)
-  .use(rehypeSlug)
-  .use(rehypeAutolinkHeadings, autolinkOptions)
-  .use(rehypeSanitize, sanitizeSchema)
-  .use(rehypeStringify)
-  .freeze();
+/**
+ * The blog's images carry `loading` and `decoding`, which the pass in blog.ts
+ * sets on every one. Only the blog's pipeline allows them; the docs schema is
+ * left as it was.
+ */
+const blogSanitizeSchema: SanitizeOptions = {
+  ...sanitizeSchema,
+  attributes: {
+    ...sanitizeSchema.attributes,
+    img: [...(sanitizeSchema.attributes?.img ?? []), 'loading', 'decoding'],
+  },
+};
+
+/** A hast node, as far as a pass over the rendered tree needs one. */
+export interface HastNode {
+  type: string;
+  tagName?: string;
+  properties?: Record<string, unknown>;
+  children?: HastNode[];
+}
+
+/**
+ * A pass over the HTML tree before it is sanitised: the blog rewrites its
+ * image and file links there, and refuses an image without alt text.
+ */
+export type HastTransform = (tree: HastNode) => void;
+
+function buildProcessor(transform?: HastTransform) {
+  const base = unified()
+    .use(remarkParse)
+    .use(remarkGfm)
+    .use(remarkRehype)
+    .use(rehypeSlug)
+    .use(rehypeAutolinkHeadings, autolinkOptions);
+  // The transform runs before the sanitiser, so whatever it writes is held to
+  // the same allowlist as the author's own Markdown.
+  const withTransform = transform ? base.use(() => (tree) => transform(tree)) : base;
+  return withTransform
+    .use(rehypeSanitize, transform ? blogSanitizeSchema : sanitizeSchema)
+    .use(rehypeStringify)
+    .freeze();
+}
+
+const processor = buildProcessor();
 
 /** The front matter every content file carries. */
 export interface FrontMatter {
@@ -139,7 +174,7 @@ function collectHeadings(html: string): Heading[] {
 export function renderMarkdown(source: string, fallbackTitle: string): RenderedMarkdown {
   const parsed = matter(source);
   const data = parsed.data as Record<string, unknown>;
-  const body = parsed.content.replace(/^\s*#\s+.*\r?\n+/, '');
+  const body = stripLeadingH1(parsed.content);
   const html = String(processor.processSync(body));
   return {
     frontMatter: {
@@ -152,6 +187,21 @@ export function renderMarkdown(source: string, fallbackTitle: string): RenderedM
     headings: collectHeadings(html),
     markdown: body.trim(),
   };
+}
+
+/** The body without a leading `# Heading`: the page renders its own h1. */
+export function stripLeadingH1(body: string): string {
+  return body.replace(/^\s*#\s+.*\r?\n+/, '');
+}
+
+/**
+ * The HTML and headings of a Markdown body that has no front matter left,
+ * through the same pipeline as the docs, with `transform` run over the tree
+ * before the sanitiser. The blog's entry point (src/site/blog.ts).
+ */
+export function renderBody(body: string, transform: HastTransform): { html: string; headings: Heading[] } {
+  const html = String(buildProcessor(transform).processSync(body));
+  return { html, headings: collectHeadings(html) };
 }
 
 /** Front matter only, for sidebars and listings. */

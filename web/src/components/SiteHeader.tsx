@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { blogSwitchPairs } from '@/site/blog';
 import { GITHUB_URL } from '@/site/config';
 import { localePath } from '@/site/paths';
 import { AppIcon } from './AppIcon';
@@ -76,7 +77,7 @@ export function SiteHeader({ locale }: { locale: string }) {
             viewport holds. From `md` the pill is back in the row. */}
         <div className="ml-auto flex items-center gap-1.5 md:ml-0 md:gap-2">
           <ThemeSwitcher />
-          <LocaleSwitcher />
+          <LocaleSwitcher blogPairs={blogSwitchPairs(locale)} />
           {/* The wrapper, not a `hidden` on the pill: `.btn` is unlayered CSS
               and would beat the utility's `display: none`. */}
           <div className="hidden md:block">

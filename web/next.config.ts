@@ -11,7 +11,8 @@ if (process.env.NODE_ENV === 'development') process.env.DEV_HOSTS ??= '1';
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 // One policy for every HTML page, share page included. No third-party script
-// source exists at all; MapLibre is bundled and its workers are blob: URLs. The
+// source exists at all; MapLibre is bundled, and its worker is a file of ours
+// under /_next/static ('self'; src/components/RouteMapCanvas.tsx) or a blob:. The
 // only remote hosts are the map tiles. 'unsafe-inline' for scripts is what the
 // React Server Components payload needs without a per-request nonce (a nonce
 // would force dynamic rendering and defeat the cacheable share page).
@@ -51,7 +52,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://tiles.openfreemap.org${chat(CHAT_IMG)}`,
   `connect-src 'self' https://tiles.openfreemap.org${chat(CHAT_CONNECT)}`,
-  'worker-src blob:',
+  "worker-src 'self' blob:",
   'child-src blob:',
   "font-src 'self'",
   "manifest-src 'self'",

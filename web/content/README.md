@@ -1,8 +1,8 @@
 # Site content
 
-The Markdown behind `/docs` and the legal pages. One directory per locale; the
-site reads them at build time through `gray-matter` plus the remark/rehype
-pipeline in `web/src/site`.
+The Markdown behind `/docs`, the legal pages and the blog. One directory per
+locale; the site reads them at build time through `gray-matter` plus the
+remark/rehype pipeline in `web/src/site`.
 
 ## Layout
 
@@ -15,9 +15,11 @@ content/
       privacy.md         served at /privacy
       terms.md           served at /terms
       imprint.md         served at /imprint
+    blog/                not translated; see Blog below
   de/                    after the first Crowdin sync, written by Crowdin
     docs/*.md
     legal/*.md
+    blog/                German posts, written by hand
 ```
 
 The URL slug is the file name without `.md`: `content/en/docs/loops.md` is
@@ -99,3 +101,53 @@ stay identical to the English file.
 
 Deleting a page is the same in reverse: remove the English file, remove the
 links to it, and add a redirect if the URL was ever published.
+
+## Blog
+
+Posts are the one part of `content/` that is not translated. Each post is
+written in one language and exists only there: an English post is at
+`/blog/<slug>` and nowhere else, `/de/blog/<slug>` is a 404. Crowdin ignores
+`content/en/blog/` and `npm run locales -- --check` does not ask for copies.
+A version in another language is a post of its own, with its own slug, written
+by hand and paired with the original through the same `key`; the pair get
+hreflang links to each other and the language switcher moves between them.
+The other languages' blog indexes list the English posts after their own,
+under "In English".
+
+```
+content/en/blog/
+  porting-brouter-to-dart.md       a post on its own
+  ride-madeira/                    a post with files beside it
+    index.md
+    cover.jpg                      named by `image:`
+    coast.jpg                      ![The coast road above Funchal](coast.jpg)
+    ride.gpx                       named by `gpx:`
+content/de/blog/
+  brouter-nach-dart.md             key: porting-brouter-to-dart
+```
+
+The slug is the file or folder name: lower case letters, digits and hyphens,
+not `category` or `authors`.
+
+| Field | Required | What it is |
+|---|---|---|
+| `title` | yes | the h1 and the feed title |
+| `description` | yes | one sentence, 160 characters or fewer; quote it if it contains a colon |
+| `date` | yes | `YYYY-MM-DD`, the day it was published |
+| `updated` | no | `YYYY-MM-DD`, only when the content changed |
+| `author` | yes | an id from `src/site/authors.ts` (`steffen`) |
+| `category` | yes | `engineering` or `rides` |
+| `key` | no | pairs the language versions of one post; the slug when left out |
+| `image` | no | a picture beside the post: the cover and the share picture |
+| `gpx` | no | a GPX beside the post: drawn on a map, with a download link |
+| `draft` | no | `true` shows the post under `npm run dev` only: never in a production build, the sitemap or a feed |
+
+The loader checks all of it and fails the build with the file's path on a
+missing or invalid field, an unknown one, or a file that is not there.
+
+Pictures and files sit beside `index.md` and are linked by their name. Every
+picture needs alt text (`![](photo.jpg)` fails the build), and only files
+beside the post work: anything remote is blocked by the site's CSP. PNG, JPEG,
+GIF, WebP and AVIF; no SVG. The site serves them from the post's folder under
+`/blog-media/<locale>/<slug>/<hash>/<file>`, with their size and lazy loading;
+the hash changes with the file, so they can be cached for good.
