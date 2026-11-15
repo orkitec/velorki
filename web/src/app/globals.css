@@ -307,7 +307,11 @@ h4 {
   top: 1rem;
 }
 
+/* `overline` is also Tailwind's utility for a line over the text, which it
+   emits because this class name appears in the markup: the label turns it
+   off again. */
 .overline {
+  text-decoration-line: none;
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.11em;
