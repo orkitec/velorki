@@ -244,104 +244,156 @@ class MetricChart extends StatelessWidget {
     final markLabelStyle = theme.textTheme.labelSmall?.copyWith(
       color: colors.accent,
     );
+    final textScaler = MediaQuery.textScalerOf(context);
     return SizedBox(
       height: height,
-      child: LineChart(
-        // A pinch wants the axis where the fingers are, not on its
-        // way there.
-        duration: zoomable ? Duration.zero : const Duration(milliseconds: 150),
-        LineChartData(
-          minY: axis.min,
-          maxY: axis.max,
-          minX: minX,
-          maxX: maxX,
-          // A windowed line runs on past both edges; it is cut
-          // there rather than drawn over the axis labels.
-          clipData: window == null
-              ? const FlClipData.none()
-              : const FlClipData.all(),
-          gridData: const FlGridData(show: false),
-          borderData: FlBorderData(show: false),
-          extraLinesData: ExtraLinesData(
-            verticalLines: [
-              for (final mark in marks)
-                VerticalLine(
-                  x: mark.x,
-                  color: colors.accent.withValues(alpha: 0.6),
-                  strokeWidth: 1,
-                  dashArray: const <int>[4, 3],
-                  label: VerticalLineLabel(
-                    show: true,
-                    // The name hangs off the line towards the
-                    // middle of the chart, so it never runs off
-                    // the edge.
-                    alignment: mark.x - minX > (maxX - minX) * 0.7
-                        ? Alignment.topLeft
-                        : Alignment.topRight,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    style: markLabelStyle,
-                    labelResolver: (_) => mark.label,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // The names share one row at the top of the plot: a name that
+          // would run into one already placed is left off (its line stays,
+          // and the read-out names it under the finger), so marks close
+          // together, as at a ride's start, don't pile up in a smear.
+          final named = chartMarkLabelsThatFit(
+            marks: marks,
+            minX: minX,
+            maxX: maxX,
+            plotLeft: leftReservedSize,
+            plotWidth: constraints.maxWidth - leftReservedSize,
+            labelWidth: (label) => (TextPainter(
+              text: TextSpan(text: label, style: markLabelStyle),
+              textDirection: TextDirection.ltr,
+              textScaler: textScaler,
+              maxLines: 1,
+            )..layout()).width,
+          );
+          return _chart(
+            context,
+            window: window,
+            minX: minX,
+            maxX: maxX,
+            axis: axis,
+            marks: marks,
+            named: named,
+            bandStart: bandStart,
+            bandEnd: bandEnd,
+            markLabelStyle: markLabelStyle,
+          );
+        },
+      ),
+    );
+  }
+
+  /// The line chart itself, with [named] the marks whose names are drawn.
+  Widget _chart(
+    BuildContext context, {
+    required ChartWindow? window,
+    required double minX,
+    required double maxX,
+    required ChartAxis axis,
+    required List<ChartMark> marks,
+    required Set<int> named,
+    required double? bandStart,
+    required double? bandEnd,
+    required TextStyle? markLabelStyle,
+  }) {
+    final colors = Theme.of(context).velorki;
+    return LineChart(
+      // A pinch wants the axis where the fingers are, not on its
+      // way there.
+      duration: zoomable ? Duration.zero : const Duration(milliseconds: 150),
+      LineChartData(
+        minY: axis.min,
+        maxY: axis.max,
+        minX: minX,
+        maxX: maxX,
+        // A windowed line runs on past both edges; it is cut
+        // there rather than drawn over the axis labels.
+        clipData: window == null
+            ? const FlClipData.none()
+            : const FlClipData.all(),
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        extraLinesData: ExtraLinesData(
+          verticalLines: [
+            for (final (i, mark) in marks.indexed)
+              VerticalLine(
+                x: mark.x,
+                color: colors.accent.withValues(alpha: 0.6),
+                strokeWidth: 1,
+                dashArray: const <int>[4, 3],
+                label: VerticalLineLabel(
+                  show: named.contains(i),
+                  // The name hangs off the line towards the
+                  // middle of the chart, so it never runs off
+                  // the edge.
+                  alignment: mark.x - minX > (maxX - minX) * 0.7
+                      ? Alignment.topLeft
+                      : Alignment.topRight,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: chartMarkLabelPadding,
                   ),
+                  style: markLabelStyle,
+                  labelResolver: (_) => mark.label,
                 ),
-            ],
-          ),
-          rangeAnnotations: RangeAnnotations(
-            verticalRangeAnnotations: [
-              if (bandStart != null && bandEnd != null && bandEnd > bandStart)
-                VerticalRangeAnnotation(
-                  x1: bandStart,
-                  x2: bandEnd,
-                  color: colors.accent.withValues(alpha: 0.18),
-                ),
-            ],
-          ),
-          titlesData: FlTitlesData(
-            topTitles: const AxisTitles(),
-            rightTitles: const AxisTitles(),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 24,
-                // Only the evenly spaced steps: the ends of the axis
-                // are rarely round and sit on top of the step
-                // beside them ("13" over "13.6").
-                minIncluded: false,
-                maxIncluded: false,
-                getTitlesWidget: (_, meta) => _axisLabel(context, meta),
               ),
-            ),
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: leftReservedSize,
-                // Round steps, about one per 40 points of height;
-                // left to itself fl_chart halves the range
-                // ("429.1").
-                interval: niceAxisStep(
-                  axis.max - axis.min,
-                  math.max(2, height ~/ 40),
-                ),
-                // Only the evenly spaced steps: the ends of the axis
-                // are rarely round and sit on top of the step
-                // beside them ("13" over "13.6").
-                minIncluded: false,
-                maxIncluded: false,
-                getTitlesWidget: (_, meta) => _axisLabel(context, meta),
-              ),
-            ),
-          ),
-          lineTouchData: const LineTouchData(enabled: false),
-          lineBarsData: [
-            LineChartBarData(
-              spots: spots,
-              isCurved: false,
-              barWidth: 2.5,
-              color: colors.accent,
-              dotData: const FlDotData(show: false),
-              belowBarData: _fill(colors.chartFill),
-            ),
           ],
         ),
+        rangeAnnotations: RangeAnnotations(
+          verticalRangeAnnotations: [
+            if (bandStart != null && bandEnd != null && bandEnd > bandStart)
+              VerticalRangeAnnotation(
+                x1: bandStart,
+                x2: bandEnd,
+                color: colors.accent.withValues(alpha: 0.18),
+              ),
+          ],
+        ),
+        titlesData: FlTitlesData(
+          topTitles: const AxisTitles(),
+          rightTitles: const AxisTitles(),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 24,
+              // Only the evenly spaced steps: the ends of the axis
+              // are rarely round and sit on top of the step
+              // beside them ("13" over "13.6").
+              minIncluded: false,
+              maxIncluded: false,
+              getTitlesWidget: (_, meta) => _axisLabel(context, meta),
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: leftReservedSize,
+              // Round steps, about one per 40 points of height;
+              // left to itself fl_chart halves the range
+              // ("429.1").
+              interval: niceAxisStep(
+                axis.max - axis.min,
+                math.max(2, height ~/ 40),
+              ),
+              // Only the evenly spaced steps: the ends of the axis
+              // are rarely round and sit on top of the step
+              // beside them ("13" over "13.6").
+              minIncluded: false,
+              maxIncluded: false,
+              getTitlesWidget: (_, meta) => _axisLabel(context, meta),
+            ),
+          ),
+        ),
+        lineTouchData: const LineTouchData(enabled: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: false,
+            barWidth: 2.5,
+            color: colors.accent,
+            dotData: const FlDotData(show: false),
+            belowBarData: _fill(colors.chartFill),
+          ),
+        ],
       ),
     );
   }
@@ -394,6 +446,50 @@ class MetricChart extends StatelessWidget {
 
 /// One mark on a [MetricChart]: where on the x axis, and what to call it.
 typedef ChartMark = ({double x, String label});
+
+/// The indices of [marks] whose names fit in the one row at the top of a
+/// plot [plotWidth] wide starting at [plotLeft], with the x axis running from
+/// [minX] to [maxX]. A name hangs right of its line, or left of it in the
+/// last 30 % of the axis, [chartMarkLabelPadding] off the line, as
+/// [MetricChart] draws it; [labelWidth] measures it. From left to right, a
+/// name is kept unless it would come closer than [chartMarkLabelGap] to one
+/// already kept.
+Set<int> chartMarkLabelsThatFit({
+  required List<ChartMark> marks,
+  required double minX,
+  required double maxX,
+  required double plotLeft,
+  required double plotWidth,
+  required double Function(String label) labelWidth,
+}) {
+  final span = maxX - minX;
+  if (span <= 0 || plotWidth <= 0) return <int>{};
+  final order = [for (var i = 0; i < marks.length; i++) i]
+    ..sort((a, b) => marks[a].x.compareTo(marks[b].x));
+  final kept = <int>{};
+  final placed = <(double, double)>[];
+  for (final i in order) {
+    final mark = marks[i];
+    final px = plotLeft + (mark.x - minX) / span * plotWidth;
+    final width = labelWidth(mark.label);
+    final (start, end) = mark.x - minX > span * 0.7
+        ? (px - chartMarkLabelPadding - width, px - chartMarkLabelPadding)
+        : (px + chartMarkLabelPadding, px + chartMarkLabelPadding + width);
+    final clashes = placed.any(
+      (p) => start < p.$2 + chartMarkLabelGap && end + chartMarkLabelGap > p.$1,
+    );
+    if (clashes) continue;
+    kept.add(i);
+    placed.add((start, end));
+  }
+  return kept;
+}
+
+/// How far a mark's name stands off its line, in logical pixels.
+const double chartMarkLabelPadding = 4;
+
+/// The least room between two marks' names, in logical pixels.
+const double chartMarkLabelGap = 6;
 
 /// A stretch of a [MetricChart]'s x axis, in the axis' unit.
 typedef ChartWindow = ({double start, double end});
