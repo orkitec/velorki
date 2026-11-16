@@ -46,7 +46,7 @@ test("the words are the website's", () => {
     const m = JSON.parse(read(`web/messages/${lang}.json`));
     const t = HEADER_STRINGS[lang];
     assert.deepEqual(Object.keys(t).sort(), Object.keys(HEADER_STRINGS.en).sort(), lang);
-    for (const key of ['home', 'primary', 'features', 'docs', 'plus', 'github', 'getApp', 'menu']) {
+    for (const key of ['home', 'primary', 'features', 'docs', 'blog', 'plus', 'github', 'getApp', 'download', 'menu']) {
       assert.equal(t[key], m.nav[key], `${lang}.nav.${key}`);
     }
     assert.equal(t.theme, m.theme.label, `${lang}.theme.label`);
@@ -201,13 +201,16 @@ test('the header links to the site in its language', () => {
   ]) {
     assert.ok(hrefs.includes(href), href);
   }
-  // The call to action is the site's "Get the app", to the download page.
+  // The call to action is the site's "Get the app", to the download page; in
+  // the row it also carries the site's short "Download" for 768 to 1024.
   const pills = [...header.element.walk()].filter((n) => n.attributes.class === 'vh-btn');
-  assert.ok(pills.length >= 1);
-  for (const pill of pills) {
-    assert.equal(pill.textContent, 'App holen');
-    assert.equal(pill.attributes.href, 'https://velorki.com/de/download');
-  }
+  assert.equal(pills.length, 2);
+  for (const pill of pills) assert.equal(pill.attributes.href, 'https://velorki.com/de/download');
+  const [rowPill, menuPill] = pills;
+  assert.equal(menuPill.textContent, 'App holen');
+  const word = (cls) => rowPill.children.find((c) => c.attributes?.class === cls)?.textContent;
+  assert.equal(word('vh-short'), 'Download');
+  assert.equal(word('vh-long'), 'App holen');
   assert.equal(w.document.documentElement.attributes.lang, 'de');
   assert.equal(w.document.documentElement.attributes['data-theme'], undefined);
 });

@@ -11,12 +11,19 @@
 // the entries must not be `next/link`.
 import { useLocale, useTranslations } from 'next-intl';
 import { usePathname } from '@/i18n/navigation';
+import type { BlogSwitchPairs } from '@/site/blog-switch';
 import { LocaleSwitcherMenu } from './LocaleSwitcherMenu';
 
-export function LocaleSwitcher() {
+/**
+ * `blogPairs` comes from the server (SiteHeader), because a blog post is the
+ * one page whose path differs between languages and only the server can read
+ * the posts. It holds just the current language's posts that have a version
+ * elsewhere, so it stays small.
+ */
+export function LocaleSwitcher({ blogPairs }: { blogPairs?: BlogSwitchPairs }) {
   const t = useTranslations('localeSwitcher');
   const current = useLocale();
   // next-intl's pathname has the locale prefix removed already.
   const pathname = usePathname();
-  return <LocaleSwitcherMenu current={current} pathname={pathname} label={t('label')} />;
+  return <LocaleSwitcherMenu current={current} pathname={pathname} label={t('label')} blogPairs={blogPairs} />;
 }

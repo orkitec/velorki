@@ -1,18 +1,27 @@
 'use client';
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useEffect, useRef, useState } from 'react';
-import { LngLatBounds, Map as MapLibreMap, Marker, NavigationControl } from 'maplibre-gl';
+import { LngLatBounds, Map as MapLibreMap, Marker, NavigationControl, setWorkerUrl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import styles from './share.module.css';
 
 /**
- * The map on the share page.
+ * A GPX drawn on a map: the share page's, and a ride post's on the blog.
  *
- * Loaded only in the browser (`next/dynamic` with `ssr: false` in ShareMap), so
- * MapLibre is never part of the server bundle and never blocks the static
+ * Loaded only in the browser (`next/dynamic` with `ssr: false` in RouteMap),
+ * so MapLibre is never part of the server bundle and never blocks the static
  * shell. The GPX is parsed here, exactly as the Fastify page's inline script
- * did: the server only ever stores and serves the original file.
+ * did: the server only ever stores and serves the original file. The look of
+ * the box comes from the caller, which is why the classes are props.
  */
+
+/**
+ * MapLibre 6 starts its worker from a file next to its own module, which it
+ * finds through `import.meta.url`. In the bundle that is not an http URL, so
+ * it found nothing and tried the page itself as a worker, and the map never
+ * drew. The bundler turns this `new URL` into the emitted file's address under
+ * /_next/static; the CSP allows workers from 'self' for it (next.config.ts).
+ */
+setWorkerUrl(new URL('../../node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url).href);
 
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 const ROUTE_COLOR = '#d1481f';
@@ -40,7 +49,19 @@ export function coordsFromGpx(text: string): Coord[] {
   return out;
 }
 
-export default function MapCanvas({ id }: { id: string }) {
+export interface RouteMapProps {
+  /** Same-origin URL of the GPX file (the CSP allows no other). */
+  gpxUrl: string;
+  /** The map's box; it needs a height. */
+  className: string | undefined;
+  errorClassName: string | undefined;
+  /** Shown instead of the map when the file or the tiles fail. */
+  errorMessage: string;
+  /** Names the map for a screen reader. */
+  label?: string;
+}
+
+export default function RouteMapCanvas({ gpxUrl, className, errorClassName, errorMessage, label }: RouteMapProps) {
   const container = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -49,7 +70,7 @@ export default function MapCanvas({ id }: { id: string }) {
     let cancelled = false;
 
     async function draw(): Promise<void> {
-      const res = await fetch(`/s/${id}.gpx`);
+      const res = await fetch(gpxUrl);
       if (!res.ok) throw new Error(`gpx ${String(res.status)}`);
       const coords = coordsFromGpx(await res.text());
       const first = coords[0];
@@ -113,14 +134,10 @@ export default function MapCanvas({ id }: { id: string }) {
       cancelled = true;
       map?.remove();
     };
-  }, [id]);
+  }, [gpxUrl]);
 
   if (failed) {
-    return (
-      <div className={styles.mapError}>
-        The map could not be loaded. You can still download the GPX file below.
-      </div>
-    );
+    return <div className={errorClassName}>{errorMessage}</div>;
   }
-  return <div className={styles.map} ref={container} />;
+  return <div className={className} ref={container} role={label ? 'region' : undefined} aria-label={label} />;
 }

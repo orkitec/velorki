@@ -169,3 +169,54 @@ export function techArticleJsonLd({ locale, path, title, description }: ArticleS
     isPartOf: { '@id': WEBSITE_ID },
   };
 }
+
+export interface BlogPostingSeed {
+  locale: string;
+  path: string;
+  title: string;
+  description: string;
+  /** `YYYY-MM-DD`. */
+  datePublished: string;
+  dateModified?: string;
+  /** Absolute URL of the cover, when the post has one. */
+  image?: string;
+  author: {
+    name: string;
+    /** The author page on this site, absolute. */
+    url: string;
+    sameAs: readonly string[];
+  };
+  /** The post's category, as the reader sees it. */
+  section?: string;
+}
+
+/**
+ * One blog post. The author is a Person whose `url` is their page on this
+ * site, which lists what they wrote, and whose `sameAs` are their profiles
+ * elsewhere; the publisher is Orkitec, the same Organization every page
+ * carries. Without a `dateModified` search engines take the published date.
+ */
+export function blogPostingJsonLd(seed: BlogPostingSeed): JsonLdObject {
+  const url = localeUrl(seed.locale, seed.path);
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: seed.title,
+    description: seed.description,
+    url,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    ...(seed.image ? { image: [seed.image] } : {}),
+    datePublished: seed.datePublished,
+    dateModified: seed.dateModified ?? seed.datePublished,
+    inLanguage: seed.locale,
+    ...(seed.section ? { articleSection: seed.section } : {}),
+    author: {
+      '@type': 'Person',
+      name: seed.author.name,
+      url: seed.author.url,
+      sameAs: [...seed.author.sameAs],
+    },
+    publisher: { '@id': ORGANIZATION_ID },
+    isPartOf: { '@id': WEBSITE_ID },
+  };
+}

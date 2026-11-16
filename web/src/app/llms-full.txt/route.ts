@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // The whole English user guide as one Markdown file, for anything that would
-// rather read once than crawl. Same source as /docs, same order as the sidebar.
+// rather read once than crawl. Same source as /docs, same order as the sidebar,
+// followed by the English blog posts, newest first.
 import { GITHUB_URL, PLANNER_URL, SITE_URL } from '@/site/config';
+import { postUrl, publishedPosts } from '@/site/blog';
 import { listDocs, loadDoc, loadDocsIndex } from '@/site/content';
 import { SYNC_LINES, plannerLines } from '@/site/llms';
 import { localeUrl } from '@/site/paths';
@@ -42,6 +44,12 @@ function body(): string {
     );
     if (page.frontMatter.description) parts.push(page.frontMatter.description, '');
     parts.push(page.markdown, '');
+  }
+
+  // The posts' Markdown as written: a picture or file link beside a post is a
+  // relative name here, which is fine for a reader of text.
+  for (const post of publishedPosts().filter((entry) => entry.locale === 'en')) {
+    parts.push('---', '', `# ${post.title}`, '', `Source: ${postUrl(post)} · ${post.date}`, '', post.description, '', post.markdown, '');
   }
 
   return parts.join('\n');

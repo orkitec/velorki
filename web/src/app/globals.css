@@ -704,6 +704,41 @@ h4 {
   background: none;
   font-size: inherit;
 }
+/* Syntax colours for a post's code (rehype-highlight in site/markdown.ts).
+   `light-dark()` follows `color-scheme`, which the theme switch sets; the
+   plain colour before it is the light one, for a browser without it. Every
+   pair is at least 5:1 on --panel-2. */
+.prose .hljs-comment,
+.prose .hljs-quote {
+  color: var(--muted);
+  font-style: italic;
+}
+.prose .hljs-keyword,
+.prose .hljs-meta,
+.prose .hljs-selector-tag {
+  color: #7a3fb0;
+  color: light-dark(#7a3fb0, #c8a2ff);
+}
+.prose .hljs-string,
+.prose .hljs-subst,
+.prose .hljs-regexp {
+  color: #2f6f00;
+  color: light-dark(#2f6f00, #a8d96a);
+}
+.prose .hljs-number,
+.prose .hljs-literal,
+.prose .hljs-symbol {
+  color: #a14a00;
+  color: light-dark(#a14a00, #f0b072);
+}
+.prose .hljs-title,
+.prose .hljs-built_in,
+.prose .hljs-type,
+.prose .hljs-attr,
+.prose .hljs-section {
+  color: #1f5fbf;
+  color: light-dark(#1f5fbf, #86b7ff);
+}
 .prose hr {
   border: 0;
   border-top: 1px solid var(--line);
@@ -713,6 +748,14 @@ h4 {
   border-radius: 14px;
   max-width: 100%;
   height: auto;
+}
+/* Two pictures in one paragraph stand side by side: a pair of portrait
+   photos would otherwise fill two screens. */
+.prose p:has(> img + img) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: start;
 }
 /* Wide tables scroll inside their own box instead of the page. */
 .prose .table-scroll,

@@ -234,6 +234,8 @@ imports the route module and calls its exported `GET`/`POST` with a real
 | `dpc.test.ts` | The DPC radar: the projection against EPSG's worked example, decoding a GeoTIFF built at test time with the real files' GeoKeys, a known place on its cell, no clutter filter, the API's answers read and its links checked (host, scheme, key, path), the store's single fetch across workers and its back-off, and both routes' gate, limits apart from OPERA's, and validation. |
 | `contract/weather.test.ts` | The `/weather` examples and a real answer against `openapi.yaml`'s schemas, with the keywords the app's checker knows. |
 | `sharepage.test.tsx` | The page's markup and escaping, and `loadShare()`: live, unknown, malformed and expired ids. |
+| `blog.test.ts` | The blog over `fixtures/blog/`: front-matter checks, drafts, one-language posts, key pairs and hreflang, the indexing rule, feeds, the language switcher's targets, BlogPosting, pictures (alt text, size, media URLs). |
+| `blogpages.test.tsx` | The blog's pages' metadata and `notFound`, the switcher's markup, and the proxy: real 404s for a post under another language, the English feed at `/blog/feed.xml`, the GPX pass-through. |
 
 One thing the suite cannot assert is an HTTP status Next owns. After a change
 to the share page or to the proxy's share branch, check it by hand against a
@@ -313,15 +315,16 @@ someone to self-host a fork. `npm run check:deps` is the guard; run it in CI.
 
 ## Website
 
-`velorki.com` itself: a marketing landing page, the end-user guide, the three
-legal pages, and the download page. App Router pages under
+`velorki.com` itself: a marketing landing page, the end-user guide, the blog,
+the three legal pages, and the download page. App Router pages under
 `src/app/(site)/[locale]/`, Tailwind 4 for the styling, next-intl for the
 locales, and everything the app's own look needs (Barlow Condensed, Manrope,
 the five accents) taken from `app/lib/app/theme.dart`.
 
 | Where | What |
 | --- | --- |
-| `src/app/(site)/[locale]/` | the pages: landing, `plus`, `download`, `docs/[[...slug]]`, `credits`, `privacy`, `terms`, `imprint` |
+| `src/app/(site)/[locale]/` | the pages: landing, `plus`, `download`, `docs/[[...slug]]`, `blog` (index, `[slug]`, `category/[category]`, `authors/[author]`, `feed.xml`), `credits`, `privacy`, `terms`, `imprint` |
+| `src/app/(site)/blog-media/` | the pictures and GPX files beside a post, served from its folder in `content/` |
 | `src/app/fonts/` | the two typefaces, pinned woff2 subsets, with their licences |
 | `content/<locale>/` | the Markdown behind `/docs` and the legal pages - see [content/README.md](./content/README.md) |
 | `messages/<locale>.json` | the UI strings; `src/i18n/locales.generated.ts` lists the locales that exist |
@@ -411,17 +414,30 @@ through Crowdin. The house style and the front-matter reference are in
 
 | Route | Source |
 | --- | --- |
-| `/sitemap.xml` | `src/app/sitemap.ts` - every page in every locale, with hreflang alternates |
+| `/sitemap.xml` | `src/app/sitemap.ts` - every page in every locale, with hreflang alternates; blog posts in their own language only (`src/site/blog-pages.ts`) |
+| `/blog/feed.xml`, `/de/blog/feed.xml` | RSS 2.0 per locale: its own posts, and outside English the English ones |
 | `/robots.txt` | `src/app/robots.ts` - `/s/` disallowed, the sitemap announced |
-| `/llms.txt`, `/llms-full.txt` | `src/app/llms*.txt/route.ts` - the guide as one plain-text file for assistants |
+| `/llms.txt`, `/llms-full.txt` | `src/app/llms*.txt/route.ts` - the guide (and the English blog posts) as one plain-text file for assistants |
 | `/manifest.webmanifest` | `src/app/manifest.ts` |
 | `/og-card`, `/de/og-card` | the Open Graph card, drawn per locale with `next/og` |
-| JSON-LD | `src/site/jsonld.ts`: Organization, WebSite, MobileApplication, TechArticle, BreadcrumbList, FAQPage |
+| JSON-LD | `src/site/jsonld.ts`: Organization, WebSite, MobileApplication, TechArticle, BlogPosting, BreadcrumbList, FAQPage |
 
 **Running just the site.** `npm run dev` and open `http://localhost:3000/`;
 nothing on the site half needs an API key or a database. `next dev` sets
 `DEV_HOSTS=1` by itself; a production build (`npm start`) needs it in the
 environment to serve the site on localhost.
+
+**The blog** is `content/<locale>/blog/`, read by `src/site/blog.ts`; the
+front matter and the rules are in [content/README.md](./content/README.md#blog).
+Posts are not translated: each exists in its own language only, and a version
+in another language is paired with it by `key` (hreflang, sitemap alternates,
+and the language switcher, which on a post links that version or the other
+language's blog index; `src/site/blog-switch.ts`). A language's blog index,
+category and author pages are `noindex, follow` and out of the sitemap until it
+has a published post of its own; English is always indexed. A post without a
+cover is shared with the site's card drawn with its title
+(`[locale]/blog/[slug]/og-card`). Unknown blog URLs, and a post asked for under
+another language, are settled in the proxy like docs slugs.
 
 Translation workflow: [docs/LOCALISATION.md](../docs/LOCALISATION.md).
 Deployment: [docs/DEPLOY_WEB.md](../docs/DEPLOY_WEB.md).

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type { MetadataRoute } from 'next';
+import { blogSitemap } from '@/site/blog-pages';
 import { contentFile, docSlugs, listDocs, publishedLegalDocs, translatedLocales } from '@/site/content';
 import { lastModified } from '@/site/lastmod';
 import { LOCALES, languageAlternates, localeUrl } from '@/site/paths';
@@ -27,7 +28,8 @@ const messages = (locale: string) => [`messages/${locale}.json`];
  * so listing it here would be the sitemap contradicting the page. Neither is
  * a locale that serves the English text with a notice (the imprint outside
  * English and German): that page is `noindex` too, and its hreflang set leaves
- * it out. The web planner is on its own host and is not listed here.
+ * it out. The web planner is on its own host and is not listed here. Blog
+ * posts are listed in their own language only (src/site/blog-pages.ts).
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const docs = listDocs('en').filter((doc) => !doc.draft);
@@ -63,7 +65,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
   ];
 
-  return pages.flatMap((page) =>
+  const site = pages.flatMap((page) =>
     page.locales.map((locale) => {
       const modified = lastModified(page.files(locale));
       return {
@@ -75,4 +77,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       };
     }),
   );
+  // The blog's posts are not at one path in every language, so they are
+  // listed by blog-pages.ts rather than through `pages` above.
+  return [...site, ...blogSitemap()];
 }
