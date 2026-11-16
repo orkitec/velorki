@@ -9,7 +9,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRewrittenUrl, isRewrite, unstable_doesMiddlewareMatch } from 'next/experimental/testing/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocaleSwitcherMenu } from '@/components/LocaleSwitcherMenu';
-import { blogSwitchPairs, configureBlog } from '@/site/blog';
+import { PostToc } from '@/components/PostToc';
+import { blogSwitchPairs, configureBlog, findPost, renderPost } from '@/site/blog';
+import { docToc } from '@/site/toc';
 import messages from '../messages/en.json';
 import { withEnv } from './helpers';
 
@@ -68,6 +70,17 @@ describe('the post page', () => {
   it('is notFound under another language', async () => {
     const { default: Page } = await import('@/app/(site)/[locale]/blog/[slug]/page');
     await expect(Page(params({ locale: 'de', slug: 'ride-madeira' }))).rejects.toBeInstanceOf(NotFound);
+  });
+
+  it('lists its sections beside the text, and only when it has them', () => {
+    const toc = (slug: string) => docToc(renderPost(findPost('en', slug)!).headings);
+    const nav = renderToStaticMarkup(<PostToc label="On this page" sections={toc('hello-world')} />);
+    expect(nav).toContain('aria-label="On this page"');
+    expect([...nav.matchAll(/href="#([^"]+)" data-toc-id="\1"/g)].map((match) => match[1])).toEqual([
+      'a-section',
+      'a-detail',
+    ]);
+    expect(renderToStaticMarkup(<PostToc label="On this page" sections={toc('ride-madeira')} />)).toBe('');
   });
 });
 

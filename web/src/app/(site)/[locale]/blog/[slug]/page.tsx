@@ -6,7 +6,9 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Breadcrumbs, DraftNotice } from '@/components/DocsNav';
 import { JsonLd } from '@/components/JsonLd';
 import { PostRouteMap } from '@/components/PostRouteMap';
+import { PostToc } from '@/components/PostToc';
 import { Prose } from '@/components/Prose';
+import { TocSpy } from '@/components/TocSpy';
 import { findAuthor } from '@/site/authors';
 import { SITE_URL } from '@/site/config';
 import {
@@ -22,6 +24,7 @@ import {
 import { postMetadata, postStaticParams } from '@/site/blog-pages';
 import { blogPostingJsonLd, breadcrumbJsonLd } from '@/site/jsonld';
 import { localePath, localeUrl } from '@/site/paths';
+import { docToc } from '@/site/toc';
 
 interface PostParams {
   locale: string;
@@ -53,12 +56,17 @@ export default async function BlogPostPage({ params }: { params: Promise<PostPar
   const author = findAuthor(post.author)!;
   const t = await getTranslations({ locale, namespace: 'blog' });
   const docs = await getTranslations({ locale, namespace: 'docs' });
-  const { html, readingMinutes } = renderPost(post);
+  const { html, headings, readingMinutes } = renderPost(post);
+  const sections = docToc(headings);
   const cover = coverImage(post);
   const category = t(`categories.${post.category}`);
   return (
-    <div className="shell py-8 lg:py-12">
-      <article className="max-w-3xl">
+    // The docs' columns: the post's sections on the left from `lg`, so a long
+    // read has its outline beside it and the text column is not the only
+    // thing on a wide screen.
+    <div className="shell grid gap-8 py-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-16 lg:py-12">
+      <PostToc label={t('onThisPage')} sections={sections} />
+      <article className={`min-w-0 max-w-3xl ${sections.length === 0 ? 'lg:col-span-2' : ''}`}>
         <Breadcrumbs
           items={[
             { name: docs('home'), href: localePath(locale, '/') },
@@ -122,6 +130,7 @@ export default async function BlogPostPage({ params }: { params: Promise<PostPar
         )}
         <Prose html={html} className="mt-10" />
       </article>
+      {sections.length > 0 && <TocSpy ids={headings.map((heading) => heading.id)} />}
       <JsonLd
         data={[
           blogPostingJsonLd({

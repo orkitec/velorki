@@ -15,3 +15,7 @@ A short post with a [link to the docs](/docs) and some words to count.
 ## A section
 
 More words here.
+
+### A detail
+
+And a few more.
