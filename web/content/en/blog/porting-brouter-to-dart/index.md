@@ -6,7 +6,6 @@ author: steffen
 category: engineering
 image: cover.png
 imageAlt: 'Diagram: BRouter 1.7.10 in Java and the Dart port both route the same 224 recorded requests, compared at three levels: tile decoding byte-identical, profile evaluation bit-identical, and routes as GeoJSON byte for byte.'
-draft: true
 ---
 
 Velorki computes bike routes on the phone, without a server. The router is my port of [BRouter](https://github.com/abrensch/brouter) from Java to Dart. BRouter is the open-source router behind many OpenStreetMap bike apps. In this post I describe how I did the port and how I check that it gives the same answers as the original.
