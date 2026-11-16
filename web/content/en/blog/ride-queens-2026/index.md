@@ -28,9 +28,11 @@ I rode the 25-mile loop.
 
 The start went fine. It rained for most of the ride, but once I had got used to being wet, the rain turned out to be the least of my problems.
 
-At roughly mile 13 my chain snapped. Then, less than a mile before the finish, I got a flat tyre. Both times one of the ride's volunteer marshals stopped and helped me get going again. That was the best part of the day: on my own, either of those would have ended the ride. With their help I finished, quite late, but I finished.
+At roughly mile 13 my chain snapped. Then, less than a mile before the finish, I got a flat tyre. Both times the ride's volunteer marshals stopped and helped me get going again, and that was the best part of the day.
 
-<!-- TODO(Steffen): how did the marshals fix them (chain tool, quick link, spare tube)? And a sentence about the other riders or the pace, if you like. -->
+For the chain I was lucky: one of the marshals had a chain tool and a quick link with them, took out the broken link and joined the chain again. On my own that would have ended the ride.
+
+The spare tube I carried myself, and I could have changed it alone. But after a long ride in the rain the help was very welcome, and their pump was a lot better than the mini pump in my bag. So I finished, quite late, but I finished.
 
 ## Velorki on the way
 
@@ -50,8 +52,8 @@ Velorki recorded the whole ride:
 
 The gap between moving time and total time, almost an hour, is the chain and the flat tyre.
 
-<!-- TODO(Steffen): photos from the ride would make this post. Add them beside this file and in the text, each with a description. The GPX too (`gpx: ride.gpx` in the front matter), trimmed if start or end is near your home. -->
+<!-- TODO(Steffen): photos from the ride, if you have any: beside this file and in the text, each with a description. -->
 
 ## Next year
 
-The Borough President's office wants Ride Queens to become an annual event. <!-- TODO(Steffen): would you ride it again, and a tip for someone riding it for the first time? -->
+The Borough President's office wants Ride Queens to become an annual event, and I would ride it again next year. <!-- TODO(Steffen): a tip for someone riding it for the first time? Optional. -->
