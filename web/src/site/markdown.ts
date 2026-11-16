@@ -5,7 +5,10 @@
 // awaited, uncached data source turns the page dynamic; `processSync` keeps
 // every content page a plain static render. All plugins in the chain are
 // synchronous, which is what `processSync` requires.
+import dart from 'highlight.js/lib/languages/dart';
 import matter from 'gray-matter';
+import { common } from 'lowlight';
+import rehypeHighlight from 'rehype-highlight';
 import rehypeAutolinkHeadings, { type Options as AutolinkOptions } from 'rehype-autolink-headings';
 import rehypeSanitize, { defaultSchema, type Options as SanitizeOptions } from 'rehype-sanitize';
 import rehypeSlug from 'rehype-slug';
@@ -70,8 +73,20 @@ const blogSanitizeSchema: SanitizeOptions = {
   attributes: {
     ...sanitizeSchema.attributes,
     img: [...(sanitizeSchema.attributes?.img ?? []), 'loading', 'decoding'],
+    // The highlighter's token classes, and nothing else on a span.
+    span: [...(sanitizeSchema.attributes?.span ?? []), ['className', /^hljs-[a-z_-]+$/]],
   },
 };
+
+/**
+ * Syntax colours for a post's fenced code, when the fence names its language
+ * (```dart); a fence without one is left as plain text, never guessed at.
+ * highlight.js rather than a grammar engine: it is synchronous, which
+ * `processSync` needs, and plain JavaScript (`npm run check:deps`). Dart is
+ * not in its common set, so it is added by hand. The colours are the
+ * `.hljs-*` rules in globals.css.
+ */
+const highlightOptions = { detect: false, languages: { ...common, dart } };
 
 /** A hast node, as far as a pass over the rendered tree needs one. */
 export interface HastNode {
@@ -96,7 +111,9 @@ function buildProcessor(transform?: HastTransform) {
     .use(rehypeAutolinkHeadings, autolinkOptions);
   // The transform runs before the sanitiser, so whatever it writes is held to
   // the same allowlist as the author's own Markdown.
-  const withTransform = transform ? base.use(() => (tree) => transform(tree)) : base;
+  const withTransform = transform
+    ? base.use(rehypeHighlight, highlightOptions).use(() => (tree) => transform(tree))
+    : base;
   return withTransform
     .use(rehypeSanitize, transform ? blogSanitizeSchema : sanitizeSchema)
     .use(rehypeStringify)

@@ -26,6 +26,7 @@ import {
 import { blogSitemap, postMetadata } from '@/site/blog-pages';
 import { localeSwitchHref } from '@/site/blog-switch';
 import { blogPostingJsonLd } from '@/site/jsonld';
+import { renderBody } from '@/site/markdown';
 import { pageMetadata } from '@/site/seo';
 
 const FIXTURES = path.join(process.cwd(), 'test', 'fixtures', 'blog');
@@ -407,5 +408,27 @@ describe('pictures and files', () => {
     expect(readMedia('en', 'ride-madeira', hash!, '../hello-world.md')).toBeNull();
     const [, , , , gpxHash] = mediaPath(ride, 'ride.gpx').split('/');
     expect(readMedia('en', 'ride-madeira', gpxHash!, 'ride.gpx')?.contentType).toBe('application/gpx+xml');
+  });
+});
+
+describe('code in a post', () => {
+  const html = (markdown: string) => renderBody(markdown, () => undefined).html;
+
+  it('colours a fence that names its language, Dart included', () => {
+    const dart = html("```dart\nfinal speak = Speak();\nawait speak('Turn left.');\n```");
+    expect(dart).toContain('<span class="hljs-keyword">final</span>');
+    expect(dart).toContain('<span class="hljs-keyword">await</span>');
+    expect(dart).toContain("<span class=\"hljs-string\">'Turn left.'</span>");
+    expect(html('```ts\nconst a = 1;\n```')).toContain('<span class="hljs-keyword">const</span>');
+  });
+
+  it('leaves a fence without a language, and inline code, as plain text', () => {
+    expect(html('```\nfinal a = 1;\n```')).not.toContain('<span');
+    expect(html('The `final` keyword.')).toContain('<code>final</code>');
+  });
+
+  it('lets no other class through on a span', () => {
+    const out = html('A <span class="hljs-keyword evil">word</span> here.');
+    expect(out).not.toContain('evil');
   });
 });
