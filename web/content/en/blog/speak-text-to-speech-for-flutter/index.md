@@ -1,6 +1,6 @@
 ---
 title: Why I wrote my own text-to-speech package for Flutter
-description: Spoken turn directions over music and a Bluetooth headset kept going wrong in Velorki. This is what broke, and what my speak package does about it.
+description: I replaced flutter_tts in Velorki with my own package, speak. What went wrong with spoken turn directions over music and Bluetooth, and what speak does.
 date: 2026-11-15
 author: steffen
 category: engineering
@@ -8,7 +8,7 @@ image: cover.png
 imageAlt: 'Timeline of a podcast during three spoken turn cues. Before, the podcast paused at the first cue and stayed paused for the rest of the ride. With speak, it pauses only for each cue and its short silent lead-in, and plays again in between.'
 ---
 
-Velorki speaks its turn instructions, things like "In 200 metres, turn left." I expected that to be one of the easier parts of a navigation app. In practice it was the part riders noticed most when it went wrong, and fixing it led me to write [speak](https://pub.dev/packages/speak), a small text-to-speech package for Flutter that I now publish on its own.
+[Velorki](/), my bike route planner and ride recorder, speaks its turn instructions, things like "In 200 metres, turn left." I expected that to be one of the easier parts of a navigation app. In practice it was the part riders noticed most when it went wrong, and fixing it led me to write [speak](https://pub.dev/packages/speak), a small text-to-speech package for Flutter that I now publish on its own.
 
 ## What a spoken direction has to get right
 
@@ -16,7 +16,7 @@ Most riders have something else playing, music or a podcast or an audiobook, and
 
 It also has to make room for itself and then give the room back. Music should get quieter while it speaks, a podcast should pause so no sentence is lost, and both should come back right after. And when the rider is on a phone call, the cue has to stay quiet.
 
-## Where the plugin I used fell short
+## Where flutter_tts fell short
 
 Velorki started out with `flutter_tts`, the widely used Flutter plugin. Speaking text worked fine. My problems were with everything around it.
 
@@ -57,4 +57,4 @@ In the end I tested it the way it is used, on the bike. Velorki has used speak f
 
 ## Use it
 
-speak is BSD-licensed and on [pub.dev](https://pub.dev/packages/speak), and the source is on [GitHub](https://github.com/orkitec/speak). It is made for short prompts over other audio, such as directions, workout cues or timers. Windows and Linux aren't supported yet. If you need one of them and can test on it, please open an issue.
+speak is BSD-licensed and on [pub.dev](https://pub.dev/packages/speak), and the source is on [GitHub](https://github.com/orkitec/speak). It is made for short prompts over other audio, such as directions, workout cues or timers. If you are looking for an alternative to `flutter_tts` for that kind of app, it may fit. Windows and Linux aren't supported yet. If you need one of them and can test on it, please open an issue.

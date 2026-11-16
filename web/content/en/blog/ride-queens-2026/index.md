@@ -1,5 +1,5 @@
 ---
-title: My first group ride with Velorki, Ride Queens 2026
+title: "Ride Queens 2026: my first group ride with Velorki"
 description: The first Ride Queens through Flushing Meadows and the Queens greenways, with early rain, a snapped chain, a flat tyre and the marshals who got me home.
 date: 2026-09-27
 author: steffen
@@ -8,7 +8,7 @@ image: ride-cover.jpg
 imageAlt: "The 25-mile loop through Queens as Velorki recorded it, coloured from slow to fast, with the organisers' warnings along the way: the start dismount zone, a busy intersection, the water fountain, construction, a highway off-ramp, tree roots and a sharp left turn."
 ---
 
-On Sunday, 20 September 2026, I rode the first [Ride Queens](https://www.queensbp.nyc.gov/ridequeens/), a free community ride through the borough organised by the Queens Borough President's office together with NYC Parks and Transportation Alternatives. It was my second group ride in New York, and the first since I built Velorki.
+On Sunday, 20 September 2026, I rode the first [Ride Queens](https://www.queensbp.nyc.gov/ridequeens/), a free community ride through the borough organised by the Queens Borough President's office together with NYC Parks and Transportation Alternatives. It was my second group ride in New York, and the first since I built [Velorki](/), a free, open-source bike route planner and ride recorder.
 
 ## The ride
 
@@ -20,6 +20,12 @@ Ride Queens started and finished at the Boathouse on Meadow Lake in Flushing Mea
 Both followed the Eastern Queens Greenway and parts of the planned Queens Waterfront Greenway for most of their length. Registration was free and capped at 2,000 riders, and a festival in the park with food from all over the borough was planned for after the ride.
 
 I rode the 25-mile loop, with number 620 on my back.
+
+## The 25-mile route
+
+The organisers sent the exact route to registered riders before the event. I loaded it into Velorki, and the warnings they had marked along the way came with it. You can see them on the map at the top: the dismount zone at the start, busy intersections, a water fountain, construction, a highway off-ramp, tree roots on the path and a sharp left turn.
+
+The loop starts at Meadow Lake, heads north and then east through the borough, and comes back from the south-east. It is not flat at the start. The first 11 km climb to about 65 m, the highest point of the day, and by kilometre 15 the route is back down near sea level. From there on it stays between sea level and about 25 m, with short ups and downs, until it comes back into the park. In total Velorki counted 292 m of climbing.
 
 ![My ride number, 620, on a white Ride Queens NYC plate, held over the handlebar of my bike before I pinned it to my back.](bib.jpg)
 ![A granola bar and a small bag of potato chips in my gloved hand, with my bike leaning in the background.](snacks.jpg)

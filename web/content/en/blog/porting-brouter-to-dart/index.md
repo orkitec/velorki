@@ -1,6 +1,6 @@
 ---
 title: Porting BRouter to Dart, and proving it routes the same
-description: How Velorki runs the BRouter bike router on the phone and in the browser, and the 224 recorded routes that check every result against the original.
+description: How Velorki runs the BRouter bike router on iOS, Android and in the browser, ported from Java to Dart, with 224 recorded routes that prove it routes the same.
 date: 2026-11-14
 author: steffen
 category: engineering
@@ -8,7 +8,7 @@ image: cover.png
 imageAlt: 'Diagram: BRouter 1.7.10 in Java and the Dart port both route the same 224 recorded requests, compared at three levels: tile decoding byte-identical, profile evaluation bit-identical, and routes as GeoJSON byte for byte.'
 ---
 
-Velorki computes bike routes on the phone, without a server. The router is my port of [BRouter](https://github.com/abrensch/brouter) from Java to Dart. BRouter is the open-source router behind many OpenStreetMap bike apps. In this post I describe how I did the port and how I check that it gives the same answers as the original.
+Velorki computes bike routes on the phone, without a server. The router is my port of [BRouter](https://github.com/abrensch/brouter) from Java to Dart. BRouter is the open-source router behind many OpenStreetMap bike apps. It is a Java program, and Java does not run on an iPhone, so the port is also how BRouter's routing gets onto iOS. In this post I describe how I did the port and how I check that it gives the same answers as the original.
 
 ## Why port it at all
 
