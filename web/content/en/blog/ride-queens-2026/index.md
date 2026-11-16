@@ -11,7 +11,7 @@ draft: true
 
 <!-- TODO(Steffen): everything marked TODO needs your own words before this goes live. Facts about the event are from the organisers' announcements. -->
 
-On Sunday, 20 September 2026, I rode the first Ride Queens, a free community ride through the borough organised by the Queens Borough President's office together with NYC Parks and Transportation Alternatives. It was my first group ride in New York.
+On Sunday, 20 September 2026, I rode the first [Ride Queens](https://www.queensbp.nyc.gov/ridequeens/), a free community ride through the borough organised by the Queens Borough President's office together with NYC Parks and Transportation Alternatives. It was my first group ride in New York.
 
 ## The ride
 
@@ -22,11 +22,18 @@ Ride Queens started and finished at the Boathouse on Meadow Lake in Flushing Mea
 
 Both followed the Eastern Queens Greenway and parts of the planned Queens Waterfront Greenway for most of their length. Registration was free and capped at 2,000 riders, and a festival in the park with food from all over the borough was planned for after the ride.
 
-I rode the 25-mile loop.
+I rode the 25-mile loop, with number 620 on the handlebar.
+
+![My ride number, 620, on a white Ride Queens NYC plate, held against the handlebar of my bike on wet asphalt.](bib.jpg)
+![A granola bar and a small bag of potato chips in my gloved hand, with my bike leaning in the background.](snacks.jpg)
+
+*My number for the day, and the snacks the volunteers handed out.*
 
 ## Riding with a crowd
 
 The start went fine. It rained for most of the ride, but once I had got used to being wet, the rain turned out to be the least of my problems.
+
+![Riders in rain jackets and ponchos standing with their bikes on wet asphalt under large trees, with white tents behind them.](start.jpg)
 
 At roughly mile 13 my chain snapped. Then, less than a mile before the finish, I got a flat tyre. Both times the ride's volunteer marshals stopped and helped me get going again, and that was the best part of the day.
 
@@ -36,7 +43,7 @@ The spare tube I carried myself, and I could have changed it alone. But after a 
 
 ## Velorki on the way
 
-Velorki worked fine overall. The one thing that didn't was the heart rate from my Apple Watch, which was there for about the first 30 seconds and then gone. Of the 5,796 points the ride recorded, only 255 had a pulse.
+Velorki worked fine overall. The one thing that didn't was the heart rate from my Apple Watch, which was there for about the first 30 seconds and then gone. Of the 5,796 points the ride recorded, only 255 had a pulse. The ride's page still says so under its heart rate chart: "4 % of the ride".
 
 The cause was the auto-pause. At the first stop, still at the start line, the app ended the watch's workout session. Once a watch app has no running session, watchOS suspends it within about a minute, so it never heard that the ride had started again. Every red light after that did the same.
 
@@ -46,17 +53,13 @@ Keeping the session open costs the watch some battery while you stand still. So 
 
 ## The figures
 
-Velorki recorded the whole ride:
+Velorki recorded the whole ride. This is the ride's page in the app, as is the map at the top of this post.
 
-- **Distance:** 41.1 km (25.5 miles)
-- **Moving time:** 2:18:30
-- **Total time:** 3:11:03
-- **Average speed:** 17.8 km/h, top speed 39.0 km/h
-- **Climb:** 292 m
+![The ride's page in Velorki: distance 41.1 km, moving time 2:18:30, total time 3:11:03, average speed 17.8 km/h, top speed 39.0 km/h, ascent 292 m, descent 289 m, average heart rate 161 bpm, maximum 169 bpm. Below it the elevation profile, which climbs to about 65 m at kilometre 11 and stays under 25 m for the rest.](figures.png)
 
-The gap between moving time and total time, almost an hour, is the chain and the flat tyre.
+*Screenshot from Velorki.*
 
-<!-- TODO(Steffen): photos from the ride, if you have any: beside this file and in the text, each with a description. -->
+41.1 km is 25.5 miles. The gap between moving time and total time, almost an hour, is the chain and the flat tyre. The heart rate figures come from the few minutes the watch was connected.
 
 ## Next year
 
