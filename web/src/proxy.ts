@@ -139,6 +139,26 @@ function blogNotFoundPath(pathname: string): string | null {
 }
 
 /**
+ * `/blog/<slug>` (and its `og-card`) is an English post at the one address it has (only English
+ * goes unprefixed), so it is served as it is, never negotiated: next-intl
+ * would send a reader whose cookie or browser says German to
+ * `/de/blog/<slug>`, which does not exist, because a post is a page only in
+ * the language it was written in. That is exactly the link the other
+ * languages' blogs give for an English post. Returns the internal route, or
+ * null for anything else; the index, categories and authors exist in every
+ * language and keep the negotiation.
+ */
+function englishPostTarget(pathname: string): string | null {
+  const { prefixed, rest } = splitLocale(pathname);
+  if (prefixed || rest[0] !== 'blog') return null;
+  // The post, or its share image; `category/<x>` and `authors/<x>` are three
+  // segments too, but not a post's.
+  const post = rest.length === 2 || (rest.length === 3 && rest[2] === 'og-card');
+  if (!post || rest[1] === 'category' || rest[1] === 'authors') return null;
+  return `/${routing.defaultLocale}/${rest.join('/')}`;
+}
+
+/**
  * The blog's feeds carry an extension, so the matcher names them, and the
  * English one is mapped here: `/blog/feed.xml` is always the English feed. A
  * feed reader's Accept-Language must not redirect it to another language's
@@ -396,6 +416,16 @@ async function route(request: NextRequest): Promise<NextResponse> {
     response.headers.set(REQUEST_ID_HEADER, requestId);
     // A page that does not exist today may exist after the next deploy.
     response.headers.set('cache-control', 'no-store');
+    return response;
+  }
+
+  // After the not-found check, so an unknown slug is still a real 404.
+  const englishPost = englishPostTarget(url.pathname);
+  if (englishPost !== null) {
+    const response = NextResponse.rewrite(rewriteTarget(englishPost, request), {
+      request: { headers: forwardHeaders(request, requestId) },
+    });
+    response.headers.set(REQUEST_ID_HEADER, requestId);
     return response;
   }
 

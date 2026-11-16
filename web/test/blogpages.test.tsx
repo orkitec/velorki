@@ -151,9 +151,25 @@ describe('the proxy', () => {
         expect(isRewrite(res), pathname).toBe(true);
         expect(getRewrittenUrl(res), pathname).toBe(`${SITE}${target}`);
       }
-      for (const pathname of ['/blog', '/es/blog', '/blog/ride-madeira', '/de/blog/hallo-welt', '/blog/hello-world/og-card']) {
+      for (const pathname of ['/blog', '/es/blog', '/de/blog/hallo-welt']) {
         const res = await proxy(request(`${SITE}${pathname}`));
         expect(isRewrite(res), pathname).toBe(false);
+      }
+    });
+  });
+
+  it('serves an English post at its own address whatever language the reader prefers', async () => {
+    const { default: proxy } = await import('@/proxy');
+    await withEnv({}, async () => {
+      for (const pathname of ['/blog/ride-madeira', '/blog/hello-world/og-card']) {
+        const res = await proxy(request(`${SITE}${pathname}`, { cookie: 'NEXT_LOCALE=de', 'accept-language': 'de' }));
+        expect(getRewrittenUrl(res), pathname).toBe(`${SITE}/en${pathname}`);
+        expect(res.headers.get('location'), pathname).toBeNull();
+      }
+      // The pages every language has keep the negotiation.
+      for (const pathname of ['/blog', '/blog/category/rides', '/blog/authors/steffen']) {
+        const res = await proxy(request(`${SITE}${pathname}`, { cookie: 'NEXT_LOCALE=de' }));
+        expect(res.headers.get('location'), pathname).toBe(`${SITE}/de${pathname}`);
       }
     });
   });
