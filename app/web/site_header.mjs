@@ -43,9 +43,11 @@ export const HEADER_STRINGS = {
     primary: 'Main',
     features: 'Features',
     docs: 'Docs',
+    blog: 'Blog',
     plus: 'Plus',
     github: 'GitHub',
     getApp: 'Get the app',
+    download: 'Download',
     menu: 'Menu',
     theme: 'Theme',
     system: 'System',
@@ -61,9 +63,11 @@ export const HEADER_STRINGS = {
     primary: 'Haupt',
     features: 'Funktionen',
     docs: 'Doku',
+    blog: 'Blog',
     plus: 'Plus',
     github: 'GitHub',
     getApp: 'App holen',
+    download: 'Download',
     menu: 'Menü',
     theme: 'Design',
     system: 'System',
@@ -79,9 +83,11 @@ export const HEADER_STRINGS = {
     primary: 'Principal',
     features: 'Funciones',
     docs: 'Ayuda',
+    blog: 'Blog',
     plus: 'Plus',
     github: 'GitHub',
     getApp: 'Consigue la app',
+    download: 'Descargar',
     menu: 'Menú',
     theme: 'Tema',
     system: 'Sistema',
@@ -97,9 +103,11 @@ export const HEADER_STRINGS = {
     primary: 'Principal',
     features: 'Fonctions',
     docs: 'Guide',
+    blog: 'Blog',
     plus: 'Plus',
     github: 'GitHub',
     getApp: 'Obtenir l’app',
+    download: 'Télécharger',
     menu: 'Ouvrir le menu',
     theme: 'Thème',
     system: 'Système',
@@ -115,9 +123,11 @@ export const HEADER_STRINGS = {
     primary: 'Principale',
     features: 'Funzionalità',
     docs: 'Guida',
+    blog: 'Blog',
     plus: 'Plus',
     github: 'GitHub',
     getApp: "Scarica l'app",
+    download: 'Download',
     menu: 'Menù',
     theme: 'Tema',
     system: 'Sistema',
@@ -133,9 +143,11 @@ export const HEADER_STRINGS = {
     primary: 'Hoofdmenu',
     features: 'Functies',
     docs: 'Handleiding',
+    blog: 'Blog',
     plus: 'Plus',
     github: 'GitHub',
     getApp: 'Download de app',
+    download: 'Download',
     menu: 'Menu',
     theme: 'Thema',
     system: 'Systeem',
@@ -152,6 +164,7 @@ export const HEADER_STRINGS = {
 export const NAV = [
   { key: 'features', href: '/#features' },
   { key: 'docs', href: '/docs' },
+  { key: 'blog', href: '/blog' },
   { key: 'plus', href: '/plus' },
 ];
 
@@ -385,7 +398,7 @@ html,body{margin:0;background:var(--canvas)}
 .vh-brand{display:flex;flex-shrink:0;align-items:center;gap:.5rem}
 .vh-word{font-family:'Barlow Condensed',ui-sans-serif,sans-serif;font-size:1.25rem;line-height:1;font-weight:700;letter-spacing:-.025em;color:var(--fg)}
 .vh-nav{margin-left:auto;display:none;align-items:center;gap:.25rem}
-.vh-link{border-radius:999px;padding:.5rem;font-size:.875rem;line-height:1.25rem;font-weight:700;color:var(--muted);transition:color .15s,background-color .15s}
+.vh-link{border-radius:999px;padding:.5rem .375rem;font-size:.875rem;line-height:1.25rem;font-weight:700;color:var(--muted);transition:color .15s,background-color .15s}
 .vh a.vh-link:hover{background:var(--accent-10);color:var(--fg)}
 .vh-gh{display:flex;align-items:center;gap:.375rem}
 .vh a.vh-gh:hover{background:none}
@@ -412,7 +425,9 @@ html,body{margin:0;background:var(--canvas)}
 .vh-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;border-radius:999px;font-weight:700;border:1px solid transparent;background:var(--accent);color:var(--on-accent)!important;transition:transform .12s ease}
 .vh-btn:hover{transform:translateY(-1px)}
 .vh-dl{display:none}
-.vh-dl .vh-btn{min-height:2.5rem;padding:0 1.5rem;font-size:.9375rem}
+.vh-dl .vh-btn{min-height:2.5rem;padding:0 1rem;font-size:.875rem;white-space:nowrap}
+/* The short word until 1024: with Blog in the row the longer labels no longer fit at 768. */
+.vh-dl .vh-long{display:none}
 .vh-menu summary{cursor:pointer;color:var(--fg)!important}
 .vh-menu .vh-x,.vh-menu[open] .vh-burger{display:none}
 .vh-menu[open] .vh-x{display:block}
@@ -423,7 +438,7 @@ html,body{margin:0;background:var(--canvas)}
 .vh-panel .vh-btn{margin-top:.5rem;min-height:3rem;padding:0 1.5rem;font-size:.9375rem}
 @media (min-width:640px){.vh-word{font-size:1.5rem}}
 @media (min-width:768px){.vh-shell{padding-inline:max(2rem,env(safe-area-inset-left,0px)) max(2rem,env(safe-area-inset-right,0px))}.vh-bar{gap:.75rem}.vh-nav{display:flex}.vh-right{margin-left:0;gap:.5rem}.vh-cycle,.vh-menu{display:none!important}.vh-themes{display:flex}.vh-loc summary{height:auto;gap:.375rem;border-color:transparent;padding-block:.375rem}.vh-dl{display:block}}
-@media (min-width:1024px){.vh-link{padding-inline:.75rem}.vh-gh .vh-sr{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;white-space:normal}.vh-loc .vh-code{display:none}.vh-loc .vh-name{display:inline}.vh-loc .vh-chev{display:block}}
+@media (min-width:1024px){.vh-dl .vh-short{display:none}.vh-dl .vh-long{display:inline}.vh-link{padding-inline:.75rem}.vh-gh .vh-sr{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;white-space:normal}.vh-loc .vh-code{display:none}.vh-loc .vh-name{display:inline}.vh-loc .vh-chev{display:block}}
 `;
 
 /**
@@ -448,7 +463,7 @@ export function renderHeader(window, { lang, theme, onTheme, onLanguage, onStora
     const links = NAV.map((item) => ({ href: siteUrl(state.lang, item.href), label: t[item.key] }));
     const navLink = (link, cls) => el(document, 'a', { href: link.href, class: cls }, [link.label]);
 
-    // The wide row: Features, Docs, Plus, GitHub.
+    // The wide row: Features, Docs, Blog, Plus, GitHub.
     const nav = el(document, 'nav', { class: 'vh-nav', 'aria-label': t.primary }, [
       ...links.map((link) => navLink(link, 'vh-link')),
       el(document, 'a', { href: GITHUB_URL, rel: 'noreferrer', class: 'vh-link vh-gh' }, [
@@ -556,7 +571,12 @@ export function renderHeader(window, { lang, theme, onTheme, onLanguage, onStora
         cycle,
         themes,
         localeMenu,
-        el(document, 'div', { class: 'vh-dl' }, [el(document, 'a', { href: download, class: 'vh-btn' }, [t.getApp])]),
+        el(document, 'div', { class: 'vh-dl' }, [
+          el(document, 'a', { href: download, class: 'vh-btn' }, [
+            el(document, 'span', { class: 'vh-short' }, [t.download]),
+            el(document, 'span', { class: 'vh-long' }, [t.getApp]),
+          ]),
+        ]),
         menu,
       ]),
     ]);

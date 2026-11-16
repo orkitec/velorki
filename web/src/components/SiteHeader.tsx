@@ -10,13 +10,14 @@ import { GitHubIcon } from './Icons';
 import { LocaleSwitcher } from './LocaleSwitcher';
 import { ThemeSwitcher } from './ThemeSwitcher';
 
-/** Features, Docs and Plus, in that order; "Get the app" (/download) is the
+/** Features, Docs, Blog and Plus, in that order; "Get the app" (/download) is the
     call to action. The web planner's copy of this header
     (app/web/site_header.mjs) is held to this list and to messages/*.json by
     app/web_test/site_header.test.mjs. */
 const NAV = [
   { key: 'features', href: '/#features' },
   { key: 'docs', href: '/docs' },
+  { key: 'blog', href: '/blog' },
   { key: 'plus', href: '/plus' },
 ] as const;
 
@@ -53,7 +54,7 @@ export function SiteHeader({ locale }: { locale: string }) {
             <Link
               key={item.key}
               href={localePath(locale, item.href)}
-              className="rounded-full px-2 py-2 text-sm font-bold text-muted transition-colors hover:bg-accent/10 hover:text-fg lg:px-3"
+              className="rounded-full px-1.5 py-2 text-sm font-bold text-muted transition-colors hover:bg-accent/10 hover:text-fg lg:px-3"
             >
               {t(item.key)}
             </Link>
@@ -81,8 +82,11 @@ export function SiteHeader({ locale }: { locale: string }) {
           {/* The wrapper, not a `hidden` on the pill: `.btn` is unlayered CSS
               and would beat the utility's `display: none`. */}
           <div className="hidden md:block">
-            <Link href={download.href} className="btn btn-primary !min-h-10 px-4 text-sm">
-              {download.label}
+            <Link href={download.href} className="btn btn-primary !min-h-10 px-4 text-sm whitespace-nowrap">
+              {/* The short word until `lg`: with Blog in the row, "Download de
+                  app" and the Spanish and Italian labels no longer fit at 768. */}
+              <span className="lg:hidden">{t('download')}</span>
+              <span className="hidden lg:inline">{download.label}</span>
             </Link>
           </div>
           <HeaderMenu label={t('menu')} navLabel={t('primary')} links={links} download={download} />
