@@ -30,13 +30,13 @@ The start went fine. It rained for most of the ride, but once I had got used to 
 
 At roughly mile 13 my chain snapped. Then, less than a mile before the finish, I got a flat tyre. Both times the ride's volunteer marshals stopped and helped me get going again, and that was the best part of the day.
 
-For the chain I was lucky: one of the marshals had a chain tool and a quick link with them, took out the broken link and joined the chain again. On my own that would have ended the ride.
+For the chain I was lucky. One of the marshals had a chain tool and a quick link with them, took out the broken link and joined the chain again. On my own that would have ended the ride.
 
 The spare tube I carried myself, and I could have changed it alone. But after a long ride in the rain the help was very welcome, and their pump was a lot better than the mini pump in my bag. So I finished, quite late, but I finished.
 
 ## Velorki on the way
 
-Velorki worked fine overall, with one exception: my Apple Watch. The heart rate was there for about the first 30 seconds and then gone. Of the 5,796 points the ride recorded, only 255 had a pulse.
+Velorki worked fine overall. The one thing that didn't was the heart rate from my Apple Watch, which was there for about the first 30 seconds and then gone. Of the 5,796 points the ride recorded, only 255 had a pulse.
 
 The cause was the auto-pause. At the first stop, still at the start line, the app ended the watch's workout session. Once a watch app has no running session, watchOS suspends it within about a minute, so it never heard that the ride had started again. Every red light after that did the same.
 

@@ -1,6 +1,6 @@
 ---
-title: Why we wrote our own text-to-speech package for Flutter
-description: Turn-by-turn directions over music and a Bluetooth headset need more than a speak call. What went wrong, and what the speak package does instead.
+title: Why I wrote my own text-to-speech package for Flutter
+description: Spoken turn directions over music and a Bluetooth headset kept going wrong in Velorki. This is what broke, and what my speak package does about it.
 date: 2026-11-15
 author: steffen
 category: engineering
@@ -9,25 +9,25 @@ imageAlt: 'Timeline of a podcast during three spoken turn cues. Before, the podc
 draft: true
 ---
 
-Velorki speaks its turn instructions: "In 200 metres, turn left." That sounds like the easy part of a navigation app. It turned out to be the part riders noticed most when it went wrong, and it led to [speak](https://pub.dev/packages/speak), a small text-to-speech package for Flutter that we now publish separately.
+Velorki speaks its turn instructions, things like "In 200 metres, turn left." I expected that to be one of the easier parts of a navigation app. In practice it was the part riders noticed most when it went wrong, and fixing it led me to write [speak](https://pub.dev/packages/speak), a small text-to-speech package for Flutter that I now publish on its own.
 
 ## What a spoken direction has to get right
 
-A rider usually has something else playing: music, a podcast, an audiobook, and often through a Bluetooth headset or speaker. A cue has to:
+Most riders have something else playing, music or a podcast or an audiobook, and often through a Bluetooth headset or speaker. A cue has to be heard from its first syllable, because "…eft" is not a direction. It has to come at the right moment or not at all. A "turn in 200 metres" that waited behind another cue and plays after the turn is worse than silence.
 
-- **Be heard from the first syllable.** "…eft" is not a direction.
-- **Come at the right moment, or not at all.** A "turn in 200 metres" that waited behind another cue and plays after the turn is worse than silence.
-- **Make room for itself and give it back.** Lower the music while it speaks, pause a podcast so no sentence is lost, and bring both back right after.
-- **Step aside for a phone call.**
+It also has to make room for itself and then give the room back. Music should get quieter while it speaks, a podcast should pause so no sentence is lost, and both should come back right after. And when the rider is on a phone call, the cue has to stay quiet.
 
-## Where the plugin we used fell short
+## Where the plugin I used fell short
 
-Velorki started with `flutter_tts`, the widely used Flutter plugin. It speaks text fine. The trouble was everything around it.
+Velorki started out with `flutter_tts`, the widely used Flutter plugin. Speaking text worked fine. My problems were with everything around it.
 
-- **Lost first syllables on Bluetooth.** On iOS it gave up the shared audio session after every utterance. A Bluetooth headset then closed its audio link, and the next cue had to reopen it, which swallowed the first syllables or scrambled them.
-- **The workaround was worse for podcasts.** We kept the audio session for the whole ride instead and played a second of silence before each cue to wake the link. Cues were complete again, but a podcast paused for the first cue stayed paused for the whole ride.
-- **No timing model.** A call that returns when speaking starts doesn't tell you when it ended or whether it was cut off. Velorki had grown its own queue on top, with its own guesses.
-- **It was our last CocoaPods dependency.** Everything else in the iOS app had moved to Swift Package Manager. CocoaPods' central repository is going read-only, and this one plugin kept the whole iOS build on it.
+On iOS the plugin gave up the shared audio session after every utterance. A Bluetooth headset then closed its audio link, and the next cue had to open it again, which swallowed or scrambled the first syllables.
+
+My workaround made things worse for podcast listeners. I kept the audio session for the whole ride and played a second of silence before each cue to wake the link. The cues were complete again, but a podcast that paused for the first cue stayed paused for the rest of the ride.
+
+The plugin also had no real timing model. A call that returns when speaking starts can't tell you when the speech ended or whether something cut it off. Velorki had grown its own queue on top of it, built on guesses.
+
+It was also the last CocoaPods dependency in the app. Everything else in the iOS build had moved to Swift Package Manager, and CocoaPods' central repository is going read-only. This one plugin kept the whole iOS build tied to it.
 
 ## What speak does instead
 
@@ -38,24 +38,24 @@ await speak('In two hundred metres, turn left.');
 await speak('Turn left now.', queue: SpeakQueue.interrupt);
 ```
 
-- **Every call can be awaited** and says how it ended: completed, interrupted, expired, or blocked (by a phone call).
-- **Queue, interrupt, expire.** Cues wait their turn by default, an urgent one cuts in, and a distance announcement can be given a deadline after which it is dropped unsaid.
-- **Audio is claimed only while speaking.** The iOS audio session and Android's audio focus are taken right before a cue and released shortly after, so a podcast pauses for a sentence and then carries on.
-- **A short silent lead-in on Bluetooth**, so the headset is awake when the first word arrives, and a short linger so two cues in a row don't reopen the link.
-- **Calls come first.** If a call is active, a cue ends as blocked instead of talking over it. On iOS that check uses CallKit, which the package loads at run time rather than linking, because apps containing CallKit are not accepted on the App Store in China.
+Every call can be awaited and reports how it ended: completed, interrupted, expired, or blocked by a phone call. Cues wait their turn by default, an urgent one can cut in, and a distance announcement can get a deadline after which it is dropped without being spoken.
 
-In Velorki the rider chooses what happens to other audio during an instruction: pause spoken audio and lower music (the default), or only lower the volume.
+speak claims audio only while it speaks. It takes the iOS audio session or Android's audio focus right before a cue and releases it shortly after, so a podcast pauses for one sentence and then carries on. On Bluetooth it adds a short silent lead-in, so the headset is awake when the first word arrives, and it holds on a moment after a cue so that two cues in a row don't reopen the link.
+
+If a call is active, the cue ends as blocked instead of talking over the caller. On iOS that check uses CallKit. The package loads CallKit at run time instead of linking it, because the App Store in China doesn't accept apps that contain it.
+
+In Velorki the rider chooses what happens to other audio during an instruction. By default spoken audio pauses and music gets quieter, and the other option only lowers the volume.
 
 ## No native code to write
 
-speak calls each platform's own speech engine directly from Dart. On iOS and macOS that is AVFoundation through FFI; on Android it is `TextToSpeech` through JNI, plus one small Java class for the progress callback; on the web it is the Web Speech API. The glue is generated and compiled by Flutter's build hooks, so an app adds the package and nothing else: no Podfile, no Swift package, no Kotlin.
+speak calls each platform's own speech engine directly from Dart. On iOS and macOS that is AVFoundation through FFI, on Android `TextToSpeech` through JNI plus one small Java class for the progress callback, and on the web the Web Speech API. Flutter's build hooks generate and compile the glue, so an app only adds the package. There is no Podfile, Swift package or Kotlin code to write.
 
 ## Testing something you have to hear
 
-Speech engines on CI machines have no speakers, and they behave accordingly: an Android emulator can report no voices for the first seconds after start, and engines sometimes stall on virtual audio devices. The package's CI runs on iOS, macOS, Android and the web, records what the engine reported, and retries only the stalls the environment causes, never a real failure.
+CI machines have no speakers, and their speech engines behave accordingly. An Android emulator can report no voices for the first seconds after it starts, and engines sometimes stall on virtual audio devices. The package's CI runs on iOS, macOS, Android and the web, records what the engine reported, and retries only the stalls the environment causes, never a real failure.
 
-The real test was a ride. Guidance runs on speak since Velorki 1.2.3, and on the iPhone the cues came through whole and on time.
+In the end I tested it the way it is used, on the bike. Velorki has used speak for its guidance since version 1.2.3, and on my iPhone the cues have come through whole and on time.
 
 ## Use it
 
-speak is BSD-licensed and on [pub.dev](https://pub.dev/packages/speak), with the source on [GitHub](https://github.com/orkitec/speak). It is made for short prompts over other audio: directions, workout cues, timers. Windows and Linux are not supported yet. If you need one of them and can test it, open an issue.
+speak is BSD-licensed and on [pub.dev](https://pub.dev/packages/speak), and the source is on [GitHub](https://github.com/orkitec/speak). It is made for short prompts over other audio, such as directions, workout cues or timers. Windows and Linux aren't supported yet. If you need one of them and can test on it, please open an issue.
