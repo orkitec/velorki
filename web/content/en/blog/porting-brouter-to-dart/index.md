@@ -32,9 +32,50 @@ The algorithms were straightforward to port. Most of the work went into the many
 
 Integers were the first. Dart's `int` has 64 bits, while Java's `int` overflows at 32, and BRouter's hashing, CRCs and bit coders depend on that overflow. The port wraps values explicitly wherever they can overflow or get shifted, and masks shift distances the way the JVM does.
 
+BRouter hashes float arrays with the JDK's `Arrays.hashCode`, so the port needs that too. This is the JDK's line:
+
+```java
+result = 31 * result + Float.floatToIntBits(element);
+```
+
+And this is the same line in the port, where `i32` cuts the result back to 32 bits:
+
+```dart
+result = i32(31 * result + floatToIntBits(a[i]));
+```
+
 Floats came next. BRouter does its cost arithmetic in 32-bit `float`, a type Dart doesn't have. Every float operation in the port rounds through a `Float32List`, which happens 57 times per way section in the hottest function.
 
 Then the smaller cases. Dart's `%` never returns a negative number, while Java's takes the sign of the dividend. Java's `(int)` cast of a double saturates and turns NaN into 0. `Math.round(0.49999999999999994)` is 0 in Java. Each of these got its own helper.
+
+These are a few of them, as they are in the port's `jvm.dart`:
+
+```dart
+/// `(int) v` for an integral value: wrap to a Java `int`.
+int i32(int v) => v.toSigned(32);
+
+/// Java `int` `v >>> n` (the JVM masks the distance with `& 31`).
+int ushr32(int v, int n) => ((v & 0xffffffff) >> (n & 31)).toSigned(32);
+
+/// Java `%` on integers: the remainder takes the sign of the dividend.
+int rem(int a, int b) => a.remainder(b);
+
+final Float32List _f32 = Float32List(1);
+
+/// Java `float` round trip: `(double) (float) v`.
+double f32(double v) {
+  _f32[0] = v;
+  return _f32[0];
+}
+
+/// Java `(int) d` for a double: NaN gives 0, out-of-range saturates.
+int d2i(double d) {
+  if (d >= 2147483647.0) return intMaxValue;
+  if (d <= -2147483648.0) return intMinValue;
+  if (d.isNaN) return 0;
+  return d.truncate();
+}
+```
 
 One part of the search walks a `java.util.HashMap`, and how many nodes it creates depends on the order of that walk. So the port has a small hash map with Java's bucket order and resize behaviour.
 

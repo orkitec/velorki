@@ -53,7 +53,7 @@ speak calls each platform's own speech engine directly from Dart. On iOS and mac
 
 CI machines have no speakers, and their speech engines behave accordingly. An Android emulator can report no voices for the first seconds after it starts, and engines sometimes stall on virtual audio devices. The package's CI runs on iOS, macOS, Android and the web, records what the engine reported, and retries only the stalls the environment causes, never a real failure.
 
-In the end I tested it the way it is used, on the bike. Velorki has used speak for its guidance since version 1.2.3, and on my iPhone the cues have come through whole and on time.
+In the end I tested it the way it is used, on the bike. Velorki has used speak for its guidance since version 1.2.3. Since then I have done a lot of rides through Manhattan with it, and so far it has always worked as expected.
 
 ## Use it
 
