@@ -1,7 +1,7 @@
 ---
 title: My first group ride in New York, Ride Queens 2026
 description: The first Ride Queens through Flushing Meadows and the Queens greenways in the rain, a snapped chain, a flat tyre, and the marshals who got me to the finish.
-date: 2026-11-15
+date: 2026-11-16
 author: steffen
 category: rides
 image: ride-cover.jpg

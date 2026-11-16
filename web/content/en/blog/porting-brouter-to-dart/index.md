@@ -1,7 +1,7 @@
 ---
 title: Porting BRouter to Dart, and proving it routes the same
 description: How Velorki runs the BRouter bike router on the phone and in the browser, and the 224 recorded routes that check every result against the original.
-date: 2026-11-15
+date: 2026-11-14
 author: steffen
 category: engineering
 image: cover.png
