@@ -6,10 +6,7 @@ author: steffen
 category: rides
 image: ride-cover.jpg
 imageAlt: "The 25-mile loop through Queens as Velorki recorded it, coloured from slow to fast, with the organisers' warnings along the way: the start dismount zone, a busy intersection, the water fountain, construction, a highway off-ramp, tree roots and a sharp left turn."
-draft: true
 ---
-
-<!-- TODO(Steffen): everything marked TODO needs your own words before this goes live. Facts about the event are from the organisers' announcements. -->
 
 On Sunday, 20 September 2026, I rode the first [Ride Queens](https://www.queensbp.nyc.gov/ridequeens/), a free community ride through the borough organised by the Queens Borough President's office together with NYC Parks and Transportation Alternatives. It was my second group ride in New York, and the first since I built Velorki.
 
@@ -63,4 +60,4 @@ Velorki recorded the whole ride. This is the ride's page in the app, as is the m
 
 ## Next year
 
-The Borough President's office wants Ride Queens to become an annual event, and I would ride it again next year. <!-- TODO(Steffen): a tip for someone riding it for the first time? Optional. -->
+The Borough President's office wants Ride Queens to become an annual event, and I would ride it again next year.
