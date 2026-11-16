@@ -1,5 +1,5 @@
 ---
-title: My first group ride in New York, Ride Queens 2026
+title: My first group ride with Velorki, Ride Queens 2026
 description: The first Ride Queens through Flushing Meadows and the Queens greenways, with early rain, a snapped chain, a flat tyre and the marshals who got me home.
 date: 2026-09-27
 author: steffen
@@ -11,7 +11,7 @@ draft: true
 
 <!-- TODO(Steffen): everything marked TODO needs your own words before this goes live. Facts about the event are from the organisers' announcements. -->
 
-On Sunday, 20 September 2026, I rode the first [Ride Queens](https://www.queensbp.nyc.gov/ridequeens/), a free community ride through the borough organised by the Queens Borough President's office together with NYC Parks and Transportation Alternatives. It was my first group ride in New York.
+On Sunday, 20 September 2026, I rode the first [Ride Queens](https://www.queensbp.nyc.gov/ridequeens/), a free community ride through the borough organised by the Queens Borough President's office together with NYC Parks and Transportation Alternatives. It was my second group ride, and the first since I built Velorki.
 
 ## The ride
 
