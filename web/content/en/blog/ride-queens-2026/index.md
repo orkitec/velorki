@@ -60,4 +60,6 @@ Velorki recorded the whole ride. This is the ride's page in the app, as is the m
 
 ## Next year
 
+Discovering Queens by bike was awesome. It is not at the top of my list of areas I would want to move to, but it is very nice, and it has more nature than I expected.
+
 The Borough President's office wants Ride Queens to become an annual event, and I would ride it again next year.
