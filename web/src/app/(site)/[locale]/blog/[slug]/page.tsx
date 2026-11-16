@@ -64,9 +64,11 @@ export default async function BlogPostPage({ params }: { params: Promise<PostPar
     // The docs' columns: the post's sections on the left from `lg`, so a long
     // read has its outline beside it and the text column is not the only
     // thing on a wide screen.
+    // The article is as wide as `.prose` (44rem in globals.css), so the cover
+    // ends where the text and its pictures do.
     <div className="shell grid gap-8 py-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-16 lg:py-12">
       <PostToc label={t('onThisPage')} sections={sections} />
-      <article className={`min-w-0 max-w-3xl ${sections.length === 0 ? 'lg:col-span-2' : ''}`}>
+      <article className={`min-w-0 max-w-[44rem] ${sections.length === 0 ? 'lg:col-span-2' : ''}`}>
         <Breadcrumbs
           items={[
             { name: docs('home'), href: localePath(locale, '/') },
