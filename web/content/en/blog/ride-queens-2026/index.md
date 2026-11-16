@@ -1,7 +1,7 @@
 ---
 title: My first group ride in New York, Ride Queens 2026
 description: The first Ride Queens through Flushing Meadows and the Queens greenways in the rain, a snapped chain, a flat tyre, and the marshals who got me to the finish.
-date: 2026-11-16
+date: 2026-09-27
 author: steffen
 category: rides
 image: ride-cover.jpg
@@ -36,9 +36,13 @@ The spare tube I carried myself, and I could have changed it alone. But after a 
 
 ## Velorki on the way
 
-<!-- TODO(Steffen): how did you use Velorki? Did you import the route the organisers sent (GPX?) or plan it yourself? Turn-by-turn on the phone mount, recording the ride? Anything that worked especially well, or that you'd change? -->
+Velorki worked fine overall, with one exception: my Apple Watch. The heart rate was there for about the first 30 seconds and then gone. Of the 5,796 points the ride recorded, only 255 had a pulse.
 
-Velorki worked well the whole way. **TODO**
+The cause was the auto-pause. At the first stop, still at the start line, the app ended the watch's workout session. Once a watch app has no running session, watchOS suspends it within about a minute, so it never heard that the ride had started again. Every red light after that did the same.
+
+I fixed it that same afternoon. The watch's session now pauses with the ride and resumes with it, which keeps the watch app awake. If the watch still goes quiet in the middle of a ride, the phone starts the watch app again. Since then the heart rate stays there on long rides too.
+
+Keeping the session open costs the watch some battery while you stand still. So for rides with lots of stops there is a switch in the settings, under Apple Watch, that lets the sensor rest during a pause and wakes the watch again when the ride goes on. The heart rate should last the whole ride without draining the watch on the way.
 
 ## The figures
 
