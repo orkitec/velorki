@@ -1,6 +1,6 @@
 ---
 title: My first group ride in New York, Ride Queens 2026
-description: The first Ride Queens through Flushing Meadows and the Queens greenways in the rain, a snapped chain, a flat tyre, and the marshals who got me to the finish.
+description: The first Ride Queens through Flushing Meadows and the Queens greenways, an hour and a half of rain, a snapped chain, a flat tyre, and the marshals who got me to the finish.
 date: 2026-09-27
 author: steffen
 category: rides
@@ -31,7 +31,7 @@ I rode the 25-mile loop, with number 620 on my back.
 
 ## Riding with a crowd
 
-The start went fine. It rained for most of the ride, but once I had got used to being wet, the rain turned out to be the least of my problems.
+The start went fine. It rained for the first hour and a half, but once I had got used to being wet, the rain turned out to be the least of my problems.
 
 ![Riders in rain jackets and ponchos standing with their bikes on wet asphalt under large trees, with white tents behind them.](start.jpg)
 
@@ -39,7 +39,7 @@ At roughly mile 13 my chain snapped. Then, less than a mile before the finish, I
 
 For the chain I was lucky. One of the marshals had a chain tool and a quick link with them, took out the broken link and joined the chain again. On my own that would have ended the ride.
 
-The spare tube I carried myself, and I could have changed it alone. But after a long ride in the rain the help was very welcome, and their pump was a lot better than the mini pump in my bag. So I finished, quite late, but I finished.
+The spare tube I carried myself, and I could have changed it alone. But after a long ride the help was very welcome, and their pump was a lot better than the mini pump in my bag. So I finished, quite late, but I finished.
 
 ## Velorki on the way
 
