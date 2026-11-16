@@ -22,12 +22,12 @@ Ride Queens started and finished at the Boathouse on Meadow Lake in Flushing Mea
 
 Both followed the Eastern Queens Greenway and parts of the planned Queens Waterfront Greenway for most of their length. Registration was free and capped at 2,000 riders, and a festival in the park with food from all over the borough was planned for after the ride.
 
-I rode the 25-mile loop, with number 620 on the handlebar.
+I rode the 25-mile loop, with number 620 on my back.
 
-![My ride number, 620, on a white Ride Queens NYC plate, held against the handlebar of my bike on wet asphalt.](bib.jpg)
+![My ride number, 620, on a white Ride Queens NYC plate, held over the handlebar of my bike before I pinned it to my back.](bib.jpg)
 ![A granola bar and a small bag of potato chips in my gloved hand, with my bike leaning in the background.](snacks.jpg)
 
-*My number for the day, and the snacks the volunteers handed out.*
+*My number before I put it on, and the snacks the volunteers handed out.*
 
 ## Riding with a crowd
 
