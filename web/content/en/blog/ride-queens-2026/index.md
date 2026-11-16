@@ -1,6 +1,6 @@
 ---
 title: My first group ride in New York, Ride Queens 2026
-description: The first Ride Queens through Flushing Meadows and the Queens greenways, a flat tyre, a broken chain, and the marshals who got me to the finish.
+description: The first Ride Queens through Flushing Meadows and the Queens greenways in the rain, a snapped chain, a flat tyre, and the marshals who got me to the finish.
 date: 2026-11-15
 author: steffen
 category: rides
@@ -26,11 +26,11 @@ I rode the 25-mile loop.
 
 ## Riding with a crowd
 
-<!-- TODO(Steffen): a few sentences in your words about the start, the pace and the other riders, the weather. -->
+The start went fine. It rained for most of the ride, but once I had got used to being wet, the rain turned out to be the least of my problems.
 
-It did not go smoothly for me. First I had a flat tyre, and later my chain snapped. Both times one of the ride's volunteer marshals stopped and helped me get going again. That was the best part of the day: on my own, either of those would have ended the ride. With their help I finished, quite late, but I finished.
+At roughly mile 13 my chain snapped. Then, less than a mile before the finish, I got a flat tyre. Both times one of the ride's volunteer marshals stopped and helped me get going again. That was the best part of the day: on my own, either of those would have ended the ride. With their help I finished, quite late, but I finished.
 
-<!-- TODO(Steffen): where on the route did it happen, and how did the marshals fix it (spare tube, chain tool, quick link)? A sentence each makes it real. -->
+<!-- TODO(Steffen): how did the marshals fix them (chain tool, quick link, spare tube)? And a sentence about the other riders or the pace, if you like. -->
 
 ## Velorki on the way
 
@@ -48,7 +48,7 @@ Velorki recorded the whole ride:
 - **Average speed:** 17.8 km/h, top speed 39.0 km/h
 - **Climb:** 292 m
 
-The gap between moving time and total time, almost an hour, is the flat tyre and the chain.
+The gap between moving time and total time, almost an hour, is the chain and the flat tyre.
 
 <!-- TODO(Steffen): photos from the ride would make this post. Add them beside this file and in the text, each with a description. The GPX too (`gpx: ride.gpx` in the front matter), trimmed if start or end is near your home. -->
 
