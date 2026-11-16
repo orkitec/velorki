@@ -8,7 +8,7 @@ image: cover.png
 imageAlt: 'Timeline of a podcast during three spoken turn cues. Before, the podcast paused at the first cue and stayed paused for the rest of the ride. With speak, it pauses only for each cue and its short silent lead-in, and plays again in between.'
 ---
 
-[Velorki](/), my bike route planner and ride recorder, speaks its turn instructions, things like "In 200 metres, turn left." I expected that to be one of the easier parts of a navigation app. In practice it was the part riders noticed most when it went wrong, and fixing it led me to write [speak](https://pub.dev/packages/speak), a small text-to-speech package for Flutter that I now publish on its own.
+Velorki speaks its turn instructions, things like "In 200 metres, turn left." I expected that to be one of the easier parts of a navigation app. In practice it was the part riders noticed most when it went wrong, and fixing it led me to write [speak](https://pub.dev/packages/speak), a small text-to-speech package for Flutter that I now publish on its own.
 
 ## What a spoken direction has to get right
 
