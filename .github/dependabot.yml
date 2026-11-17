@@ -8,13 +8,16 @@ updates:
       flutter:
         patterns: ["*"]
     ignore:
-      # build_runner 2.17 and freezed 4.0.2 need analyzer 14, which the
-      # test_api pinned by Flutter 3.47's flutter_test does not allow: `pub
-      # get` fails. Drop these once a Flutter release takes analyzer 14.
+      # Flutter 3.47's flutter_test pins test_api 0.7.12: test 1.32 wants a
+      # newer one, and build_runner 2.17 and freezed 4.0.2 need analyzer 14,
+      # which only those newer test releases allow. `pub get` fails on any of
+      # them. Drop these once a Flutter release moves test_api on.
       - dependency-name: build_runner
         versions: [">=2.17.0"]
       - dependency-name: freezed
         versions: [">=4.0.2"]
+      - dependency-name: test
+        versions: [">=1.32.0"]
   - package-ecosystem: npm
     directory: /web
     schedule:
