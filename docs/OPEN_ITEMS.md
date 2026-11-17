@@ -4,16 +4,13 @@ Everything below needs a person, a Mac, a live service, or a longer test on
 the phone than has happened so far. The app runs on a Pixel 3 XL and has
 recorded real rides; planning, on-device routing, the map and recording are
 exercised there. The items here are the parts not yet covered by that.
-iOS 1.0 is on the App Store; Google Play is at internal testing.
+Velorki is live on the App Store and Google Play.
 
 ## Servers and accounts (Steffen)
 
-- [ ] **Measure the battery saver**: everything [BATTERY.md](BATTERY.md)
-      describes is in the app; the two comparison rides that would prove it are
-      not. That file's "How to measure" is the procedure; write both numbers
-      into it.
-- [ ] **Strava**: submit the API review before 10 athletes connect; keep the
-      developer account's Strava subscription active.
+- [ ] **Strava**: submit the API review once close to 10 connected athletes
+      (Strava takes it only then, and caps an unreviewed app at 10); keep
+      the developer account's Strava subscription active.
 - [ ] **Strava API host**: `api-v3.strava.com` is available from 2027-01-04
       and required by 2027-06-01. Switch `UPSTREAMS.strava.base` in
       `web/src/server/passthrough.ts` (and `STRAVA_TOKEN_URL` in
@@ -66,38 +63,18 @@ iOS 1.0 is on the App Store; Google Play is at internal testing.
 
 ## On the Mac (Xcode)
 
-- [ ] **Apple Watch app** (`app/ios/VelorkiWatch`): no complications. A ride on the
-      Series 6 with the phone locked is the real check: pulse arriving, wrist
-      taps on time, watch battery after a ride. A paused ride ends the watch's
-      session at every standstill, auto-pause included, and the first reading
-      after a resume takes a few seconds; a minimum pause length before the
-      sensor rests is the likely refinement. Still to be seen on the device:
-      the "Ride started from your watch" notification, the pause behaviour,
-      the sensor tile that stays with a broken-link mark, the average heart
-      rate under it, and the elevation profile view (checked on the simulator
-      and in a rendered widget test only).
 - [ ] **Bluetooth on the Android phone**: scan, pair and ride with a strap or a
       cadence sensor on the Pixel; the manifest's `neverForLocation` scan flag
       and the capped legacy permissions were written without an Android SDK
       on the Mac. A combined speed-and-cadence sensor is stored with both
       kinds, so the wheel field shows for a crank-only one; reading the CSC
       Feature characteristic (0x2A5C) at pairing would settle it.
-- [ ] `watch_connectivity` pulls `play-services-wearable` into the APK for an
-      iOS-only feature; replace it with a small iOS-only channel if an F-Droid
-      listing is wanted.
-- [ ] Voice cues over a Bluetooth headset: one ride with the headset paired,
-      to confirm the held audio session and the silent lead-in really do stop
-      cues arriving scrambled or cut short (`turn_speaker.dart`,
-      `LeadInPlayer` in `ios/Runner/AppDelegate.swift`).
-
-- [ ] **iCloud sync before the release** (`ios/Runner/CloudSync.swift`):
-      the two-device test passed on 2026-10-18 in Development (both
-      directions, renames, delete against edit, rides, Strava staying put,
-      off and on, push in the foreground, pull to refresh). Left: **deploy
-      the CloudKit schema to Production** in the CloudKit console (record
-      types `Route` and `Ride`), then a TestFlight build on two devices, which
-      talks to Production. Check that the App Store profile carries iCloud
-      and push (a `dry_run` of `release.yml`).
+- [ ] **Wear OS app end to end** (`app/android/wear`): driven on the Wear OS 5
+      emulator from adb only; pair a watch (or a Play Store phone image with
+      the companion app) and ride once: start on the phone and on the wrist,
+      pause, finish, heart rate in the hub, the ongoing activity, the watch
+      woken by the phone's message. Add the Wear OS form factor in the Play
+      Console before the first release uploads to `wear:qa`.
 
 ## Still to try on the Android phone
 
@@ -116,8 +93,6 @@ stopped ride, the Library's rides list.
 - [ ] Strava upload timing against the poll backoff and `sport_type`
       acceptance; RWGPS task errors for an untimed GPX (`time_data_missing`).
 - [ ] `LSApplicationQueriesSchemes` actually takes the app-to-app Strava flow.
-- [ ] Sandbox purchase, restore after reinstall, a lapsed subscription, the
-      store subscription-management page.
 - [ ] `velorki://share/<id>` from a browser opens the import preview.
 - [ ] Tap a `https://velorki.com/s/<id>` link in Chrome: the app opens
       directly (App Links verification), not the website.
@@ -125,10 +100,6 @@ stopped ride, the Library's rides list.
 ## Store consoles
 
 Everything still unticked in [STORE_CHECKLIST.md](STORE_CHECKLIST.md).
-
-- [ ] **Store texts**: the free and Plus sections of the store descriptions
-      say nothing of the weather yet; the French iOS description is 5
-      characters short of Apple's 4000, so something has to go there.
 
 ## Later
 
@@ -150,4 +121,5 @@ Everything still unticked in [STORE_CHECKLIST.md](STORE_CHECKLIST.md).
   egress (Cloudflare R2, or Hetzner Object Storage for a German provider),
   keep GitHub Releases as the fallback, and teach the app a list of mirrors
   in the pointer. Both publish workflows gain an upload step.
-- Photon self-hosting; cloud sync.
+- Photon self-hosting.
+- **Watch complications**: the Apple Watch app has none yet.

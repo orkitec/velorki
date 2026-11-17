@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The route glyph of the app icon (app/src/main/res/drawable/splash_icon.xml)
+     as a one-colour status icon for the ongoing activity: the rings' holes
+     are cut out (evenOdd) rather than painted over, and the route stops
+     short of them. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <group
+        android:pivotX="512"
+        android:pivotY="512"
+        android:scaleX="1.3"
+        android:scaleY="1.3">
+        <path
+            android:pathData="M296,308 Q337,545 512,716"
+            android:trimPathStart="0.19"
+            android:trimPathEnd="0.81"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="72"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M512,716 Q687,545 728,308"
+            android:trimPathStart="0.19"
+            android:trimPathEnd="0.81"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="72"
+            android:strokeLineCap="round" />
+        <path
+            android:fillType="evenOdd"
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M192,308 a104,104 0 1,0 208,0 a104,104 0 1,0 -208,0 Z M252,308 a44,44 0 1,0 88,0 a44,44 0 1,0 -88,0 Z M624,308 a104,104 0 1,0 208,0 a104,104 0 1,0 -208,0 Z M684,308 a44,44 0 1,0 88,0 a44,44 0 1,0 -88,0 Z M408,716 a104,104 0 1,0 208,0 a104,104 0 1,0 -208,0 Z M468,716 a44,44 0 1,0 88,0 a44,44 0 1,0 -88,0 Z" />
+    </group>
+</vector>

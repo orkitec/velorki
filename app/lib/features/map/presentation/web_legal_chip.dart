@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/links/link_opener.dart';
 import '../../../core/links/velorki_urls.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/floating_bar.dart';
 import '../../shared/presentation/gesture_zone_guard.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/web_storage_notice.dart';
@@ -136,8 +138,12 @@ class WebStorageNoticeCard extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(l10n.webStorageNoticeBody, style: theme.textTheme.bodySmall),
             const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            // The two buttons stand one over the other where a long
+            // translation leaves no room for both side by side.
+            OverflowBar(
+              alignment: MainAxisAlignment.end,
+              spacing: 4,
+              overflowAlignment: OverflowBarAlignment.end,
               children: [
                 TextButton(
                   onPressed: () => unawaited(
@@ -145,7 +151,6 @@ class WebStorageNoticeCard extends ConsumerWidget {
                   ),
                   child: Text(l10n.settingsPrivacyPolicy),
                 ),
-                const SizedBox(width: 4),
                 FilledButton.tonal(
                   onPressed: () => unawaited(
                     ref.read(webStorageNoticeProvider.notifier).dismiss(),
@@ -157,6 +162,36 @@ class WebStorageNoticeCard extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// [WebStorageNoticeCard] over the shell's bar, for the upright layout with
+/// the bar at the bottom: there the tab's sheet and the bar cover the band
+/// the map keeps it in elsewhere, so the shell lays it over both, just above
+/// the bar, or above the safe area while the bar is hidden. A child of the
+/// shell's [Stack]; nothing is drawn while the note is closed.
+class WebStorageNoticeOverBar extends ConsumerWidget {
+  /// Creates the note's place over the bar.
+  const WebStorageNoticeOverBar({required this.barShown, super.key});
+
+  /// Whether the bar is on screen under the note.
+  final bool barShown;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final media = MediaQuery.of(context);
+    final bar = barShown
+        ? floatingBarBottomGapFor(media, defaultTargetPlatform) +
+              floatingBarHeight
+        : 0.0;
+    return Positioned(
+      left: media.viewPadding.left + 12,
+      right: media.viewPadding.right + 12,
+      bottom: media.viewPadding.bottom + bar + 12,
+      child: ref.watch(webStorageNoticeProvider)
+          ? const Center(child: WebStorageNoticeCard())
+          : const SizedBox.shrink(),
     );
   }
 }

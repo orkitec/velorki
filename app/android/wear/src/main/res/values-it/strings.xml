@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_riding">In sella</string>
+    <string name="title_paused">In pausa</string>
+    <string name="start_hint">Avvia un giro qui o sul telefono.</string>
+    <string name="start_ride">Inizia giro</string>
+    <string name="pause">Pausa</string>
+    <string name="resume">Riprendi</string>
+    <string name="finish">Termina</string>
+    <string name="stop_heart_rate">Ferma battito</string>
+    <string name="start_heart_rate">Avvia battito</string>
+    <string name="footnote_finish">«Termina» apre sul telefono il salvataggio del giro.</string>
+    <string name="footnote_battery">Con il risparmio energetico nelle impostazioni dell\'orologio la batteria regge anche un giro lungo.</string>
+    <string name="bpm">bpm</string>
+    <string name="problem_health_access">Velorki ha bisogno di accedere al battito: consentilo nelle impostazioni dell\'orologio.</string>
+    <string name="problem_would_not_start">L\'orologio non è riuscito ad avviare un allenamento: %1$s</string>
+    <string name="problem_stopped">L\'allenamento si è fermato: %1$s</string>
+    <string name="problem_phone_silent">Il telefono non risponde. Apri Velorki sul telefono e riprova.</string>
+    <string name="notification_channel">Giro</string>
+</resources>

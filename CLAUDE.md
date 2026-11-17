@@ -42,7 +42,8 @@ changing structure.
   `npm run lint && npm run typecheck && npm test` before committing anything
   under `web/`. A change to `messages/en.json` or `content/en/` carries its
   translation into every other language in the same commit, as the app's
-  strings do; legal pages get a person's read before they go live.
+  strings do; legal pages get a person's read before they go live. The blog
+  (`content/<locale>/blog/`) is the exception: posts are not translated.
 - **Delegation**: routine implementation goes to cheaper subagents with a
   precise brief; design decisions, verification and review stay with the
   main agent. Subagents must not commit.
@@ -218,7 +219,8 @@ changing structure.
   number, the pubspec's `+N` (raised by the release commit above every
   earlier tag's; F-Droid builds the same tag with it), for both platform
   jobs, Android (Play internal,
-  GitHub Release) and iOS (xcodebuild with cloud signing, TestFlight; one-time
+  GitHub Release, and the Wear OS app's AAB, uploaded to `wear:qa` only with
+  the repository variable `WEAR_RELEASE=true`) and iOS (xcodebuild with cloud signing, TestFlight; one-time
   setup in `docs/RELEASE_IOS.md`), each checking it against its store first and
   waiting in the `release` environment for the maintainer's approval in the
   Actions UI before anything is signed or published. An existing tag is

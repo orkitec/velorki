@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -52,6 +53,8 @@ SwitchListTile _tile(WidgetTester tester, String title) =>
 void main() {
   // The widget suite runs as Android, so the store is Health Connect.
   final String healthTitle = l10n.settingsSensorsHealthConnect;
+  // And the watch is a Wear OS one, named as any watch is.
+  final String watchTitle = l10n.settingsSensorsWatch;
 
   testWidgets('starts off, and the write switch is dead with it', (
     tester,
@@ -168,7 +171,7 @@ void main() {
   testWidgets('no watch paired, no watch switch', (tester) async {
     await _pump(tester, gateway: FakeHealthGateway());
 
-    expect(find.text(l10n.settingsSensorsAppleWatch), findsNothing);
+    expect(find.text(watchTitle), findsNothing);
   });
 
   testWidgets('a paired watch is offered, and switching it on asks only to '
@@ -183,9 +186,9 @@ void main() {
       notifications: notifications,
     );
     expect(find.text(l10n.settingsSensorsWatchHint), findsOneWidget);
-    expect(_tile(tester, l10n.settingsSensorsAppleWatch).value, isFalse);
+    expect(_tile(tester, watchTitle).value, isFalse);
 
-    await tester.tap(find.text(l10n.settingsSensorsAppleWatch));
+    await tester.tap(find.text(watchTitle));
     await tester.pumpAndSettle();
 
     expect(container.read(sensorSettingsProvider).watch, isTrue);
@@ -208,7 +211,7 @@ void main() {
     expect(find.text(l10n.settingsSensorsWatchRestHint), findsOneWidget);
     expect(_tile(tester, l10n.settingsSensorsWatchRest).onChanged, isNull);
 
-    await tester.tap(find.text(l10n.settingsSensorsAppleWatch));
+    await tester.tap(find.text(watchTitle));
     await tester.pumpAndSettle();
     expect(_tile(tester, l10n.settingsSensorsWatchRest).onChanged, isNotNull);
     expect(_tile(tester, l10n.settingsSensorsWatchRest).value, isFalse);
@@ -231,6 +234,18 @@ void main() {
     addTearDown(watch.dispose);
     await _pump(tester, gateway: FakeHealthGateway(), watch: watch);
 
-    expect(find.text(l10n.settingsSensorsAppleWatch), findsNothing);
+    expect(find.text(watchTitle), findsNothing);
+  });
+
+  testWidgets('on an iPhone the switch names the Apple Watch', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final watch = FakeWatchGateway();
+    addTearDown(watch.dispose);
+    await _pump(tester, gateway: FakeHealthGateway(), watch: watch);
+
+    expect(find.text(l10n.settingsSensorsAppleWatch), findsOneWidget);
+    expect(find.text(watchTitle), findsNothing);
+    debugDefaultTargetPlatformOverride = null;
   });
 }

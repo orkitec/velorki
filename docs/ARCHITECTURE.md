@@ -310,10 +310,13 @@ saver) and turns each new sample into a reading. When the ride is saved,
 `RideHealthSync` fills the fixes that carry no heart rate from that same store,
 recomputes the statistics if it filled any, and writes the ride back as a
 cycling workout — once per ride, and nothing at all while the switch is off.
-The second source is the rider's Apple Watch, behind its own switch: the
-watchOS app in `ios/VelorkiWatch` (embedded in Runner, see its README) runs a
-workout session for the heart rate and shows what the phone reports, and
-`WatchRideBridge` is the phone's end of it — the watch's readings go into the
+The second source is the rider's watch, behind its own switch: the
+watchOS app in `ios/VelorkiWatch` (embedded in Runner, see its README) or the
+Wear OS app in `android/wear` (its own Gradle module and AAB on Play's Wear OS
+track, see its README) runs a workout for the heart rate and shows what the
+phone reports, and `WatchRideBridge` is the phone's end of both, over the
+`watch_connectivity` plugin; `test/fixtures/watch/messages.json` holds the
+Dart and the Kotlin to one set of messages — the watch's readings go into the
 hub, the lock screen's own formatted figures go out as the application context
 at most every 5 s, and the buttons on the wrist call the recorder. The watch
 never records: finishing from it stops the recorder and leaves the save sheet

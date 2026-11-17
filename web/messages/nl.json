@@ -9,6 +9,7 @@
     "home": "Velorki-startpagina",
     "features": "Functies",
     "docs": "Handleiding",
+    "blog": "Blog",
     "plus": "Plus",
     "download": "Download",
     "getApp": "Download de app",
@@ -448,6 +449,40 @@
     "untranslatedTitle": "Deze pagina is nog niet vertaald",
     "untranslatedBody": "In plaats daarvan staat hier de Engelse tekst. Vertalingen komen uit de community — het bronbestand staat in de repository.",
     "draft": "Deze tekst is een concept en is nog niet nagekeken."
+  },
+  "blog": {
+    "meta": {
+      "title": "Blog",
+      "description": "Notities over de bouw van Velorki, een opensource-fietsrouteplanner, en ritten die ermee gepland zijn."
+    },
+    "title": "Blog",
+    "lead": "Notities over de bouw van Velorki, en ritten die ermee gepland zijn.",
+    "breadcrumb": "Blog",
+    "onThisPage": "Op deze pagina",
+    "inEnglish": "In het Engels",
+    "englishLabel": "Engels",
+    "empty": "Nog geen berichten.",
+    "filterLabel": "Categorieën",
+    "all": "Alle berichten",
+    "categories": {
+      "engineering": "Techniek",
+      "rides": "Ritten"
+    },
+    "categoryLead": {
+      "engineering": "Hoe Velorki gebouwd is: routeberekening, kaarten, zoeken en de app.",
+      "rides": "Ritten gepland en gereden met Velorki, met de route om te downloaden."
+    },
+    "emptyCategory": "Nog geen berichten in deze categorie.",
+    "postsBy": "Berichten van {name}",
+    "authorDescription": "Berichten van {name} op de Velorki-blog.",
+    "byline": "Door <author>{name}</author>",
+    "updated": "Bijgewerkt op {date}",
+    "readingTime": "{minutes, plural, one {# min lezen} other {# min lezen}}",
+    "downloadGpx": "GPX downloaden",
+    "mapLabel": "Kaart van de route",
+    "mapError": "De kaart kon niet worden geladen. Je kunt het GPX-bestand wel downloaden.",
+    "feed": "RSS-feed",
+    "feedTitle": "Velorki-blog"
   },
   "credits": {
     "meta": {

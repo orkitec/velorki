@@ -58,7 +58,9 @@ here would be the same ride twice in the rider's day.
 
 The other half of this is Dart, in
 `lib/features/sensors/data/watch_protocol.dart`, which spells out the same
-keys. Change one and change the other.
+keys. Change one and change the other, and `android/wear` (the Wear OS app,
+which speaks the same messages) with them; `test/fixtures/watch/messages.json`
+holds the Dart and the Kotlin to them, the Swift is checked by hand.
 
 Watch → phone, `WCSession.sendMessage`:
 

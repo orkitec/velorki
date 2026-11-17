@@ -41,8 +41,12 @@ files:
   # to the English page, which holds the German too.
   - source: /web/content/en/**/*.md
     translation: /web/content/%two_letters_code%/**/%original_file_name%
+    # The blog is left out as well: posts are not translated. Each is written
+    # in one language and lives only there; a version in another language is
+    # a post of its own, paired with the original by its `key`.
     ignore:
       - /web/content/en/legal/imprint.md
+      - /web/content/en/blog/**
 
   # The App Store listing (fastlane metadata). en-US is the source; Crowdin
   # writes every other locale into its own folder beside it, named the way

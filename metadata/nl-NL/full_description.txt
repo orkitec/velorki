@@ -40,6 +40,6 @@ Dit is de F-Droid-versie, gebouwd zonder gesloten bibliotheken. Ze heeft geen sy
 
 Offline regio's komen van de tegelspiegel van Velorki op GitHub, de kaartstijl van OpenFreeMap en het online zoeken naar plaatsen van Photon.
 
-Website: https://velorki.com
+Website: https://velorki.com/nl
 Broncode (AGPL-3.0): https://github.com/orkitec/velorki
 Kaartgegevens © OpenStreetMap-bijdragers.

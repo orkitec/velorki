@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:web/web.dart' as web;
 
+import '../../features/map/application/web_storage_notice.dart';
 import '../../features/settings/data/appearance_controller.dart';
 import '../../features/settings/data/language_controller.dart';
 
@@ -12,7 +13,8 @@ import '../../features/settings/data/language_controller.dart';
 /// app's own theme and language, kept the same both ways.
 ///
 /// A pick in the header comes as a `velorki-header` event with the theme
-/// (`system`, `light`, `dark`, [ThemeMode]'s names) or the language code; a
+/// (`system`, `light`, `dark`, [ThemeMode]'s names) or the language code, or
+/// `storageNotice` to show the note on what the browser keeps; a
 /// change of the app's settings, from its own Settings or from the header,
 /// goes back as `velorki-app-settings`. The header keeps its pick where the
 /// app keeps the setting (shared_preferences), and the app writes it again
@@ -31,6 +33,11 @@ abstract final class HeaderBridge {
         if (mode != null) {
           container.read(appearanceSettingProvider.notifier).setMode(mode);
         }
+      }
+      // "Cookies" in the header's menu, which upright on a phone holds the
+      // way back to the note the map's legal chip offers elsewhere.
+      if (settings['storageNotice'] == true) {
+        container.read(webStorageNoticeProvider.notifier).show();
       }
       final locale = settings['locale'];
       if (locale is String) {

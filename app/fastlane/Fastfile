@@ -111,6 +111,25 @@ platform :android do
     latest = codes.map(&:to_i).max || 0
     UI.success("Highest version code on Play: #{latest}")
     File.write(ENV["LATEST_VERSION_CODE_FILE"], latest.to_s)
+    # The Wear OS app's tracks ("wear:<track>", internal is "qa"), apart:
+    # its codes are 100000 + the build number and would hide the phone's.
+    next if ENV["LATEST_WEAR_VERSION_CODE_FILE"].to_s.empty?
+    # Never fatal: the phone's release does not wait on the watch's.
+    begin
+      wear = %w[wear:qa wear:alpha wear:beta wear:production].flat_map do |track|
+        begin
+          google_play_track_version_codes(track: track)
+        rescue StandardError => e
+          raise unless e.message.to_s.downcase.match?(/track ?empty|track not found/)
+          []
+        end
+      end
+      wear_latest = wear.map(&:to_i).max || 0
+      UI.success("Highest Wear OS version code on Play: #{wear_latest}")
+      File.write(ENV["LATEST_WEAR_VERSION_CODE_FILE"], wear_latest.to_s)
+    rescue StandardError => e
+      UI.important("Could not read the Wear OS version codes: #{e.message}")
+    end
   end
 
   # Run by .github/workflows/store-assets.yml, with the texts and screenshots

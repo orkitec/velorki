@@ -44,3 +44,23 @@ export function languageAlternates(path = '/', locales: readonly string[] = LOCA
   languages['x-default'] = localeUrl(routing.defaultLocale, path);
   return languages;
 }
+
+/**
+ * `alternates.languages` for a page whose language versions live at different
+ * paths: a blog post and its translation each keep their own slug, so
+ * `languageAlternates`, which assumes one path for all, would point every
+ * hreflang at a 404. `paths` maps each locale the page exists in to its path
+ * there; `x-default` is the English version when there is one, else
+ * `fallbackLocale`'s (the page itself).
+ */
+export function pathAlternates(
+  paths: Readonly<Record<string, string>>,
+  fallbackLocale: string,
+): Record<string, string> {
+  const languages: Record<string, string> = {};
+  for (const [locale, path] of Object.entries(paths)) languages[locale] = localeUrl(locale, path);
+  const fallback = paths[routing.defaultLocale] !== undefined ? routing.defaultLocale : fallbackLocale;
+  const defaultPath = paths[fallback];
+  if (defaultPath !== undefined) languages['x-default'] = localeUrl(fallback, defaultPath);
+  return languages;
+}

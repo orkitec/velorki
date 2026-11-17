@@ -988,6 +988,7 @@
   "settingsSensorsHealthWriteHint": "Chaque sortie terminée est ajoutée à Santé comme un entraînement vélo avec son début, sa fin et sa distance",
   "settingsSensorsHealthDenied": "Velorki n’a pas reçu l’accès à vos données de santé.",
   "settingsSensorsAppleWatch": "Apple Watch",
+  "settingsSensorsWatch": "Montre",
   "settingsSensorsWatchHint": "L’app Velorki pour montre : mesure votre pouls en direct pendant toute la sortie, affiche la sortie et propose Démarrer, Pause et Terminer au poignet. Consomme la batterie de la montre",
   "settingsSensorsWatchRest": "Mettre le capteur en veille en pause",
   "settingsSensorsWatchRestHint": "La montre arrête de mesurer à chaque pause et le téléphone la réveille quand vous repartez. Économise la batterie de la montre sur les sorties avec beaucoup d’arrêts ; le premier pouls après chaque arrêt prend un instant, et si le réveil échoue, le pouls manque jusqu’à ce que le téléphone réessaie 45 secondes plus tard",

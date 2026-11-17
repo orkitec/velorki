@@ -177,9 +177,13 @@ jobs:
       - name: Restore the Gradle caches
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
+          # The downloads only, the dependencies and the Gradle
+          # distribution: the build outputs Gradle keeps beside them are
+          # cheap to make again and took the cache past GitHub's 10 GB,
+          # which then threw out the entries every job needs.
           path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
+            ~/.gradle/caches/modules-2
+            ~/.gradle/wrapper/dists
           key: >-
             gradle-itest-${{ matrix.api-level }}-${{
             hashFiles('app/android/**/*.gradle*', 'app/pubspec.lock') }}
@@ -226,6 +230,12 @@ jobs:
       # and fetched again on a bad archive; the action then finds it in place
       # and downloads nothing. The image's revision comes out of its
       # package.xml for the AVD cache key below.
+      # The wrapper downloads Gradle with no retry of its own: a 504 from
+      # the download server failed a build before it had started.
+      - name: Fetch Gradle
+        working-directory: app
+        run: bash tool/install_gradle.sh
+
       - name: Install the system image
         id: sysimg
         run: |
@@ -356,9 +366,13 @@ jobs:
         if: always() && matrix.shard == '1/3'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
+          # The downloads only, the dependencies and the Gradle
+          # distribution: the build outputs Gradle keeps beside them are
+          # cheap to make again and took the cache past GitHub's 10 GB,
+          # which then threw out the entries every job needs.
           path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
+            ~/.gradle/caches/modules-2
+            ~/.gradle/wrapper/dists
           key: >-
             gradle-itest-${{ matrix.api-level }}-${{
             hashFiles('app/android/**/*.gradle*', 'app/pubspec.lock') }}
@@ -416,9 +430,13 @@ jobs:
       - name: Restore the Gradle caches
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
+          # The downloads only, the dependencies and the Gradle
+          # distribution: the build outputs Gradle keeps beside them are
+          # cheap to make again and took the cache past GitHub's 10 GB,
+          # which then threw out the entries every job needs.
           path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
+            ~/.gradle/caches/modules-2
+            ~/.gradle/wrapper/dists
           # Only the Gradle files: tool/fdroid_strip.sh rewrites pubspec.lock
           # between this restore and the save at the end of the job, so a key
           # hashing the lock would never match itself.
@@ -445,6 +463,12 @@ jobs:
 
       # `default`, not `google_apis`: the whole point of this job is a device
       # that has no Google Play Services to fall back on.
+      # The wrapper downloads Gradle with no retry of its own: a 504 from
+      # the download server failed a build before it had started.
+      - name: Fetch Gradle
+        working-directory: app
+        run: bash tool/install_gradle.sh
+
       - name: Install the system image
         id: sysimg
         run: |
@@ -557,9 +581,13 @@ jobs:
         if: always() && matrix.shard == '1/3'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
+          # The downloads only, the dependencies and the Gradle
+          # distribution: the build outputs Gradle keeps beside them are
+          # cheap to make again and took the cache past GitHub's 10 GB,
+          # which then threw out the entries every job needs.
           path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
+            ~/.gradle/caches/modules-2
+            ~/.gradle/wrapper/dists
           key: gradle-itest-fdroid-${{ hashFiles('app/android/**/*.gradle*') }}
 
       - name: Mirror log

@@ -39,11 +39,11 @@ Velorki Plus is een abonnement voor wat onze servers nodig heeft:
 • Deellinks: een route of rit wordt een link die iedereen in een browser opent.
 
 Velorki Plus heeft een gratis proefperiode bij het jaarabonnement en wordt verlengd tot je het opzegt in Google Play.
-Voorwaarden: https://velorki.com/terms
+Voorwaarden: https://velorki.com/nl/terms
 
 PRIVACY
 Geen reclame, geen analytics. Er gaat niets naar een ander platform tot je het account koppelt en erom vraagt. De assistent vraagt je toestemming voordat er tekst het apparaat verlaat, en de positie die hij verstuurt wordt afgerond op ongeveer een kilometer.
-Privacybeleid: https://velorki.com/privacy
+Privacybeleid: https://velorki.com/nl/privacy
 
 Kaartgegevens © OpenStreetMap-bijdragers.
 

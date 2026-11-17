@@ -5023,6 +5023,10 @@
   "@settingsSensorsAppleWatch": {
     "description": "Switch that lets the paired Apple Watch measure and steer the ride"
   },
+  "settingsSensorsWatch": "Watch",
+  "@settingsSensorsWatch": {
+    "description": "Switch on Android that lets the paired Wear OS watch measure and steer the ride; a plain noun, the watch's brand varies"
+  },
   "settingsSensorsWatchHint": "Velorki's own watch app: measures your pulse live for the whole ride, shows the ride and has Start, Pause and Finish on the wrist. Costs watch battery",
   "@settingsSensorsWatchHint": {
     "description": "Second line of the switch that connects Velorki to the Apple Watch app"

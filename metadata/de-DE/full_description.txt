@@ -40,6 +40,6 @@ Das ist die F-Droid-Version, gebaut ohne proprietäre Bibliotheken. Sie hat kein
 
 Offline-Regionen kommen vom Kachel-Spiegel von Velorki auf GitHub, der Kartenstil von OpenFreeMap und die Ortssuche online von Photon.
 
-Website: https://velorki.com
+Website: https://velorki.com/de
 Quellcode (AGPL-3.0): https://github.com/orkitec/velorki
 Kartendaten © OpenStreetMap-Mitwirkende.

@@ -40,8 +40,8 @@ Velorki Plus è un abbonamento per ciò che ha bisogno dei nostri server:
 
 Velorki Plus è disponibile come abbonamento mensile e annuale a rinnovo automatico; quello annuale inizia con una prova gratuita. Il pagamento viene addebitato sul tuo Apple Account alla conferma dell'acquisto. L'abbonamento si rinnova automaticamente se non viene disattivato almeno 24 ore prima della fine del periodo in corso, e si può gestire e annullare nelle impostazioni del tuo Apple Account. La parte non utilizzata di una prova gratuita decade con l'acquisto di un abbonamento.
 
-Condizioni d'uso: https://velorki.com/terms
-Informativa sulla privacy: https://velorki.com/privacy
+Condizioni d'uso: https://velorki.com/it/terms
+Informativa sulla privacy: https://velorki.com/it/privacy
 
 PRIVACY
 Niente pubblicità, niente analisi. L'assistente chiede il tuo consenso prima che un testo lasci il dispositivo, e la posizione che invia è arrotondata a circa un chilometro.

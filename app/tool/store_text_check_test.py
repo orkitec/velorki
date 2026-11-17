@@ -176,5 +176,42 @@ class MainOnRealFilesTests(unittest.TestCase):
         self.assertEqual(store_text_check.main(), 0)
 
 
+class LinkErrorsTests(unittest.TestCase):
+    def errors(self, locale, text, name="description.txt"):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            write(root / locale / name, text)
+            return store_text_check.link_errors(root / locale, root)
+
+    def test_a_listing_links_its_own_language(self):
+        self.assertEqual(
+            self.errors("nl-NL", "Privacy: https://velorki.com/nl/privacy\n"), []
+        )
+        self.assertEqual(self.errors("it", "https://velorki.com/it\n"), [])
+
+    def test_english_has_no_prefix(self):
+        self.assertEqual(
+            self.errors("en-US", "https://velorki.com and https://velorki.com/terms\n"),
+            [],
+        )
+        self.assertEqual(len(self.errors("en-US", "https://velorki.com/de/terms\n")), 1)
+
+    def test_the_english_page_in_another_language_fails(self):
+        # The Dutch App Store URLs once pointed at the English pages.
+        errors = self.errors("nl-NL", "https://velorki.com/privacy\n", "privacy_url.txt")
+        self.assertEqual(len(errors), 1)
+        self.assertIn("nl-NL/privacy_url.txt", errors[0])
+        self.assertIn("is not the nl page", errors[0])
+        self.assertEqual(len(self.errors("de-DE", "Website: https://velorki.com\n")), 1)
+
+    def test_another_languages_page_fails(self):
+        self.assertEqual(len(self.errors("fr-FR", "https://velorki.com/de/docs\n")), 1)
+
+    def test_other_hosts_are_left_alone(self):
+        self.assertEqual(
+            self.errors("nl-NL", "https://app.velorki.com and https://github.com/x\n"), []
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

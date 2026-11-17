@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -21,6 +22,7 @@ import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/visible_map_padding.dart';
 import 'package:velorki/features/map/presentation/web_legal_chip.dart';
+import 'package:velorki/features/shared/presentation/floating_bar.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -78,6 +80,63 @@ void _legalTests() {
         expect(rect.height, kMinInteractiveDimension);
         expect(rect.bottom, chip.bottom);
       }
+    });
+  });
+
+  group('WebStorageNoticeOverBar', () {
+    // An iPhone with Face ID: the home indicator is the gesture zone, the
+    // bar floats 12 over it.
+    Future<Rect?> pumpOverBar(
+      WidgetTester tester, {
+      required bool barShown,
+      bool open = true,
+    }) async {
+      tester.view.physicalSize = const Size(393, 852) * 3;
+      tester.view.devicePixelRatio = 3;
+      tester.view.padding = const FakeViewPadding(top: 59 * 3, bottom: 34 * 3);
+      tester.view.viewPadding = const FakeViewPadding(
+        top: 59 * 3,
+        bottom: 34 * 3,
+      );
+      addTearDown(tester.view.reset);
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      await tester.pumpWidget(
+        await _wrap(
+          Stack(
+            fit: StackFit.expand,
+            children: [WebStorageNoticeOverBar(barShown: barShown)],
+          ),
+        ),
+      );
+      if (!open) {
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(WebStorageNoticeOverBar)),
+        );
+        await container.read(webStorageNoticeProvider.notifier).dismiss();
+        await tester.pump();
+      }
+      debugDefaultTargetPlatformOverride = null;
+      final card = find.byType(WebStorageNoticeCard);
+      return card.evaluate().isEmpty ? null : tester.getRect(card);
+    }
+
+    testWidgets('upright, the note stands just over the bar', (tester) async {
+      final card = await pumpOverBar(tester, barShown: true);
+      const barTop = 852 - 34 - floatingBarBottomGap - floatingBarHeight;
+      expect(card!.bottom, barTop - 12);
+      expect(card.left, greaterThanOrEqualTo(12));
+      expect(card.right, lessThanOrEqualTo(393 - 12));
+    });
+
+    testWidgets('with the bar hidden it stands over the safe area', (
+      tester,
+    ) async {
+      final card = await pumpOverBar(tester, barShown: false);
+      expect(card!.bottom, 852 - 34 - 12);
+    });
+
+    testWidgets('closed, nothing is there', (tester) async {
+      expect(await pumpOverBar(tester, barShown: true, open: false), isNull);
     });
   });
 

@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import '../domain/sensor_reading.dart';
 import '../domain/sensor_source.dart';
 import 'watch_gateway.dart';
@@ -35,7 +37,7 @@ class WatchSensorSource implements SensorSource {
   String get id => watchSensorSourceId;
 
   @override
-  String get name => watchName;
+  String get name => watchName(defaultTargetPlatform);
 
   @override
   Set<SensorKind> get kinds => const <SensorKind>{SensorKind.heartRate};

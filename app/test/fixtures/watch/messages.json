@@ -1,0 +1,95 @@
+{
+  "about": "One example of every message between the phone and the watch app. test/features/sensors/watch_protocol_fixture_test.dart holds lib/features/sensors/data/watch_protocol.dart and the bridge to it; android/wear's WatchProtocolTest holds the Wear OS app's decoder and encoder to it. Change a message here, and both sides' tests say what else has to change.",
+  "watchToPhone": {
+    "heartRate": {"type": "heartRate", "bpm": 142, "at": 1789725660000},
+    "commands": [
+      {"type": "command", "command": "start"},
+      {"type": "command", "command": "pause"},
+      {"type": "command", "command": "resume"},
+      {"type": "command", "command": "stop"}
+    ],
+    "heartRateStopped": {"type": "heartRateStopped"}
+  },
+  "phoneToWatch": {
+    "workoutStart": {"type": "workout", "action": "start"},
+    "workoutStop": {"type": "workout", "action": "stop"},
+    "contextIdle": {
+      "status": "idle",
+      "distance": "",
+      "elapsed": "",
+      "speed": "",
+      "turnIcon": "",
+      "turnLabel": "",
+      "turnDistance": "",
+      "offRoute": false,
+      "cue": 0,
+      "accent": "#C8F542",
+      "rest": false
+    },
+    "contextActive": {
+      "status": "active",
+      "distance": "3.2 km",
+      "elapsed": "00:42",
+      "speed": "18.0 km/h",
+      "turnIcon": "arrow.turn.up.left",
+      "turnLabel": "Turn left",
+      "turnDistance": "150 m",
+      "offRoute": false,
+      "cue": 0,
+      "accent": "#C8F542",
+      "rest": false
+    },
+    "contextPaused": {
+      "status": "paused",
+      "distance": "3.2 km",
+      "elapsed": "00:42",
+      "speed": "18.0 km/h",
+      "turnIcon": "arrow.turn.up.left",
+      "turnLabel": "Turn left",
+      "turnDistance": "150 m",
+      "offRoute": false,
+      "cue": 0,
+      "accent": "#C8F542",
+      "rest": true
+    },
+    "contextOffRoute": {
+      "status": "active",
+      "distance": "3.2 km",
+      "elapsed": "00:42",
+      "speed": "18.0 km/h",
+      "turnIcon": "exclamationmark.triangle",
+      "turnLabel": "Off route",
+      "turnDistance": "",
+      "offRoute": true,
+      "cue": 1789725720000,
+      "accent": "#C8F542",
+      "rest": false
+    },
+    "contextMessage": {
+      "type": "context",
+      "status": "active",
+      "distance": "3.2 km",
+      "elapsed": "00:42",
+      "speed": "18.0 km/h",
+      "turnIcon": "arrow.turn.up.left",
+      "turnLabel": "Turn left",
+      "turnDistance": "150 m",
+      "offRoute": false,
+      "cue": 0,
+      "accent": "#C8F542",
+      "rest": false
+    }
+  },
+  "turnIcons": [
+    "arrow.turn.up.left",
+    "arrow.turn.up.right",
+    "arrow.up.left",
+    "arrow.up.right",
+    "arrow.uturn.left",
+    "arrow.uturn.right",
+    "arrow.triangle.turn.up.right.circle",
+    "flag.checkered",
+    "arrow.up",
+    "exclamationmark.triangle"
+  ]
+}

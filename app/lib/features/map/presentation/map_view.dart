@@ -9,6 +9,7 @@ import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/app_config.dart';
+import '../../../app/shell_layout.dart';
 import '../../recording/data/battery_saver.dart';
 import '../application/map_drawn.dart';
 import '../application/web_storage_notice.dart';
@@ -24,17 +25,6 @@ import 'map_chrome.dart';
 import 'puck_ownership.dart';
 import 'map_controls.dart';
 import 'web_legal_chip.dart';
-
-/// Sets up the native map before the first map is built.
-///
-/// Android draws platform views through a virtual display unless told
-/// otherwise, and on some devices (a Pixel 3 XL on Android 12) that path never
-/// composes a frame: the map shows once and then neither moves nor reacts to
-/// touch. Hybrid composition puts the native view into the Flutter tree
-/// instead, which is also what the plugin recommends.
-void configureMapRendering() {
-  ml.MapLibreMap.useHybridComposition = true;
-}
 
 /// Used when the build passes no `VELORKI_MAP_STYLE_URL`, so a bare
 /// `flutter run` still shows a map.
@@ -358,6 +348,14 @@ class _MapViewState extends ConsumerState<MapView> {
       color: mapBaseColorFor(resolveMapLook(look, brightness)),
       child: ml.MapLibreMap(
         styleString: styleUrl,
+        // On Android the map draws into a TextureView. Drawn into the default
+        // SurfaceView, Flutter falls back to a virtual display for the
+        // platform view, and on some devices (a Pixel 3 XL on Android 12)
+        // that path never composes a frame: the map shows once and then
+        // neither moves nor reacts to touch.
+        androidView: const ml.AndroidMapView(
+          surface: ml.AndroidMapSurface.textureView,
+        ),
         initialCameraPosition: ml.CameraPosition(
           target: ml.LatLng(camera.center.lat, camera.center.lon),
           zoom: camera.zoom,
@@ -469,7 +467,13 @@ class _MapViewState extends ConsumerState<MapView> {
   /// note on the browser's storage above it while it is shown. In a window
   /// narrower than a tablet's the chip stands over the credit instead of
   /// beside it, so the two never overlap.
+  ///
+  /// Upright with the bar at the bottom, the tab's sheet and the bar cover
+  /// that band: there the header's menu holds the imprint and the way back
+  /// to the note (web/site_header.mjs), and the shell shows the note over
+  /// its bar ([WebStorageNoticeOverBar]).
   List<Widget> _webLegal(BoxConstraints constraints, double bottom) {
+    if (ShellLayout.of(context) == ShellLayout.bottomBar) return const [];
     final chrome = MapChromeInsets.maybeOf(context);
     final left =
         widget.attributionPadding.left + (chrome?.attributionInsets.left ?? 0);

@@ -46,11 +46,11 @@ background-location app.
 - [x] **(iOS)** Health data is not collected: heart rate from Apple Health
       and the workouts written there stay on the phone, and a ride's share
       link carries no heart rate, cadence or power. — `ShareService`.
-- [ ] **(Play)** Health Connect: the permissions declaration form in the Play
+- [x] **(Play)** Health Connect: the permissions declaration form in the Play
       Console (**Policy → App content → Health apps**) with the privacy policy
       link, and `READ_HEART_RATE`, `WRITE_EXERCISE`, `WRITE_DISTANCE` explained
       as ride recording. The manifest declares them; the sheet is only raised
-      by the Settings switch. — `android/app/src/main/AndroidManifest.xml`.
+      by the Settings switch. — `android/app/src/main/AndroidManifest.xml`. — Play publishes an app with these permissions only once the form is approved, and the app is live.
 - [x] **(Play)** `BLUETOOTH_SCAN` carries `neverForLocation`, so the scan does
       not count as a location permission. — `AndroidManifest.xml`.
 - [x] **(iOS)** `PrivacyInfo.xcprivacy` is present and lists the required-reason
@@ -76,8 +76,14 @@ background-location app.
 - [x] **(Play)** A prominent in-app disclosure explains recording before the
       first location prompt, regardless of which permissions are requested. —
       `lib/features/map/presentation/location_rationale_dialog.dart`.
-- [ ] **(Play)** The "Minimum Scope" location declaration is submitted before
-      November 2026 (enforcement starts January 2027).
+- [ ] **(Play)** The precise-location ("Minimum Scope") declaration in App
+      content, which opens in November 2026, is submitted by 27 January 2027
+      (a 30-day extension is available): navigation and ride recording, the
+      position needed continuously in a foreground service; coarse location
+      or the one-time location button cannot follow a route. The location
+      button becomes required only for apps targeting API 37. Not yet shown
+      in App content on 2026-11-08 (it rolls out from November): look again in
+      December.
 - [x] The notification shown during recording states what is happening and
       shows distance and time. — `lib/features/recording/data/recording_service.dart`
       (`notificationText: '0.0 km · 00:00'`, updated from each snapshot).
@@ -121,18 +127,18 @@ data we collect, but Play's form asks about it (see below).
 - [x] **(iOS)** App Privacy answers declare **fitness** (a ride shared as a
       link: its track, times, distance and ascent; no sensor values). — App
       Store Connect, done for 1.0.
-- [ ] **(Play)** The Data safety form mirrors all of the above, including who
+- [x] **(Play)** The Data safety form mirrors all of the above, including who
       the data is shared with: the routing server, Photon, OpenFreeMap/CyclOSM,
       GitHub (IP address and tile names for the routing-tile downloads), the
       AI provider, RevenueCat, Strava/RideWithGPS on user action, and Google
       for Drive sync (routes, rides with their sensor values, settings and the
       Plus record, into the rider's own Drive, only while sync with Google is
-      on).
+      on). — filled in by the owner and approved by Play (confirmed 2026-11-08).
 - [x] **(iOS)** The App Privacy answers state that no account is created and
       no data is used for tracking or advertising, and match `docs/PRIVACY.md`
       on what is collected. — App Store Connect, done for 1.0.
-- [ ] **(Play)** The Data safety form states the same and matches
-      `docs/PRIVACY.md` word for word on what is collected.
+- [x] **(Play)** The Data safety form states the same and matches
+      `docs/PRIVACY.md` word for word on what is collected. — filled in by the owner and approved by Play (confirmed 2026-11-08).
 - [x] No accounts means: **no** account-deletion flow and **no** Sign in with
       Apple requirement. — App Review notes, App Store Connect, done for 1.0.
 - [x] **(Play)** Rides, routes and tokens are kept out of Google backup and
@@ -156,8 +162,8 @@ data we collect, but Play's form asks about it (see below).
       `lib/core/links/velorki_urls.dart`.
 - [x] **(iOS)** It is linked from the App Store listing. — App Store Connect,
       done for 1.0.
-- [ ] **(Play)** It is linked from the Play listing and App content → Privacy
-      policy.
+- [x] **(Play)** It is linked from the Play listing and App content → Privacy
+      policy. — required to publish; the app is live.
 - [x] It names the AI provider, Strava, RideWithGPS, RevenueCat, the map tile
       provider and the search provider. — `web/content/*/legal/privacy.md`; the
       assistant goes through OpenRouter, restricted to providers that neither
@@ -211,22 +217,22 @@ data we collect, but Play's form asks about it (see below).
       Console: offer `free-trial` on base plan `yearly`.
 - [x] **(iOS)** Sandbox purchase tested. — on the phone, with a sandbox
       account.
-- [ ] **(Play)** Purchase through internal testing with a licence tester,
+- [x] **(Play)** Purchase through internal testing with a licence tester,
       and on both platforms renewal, cancellation and restore after a
-      reinstall.
+      reinstall. — done (owner, confirmed 2026-11-08).
 - [x] Every gated feature unlocks through in-app purchase only; there is no
       external payment link. — `lib/core/plus/plus_gate.dart` is the single
       list of gated features, and nothing in the app links to a payment page.
-- [ ] A lapsed subscription hides the Plus features and keeps all user data;
+- [x] A lapsed subscription hides the Plus features and keeps all user data;
       the Strava and Ride with GPS connections are free and stay.
-      Verify on a real expiry or a sandbox cancellation.
+      Verify on a real expiry or a sandbox cancellation. — done (owner, confirmed 2026-11-08).
 
 ## Age rating
 
 - [x] **(iOS)** The App Store age-rating questionnaire is completed, including
       the questions about AI assistants and user-generated content. —
       App Store Connect, done for 1.0.
-- [ ] **(Play)** The content-rating questionnaire (IARC) is completed.
+- [x] **(Play)** The content-rating questionnaire (IARC) is completed. — required to publish; the app is live.
 - [ ] **(Play)** Expected outcome is Everyone; if the answers push it
       higher, re-check the assistant's constraints before accepting the rating.
 
@@ -247,7 +253,7 @@ data we collect, but Play's form asks about it (see below).
       pre-caching of raster tiles. Audit the offline-region download once more
       before submission — vector regions come from OpenFreeMap, and the raster
       overlay must stay out of them.
-- [ ] `brouter/profiles` keeps BRouter's MIT header.
+- [x] `brouter/profiles` names BRouter's MIT licence and the upstream tag: the upstream `.brf` files carry no header of their own, so `brouter/profiles/README.md` does.
 - [ ] The repository is AGPL-3.0-only. A GPL-family app is acceptable in the
       App Store and on Google Play only because Orkitec holds the copyright on
       the code and can also distribute it under the stores' terms. That breaks
@@ -294,8 +300,8 @@ data we collect, but Play's form asks about it (see below).
       `IntegrationConnections.forgetStravaData`.
 - [x] A consent sheet says what is read and written before the OAuth page
       (`strava_consent_sheet.dart`); scopes are `read,activity:write`.
-- [ ] The Strava API review is submitted before the app exceeds 10 connected
-      athletes (self-service works up to 10).
+- [ ] The Strava API review is submitted once close to 10 connected athletes
+      (Strava takes it only then; self-service works up to 10).
 - [ ] The developer account holds an active Strava subscription, as their
       API terms require.
 - [ ] The base URL move to `api-v3.strava.com` (available 2027-01-04,
@@ -357,21 +363,21 @@ data we collect, but Play's form asks about it (see below).
       an Any and a Dark appearance. No splash package is used.
 - [x] **(iOS)** The 1024 × 1024 store icon, without transparency. — App Store
       Connect, done for 1.0.
-- [ ] **(Play)** The 512 × 512 store icon, without transparency, is uploaded.
+- [x] **(Play)** The 512 × 512 store icon, without transparency, is uploaded.
       Generated on demand from the same SVG, see `app/assets/icon/README.md`;
-      it is not committed.
+      it is not committed. — on the live listing.
 - [x] **(iOS)** Screenshots for iPhone 6.9" and 6.5". — App Store Connect, done
       for 1.0; from `app/tool/store_screenshots.sh`, see
       [STORE_ASSETS.md](STORE_ASSETS.md).
-- [ ] **(Play)** At least 2 phone screenshots are uploaded (produced, upload by
-      hand).
-- [ ] **(Play)** Feature graphic, 1024 × 500.
+- [x] **(Play)** At least 2 phone screenshots are uploaded (produced, upload by
+      hand). — `store-assets.yml` uploads the Play set.
+- [x] **(Play)** Feature graphic, 1024 × 500. — on the live listing.
 
 ## Accounts and store administration
 
-- [ ] Check whether the Orkitec Google Play developer account is **personal** or
+- [x] Check whether the Orkitec Google Play developer account is **personal** or
       **organisation**: a personal account requires a 14-day closed test with at
-      least 12 testers before production access. Plan the timeline accordingly.
+      least 12 testers before production access. Plan the timeline accordingly. — settled: the app reached production.
 - [x] App signing is configured (Play App Signing; iOS automatic signing with
       the cloud-managed distribution certificate). — Play App Signing is on in
       the Play Console and the upload keystore is in the `release`
@@ -385,7 +391,7 @@ data we collect, but Play's form asks about it (see below).
 - [x] **(iOS)** Export compliance: the app uses only standard HTTPS/TLS, so
       the exemption applies. `ITSAppUsesNonExemptEncryption = false` is set in
       `Info.plist`.
-- [ ] **(Play)** Answer the export declaration (US export laws) accordingly.
+- [x] **(Play)** Answer the export declaration (US export laws) accordingly. — required to publish; the app is live.
 
 ## App Review notes
 

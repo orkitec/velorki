@@ -48,7 +48,18 @@ GitHub Release, and the final tag needs a higher `N` than the trial.
 
 ## 4. Store listing (iOS)
 
-When screenshots or texts changed:
+Every release: `release.yml` only uploads the build; the App Store version
+itself and its "What's New" come from `store-assets.yml`. With no new
+screenshots, skip the two-hour capture and send only the version and texts,
+naming an earlier run whose iOS artifacts have not expired:
+
+```
+gh workflow run store-assets.yml --ref vX.Y.Z -f ios=true -f android=false \
+  -f upload=true -f metadata=true -f screenshots=false -f app_version=X.Y.Z \
+  -f assets_run_id=<earlier run id> -f locales=en,de,fr,es,it,nl
+```
+
+When the screenshots changed too, capture them:
 
 ```
 gh workflow run store-assets.yml --ref vX.Y.Z -f ios=true -f android=false \

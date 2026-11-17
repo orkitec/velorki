@@ -260,9 +260,8 @@ class RecordingStyleOps implements MapLibreStyleOps {
   ) async {
     if (strictSources && !sourceIds.contains(sourceId)) {
       throw PlatformException(
-        code: 'sourceNotFound',
-        message: 'Source not found',
-        details: 'Source with id $sourceId not found.',
+        code: 'SOURCE_NOT_FOUND',
+        message: "Source '$sourceId' does not exist in the current style.",
       );
     }
     calls.add(

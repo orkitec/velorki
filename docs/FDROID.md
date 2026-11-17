@@ -19,7 +19,7 @@ What is not, because only a closed-source library can do it:
 | Google Drive sync | `google_sign_in` + `googleapis`. Settings → Sync with offers nothing on Android in this build. |
 | The store's rating dialog | `in_app_review`. Never asked for. |
 | The update notice | `in_app_update`. F-Droid updates the app itself. |
-| The Apple Watch link, the lock-screen card | `watch_connectivity`, `live_activities` — iOS only in any case. |
+| The watch link (Apple Watch, Wear OS), the lock-screen card | `watch_connectivity` (Play Services' Wearable Data Layer on Android), `live_activities` (iOS only in any case). The Wear OS app in `app/android/wear` is a Gradle module the Flutter build only includes when one of its own tasks is asked for, so this build never compiles it. |
 
 And one thing that is left out by choice rather than by licence:
 
@@ -88,16 +88,19 @@ That gives three pieces:
      `LocationManagerClient`.
    - `maplibre_gl`: drop `play-services-base` and `-location`, delete
      `GMSLocationEngine.java`, make `LocationEngineFactory` always use
-     `MapLibreGPSLocationEngine`. From maplibre_gl 0.28 there is a
-     `maplibre_gl.playServicesLocation=false` Gradle property that does this
-     without a patch; the script sets it instead as soon as the app moves up.
+     `MapLibreGPSLocationEngine`. From maplibre_gl 0.28 the
+     `maplibre_gl.playServicesLocation=false` Gradle property does this
+     without a patch, and the script sets it in `android/gradle.properties`
+     instead.
 
    Both fall back to the free client by themselves on a phone without Play
    Services — the patch is not about behaviour, it is about the *reference*
    being gone.
 
    It ends by grepping the patched sources and failing if
-   `com.google.android.gms` is left. It is idempotent.
+   `com.google.android.gms` is left (a maplibre_gl with the property keeps
+   its Google sources on disk, out of the build; the dex scan covers it). It
+   is idempotent.
 
 ## Building it
 

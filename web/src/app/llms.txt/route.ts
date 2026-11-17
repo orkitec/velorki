@@ -3,6 +3,7 @@
 // sections of links with a short description each. Everything here is the
 // English source; llms-full.txt carries the whole guide inline.
 import { GITHUB_URL, MIN_ANDROID, MIN_IOS, PLANNER_URL, SITE_URL } from '@/site/config';
+import { postUrl, publishedPosts } from '@/site/blog';
 import { listDocs, publishedLegalDocs } from '@/site/content';
 import { SYNC_LINES, plannerLines, priceLines } from '@/site/llms';
 import { localeUrl } from '@/site/paths';
@@ -62,6 +63,13 @@ function body(): string {
   for (const doc of docs) {
     const description = doc.description ? `: ${doc.description}` : '';
     lines.push(`- [${doc.title}](${localeUrl('en', `/docs/${doc.slug}`)})${description}`);
+  }
+
+  // The English posts only, like the rest of this file; never a draft.
+  const posts = publishedPosts().filter((post) => post.locale === 'en');
+  if (posts.length > 0) {
+    lines.push('', '## Blog', '');
+    for (const post of posts) lines.push(`- [${post.title}](${postUrl(post)}): ${post.description}`);
   }
 
   const legal = publishedLegalDocs();

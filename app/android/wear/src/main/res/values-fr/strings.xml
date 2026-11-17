@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_riding">En selle</string>
+    <string name="title_paused">En pause</string>
+    <string name="start_hint">Démarrez une sortie ici ou sur le téléphone.</string>
+    <string name="start_ride">Démarrer</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Reprendre</string>
+    <string name="finish">Terminer</string>
+    <string name="stop_heart_rate">Arrêter le cardio</string>
+    <string name="start_heart_rate">Démarrer le cardio</string>
+    <string name="footnote_finish">« Terminer » ouvre l’enregistrement de la sortie sur le téléphone.</string>
+    <string name="footnote_battery">Avec l’économiseur de batterie dans les paramètres de la montre, la batterie tient toute une longue sortie.</string>
+    <string name="bpm">bpm</string>
+    <string name="problem_health_access">Velorki a besoin d’accéder à votre fréquence cardiaque : autorisez-le dans les paramètres de la montre.</string>
+    <string name="problem_would_not_start">La montre n’a pas pu démarrer d’entraînement : %1$s</string>
+    <string name="problem_stopped">L’entraînement s’est arrêté : %1$s</string>
+    <string name="problem_phone_silent">Le téléphone ne répond pas. Ouvrez Velorki sur le téléphone et réessayez.</string>
+    <string name="notification_channel">Sortie</string>
+</resources>

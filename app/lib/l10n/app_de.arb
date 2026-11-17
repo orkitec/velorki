@@ -988,6 +988,7 @@
   "settingsSensorsHealthWriteHint": "Jede beendete Fahrt landet in Health als ein Radfahr-Training mit Start, Ende und Distanz",
   "settingsSensorsHealthDenied": "Velorki hat keinen Zugriff auf deine Gesundheitsdaten bekommen.",
   "settingsSensorsAppleWatch": "Apple Watch",
+  "settingsSensorsWatch": "Uhr",
   "settingsSensorsWatchHint": "Velorkis eigene Uhren-App: misst deinen Puls die ganze Fahrt live, zeigt die Fahrt und hat Start, Pause und Ende am Handgelenk. Kostet Akku der Uhr",
   "settingsSensorsWatchRest": "Sensor in Pausen ruhen lassen",
   "settingsSensorsWatchRestHint": "Die Uhr hört in jeder Pause auf zu messen, und das Handy weckt sie, wenn du weiterfährst. Spart Akku der Uhr bei Fahrten mit vielen Stopps; der erste Puls nach jedem Stopp braucht einen Moment, und schlägt das Wecken fehl, fehlt der Puls, bis das Handy es nach 45 Sekunden erneut versucht",

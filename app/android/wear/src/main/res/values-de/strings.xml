@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_riding">Unterwegs</string>
+    <string name="title_paused">Pausiert</string>
+    <string name="start_hint">Starte die Fahrt hier oder auf dem Handy.</string>
+    <string name="start_ride">Fahrt starten</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Fortsetzen</string>
+    <string name="finish">Beenden</string>
+    <string name="stop_heart_rate">Pulsmessung beenden</string>
+    <string name="start_heart_rate">Pulsmessung starten</string>
+    <string name="footnote_finish">Nach „Beenden“ speicherst du die Fahrt auf dem Handy.</string>
+    <string name="footnote_battery">Mit dem Energiesparmodus in den Einstellungen der Uhr hält der Akku auch eine lange Fahrt durch.</string>
+    <string name="bpm">S/min</string>
+    <string name="problem_health_access">Velorki braucht Zugriff auf den Puls: Erlaube ihn in den Einstellungen der Uhr.</string>
+    <string name="problem_would_not_start">Die Uhr konnte kein Training starten: %1$s</string>
+    <string name="problem_stopped">Das Training wurde beendet: %1$s</string>
+    <string name="problem_phone_silent">Das Handy antwortet nicht. Öffne Velorki auf dem Handy und versuch es noch einmal.</string>
+    <string name="notification_channel">Fahrt</string>
+</resources>

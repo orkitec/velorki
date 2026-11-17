@@ -13,7 +13,8 @@
 // It also holds each translated message to English's ICU arguments and rich
 // text tags, and every English content page to a file in each other locale
 // (a `draft: true` page counts), so nothing English can reach a translated
-// site except the imprint, which is bilingual and falls back on purpose.
+// site except the imprint, which is bilingual and falls back on purpose, and
+// the blog, whose posts are not translated at all.
 import { existsSync, readdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { parse, TYPE } from '@formatjs/icu-messageformat-parser';
 
@@ -161,6 +162,10 @@ const SAME_AS_ENGLISH = new Map([
   ['home.openSource.title', 'same words in Dutch'],
   ['footer.product', 'same word in Dutch'],
   ['home.features.sensors.panel.rpm', 'unit symbol; Spanish writes rpm too'],
+  ['nav.blog', 'borrowed word'],
+  ['blog.meta.title', 'borrowed word'],
+  ['blog.title', 'borrowed word'],
+  ['blog.breadcrumb', 'borrowed word'],
 ]);
 
 /** Whether [text] has letters outside its ICU arguments. */
@@ -199,10 +204,19 @@ function contentPages(locale) {
  */
 const CONTENT_EXEMPT = new Set(['legal/imprint.md']);
 
+/**
+ * Folders exempt as a whole: blog posts are not translated. Each one exists in
+ * the language it was written in, and only there (src/site/blog.ts); a
+ * version in another language is a post of its own, written by hand.
+ */
+const CONTENT_EXEMPT_FOLDERS = ['blog/'];
+
+const exempt = (page) => CONTENT_EXEMPT.has(page) || CONTENT_EXEMPT_FOLDERS.some((folder) => page.startsWith(folder));
+
 /** English content pages that another locale has no file for. */
 function contentProblems() {
   const problems = [];
-  const source = contentPages('en').filter((p) => !CONTENT_EXEMPT.has(p));
+  const source = contentPages('en').filter((p) => !exempt(p));
   for (const locale of locales.filter((l) => l !== 'en')) {
     for (const page of source) {
       if (!existsSync(`${root}content/${locale}/${page}`))

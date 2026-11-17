@@ -7,6 +7,7 @@
 [![Crowdin](https://badges.crowdin.net/velorki/localized.svg)](https://crowdin.com/project/velorki)
 [![Licence: AGPL-3.0-only](https://img.shields.io/badge/licence-AGPL--3.0--only-blue)](LICENSE)
 [![Website: velorki.com](https://img.shields.io/badge/website-velorki.com-3f7a00)](https://velorki.com)
+[![Web planner](https://img.shields.io/badge/Web_planner-app.velorki.com-d9480f?logo=googlechrome&logoColor=white)](https://app.velorki.com)
 [![App Store](https://img.shields.io/badge/App_Store-Velorki-0d96f6?logo=apple)](https://apps.apple.com/app/id6816790504)
 [![Google Play](https://img.shields.io/badge/Google_Play-Velorki-01875f?logo=googleplay)](https://play.google.com/store/apps/details?id=com.orkitec.velorki)
 
@@ -19,12 +20,15 @@ Download a region once and the whole app works without a network: the map,
 the routing, the place search and the spoken turns. No account, no ads, no
 paywall on the ride itself, and no server in the loop unless you ask for one.
 Everything about using it is on **[velorki.com](https://velorki.com)**.
-A Flutter app for iOS and Android. What it does:
+A Flutter app for iOS and Android, with an Apple Watch app, and a web
+planner at **[app.velorki.com](https://app.velorki.com)** built from the same
+code. What it does:
 
 - **Routing on the phone.** A Dart port of the BRouter engine routes on
-  downloaded 5°×5° tiles, with touring, road, gravel, MTB and direct
-  profiles, up to three alternatives, elevation profile and surface
-  statistics. A BRouter server is optional, for areas with no tiles.
+  downloaded 5°×5° tiles (in the web planner, in the browser), with touring,
+  road, gravel, MTB and direct profiles, up to three alternatives, elevation
+  profile and surface statistics. A BRouter server is optional, for areas
+  with no tiles.
 - **Loops.** "A 60 km round trip from here via the lake": candidates are
   generated and scored on length, climbing, surface and repeated roads.
 - **Place search offline.** Each routing tile brings a search index of its
@@ -72,11 +76,9 @@ run your own and skip the subscription entirely.
 Everything above is implemented and tested: unit and widget tests on every
 push, emulator and simulator suites on Android 12, 15 and 16 and on iOS, and
 the routing port reproduces the Java server byte for byte on a recorded
-corpus. Nothing is in the stores yet.
-
-Not yet done: the store accounts and partner API registrations, the relay and
-the tile mirror deployment, and iOS release signing. `docs/OPEN_ITEMS.md` lists
-every such item.
+corpus. Velorki is on the App Store and Google Play, the web planner at
+app.velorki.com, and the relay and the tile mirror run in production.
+`docs/OPEN_ITEMS.md` lists what is still open.
 
 ## Layout
 

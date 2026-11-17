@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart'
-    show ValueListenable, defaultTargetPlatform;
+    show ValueListenable, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +25,7 @@ import '../features/map/presentation/map_controls.dart';
 import '../features/map/presentation/visible_map_padding.dart';
 import '../features/map/application/locate_on_open.dart';
 import '../features/map/presentation/shared_map_host.dart';
+import '../features/map/presentation/web_legal_chip.dart';
 import '../features/navigation/application/navigation_controller.dart';
 import '../features/planner/presentation/planner_screen.dart';
 import '../features/recording/application/recording_controller.dart';
@@ -590,6 +591,11 @@ class HomeShell extends ConsumerWidget {
                           !(mapTabs.contains(shell.currentIndex) && atTabRoot),
                       child: shell,
                     ),
+                    // The web planner's note on what the browser keeps,
+                    // over the tab's sheet and the bar that cover the
+                    // map's band for it upright.
+                    if (kIsWeb && layout == ShellLayout.bottomBar)
+                      WebStorageNoticeOverBar(barShown: !hideBar),
                     if (layout.sideRail && !hideRail)
                       Positioned.fill(
                         child: GestureZonePassThrough(

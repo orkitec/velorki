@@ -1381,14 +1381,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       }
     }
     ref.listen(plannerControllerProvider, (previous, next) {
-      // The empty state comes back, after Clear, say: its cue with it; and
-      // goes with the first point, the cue too.
+      // The cue goes with the first point. It does not come back when the
+      // plan is empty again (Clear, Undo to the start): a rider who has
+      // planned knows how; it plays once per app start.
       if (!next.isEmpty) {
         _cuePending = false;
         _cue.stop();
-      } else if (previous != null && !previous.isEmpty) {
-        _cuePending = true;
-        _tryCue();
       }
       // Only while this tab's layers are on the map; a plan that changes
       // while the tab is away is drawn whole when it comes back.

@@ -543,4 +543,102 @@ void main() {
       expect(data.lineBarsData.single.color, isNot(red));
     });
   });
+
+  group('mark names', () {
+    // Ten logical pixels per character, a plot 400 wide from x 40.
+    Set<int> fit(List<ChartMark> marks) => chartMarkLabelsThatFit(
+      marks: marks,
+      minX: 0,
+      maxX: 10,
+      plotLeft: 40,
+      plotWidth: 400,
+      labelWidth: (label) => label.length * 10.0,
+    );
+
+    test('names far apart are all kept', () {
+      expect(
+        fit(const <ChartMark>[(x: 1, label: 'Café'), (x: 5, label: 'Water')]),
+        {0, 1},
+      );
+    });
+
+    test('of names that would overlap, the leftmost is kept', () {
+      // Three marks within 16 px of each other, each name 40 px or more.
+      expect(
+        fit(const <ChartMark>[
+          (x: 1.4, label: 'Busy'),
+          (x: 1, label: 'Start'),
+          (x: 1.2, label: 'Water'),
+        ]),
+        {1},
+      );
+    });
+
+    test('a name past 70 % of the axis hangs left and can clash with one '
+        'hanging right before it', () {
+      // At x 7 the name runs right from 324 to 404; at x 7.5 it hangs
+      // left, from 296 to 336, into it.
+      expect(
+        fit(const <ChartMark>[
+          (x: 7, label: 'Bridgeway'),
+          (x: 7.5, label: 'Hill'),
+        ]),
+        {0},
+      );
+      // Further along there is room.
+      expect(
+        fit(const <ChartMark>[
+          (x: 2, label: 'Bridgeway'),
+          (x: 9, label: 'Hill'),
+        ]),
+        {0, 1},
+      );
+    });
+
+    test('an empty axis or plot keeps none', () {
+      expect(
+        chartMarkLabelsThatFit(
+          marks: const <ChartMark>[(x: 1, label: 'Café')],
+          minX: 5,
+          maxX: 5,
+          plotLeft: 0,
+          plotWidth: 300,
+          labelWidth: (_) => 10,
+        ),
+        isEmpty,
+      );
+    });
+
+    testWidgets('on the chart, marks close together show one name, and every '
+        'line stays', (tester) async {
+      await tester.pumpWidget(
+        testApp(
+          home: Scaffold(
+            body: MetricChart(
+              title: 'Test',
+              spots: _elevenSpots(),
+              readoutAt: (index) => 'sample $index',
+              marks: const <ChartMark>[
+                (x: 0.1, label: 'Start dismount zone'),
+                (x: 0.2, label: 'Busy intersection'),
+                (x: 0.3, label: 'Water fountain'),
+                (x: 6, label: 'Sharp left turn'),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      final lines = tester
+          .widget<LineChart>(find.byType(LineChart))
+          .data
+          .extraLinesData
+          .verticalLines;
+      expect(lines, hasLength(4));
+      expect(
+        [for (final line in lines) line.label.show],
+        [true, false, false, true],
+      );
+    });
+  });
 }

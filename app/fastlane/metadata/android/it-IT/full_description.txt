@@ -39,11 +39,11 @@ Velorki Plus è un abbonamento per ciò che ha bisogno dei nostri server:
 • Link di condivisione: un percorso o un giro diventa un link che chiunque apre nel browser.
 
 Velorki Plus è offerto con una prova gratuita sul piano annuale e si rinnova finché non lo annulli in Google Play.
-Condizioni: https://velorki.com/terms
+Condizioni: https://velorki.com/it/terms
 
 PRIVACY
 Niente pubblicità, niente analisi. Niente va a un'altra piattaforma finché non colleghi l'account e lo chiedi tu. L'assistente chiede il tuo consenso prima che un testo lasci il dispositivo, e la posizione che invia è arrotondata a circa un chilometro.
-Informativa sulla privacy: https://velorki.com/privacy
+Informativa sulla privacy: https://velorki.com/it/privacy
 
 Dati cartografici © collaboratori di OpenStreetMap.
 

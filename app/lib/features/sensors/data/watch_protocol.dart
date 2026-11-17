@@ -1,9 +1,15 @@
 /// Everything the phone and the watch app say to each other.
 ///
-/// The other half of this file is Swift, in `ios/VelorkiWatch/`, and its
-/// README spells the same messages out in prose. Change a key here and change
-/// it there: the two apps are shipped together, but they are built from two
-/// languages and nothing checks that they agree.
+/// The other half of this file is Swift, in `ios/VelorkiWatch/`, and Kotlin,
+/// in `android/wear/` (`WatchProtocol.kt`); the Apple app's README spells the
+/// messages out in prose. Change a key here and change it there. One example
+/// of every message is in `test/fixtures/watch/messages.json`, which the
+/// tests of this side and the Wear OS app's JVM tests both hold their code
+/// to, so those two cannot drift apart; the Swift is checked by hand.
+///
+/// On Wear OS the `watch_connectivity` plugin carries a message over the
+/// Data Layer's `MessageClient` and the context as a `DataItem` at
+/// `/watch_connectivity`, each a Java-serialised `HashMap`.
 ///
 /// Two transports, because WatchConnectivity gives two and they mean different
 /// things. A *message* is an event that matters once — a heart rate, a button
@@ -68,6 +74,14 @@ const String watchWorkoutStart = 'start';
 /// Stop measuring.
 const String watchWorkoutStop = 'stop';
 
+/// `{"type": "context", "status": ..., ...}`: the application context once
+/// more, as a message. Wear OS only: the Data Layer holds a data item that is
+/// not marked urgent back for up to half an hour, and the plugin does not
+/// mark it, so the phone sends every context this way too. The data item
+/// stays the one a watch app opened mid-ride reads. The Apple app ignores
+/// it, and the iPhone never sends it.
+const String watchContextType = 'context';
+
 // ------------------------------------------------- phone → watch context
 
 /// What the ride is doing: [watchStatusIdle], [watchStatusActive] or
@@ -92,7 +106,8 @@ const String watchElapsedKey = 'elapsed';
 /// The current speed, formatted: `18.0 km/h`.
 const String watchSpeedKey = 'speed';
 
-/// The SF Symbol for the next turn, or an empty string without guidance.
+/// The SF Symbol for the next turn, or an empty string without guidance. The
+/// Wear OS app draws its own icon for each of them.
 const String watchTurnIconKey = 'turnIcon';
 
 /// What that turn is called, translated: `Turn left`.
