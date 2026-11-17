@@ -68,6 +68,9 @@
   "overrides": {
     "js-yaml@3": {
       "argparse": "^2.0.1"
+    },
+    "lowlight": {
+      "highlight.js": "$highlight.js"
     }
   }
 }
