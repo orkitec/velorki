@@ -1,0 +1,48 @@
+name: codeql
+
+# CodeQL over the code it can read without a build: the website and relay
+# (TypeScript), the tools (Python), Fastlane (Ruby), the workflows themselves,
+# and the one C file. Every push to main, every pull request and weekly, as
+# GitHub's default setup did. The app's native code, which only builds after
+# Flutter, is codeql-native.yml.
+#
+# This replaces the default setup (Settings → Code security → CodeQL): the two
+# cannot run side by side, so the default setup is off.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [actions, c-cpp, javascript-typescript, python, ruby]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          # The default setup's categories, so its alerts carry on here.
+          category: /language:${{ matrix.language }}
