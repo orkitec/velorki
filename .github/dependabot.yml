@@ -7,6 +7,12 @@ updates:
     groups:
       flutter:
         patterns: ["*"]
+    ignore:
+      # build_runner 2.17 needs analyzer 14.3, which the test_api pinned by
+      # Flutter 3.47's flutter_test does not allow: `pub get` fails. Drop
+      # this once a Flutter release takes it.
+      - dependency-name: build_runner
+        versions: [">=2.17.0"]
   - package-ecosystem: npm
     directory: /web
     schedule:

@@ -127,7 +127,7 @@ class IntegrationConnections extends Notifier<Set<IntegrationService>> {
     await ref
         .read(rideRepositoryProvider)
         .forgetUploadsTo(IntegrationService.strava.id);
-    if (ref.exists(plannerControllerProvider)) {
+    if (ref.read(plannerControllerProvider.exists)) {
       ref.read(plannerControllerProvider.notifier).forgetStravaRoute();
     }
     _log.info('deleted $routes Strava routes');
