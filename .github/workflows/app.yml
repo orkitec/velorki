@@ -126,7 +126,7 @@ jobs:
         run: bash tool/install_gradle.sh
 
       - run: flutter build apk --debug --dart-define-from-file=env/ci.json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: velorki-debug-apk
           path: app/build/app/outputs/flutter-apk/app-debug.apk
@@ -191,7 +191,7 @@ jobs:
       # signed with the debug key here, which is all the scan needs.
       - name: Build the Google-free APK and scan its dex
         run: bash tool/fdroid_build.sh
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: velorki-fdroid-apk
           path: app/build/fdroid/velorki-fdroid-release.apk
