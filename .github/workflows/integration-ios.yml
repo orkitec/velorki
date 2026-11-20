@@ -118,7 +118,10 @@ jobs:
     needs: gate
     if: needs.gate.outputs.run == 'true'
     runs-on: xcode-27
-    timeout-minutes: 75
+    # A build without the derived-data cache takes ~55 minutes on its own, and
+    # the Android emulator caches push that cache out of the repository's 10 GB
+    # often: 75 minutes ended such a run mid-suite.
+    timeout-minutes: 110
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
