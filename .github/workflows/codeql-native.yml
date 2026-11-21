@@ -1,0 +1,158 @@
+name: codeql native
+
+# CodeQL over the app's own Kotlin (MainActivity, the Wear OS app) and Swift
+# (Runner, the watch app, the Live Activity, the share extension). CodeQL
+# reads these languages by watching them compile, and they only compile after
+# Flutter has set the platform projects up (generated code, the Gradle
+# wrapper, the Swift packages), which GitHub's default setup cannot do. So
+# each job builds the app the way app.yml and ios.yml do, with CodeQL
+# watching. Weekly, and on pushes and pull requests that touch the native
+# code. The rest of the repository is codeql.yml.
+#
+# Nothing is cached that would let a compiler skip a file: CodeQL only sees
+# what is compiled in front of it.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/android/**"
+      - "app/ios/**"
+      - ".github/workflows/codeql-native.yml"
+  pull_request:
+    paths:
+      - "app/android/**"
+      - "app/ios/**"
+      - ".github/workflows/codeql-native.yml"
+  schedule:
+    - cron: "37 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-native-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  kotlin:
+    name: analyze (java-kotlin)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+      - run: flutter pub get
+      - run: bash tool/gen.sh
+      - name: Install the NDK
+        run: bash tool/install_ndk.sh
+      - name: Fetch Gradle
+        run: bash tool/install_gradle.sh
+      # Flutter writes what Gradle needs (local.properties, the plugin
+      # projects) without building, so the build CodeQL watches is Gradle's
+      # own, where the Kotlin compiler can be kept in the traced process.
+      - run: flutter build apk --debug --config-only
+
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: java-kotlin
+          build-mode: manual
+      - name: Build the app and the Wear OS app
+        working-directory: app/android
+        run: >-
+          ./gradlew --no-daemon --no-build-cache
+          -Pkotlin.compiler.execution.strategy=in-process
+          :app:compileDebugKotlin :wear:compileDebugKotlin
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: /language:java-kotlin
+
+  swift:
+    name: analyze (swift)
+    runs-on: xcode-27
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Select Xcode
+        env:
+          XCODE_VERSION: "27.1"
+        run: |
+          xcode="/Applications/Xcode_${XCODE_VERSION}.app"
+          [ -d "$xcode" ] || { echo "::error::no $xcode on the runner"; ls -d /Applications/Xcode*.app; exit 1; }
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+      - run: flutter pub get
+      - run: bash tool/gen.sh
+      # The Xcode project's Flutter settings and the plugin packages, without
+      # a build, so the one CodeQL watches is complete. A device build, unsigned
+      # as in ios.yml: with the watch app in it, a simulator build needs a
+      # simulator named.
+      - run: flutter build ios --debug --no-codesign --config-only
+
+      # The Swift packages fetched before CodeQL watches: resolving runs each
+      # package manifest under /usr/bin/sandbox-exec, which fails with the
+      # tracer in it ("Bad CPU type"). With the manifest sandbox off, the
+      # build only reads what is already here. Xcode's folders live outside
+      # the checkout, so CodeQL reports on the app's Swift and not on the
+      # packages compiled beside it.
+      - name: Fetch the Swift packages
+        working-directory: app/ios
+        run: |
+          defaults write com.apple.dt.Xcode IDEPackageSupportDisableManifestSandbox -bool YES
+          defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidatation -bool YES
+          "$(xcode-select -p)/usr/bin/xcodebuild" -resolvePackageDependencies \
+            -workspace Runner.xcworkspace -scheme Runner \
+            -derivedDataPath "$RUNNER_TEMP/codeql-derived" \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/SourcePackages"
+
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: swift
+          build-mode: manual
+      # xcodebuild itself, from the selected Xcode: Flutter reaches it through
+      # /usr/bin/arch and xcrun, and macOS strips CodeQL's tracer from
+      # anything started out of /usr/bin, so through Flutter nothing compiled
+      # is seen. The Runner scheme builds the extensions and the watch app
+      # too; its build phase compiles the Dart as flutter build would. Macros
+      # (RevenueCat's, SwiftUI's) expand in a plugin process the compiler
+      # starts under sandbox-exec, as above: -disable-sandbox keeps it out.
+      - name: Build the app and its extensions
+        working-directory: app/ios
+        run: >-
+          "$(xcode-select -p)/usr/bin/xcodebuild"
+          -workspace Runner.xcworkspace -scheme Runner -configuration Debug
+          -destination generic/platform=iOS
+          -derivedDataPath "$RUNNER_TEMP/codeql-derived"
+          -clonedSourcePackagesDirPath "$RUNNER_TEMP/SourcePackages"
+          -disableAutomaticPackageResolution -skipPackagePluginValidation
+          -skipMacroValidation
+          CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO
+          "OTHER_SWIFT_FLAGS=\$(inherited) -disable-sandbox"
+          build
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: /language:swift

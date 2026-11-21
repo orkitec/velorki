@@ -327,7 +327,7 @@ jobs:
         # GitHub's artifact service now and then times out; once more below.
         continue-on-error: true
         if: ${{ !cancelled() && steps.iphone.outcome != 'skipped' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: store-assets-ios-iphone-${{ matrix.job.id }}
           path: |
@@ -339,7 +339,7 @@ jobs:
 
       - name: Keep the iPhone set, once more
         if: ${{ !cancelled() && steps.iphone.outcome != 'skipped' && steps.keep_iphone.outcome == 'failure' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: store-assets-ios-iphone-${{ matrix.job.id }}
           path: |
@@ -370,7 +370,7 @@ jobs:
         # GitHub's artifact service now and then times out; once more below.
         continue-on-error: true
         if: ${{ !cancelled() && steps.ipad.outcome != 'skipped' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: store-assets-ios-ipad-${{ matrix.job.id }}
           path: app/build/store_screenshots/?pad/slides/set
@@ -379,7 +379,7 @@ jobs:
 
       - name: Keep the iPad set, once more
         if: ${{ !cancelled() && steps.ipad.outcome != 'skipped' && steps.keep_ipad.outcome == 'failure' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: store-assets-ios-ipad-${{ matrix.job.id }}
           path: app/build/store_screenshots/?pad/slides/set
@@ -407,7 +407,7 @@ jobs:
         # GitHub's artifact service now and then times out; once more below.
         continue-on-error: true
         if: ${{ !cancelled() && steps.duo.outcome != 'skipped' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: store-assets-ios-duo-${{ matrix.job.id }}
           path: app/build/store_screenshots/?uo/slides/set
@@ -416,7 +416,7 @@ jobs:
 
       - name: Keep the iPhone Duo set, once more
         if: ${{ !cancelled() && steps.duo.outcome != 'skipped' && steps.keep_duo.outcome == 'failure' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: store-assets-ios-duo-${{ matrix.job.id }}
           path: app/build/store_screenshots/?uo/slides/set
@@ -436,7 +436,7 @@ jobs:
 
       - name: Keep the preview
         if: ${{ !cancelled() && steps.preview.outcome != 'skipped' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: store-assets-ios-preview-${{ matrix.job.id }}
           path: |
@@ -451,7 +451,7 @@ jobs:
 
       - name: Keep the verbose logs
         if: ${{ !cancelled() && inputs.verbose }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: store-logs-ios-${{ matrix.job.id }}
           path: app/build/store_screenshots/**/logs
@@ -601,7 +601,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
           java-version: 21
@@ -770,7 +770,7 @@ jobs:
         id: keep_set
         # GitHub's artifact service now and then times out; once more below.
         continue-on-error: true
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ matrix.artifact }}-${{ matrix.locale }}
           path: ${{ matrix.set }}
@@ -779,7 +779,7 @@ jobs:
 
       - name: Keep the set, once more
         if: ${{ steps.keep_set.outcome == 'failure' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ matrix.artifact }}-${{ matrix.locale }}
           path: ${{ matrix.set }}
@@ -793,7 +793,7 @@ jobs:
 
       - name: Device log
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: store-logcat-android-${{ matrix.device }}-${{ matrix.locale }}
           path: app/build/logcat.txt

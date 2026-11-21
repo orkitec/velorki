@@ -71,6 +71,17 @@ describe('markdown pipeline', () => {
     expect(headings).toEqual([{ depth: 2, id: 'a-heading', text: 'A heading' }]);
   });
 
+  it('reads heading text as the reader sees it', () => {
+    const { headings } = renderMarkdown(
+      '## Rider & bike\n\n### The `<gpx>` file, **in short**\n\n#### Too deep\n',
+      'Fallback',
+    );
+    expect(headings).toEqual([
+      { depth: 2, id: 'rider--bike', text: 'Rider & bike' },
+      { depth: 3, id: 'the-gpx-file-in-short', text: 'The <gpx> file, in short' },
+    ]);
+  });
+
   it('reads draft out of the front matter', () => {
     expect(renderMarkdown('---\ntitle: T\ndraft: true\n---\n\nBody\n', 'F').frontMatter.draft).toBe(true);
     expect(renderMarkdown('---\ntitle: T\n---\n\nBody\n', 'F').frontMatter.draft).toBe(false);

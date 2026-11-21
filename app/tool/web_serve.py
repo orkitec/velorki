@@ -287,6 +287,7 @@ def certificate():
 server = http.server.ThreadingHTTPServer(("127.0.0.1", opts.port), Handler)
 if opts.https:
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(*certificate())
     server.socket = context.wrap_socket(server.socket, server_side=True)
 print(f"Velorki web planner on {SCHEME}://localhost:{opts.port}  (Ctrl-C to stop)")

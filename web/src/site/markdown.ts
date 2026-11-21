@@ -116,8 +116,17 @@ function buildProcessor(transform?: HastTransform) {
     : base;
   return withTransform
     .use(rehypeSanitize, transform ? blogSanitizeSchema : sanitizeSchema)
+    .use(() => (tree, file) => {
+      file.data.headings = collectHeadings(tree);
+    })
     .use(rehypeStringify)
     .freeze();
+}
+
+/** Renders `body`; the headings come off the tree the HTML was written from. */
+function render(processor: ReturnType<typeof buildProcessor>, body: string): { html: string; headings: Heading[] } {
+  const file = processor.processSync(body);
+  return { html: String(file), headings: (file.data.headings as Heading[] | undefined) ?? [] };
 }
 
 const processor = buildProcessor();
@@ -162,25 +171,33 @@ function bool(value: unknown): boolean {
   return value === true;
 }
 
+/** The text a reader sees in `node`, without the '#' anchor the pipeline appends. */
+function textOf(node: HastNode): string {
+  if (node.type === 'text') return (node as HastNode & { value?: string }).value ?? '';
+  const className = node.properties?.className;
+  if (node.tagName === 'a' && Array.isArray(className) && className.includes('anchor')) return '';
+  return (node.children ?? []).map(textOf).join('');
+}
+
 /**
- * Headings straight out of the produced HTML, so the ids are exactly the ones
- * `rehype-slug` minted; re-slugging the Markdown would be a second guess.
+ * The h2 and h3 headings of the sanitised tree, so the ids are exactly the
+ * ones `rehype-slug` minted (re-slugging the Markdown would be a second guess)
+ * and the text is the decoded text, never HTML.
  */
-function collectHeadings(html: string): Heading[] {
+function collectHeadings(tree: HastNode): Heading[] {
   const headings: Heading[] = [];
-  const pattern = /<h([23]) id="([^"]+)"[^>]*>([\s\S]*?)<\/h\1>/g;
-  let match: RegExpExecArray | null;
-  while ((match = pattern.exec(html)) !== null) {
-    const depth = match[1] === '3' ? 3 : 2;
-    const text = (match[3] ?? '')
-      // The sanitiser rebuilds the attributes, so the anchor is matched by its
-      // class wherever that ends up in the tag.
-      .replace(/<a\b[^>]*class="anchor"[^>]*>[\s\S]*?<\/a>/g, '')
-      .replace(/<[^>]*>/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    if (text) headings.push({ depth, id: match[2] ?? '', text });
-  }
+  const visit = (node: HastNode) => {
+    if (node.type === 'element' && (node.tagName === 'h2' || node.tagName === 'h3')) {
+      const id = node.properties?.id;
+      const text = textOf(node).replace(/\s+/g, ' ').trim();
+      if (typeof id === 'string' && id !== '' && text) {
+        headings.push({ depth: node.tagName === 'h3' ? 3 : 2, id, text });
+      }
+      return;
+    }
+    node.children?.forEach(visit);
+  };
+  visit(tree);
   return headings;
 }
 
@@ -192,7 +209,7 @@ export function renderMarkdown(source: string, fallbackTitle: string): RenderedM
   const parsed = matter(source);
   const data = parsed.data as Record<string, unknown>;
   const body = stripLeadingH1(parsed.content);
-  const html = String(processor.processSync(body));
+  const { html, headings } = render(processor, body);
   return {
     frontMatter: {
       title: str(data.title, fallbackTitle),
@@ -201,7 +218,7 @@ export function renderMarkdown(source: string, fallbackTitle: string): RenderedM
       draft: bool(data.draft),
     },
     html,
-    headings: collectHeadings(html),
+    headings,
     markdown: body.trim(),
   };
 }
@@ -217,8 +234,7 @@ export function stripLeadingH1(body: string): string {
  * before the sanitiser. The blog's entry point (src/site/blog.ts).
  */
 export function renderBody(body: string, transform: HastTransform): { html: string; headings: Heading[] } {
-  const html = String(buildProcessor(transform).processSync(body));
-  return { html, headings: collectHeadings(html) };
+  return render(buildProcessor(transform), body);
 }
 
 /** Front matter only, for sidebars and listings. */

@@ -214,7 +214,12 @@ changing structure.
   pinning" setting stays off: it also rejects the unpinned actions that
   composite actions such as flutter-action call internally). `workflows-lint.yml`
   runs actionlint (pinned binary, sha256-checked; shellcheck at warning level)
-  on every push touching `.github/workflows/`. A `v*` tag push runs `release.yml`: a
+  on every push touching `.github/workflows/`. CodeQL is two workflows, not
+  GitHub's default setup (which must stay off): `codeql.yml` (no build: TS,
+  Python, Ruby, the workflows, C) on every push and pull request, and
+  `codeql-native.yml` (weekly and on native changes) building the Kotlin with
+  Gradle and the Swift with `xcodebuild` itself, since CodeQL cannot see a
+  compile started through Flutter or anything else in `/usr/bin`. A `v*` tag push runs `release.yml`: a
   `version` job checks the tag against the pubspec and takes one build
   number, the pubspec's `+N` (raised by the release commit above every
   earlier tag's; F-Droid builds the same tag with it), for both platform

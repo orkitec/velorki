@@ -26,7 +26,7 @@ VisibleAreaStatus watchVisibleAreaStatus(WidgetRef ref, MapController? map) {
     queue: ref.watch(tileDownloadQueueProvider),
     // Only a manifest already read this session: the status never asks the
     // mirror itself. The camera's next rest picks one up.
-    manifest: ref.exists(segmentsManifestSourceProvider)
+    manifest: ref.read(segmentsManifestSourceProvider.exists)
         ? ref.watch(segmentsManifestSourceProvider).value
         : null,
     mapProgress: mapAreas
