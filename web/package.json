@@ -22,16 +22,16 @@
     "locales": "node scripts/gen-locales.mjs"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^3.0.92",
+    "@ai-sdk/openai-compatible": "^3.0.93",
     "@orkify/cache": "^1.0.0",
     "@orkify/chat": "^1.2.0",
     "@orkify/next": "^1.0.0",
-    "ai": "^7.0.173",
+    "ai": "^7.0.176",
     "geotiff": "^3.0.5",
     "gray-matter": "^4.0.3",
     "highlight.js": "~11.12.0",
     "lowlight": "^3.3.0",
-    "maplibre-gl": "^6.18.0",
+    "maplibre-gl": "^6.19.0",
     "next": "^16.4.6",
     "next-intl": "^4.15.1",
     "pino": "^10.4.0",
@@ -62,7 +62,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.73.0",
-    "vitest": "^5.1.0",
+    "vitest": "^5.1.1",
     "yaml": "^2.9.1"
   },
   "overrides": {
