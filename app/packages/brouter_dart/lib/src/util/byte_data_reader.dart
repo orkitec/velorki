@@ -100,11 +100,13 @@ class ByteDataReader {
     return bytes;
   }
 
+  @pragma('vm:prefer-inline')
   int readVarLengthSigned() {
     final v = readVarLengthUnsigned();
     return (v & 1) == 0 ? shr32(v, 1) : i32(-shr32(v, 1));
   }
 
+  @pragma('vm:prefer-inline')
   int readVarLengthUnsigned() {
     int b;
     var v = (b = ab[aboffset++]) & 0x7f;

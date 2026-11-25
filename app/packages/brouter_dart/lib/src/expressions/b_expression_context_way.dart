@@ -41,44 +41,64 @@ final class BExpressionContextWay extends BExpressionContext
   @override
   List<String> getBuildInVariableNames() => _buildInVariables;
 
+  @pragma('vm:prefer-inline')
   double getCostfactor() => getBuildInVariable(0);
 
+  @pragma('vm:prefer-inline')
   double getTurncost() => getBuildInVariable(1);
 
+  @pragma('vm:prefer-inline')
   double getUphillCostfactor() => getBuildInVariable(2);
 
+  @pragma('vm:prefer-inline')
   double getDownhillCostfactor() => getBuildInVariable(3);
 
+  @pragma('vm:prefer-inline')
   double getInitialcost() => getBuildInVariable(4);
 
+  @pragma('vm:prefer-inline')
   double getNodeAccessGranted() => getBuildInVariable(5);
 
+  @pragma('vm:prefer-inline')
   double getInitialClassifier() => getBuildInVariable(6);
 
+  @pragma('vm:prefer-inline')
   double getTrafficSourceDensity() => getBuildInVariable(7);
 
+  @pragma('vm:prefer-inline')
   double getIsTrafficBackbone() => getBuildInVariable(8);
 
+  @pragma('vm:prefer-inline')
   double getPriorityClassifier() => getBuildInVariable(9);
 
+  @pragma('vm:prefer-inline')
   double getClassifierMask() => getBuildInVariable(10);
 
+  @pragma('vm:prefer-inline')
   double getMaxspeed() => getBuildInVariable(11);
 
+  @pragma('vm:prefer-inline')
   double getUphillcost() => getBuildInVariable(12);
 
+  @pragma('vm:prefer-inline')
   double getDownhillcost() => getBuildInVariable(13);
 
+  @pragma('vm:prefer-inline')
   double getUphillcutoff() => getBuildInVariable(14);
 
+  @pragma('vm:prefer-inline')
   double getDownhillcutoff() => getBuildInVariable(15);
 
+  @pragma('vm:prefer-inline')
   double getUphillmaxslope() => getBuildInVariable(16);
 
+  @pragma('vm:prefer-inline')
   double getDownhillmaxslope() => getBuildInVariable(17);
 
+  @pragma('vm:prefer-inline')
   double getUphillmaxslopecost() => getBuildInVariable(18);
 
+  @pragma('vm:prefer-inline')
   double getDownhillmaxslopecost() => getBuildInVariable(19);
 
   @override

@@ -59,10 +59,12 @@ abstract class OsmPath implements OsmLinkHolder {
   static const int _hadDestinationStartBit = 8;
   int bitfield = _pathStartBit;
 
+  @pragma('vm:prefer-inline')
   bool _getBit(int mask) {
     return (bitfield & mask) != 0;
   }
 
+  @pragma('vm:prefer-inline')
   void _setBit(int mask, bool bit) {
     if (_getBit(mask) != bit) {
       bitfield ^= mask;
@@ -363,7 +365,7 @@ abstract class OsmPath implements OsmLinkHolder {
 
       var sectionCost = processWaySection(
         rc,
-        dist.toDouble(),
+        i2d(dist),
         deltaH,
         elevation,
         angle,
@@ -385,7 +387,7 @@ abstract class OsmPath implements OsmLinkHolder {
       cost += d2i(sectionCost);
 
       // compute kinematic
-      computeKinematic(rc, dist.toDouble(), deltaH, detailMode);
+      computeKinematic(rc, i2d(dist), deltaH, detailMode);
 
       if (message != null) {
         message!.turnangle = f32(angle);

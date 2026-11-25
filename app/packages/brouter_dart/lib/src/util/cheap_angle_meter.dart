@@ -57,8 +57,8 @@ class CheapAngleMeter {
 
   static double getAngle(int lon1, int lat1, int lon2, int lat2) {
     var res = 0.0;
-    final double xdiff = (lat2 - lat1).toDouble();
-    final double ydiff = (lon2 - lon1).toDouble();
+    final double xdiff = i2d((lat2 - lat1));
+    final double ydiff = i2d((lon2 - lon1));
     res = toDegrees(JMath.atan2(ydiff, xdiff));
     return res;
   }

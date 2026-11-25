@@ -14,5 +14,6 @@ final class BExpressionContextNode extends BExpressionContext {
   @override
   List<String> getBuildInVariableNames() => _buildInVariables;
 
+  @pragma('vm:prefer-inline')
   double getInitialcost() => getBuildInVariable(0);
 }

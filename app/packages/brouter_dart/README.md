@@ -702,9 +702,16 @@ pass1 and the re-tracking pass per segment -- 740 253 expansions, 862 089
 | C | `BitCoderContext` read path: `_b` never holds more than 31 bits in read mode (`fillBuffer` stops at 24..31, `decodeBit` refills 8), so every `ushr32`/`shr32`/`i32` wrap was a no-op and is now plain 64-bit arithmetic; the write path keeps `_b` as an unsigned 32-bit value; the varbits tables are held per instance instead of behind a lazily initialised static. `javaRound`: `doubleToRawLongBits` through `Float64List`/`Int64List` views instead of a big-endian `ByteData` round trip (two byte swaps per call). | -5 to -8 % / -5 to -8 % (A+B+C together: JIT 751 -> 684 ms, AOT 932 -> 834 ms) |
 | D | `StdPath.processWaySection` (57 `f32` calls per way section) rounds through a `Float32List` fetched once from `RoutingContext.f32buf` (`FloatRounding.f32` in jvm.dart): a top-level `final` is lazily initialised and every access re-checks that, 2.6 ns vs 1.4 ns per call in an AOT micro-benchmark. `OsmLink.getTarget`/`getNext` load `n2` once. | JIT +-0 / AOT -8 to -12 % (834 -> 733 ms) |
 | E | `d2i`: saturation checks before `isNaN` (a NaN fails both), 9 % faster in the micro-benchmark, same results | ~0.4 % |
+| F | Native profile (`dart compile aot-snapshot`, `sample` on the `dartaotruntime` process: the snapshot is a Mach-O with function symbols, so this is the code a phone runs, which the JIT profile above is not). The AOT compiler does not inline small helpers into the big cost and weaving functions, so they are marked `@pragma('vm:prefer-inline')`: `d2i`, `i32`, `shl32`/`shr32`/`ushr32`/`mul32`, `toShort`, `FloatRounding.f32`, `doubleToRawLongBits`, `getBuildInVariable` and its 21 getters, `decodeBit`, `decodeBits`, `_fillBuffer`, `decodeNoisyDiff`/`decodeNoisyNumber`, `readVarLength(Un)signed`, `getLonLatToMeterScales`, `_getBit`/`_setBit`, `hasHollowLinkTargets`. | AOT -12 % (arm64 Mac, Madeira 569 -> 506 ms after the first two batches, 481 -> 476 for the last) |
+| G | `i2d(int)` (`v + 0.0`, jvm.dart) instead of `int.toDouble()` in `processWaySection`, `addAddionalPenalty`, `CheapAngleMeter` and `BExpressionContext`: Dart 3.13 AOT on arm64 compiles `toDouble()` to a call of `_Double.fromInteger` that boxes the int and heap-allocates the result (20 calls per way section), the addition to one `scvtf`. Same value for every int. | AOT -5 % (506 -> 481 ms) |
+| H | `f32` rounds through a SIMD lane on the VM (`Float32x4.splat(v).x`, float_round_vm.dart), which stays in registers, where the `Float32List` store and load went through memory; the web build keeps the list (float_round_web.dart, picked by `dart.library.io`), because `Float32x4` is an allocated object there. `test/float_round_test.dart` holds the two to the same bits (special values, ties, three million random patterns), JIT and AOT. | AOT -3.5 % (467 -> 450 ms) |
+| I | `SortedHeap`: the bins hold their values as `List<Object?>` and cast on the way out; a store into a `List<V?>` checks the value against `V` every time, and the merge and the insertion shift store far more often than values are read. | AOT -3 % (453 -> 440 ms) |
 
 Tried and dropped: `d2i` with one range check and `toInt()` (20 % slower:
-`truncate()` is the intrinsic). Checked and left alone: the cooperative
+`truncate()` is the intrinsic). Reading the way context's cost variables and
+deriving the cost divisors once per link instead of once per way section
+(they cannot change inside `addAddionalPenalty`'s section loop): nothing
+measurable, and it reorders upstream's code. Checked and left alone: the cooperative
 yield already only awaits every `yieldInterval` (2000) expansions through a
 counter (`_findTrack` self time is 1-3 %, the async machinery does not show
 up); `SortedHeap`'s generic `List<V?>` stores (`Type Test OsmPath?`, 0.8 %);
@@ -734,6 +741,27 @@ Same machine and method, after R5 (`memoryclass` 128, raw cache on):
 cold, its AOT counterpart is not). JIT 4-12 % faster, AOT 10-20 % faster,
 the worker adds nothing measurable. Against the JIT-warm JVM of R4 the port
 is still 1.9-2.1x (pair-000 69 vs 33 ms, roundtrip-000 370 vs 204 ms).
+
+After steps F to I, on an arm64 Mac (M-series; the figures above are from
+the x86_64 laptop and do not compare across), AOT, medians of 9 warm runs,
+before F in parentheses:
+
+| Case | AOT direct |
+|---|---:|
+| pair-000 | 43 ms (52) |
+| pair-005 | 15 (19) |
+| triple-031 | 260 (330) |
+| nogo-000 | 45 (57) |
+| roundtrip-000 | 257 (310) |
+| roundtrip-003 | 368 (460) |
+| Funchal -> Porto Moniz | 440 (570) |
+| Reykjavik -> Keflavik | 428 (527) |
+
+18-23 % faster; the corpus is 200 of 200 identical in JIT and compiled AOT
+(`dart compile exe test/corpus_parity_test.dart`), and with `memoryclass` 64.
+What is left on top of the native profile is `processWaySection` itself
+(20 %), the direct weaving with its bit decoding (about 25 %) and the
+geometry decoding (5 %).
 
 Plan targets: the 67 km trekking route takes 0.74 s in AOT on this laptop.
 A mid-range 2023 Android SoC is roughly 2-3x slower single-threaded than

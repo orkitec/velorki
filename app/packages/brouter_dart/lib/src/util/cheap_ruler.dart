@@ -67,6 +67,7 @@ class CheapRuler {
   /// Calculate the degree->meter scale for given latitude
   ///
   /// Returns [lon->meter,lat->meter]
+  @pragma('vm:prefer-inline')
   static Float64List getLonLatToMeterScales(int ilat) {
     return _scaleCache[ilat ~/ _scaleCacheIncrement];
   }

@@ -121,6 +121,7 @@ abstract class BExpressionContext implements IByteArrayUnifier {
 
   List<String> getBuildInVariableNames();
 
+  @pragma('vm:prefer-inline')
   double getBuildInVariable(int idx) {
     return _currentVars![idx + _currentVarOffset];
   }
@@ -256,7 +257,7 @@ abstract class BExpressionContext implements IByteArrayUnifier {
 
   /// `Float.toString((val - 1000) / 100f)`.
   static String _numericValueString(int val) =>
-      javaFloatToString(f32(f32((val - 1000).toDouble()) / 100.0));
+      javaFloatToString(f32(f32(i2d((val - 1000))) / 100.0));
 
   String getKeyValueDescription(bool inverseDirection, Uint8List ab) {
     final sb = StringBuffer();
@@ -308,7 +309,7 @@ abstract class BExpressionContext implements IByteArrayUnifier {
         res = 0.0;
       }
     } else {
-      res = f32(f32((val - 1000).toDouble()) / 100.0);
+      res = f32(f32(i2d((val - 1000))) / 100.0);
     }
     return res;
   }
@@ -319,7 +320,7 @@ abstract class BExpressionContext implements IByteArrayUnifier {
     decodeInto(_lookupData, inverseDirection, ab);
     final val = _lookupData[key];
     if (val == 0) return double.nan;
-    res = f32(f32((val - 1000).toDouble()) / 100.0);
+    res = f32(f32(i2d((val - 1000))) / 100.0);
     return res;
   }
 
@@ -671,7 +672,7 @@ abstract class BExpressionContext implements IByteArrayUnifier {
                   value = value.substring(0, value.indexOf('in'));
                 }
                 inch = javaParseInt(value);
-                feet = f32(feet + f32(f32(inch.toDouble()) / 12.0));
+                feet = f32(feet + f32(f32(i2d(inch)) / 12.0));
               }
               value = javaFormatFixed(f32(feet * f32(0.3048)), 1);
             } else if (value.contains("'")) {
@@ -688,7 +689,7 @@ abstract class BExpressionContext implements IByteArrayUnifier {
                   value = value.substring(0, value.indexOf('"'));
                 }
                 inch = javaParseInt(value);
-                feet = f32(feet + f32(f32(inch.toDouble()) / 12.0));
+                feet = f32(feet + f32(f32(i2d(inch)) / 12.0));
               }
               value = javaFormatFixed(f32(feet * f32(0.3048)), 1);
             } else if (value.contains('in') || value.contains('"')) {

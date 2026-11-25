@@ -74,6 +74,7 @@ class StatCoderContext extends BitCoderContext {
 
   /// decode an unsigned integer with some of of least significant bits
   /// considered noisy
+  @pragma('vm:prefer-inline')
   int decodeNoisyNumber(int noisybits) {
     final value = decodeBits(noisybits);
     return value | shl32(decodeVarBits(), noisybits);
@@ -96,6 +97,7 @@ class StatCoderContext extends BitCoderContext {
 
   /// decode a signed integer with some of of least significant bits considered
   /// noisy
+  @pragma('vm:prefer-inline')
   int decodeNoisyDiff(int noisybits) {
     var value = 0;
     if (noisybits > 0) {

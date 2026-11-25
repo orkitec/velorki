@@ -276,6 +276,7 @@ class NodesCache {
   }
 
   /// make sure all link targets of the given node are non-hollow
+  @pragma('vm:prefer-inline')
   bool hasHollowLinkTargets(OsmNode n) {
     for (OsmLink? link = n.firstlink; link != null; link = link.getNext(n)) {
       if (link.getTarget(n).isHollow()) {

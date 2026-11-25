@@ -81,7 +81,7 @@ class SortedHeap<V> {
       // copy current minimum to target array
       final minBin = _firstNonEmpty!.getMinBin();
       alT[tp] = minBin.lv;
-      vlaT[tp++] = minBin.dropLowest();
+      vlaT[tp++] = minBin._dropLowestUntyped();
     }
 
     tp = tbin.binsize - cnt;
@@ -118,7 +118,7 @@ class SortedHeap<V> {
       final vlai = bin.vla;
       final n = bin.binsize;
       while (lpi < n) {
-        targetArray[tp++] = vlai[lpi];
+        targetArray[tp++] = vlai[lpi] as V?;
         lpi += div;
       }
       lpi -= n;
@@ -131,7 +131,7 @@ class SortedHeap<V> {
 class _SortedBin<V> {
   _SortedBin(this.binsize, this.parent)
     : al = Int32List(binsize),
-      vla = List<V?>.filled(binsize, null),
+      vla = List<Object?>.filled(binsize, null),
       lp = binsize;
 
   final SortedHeap<V> parent;
@@ -139,12 +139,29 @@ class _SortedBin<V> {
   _SortedBin<V>? nextNonEmpty;
   final int binsize;
   final Int32List al; // key array
-  final List<V?> vla; // value array
+  // Held as `Object?` (R5, step I): a store into a `List<V?>` checks the
+  // value against `V` every time, and the merge and the insertion shift
+  // store far more often than `dropLowest` and `getExtract` read. Only
+  // `add`/`add4` store values from outside, and they take a `V?`.
+  final List<Object?> vla; // value array
   int lv = 0; // low value
   int lp; // low pointer
 
   _SortedBin<V> next() {
     return _next ??= _SortedBin<V>(binsize << 1, parent);
+  }
+
+  /// [dropLowest] for the merge in `_sortUp`, bin to bin.
+  Object? _dropLowestUntyped() {
+    final lpOld = lp;
+    if (++lp == binsize) {
+      unlink();
+    } else {
+      lv = al[lp];
+    }
+    final res = vla[lpOld];
+    vla[lpOld] = null;
+    return res;
   }
 
   V? dropLowest() {
@@ -156,7 +173,7 @@ class _SortedBin<V> {
     }
     final res = vla[lpOld];
     vla[lpOld] = null;
-    return res;
+    return res as V?;
   }
 
   void unlink() {

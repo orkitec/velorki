@@ -5,29 +5,36 @@
 /// overflow or is shifted: the helpers below wrap with `toSigned(32)` and mask
 /// shift distances the way the JVM does (`& 31` for `int`, `& 63` for `long`).
 ///
-/// Java `float` is emulated with a `Float32List` round trip ([f32]). No class of
+/// Java `float` is emulated by rounding a double to float precision ([f32]). No class of
 /// the `brouter-util` / `brouter-codec` modules uses `float`; the helper exists
 /// for the later modules.
 library;
 
 import 'dart:typed_data';
 
+import 'float_round_web.dart' if (dart.library.io) 'float_round_vm.dart';
+
 /// `(int) v` for an integral value: wrap to a Java `int`.
+@pragma('vm:prefer-inline')
 int i32(int v) => v.toSigned(32);
 
 /// `(short) v`.
+@pragma('vm:prefer-inline')
 int toShort(int v) => v.toSigned(16);
 
 /// `(byte) v`.
 int toByte(int v) => v.toSigned(8);
 
 /// Java `int` `v >>> n` (the JVM masks the distance with `& 31`).
+@pragma('vm:prefer-inline')
 int ushr32(int v, int n) => ((v & 0xffffffff) >> (n & 31)).toSigned(32);
 
 /// Java `int` `v >> n`.
+@pragma('vm:prefer-inline')
 int shr32(int v, int n) => v.toSigned(32) >> (n & 31);
 
 /// Java `int` `v << n`.
+@pragma('vm:prefer-inline')
 int shl32(int v, int n) => (v << (n & 31)).toSigned(32);
 
 /// Java `long` `v >>> n`.
@@ -40,6 +47,7 @@ int shr64(int v, int n) => v >> (n & 63);
 int shl64(int v, int n) => v << (n & 63);
 
 /// Java `int` multiplication.
+@pragma('vm:prefer-inline')
 int mul32(int a, int b) => (a * b).toSigned(32);
 
 /// Java `%` on integers: the remainder takes the sign of the dividend.
@@ -62,28 +70,32 @@ const double floatMaxValue = 3.4028234663852886e38;
 const int longMaxValue = (0x7fffffff << 32 | 0xffffffff);
 const int longMinValue = -0x8000000000000000;
 
-final Float32List _f32 = Float32List(1);
-
 /// Java `float` round trip: `(double) (float) v`.
-double f32(double v) {
-  _f32[0] = v;
-  return _f32[0];
+@pragma('vm:prefer-inline')
+@pragma('wasm:prefer-inline')
+double f32(double v) => roundToFloat(v);
+
+/// The same for the hot float paths, which fetch `RoutingContext.f32buf`
+/// once per section: on the web the rounding goes through that buffer (a
+/// top-level `final` is lazily initialised and every access re-checks
+/// that), on the VM through a register and the buffer is not touched.
+extension FloatRounding on Float32List {
+  @pragma('vm:prefer-inline')
+  @pragma('wasm:prefer-inline')
+  double f32(double v) => roundToFloatVia(this, v);
 }
 
-/// The same round trip through a buffer held in a local: a top-level
-/// `final` is lazily initialised and every access re-checks that (about
-/// 1.2 ns per call in AOT, measured in R5); the hot float paths fetch
-/// `RoutingContext.f32buf` once per section instead.
-extension FloatRounding on Float32List {
-  double f32(double v) {
-    this[0] = v;
-    return this[0];
-  }
-}
+/// Java's implicit `int` -> `float`/`double` widening, for the hot paths.
+/// The same value as `v.toDouble()`, which the AOT compiler (Dart 3.13,
+/// arm64) leaves as a call that boxes the int and allocates the result;
+/// the addition is one conversion instruction.
+@pragma('vm:prefer-inline')
+double i2d(int v) => v + 0.0;
 
 /// Java `(int) d` for a double: NaN gives 0, out-of-range saturates.
 /// (The saturation checks come first: a NaN fails both, and `isNaN` on the
 /// common path was measurably slower in AOT -- R5.)
+@pragma('vm:prefer-inline')
 int d2i(double d) {
   if (d >= 2147483647.0) return intMaxValue;
   if (d <= -2147483648.0) return intMinValue;
@@ -106,6 +118,7 @@ final Float64List _bitsAsDouble = Float64List(1);
 final Int64List _bitsAsInt = Int64List.view(_bitsAsDouble.buffer);
 
 /// `Double.doubleToRawLongBits`.
+@pragma('vm:prefer-inline')
 int doubleToRawLongBits(double d) {
   _bitsAsDouble[0] = d;
   return _bitsAsInt[0];

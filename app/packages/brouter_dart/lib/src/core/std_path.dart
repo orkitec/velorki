@@ -109,7 +109,7 @@ final class StdPath extends OsmPath {
     }
 
     final dist = d2i(distance); // legacy arithmetics needs int
-    final fdist = fb.f32(dist.toDouble()); // dist promoted to float
+    final fdist = fb.f32(i2d(dist)); // dist promoted to float
 
     // penalty for turning angle
     var turncost = d2i(
@@ -218,7 +218,7 @@ final class StdPath extends OsmPath {
       message!.turnangle = fb.f32(angle);
     }
 
-    var sectionCost = turncost.toDouble();
+    var sectionCost = i2d(turncost);
 
     // *** penalty for elevation
     // only the part of the descend that does not fit into the elevation-hysteresis-buffers
@@ -228,19 +228,16 @@ final class StdPath extends OsmPath {
     // ehbd += -delta_h_micros - dist * downhillcutoff (float arithmetic, then (int))
     _ehbd = d2i(
       fb.f32(
-        fb.f32(_ehbd.toDouble()) +
+        fb.f32(i2d(_ehbd)) +
             fb.f32(
-              fb.f32((-deltaHMicros).toDouble()) -
-                  fb.f32(fdist * downhillcutoff),
+              fb.f32(i2d((-deltaHMicros))) - fb.f32(fdist * downhillcutoff),
             ),
       ),
     );
     _ehbu = d2i(
       fb.f32(
-        fb.f32(_ehbu.toDouble()) +
-            fb.f32(
-              fb.f32(deltaHMicros.toDouble()) - fb.f32(fdist * uphillcutoff),
-            ),
+        fb.f32(i2d(_ehbu)) +
+            fb.f32(fb.f32(i2d(deltaHMicros)) - fb.f32(fdist * uphillcutoff)),
       ),
     );
 
@@ -251,9 +248,7 @@ final class StdPath extends OsmPath {
       var excess = _ehbd - rc.elevationpenaltybuffer;
       var reduce = mul32(dist, rc.elevationbufferreduce);
       if (reduce > excess) {
-        downweight = fb.f32(
-          fb.f32(excess.toDouble()) / fb.f32(reduce.toDouble()),
-        );
+        downweight = fb.f32(fb.f32(i2d(excess)) / fb.f32(i2d(reduce)));
         reduce = excess;
       }
       excess = _ehbd - rc.elevationmaxbuffer;
@@ -266,11 +261,8 @@ final class StdPath extends OsmPath {
         elevationCost = fb.f32(
           elevationCost +
               fb.f32(
-                _fmin(
-                      fb.f32(reduce.toDouble()),
-                      fb.f32(fdist * downhillmaxslope),
-                    ) /
-                    fb.f32(_downhillcostdiv.toDouble()),
+                _fmin(fb.f32(i2d(reduce)), fb.f32(fdist * downhillmaxslope)) /
+                    fb.f32(i2d(_downhillcostdiv)),
               ),
         );
       }
@@ -281,11 +273,10 @@ final class StdPath extends OsmPath {
                 _fmax(
                       0.0,
                       fb.f32(
-                        fb.f32(reduce.toDouble()) -
-                            fb.f32(fdist * downhillmaxslope),
+                        fb.f32(i2d(reduce)) - fb.f32(fdist * downhillmaxslope),
                       ),
                     ) /
-                    fb.f32(downhillmaxslopecostdiv.toDouble()),
+                    fb.f32(i2d(downhillmaxslopecostdiv)),
               ),
         );
       }
@@ -293,9 +284,7 @@ final class StdPath extends OsmPath {
         sectionCost += elevationCost;
         if (message != null) {
           message!.linkelevationcost = d2i(
-            fb.f32(
-              fb.f32(message!.linkelevationcost.toDouble()) + elevationCost,
-            ),
+            fb.f32(fb.f32(i2d(message!.linkelevationcost)) + elevationCost),
           );
         }
       }
@@ -310,9 +299,7 @@ final class StdPath extends OsmPath {
       var excess = _ehbu - rc.elevationpenaltybuffer;
       var reduce = mul32(dist, rc.elevationbufferreduce);
       if (reduce > excess) {
-        upweight = fb.f32(
-          fb.f32(excess.toDouble()) / fb.f32(reduce.toDouble()),
-        );
+        upweight = fb.f32(fb.f32(i2d(excess)) / fb.f32(i2d(reduce)));
         reduce = excess;
       }
       excess = _ehbu - rc.elevationmaxbuffer;
@@ -325,11 +312,8 @@ final class StdPath extends OsmPath {
         elevationCost = fb.f32(
           elevationCost +
               fb.f32(
-                _fmin(
-                      fb.f32(reduce.toDouble()),
-                      fb.f32(fdist * uphillmaxslope),
-                    ) /
-                    fb.f32(_uphillcostdiv.toDouble()),
+                _fmin(fb.f32(i2d(reduce)), fb.f32(fdist * uphillmaxslope)) /
+                    fb.f32(i2d(_uphillcostdiv)),
               ),
         );
       }
@@ -340,11 +324,10 @@ final class StdPath extends OsmPath {
                 _fmax(
                       0.0,
                       fb.f32(
-                        fb.f32(reduce.toDouble()) -
-                            fb.f32(fdist * uphillmaxslope),
+                        fb.f32(i2d(reduce)) - fb.f32(fdist * uphillmaxslope),
                       ),
                     ) /
-                    fb.f32(uphillmaxslopecostdiv.toDouble()),
+                    fb.f32(i2d(uphillmaxslopecostdiv)),
               ),
         );
       }
@@ -352,9 +335,7 @@ final class StdPath extends OsmPath {
         sectionCost += elevationCost;
         if (message != null) {
           message!.linkelevationcost = d2i(
-            fb.f32(
-              fb.f32(message!.linkelevationcost.toDouble()) + elevationCost,
-            ),
+            fb.f32(fb.f32(i2d(message!.linkelevationcost)) + elevationCost),
           );
         }
       }

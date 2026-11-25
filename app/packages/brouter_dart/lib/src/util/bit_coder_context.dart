@@ -150,6 +150,7 @@ class BitCoderContext {
     _bits++;
   }
 
+  @pragma('vm:prefer-inline')
   bool decodeBit() {
     if (_bits == 0) {
       _bits = 8;
@@ -195,6 +196,7 @@ class BitCoderContext {
     return value;
   }
 
+  @pragma('vm:prefer-inline')
   int decodeBits(int count) {
     _fillBuffer();
     final mask = 0xffffffff >> ((32 - count) & 31); // -1 >>> (32 - count)
@@ -220,6 +222,7 @@ class BitCoderContext {
     return value;
   }
 
+  @pragma('vm:prefer-inline')
   void _fillBuffer() {
     while (_bits < 24) {
       if (_idx++ < _idxMax) {
