@@ -4,6 +4,7 @@
 //
 //   dart run tool/bench.dart [--runs N] [--only <id prefix>] [--no-worker]
 //       [--memoryclass N] [--no-rawcache] [--retain-rawcache]
+//       [--no-woven]
 //
 // Needs the two rd5 tiles (`BROUTER_SEGMENTS_DIR`, default the oracle cache)
 // and the profiles (`BROUTER_PROFILES_DIR`, default `brouter/profiles`).
@@ -100,6 +101,9 @@ Future<void> main(List<String> args) async {
         rawCacheBytes = 0;
       case '--retain-rawcache':
         retainRawCache = true;
+      case '--no-woven':
+        // The direct runs only: the worker isolate has its own statics.
+        NodesCache.disableWovenCells = true;
     }
   }
   final selected = [

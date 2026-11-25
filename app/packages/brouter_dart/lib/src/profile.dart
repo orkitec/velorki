@@ -16,6 +16,8 @@ class Prof {
 
   static final Stopwatch weave = Stopwatch();
   static int weaves = 0;
+  static final Stopwatch reweave = Stopwatch();
+  static int reweaves = 0;
 
   static final Stopwatch collect = Stopwatch();
   static int collects = 0;
@@ -41,6 +43,8 @@ class Prof {
     readHits = 0;
     weave.reset();
     weaves = 0;
+    reweave.reset();
+    reweaves = 0;
     collect.reset();
     collects = 0;
     compile.reset();
@@ -64,7 +68,8 @@ class Prof {
           '$segments findTrack passes, $expansions expansions',
       '  cell reads: $reads (${(readBytes / 1048576).toStringAsFixed(1)} MB, '
           '$readHits LRU hits) ${ms(read)}',
-      '  direct weaving: $weaves cells ${ms(weave)}',
+      '  direct weaving: $weaves cells decoded ${ms(weave)}, '
+          '$reweaves woven again ${ms(reweave)}',
       '  createPath: $paths ${ms(createPath)}',
       '  expression cache: $evalRequests requests, $evalMisses misses, '
           '$evalSame same-array hits',

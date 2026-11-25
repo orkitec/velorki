@@ -34,6 +34,7 @@ class NodesCache {
     bool detailed, {
     RawCellCache? rawCache,
   }) : _maxmemtiles = maxmem ~/ 8,
+       _maxmemwoven = maxmem ~/ 8,
        _rawCache = rawCache ?? oldCache?._rawCache,
        _segmentDir = segmentDir,
        _expCtxWay = ctxWay,
@@ -41,7 +42,8 @@ class NodesCache {
        _lookupMinorVersion = ctxWay.meta!.lookupMinorVersion,
        _forceSecondaryData = forceSecondaryData,
        _detailed = detailed,
-       _directWeaving = !disableDirectWeaving {
+       _directWeaving = !disableDirectWeaving,
+       _keepWoven = !disableWovenCells {
     nodesMap = OsmNodesMap();
     nodesMap.maxmem = (2 * maxmem) ~/ 3;
 
@@ -68,6 +70,7 @@ class NodesCache {
           if (fileRow == null) continue;
           for (final osmf in fileRow) {
             _cacheSum += osmf.setGhostState();
+            _wovenSum += osmf.getWovenSize();
           }
         }
       } else {
@@ -91,6 +94,9 @@ class NodesCache {
   /// `Boolean.getBoolean("disableDirectWeaving")`: read once per instance in
   /// the constructor, like the upstream field initialiser.
   static bool disableDirectWeaving = false;
+
+  /// `Boolean.getBoolean("disableWovenCells")`, read the same way.
+  static bool disableWovenCells = false;
 
   final Directory _segmentDir;
   Directory? _secondarySegmentsDir;
@@ -121,6 +127,10 @@ class NodesCache {
 
   int _cacheSum = 0;
   int _maxmemtiles;
+
+  // cells kept decoded for the next pass, and their share of the memory
+  int _wovenSum = 0;
+  final int _maxmemwoven;
   final bool _detailed; // NOPMD used in constructor
 
   bool _garbageCollectionEnabled = false;
@@ -131,6 +141,11 @@ class NodesCache {
   int _ghostWakeup = 0;
 
   final bool _directWeaving;
+  final bool _keepWoven;
+
+  /// The bytes of decoded cells kept for the next pass (not upstream API;
+  /// for the tests).
+  int get wovenSum => _wovenSum;
 
   String formatStatus() {
     return 'collecting=$_garbageCollectionEnabled noGhosts=$_ghostCleaningDone cacheSum=$_cacheSum cacheSumClean=$_cacheSumClean ghostSum=$_ghostSum ghostWakeup=$_ghostWakeup';
@@ -213,6 +228,7 @@ class NodesCache {
           (waypointMatcher != null &&
               (waypointMatcher as WaypointMatcherImpl).useDynamicRange)) {
         _checkEnableCacheCleaning();
+        final wovenBefore = osmf.getWovenSize();
         segment = osmf.createMicroCache(
           ilon,
           ilat,
@@ -220,7 +236,9 @@ class NodesCache {
           _expCtxWay,
           waypointMatcher,
           _directWeaving ? nodesMap : null,
+          _keepWoven && _wovenSum < _maxmemwoven,
         );
+        _wovenSum += osmf.getWovenSize() - wovenBefore;
 
         _cacheSum += segment.getDataSize();
       } else if (segment.ghost) {

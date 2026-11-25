@@ -18,6 +18,7 @@ import 'direct_weaver.dart';
 import 'osm_nodes_map.dart';
 import 'physical_file.dart';
 import 'raw_cell_cache.dart';
+import 'woven_cell.dart';
 
 /// cache for a single square
 class OsmFile {
@@ -79,6 +80,10 @@ class OsmFile {
   Int32List? _posIdx;
   List<MicroCache?>? _microCaches;
 
+  // decoded cells kept for the next pass (direct weaving only)
+  List<WovenCell?>? _wovenCells;
+  int _wovenSize = 0;
+
   int lonDegree;
   int latDegree;
 
@@ -97,6 +102,11 @@ class OsmFile {
   /// comparison).
   Int32List? get posIdx => _posIdx;
 
+  /// The memory held by the cells kept for re-weaving, in bytes.
+  int getWovenSize() {
+    return _wovenSize;
+  }
+
   bool hasData() {
     return _microCaches != null;
   }
@@ -111,15 +121,20 @@ class OsmFile {
   }
 
   /// `createMicroCache(int ilon, int ilat, DataBuffers, TagValueValidator,
-  /// WaypointMatcher, OsmNodesMap hollowNodes)`.
+  /// WaypointMatcher, OsmNodesMap hollowNodes, boolean keepWoven)`.
+  ///
+  /// [keepWoven], with direct weaving: keep what is decoded, so that the
+  /// next pass over this file weaves the cell without decoding it again. The
+  /// way validator must stay the same for the lifetime of this file.
   MicroCache createMicroCache(
     int ilon,
     int ilat,
     DataBuffers dataBuffers,
     TagValueValidator? wayValidator,
     WaypointMatcher? waypointMatcher,
-    OsmNodesMap? hollowNodes,
-  ) {
+    OsmNodesMap? hollowNodes, [
+    bool keepWoven = false,
+  ]) {
     final lonIdx = ilon ~/ _cellsize;
     final latIdx = ilat ~/ _cellsize;
     final segment = createMicroCacheForIdx(
@@ -130,6 +145,7 @@ class OsmFile {
       waypointMatcher,
       true,
       hollowNodes,
+      keepWoven,
     )!;
     final subIdx =
         (latIdx - _divisor * latDegree) * _divisor +
@@ -187,11 +203,29 @@ class OsmFile {
     TagValueValidator? wayValidator,
     WaypointMatcher? waypointMatcher,
     bool reallyDecode,
-    OsmNodesMap? hollowNodes,
-  ) {
+    OsmNodesMap? hollowNodes, [
+    bool keepWoven = false,
+  ]) {
     final subIdx =
         (latIdx - _divisor * latDegree) * _divisor +
         (lonIdx - _divisor * lonDegree);
+
+    // a cell that was decoded before is woven from its recording. Not while
+    // matching waypoints: the matcher wants every transfer node.
+    final weaveOnly =
+        reallyDecode && hollowNodes != null && waypointMatcher == null;
+    if (weaveOnly) {
+      final cell = _wovenCells?[subIdx];
+      if (cell != null) {
+        if (kProfile) {
+          Prof.reweave.start();
+          Prof.reweaves++;
+        }
+        DirectWeaver.fromWovenCell(cell, hollowNodes);
+        if (kProfile) Prof.reweave.stop();
+        return MicroCache.emptyNonVirgin;
+      }
+    }
 
     var ab = dataBuffers.iobuffer;
     var asize = getDataInputForSubIdx(subIdx, ab);
@@ -225,6 +259,7 @@ class OsmFile {
         Prof.weave.start();
         Prof.weaves++;
       }
+      final woven = keepWoven && weaveOnly ? WovenCell() : null;
       DirectWeaver(
         bc,
         dataBuffers,
@@ -234,7 +269,15 @@ class OsmFile {
         wayValidator,
         waypointMatcher,
         hollowNodes,
+        woven,
       );
+      if (woven != null) {
+        (_wovenCells ??= List<WovenCell?>.filled(
+          _microCaches!.length,
+          null,
+        ))[subIdx] = woven;
+        _wovenSize += woven.getDataSize();
+      }
       if (kProfile) Prof.weave.stop();
       return MicroCache.emptyNonVirgin;
     } finally {

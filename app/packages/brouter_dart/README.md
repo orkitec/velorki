@@ -35,6 +35,13 @@ which Dart file and where the two had to differ. Keep it that way:
 * **Profiles are part of the pin.** They are served in place from
   `brouter/profiles/`, so an upstream profile change is adopted deliberately
   and shows up in the corpus like any other change.
+* **One change is ahead of the pin.** `WovenCell` and what `DirectWeaver`,
+  `OsmFile` and `NodesCache` do with it (track R5, step J) are the port of
+  upstream pull request abrensch/brouter#1015, which no release has yet.
+  The output is the same with and without it. When a release carries it,
+  compare the Java there with these files and take upstream's version; if
+  upstream turns it down, it stays here as the one deliberate difference,
+  behind `NodesCache.disableWovenCells`.
 * **The watch does the noticing.** `.github/workflows/brouter-upstream.yml`
   checks weekly for a newer release, replays the corpus against it and opens
   one issue with the diff. It never moves the pin.
@@ -706,6 +713,7 @@ pass1 and the re-tracking pass per segment -- 740 253 expansions, 862 089
 | G | `i2d(int)` (`v + 0.0`, jvm.dart) instead of `int.toDouble()` in `processWaySection`, `addAddionalPenalty`, `CheapAngleMeter` and `BExpressionContext`: Dart 3.13 AOT on arm64 compiles `toDouble()` to a call of `_Double.fromInteger` that boxes the int and heap-allocates the result (20 calls per way section), the addition to one `scvtf`. Same value for every int. | AOT -5 % (506 -> 481 ms) |
 | H | `f32` rounds through a SIMD lane on the VM (`Float32x4.splat(v).x`, float_round_vm.dart), which stays in registers, where the `Float32List` store and load went through memory; the web build keeps the list (float_round_web.dart, picked by `dart.library.io`), because `Float32x4` is an allocated object there. `test/float_round_test.dart` holds the two to the same bits (special values, ties, three million random patterns), JIT and AOT. | AOT -3.5 % (467 -> 450 ms) |
 | I | `SortedHeap`: the bins hold their values as `List<Object?>` and cast on the way out; a store into a `List<V?>` checks the value against `V` every time, and the merge and the insertion shift store far more often than values are read. | AOT -3 % (453 -> 440 ms) |
+| J | Ahead of the pin: `WovenCell` (woven_cell.dart), the port of upstream pull request abrensch/brouter#1015. A route runs several passes, each with its own node graph, and `DirectWeaver` decoded a cell again for every pass that touched it. It now writes down what it decodes (numbers in an `Int32List`, node descriptions, way tags and geometries in an object list) and `DirectWeaver.fromWovenCell` weaves the cell from that; `OsmFile` keeps the recordings, which live as long as `NodesCache` hands the file on (same detail mode only), bounded by `maxmem / 8`. Cells read while waypoints are matched are neither recorded nor replayed. `NodesCache.disableWovenCells` (`--no-woven` in the bench) switches it off. Weaving a cell again costs about a ninth of decoding it; what remains is each cell's first decoding per detail mode and the waypoint matching. `test/woven_cell_test.dart` compares the graphs node by node with and without. | AOT 0 to -13 % (Madeira 67 km 462 -> 438 ms, the 3.6 km pair 43 -> 40, the Madeira round trip 262 -> 229; the Iceland cases 0 to -1.5 %) |
 
 Tried and dropped: `d2i` with one range check and `toInt()` (20 % slower:
 `truncate()` is the intrinsic). Reading the way context's cost variables and
@@ -757,7 +765,8 @@ before F in parentheses:
 | Funchal -> Porto Moniz | 440 (570) |
 | Reykjavik -> Keflavik | 428 (527) |
 
-18-23 % faster; the corpus is 200 of 200 identical in JIT and compiled AOT
+18-23 % faster (step J, measured after this table, takes off up to another
+13 %); the corpus is 200 of 200 identical in JIT and compiled AOT
 (`dart compile exe test/corpus_parity_test.dart`), and with `memoryclass` 64.
 What is left on top of the native profile is `processWaySection` itself
 (20 %), the direct weaving with its bit decoding (about 25 %) and the

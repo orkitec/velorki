@@ -85,6 +85,7 @@ export 'src/mapaccess/raw_cell_cache.dart';
 export 'src/mapaccess/rd5_diff_tool.dart';
 export 'src/mapaccess/turn_restriction.dart';
 export 'src/mapaccess/waypoint_matcher_impl.dart';
+export 'src/mapaccess/woven_cell.dart';
 export 'src/util/bit_coder_context.dart';
 export 'src/util/byte_array_unifier.dart';
 export 'src/util/byte_data_reader.dart';
